@@ -1,0 +1,63 @@
+#include "components.h"
+
+ECS_COMPONENT_DECLARE(GameState);
+ECS_COMPONENT_DECLARE(PlayerId);
+ECS_COMPONENT_DECLARE(Owner);
+ECS_COMPONENT_DECLARE(BaseStats);
+ECS_COMPONENT_DECLARE(CurStats);
+ECS_COMPONENT_DECLARE(TapState);
+ECS_COMPONENT_DECLARE(Element);
+ECS_COMPONENT_DECLARE(GatePoints);
+ECS_COMPONENT_DECLARE(IKZCost);
+
+ECS_ENTITY_DECLARE(Rel_InZone);
+ECS_ENTITY_DECLARE(Rel_OwnedBy);
+
+/* Card Type Tags */
+ECS_TAG_DECLARE(TLeader);
+ECS_TAG_DECLARE(TGate);
+ECS_TAG_DECLARE(TEntity);
+ECS_TAG_DECLARE(TWeapon);
+ECS_TAG_DECLARE(TSpell);
+ECS_TAG_DECLARE(TIKZ);
+
+/* Board Zone Tags */
+ECS_TAG_DECLARE(ZDeck);
+ECS_TAG_DECLARE(ZHand);
+ECS_TAG_DECLARE(ZGarden);
+ECS_TAG_DECLARE(ZAlley);
+ECS_TAG_DECLARE(ZIKZPileTag);
+ECS_TAG_DECLARE(ZIKZAreaTag);
+ECS_TAG_DECLARE(ZDiscard);
+
+void azk_register_components(ecs_world_t *world) {
+  ECS_COMPONENT_DECLARE(world, GameState);
+  ECS_COMPONENT_DECLARE(world, PlayerId);
+  ECS_COMPONENT_DECLARE(world, Owner);
+  ECS_COMPONENT_DECLARE(world, BaseStats);
+  ECS_COMPONENT_DECLARE(world, CurStats);
+  ECS_COMPONENT_DECLARE(world, TapState);
+  ECS_COMPONENT_DECLARE(world, Element);
+  ECS_COMPONENT_DECLARE(world, GatePoints);
+  ECS_COMPONENT_DECLARE(world, IKZCost);
+
+  ECS_ENTITY_DECLARE(world, Rel_InZone, 0);
+  ECS_ENTITY_DECLARE(world, Rel_OwnedBy, 0);
+
+  /* Card Type Tags */
+  ECS_TAG_DECLARE(world, TLeader);
+  ECS_TAG_DECLARE(world, TGate);
+  ECS_TAG_DECLARE(world, TEntity);
+  ECS_TAG_DECLARE(world, TWeapon);
+  ECS_TAG_DECLARE(world, TSpell);
+  ECS_TAG_DECLARE(world, TIKZ);
+
+  /* Board Zone Tags */
+  ECS_TAG_DECLARE(world, ZDeck);
+  ECS_TAG_DECLARE(world, ZHand);
+  ECS_TAG_DECLARE(world, ZGarden);
+  ECS_TAG_DECLARE(world, ZAlley);
+  ECS_TAG_DECLARE(world, ZIKZPileTag);
+  ECS_TAG_DECLARE(world, ZIKZAreaTag);
+  ECS_TAG_DECLARE(world, ZDiscard);
+}
