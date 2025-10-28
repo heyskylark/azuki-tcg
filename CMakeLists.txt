@@ -31,4 +31,7 @@ else()
   target_link_libraries(azuki PRIVATE flecs)
 endif()
 
-target_include_directories(azuki PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_include_directories(azuki PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/src
+)

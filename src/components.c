@@ -29,31 +29,31 @@ ECS_TAG_DECLARE(ZIKZAreaTag);
 ECS_TAG_DECLARE(ZDiscard);
 
 void azk_register_components(ecs_world_t *world) {
-  ECS_COMPONENT_DECLARE(world, GameState);
-  ECS_COMPONENT_DECLARE(world, PlayerId);
-  ECS_COMPONENT_DECLARE(world, Owner);
-  ECS_COMPONENT_DECLARE(world, BaseStats);
-  ECS_COMPONENT_DECLARE(world, CurStats);
-  ECS_COMPONENT_DECLARE(world, TapState);
-  ECS_COMPONENT_DECLARE(world, Element);
-  ECS_COMPONENT_DECLARE(world, GatePoints);
-  ECS_COMPONENT_DECLARE(world, IKZCost);
+  ECS_COMPONENT_DEFINE(world, GameState);
+  ECS_COMPONENT_DEFINE(world, PlayerId);
+  ECS_COMPONENT_DEFINE(world, Owner);
+  ECS_COMPONENT_DEFINE(world, BaseStats);
+  ECS_COMPONENT_DEFINE(world, CurStats);
+  ECS_COMPONENT_DEFINE(world, TapState);
+  ECS_COMPONENT_DEFINE(world, Element);
+  ECS_COMPONENT_DEFINE(world, GatePoints);
+  ECS_COMPONENT_DEFINE(world, IKZCost);
 
-  ECS_ENTITY_DECLARE(world, Rel_InZone, 0);
-  ECS_ENTITY_DECLARE(world, Rel_OwnedBy, 0);
+  ECS_ENTITY_DEFINE(world, Rel_InZone, 0);
+  ECS_ENTITY_DEFINE(world, Rel_OwnedBy, 0);
 
-  ECS_TAG_DECLARE(world, TLeader);
-  ECS_TAG_DECLARE(world, TGate);
-  ECS_TAG_DECLARE(world, TEntity);
-  ECS_TAG_DECLARE(world, TWeapon);
-  ECS_TAG_DECLARE(world, TSpell);
-  ECS_TAG_DECLARE(world, TIKZ);
+  ECS_TAG_DEFINE(world, TLeader);
+  ECS_TAG_DEFINE(world, TGate);
+  ECS_TAG_DEFINE(world, TEntity);
+  ECS_TAG_DEFINE(world, TWeapon);
+  ECS_TAG_DEFINE(world, TSpell);
+  ECS_TAG_DEFINE(world, TIKZ);
 
-  ECS_TAG_DECLARE(world, ZDeck);
-  ECS_TAG_DECLARE(world, ZHand);
-  ECS_TAG_DECLARE(world, ZGarden);
-  ECS_TAG_DECLARE(world, ZAlley);
-  ECS_TAG_DECLARE(world, ZIKZPileTag);
-  ECS_TAG_DECLARE(world, ZIKZAreaTag);
-  ECS_TAG_DECLARE(world, ZDiscard);
+  ECS_TAG_DEFINE(world, ZDeck);
+  ECS_TAG_DEFINE(world, ZHand);
+  ECS_TAG_DEFINE(world, ZGarden);
+  ECS_TAG_DEFINE(world, ZAlley);
+  ECS_TAG_DEFINE(world, ZIKZPileTag);
+  ECS_TAG_DEFINE(world, ZIKZAreaTag);
+  ECS_TAG_DEFINE(world, ZDiscard);
 }
