@@ -1,0 +1,12 @@
+#ifndef CONSTANTS_GAME_H
+#define CONSTANTS_GAME_H
+
+#define MAX_PLAYERS_PER_MATCH 2;
+#define MAX_DECK_SIZE 50;
+#define MAX_HAND_SIZE 30;
+#define GARDEN_SIZE 5;
+#define ALLEY_SIZE 5;
+#define IKZ_PILE_SIZE 10;
+#define IKZ_AREA_SIZE 10;
+
+#endif

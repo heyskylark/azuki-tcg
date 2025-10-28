@@ -5,15 +5,14 @@
 #include <flecs.h>
 
 typedef enum {
-  PHASE_PREGAME_MULLIGAN_P0 = 0,
-  PHASE_PREGAME_MULLIGAN_P1 = 1,
-  PHASE_START_OF_TURN = 2,
-  PHASE_MAIN = 3,
-  PHASE_COMBAT_DECLARED = 4,
-  PHASE_RESPONSE_WINDOW = 5,
-  PHASE_COMBAT_RESOLVE = 6,
-  PHASE_END_TURN = 7,
-  PHASE_END_MATCH = 8
+  PHASE_PREGAME_MULLIGAN = 0,
+  PHASE_START_OF_TURN = 1,
+  PHASE_MAIN = 2,
+  PHASE_COMBAT_DECLARED = 3,
+  PHASE_RESPONSE_WINDOW = 4,
+  PHASE_COMBAT_RESOLVE = 5,
+  PHASE_END_TURN = 6,
+  PHASE_END_MATCH = 7
 } Phase;
 
 typedef enum {
@@ -29,7 +28,13 @@ typedef enum {
   ACT_MULLIGAN_SHUFFLE = 12
 } ActionType;
 
-typedef struct { uint32_t seed; int8_t active; uint8_t phase; uint8_t response_window; int8_t winner; } GameState;
+typedef struct { 
+  uint32_t seed;
+  int8_t active;
+  uint8_t phase;
+  uint8_t response_window;
+  int8_t winner;
+} GameState;
 typedef struct { uint8_t pid; } PlayerId;
 typedef struct { ecs_entity_t player; } Owner;
 typedef struct { int8_t attack, health; } BaseStats;
@@ -49,6 +54,7 @@ extern ECS_COMPONENT_DECLARE(Element);
 extern ECS_COMPONENT_DECLARE(GatePoints);
 extern ECS_COMPONENT_DECLARE(IKZCost);
 
+/* Relationship Entities */
 extern ECS_ENTITY_DECLARE(Rel_InZone);
 extern ECS_ENTITY_DECLARE(Rel_OwnedBy);
 
@@ -63,6 +69,8 @@ extern ECS_TAG_DECLARE(TIKZ);
 /* Board Zone Tags */
 extern ECS_TAG_DECLARE(ZDeck);
 extern ECS_TAG_DECLARE(ZHand);
+extern ECS_TAG_DECLARE(ZLeader);
+extern ECS_TAG_DECLARE(ZGate);
 extern ECS_TAG_DECLARE(ZGarden);
 extern ECS_TAG_DECLARE(ZAlley);
 extern ECS_TAG_DECLARE(ZIKZPileTag);

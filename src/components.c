@@ -13,7 +13,6 @@ ECS_COMPONENT_DECLARE(IKZCost);
 ECS_ENTITY_DECLARE(Rel_InZone);
 ECS_ENTITY_DECLARE(Rel_OwnedBy);
 
-/* Card Type Tags */
 ECS_TAG_DECLARE(TLeader);
 ECS_TAG_DECLARE(TGate);
 ECS_TAG_DECLARE(TEntity);
@@ -21,7 +20,6 @@ ECS_TAG_DECLARE(TWeapon);
 ECS_TAG_DECLARE(TSpell);
 ECS_TAG_DECLARE(TIKZ);
 
-/* Board Zone Tags */
 ECS_TAG_DECLARE(ZDeck);
 ECS_TAG_DECLARE(ZHand);
 ECS_TAG_DECLARE(ZGarden);
@@ -44,7 +42,6 @@ void azk_register_components(ecs_world_t *world) {
   ECS_ENTITY_DECLARE(world, Rel_InZone, 0);
   ECS_ENTITY_DECLARE(world, Rel_OwnedBy, 0);
 
-  /* Card Type Tags */
   ECS_TAG_DECLARE(world, TLeader);
   ECS_TAG_DECLARE(world, TGate);
   ECS_TAG_DECLARE(world, TEntity);
@@ -52,7 +49,6 @@ void azk_register_components(ecs_world_t *world) {
   ECS_TAG_DECLARE(world, TSpell);
   ECS_TAG_DECLARE(world, TIKZ);
 
-  /* Board Zone Tags */
   ECS_TAG_DECLARE(world, ZDeck);
   ECS_TAG_DECLARE(world, ZHand);
   ECS_TAG_DECLARE(world, ZGarden);
