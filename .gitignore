@@ -1,3 +1,4 @@
 .codex
 .codexignore
+__pycache__
 build
