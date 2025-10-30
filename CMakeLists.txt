@@ -21,18 +21,33 @@ file(GLOB_RECURSE AZUKI_SOURCES CONFIGURE_DEPENDS
   ${CMAKE_CURRENT_SOURCE_DIR}/src/*.c
 )
 
-add_executable(azuki ${AZUKI_SOURCES})
+set(AZUKI_MAIN ${CMAKE_CURRENT_SOURCE_DIR}/src/main.c)
+set(AZUKI_LIB_SOURCES ${AZUKI_SOURCES})
+list(REMOVE_ITEM AZUKI_LIB_SOURCES ${AZUKI_MAIN})
 
-# Link against the imported target if available, otherwise the alias we set up
-if(TARGET flecs::flecs)
-  target_link_libraries(azuki PRIVATE flecs::flecs)
-else()
-  # Fallback if package config exported a different canonical target name
-  # Adjust if your environment provides a different target.
-  target_link_libraries(azuki PRIVATE flecs)
-endif()
+add_library(azuki_lib ${AZUKI_LIB_SOURCES})
 
-target_include_directories(azuki PRIVATE
+target_include_directories(azuki_lib PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
+
+# Link against the imported target if available, otherwise the alias we set up
+if(TARGET flecs::flecs)
+  target_link_libraries(azuki_lib PUBLIC flecs::flecs)
+else()
+  # Fallback if package config exported a different canonical target name
+  # Adjust if your environment provides a different target.
+  target_link_libraries(azuki_lib PUBLIC flecs)
+endif()
+
+add_executable(azuki ${AZUKI_MAIN})
+target_link_libraries(azuki PRIVATE azuki_lib)
+
+enable_testing()
+
+add_executable(world_tests
+  tests/test_world.c
+)
+target_link_libraries(world_tests PRIVATE azuki_lib)
+add_test(NAME world_tests COMMAND world_tests)

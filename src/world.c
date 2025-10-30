@@ -255,8 +255,12 @@ static void register_card(
   }
 
   for (size_t index = 0; index < count; index++) {
+    // Give each card instance a unique name so Flecs doesn't reuse existing entities
+    char entity_name[64];
+    snprintf(entity_name, sizeof(entity_name), "%s_%zu", def->card_id, index + 1);
     ecs_entity_t card = ecs_entity_init(world, &(ecs_entity_desc_t){
-      .name = def->card_id,
+      .name = entity_name,
+      .sep = "",
     });
 
     apply_card_type_tag(world, card, def->type);
