@@ -1,6 +1,9 @@
 #include "world.h"
 #include "constants/game.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+
 static const CardInfo shaoDeckCardInfo[18] = {
   { .card_id = CARD_DEF_STT02_001, .card_count = 1 },
   { .card_id = CARD_DEF_STT02_002, .card_count = 1 },
@@ -20,7 +23,7 @@ static const CardInfo shaoDeckCardInfo[18] = {
   { .card_id = CARD_DEF_STT02_016, .card_count = 2 },
   { .card_id = CARD_DEF_STT02_017, .card_count = 2 },
   { .card_id = CARD_DEF_IKZ_001, .card_count = 10 },
-}
+};
 
 static const CardInfo raizenDeckCardInfo[18] = {
   { .card_id = CARD_DEF_STT01_001, .card_count = 1 },
@@ -41,7 +44,15 @@ static const CardInfo raizenDeckCardInfo[18] = {
   { .card_id = CARD_DEF_STT01_016, .card_count = 2 },
   { .card_id = CARD_DEF_STT01_017, .card_count = 4 },
   { .card_id = CARD_DEF_IKZ_001, .card_count = 10 },
-}
+};
+
+static void register_card(
+  ecs_world_t *world,
+  ecs_entity_t player,
+  CardDefId card_id,
+  uint8_t count,
+  PlayerZones *zones
+);
 
 static ecs_entity_t make_player_board_zone(
   ecs_world_t *world,
@@ -63,42 +74,43 @@ static void init_all_player_zones(
   WorldRef *ref
 ) {
   char zname[32];
-  snprintf(zname, sizeof(zname), "Deck_P%d", p);
+  snprintf(zname, sizeof(zname), "Deck_P%d", player_number);
   ref->zones[player_number].deck = make_player_board_zone(world, player, zname, ZDeck);
 
-  snprintf(zname, sizeof(zname), "Hand_P%d", p);
+  snprintf(zname, sizeof(zname), "Hand_P%d", player_number);
   ref->zones[player_number].hand = make_player_board_zone(world, player, zname, ZHand);
 
-  snprintf(zname, sizeof(zname), "Leader_P%d", p);
+  snprintf(zname, sizeof(zname), "Leader_P%d", player_number);
   ref->zones[player_number].leader = make_player_board_zone(world, player, zname, ZLeader);
   
-  snprintf(zname, sizeof(zname), "Gate_P%d", p);
+  snprintf(zname, sizeof(zname), "Gate_P%d", player_number);
   ref->zones[player_number].gate = make_player_board_zone(world, player, zname, ZGate);
 
-  snprintf(zname, sizeof(zname), "Garden_P%d", p);
+  snprintf(zname, sizeof(zname), "Garden_P%d", player_number);
   ref->zones[player_number].garden = make_player_board_zone(world, player, zname, ZGarden);
 
-  snprintf(zname, sizeof(zname), "Alley_P%d", p);
+  snprintf(zname, sizeof(zname), "Alley_P%d", player_number);
   ref->zones[player_number].alley = make_player_board_zone(world, player, zname, ZAlley);
 
-  snprinf(zname, sizeof(zname), "IKZPile_P%d", p);
+  snprintf(zname, sizeof(zname), "IKZPile_P%d", player_number);
   ref->zones[player_number].ikz_pile = make_player_board_zone(world, player, zname, ZIKZPileTag);
 
-  snprinf(zname, sizeof(zname), "IKZArea_P%d", p);
+  snprintf(zname, sizeof(zname), "IKZArea_P%d", player_number);
   ref->zones[player_number].ikz_area = make_player_board_zone(world, player, zname, ZIKZAreaTag);
 
-  snprinf(zname, sizeof(zname), "Discard_P%d", p);
+  snprintf(zname, sizeof(zname), "Discard_P%d", player_number);
   ref->zones[player_number].discard = make_player_board_zone(world, player, zname, ZDiscard);
 }
 
-static void random_deck_type(uint32_t seed) {
-  return (DeckType)(rand_r(&seed) % 2);
+static DeckType random_deck_type(unsigned int *state) {
+  return (DeckType)(rand_r(state) % 2);
 }
 
 ecs_world_t* azk_world_init(uint32_t seed) {
   ecs_world_t *world = ecs_init();
   azk_register_components(world);
   WorldRef ref = {0};
+  unsigned int rng_state = seed;
 
   ecs_add_id(world, ecs_id(GameState), EcsSingleton);
   ecs_singleton_set(
@@ -110,8 +122,7 @@ ecs_world_t* azk_world_init(uint32_t seed) {
       .phase = PHASE_PREGAME_MULLIGAN,
       .response_window = 0,
       .winner = -1
-    }
-  )
+    });
 
   for (int p=0; p<MAX_PLAYERS_PER_MATCH; p++) {
     ecs_entity_t player = ecs_new(world);
@@ -122,14 +133,15 @@ ecs_world_t* azk_world_init(uint32_t seed) {
 
     init_all_player_zones(world, player, p, &ref);
 
-    DeckType deck_type = random_deck_type(seed);
+    DeckType deck_type = random_deck_type(&rng_state);
     init_player_deck(world, player, deck_type, &ref.zones[p]);
   }
 
   ecs_add_id(world, ecs_id(WorldRef), EcsSingleton);
-  ecs_singleton_set(world, WorldRef, &ref);
+  ecs_singleton_set_ptr(world, WorldRef, &ref);
 
   // TODO: Init all systems and pipelines here?
+  return world;
 }
 
 void azk_world_fini(ecs_world_t *world) {
@@ -144,13 +156,25 @@ void init_player_deck(
 ) {
   switch (deck_type) {
   case RAIZEN:
-    for (size_t index = 0; index < 18; index++) {
-      register_card(world, player, raizenDeckCardInfo[index].card_id, raizenDeckCardInfo[index].card_count, zones);
+    for (size_t index = 0; index < (sizeof(raizenDeckCardInfo) / sizeof(raizenDeckCardInfo[0])); index++) {
+      register_card(
+        world,
+        player,
+        raizenDeckCardInfo[index].card_id,
+        (uint8_t)raizenDeckCardInfo[index].card_count,
+        zones
+      );
     }
     break;
   case SHAO:
-    for (size_t index = 0; index < 18; index++) {
-      register_card(world, player, shaoDeckCardInfo[index].card_id, shaoDeckCardInfo[index].card_count, zones);
+    for (size_t index = 0; index < (sizeof(shaoDeckCardInfo) / sizeof(shaoDeckCardInfo[0])); index++) {
+      register_card(
+        world,
+        player,
+        shaoDeckCardInfo[index].card_id,
+        (uint8_t)shaoDeckCardInfo[index].card_count,
+        zones
+      );
     }
     break;
   }

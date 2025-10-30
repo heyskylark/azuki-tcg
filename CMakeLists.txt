@@ -17,11 +17,11 @@ if(NOT flecs_FOUND)
   endif()
 endif()
 
-add_executable(azuki
-  src/main.c
-  src/components.c
-  src/world.c
+file(GLOB_RECURSE AZUKI_SOURCES CONFIGURE_DEPENDS
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/*.c
 )
+
+add_executable(azuki ${AZUKI_SOURCES})
 
 # Link against the imported target if available, otherwise the alias we set up
 if(TARGET flecs::flecs)

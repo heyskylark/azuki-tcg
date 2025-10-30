@@ -17,6 +17,6 @@ typedef struct {
 
 ecs_world_t* azk_world_init(uint32_t seed);
 void azk_world_fini(ecs_world_t *world);
-void init_player_deck(ecs_world_t *world, ecs_entity_t player, DeckType deck_type);
+void init_player_deck(ecs_world_t *world, ecs_entity_t player, DeckType deck_type, PlayerZones *zones);
 
 #endif

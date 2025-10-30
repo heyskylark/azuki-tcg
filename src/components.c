@@ -23,6 +23,8 @@ ECS_TAG_DECLARE(TIKZ);
 
 ECS_TAG_DECLARE(ZDeck);
 ECS_TAG_DECLARE(ZHand);
+ECS_TAG_DECLARE(ZLeader);
+ECS_TAG_DECLARE(ZGate);
 ECS_TAG_DECLARE(ZGarden);
 ECS_TAG_DECLARE(ZAlley);
 ECS_TAG_DECLARE(ZIKZPileTag);
@@ -41,8 +43,33 @@ void azk_register_components(ecs_world_t *world) {
   ECS_COMPONENT_DEFINE(world, GatePoints);
   ECS_COMPONENT_DEFINE(world, IKZCost);
 
-  ECS_ENTITY_DEFINE(world, Rel_InZone, EcsUnion);
-  ECS_ENTITY_DEFINE(world, Rel_OwnedBy, EcsRelation | EcsAcyclic);
+  {
+    ecs_entity_desc_t desc = {
+      .name = "Rel_InZone",
+      .add = (ecs_id_t[]){
+        EcsRelationship,
+        EcsExclusive,
+        0
+      }
+    };
+    Rel_InZone = ecs_entity_init(world, &desc);
+    ecs_assert(Rel_InZone != 0, ECS_INVALID_PARAMETER, "failed to create entity Rel_InZone");
+    ecs_id(Rel_InZone) = Rel_InZone;
+  }
+
+  {
+    ecs_entity_desc_t desc = {
+      .name = "Rel_OwnedBy",
+      .add = (ecs_id_t[]){
+        EcsRelationship,
+        EcsAcyclic,
+        0
+      }
+    };
+    Rel_OwnedBy = ecs_entity_init(world, &desc);
+    ecs_assert(Rel_OwnedBy != 0, ECS_INVALID_PARAMETER, "failed to create entity Rel_OwnedBy");
+    ecs_id(Rel_OwnedBy) = Rel_OwnedBy;
+  }
 
   ECS_TAG_DEFINE(world, TLeader);
   ECS_TAG_DEFINE(world, TGate);
@@ -53,6 +80,8 @@ void azk_register_components(ecs_world_t *world) {
 
   ECS_TAG_DEFINE(world, ZDeck);
   ECS_TAG_DEFINE(world, ZHand);
+  ECS_TAG_DEFINE(world, ZLeader);
+  ECS_TAG_DEFINE(world, ZGate);
   ECS_TAG_DEFINE(world, ZGarden);
   ECS_TAG_DEFINE(world, ZAlley);
   ECS_TAG_DEFINE(world, ZIKZPileTag);
