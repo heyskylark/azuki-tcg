@@ -1,6 +1,48 @@
 #include "world.h"
 #include "constants/game.h"
 
+static const CardInfo shaoDeckCardInfo[18] = {
+  { .card_id = CARD_DEF_STT02_001, .card_count = 1 },
+  { .card_id = CARD_DEF_STT02_002, .card_count = 1 },
+  { .card_id = CARD_DEF_STT02_003, .card_count = 4 },
+  { .card_id = CARD_DEF_STT02_004, .card_count = 4 },
+  { .card_id = CARD_DEF_STT02_005, .card_count = 4 },
+  { .card_id = CARD_DEF_STT02_006, .card_count = 4 },
+  { .card_id = CARD_DEF_STT02_007, .card_count = 4 },
+  { .card_id = CARD_DEF_STT02_008, .card_count = 4 },
+  { .card_id = CARD_DEF_STT02_009, .card_count = 4 },
+  { .card_id = CARD_DEF_STT02_010, .card_count = 2 },
+  { .card_id = CARD_DEF_STT02_011, .card_count = 4 },
+  { .card_id = CARD_DEF_STT02_012, .card_count = 4 },
+  { .card_id = CARD_DEF_STT02_013, .card_count = 2 },
+  { .card_id = CARD_DEF_STT02_014, .card_count = 2 },
+  { .card_id = CARD_DEF_STT02_015, .card_count = 4 },
+  { .card_id = CARD_DEF_STT02_016, .card_count = 2 },
+  { .card_id = CARD_DEF_STT02_017, .card_count = 2 },
+  { .card_id = CARD_DEF_IKZ_001, .card_count = 10 },
+}
+
+static const CardInfo raizenDeckCardInfo[18] = {
+  { .card_id = CARD_DEF_STT01_001, .card_count = 1 },
+  { .card_id = CARD_DEF_STT01_002, .card_count = 1 },
+  { .card_id = CARD_DEF_STT01_003, .card_count = 4 },
+  { .card_id = CARD_DEF_STT01_004, .card_count = 4 },
+  { .card_id = CARD_DEF_STT01_005, .card_count = 4 },
+  { .card_id = CARD_DEF_STT01_006, .card_count = 2 },
+  { .card_id = CARD_DEF_STT01_007, .card_count = 4 },
+  { .card_id = CARD_DEF_STT01_008, .card_count = 4 },
+  { .card_id = CARD_DEF_STT01_009, .card_count = 4 },
+  { .card_id = CARD_DEF_STT01_010, .card_count = 2 },
+  { .card_id = CARD_DEF_STT01_011, .card_count = 2 },
+  { .card_id = CARD_DEF_STT01_012, .card_count = 4 },
+  { .card_id = CARD_DEF_STT01_013, .card_count = 4 },
+  { .card_id = CARD_DEF_STT01_014, .card_count = 4 },
+  { .card_id = CARD_DEF_STT01_015, .card_count = 2 },
+  { .card_id = CARD_DEF_STT01_016, .card_count = 2 },
+  { .card_id = CARD_DEF_STT01_017, .card_count = 4 },
+  { .card_id = CARD_DEF_IKZ_001, .card_count = 10 },
+}
+
 static ecs_entity_t make_player_board_zone(
   ecs_world_t *world,
   ecs_entity_t player,
@@ -17,40 +59,46 @@ static ecs_entity_t make_player_board_zone(
 static void init_all_player_zones(
   ecs_world_t *world,
   ecs_entity_t player,
-  uint8_t player_number
+  uint8_t player_number,
+  WorldRef *ref
 ) {
   char zname[32];
   snprintf(zname, sizeof(zname), "Deck_P%d", p);
-  make_player_board_zone(world, player, zname, ZDeck);
+  ref->zones[player_number].deck = make_player_board_zone(world, player, zname, ZDeck);
 
   snprintf(zname, sizeof(zname), "Hand_P%d", p);
-  make_player_board_zone(world, player, zname, ZHand);
+  ref->zones[player_number].hand = make_player_board_zone(world, player, zname, ZHand);
 
   snprintf(zname, sizeof(zname), "Leader_P%d", p);
-  make_player_board_zone(world, player, zname, ZLeader);
+  ref->zones[player_number].leader = make_player_board_zone(world, player, zname, ZLeader);
   
   snprintf(zname, sizeof(zname), "Gate_P%d", p);
-  make_player_board_zone(world, player, zname, ZGate);
+  ref->zones[player_number].gate = make_player_board_zone(world, player, zname, ZGate);
 
   snprintf(zname, sizeof(zname), "Garden_P%d", p);
-  make_player_board_zone(world, player, zname, ZGarden);
+  ref->zones[player_number].garden = make_player_board_zone(world, player, zname, ZGarden);
 
   snprintf(zname, sizeof(zname), "Alley_P%d", p);
-  make_player_board_zone(world, player, zname, ZAlley);
+  ref->zones[player_number].alley = make_player_board_zone(world, player, zname, ZAlley);
 
   snprinf(zname, sizeof(zname), "IKZPile_P%d", p);
-  make_player_board_zone(world, player, zname, ZIKZPileTag);
+  ref->zones[player_number].ikz_pile = make_player_board_zone(world, player, zname, ZIKZPileTag);
 
   snprinf(zname, sizeof(zname), "IKZArea_P%d", p);
-  make_player_board_zone(world, player, zname, ZIKZAreaTag);
+  ref->zones[player_number].ikz_area = make_player_board_zone(world, player, zname, ZIKZAreaTag);
 
   snprinf(zname, sizeof(zname), "Discard_P%d", p);
-  make_player_board_zone(world, player, zname, ZDiscard);
+  ref->zones[player_number].discard = make_player_board_zone(world, player, zname, ZDiscard);
+}
+
+static void random_deck_type(uint32_t seed) {
+  return (DeckType)(rand_r(&seed) % 2);
 }
 
 ecs_world_t* azk_world_init(uint32_t seed) {
   ecs_world_t *world = ecs_init();
   azk_register_components(world);
+  WorldRef ref = {0};
 
   ecs_add_id(world, ecs_id(GameState), EcsSingleton);
   ecs_singleton_set(
@@ -70,15 +118,142 @@ ecs_world_t* azk_world_init(uint32_t seed) {
     char pname[16]; snprintf(pname, sizeof(pname), "Player%d", p);
     ecs_set_name(world, player, pname);
     ecs_set(world, player, PlayerId, { (uint8_t)p });
+    ref.players[p] = player;
 
-    init_all_player_zones(world, player, p);
+    init_all_player_zones(world, player, p, &ref);
 
-    // TODO: Init all deck, leader, gate, and IKZ pile cards here?
+    DeckType deck_type = random_deck_type(seed);
+    init_player_deck(world, player, deck_type, &ref.zones[p]);
   }
+
+  ecs_add_id(world, ecs_id(WorldRef), EcsSingleton);
+  ecs_singleton_set(world, WorldRef, &ref);
 
   // TODO: Init all systems and pipelines here?
 }
 
 void azk_world_fini(ecs_world_t *world) {
   ecs_fini(world);
+}
+
+void init_player_deck(
+  ecs_world_t *world,
+  ecs_entity_t player,
+  DeckType deck_type,
+  PlayerZones *zones
+) {
+  switch (deck_type) {
+  case RAIZEN:
+    for (size_t index = 0; index < 18; index++) {
+      register_card(world, player, raizenDeckCardInfo[index].card_id, raizenDeckCardInfo[index].card_count, zones);
+    }
+    break;
+  case SHAO:
+    for (size_t index = 0; index < 18; index++) {
+      register_card(world, player, shaoDeckCardInfo[index].card_id, shaoDeckCardInfo[index].card_count, zones);
+    }
+    break;
+  }
+}
+
+static void apply_card_type_tag(ecs_world_t *world, ecs_entity_t entity, CardType type) {
+  switch (type) {
+  case CARD_TYPE_LEADER:
+    ecs_add(world, entity, TLeader);
+    break;
+  case CARD_TYPE_GATE:
+    ecs_add(world, entity, TGate);
+    break;
+  case CARD_TYPE_ENTITY:
+    ecs_add(world, entity, TEntity);
+    break;
+  case CARD_TYPE_WEAPON:
+    ecs_add(world, entity, TWeapon);
+    break;
+  case CARD_TYPE_SPELL:
+    ecs_add(world, entity, TSpell);
+    break;
+  case CARD_TYPE_IKZ:
+    ecs_add(world, entity, TIKZ);
+    break;
+  default:
+    fprintf(stderr, "Error: Unknown CardType %d\n", type);
+    exit(EXIT_FAILURE);
+    break;
+  }
+}
+
+// TODO: I think i need to use a zone entity created above per player, it'll affect querying alter on.
+// Need to use the zones created in line 46.
+static void apply_card_zone_relationship(
+  ecs_world_t *world,
+  ecs_entity_t card,
+  CardType type,
+  PlayerZones *zones
+) {
+  switch (type) {
+  case CARD_TYPE_LEADER:
+    ecs_add_pair(world, card, Rel_InZone, zones->leader);
+    break;
+  case CARD_TYPE_GATE:
+    ecs_add_pair(world, card, Rel_InZone, zones->gate);
+    break;
+  case CARD_TYPE_ENTITY:
+    ecs_add_pair(world, card, Rel_InZone, zones->deck);
+    break;
+  case CARD_TYPE_WEAPON:
+    ecs_add_pair(world, card, Rel_InZone, zones->deck);
+    break;
+  case CARD_TYPE_SPELL:
+    ecs_add_pair(world, card, Rel_InZone, zones->deck);
+    break;
+  case CARD_TYPE_IKZ:
+    ecs_add_pair(world, card, Rel_InZone, zones->ikz_pile);
+    break;
+  default:
+    fprintf(stderr, "Error: Unknown CardType %d\n", type);
+    exit(EXIT_FAILURE);
+    break;
+  }
+}
+
+static void register_card(
+  ecs_world_t *world,
+  ecs_entity_t player,
+  CardDefId card_id,
+  uint8_t count,
+  PlayerZones *zones
+) {
+  const CardDef *def = azk_card_def_from_id(card_id);
+  if (!def) {
+    fprintf(stderr, "Error: Failed to look up CardDef for id %d\n", card_id);
+    exit(EXIT_FAILURE);
+  }
+
+  for (size_t index = 0; index < count; index++) {
+    ecs_entity_t card = ecs_entity_init(world, &(ecs_entity_desc_t){
+      .name = def->card_id,
+    });
+
+    apply_card_type_tag(world, card, def->type);
+
+    Element element_component = { .element = (uint8_t)def->element };
+    ecs_set_ptr(world, card, Element, &element_component);
+
+    if (def->has_base_stats) {
+      ecs_set_ptr(world, card, BaseStats, &def->base_stats);
+    }
+
+    if (def->has_gate_points) {
+      ecs_set_ptr(world, card, GatePoints, &def->gate_points);
+    }
+
+    if (def->has_ikz_cost) {
+      ecs_set_ptr(world, card, IKZCost, &def->ikz_cost);
+    }
+
+    apply_card_zone_relationship(world, card, def->type, zones);
+
+    ecs_add_pair(world, card, Rel_OwnedBy, player);
+  }
 }

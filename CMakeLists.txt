@@ -20,6 +20,7 @@ endif()
 add_executable(azuki
   src/main.c
   src/components.c
+  src/world.c
 )
 
 # Link against the imported target if available, otherwise the alias we set up

@@ -28,6 +28,14 @@ typedef enum {
   ACT_MULLIGAN_SHUFFLE = 12
 } ActionType;
 
+typedef struct {
+  ecs_entity_t deck, hand, leader, gate, garden, alley, ikz_pile, ikz_area, discard;
+} PlayerZones;
+
+typedef struct {
+  ecs_entity_t players[2];
+  PlayerZones zones[2];
+} WorldRef;
 typedef struct { 
   uint32_t seed;
   int8_t active;
@@ -44,6 +52,7 @@ typedef struct { uint8_t element; } Element;
 typedef struct { uint8_t gate_points; } GatePoints;
 typedef struct { int8_t ikz_cost; } IKZCost;
 
+extern ECS_COMPONENT_DECLARE(WorldRef);
 extern ECS_COMPONENT_DECLARE(GameState);
 extern ECS_COMPONENT_DECLARE(PlayerId);
 extern ECS_COMPONENT_DECLARE(Owner);

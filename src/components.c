@@ -1,5 +1,6 @@
 #include "components.h"
 
+ECS_COMPONENT_DECLARE(WorldRef);
 ECS_COMPONENT_DECLARE(GameState);
 ECS_COMPONENT_DECLARE(PlayerId);
 ECS_COMPONENT_DECLARE(Owner);
@@ -29,6 +30,7 @@ ECS_TAG_DECLARE(ZIKZAreaTag);
 ECS_TAG_DECLARE(ZDiscard);
 
 void azk_register_components(ecs_world_t *world) {
+  ECS_COMPONENT_DEFINE(world, WorldRef);
   ECS_COMPONENT_DEFINE(world, GameState);
   ECS_COMPONENT_DEFINE(world, PlayerId);
   ECS_COMPONENT_DEFINE(world, Owner);
@@ -39,8 +41,8 @@ void azk_register_components(ecs_world_t *world) {
   ECS_COMPONENT_DEFINE(world, GatePoints);
   ECS_COMPONENT_DEFINE(world, IKZCost);
 
-  ECS_ENTITY_DEFINE(world, Rel_InZone, 0);
-  ECS_ENTITY_DEFINE(world, Rel_OwnedBy, 0);
+  ECS_ENTITY_DEFINE(world, Rel_InZone, EcsUnion);
+  ECS_ENTITY_DEFINE(world, Rel_OwnedBy, EcsRelation | EcsAcyclic);
 
   ECS_TAG_DEFINE(world, TLeader);
   ECS_TAG_DEFINE(world, TGate);
