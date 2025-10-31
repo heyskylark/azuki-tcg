@@ -39,10 +39,11 @@ typedef struct {
 typedef struct { 
   uint32_t seed;
   int8_t active;
-  uint8_t phase;
+  Phase phase;
   uint8_t response_window;
   int8_t winner;
 } GameState;
+typedef struct { uint8_t player_number; } PlayerNumber;
 typedef struct { uint8_t pid; } PlayerId;
 typedef struct { ecs_entity_t player; } Owner;
 typedef struct { int8_t attack, health; } BaseStats;
@@ -54,6 +55,7 @@ typedef struct { int8_t ikz_cost; } IKZCost;
 
 extern ECS_COMPONENT_DECLARE(WorldRef);
 extern ECS_COMPONENT_DECLARE(GameState);
+extern ECS_COMPONENT_DECLARE(PlayerNumber);
 extern ECS_COMPONENT_DECLARE(PlayerId);
 extern ECS_COMPONENT_DECLARE(Owner);
 extern ECS_COMPONENT_DECLARE(BaseStats);

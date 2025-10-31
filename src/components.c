@@ -2,6 +2,7 @@
 
 ECS_COMPONENT_DECLARE(WorldRef);
 ECS_COMPONENT_DECLARE(GameState);
+ECS_COMPONENT_DECLARE(PlayerNumber);
 ECS_COMPONENT_DECLARE(PlayerId);
 ECS_COMPONENT_DECLARE(Owner);
 ECS_COMPONENT_DECLARE(BaseStats);
@@ -34,6 +35,7 @@ ECS_TAG_DECLARE(ZDiscard);
 void azk_register_components(ecs_world_t *world) {
   ECS_COMPONENT_DEFINE(world, WorldRef);
   ECS_COMPONENT_DEFINE(world, GameState);
+  ECS_COMPONENT_DEFINE(world, PlayerNumber);
   ECS_COMPONENT_DEFINE(world, PlayerId);
   ECS_COMPONENT_DEFINE(world, Owner);
   ECS_COMPONENT_DEFINE(world, BaseStats);

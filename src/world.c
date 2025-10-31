@@ -128,6 +128,7 @@ ecs_world_t* azk_world_init(uint32_t seed) {
     ecs_entity_t player = ecs_new(world);
     char pname[16]; snprintf(pname, sizeof(pname), "Player%d", p);
     ecs_set_name(world, player, pname);
+    ecs_set(world, player, PlayerNumber, { (uint8_t)p });
     ecs_set(world, player, PlayerId, { (uint8_t)p });
     ref.players[p] = player;
 
@@ -141,6 +142,7 @@ ecs_world_t* azk_world_init(uint32_t seed) {
   ecs_singleton_set_ptr(world, WorldRef, &ref);
 
   // TODO: Init all systems and pipelines here?
+  
   return world;
 }
 
