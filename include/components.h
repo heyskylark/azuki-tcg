@@ -38,7 +38,7 @@ typedef struct {
 } WorldRef;
 typedef struct { 
   uint32_t seed;
-  int8_t active;
+  int8_t active_player_number;
   Phase phase;
   uint8_t response_window;
   int8_t winner;
@@ -87,6 +87,16 @@ extern ECS_TAG_DECLARE(ZAlley);
 extern ECS_TAG_DECLARE(ZIKZPileTag);
 extern ECS_TAG_DECLARE(ZIKZAreaTag);
 extern ECS_TAG_DECLARE(ZDiscard);
+
+/* System Phase Tags */
+extern ECS_TAG_DECLARE(TMulligan);
+extern ECS_TAG_DECLARE(TStartOfTurn);
+extern ECS_TAG_DECLARE(TMain);
+extern ECS_TAG_DECLARE(TCombatDeclared);
+extern ECS_TAG_DECLARE(TResponseWindow);
+extern ECS_TAG_DECLARE(TCombatResolve);
+extern ECS_TAG_DECLARE(TEndTurn);
+extern ECS_TAG_DECLARE(TEndMatch);
 
 void azk_register_components(ecs_world_t *world);
 

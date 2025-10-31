@@ -1,5 +1,6 @@
 #include "world.h"
 #include "constants/game.h"
+#include "systems/main.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -118,7 +119,7 @@ ecs_world_t* azk_world_init(uint32_t seed) {
     GameState,
     {
       .seed = seed,
-      .active = 0,
+      .active_player_number = 0,
       .phase = PHASE_PREGAME_MULLIGAN,
       .response_window = 0,
       .winner = -1
@@ -141,8 +142,8 @@ ecs_world_t* azk_world_init(uint32_t seed) {
   ecs_add_id(world, ecs_id(WorldRef), EcsSingleton);
   ecs_singleton_set_ptr(world, WorldRef, &ref);
 
-  // TODO: Init all systems and pipelines here?
-  
+  init_all_system(world);
+
   return world;
 }
 

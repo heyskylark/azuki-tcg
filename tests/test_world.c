@@ -121,7 +121,7 @@ static void test_azk_world_init_sets_game_state(void) {
   assert(gs != NULL);
   assert(gs->seed == seed);
   assert(gs->phase == PHASE_PREGAME_MULLIGAN);
-  assert(gs->active == 0);
+  assert(gs->active_player_number == 0);
   assert(gs->response_window == 0);
   assert(gs->winner == -1);
 
