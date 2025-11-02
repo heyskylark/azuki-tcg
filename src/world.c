@@ -258,7 +258,9 @@ static void register_card(
   for (size_t index = 0; index < count; index++) {
     // Give each card instance a unique name so Flecs doesn't reuse existing entities
     char entity_name[64];
-    snprintf(entity_name, sizeof(entity_name), "%s_%zu", def->card_id, index + 1);
+    const PlayerNumber *pnum = ecs_get(world, player, PlayerNumber);
+    uint8_t player_number = pnum ? pnum->player_number : 0;
+    snprintf(entity_name, sizeof(entity_name), "%s_P%u_%zu", def->card_id, player_number, index + 1);
     ecs_entity_t card = ecs_entity_init(world, &(ecs_entity_desc_t){
       .name = entity_name,
       .sep = "",

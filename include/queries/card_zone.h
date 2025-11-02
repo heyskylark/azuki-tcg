@@ -4,6 +4,6 @@
 #include <flecs.h>
 
 void init_card_zone_queries(ecs_world_t *world);
-ecs_iter_t get_cards_owned_by_player_in_zone(ecs_world_t *world, ecs_entity_t player, ecs_entity_t zone);
+ecs_iter_t get_cards_owned_by_player_in_zone(ecs_world_t *world, ecs_entity_t zone);
 
 #endif
