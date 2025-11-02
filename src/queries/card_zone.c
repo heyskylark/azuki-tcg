@@ -1,52 +1,45 @@
 #include <flecs.h>
+#include <limits.h>
 #include "queries/card_zone.h"
 #include "components.h"
 
-static int compare_zone_index_desc(
-  ecs_entity_t e1,
-  const void *v1,
-  ecs_entity_t e2,
-  const void *v2
-) {
-  const ZoneIndex *zi1 = v1;
-  const ZoneIndex *zi2 = v2;
-
-  return zi1->value - zi2->value;
-}
-
-static ecs_query_t *cards_owned_by_player_in_zone;
-
 void init_card_zone_queries(ecs_world_t *world) {
-  cards_owned_by_player_in_zone = ecs_query(world, {
-    .terms = {
-      // { ecs_id(BaseStats) },
-      // { ecs_id(TapState) },
-      // { ecs_id(Element) },
-      // { ecs_id(GatePoints) },
-      // { ecs_id(IKZCost) },
-      // { ecs_id(ZoneIndex) },
-      {
-        .first.id = ecs_id(Rel_InZone),
-        .second = {
-          .name = "$Zone",
-        }
-      },
-    },
-    .order_by = ecs_id(ZoneIndex),
-    .order_by_callback = compare_zone_index_desc,
-  });
+  (void)world;
 }
 
-ecs_iter_t get_cards_owned_by_player_in_zone(
+bool get_top_card_in_zone(
   ecs_world_t *world,
-  ecs_entity_t zone
+  ecs_entity_t zone,
+  ecs_entity_t *out_card,
+  int *out_count
 ) {
-  ecs_assert(cards_owned_by_player_in_zone != NULL, ECS_INVALID_PARAMETER, "cards_owned_by_player_in_zone query not initialized");
+  int total = 0;
+  int best_index = INT_MAX;
+  ecs_entity_t best_card = 0;
 
-  int32_t zone_var = ecs_query_find_var(cards_owned_by_player_in_zone, "Zone");
-  
-  ecs_iter_t it = ecs_query_iter(world, cards_owned_by_player_in_zone);
-  ecs_iter_set_var(&it, zone_var, zone);
+  ecs_iter_t it = ecs_each_id(world, ecs_pair(Rel_InZone, zone));
+  while (ecs_each_next(&it)) {
+    for (int i = 0; i < it.count; i++) {
+      ecs_entity_t entity = it.entities[i];
+      const ZoneIndex *zone_index = ecs_get(world, entity, ZoneIndex);
+      if (!zone_index) {
+        continue;
+      }
+      total++;
+      if (zone_index->value < best_index) {
+        best_index = zone_index->value;
+        best_card = entity;
+      }
+    }
+  }
+  ecs_iter_fini(&it);
 
-  return it;
+  if (out_count) {
+    *out_count = total;
+  }
+  if (out_card) {
+    *out_card = best_card;
+  }
+
+  return best_card != 0;
 }

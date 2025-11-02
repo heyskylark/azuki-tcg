@@ -53,18 +53,17 @@ typedef struct {
   PlayerZones zones[MAX_PLAYERS_PER_MATCH];
 } WorldRef;
 
-static void register_card(
-  ecs_world_t *world,
-  ecs_entity_t player,
-  CardDefId card_id,
-  uint8_t count,
-  PlayerZones *zones
-);
-
 typedef struct {
   ecs_entity_t zone;
   uint16_t *size;
 } ZonePlacement;
+
+typedef struct {
+  uint16_t deck_size;
+  uint16_t leader_size;
+  uint16_t gate_size;
+  uint16_t ikz_pile_size;
+} TotalZoneCounts;
 
 static ZonePlacement zone_placement_for_type(PlayerZones *zones, CardType type) {
   switch (type) {
@@ -183,38 +182,6 @@ void azk_world_fini(ecs_world_t *world) {
   ecs_fini(world);
 }
 
-void init_player_deck(
-  ecs_world_t *world,
-  ecs_entity_t player,
-  DeckType deck_type,
-  PlayerZones *zones
-) {
-  switch (deck_type) {
-  case RAIZEN:
-    for (size_t index = 0; index < (sizeof(raizenDeckCardInfo) / sizeof(raizenDeckCardInfo[0])); index++) {
-      register_card(
-        world,
-        player,
-        raizenDeckCardInfo[index].card_id,
-        (uint8_t)raizenDeckCardInfo[index].card_count,
-        zones
-      );
-    }
-    break;
-  case SHAO:
-    for (size_t index = 0; index < (sizeof(shaoDeckCardInfo) / sizeof(shaoDeckCardInfo[0])); index++) {
-      register_card(
-        world,
-        player,
-        shaoDeckCardInfo[index].card_id,
-        (uint8_t)shaoDeckCardInfo[index].card_count,
-        zones
-      );
-    }
-    break;
-  }
-}
-
 static void apply_card_type_tag(ecs_world_t *world, ecs_entity_t entity, CardType type) {
   switch (type) {
   case CARD_TYPE_LEADER:
@@ -247,7 +214,8 @@ static void register_card(
   ecs_entity_t player,
   CardDefId card_id,
   uint8_t count,
-  PlayerZones *zones
+  PlayerZones *zones,
+  TotalZoneCounts *total_counts
 ) {
   const CardDef *def = azk_card_def_from_id(card_id);
   if (!def) {
@@ -287,6 +255,17 @@ static void register_card(
     ecs_assert(placement.zone != 0, ECS_INVALID_PARAMETER, "card zone not found");
     ecs_add_pair(world, card, Rel_InZone, placement.zone);
 
+    // Used for validating the final card distribution sizes
+    if (ecs_has_id(world, placement.zone, ZLeader)) {
+      total_counts->leader_size++;
+    } else if (ecs_has_id(world, placement.zone, ZGate)) {
+      total_counts->gate_size++;
+    } else if (ecs_has_id(world, placement.zone, ZIKZPileTag)) {
+      total_counts->ikz_pile_size++;
+    } else if (ecs_has_id(world, placement.zone, ZDeck)) {
+      total_counts->deck_size++;
+    }
+
     int16_t slot = 0;
     if (placement.size != NULL) {
       slot = (int16_t)(*placement.size);
@@ -297,3 +276,59 @@ static void register_card(
     ecs_add_pair(world, card, Rel_OwnedBy, player);
   }
 }
+
+void init_player_deck(
+  ecs_world_t *world,
+  ecs_entity_t player,
+  DeckType deck_type,
+  PlayerZones *zones
+) {
+  TotalZoneCounts total_counts = {0};
+
+  switch (deck_type) {
+  case RAIZEN:
+    for (size_t index = 0; index < (sizeof(raizenDeckCardInfo) / sizeof(raizenDeckCardInfo[0])); index++) {
+      register_card(
+        world,
+        player,
+        raizenDeckCardInfo[index].card_id,
+        (uint8_t)raizenDeckCardInfo[index].card_count,
+        zones,
+        &total_counts
+      );
+    }
+    break;
+  case SHAO:
+    for (size_t index = 0; index < (sizeof(shaoDeckCardInfo) / sizeof(shaoDeckCardInfo[0])); index++) {
+      register_card(
+        world,
+        player,
+        shaoDeckCardInfo[index].card_id,
+        (uint8_t)shaoDeckCardInfo[index].card_count,
+        zones,
+        &total_counts
+      );
+    }
+    break;
+  }
+
+  // Validate the final card distribution sizes
+  if (total_counts.deck_size < REQUIRED_DECK_SIZE) {
+    fprintf(stderr, "Error: Deck size is less than required (%d < %d)\n", total_counts.deck_size, REQUIRED_DECK_SIZE);
+    exit(EXIT_FAILURE);
+  }
+  if (total_counts.leader_size < REQUIRED_LEADER_SIZE) {
+    fprintf(stderr, "Error: Leader size is less than required (%d < %d)\n", total_counts.leader_size, REQUIRED_LEADER_SIZE);
+    exit(EXIT_FAILURE);
+  }
+  if (total_counts.gate_size < REQUIRED_GATE_SIZE) {
+    fprintf(stderr, "Error: Gate size is less than required (%d < %d)\n", total_counts.gate_size, REQUIRED_GATE_SIZE);
+    exit(EXIT_FAILURE);
+  }
+  if (total_counts.ikz_pile_size < REQUIRED_IKZ_PILE_SIZE) {
+    fprintf(stderr, "Error: IKZ pile size is less than required (%d < %d)\n", total_counts.ikz_pile_size, REQUIRED_IKZ_PILE_SIZE);
+    exit(EXIT_FAILURE);
+  }
+}
+
+
