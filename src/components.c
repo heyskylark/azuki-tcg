@@ -1,16 +1,15 @@
 #include "components.h"
 
-ECS_COMPONENT_DECLARE(WorldRef);
 ECS_COMPONENT_DECLARE(GameState);
 ECS_COMPONENT_DECLARE(PlayerNumber);
 ECS_COMPONENT_DECLARE(PlayerId);
-ECS_COMPONENT_DECLARE(Owner);
 ECS_COMPONENT_DECLARE(BaseStats);
 ECS_COMPONENT_DECLARE(CurStats);
 ECS_COMPONENT_DECLARE(TapState);
 ECS_COMPONENT_DECLARE(Element);
 ECS_COMPONENT_DECLARE(GatePoints);
 ECS_COMPONENT_DECLARE(IKZCost);
+ECS_COMPONENT_DECLARE(ZoneIndex);
 
 ECS_ENTITY_DECLARE(Rel_InZone);
 ECS_ENTITY_DECLARE(Rel_OwnedBy);
@@ -42,17 +41,16 @@ ECS_TAG_DECLARE(TEndTurn);
 ECS_TAG_DECLARE(TEndMatch);
 
 void azk_register_components(ecs_world_t *world) {
-  ECS_COMPONENT_DEFINE(world, WorldRef);
   ECS_COMPONENT_DEFINE(world, GameState);
   ECS_COMPONENT_DEFINE(world, PlayerNumber);
   ECS_COMPONENT_DEFINE(world, PlayerId);
-  ECS_COMPONENT_DEFINE(world, Owner);
   ECS_COMPONENT_DEFINE(world, BaseStats);
   ECS_COMPONENT_DEFINE(world, CurStats);
   ECS_COMPONENT_DEFINE(world, TapState);
   ECS_COMPONENT_DEFINE(world, Element);
   ECS_COMPONENT_DEFINE(world, GatePoints);
   ECS_COMPONENT_DEFINE(world, IKZCost);
+  ECS_COMPONENT_DEFINE(world, ZoneIndex);
 
   {
     ecs_entity_desc_t desc = {

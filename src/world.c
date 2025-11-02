@@ -1,6 +1,7 @@
 #include "world.h"
 #include "constants/game.h"
 #include "systems/main.h"
+#include "queries/main.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,6 +48,11 @@ static const CardInfo raizenDeckCardInfo[18] = {
   { .card_id = CARD_DEF_IKZ_001, .card_count = 10 },
 };
 
+typedef struct {
+  ecs_entity_t players[MAX_PLAYERS_PER_MATCH];
+  PlayerZones zones[MAX_PLAYERS_PER_MATCH];
+} WorldRef;
+
 static void register_card(
   ecs_world_t *world,
   ecs_entity_t player,
@@ -54,6 +60,31 @@ static void register_card(
   uint8_t count,
   PlayerZones *zones
 );
+
+typedef struct {
+  ecs_entity_t zone;
+  uint16_t *size;
+} ZonePlacement;
+
+static ZonePlacement zone_placement_for_type(PlayerZones *zones, CardType type) {
+  switch (type) {
+  case CARD_TYPE_LEADER:
+    return (ZonePlacement){ zones->leader, &zones->leader_size };
+  case CARD_TYPE_GATE:
+    return (ZonePlacement){ zones->gate, &zones->gate_size };
+  case CARD_TYPE_ENTITY:
+    return (ZonePlacement){ zones->deck, &zones->deck_size };
+  case CARD_TYPE_WEAPON:
+    return (ZonePlacement){ zones->deck, &zones->deck_size };
+  case CARD_TYPE_SPELL:
+    return (ZonePlacement){ zones->deck, &zones->deck_size };
+  case CARD_TYPE_IKZ:
+    return (ZonePlacement){ zones->ikz_pile, &zones->ikz_pile_size };
+  default:
+    fprintf(stderr, "Error: Unknown CardType %d\n", type);
+    exit(EXIT_FAILURE);
+  }
+}
 
 static ecs_entity_t make_player_board_zone(
   ecs_world_t *world,
@@ -114,17 +145,15 @@ ecs_world_t* azk_world_init(uint32_t seed) {
   unsigned int rng_state = seed;
 
   ecs_add_id(world, ecs_id(GameState), EcsSingleton);
-  ecs_singleton_set(
-    world,
-    GameState,
-    {
-      .seed = seed,
-      .active_player_number = 0,
-      .phase = PHASE_PREGAME_MULLIGAN,
-      .response_window = 0,
-      .winner = -1
-    });
+  GameState gs = {
+    .seed = seed,
+    .active_player_index = 0,
+    .phase = PHASE_PREGAME_MULLIGAN,
+    .response_window = 0,
+    .winner = -1,
+  };
 
+  ecs_entity_t players[MAX_PLAYERS_PER_MATCH];
   for (int p=0; p<MAX_PLAYERS_PER_MATCH; p++) {
     ecs_entity_t player = ecs_new(world);
     char pname[16]; snprintf(pname, sizeof(pname), "Player%d", p);
@@ -137,11 +166,14 @@ ecs_world_t* azk_world_init(uint32_t seed) {
 
     DeckType deck_type = random_deck_type(&rng_state);
     init_player_deck(world, player, deck_type, &ref.zones[p]);
+
+    gs.players[p] = player;
+    gs.zones[p] = ref.zones[p];
   }
 
-  ecs_add_id(world, ecs_id(WorldRef), EcsSingleton);
-  ecs_singleton_set_ptr(world, WorldRef, &ref);
+  ecs_singleton_set_ptr(world, GameState, &gs);
 
+  init_all_queries(world);
   init_all_system(world);
 
   return world;
@@ -210,40 +242,6 @@ static void apply_card_type_tag(ecs_world_t *world, ecs_entity_t entity, CardTyp
   }
 }
 
-// TODO: I think i need to use a zone entity created above per player, it'll affect querying alter on.
-// Need to use the zones created in line 46.
-static void apply_card_zone_relationship(
-  ecs_world_t *world,
-  ecs_entity_t card,
-  CardType type,
-  PlayerZones *zones
-) {
-  switch (type) {
-  case CARD_TYPE_LEADER:
-    ecs_add_pair(world, card, Rel_InZone, zones->leader);
-    break;
-  case CARD_TYPE_GATE:
-    ecs_add_pair(world, card, Rel_InZone, zones->gate);
-    break;
-  case CARD_TYPE_ENTITY:
-    ecs_add_pair(world, card, Rel_InZone, zones->deck);
-    break;
-  case CARD_TYPE_WEAPON:
-    ecs_add_pair(world, card, Rel_InZone, zones->deck);
-    break;
-  case CARD_TYPE_SPELL:
-    ecs_add_pair(world, card, Rel_InZone, zones->deck);
-    break;
-  case CARD_TYPE_IKZ:
-    ecs_add_pair(world, card, Rel_InZone, zones->ikz_pile);
-    break;
-  default:
-    fprintf(stderr, "Error: Unknown CardType %d\n", type);
-    exit(EXIT_FAILURE);
-    break;
-  }
-}
-
 static void register_card(
   ecs_world_t *world,
   ecs_entity_t player,
@@ -283,7 +281,16 @@ static void register_card(
       ecs_set_ptr(world, card, IKZCost, &def->ikz_cost);
     }
 
-    apply_card_zone_relationship(world, card, def->type, zones);
+    ZonePlacement placement = zone_placement_for_type(zones, def->type);
+    ecs_assert(placement.zone != 0, ECS_INVALID_PARAMETER, "card zone not found");
+    ecs_add_pair(world, card, Rel_InZone, placement.zone);
+
+    int16_t slot = 0;
+    if (placement.size != NULL) {
+      slot = (int16_t)(*placement.size);
+      (*placement.size)++;
+    }
+    ecs_set(world, card, ZoneIndex, { .value = slot });
 
     ecs_add_pair(world, card, Rel_OwnedBy, player);
   }

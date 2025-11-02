@@ -113,6 +113,39 @@ static void assert_card_components(
   }
 }
 
+static ecs_entity_t find_player_by_pid(ecs_world_t *world, uint8_t pid_value) {
+  ecs_iter_t it = ecs_each_id(world, ecs_id(PlayerId));
+  while (ecs_each_next(&it)) {
+    for (int i = 0; i < it.count; i++) {
+      ecs_entity_t entity = it.entities[i];
+      const PlayerId *pid = ecs_get(world, entity, PlayerId);
+      if (pid && pid->pid == pid_value) {
+        return entity;
+      }
+    }
+  }
+
+  return 0;
+}
+
+static ecs_entity_t find_zone_for_player(
+  ecs_world_t *world,
+  ecs_entity_t player,
+  ecs_entity_t zone_tag
+) {
+  ecs_iter_t it = ecs_each_id(world, ecs_pair(Rel_OwnedBy, player));
+  while (ecs_each_next(&it)) {
+    for (int i = 0; i < it.count; i++) {
+      ecs_entity_t entity = it.entities[i];
+      if (ecs_has_id(world, entity, zone_tag)) {
+        return entity;
+      }
+    }
+  }
+
+  return 0;
+}
+
 static void test_azk_world_init_sets_game_state(void) {
   const uint32_t seed = 1234;
   ecs_world_t *world = azk_world_init(seed);
@@ -121,20 +154,32 @@ static void test_azk_world_init_sets_game_state(void) {
   assert(gs != NULL);
   assert(gs->seed == seed);
   assert(gs->phase == PHASE_PREGAME_MULLIGAN);
-  assert(gs->active_player_number == 0);
+  assert(gs->active_player_index == 0);
   assert(gs->response_window == 0);
   assert(gs->winner == -1);
 
-  const WorldRef *ref = ecs_singleton_get(world, WorldRef);
-  assert(ref != NULL);
+  bool seen[MAX_PLAYERS_PER_MATCH] = { false };
+
+  ecs_iter_t it = ecs_each_id(world, ecs_id(PlayerId));
+  while (ecs_each_next(&it)) {
+    for (int i = 0; i < it.count; i++) {
+      ecs_entity_t entity = it.entities[i];
+      const PlayerId *pid_comp = ecs_get(world, entity, PlayerId);
+      if (!pid_comp) {
+        continue;
+      }
+      uint8_t pid = pid_comp->pid;
+      assert(pid < MAX_PLAYERS_PER_MATCH);
+      seen[pid] = true;
+
+      const PlayerNumber *pnum = ecs_get(world, entity, PlayerNumber);
+      assert(pnum != NULL);
+      assert(pnum->player_number == pid);
+    }
+  }
 
   for (int player_index = 0; player_index < MAX_PLAYERS_PER_MATCH; player_index++) {
-    ecs_entity_t player = ref->players[player_index];
-    assert(player != 0);
-
-    const PlayerId *pid = ecs_get(world, player, PlayerId);
-    assert(pid != NULL);
-    assert(pid->pid == player_index);
+    assert(seen[player_index]);
   }
 
   azk_world_fini(world);
@@ -157,41 +202,48 @@ static void assert_zone_properties(
 
 static void test_world_init_creates_player_zones(void) {
   ecs_world_t *world = azk_world_init(77);
-  const WorldRef *ref = ecs_singleton_get(world, WorldRef);
-  assert(ref != NULL);
 
   for (int player_index = 0; player_index < MAX_PLAYERS_PER_MATCH; player_index++) {
-    ecs_entity_t player = ref->players[player_index];
+    ecs_entity_t player = find_player_by_pid(world, (uint8_t)player_index);
     assert(player != 0);
 
     char expected[32];
 
+    ecs_entity_t deck = find_zone_for_player(world, player, ZDeck);
     snprintf(expected, sizeof(expected), "Deck_P%d", player_index);
-    assert_zone_properties(world, ref->zones[player_index].deck, ZDeck, expected, player);
+    assert_zone_properties(world, deck, ZDeck, expected, player);
 
+    ecs_entity_t hand = find_zone_for_player(world, player, ZHand);
     snprintf(expected, sizeof(expected), "Hand_P%d", player_index);
-    assert_zone_properties(world, ref->zones[player_index].hand, ZHand, expected, player);
+    assert_zone_properties(world, hand, ZHand, expected, player);
 
+    ecs_entity_t leader = find_zone_for_player(world, player, ZLeader);
     snprintf(expected, sizeof(expected), "Leader_P%d", player_index);
-    assert_zone_properties(world, ref->zones[player_index].leader, ZLeader, expected, player);
+    assert_zone_properties(world, leader, ZLeader, expected, player);
 
+    ecs_entity_t gate = find_zone_for_player(world, player, ZGate);
     snprintf(expected, sizeof(expected), "Gate_P%d", player_index);
-    assert_zone_properties(world, ref->zones[player_index].gate, ZGate, expected, player);
+    assert_zone_properties(world, gate, ZGate, expected, player);
 
+    ecs_entity_t garden = find_zone_for_player(world, player, ZGarden);
     snprintf(expected, sizeof(expected), "Garden_P%d", player_index);
-    assert_zone_properties(world, ref->zones[player_index].garden, ZGarden, expected, player);
+    assert_zone_properties(world, garden, ZGarden, expected, player);
 
+    ecs_entity_t alley = find_zone_for_player(world, player, ZAlley);
     snprintf(expected, sizeof(expected), "Alley_P%d", player_index);
-    assert_zone_properties(world, ref->zones[player_index].alley, ZAlley, expected, player);
+    assert_zone_properties(world, alley, ZAlley, expected, player);
 
+    ecs_entity_t ikz_pile = find_zone_for_player(world, player, ZIKZPileTag);
     snprintf(expected, sizeof(expected), "IKZPile_P%d", player_index);
-    assert_zone_properties(world, ref->zones[player_index].ikz_pile, ZIKZPileTag, expected, player);
+    assert_zone_properties(world, ikz_pile, ZIKZPileTag, expected, player);
 
+    ecs_entity_t ikz_area = find_zone_for_player(world, player, ZIKZAreaTag);
     snprintf(expected, sizeof(expected), "IKZArea_P%d", player_index);
-    assert_zone_properties(world, ref->zones[player_index].ikz_area, ZIKZAreaTag, expected, player);
+    assert_zone_properties(world, ikz_area, ZIKZAreaTag, expected, player);
 
+    ecs_entity_t discard = find_zone_for_player(world, player, ZDiscard);
     snprintf(expected, sizeof(expected), "Discard_P%d", player_index);
-    assert_zone_properties(world, ref->zones[player_index].discard, ZDiscard, expected, player);
+    assert_zone_properties(world, discard, ZDiscard, expected, player);
   }
 
   azk_world_fini(world);

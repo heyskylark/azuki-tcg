@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <flecs.h>
 
+#include "constants/game.h"
+
 typedef enum {
   PHASE_PREGAME_MULLIGAN = 0,
   PHASE_START_OF_TURN = 1,
@@ -30,40 +32,38 @@ typedef enum {
 
 typedef struct {
   ecs_entity_t deck, hand, leader, gate, garden, alley, ikz_pile, ikz_area, discard;
+  uint16_t deck_size, hand_size, leader_size, gate_size, garden_size, alley_size, ikz_pile_size, ikz_area_size, discard_size;
 } PlayerZones;
 
-typedef struct {
-  ecs_entity_t players[2];
-  PlayerZones zones[2];
-} WorldRef;
 typedef struct { 
   uint32_t seed;
-  int8_t active_player_number;
+  int8_t active_player_index;
   Phase phase;
   uint8_t response_window;
   int8_t winner;
+  ecs_entity_t players[MAX_PLAYERS_PER_MATCH];
+  PlayerZones zones[MAX_PLAYERS_PER_MATCH];
 } GameState;
 typedef struct { uint8_t player_number; } PlayerNumber;
 typedef struct { uint8_t pid; } PlayerId;
-typedef struct { ecs_entity_t player; } Owner;
 typedef struct { int8_t attack, health; } BaseStats;
 typedef struct { int8_t cur_atk, cur_hp; } CurStats;
 typedef struct { uint8_t tapped, cooldown; } TapState;
 typedef struct { uint8_t element; } Element;
 typedef struct { uint8_t gate_points; } GatePoints;
 typedef struct { int8_t ikz_cost; } IKZCost;
+typedef struct { int16_t value; } ZoneIndex;
 
-extern ECS_COMPONENT_DECLARE(WorldRef);
 extern ECS_COMPONENT_DECLARE(GameState);
 extern ECS_COMPONENT_DECLARE(PlayerNumber);
 extern ECS_COMPONENT_DECLARE(PlayerId);
-extern ECS_COMPONENT_DECLARE(Owner);
 extern ECS_COMPONENT_DECLARE(BaseStats);
 extern ECS_COMPONENT_DECLARE(CurStats);
 extern ECS_COMPONENT_DECLARE(TapState);
 extern ECS_COMPONENT_DECLARE(Element);
 extern ECS_COMPONENT_DECLARE(GatePoints);
 extern ECS_COMPONENT_DECLARE(IKZCost);
+extern ECS_COMPONENT_DECLARE(ZoneIndex);
 
 /* Relationship Entities */
 extern ECS_ENTITY_DECLARE(Rel_InZone);
