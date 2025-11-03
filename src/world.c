@@ -149,7 +149,7 @@ ecs_world_t* azk_world_init(uint32_t seed) {
   GameState gs = {
     .seed = seed,
     .active_player_index = 0,
-    .phase = PHASE_START_OF_TURN,
+    .phase = PHASE_PREGAME_MULLIGAN,
     .response_window = 0,
     .winner = -1,
   };

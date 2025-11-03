@@ -50,3 +50,35 @@ void shuffle_deck(ecs_world_t *world, ecs_entity_t deck_zone) {
 
   ecs_os_free(shuffled);
 }
+
+
+bool draw_cards(ecs_world_t *world, ecs_entity_t from_zone, ecs_entity_t to_zone, int draw_count, ecs_entity_t *out_cards) {
+  ecs_entities_t cards = ecs_get_ordered_children(world, from_zone);
+  int32_t count = cards.count;
+
+  if (draw_count <= 0) {
+    return true;
+  }
+
+  int32_t to_draw = draw_count;
+  if (to_draw > count) {
+    to_draw = count;
+  }
+
+  for (int32_t index = 0; index < to_draw; index++) {
+    ecs_entity_t card = cards.ids[count - 1 - index];
+    ecs_add_pair(world, card, EcsChildOf, to_zone);
+
+    if (out_cards) {
+      out_cards[index] = card;
+    }
+  }
+
+  if (out_cards) {
+    for (int32_t index = to_draw; index < draw_count; index++) {
+      out_cards[index] = 0;
+    }
+  }
+
+  return to_draw == draw_count;
+}
