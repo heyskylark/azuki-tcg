@@ -32,7 +32,7 @@ void azk_register_components(ecs_world_t *world) {
   ECS_COMPONENT_DEFINE(world, GameState);
   ECS_COMPONENT_DEFINE(world, PlayerNumber);
   ECS_COMPONENT_DEFINE(world, PlayerId);
-
+  
   {
     ecs_entity_desc_t desc = {
       .name = "Rel_OwnedBy",

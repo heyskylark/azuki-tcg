@@ -183,6 +183,7 @@ ecs_world_t* azk_world_init(uint32_t seed) {
   
   for (int p=0; p<MAX_PLAYERS_PER_MATCH; p++) {
     shuffle_deck(world, ref.zones[p].deck);
+    draw_cards(world, ref.zones[p].deck, ref.zones[p].hand, INITIAL_DRAW_COUNT, NULL);
   }
 
   init_all_queries(world);
