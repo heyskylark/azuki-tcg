@@ -2,3 +2,4 @@
 .codexignore
 __pycache__
 build
+build-debug

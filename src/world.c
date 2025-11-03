@@ -195,6 +195,11 @@ static void register_card(
     fprintf(stderr, "Error: Failed to look up CardDef for id %d\n", card_id);
     exit(EXIT_FAILURE);
   }
+  const CardId *card_id_component = ecs_get_id(world, prefab, ecs_id(CardId));
+  if (!card_id_component) {
+    fprintf(stderr, "Error: CardId component not found for prefab %d\n", prefab);
+    exit(EXIT_FAILURE);
+  }
 
   for (size_t index = 0; index < count; index++) {
     // Give each card instance a unique name so Flecs doesn't reuse existing entities
@@ -206,10 +211,11 @@ static void register_card(
     }
 
     uint8_t player_number = pnum->player_number;
-    snprintf(entity_name, sizeof(entity_name), "%s_P%u_%zu", card_id, player_number, index + 1);
+    snprintf(entity_name, sizeof(entity_name), "%s_P%u_%zu", card_id_component->code, player_number, index + 1);
     ecs_entity_t card = ecs_new_w_pair(world, EcsIsA, prefab); 
+    ecs_set_name(world, card, entity_name);
 
-    Type *type = ecs_get_id(world, card, ecs_id(Type));
+    const Type *type = ecs_get_id(world, card, ecs_id(Type));
     if (!type) {
       fprintf(stderr, "Error: Type component not found for card %d\n", card);
       exit(EXIT_FAILURE);
@@ -294,5 +300,4 @@ void init_player_deck(
     exit(EXIT_FAILURE);
   }
 }
-
 
