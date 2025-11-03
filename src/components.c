@@ -4,9 +4,7 @@
 ECS_COMPONENT_DECLARE(GameState);
 ECS_COMPONENT_DECLARE(PlayerNumber);
 ECS_COMPONENT_DECLARE(PlayerId);
-ECS_COMPONENT_DECLARE(ZoneIndex);
 
-ECS_ENTITY_DECLARE(Rel_InZone);
 ECS_ENTITY_DECLARE(Rel_OwnedBy);
 
 ECS_TAG_DECLARE(ZDeck);
@@ -32,21 +30,6 @@ void azk_register_components(ecs_world_t *world) {
   ECS_COMPONENT_DEFINE(world, GameState);
   ECS_COMPONENT_DEFINE(world, PlayerNumber);
   ECS_COMPONENT_DEFINE(world, PlayerId);
-  ECS_COMPONENT_DEFINE(world, ZoneIndex);
-
-  {
-    ecs_entity_desc_t desc = {
-      .name = "Rel_InZone",
-      .add = (ecs_id_t[]){
-        EcsRelationship,
-        EcsExclusive,
-        0
-      }
-    };
-    Rel_InZone = ecs_entity_init(world, &desc);
-    ecs_assert(Rel_InZone != 0, ECS_INVALID_PARAMETER, "failed to create entity Rel_InZone");
-    ecs_id(Rel_InZone) = Rel_InZone;
-  }
 
   {
     ecs_entity_desc_t desc = {

@@ -42,6 +42,8 @@ static ecs_entity_t expected_tag_for_type(CardType type) {
     return TSpell;
   case CARD_TYPE_IKZ:
     return TIKZ;
+  case CARD_TYPE_EXTRA_IKZ:
+    return TExtraIKZCard;
   default:
     return 0;
   }
@@ -61,6 +63,8 @@ static ecs_entity_t expected_zone_for_type(CardType type, const PlayerZones *zon
     return zones->deck;
   case CARD_TYPE_IKZ:
     return zones->ikz_pile;
+  case CARD_TYPE_EXTRA_IKZ:
+    return zones->ikz_pile;
   default:
     return 0;
   }
@@ -79,7 +83,7 @@ static void assert_card_components(
 
   ecs_entity_t expected_zone = expected_zone_for_type(def->type, zones);
   assert(expected_zone != 0);
-  assert(ecs_has_pair(world, card, Rel_InZone, expected_zone));
+  assert(ecs_has_pair(world, card, EcsChildOf, expected_zone));
 
   assert(ecs_has_pair(world, card, Rel_OwnedBy, player));
 
@@ -153,7 +157,7 @@ static void test_azk_world_init_sets_game_state(void) {
   const GameState *gs = ecs_singleton_get(world, GameState);
   assert(gs != NULL);
   assert(gs->seed == seed);
-  assert(gs->phase == PHASE_PREGAME_MULLIGAN);
+  assert(gs->phase == PHASE_START_OF_TURN);
   assert(gs->active_player_index == 0);
   assert(gs->response_window == 0);
   assert(gs->winner == -1);
@@ -197,6 +201,7 @@ static void assert_zone_properties(
   assert(name != NULL);
   assert(strcmp(name, expected_name) == 0);
   assert(ecs_has_id(world, zone, zone_tag));
+  assert(ecs_has_id(world, zone, EcsOrderedChildren));
   assert(ecs_has_pair(world, zone, Rel_OwnedBy, player));
 }
 
@@ -258,6 +263,7 @@ static ecs_entity_t create_zone(
   ecs_entity_t zone = ecs_new(world);
   ecs_set_name(world, zone, name);
   ecs_add_id(world, zone, zone_tag);
+  ecs_add_id(world, zone, EcsOrderedChildren);
   ecs_add_pair(world, zone, Rel_OwnedBy, player);
   return zone;
 }

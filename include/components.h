@@ -46,15 +46,12 @@ typedef struct {
 } GameState;
 typedef struct { uint8_t player_number; } PlayerNumber;
 typedef struct { uint8_t pid; } PlayerId;
-typedef struct { int16_t value; } ZoneIndex;
 
 extern ECS_COMPONENT_DECLARE(GameState);
 extern ECS_COMPONENT_DECLARE(PlayerNumber);
 extern ECS_COMPONENT_DECLARE(PlayerId);
-extern ECS_COMPONENT_DECLARE(ZoneIndex);
 
 /* Relationship Entities */
-extern ECS_ENTITY_DECLARE(Rel_InZone);
 extern ECS_ENTITY_DECLARE(Rel_OwnedBy);
 
 /* Board Zone Tags */

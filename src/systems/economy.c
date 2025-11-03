@@ -1,6 +1,36 @@
 #include "systems/economy.h"
-#include "queries/card_zone.h"
 #include <stdio.h>
+
+static bool get_top_card_in_zone(
+  ecs_world_t *world,
+  ecs_entity_t zone,
+  ecs_entity_t *out_card,
+  int *out_count
+) {
+  ecs_assert(
+    ecs_has_id(world, zone, EcsOrderedChildren),
+    ECS_INVALID_OPERATION,
+    "Zone entity must opt-in to ordered children"
+  );
+
+  ecs_entities_t children = ecs_get_ordered_children(world, zone);
+  int32_t count = children.count;
+
+  if (out_count) {
+    *out_count = (int)count;
+  }
+  if (!count) {
+    if (out_card) {
+      *out_card = 0;
+    }
+    return false;
+  }
+
+  if (out_card) {
+    *out_card = children.ids[0];
+  }
+  return true;
+}
 
 void DrawCard(ecs_iter_t *it) {
   ecs_world_t *world = it->world;
@@ -17,8 +47,7 @@ void DrawCard(ecs_iter_t *it) {
     return;
   }
 
-  ecs_remove_pair(world, top_card, Rel_InZone, deck_zone);
-  ecs_add_pair(world, top_card, Rel_InZone, hand_zone);
+  ecs_add_pair(world, top_card, EcsChildOf, hand_zone);
 
   printf("Drew card %s\n", ecs_get_name(world, top_card));
 }
@@ -35,8 +64,7 @@ void GrantIKZ(ecs_iter_t *it) {
     return;
   }
 
-  ecs_remove_pair(world, card, Rel_InZone, ikz_pile_zone);
-  ecs_add_pair(world, card, Rel_InZone, ikz_area_zone);
+  ecs_add_pair(world, card, EcsChildOf, ikz_area_zone);
 
   printf("IKZ granted\n");
 }

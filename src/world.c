@@ -94,6 +94,7 @@ static ecs_entity_t make_player_board_zone(
   ecs_entity_t z = ecs_new(world);
   ecs_set_name(world, z, name);
   ecs_add_id(world, z, zone_tag);
+  ecs_add_id(world, z, EcsOrderedChildren);
   ecs_add_pair(world, z, Rel_OwnedBy, player);
   return z;
 }
@@ -191,24 +192,15 @@ static void register_card(
   TotalZoneCounts *total_counts
 ) {
   ecs_entity_t prefab = azk_prefab_from_id(card_id);
-  if (!prefab) {
-    fprintf(stderr, "Error: Failed to look up CardDef for id %d\n", card_id);
-    exit(EXIT_FAILURE);
-  }
+  ecs_assert(prefab != 0, ECS_INVALID_PARAMETER, "Prefab not found for card %d", card_id);
   const CardId *card_id_component = ecs_get_id(world, prefab, ecs_id(CardId));
-  if (!card_id_component) {
-    fprintf(stderr, "Error: CardId component not found for prefab %d\n", prefab);
-    exit(EXIT_FAILURE);
-  }
+  ecs_assert(card_id_component != NULL, ECS_INVALID_PARAMETER, "CardId component not found for prefab %d", prefab);
 
   for (size_t index = 0; index < count; index++) {
     // Give each card instance a unique name so Flecs doesn't reuse existing entities
     char entity_name[64];
     const PlayerNumber *pnum = ecs_get(world, player, PlayerNumber);
-    if (!pnum) {
-      fprintf(stderr, "Error: PlayerNumber component not found for player %d\n", player);
-      exit(EXIT_FAILURE);
-    }
+    ecs_assert(pnum != NULL, ECS_INVALID_PARAMETER, "PlayerNumber component not found for player %d", player);
 
     uint8_t player_number = pnum->player_number;
     snprintf(entity_name, sizeof(entity_name), "%s_P%u_%zu", card_id_component->code, player_number, index + 1);
@@ -216,14 +208,12 @@ static void register_card(
     ecs_set_name(world, card, entity_name);
 
     const Type *type = ecs_get_id(world, card, ecs_id(Type));
-    if (!type) {
-      fprintf(stderr, "Error: Type component not found for card %d\n", card);
-      exit(EXIT_FAILURE);
-    }
+    ecs_assert(type != NULL, ECS_INVALID_PARAMETER, "Type component not found for card %d", card);
 
     ZonePlacement placement = zone_placement_for_type(zones, type->value);
-    ecs_assert(placement.zone != 0, ECS_INVALID_PARAMETER, "card zone not found");
-    ecs_add_pair(world, card, Rel_InZone, placement.zone);
+    ecs_assert(placement.zone != 0, ECS_INVALID_PARAMETER, "Card zone not found for type %d", type->value);
+    ecs_add_pair(world, card, EcsChildOf, placement.zone);
+    ecs_add_pair(world, card, Rel_OwnedBy, player);
 
     // Used for validating the final card distribution sizes
     if (ecs_has_id(world, placement.zone, ZLeader)) {
@@ -235,15 +225,6 @@ static void register_card(
     } else if (ecs_has_id(world, placement.zone, ZDeck)) {
       total_counts->deck_size++;
     }
-
-    int16_t slot = 0;
-    if (placement.size != NULL) {
-      slot = (int16_t)(*placement.size);
-      (*placement.size)++;
-    }
-    ecs_set(world, card, ZoneIndex, { .value = slot });
-
-    ecs_add_pair(world, card, Rel_OwnedBy, player);
   }
 }
 
