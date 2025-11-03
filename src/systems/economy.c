@@ -7,14 +7,10 @@ static bool get_top_card_in_zone(
   ecs_entity_t *out_card,
   int *out_count
 ) {
-  ecs_assert(
-    ecs_has_id(world, zone, EcsOrderedChildren),
-    ECS_INVALID_OPERATION,
-    "Zone entity must opt-in to ordered children"
-  );
-
   ecs_entities_t children = ecs_get_ordered_children(world, zone);
   int32_t count = children.count;
+
+  printf("Zone %s has %d cards\n", ecs_get_name(world, zone), count);
 
   if (out_count) {
     *out_count = (int)count;
@@ -27,7 +23,7 @@ static bool get_top_card_in_zone(
   }
 
   if (out_card) {
-    *out_card = children.ids[0];
+    *out_card = children.ids[count - 1];
   }
   return true;
 }

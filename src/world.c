@@ -2,6 +2,7 @@
 #include "constants/game.h"
 #include "systems/main.h"
 #include "queries/main.h"
+#include "utils/deck_utils.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -172,6 +173,10 @@ ecs_world_t* azk_world_init(uint32_t seed) {
   }
 
   ecs_singleton_set_ptr(world, GameState, &gs);
+  
+  for (int p=0; p<MAX_PLAYERS_PER_MATCH; p++) {
+    shuffle_deck(world, ref.zones[p].deck);
+  }
 
   init_all_queries(world);
   init_all_system(world);
@@ -281,4 +286,3 @@ void init_player_deck(
     exit(EXIT_FAILURE);
   }
 }
-
