@@ -139,6 +139,12 @@ static DeckType random_deck_type(unsigned int *state) {
   return (DeckType)(rand_r(state) % 2);
 }
 
+static void register_action_context_singleton(ecs_world_t *world) {
+  ecs_add_id(world, ecs_id(ActionContext), EcsSingleton);
+  ActionContext ac = {0};
+  ecs_singleton_set_ptr(world, ActionContext, &ac);
+}
+
 ecs_world_t* azk_world_init(uint32_t seed) {
   ecs_world_t *world = ecs_init();
   azk_register_components(world);
@@ -173,6 +179,7 @@ ecs_world_t* azk_world_init(uint32_t seed) {
   }
 
   ecs_singleton_set_ptr(world, GameState, &gs);
+  register_action_context_singleton(world);
   
   for (int p=0; p<MAX_PLAYERS_PER_MATCH; p++) {
     shuffle_deck(world, ref.zones[p].deck);

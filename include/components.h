@@ -14,7 +14,8 @@ typedef enum {
   PHASE_RESPONSE_WINDOW = 4,
   PHASE_COMBAT_RESOLVE = 5,
   PHASE_END_TURN = 6,
-  PHASE_END_MATCH = 7
+  PHASE_END_MATCH = 7,
+  PHASE_COUNT = PHASE_END_MATCH + 1
 } Phase;
 
 typedef enum {
@@ -29,6 +30,21 @@ typedef enum {
   ACT_MULLIGAN_KEEP = 11,
   ACT_MULLIGAN_SHUFFLE = 12
 } ActionType;
+
+typedef struct {
+  ecs_entity_t player;
+  ActionType type;
+  int subaction_1;
+  int subaction_2;
+  int subaction_3;
+} UserAction;
+
+typedef struct {
+  UserAction user_action;
+  UserAction user_action_history[MAX_USER_ACTION_HISTORY_SIZE];
+  uint32_t history_size;
+  uint32_t history_head;
+} ActionContext;
 
 typedef struct {
   ecs_entity_t deck, hand, leader, gate, garden, alley, ikz_pile, ikz_area, discard;
@@ -47,6 +63,7 @@ typedef struct {
 typedef struct { uint8_t player_number; } PlayerNumber;
 typedef struct { uint8_t pid; } PlayerId;
 
+extern ECS_COMPONENT_DECLARE(ActionContext);
 extern ECS_COMPONENT_DECLARE(GameState);
 extern ECS_COMPONENT_DECLARE(PlayerNumber);
 extern ECS_COMPONENT_DECLARE(PlayerId);
