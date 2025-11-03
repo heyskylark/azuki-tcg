@@ -182,33 +182,6 @@ void azk_world_fini(ecs_world_t *world) {
   ecs_fini(world);
 }
 
-static void apply_card_type_tag(ecs_world_t *world, ecs_entity_t entity, CardType type) {
-  switch (type) {
-  case CARD_TYPE_LEADER:
-    ecs_add(world, entity, TLeader);
-    break;
-  case CARD_TYPE_GATE:
-    ecs_add(world, entity, TGate);
-    break;
-  case CARD_TYPE_ENTITY:
-    ecs_add(world, entity, TEntity);
-    break;
-  case CARD_TYPE_WEAPON:
-    ecs_add(world, entity, TWeapon);
-    break;
-  case CARD_TYPE_SPELL:
-    ecs_add(world, entity, TSpell);
-    break;
-  case CARD_TYPE_IKZ:
-    ecs_add(world, entity, TIKZ);
-    break;
-  default:
-    fprintf(stderr, "Error: Unknown CardType %d\n", type);
-    exit(EXIT_FAILURE);
-    break;
-  }
-}
-
 static void register_card(
   ecs_world_t *world,
   ecs_entity_t player,
@@ -217,8 +190,8 @@ static void register_card(
   PlayerZones *zones,
   TotalZoneCounts *total_counts
 ) {
-  const CardDef *def = azk_card_def_from_id(card_id);
-  if (!def) {
+  ecs_entity_t prefab = azk_prefab_from_id(card_id);
+  if (!prefab) {
     fprintf(stderr, "Error: Failed to look up CardDef for id %d\n", card_id);
     exit(EXIT_FAILURE);
   }
@@ -227,31 +200,22 @@ static void register_card(
     // Give each card instance a unique name so Flecs doesn't reuse existing entities
     char entity_name[64];
     const PlayerNumber *pnum = ecs_get(world, player, PlayerNumber);
-    uint8_t player_number = pnum ? pnum->player_number : 0;
-    snprintf(entity_name, sizeof(entity_name), "%s_P%u_%zu", def->card_id, player_number, index + 1);
-    ecs_entity_t card = ecs_entity_init(world, &(ecs_entity_desc_t){
-      .name = entity_name,
-      .sep = "",
-    });
-
-    apply_card_type_tag(world, card, def->type);
-
-    Element element_component = { .element = (uint8_t)def->element };
-    ecs_set_ptr(world, card, Element, &element_component);
-
-    if (def->has_base_stats) {
-      ecs_set_ptr(world, card, BaseStats, &def->base_stats);
+    if (!pnum) {
+      fprintf(stderr, "Error: PlayerNumber component not found for player %d\n", player);
+      exit(EXIT_FAILURE);
     }
 
-    if (def->has_gate_points) {
-      ecs_set_ptr(world, card, GatePoints, &def->gate_points);
+    uint8_t player_number = pnum->player_number;
+    snprintf(entity_name, sizeof(entity_name), "%s_P%u_%zu", card_id, player_number, index + 1);
+    ecs_entity_t card = ecs_new_w_pair(world, EcsIsA, prefab); 
+
+    Type *type = ecs_get_id(world, card, ecs_id(Type));
+    if (!type) {
+      fprintf(stderr, "Error: Type component not found for card %d\n", card);
+      exit(EXIT_FAILURE);
     }
 
-    if (def->has_ikz_cost) {
-      ecs_set_ptr(world, card, IKZCost, &def->ikz_cost);
-    }
-
-    ZonePlacement placement = zone_placement_for_type(zones, def->type);
+    ZonePlacement placement = zone_placement_for_type(zones, type->value);
     ecs_assert(placement.zone != 0, ECS_INVALID_PARAMETER, "card zone not found");
     ecs_add_pair(world, card, Rel_InZone, placement.zone);
 
