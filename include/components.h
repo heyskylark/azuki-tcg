@@ -46,36 +46,16 @@ typedef struct {
 } GameState;
 typedef struct { uint8_t player_number; } PlayerNumber;
 typedef struct { uint8_t pid; } PlayerId;
-typedef struct { int8_t attack, health; } BaseStats;
-typedef struct { int8_t cur_atk, cur_hp; } CurStats;
-typedef struct { uint8_t tapped, cooldown; } TapState;
-typedef struct { uint8_t element; } Element;
-typedef struct { uint8_t gate_points; } GatePoints;
-typedef struct { int8_t ikz_cost; } IKZCost;
 typedef struct { int16_t value; } ZoneIndex;
 
 extern ECS_COMPONENT_DECLARE(GameState);
 extern ECS_COMPONENT_DECLARE(PlayerNumber);
 extern ECS_COMPONENT_DECLARE(PlayerId);
-extern ECS_COMPONENT_DECLARE(BaseStats);
-extern ECS_COMPONENT_DECLARE(CurStats);
-extern ECS_COMPONENT_DECLARE(TapState);
-extern ECS_COMPONENT_DECLARE(Element);
-extern ECS_COMPONENT_DECLARE(GatePoints);
-extern ECS_COMPONENT_DECLARE(IKZCost);
 extern ECS_COMPONENT_DECLARE(ZoneIndex);
 
 /* Relationship Entities */
 extern ECS_ENTITY_DECLARE(Rel_InZone);
 extern ECS_ENTITY_DECLARE(Rel_OwnedBy);
-
-/* Card Type Tags */
-extern ECS_TAG_DECLARE(TLeader);
-extern ECS_TAG_DECLARE(TGate);
-extern ECS_TAG_DECLARE(TEntity);
-extern ECS_TAG_DECLARE(TWeapon);
-extern ECS_TAG_DECLARE(TSpell);
-extern ECS_TAG_DECLARE(TIKZ);
 
 /* Board Zone Tags */
 extern ECS_TAG_DECLARE(ZDeck);

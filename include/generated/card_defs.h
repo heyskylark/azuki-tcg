@@ -4,7 +4,8 @@
 
 #include <stdbool.h>
 #include <stddef.h>
-#include "components.h"
+#include <stdint.h>
+#include <flecs.h>
 
 typedef enum {
     CARD_RARITY_L = 0,
@@ -30,8 +31,33 @@ typedef enum {
     CARD_TYPE_ENTITY = 2,
     CARD_TYPE_WEAPON = 3,
     CARD_TYPE_SPELL = 4,
-    CARD_TYPE_IKZ = 5
+    CARD_TYPE_IKZ = 5,
+    CARD_TYPE_EXTRA_IKZ = 6
 } CardType;
+
+typedef struct {
+    int8_t attack, health;
+} BaseStats;
+
+typedef struct {
+    int8_t cur_atk, cur_hp;
+} CurStats;
+
+typedef struct {
+    uint8_t tapped, cooldown;
+} TapState;
+
+typedef struct {
+    uint8_t element;
+} Element;
+
+typedef struct {
+    uint8_t gate_points;
+} GatePoints;
+
+typedef struct {
+    int8_t ikz_cost;
+} IKZCost;
 
 typedef struct {
     const char *card_id;
@@ -88,17 +114,50 @@ typedef enum {
 } CardDefId;
 
 typedef struct {
+    CardDefId id;
+    const char *code;
+} CardId;
+
+typedef struct {
+    const char *value;
+} Name;
+
+typedef struct {
+    CardType value;
+} Type;
+
+typedef struct {
     const char *card_id;
     const CardDef *def;
 } CardDefLookupEntry;
+
+extern ECS_COMPONENT_DECLARE(CardId);
+extern ECS_COMPONENT_DECLARE(Name);
+extern ECS_COMPONENT_DECLARE(Type);
+extern ECS_COMPONENT_DECLARE(BaseStats);
+extern ECS_COMPONENT_DECLARE(CurStats);
+extern ECS_COMPONENT_DECLARE(TapState);
+extern ECS_COMPONENT_DECLARE(Element);
+extern ECS_COMPONENT_DECLARE(GatePoints);
+extern ECS_COMPONENT_DECLARE(IKZCost);
+
+extern ECS_TAG_DECLARE(TLeader);
+extern ECS_TAG_DECLARE(TGate);
+extern ECS_TAG_DECLARE(TEntity);
+extern ECS_TAG_DECLARE(TWeapon);
+extern ECS_TAG_DECLARE(TSpell);
+extern ECS_TAG_DECLARE(TIKZ);
+extern ECS_TAG_DECLARE(TExtraIKZCard);
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+void azk_register_card_def_resources(ecs_world_t *world);
 size_t azk_card_def_count(void);
 const CardDef *azk_card_def_from_id(CardDefId id);
 const CardDefLookupEntry *azk_card_def_lookup_table(size_t *out_count);
+ecs_entity_t azk_prefab_from_id(CardDefId id);
 
 #ifdef __cplusplus
 }

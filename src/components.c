@@ -1,25 +1,13 @@
 #include "components.h"
+#include "generated/card_defs.h"
 
 ECS_COMPONENT_DECLARE(GameState);
 ECS_COMPONENT_DECLARE(PlayerNumber);
 ECS_COMPONENT_DECLARE(PlayerId);
-ECS_COMPONENT_DECLARE(BaseStats);
-ECS_COMPONENT_DECLARE(CurStats);
-ECS_COMPONENT_DECLARE(TapState);
-ECS_COMPONENT_DECLARE(Element);
-ECS_COMPONENT_DECLARE(GatePoints);
-ECS_COMPONENT_DECLARE(IKZCost);
 ECS_COMPONENT_DECLARE(ZoneIndex);
 
 ECS_ENTITY_DECLARE(Rel_InZone);
 ECS_ENTITY_DECLARE(Rel_OwnedBy);
-
-ECS_TAG_DECLARE(TLeader);
-ECS_TAG_DECLARE(TGate);
-ECS_TAG_DECLARE(TEntity);
-ECS_TAG_DECLARE(TWeapon);
-ECS_TAG_DECLARE(TSpell);
-ECS_TAG_DECLARE(TIKZ);
 
 ECS_TAG_DECLARE(ZDeck);
 ECS_TAG_DECLARE(ZHand);
@@ -44,12 +32,6 @@ void azk_register_components(ecs_world_t *world) {
   ECS_COMPONENT_DEFINE(world, GameState);
   ECS_COMPONENT_DEFINE(world, PlayerNumber);
   ECS_COMPONENT_DEFINE(world, PlayerId);
-  ECS_COMPONENT_DEFINE(world, BaseStats);
-  ECS_COMPONENT_DEFINE(world, CurStats);
-  ECS_COMPONENT_DEFINE(world, TapState);
-  ECS_COMPONENT_DEFINE(world, Element);
-  ECS_COMPONENT_DEFINE(world, GatePoints);
-  ECS_COMPONENT_DEFINE(world, IKZCost);
   ECS_COMPONENT_DEFINE(world, ZoneIndex);
 
   {
@@ -80,13 +62,6 @@ void azk_register_components(ecs_world_t *world) {
     ecs_id(Rel_OwnedBy) = Rel_OwnedBy;
   }
 
-  ECS_TAG_DEFINE(world, TLeader);
-  ECS_TAG_DEFINE(world, TGate);
-  ECS_TAG_DEFINE(world, TEntity);
-  ECS_TAG_DEFINE(world, TWeapon);
-  ECS_TAG_DEFINE(world, TSpell);
-  ECS_TAG_DEFINE(world, TIKZ);
-
   ECS_TAG_DEFINE(world, ZDeck);
   ECS_TAG_DEFINE(world, ZHand);
   ECS_TAG_DEFINE(world, ZLeader);
@@ -105,4 +80,6 @@ void azk_register_components(ecs_world_t *world) {
   ECS_TAG_DEFINE(world, TCombatResolve);
   ECS_TAG_DEFINE(world, TEndTurn);
   ECS_TAG_DEFINE(world, TEndMatch);
+
+  azk_register_card_def_resources(world);
 }

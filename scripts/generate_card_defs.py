@@ -21,7 +21,7 @@ from typing import Iterable, List, Optional, Sequence
 
 RARITY_ORDER = ["L", "G", "C", "UC", "R", "SR", "IKZ"]
 ELEMENT_ORDER = ["NORMAL", "LIGHTNING", "WATER", "EARTH", "FIRE"]
-TYPE_ORDER = ["LEADER", "GATE", "ENTITY", "WEAPON", "SPELL", "IKZ"]
+TYPE_ORDER = ["LEADER", "GATE", "ENTITY", "WEAPON", "SPELL", "IKZ", "EXTRA_IKZ"]
 
 RARITY_ENUM = {value: f"CARD_RARITY_{value}" for value in RARITY_ORDER}
 ELEMENT_ENUM = {value: f"CARD_ELEMENT_{value}" for value in ELEMENT_ORDER}
@@ -53,7 +53,52 @@ TYPE_RULES = {
         "allowed": BASE_REQUIRED_FIELDS,
         "required": set(),
     },
+    "EXTRA_IKZ": {
+        "allowed": BASE_REQUIRED_FIELDS,
+        "required": set(),
+    },
 }
+
+CARD_PREFAB_COMPONENT_STRUCTS = [
+    ("BaseStats", "int8_t attack, health;"),
+    ("CurStats", "int8_t cur_atk, cur_hp;"),
+    ("TapState", "uint8_t tapped, cooldown;"),
+    ("Element", "uint8_t element;"),
+    ("GatePoints", "uint8_t gate_points;"),
+    ("IKZCost", "int8_t ikz_cost;"),
+]
+
+CARD_PREFAB_COMPONENT_DECLARATIONS = [
+    "CardId",
+    "Name",
+    "Type",
+    "BaseStats",
+    "CurStats",
+    "TapState",
+    "Element",
+    "GatePoints",
+    "IKZCost",
+]
+
+CARD_PREFAB_TAG_DECLARATIONS = [
+    "TLeader",
+    "TGate",
+    "TEntity",
+    "TWeapon",
+    "TSpell",
+    "TIKZ",
+    "TExtraIKZCard",
+]
+
+CARD_PREFAB_ON_INSTANTIATE_COMPONENTS = [
+    "CardId",
+    "Name",
+    "Element",
+    "Type",
+    "BaseStats",
+    "GatePoints",
+    "IKZCost",
+]
 
 
 class CardValidationError(Exception):
@@ -106,6 +151,26 @@ class CardRecord:
     @property
     def ikz_cost_value(self) -> int:
         return self.ikz_cost if self.ikz_cost is not None else 0
+
+    @property
+    def prefab_tag(self) -> str:
+        mapping = {
+            "IKZ": "TIKZ",
+            "EXTRA_IKZ": "TExtraIKZCard",
+            "ENTITY": "TEntity",
+            "GATE": "TGate",
+            "LEADER": "TLeader",
+            "WEAPON": "TWeapon",
+            "SPELL": "TSpell",
+        }
+        try:
+            return mapping[self.card_type]
+        except KeyError as exc:  # pragma: no cover - validated earlier
+            raise ValueError(f"Unsupported card type '{self.card_type}' for prefab tag") from exc
+
+    @property
+    def prefab_entity_name(self) -> str:
+        return f"CardPrefab::{self.card_id}"
 
 
 def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
@@ -314,34 +379,6 @@ def make_enum_name(card_id: str) -> str:
     return "CARD_DEF_" + "".join(cleaned)
 
 
-def render_c_file(records: Sequence[CardRecord]) -> str:
-    raise NotImplementedError
-    lines.append("")
-
-    lines.append("static const CardDef kGeneratedCardDefs[CARD_DEF_COUNT] = {")
-    for record in records:
-        lines.extend(render_card_def_entry(record))
-    lines.append("};")
-    lines.append("")
-
-    lines.append("size_t azk_card_def_count(void) {")
-    lines.append("    return CARD_DEF_COUNT;")
-    lines.append("}")
-    lines.append("")
-
-    lines.append("const CardDef *azk_card_def_from_id(CardDefId id) {")
-    lines.append("    if ((size_t)id >= CARD_DEF_COUNT) {")
-    lines.append("        return NULL;")
-    lines.append("    }")
-    lines.append("    return &kGeneratedCardDefs[id];")
-    lines.append("}")
-    lines.append("")
-
-    lines.extend(render_lookup_table(records))
-
-    return "\n".join(lines) + "\n"
-
-
 def render_enum(name: str, order: Sequence[str], mapping: dict[str, str]) -> List[str]:
     lines = [f"typedef enum {{"]
     for idx, value in enumerate(order):
@@ -386,6 +423,18 @@ def render_card_def_entry(record: CardRecord) -> Iterable[str]:
     return lines
 
 
+def render_card_component_structs() -> List[str]:
+    lines: List[str] = []
+    for name, fields in CARD_PREFAB_COMPONENT_STRUCTS:
+        lines.append("typedef struct {")
+        lines.append(f"    {fields}")
+        lines.append(f"}} {name};")
+        lines.append("")
+    if lines:
+        lines.pop()  # drop trailing blank
+    return lines
+
+
 def render_lookup_table(records: Sequence[CardRecord]) -> List[str]:
     lines: List[str] = []
     lines.append("static const CardDefLookupEntry kGeneratedCardLookup[CARD_DEF_COUNT] = {")
@@ -394,6 +443,62 @@ def render_lookup_table(records: Sequence[CardRecord]) -> List[str]:
             f"    {{ .card_id = {c_string_literal(record.card_id)}, .def = &kGeneratedCardDefs[{record.enum_name}] }},"
         )
     lines.append("};")
+    return lines
+
+
+def render_prefab_component_sets(record: CardRecord, indent: str) -> List[str]:
+    lines: List[str] = []
+    lines.append(
+        f"{indent}ecs_set(world, prefab, CardId, {{ .id = {record.enum_name}, .code = {c_string_literal(record.card_id)} }});"
+    )
+    lines.append(
+        f"{indent}ecs_set(world, prefab, Name, {{ .value = {c_string_literal(record.name)} }});"
+    )
+    lines.append(
+        f"{indent}ecs_set(world, prefab, Element, {{ .element = {record.element_enum} }});"
+    )
+    lines.append(
+        f"{indent}ecs_set(world, prefab, Type, {{ .value = {record.type_enum} }});"
+    )
+
+    if record.card_type in {"ENTITY", "LEADER", "WEAPON"}:
+        lines.append(
+            f"{indent}ecs_set(world, prefab, BaseStats, {{ .attack = {record.base_attack}, .health = {record.base_health} }});"
+        )
+
+    if record.card_type in {"ENTITY", "LEADER"}:
+        lines.append(
+            f"{indent}ecs_set(world, prefab, CurStats, {{ .cur_atk = {record.base_attack}, .cur_hp = {record.base_health} }});"
+        )
+
+    if record.card_type == "ENTITY":
+        lines.append(
+            f"{indent}ecs_set(world, prefab, GatePoints, {{ .gate_points = {record.gate_points_value} }});"
+        )
+
+    if record.card_type in {"ENTITY", "WEAPON", "SPELL"}:
+        lines.append(
+            f"{indent}ecs_set(world, prefab, IKZCost, {{ .ikz_cost = {record.ikz_cost_value} }});"
+        )
+
+    return lines
+
+
+def render_prefab_block(record: CardRecord) -> List[str]:
+    add_ids = ", ".join(["EcsPrefab", record.prefab_tag])
+    lines: List[str] = []
+    lines.append("    {")
+    lines.append("        ecs_entity_desc_t desc = {")
+    lines.append(f"            .name = {c_string_literal(record.prefab_entity_name)},")
+    lines.append(f"            .add = (ecs_id_t[]){{ {add_ids}, 0 }}")
+    lines.append("        };")
+    lines.append("        ecs_entity_t prefab = ecs_entity_init(world, &desc);")
+    lines.append(
+        f"        ecs_assert(prefab != 0, ECS_INVALID_PARAMETER, \"failed to create prefab for card {record.card_id}\");"
+    )
+    lines.append(f"        kGeneratedPrefabs[{record.enum_name}] = prefab;")
+    lines.extend(render_prefab_component_sets(record, "        "))
+    lines.append("    }")
     return lines
 
 
@@ -414,11 +519,37 @@ def render_card_struct_definition() -> List[str]:
     return lines
 
 
+def render_prefab_component_structs() -> List[str]:
+    lines = ["typedef struct {"]
+    lines.append("    CardDefId id;")
+    lines.append("    const char *code;")
+    lines.append("} CardId;")
+    lines.append("")
+    lines.append("typedef struct {")
+    lines.append("    const char *value;")
+    lines.append("} Name;")
+    lines.append("")
+    lines.append("typedef struct {")
+    lines.append("    CardType value;")
+    lines.append("} Type;")
+    return lines
+
+
 def render_lookup_struct_definition() -> List[str]:
     lines = ["typedef struct {"]
     lines.append("    const char *card_id;")
     lines.append("    const CardDef *def;")
     lines.append("} CardDefLookupEntry;")
+    return lines
+
+
+def render_component_and_tag_declarations() -> List[str]:
+    lines: List[str] = []
+    for component in CARD_PREFAB_COMPONENT_DECLARATIONS:
+        lines.append(f"extern ECS_COMPONENT_DECLARE({component});")
+    lines.append("")
+    for tag in CARD_PREFAB_TAG_DECLARATIONS:
+        lines.append(f"extern ECS_TAG_DECLARE({tag});")
     return lines
 
 
@@ -430,7 +561,8 @@ def render_header(records: Sequence[CardRecord], include_guard: str) -> str:
     lines.append("")
     lines.append("#include <stdbool.h>")
     lines.append("#include <stddef.h>")
-    lines.append("#include \"components.h\"")
+    lines.append("#include <stdint.h>")
+    lines.append("#include <flecs.h>")
     lines.append("")
 
     lines.extend(render_enum("CardRarity", RARITY_ORDER, RARITY_ENUM))
@@ -439,19 +571,28 @@ def render_header(records: Sequence[CardRecord], include_guard: str) -> str:
     lines.append("")
     lines.extend(render_enum("CardType", TYPE_ORDER, TYPE_ENUM))
     lines.append("")
+    lines.extend(render_card_component_structs())
+    if CARD_PREFAB_COMPONENT_STRUCTS:
+        lines.append("")
     lines.extend(render_card_struct_definition())
     lines.append("")
     lines.extend(render_card_id_enum(records))
     lines.append("")
+    lines.extend(render_prefab_component_structs())
+    lines.append("")
     lines.extend(render_lookup_struct_definition())
+    lines.append("")
+    lines.extend(render_component_and_tag_declarations())
     lines.append("")
     lines.append("#ifdef __cplusplus")
     lines.append("extern \"C\" {")
     lines.append("#endif")
     lines.append("")
+    lines.append("void azk_register_card_def_resources(ecs_world_t *world);")
     lines.append("size_t azk_card_def_count(void);")
     lines.append("const CardDef *azk_card_def_from_id(CardDefId id);")
     lines.append("const CardDefLookupEntry *azk_card_def_lookup_table(size_t *out_count);")
+    lines.append("ecs_entity_t azk_prefab_from_id(CardDefId id);")
     lines.append("")
     lines.append("#ifdef __cplusplus")
     lines.append("}")
@@ -467,10 +608,20 @@ def render_c_file(records: Sequence[CardRecord], header_include: str) -> str:
     lines.append("// This file is auto-generated by scripts/generate_card_defs.py. Do not edit manually.")
     lines.append(f"#include \"{header_include}\"")
     lines.append("")
+    for component in CARD_PREFAB_COMPONENT_DECLARATIONS:
+        lines.append(f"ECS_COMPONENT_DECLARE({component});")
+    lines.append("")
+    for tag in CARD_PREFAB_TAG_DECLARATIONS:
+        lines.append(f"ECS_TAG_DECLARE({tag});")
+    lines.append("")
     lines.append("static const CardDef kGeneratedCardDefs[CARD_DEF_COUNT] = {")
     for record in records:
         lines.extend(render_card_def_entry(record))
     lines.append("};")
+    lines.append("")
+    lines.append("static ecs_entity_t kGeneratedPrefabs[CARD_DEF_COUNT];")
+    lines.append("static bool g_card_def_components_registered = false;")
+    lines.append("static bool g_card_prefabs_registered = false;")
     lines.append("")
     lines.append("size_t azk_card_def_count(void) {")
     lines.append("    return CARD_DEF_COUNT;")
@@ -490,6 +641,41 @@ def render_c_file(records: Sequence[CardRecord], header_include: str) -> str:
     lines.append("        *out_count = CARD_DEF_COUNT;")
     lines.append("    }")
     lines.append("    return kGeneratedCardLookup;")
+    lines.append("}")
+    lines.append("")
+    lines.append("void azk_register_card_def_resources(ecs_world_t *world) {")
+    lines.append("    if (!g_card_def_components_registered) {")
+    lines.append("        g_card_def_components_registered = true;")
+    for component in CARD_PREFAB_COMPONENT_DECLARATIONS:
+        lines.append(f"        ECS_COMPONENT_DEFINE(world, {component});")
+    if CARD_PREFAB_COMPONENT_DECLARATIONS:
+        lines.append("")
+    for tag in CARD_PREFAB_TAG_DECLARATIONS:
+        lines.append(f"        ECS_TAG_DEFINE(world, {tag});")
+    if CARD_PREFAB_TAG_DECLARATIONS:
+        lines.append("")
+    for component in CARD_PREFAB_ON_INSTANTIATE_COMPONENTS:
+        lines.append(
+            f"        ecs_add_pair(world, ecs_id({component}), EcsOnInstantiate, EcsInherit);"
+        )
+    if CARD_PREFAB_ON_INSTANTIATE_COMPONENTS:
+        lines.append("")
+    lines.append("    }")
+    lines.append("")
+    lines.append("    if (g_card_prefabs_registered) {")
+    lines.append("        return;")
+    lines.append("    }")
+    lines.append("    g_card_prefabs_registered = true;")
+    lines.append("")
+    for record in records:
+        lines.extend(render_prefab_block(record))
+    lines.append("}")
+    lines.append("")
+    lines.append("ecs_entity_t azk_prefab_from_id(CardDefId id) {")
+    lines.append("    if ((size_t)id >= CARD_DEF_COUNT) {")
+    lines.append("        return 0;")
+    lines.append("    }")
+    lines.append("    return kGeneratedPrefabs[id];")
     lines.append("}")
     lines.append("")
     return "\n".join(lines)
