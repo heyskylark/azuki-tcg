@@ -11,12 +11,12 @@ void DrawCard(ecs_iter_t *it) {
 
   ecs_entity_t out_cards[1] = {0};
   if (!draw_cards(world, deck_zone, hand_zone, 1, out_cards)) {
-    printf("No cards in deck\n");
+    printf("[DrawCard] No cards in deck\n");
     // TODO: Player loses
     return;
   }
 
-  printf("Drew card %s\n", ecs_get_name(world, out_cards[0]));
+  printf("[DrawCard] Drew card %s\n", ecs_get_name(world, out_cards[0]));
 }
 
 void GrantIKZ(ecs_iter_t *it) {
@@ -30,7 +30,7 @@ void GrantIKZ(ecs_iter_t *it) {
     return;
   }
 
-  printf("IKZ granted\n");
+  printf("[GrantIKZ] IKZ granted\n");
 }
 
 void init_economy_systems(ecs_world_t *world) {
