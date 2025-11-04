@@ -136,9 +136,12 @@ void azk_store_user_action(ecs_world_t *world, const UserAction *action) {
 void azk_block_for_user_action(ecs_world_t *world) {
   ecs_assert(world != NULL, ECS_INVALID_PARAMETER, "World pointer is null");
 
+  const GameState *state = ecs_singleton_get(world, GameState);
+  ecs_assert(state != NULL, ECS_INVALID_PARAMETER, "GameState singleton missing");
+
   char buffer[128];
   while (true) {
-    printf("Awaiting user action (type,p0,p1,p2): ");
+    printf("Awaiting user action [Player %d] (type,p0,p1,p2): ", state->active_player_index);
     fflush(stdout);
 
     if (!fgets(buffer, sizeof(buffer), stdin)) {

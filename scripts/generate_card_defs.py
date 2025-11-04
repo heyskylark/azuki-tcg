@@ -95,6 +95,7 @@ CARD_PREFAB_ON_INSTANTIATE_COMPONENTS = [
     "Name",
     "Element",
     "Type",
+    "TapState",
     "BaseStats",
     "GatePoints",
     "IKZCost",
@@ -459,6 +460,9 @@ def render_prefab_component_sets(record: CardRecord, indent: str) -> List[str]:
     )
     lines.append(
         f"{indent}ecs_set(world, prefab, Type, {{ .value = {record.type_enum} }});"
+    )
+    lines.append(
+        f"{indent}ecs_set(world, prefab, TapState, {{ .tapped = 0, .cooldown = 0 }});"
     )
 
     if record.card_type in {"ENTITY", "LEADER", "WEAPON"}:

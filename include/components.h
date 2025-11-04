@@ -41,6 +41,7 @@ typedef struct {
 
 typedef struct {
   UserAction user_action;
+  bool invalid_action;
   UserAction user_action_history[MAX_USER_ACTION_HISTORY_SIZE];
   uint32_t history_size;
   uint32_t history_head;

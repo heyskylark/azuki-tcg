@@ -33,7 +33,8 @@ void HandleMulliganAction(ecs_iter_t *it) {
   UserAction action = ac->user_action;
 
   if (!verify_user_action_player(gs, &action)) {
-    fprintf(stderr, "Mulligan action player mismatch: %d != %d\n", gs->players[gs->active_player_index], action.player);
+    fprintf(stderr, "[Mulligan] Action player mismatch: %d != %d\n", gs->players[gs->active_player_index], action.player);
+    ac->invalid_action = true;
     return;
   }
 
@@ -47,6 +48,7 @@ void HandleMulliganAction(ecs_iter_t *it) {
       break;
     default:
       fprintf(stderr, "[Mulligan] Unknown mulligan action type: %d\n", action.type);
+      ac->invalid_action = true;
       break;
   }
 }

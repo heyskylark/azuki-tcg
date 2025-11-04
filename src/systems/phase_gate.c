@@ -10,6 +10,7 @@ static ecs_entity_t ResponseWindowPipeline;
 static ecs_entity_t CombatResolvePipeline;
 static ecs_entity_t EndTurnPipeline;
 static ecs_entity_t EndMatchPipeline;
+static ecs_entity_t s_phase_gate_system = 0;
 
 static void set_pipeline_for_phase(ecs_world_t *world, Phase phase) {
   switch (phase) {
@@ -38,7 +39,7 @@ static void set_pipeline_for_phase(ecs_world_t *world, Phase phase) {
     ecs_set_pipeline(world, EndMatchPipeline);
     break;
   default:
-    fprintf(stderr, "Unknown phase: %d\n", phase);
+    fprintf(stderr, "[PhaseGate] Unknown phase: %d\n", phase);
     exit(EXIT_FAILURE);
   }
 }
@@ -104,7 +105,7 @@ void init_phase_gate_system(ecs_world_t *world) {
   const GameState *gs = ecs_singleton_get(world, GameState);
   set_pipeline_for_phase(world, gs->phase);
 
-  ecs_system(world, {
+  s_phase_gate_system = ecs_system(world, {
     .entity = ecs_entity(world, {
       .name = "PhaseGate",
       .add = ecs_ids( ecs_dependson(EcsOnUpdate) )
@@ -114,4 +115,9 @@ void init_phase_gate_system(ecs_world_t *world) {
     },
     .callback = PhaseGate
   });
+}
+
+void run_phase_gate_system(ecs_world_t *world) {
+  ecs_assert(s_phase_gate_system != 0, ECS_INVALID_PARAMETER, "Phase gate system not initialized");
+  ecs_run(world, s_phase_gate_system, 0, NULL);
 }

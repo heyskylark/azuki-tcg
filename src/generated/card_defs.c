@@ -576,6 +576,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_add_pair(world, ecs_id(Name), EcsOnInstantiate, EcsInherit);
         ecs_add_pair(world, ecs_id(Element), EcsOnInstantiate, EcsInherit);
         ecs_add_pair(world, ecs_id(Type), EcsOnInstantiate, EcsInherit);
+        ecs_add_pair(world, ecs_id(TapState), EcsOnInstantiate, EcsInherit);
         ecs_add_pair(world, ecs_id(BaseStats), EcsOnInstantiate, EcsInherit);
         ecs_add_pair(world, ecs_id(GatePoints), EcsOnInstantiate, EcsInherit);
         ecs_add_pair(world, ecs_id(IKZCost), EcsOnInstantiate, EcsInherit);
@@ -599,6 +600,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "IKZ Card" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_NORMAL });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_IKZ });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
     }
     {
         ecs_entity_desc_t desc = {
@@ -612,6 +614,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Extra IKZ Card" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_NORMAL });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_IKZ });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
     }
     {
         ecs_entity_desc_t desc = {
@@ -625,6 +628,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Raizan" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_LIGHTNING });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_LEADER });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 0, .health = 20 });
         ecs_set(world, prefab, CurStats, { .cur_atk = 0, .cur_hp = 20 });
     }
@@ -640,6 +644,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Surge" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_LIGHTNING });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_GATE });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
     }
     {
         ecs_entity_desc_t desc = {
@@ -653,6 +658,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Crate Rat Kurobo" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_LIGHTNING });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_ENTITY });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 1, .health = 1 });
         ecs_set(world, prefab, CurStats, { .cur_atk = 1, .cur_hp = 1 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 1 });
@@ -670,6 +676,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Black Jade Recruit" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_NORMAL });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_ENTITY });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 1, .health = 1 });
         ecs_set(world, prefab, CurStats, { .cur_atk = 1, .cur_hp = 1 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 1 });
@@ -687,6 +694,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Alpine Prowler" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_LIGHTNING });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_ENTITY });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 1, .health = 1 });
         ecs_set(world, prefab, CurStats, { .cur_atk = 1, .cur_hp = 1 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 2 });
@@ -704,6 +712,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Silver Current, Haruhi" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_LIGHTNING });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_ENTITY });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 1, .health = 2 });
         ecs_set(world, prefab, CurStats, { .cur_atk = 1, .cur_hp = 2 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 1 });
@@ -721,6 +730,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Alley Guy" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_NORMAL });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_ENTITY });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 1, .health = 2 });
         ecs_set(world, prefab, CurStats, { .cur_atk = 1, .cur_hp = 2 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 0 });
@@ -738,6 +748,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Black Jade Crewleader" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_LIGHTNING });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_ENTITY });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 2, .health = 2 });
         ecs_set(world, prefab, CurStats, { .cur_atk = 2, .cur_hp = 2 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 1 });
@@ -755,6 +766,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Weapon Master Yamada" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_LIGHTNING });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_ENTITY });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 2, .health = 2 });
         ecs_set(world, prefab, CurStats, { .cur_atk = 2, .cur_hp = 2 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 2 });
@@ -772,6 +784,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Indra" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_LIGHTNING });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_ENTITY });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 3, .health = 2 });
         ecs_set(world, prefab, CurStats, { .cur_atk = 3, .cur_hp = 2 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 3 });
@@ -789,6 +802,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Raizan" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_LIGHTNING });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_ENTITY });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 4, .health = 3 });
         ecs_set(world, prefab, CurStats, { .cur_atk = 4, .cur_hp = 3 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 4 });
@@ -806,6 +820,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Lightning Shuriken" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_LIGHTNING });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_WEAPON });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 1, .health = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 1 });
     }
@@ -821,6 +836,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Black Jade Dagger" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_NORMAL });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_WEAPON });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 1, .health = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 1 });
     }
@@ -836,6 +852,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Tenshin" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_NORMAL });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_WEAPON });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 2, .health = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 2 });
     }
@@ -851,6 +868,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Tenraku" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_NORMAL });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_WEAPON });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 3, .health = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 3 });
     }
@@ -866,6 +884,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Raizan's Zanbato" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_LIGHTNING });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_WEAPON });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 4, .health = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 4 });
     }
@@ -881,6 +900,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Lightning Orb" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_LIGHTNING });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_SPELL });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 1 });
     }
     {
@@ -895,6 +915,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Shao" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_WATER });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_LEADER });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 0, .health = 20 });
         ecs_set(world, prefab, CurStats, { .cur_atk = 0, .cur_hp = 20 });
     }
@@ -910,6 +931,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Hydromancy" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_WATER });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_GATE });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
     }
     {
         ecs_entity_desc_t desc = {
@@ -923,6 +945,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Hayabusa Itto" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_WATER });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_ENTITY });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 1, .health = 1 });
         ecs_set(world, prefab, CurStats, { .cur_atk = 1, .cur_hp = 1 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 1 });
@@ -940,6 +963,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Rei" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_NORMAL });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_ENTITY });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 1, .health = 2 });
         ecs_set(world, prefab, CurStats, { .cur_atk = 1, .cur_hp = 2 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 0 });
@@ -957,6 +981,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Hayabusa Saburo" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_WATER });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_ENTITY });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 1, .health = 1 });
         ecs_set(world, prefab, CurStats, { .cur_atk = 1, .cur_hp = 1 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 1 });
@@ -974,6 +999,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Foamback Crab" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_WATER });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_ENTITY });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 0, .health = 1 });
         ecs_set(world, prefab, CurStats, { .cur_atk = 0, .cur_hp = 1 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 1 });
@@ -991,6 +1017,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Benzai the Merchant" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_WATER });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_ENTITY });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 1, .health = 2 });
         ecs_set(world, prefab, CurStats, { .cur_atk = 1, .cur_hp = 2 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 0 });
@@ -1008,6 +1035,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Serene Fist, Misaki" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_WATER });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_ENTITY });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 2, .health = 1 });
         ecs_set(world, prefab, CurStats, { .cur_atk = 2, .cur_hp = 1 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 0 });
@@ -1025,6 +1053,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Aya" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_WATER });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_ENTITY });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 1, .health = 2 });
         ecs_set(world, prefab, CurStats, { .cur_atk = 1, .cur_hp = 2 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 1 });
@@ -1042,6 +1071,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Selis of the Shore" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_WATER });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_ENTITY });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 1, .health = 3 });
         ecs_set(world, prefab, CurStats, { .cur_atk = 1, .cur_hp = 3 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 1 });
@@ -1059,6 +1089,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Bubblemancer" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_WATER });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_ENTITY });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 2, .health = 2 });
         ecs_set(world, prefab, CurStats, { .cur_atk = 2, .cur_hp = 2 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 0 });
@@ -1076,6 +1107,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Young Shao" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_NORMAL });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_ENTITY });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 2, .health = 2 });
         ecs_set(world, prefab, CurStats, { .cur_atk = 2, .cur_hp = 2 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 2 });
@@ -1093,6 +1125,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Mizuki" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_WATER });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_ENTITY });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 3, .health = 4 });
         ecs_set(world, prefab, CurStats, { .cur_atk = 3, .cur_hp = 4 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 2 });
@@ -1110,6 +1143,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Chilling Water" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_WATER });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_SPELL });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 1 });
     }
     {
@@ -1124,6 +1158,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Commune with Water" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_WATER });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_SPELL });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 2 });
     }
     {
@@ -1138,6 +1173,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Water Orb" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_WATER });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_SPELL });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 1 });
     }
     {
@@ -1152,6 +1188,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Name, { .value = "Shao's Perseverance" });
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_WATER });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_SPELL });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 6 });
     }
 }
