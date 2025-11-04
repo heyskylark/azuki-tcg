@@ -1,3 +1,9 @@
+# Dependencies
+
+- **Linux**: Install development headers via your package manager (Ubuntu/Debian `sudo apt install libncurses-dev`, Fedora `sudo dnf install ncurses-devel`, Arch-based `sudo pacman -S ncurses` or `yay -S ncurses`).
+- **macOS**: `brew install ncurses`.
+- **Windows**: Use MSYS2 (`pacman -S mingw-w64-x86_64-ncurses`) or another curses-compatible port such as PDCurses when targeting MSVC.
+
 # How to Build 
 
 ```bash

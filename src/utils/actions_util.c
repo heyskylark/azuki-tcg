@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "utils/cli_rendering_util.h"
+
 #define ACTION_VALUE_COUNT AZK_USER_ACTION_VALUE_COUNT
 
 bool verify_user_action_player(GameState *gs, UserAction *action) {
@@ -136,22 +138,22 @@ void azk_store_user_action(ecs_world_t *world, const UserAction *action) {
 void azk_block_for_user_action(ecs_world_t *world) {
   ecs_assert(world != NULL, ECS_INVALID_PARAMETER, "World pointer is null");
 
-  const GameState *state = ecs_singleton_get(world, GameState);
-  ecs_assert(state != NULL, ECS_INVALID_PARAMETER, "GameState singleton missing");
-
   char buffer[128];
+  char message[128] = {0};
   while (true) {
-    printf("Awaiting user action [Player %d] (type,p0,p1,p2): ", state->active_player_index);
-    fflush(stdout);
+    const GameState *state = ecs_singleton_get(world, GameState);
+    ecs_assert(state != NULL, ECS_INVALID_PARAMETER, "GameState singleton missing");
 
-    if (!fgets(buffer, sizeof(buffer), stdin)) {
-      fprintf(stderr, "Failed to read user action input.\n");
-      return;
+    const char *message_ptr = message[0] != '\0' ? message : NULL;
+    if (!cli_render_prompt_user_action(state->active_player_index, message_ptr, buffer, sizeof buffer)) {
+      snprintf(message, sizeof message, "Input error. Please try again.");
+      continue;
     }
+    message[0] = '\0';
 
     UserAction action;
     if (!azk_parse_user_action_string(world, buffer, &action)) {
-      fprintf(stderr, "Invalid user action. Please enter four comma-separated integers.\n");
+      snprintf(message, sizeof message, "Invalid input. Enter four comma-separated integers (type,p0,p1,p2).");
       continue;
     }
 
