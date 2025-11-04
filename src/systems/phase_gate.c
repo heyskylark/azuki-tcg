@@ -1,6 +1,7 @@
-#include <stdio.h>
+#include <stdlib.h>
 #include <flecs.h>
 #include "systems/phase_gate.h"
+#include "utils/cli_rendering_util.h"
 
 static ecs_entity_t MulliganPipeline;
 static ecs_entity_t StartOfTurnPipeline;
@@ -39,7 +40,7 @@ static void set_pipeline_for_phase(ecs_world_t *world, Phase phase) {
     ecs_set_pipeline(world, EndMatchPipeline);
     break;
   default:
-    fprintf(stderr, "[PhaseGate] Unknown phase: %d\n", phase);
+    cli_render_logf("[PhaseGate] Unknown phase: %d", phase);
     exit(EXIT_FAILURE);
   }
 }

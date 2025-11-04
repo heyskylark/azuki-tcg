@@ -1,13 +1,13 @@
 #include "systems/phase_management.h"
 #include "components.h"
-#include <stdio.h>
 #include <stdlib.h>
+#include "utils/cli_rendering_util.h"
 
 static ecs_entity_t s_phase_management_system = 0;
 
 static bool is_invalid_action(ActionContext *ac) {
   if (ac->invalid_action) {
-    fprintf(stderr, "[PhaseManagement] Invalid mulligan action: %d\n", ac->user_action.type);
+    cli_render_logf("[PhaseManagement] Invalid mulligan action: %d", ac->user_action.type);
     ac->invalid_action = false;
     return true;
   }
@@ -46,7 +46,7 @@ void PhaseManagement(ecs_iter_t *it) {
       start_of_turn_phase_handler(world, gs, ac);
       break;
     default:
-      fprintf(stderr, "[PhaseManagement] Phase not implemented: %d\n", phase);
+      cli_render_logf("[PhaseManagement] Phase not implemented: %d", phase);
       exit(EXIT_FAILURE);
   }
 }

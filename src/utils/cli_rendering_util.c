@@ -1,14 +1,19 @@
 #include "utils/cli_rendering_util.h"
 
 #include <ncurses.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 
 #define MIN_BOARD_HEIGHT 8
+#define MIN_LOG_HEIGHT 4
 #define MIN_INFO_HEIGHT 3
 #define MIN_INPUT_HEIGHT 3
+#define CLI_LOG_MAX_LINES 256
+#define CLI_LOG_LINE_LENGTH 256
 
 static WINDOW *board_win = NULL;
+static WINDOW *log_win = NULL;
 static WINDOW *info_win = NULL;
 static WINDOW *input_win = NULL;
 static int screen_rows = 0;
@@ -17,11 +22,69 @@ static int screen_cols = 0;
 static ObservationData last_observation = {0};
 static GameState last_state = {0};
 static bool has_last_state = false;
+static char log_lines[CLI_LOG_MAX_LINES][CLI_LOG_LINE_LENGTH];
+static size_t log_line_count = 0;
+static size_t log_line_head = 0;
+static void refresh_log_window(void);
+
+static void append_log_line(const char *text) {
+  if (!text) {
+    return;
+  }
+  size_t index = log_line_head;
+  strncpy(log_lines[index], text, CLI_LOG_LINE_LENGTH - 1);
+  log_lines[index][CLI_LOG_LINE_LENGTH - 1] = '\0';
+  size_t len = strlen(log_lines[index]);
+  while (len > 0 && (log_lines[index][len - 1] == '\n' || log_lines[index][len - 1] == '\r')) {
+    log_lines[index][--len] = '\0';
+  }
+  log_line_head = (log_line_head + 1) % CLI_LOG_MAX_LINES;
+  if (log_line_count < CLI_LOG_MAX_LINES) {
+    log_line_count++;
+  }
+}
+
+static void render_logs(WINDOW *win) {
+  if (!win) {
+    return;
+  }
+
+  int max_inner_rows = getmaxy(win) - 2;
+  if (max_inner_rows < 1) {
+    return;
+  }
+
+  int lines_to_show = (int)((log_line_count < (size_t)max_inner_rows) ? log_line_count : (size_t)max_inner_rows);
+  if (lines_to_show <= 0) {
+    mvwprintw(win, 1, 2, "(no log messages)");
+    return;
+  }
+
+  size_t start_index = (log_line_head + CLI_LOG_MAX_LINES - (size_t)lines_to_show) % CLI_LOG_MAX_LINES;
+  for (int i = 0; i < lines_to_show; ++i) {
+    size_t idx = (start_index + i) % CLI_LOG_MAX_LINES;
+    mvwprintw(win, i + 1, 2, "%s", log_lines[idx]);
+  }
+}
+
+static void refresh_log_window(void) {
+  if (!log_win) {
+    return;
+  }
+  werase(log_win);
+  box(log_win, 0, 0);
+  render_logs(log_win);
+  wrefresh(log_win);
+}
 
 static void destroy_windows(void) {
   if (board_win) {
     delwin(board_win);
     board_win = NULL;
+  }
+  if (log_win) {
+    delwin(log_win);
+    log_win = NULL;
   }
   if (info_win) {
     delwin(info_win);
@@ -43,7 +106,7 @@ static void ensure_windows(void) {
   }
 
   bool size_changed = rows != screen_rows || cols != screen_cols;
-  if (!size_changed && board_win && info_win && input_win) {
+  if (!size_changed && board_win && log_win && info_win && input_win) {
     return;
   }
 
@@ -52,83 +115,51 @@ static void ensure_windows(void) {
   screen_rows = rows;
   screen_cols = cols;
 
-  int info_height = 4;
-  int input_height = 4;
-  int board_height = rows - info_height - input_height;
+  int heights[4] = { MIN_BOARD_HEIGHT, MIN_LOG_HEIGHT, MIN_INFO_HEIGHT, MIN_INPUT_HEIGHT };
+  const int mins[4] = { 1, 1, 1, 2 };
+  int total = heights[0] + heights[1] + heights[2] + heights[3];
 
-  if (board_height < MIN_BOARD_HEIGHT) {
-    int deficit = MIN_BOARD_HEIGHT - board_height;
-    while (deficit > 0 && info_height > MIN_INFO_HEIGHT) {
-      info_height--;
-      board_height++;
-      deficit--;
+  if (rows >= total) {
+    heights[0] += rows - total;
+  } else {
+    int deficit = total - rows;
+    while (deficit > 0) {
+      bool reduced = false;
+      for (int i = 3; i >= 0 && deficit > 0; --i) {
+        if (heights[i] > mins[i]) {
+          heights[i]--;
+          deficit--;
+          reduced = true;
+        }
+      }
+      if (!reduced) {
+        break;
+      }
     }
-    while (deficit > 0 && input_height > MIN_INPUT_HEIGHT) {
-      input_height--;
-      board_height++;
-      deficit--;
-    }
-    if (board_height < MIN_BOARD_HEIGHT) {
-      board_height = MIN_BOARD_HEIGHT;
-    }
-  }
-
-  if (board_height + info_height + input_height > rows) {
-    board_height = rows - info_height - input_height;
-    if (board_height < MIN_BOARD_HEIGHT) {
-      board_height = rows - info_height - MIN_INPUT_HEIGHT;
-      input_height = MIN_INPUT_HEIGHT;
-    }
-  }
-
-  if (board_height < 3) {
-    board_height = rows > (info_height + input_height) ? rows - info_height - input_height : rows;
-  }
-
-  if (board_height < 1) {
-    board_height = 1;
-  }
-  if (info_height < MIN_INFO_HEIGHT) {
-    info_height = MIN_INFO_HEIGHT;
-  }
-  if (input_height < MIN_INPUT_HEIGHT) {
-    input_height = MIN_INPUT_HEIGHT;
-  }
-
-  if (board_height + info_height + input_height > rows) {
-    input_height = rows - board_height - info_height;
-    if (input_height < MIN_INPUT_HEIGHT) {
-      input_height = MIN_INPUT_HEIGHT;
-      board_height = rows - info_height - input_height;
+    total = heights[0] + heights[1] + heights[2] + heights[3];
+    if (total > rows) {
+      heights[0] -= total - rows;
+      if (heights[0] < 1) {
+        heights[0] = 1;
+      }
     }
   }
 
-  if (board_height < 1) {
-    board_height = 1;
-  }
-  if (info_height < 1) {
-    info_height = 1;
-  }
-  if (input_height < 2) {
-    input_height = 2;
+  int starts[4] = {0};
+  for (int i = 1; i < 4; ++i) {
+    starts[i] = starts[i - 1] + heights[i - 1];
   }
 
-  int board_start = 0;
-  int info_start = board_start + board_height;
-  int input_start = info_start + info_height;
-  if (input_start + input_height > rows) {
-    input_height = rows - info_start;
-    if (input_height < 2) {
-      input_height = 2;
-    }
-  }
-
-  board_win = newwin(board_height, cols, board_start, 0);
-  info_win = newwin(info_height, cols, info_start, 0);
-  input_win = newwin(input_height, cols, input_start, 0);
+  board_win = newwin(heights[0], cols, starts[0], 0);
+  log_win = newwin(heights[1], cols, starts[1], 0);
+  info_win = newwin(heights[2], cols, starts[2], 0);
+  input_win = newwin(heights[3], cols, starts[3], 0);
 
   if (board_win) {
     keypad(board_win, FALSE);
+  }
+  if (log_win) {
+    keypad(log_win, FALSE);
   }
   if (info_win) {
     keypad(info_win, FALSE);
@@ -432,6 +463,7 @@ void cli_render_init(void) {
   keypad(stdscr, TRUE);
   curs_set(0);
   ensure_windows();
+  refresh_log_window();
   if (input_win) {
     keypad(input_win, TRUE);
   }
@@ -454,7 +486,7 @@ void cli_render_draw(const ObservationData *observation, const GameState *gs) {
 
   ensure_windows();
 
-  if (!board_win || !info_win || !input_win) {
+  if (!board_win || !log_win || !info_win || !input_win) {
     return;
   }
 
@@ -466,6 +498,8 @@ void cli_render_draw(const ObservationData *observation, const GameState *gs) {
   box(board_win, 0, 0);
   render_board(board_win, observation, gs);
   wrefresh(board_win);
+
+  refresh_log_window();
 
   werase(info_win);
   box(info_win, 0, 0);
@@ -496,6 +530,7 @@ bool cli_render_prompt_user_action(int active_player_index, const char *message,
     if (!input_win) {
       return false;
     }
+    refresh_log_window();
 
     werase(input_win);
     box(input_win, 0, 0);
@@ -542,4 +577,24 @@ bool cli_render_prompt_user_action(int active_player_index, const char *message,
     }
     return true;
   }
+}
+
+void cli_render_log(const char *message) {
+  if (!message) {
+    return;
+  }
+  append_log_line(message);
+  refresh_log_window();
+}
+
+void cli_render_logf(const char *fmt, ...) {
+  if (!fmt) {
+    return;
+  }
+  char buffer[CLI_LOG_LINE_LENGTH];
+  va_list args;
+  va_start(args, fmt);
+  vsnprintf(buffer, sizeof buffer, fmt, args);
+  va_end(args);
+  cli_render_log(buffer);
 }

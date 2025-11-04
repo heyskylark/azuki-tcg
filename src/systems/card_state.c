@@ -1,7 +1,7 @@
 #include "systems/card_state.h"
 #include "generated/card_defs.h"
 #include "utils/card_utils.h"
-#include <stdio.h>
+#include "utils/cli_rendering_util.h"
 
 void UntapAllCards(ecs_iter_t *it) {
   ecs_world_t *world = it->world;
@@ -20,7 +20,7 @@ void UntapAllCards(ecs_iter_t *it) {
   ecs_entity_t gate_zone = state->zones[active_player_index].gate;
   untap_all_cards_in_zone(world, gate_zone);
 
-  printf("[UntapAllCards] Untapped all cards in zones\n");
+  cli_render_log("[UntapAllCards] Untapped all cards in zones");
 }
 
 void init_card_state_systems(ecs_world_t *world) {

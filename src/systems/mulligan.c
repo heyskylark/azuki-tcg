@@ -1,9 +1,9 @@
 #include "systems/mulligan.h"
 #include "components.h"
-#include <stdio.h>
 #include "utils/deck_utils.h"
 #include "utils/actions_util.h"
 #include "constants/game.h"
+#include "utils/cli_rendering_util.h"
 
 static void HandleMulliganShuffleAction(ecs_world_t *world, GameState *gs) {
   ecs_entity_t deck_zone = gs->zones[gs->active_player_index].deck;
@@ -17,13 +17,13 @@ static void HandleMulliganShuffleAction(ecs_world_t *world, GameState *gs) {
 
 
   if (!draw_cards(world, deck_zone, hand_zone, INITIAL_DRAW_COUNT, NULL)) {
-    printf("[Mulligan] No cards in deck\n");
+    cli_render_log("[Mulligan] No cards in deck");
     // TODO: Player loses
     return;
   }
 
   shuffle_deck(world, deck_zone);
-  printf("[Mulligan] Shuffled deck\n");
+  cli_render_log("[Mulligan] Shuffled deck");
 }
 
 void HandleMulliganAction(ecs_iter_t *it) {
@@ -33,7 +33,7 @@ void HandleMulliganAction(ecs_iter_t *it) {
   UserAction action = ac->user_action;
 
   if (!verify_user_action_player(gs, &action)) {
-    fprintf(stderr, "[Mulligan] Action player mismatch: %d != %d\n", gs->players[gs->active_player_index], action.player);
+    cli_render_logf("[Mulligan] Action player mismatch: %d != %d", gs->players[gs->active_player_index], action.player);
     ac->invalid_action = true;
     return;
   }
@@ -44,10 +44,10 @@ void HandleMulliganAction(ecs_iter_t *it) {
       break;
     case ACT_NOOP:
     case ACT_MULLIGAN_KEEP:
-      printf("[Mulligan] No action performed\n");
+      cli_render_log("[Mulligan] No action performed");
       break;
     default:
-      fprintf(stderr, "[Mulligan] Unknown mulligan action type: %d\n", action.type);
+      cli_render_logf("[Mulligan] Unknown mulligan action type: %d", action.type);
       ac->invalid_action = true;
       break;
   }

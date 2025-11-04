@@ -3,6 +3,7 @@
 #include "systems/main.h"
 #include "queries/main.h"
 #include "utils/deck_utils.h"
+#include "utils/cli_rendering_util.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -81,7 +82,7 @@ static ZonePlacement zone_placement_for_type(PlayerZones *zones, CardType type) 
   case CARD_TYPE_IKZ:
     return (ZonePlacement){ zones->ikz_pile, &zones->ikz_pile_size };
   default:
-    fprintf(stderr, "Error: Unknown CardType %d\n", type);
+    cli_render_logf("Error: Unknown CardType %d", type);
     exit(EXIT_FAILURE);
   }
 }
@@ -278,19 +279,19 @@ void init_player_deck(
 
   // Validate the final card distribution sizes
   if (total_counts.deck_size < REQUIRED_DECK_SIZE) {
-    fprintf(stderr, "Error: Deck size is less than required (%d < %d)\n", total_counts.deck_size, REQUIRED_DECK_SIZE);
+    cli_render_logf("Error: Deck size is less than required (%d < %d)", total_counts.deck_size, REQUIRED_DECK_SIZE);
     exit(EXIT_FAILURE);
   }
   if (total_counts.leader_size < REQUIRED_LEADER_SIZE) {
-    fprintf(stderr, "Error: Leader size is less than required (%d < %d)\n", total_counts.leader_size, REQUIRED_LEADER_SIZE);
+    cli_render_logf("Error: Leader size is less than required (%d < %d)", total_counts.leader_size, REQUIRED_LEADER_SIZE);
     exit(EXIT_FAILURE);
   }
   if (total_counts.gate_size < REQUIRED_GATE_SIZE) {
-    fprintf(stderr, "Error: Gate size is less than required (%d < %d)\n", total_counts.gate_size, REQUIRED_GATE_SIZE);
+    cli_render_logf("Error: Gate size is less than required (%d < %d)", total_counts.gate_size, REQUIRED_GATE_SIZE);
     exit(EXIT_FAILURE);
   }
   if (total_counts.ikz_pile_size < REQUIRED_IKZ_PILE_SIZE) {
-    fprintf(stderr, "Error: IKZ pile size is less than required (%d < %d)\n", total_counts.ikz_pile_size, REQUIRED_IKZ_PILE_SIZE);
+    cli_render_logf("Error: IKZ pile size is less than required (%d < %d)", total_counts.ikz_pile_size, REQUIRED_IKZ_PILE_SIZE);
     exit(EXIT_FAILURE);
   }
 }

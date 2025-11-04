@@ -1,6 +1,6 @@
 #include "systems/economy.h"
 #include "utils/deck_utils.h"
-#include <stdio.h>
+#include "utils/cli_rendering_util.h"
 
 void DrawCard(ecs_iter_t *it) {
   ecs_world_t *world = it->world;
@@ -11,12 +11,12 @@ void DrawCard(ecs_iter_t *it) {
 
   ecs_entity_t out_cards[1] = {0};
   if (!draw_cards(world, deck_zone, hand_zone, 1, out_cards)) {
-    printf("[DrawCard] No cards in deck\n");
+    cli_render_log("[DrawCard] No cards in deck");
     // TODO: Player loses
     return;
   }
 
-  printf("[DrawCard] Drew card %s\n", ecs_get_name(world, out_cards[0]));
+  cli_render_logf("[DrawCard] Drew card %s", ecs_get_name(world, out_cards[0]));
 }
 
 void GrantIKZ(ecs_iter_t *it) {
@@ -30,7 +30,7 @@ void GrantIKZ(ecs_iter_t *it) {
     return;
   }
 
-  printf("[GrantIKZ] IKZ granted\n");
+  cli_render_log("[GrantIKZ] IKZ granted");
 }
 
 void init_economy_systems(ecs_world_t *world) {
