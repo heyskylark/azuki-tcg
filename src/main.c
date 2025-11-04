@@ -3,6 +3,7 @@
 #include "systems/phase_management.h"
 #include "utils/phase_utils.h"
 #include "utils/actions_util.h"
+#include "utils/observation_util.h"
 
 int main(void) {
   ecs_world_t *world = azk_world_init(42);
@@ -12,6 +13,7 @@ int main(void) {
     const GameState *gs = ecs_singleton_get(world, GameState);
     bool requires_user_action = phase_requires_user_action(gs->phase);
     if (requires_user_action) {
+      ObservationData observation_data = create_observation_data(world);
       azk_block_for_user_action(world);
     }
 
