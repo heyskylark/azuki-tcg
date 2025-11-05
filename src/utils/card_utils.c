@@ -24,6 +24,45 @@ void discard_card(ecs_world_t *world, ecs_entity_t card) {
   ecs_add_pair(world, card, EcsChildOf, discard_zone);
 }
 
+static void get_tappable_ikz_cards(
+  ecs_world_t *world,
+  ecs_entity_t ikz_area_zone,
+  uint8_t ikz_cost,
+  uint8_t *out_ikz_count,
+  ecs_entity_t *out_ikz_cards
+) {
+  ecs_entities_t ikz_area_cards = ecs_get_ordered_children(world, ikz_area_zone);
+  for (int32_t i = 0; i < ikz_area_cards.count && *out_ikz_count < ikz_cost; i++) {
+    ecs_entity_t ikz_card = ikz_area_cards.ids[i];
+    const TapState *tap_state = ecs_get(world, ikz_card, TapState);
+    ecs_assert(tap_state != NULL, ECS_INVALID_PARAMETER, "TapState component not found for card %d", ikz_card);
+    if (!tap_state->tapped) {
+      out_ikz_cards[*out_ikz_count] = ikz_card;
+      (*out_ikz_count)++;
+    }
+  }
+}
+
+static ecs_entity_t find_card_in_zone_index(
+  ecs_world_t *world,
+  ecs_entity_t zone,
+  int index
+) {
+  ecs_entities_t zone_cards = ecs_get_ordered_children(world, zone);
+  ecs_entity_t card_with_zone_index = 0;
+  for (int32_t i = 0; i < zone_cards.count; i++) {
+    ecs_entity_t card = zone_cards.ids[i];
+    const ZoneIndex *zone_index = ecs_get(world, card, ZoneIndex);
+    ecs_assert(zone_index != NULL, ECS_INVALID_PARAMETER, "Card %d in zone %d has no ZoneIndex component", card, zone);
+    if (zone_index->index == index) {
+      card_with_zone_index = card;
+      break;
+    }
+  }
+
+  return card_with_zone_index;
+}
+
 int insert_card_into_zone_index (
   ecs_world_t *world,
   ecs_entity_t card,
@@ -57,17 +96,8 @@ int insert_card_into_zone_index (
   uint8_t tappable_ikz_cards_count = 0;
   ecs_entity_t tappable_ikz_cards[ikz_cost->ikz_cost];
 
-  ecs_entities_t ikz_area_cards = ecs_get_ordered_children(world, ikz_area_zone);
-  for (int32_t i = 0; i < ikz_area_cards.count && tappable_ikz_cards_count < ikz_cost->ikz_cost; i++) {
-    ecs_entity_t ikz_card = ikz_area_cards.ids[i];
-    const TapState *tap_state = ecs_get(world, ikz_card, TapState);
-    ecs_assert(tap_state != NULL, ECS_INVALID_PARAMETER, "TapState component not found for card %d", ikz_card);
-    if (!tap_state->tapped) {
-      tappable_ikz_cards[tappable_ikz_cards_count] = ikz_card;
-      tappable_ikz_cards_count++;
-    }
-  }
-
+  get_tappable_ikz_cards(world, ikz_area_zone, ikz_cost->ikz_cost, &tappable_ikz_cards_count, tappable_ikz_cards);
+  
   if (tappable_ikz_cards_count < ikz_cost->ikz_cost) {
     cli_render_logf("Not enough untapped IKZ cards to place card %d", card);
     return -1;
@@ -85,16 +115,7 @@ int insert_card_into_zone_index (
 
   // Find if card exists in given zone index.
   ecs_entities_t zone_cards = ecs_get_ordered_children(world, zone);
-  ecs_entity_t card_with_zone_index = 0;
-  for (int32_t i = 0; i < zone_cards.count; i++) {
-    ecs_entity_t card = zone_cards.ids[i];
-    const ZoneIndex *zone_index = ecs_get(world, card, ZoneIndex);
-    ecs_assert(zone_index != NULL, ECS_INVALID_PARAMETER, "Card %d in zone %d has no ZoneIndex component", card, zone);
-    if (zone_index->index == index) {
-      card_with_zone_index = card;
-      break;
-    }
-  }
+  ecs_entity_t card_with_zone_index = find_card_in_zone_index(world, zone, index);
 
   bool is_zone_full = zone_cards.count >= GARDEN_SIZE; // Alley and garden are the same size
   if (card_with_zone_index != 0) {
