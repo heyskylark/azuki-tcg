@@ -15,10 +15,16 @@ static int play_entity_to_garden_or_alley(
 
   ecs_entity_t hand_zone = gs->zones[gs->active_player_index].hand;
   ecs_entities_t hand_cards = ecs_get_ordered_children(world, hand_zone);
+  if (hand_card_idx < 0 || hand_card_idx >= hand_cards.count) {
+    cli_render_logf("Hand card index %d is out of bounds", hand_card_idx);
+    return -1;
+  }
+  
   ecs_entity_t hand_card = hand_cards.ids[hand_card_idx];
 
-  if (hand_card == 0) {
-    exit(EXIT_FAILURE);
+  if (!hand_card) {
+    cli_render_logf("Hand card %d not found", hand_card_idx);
+    return -1;
   }
   
   if (!is_card_type(world, hand_card, CARD_TYPE_ENTITY)) {

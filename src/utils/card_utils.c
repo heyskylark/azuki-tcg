@@ -24,7 +24,6 @@ void discard_card(ecs_world_t *world, ecs_entity_t card) {
   ecs_add_pair(world, card, EcsChildOf, discard_zone);
 }
 
-// TODO: IKZ check (need enough untapped IKZ to place, then must tap IKZ) (IKZ area as input)
 int insert_card_into_zone_index (
   ecs_world_t *world,
   ecs_entity_t card,
@@ -34,6 +33,9 @@ int insert_card_into_zone_index (
 ) {
   const GameState *gs = ecs_singleton_get(world, GameState);
   ecs_assert(gs != NULL, ECS_INVALID_PARAMETER, "GameState singleton missing");
+
+  const IKZCost *ikz_cost = ecs_get(world, card, IKZCost);
+  ecs_assert(ikz_cost != NULL, ECS_INVALID_PARAMETER, "IKZCost component not found for card %d", card);
 
   const PlayerNumber *player_number = ecs_get(world, player, PlayerNumber);
   ecs_assert(player_number != NULL, ECS_INVALID_PARAMETER, "PlayerNumber component not found for player %d", player);
@@ -49,6 +51,26 @@ int insert_card_into_zone_index (
     default:
       cli_render_logf("Invalid placement type: %d", placement_type);
       exit(EXIT_FAILURE);
+  }
+
+  ecs_entity_t ikz_area_zone = gs->zones[player_number->player_number].ikz_area;
+  uint8_t tappable_ikz_cards_count = 0;
+  ecs_entity_t tappable_ikz_cards[ikz_cost->ikz_cost];
+
+  ecs_entities_t ikz_area_cards = ecs_get_ordered_children(world, ikz_area_zone);
+  for (int32_t i = 0; i < ikz_area_cards.count && tappable_ikz_cards_count < ikz_cost->ikz_cost; i++) {
+    ecs_entity_t ikz_card = ikz_area_cards.ids[i];
+    const TapState *tap_state = ecs_get(world, ikz_card, TapState);
+    ecs_assert(tap_state != NULL, ECS_INVALID_PARAMETER, "TapState component not found for card %d", ikz_card);
+    if (!tap_state->tapped) {
+      tappable_ikz_cards[tappable_ikz_cards_count] = ikz_card;
+      tappable_ikz_cards_count++;
+    }
+  }
+
+  if (tappable_ikz_cards_count < ikz_cost->ikz_cost) {
+    cli_render_logf("Not enough untapped IKZ cards to place card %d", card);
+    return -1;
   }
 
   // Garden and alley are the same size
@@ -91,7 +113,11 @@ int insert_card_into_zone_index (
   if (placement_type == ZONE_GARDEN) {
     ecs_set(world, card, TapState, { .tapped = false, .cooldown = true });
   }
-  
+
+  for (int32_t i = 0; i < ikz_cost->ikz_cost; i++) {
+    ecs_set(world, tappable_ikz_cards[i], TapState, { .tapped = true, .cooldown = false });
+  }
+
   return 0;
 }
 
