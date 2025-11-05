@@ -63,11 +63,16 @@ typedef struct {
 } GameState;
 typedef struct { uint8_t player_number; } PlayerNumber;
 typedef struct { uint8_t pid; } PlayerId;
+/*
+ZoneIndex must exist (even with ordered children) because cards can be placed in gaps in the zone.
+*/
+typedef struct { uint8_t index; } ZoneIndex;
 
 extern ECS_COMPONENT_DECLARE(ActionContext);
 extern ECS_COMPONENT_DECLARE(GameState);
 extern ECS_COMPONENT_DECLARE(PlayerNumber);
 extern ECS_COMPONENT_DECLARE(PlayerId);
+extern ECS_COMPONENT_DECLARE(ZoneIndex);
 
 /* Relationship Entities */
 extern ECS_ENTITY_DECLARE(Rel_OwnedBy);

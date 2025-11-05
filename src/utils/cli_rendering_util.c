@@ -12,6 +12,11 @@
 #define CLI_LOG_MAX_LINES 256
 #define CLI_LOG_LINE_LENGTH 256
 
+#define CARD_BOX_WIDTH 18
+#define CARD_BOX_HEIGHT 6
+#define CARD_BOX_TEXT_WIDTH (CARD_BOX_WIDTH - 2)
+#define CARD_BOX_TEXT_CAPACITY (CARD_BOX_TEXT_WIDTH + 1)
+
 static WINDOW *board_win = NULL;
 static WINDOW *log_win = NULL;
 static WINDOW *info_win = NULL;
@@ -206,38 +211,6 @@ static char tap_state_char(const TapState *tap_state) {
   return tap_state->tapped ? 'T' : 'U';
 }
 
-static void format_leader_summary(const LeaderCardObservationData *leader, char *buffer, size_t length) {
-  const char *code = card_code_or_placeholder(&leader->id);
-  char tap = tap_state_char(&leader->tap_state);
-  snprintf(buffer, length, "%s[%d/%d]%c", code, leader->cur_stats.cur_atk, leader->cur_stats.cur_hp, tap);
-}
-
-static void format_gate_summary(const GateCardObservationData *gate, char *buffer, size_t length) {
-  const char *code = card_code_or_placeholder(&gate->id);
-  char tap = tap_state_char(&gate->tap_state);
-  snprintf(buffer, length, "%s%c", code, tap);
-}
-
-static void format_card_summary(const CardObservationData *card, char *buffer, size_t length) {
-  const char *code = card_code_or_placeholder(&card->id);
-  char tap = tap_state_char(&card->tap_state);
-  if (card->has_cur_stats) {
-    snprintf(buffer, length, "%s[%d/%d]%c", code, card->cur_stats.cur_atk, card->cur_stats.cur_hp, tap);
-    return;
-  }
-  if (card->has_gate_points) {
-    snprintf(buffer, length, "%s{GP:%u}%c", code, card->gate_points.gate_points, tap);
-    return;
-  }
-  snprintf(buffer, length, "%s%c", code, tap);
-}
-
-static void format_ikz_card_summary(const IKZCardObservationData *card, char *buffer, size_t length) {
-  const char *code = card_code_or_placeholder(&card->id);
-  char tap = tap_state_char(&card->tap_state);
-  snprintf(buffer, length, "%s%c", code, tap);
-}
-
 static size_t card_observation_count(const CardObservationData *cards, size_t max_count) {
   if (!cards) {
     return 0;
@@ -266,58 +239,363 @@ static size_t ikz_observation_count(const IKZCardObservationData *cards, size_t 
   return count;
 }
 
-static void draw_card_group(WINDOW *win, int row, const char *label, const CardObservationData *cards, size_t count) {
-  if (!win) {
-    return;
-  }
-  int max_cols = getmaxx(win);
-  if (max_cols <= 4) {
-    return;
-  }
-  mvwprintw(win, row, 2, "%s", label);
-  int label_len = (int)strlen(label);
-  int col = 2 + label_len + 1;
-  int inner_limit = max_cols - 3;
-  for (size_t i = 0; i < count; i++) {
-    char summary[64];
-    format_card_summary(&cards[i], summary, sizeof summary);
-    int len = (int)strlen(summary);
-    if (col + len >= inner_limit) {
-      if (col + 3 < inner_limit) {
-        mvwprintw(win, row, col, "...");
-      }
-      break;
-    }
-    mvwprintw(win, row, col, "%s", summary);
-    col += len + 1;
+static const char *card_type_to_string(CardType type) {
+  switch (type) {
+    case CARD_TYPE_LEADER:
+      return "Leader";
+    case CARD_TYPE_GATE:
+      return "Gate";
+    case CARD_TYPE_ENTITY:
+      return "Entity";
+    case CARD_TYPE_WEAPON:
+      return "Weapon";
+    case CARD_TYPE_SPELL:
+      return "Spell";
+    case CARD_TYPE_IKZ:
+      return "IKZ";
+    case CARD_TYPE_EXTRA_IKZ:
+      return "Extra IKZ";
+    default:
+      return "Unknown";
   }
 }
 
-static void draw_ikz_group(WINDOW *win, int row, const char *label, const IKZCardObservationData *cards, size_t count) {
-  if (!win) {
+static void draw_text_box(WINDOW *win, int top, int left, int width, int height, const char *lines[], size_t line_count) {
+  if (!win || width < 3 || height < 3) {
     return;
   }
-  int max_cols = getmaxx(win);
-  if (max_cols <= 4) {
+
+  int max_y = getmaxy(win);
+  int max_x = getmaxx(win);
+  if (top < 1 || left < 1 || top + height > max_y - 1 || left + width > max_x - 1) {
     return;
+  }
+
+  mvwaddch(win, top, left, ACS_ULCORNER);
+  mvwaddch(win, top, left + width - 1, ACS_URCORNER);
+  mvwaddch(win, top + height - 1, left, ACS_LLCORNER);
+  mvwaddch(win, top + height - 1, left + width - 1, ACS_LRCORNER);
+  mvwhline(win, top, left + 1, ACS_HLINE, width - 2);
+  mvwhline(win, top + height - 1, left + 1, ACS_HLINE, width - 2);
+  mvwvline(win, top + 1, left, ACS_VLINE, height - 2);
+  mvwvline(win, top + 1, left + width - 1, ACS_VLINE, height - 2);
+
+  for (int y = top + 1; y < top + height - 1; ++y) {
+    for (int x = left + 1; x < left + width - 1; ++x) {
+      mvwaddch(win, y, x, ' ');
+    }
+  }
+
+  int inner_width = width - 2;
+  int max_lines = height - 2;
+  for (int i = 0; i < max_lines && (size_t)i < line_count; ++i) {
+    const char *line = lines[i];
+    if (!line || line[0] == '\0') {
+      continue;
+    }
+    mvwprintw(win, top + 1 + i, left + 1, "%.*s", inner_width, line);
+  }
+}
+
+static void build_standard_card_lines(const CardObservationData *card, char lines[4][CARD_BOX_TEXT_CAPACITY]) {
+  const char *code = card_code_or_placeholder(&card->id);
+  snprintf(lines[0], CARD_BOX_TEXT_CAPACITY, "%s", code);
+
+  const char *type_str = card_type_to_string(card->type.value);
+  snprintf(lines[1], CARD_BOX_TEXT_CAPACITY, "Type: %s", type_str);
+
+  if (card->has_cur_stats) {
+    snprintf(lines[2], CARD_BOX_TEXT_CAPACITY, "ATK:%d HP:%d", card->cur_stats.cur_atk, card->cur_stats.cur_hp);
+  } else if (card->has_gate_points) {
+    snprintf(lines[2], CARD_BOX_TEXT_CAPACITY, "GP: %u", card->gate_points.gate_points);
+  } else if (card->ikz_cost.ikz_cost) {
+    snprintf(lines[2], CARD_BOX_TEXT_CAPACITY, "IKZ Cost: %d", card->ikz_cost.ikz_cost);
+  } else {
+    snprintf(lines[2], CARD_BOX_TEXT_CAPACITY, "Stats: --");
+  }
+
+  char tap = tap_state_char(&card->tap_state);
+  if (card->ikz_cost.ikz_cost) {
+    snprintf(lines[3], CARD_BOX_TEXT_CAPACITY, "Tap:%c IKZ:%d", tap, card->ikz_cost.ikz_cost);
+  } else {
+    snprintf(lines[3], CARD_BOX_TEXT_CAPACITY, "Tap:%c", tap);
+  }
+}
+
+static void draw_standard_card_box(WINDOW *win, int top, int left, const CardObservationData *card) {
+  if (!win || !card) {
+    return;
+  }
+  char lines[4][CARD_BOX_TEXT_CAPACITY];
+  memset(lines, 0, sizeof lines);
+  build_standard_card_lines(card, lines);
+  const char *line_ptrs[4] = { lines[0], lines[1], lines[2], lines[3] };
+  draw_text_box(win, top, left, CARD_BOX_WIDTH, CARD_BOX_HEIGHT, line_ptrs, 4);
+}
+
+static void draw_leader_box(WINDOW *win, int top, int left, const LeaderCardObservationData *leader) {
+  if (!win || !leader) {
+    return;
+  }
+  CardObservationData as_card = {0};
+  as_card.type = leader->type;
+  as_card.id = leader->id;
+  as_card.tap_state = leader->tap_state;
+  as_card.cur_stats = leader->cur_stats;
+  as_card.has_cur_stats = true;
+  as_card.has_gate_points = false;
+  as_card.ikz_cost.ikz_cost = 0;
+  draw_standard_card_box(win, top, left, &as_card);
+}
+
+static void draw_gate_box(WINDOW *win, int top, int left, const GateCardObservationData *gate) {
+  if (!win || !gate) {
+    return;
+  }
+  CardObservationData as_card = {0};
+  as_card.type = gate->type;
+  as_card.id = gate->id;
+  as_card.tap_state = gate->tap_state;
+  as_card.has_cur_stats = false;
+  as_card.has_gate_points = false;
+  as_card.ikz_cost.ikz_cost = 0;
+  draw_standard_card_box(win, top, left, &as_card);
+}
+
+static void draw_ikz_card_box(WINDOW *win, int top, int left, const IKZCardObservationData *card) {
+  if (!win || !card) {
+    return;
+  }
+  char lines[4][CARD_BOX_TEXT_CAPACITY];
+  memset(lines, 0, sizeof lines);
+  const char *code = card_code_or_placeholder(&card->id);
+  snprintf(lines[0], CARD_BOX_TEXT_CAPACITY, "%s", code);
+  const char *type_str = card_type_to_string(card->type.value);
+  snprintf(lines[1], CARD_BOX_TEXT_CAPACITY, "Type: %s", type_str);
+  char tap = tap_state_char(&card->tap_state);
+  snprintf(lines[2], CARD_BOX_TEXT_CAPACITY, "Tap:%c", tap);
+  const char *line_ptrs[4] = { lines[0], lines[1], lines[2], lines[3] };
+  draw_text_box(win, top, left, CARD_BOX_WIDTH, CARD_BOX_HEIGHT, line_ptrs, 4);
+}
+
+static int compute_card_columns(WINDOW *win) {
+  int available_width = getmaxx(win) - 4;
+  int per_card = CARD_BOX_WIDTH + 1;
+  int cols = (available_width + 1) / per_card;
+  if (cols < 1) {
+    cols = 1;
+  }
+  return cols;
+}
+
+static int draw_leader_gate_section(WINDOW *win, int row, int max_inner_row,
+                                    const LeaderCardObservationData *leader,
+                                    const GateCardObservationData *gate) {
+  if (!win) {
+    return row;
+  }
+  if (row > max_inner_row) {
+    return row;
+  }
+  mvwprintw(win, row, 2, "Leader & Gate");
+  row++;
+  if (row > max_inner_row) {
+    return row;
+  }
+
+  int top = row;
+  if (top + CARD_BOX_HEIGHT - 1 > max_inner_row) {
+    mvwprintw(win, max_inner_row, 4, "(not enough space)");
+    return max_inner_row + 1;
+  }
+
+  draw_leader_box(win, top, 2, leader);
+  int gate_left = 2 + CARD_BOX_WIDTH + 1;
+  int max_x = getmaxx(win);
+  if (gate_left + CARD_BOX_WIDTH <= max_x - 1) {
+    draw_gate_box(win, top, gate_left, gate);
+    row = top + CARD_BOX_HEIGHT;
+  } else {
+    row = top + CARD_BOX_HEIGHT;
+    if (row <= max_inner_row) {
+      row++;
+    }
+    if (row + CARD_BOX_HEIGHT - 1 > max_inner_row) {
+      mvwprintw(win, max_inner_row, 4, "(not enough space)");
+      return max_inner_row + 1;
+    }
+    draw_gate_box(win, row, 2, gate);
+    row += CARD_BOX_HEIGHT;
+  }
+
+  if (row <= max_inner_row) {
+    row++;
+  }
+  return row;
+}
+
+static int draw_card_grid_section(WINDOW *win, int row, int max_inner_row, const char *label,
+                                  const CardObservationData *cards, size_t count) {
+  if (!win) {
+    return row;
+  }
+  if (row > max_inner_row) {
+    return row;
   }
   mvwprintw(win, row, 2, "%s", label);
-  int label_len = (int)strlen(label);
-  int col = 2 + label_len + 1;
-  int inner_limit = max_cols - 3;
-  for (size_t i = 0; i < count; i++) {
-    char summary[64];
-    format_ikz_card_summary(&cards[i], summary, sizeof summary);
-    int len = (int)strlen(summary);
-    if (col + len >= inner_limit) {
-      if (col + 3 < inner_limit) {
-        mvwprintw(win, row, col, "...");
-      }
-      break;
-    }
-    mvwprintw(win, row, col, "%s", summary);
-    col += len + 1;
+  row++;
+  if (row > max_inner_row) {
+    return row;
   }
+
+  if (count == 0) {
+    mvwprintw(win, row, 4, "(empty)");
+    row++;
+  } else {
+    int cols = compute_card_columns(win);
+    size_t index = 0;
+    while (index < count) {
+      int top = row;
+      if (top + CARD_BOX_HEIGHT - 1 > max_inner_row) {
+        mvwprintw(win, max_inner_row, 4, "(truncated)");
+        return max_inner_row + 1;
+      }
+      int drawn_this_row = 0;
+      for (int col = 0; col < cols && index < count; ++col) {
+        int left = 2 + col * (CARD_BOX_WIDTH + 1);
+        if (left + CARD_BOX_WIDTH > getmaxx(win) - 1) {
+          break;
+        }
+        draw_standard_card_box(win, top, left, &cards[index]);
+        index++;
+        drawn_this_row++;
+      }
+      if (drawn_this_row == 0) {
+        mvwprintw(win, row, 4, "(not enough width)");
+        row++;
+        break;
+      }
+      row += CARD_BOX_HEIGHT;
+      if (index < count) {
+        row++;
+      }
+    }
+  }
+
+  if (row <= max_inner_row) {
+    row++;
+  }
+  return row;
+}
+
+static int draw_ikz_grid_section(WINDOW *win, int row, int max_inner_row, const char *label,
+                                 const IKZCardObservationData *cards, size_t count) {
+  if (!win) {
+    return row;
+  }
+  if (row > max_inner_row) {
+    return row;
+  }
+  mvwprintw(win, row, 2, "%s", label);
+  row++;
+  if (row > max_inner_row) {
+    return row;
+  }
+
+  if (count == 0) {
+    mvwprintw(win, row, 4, "(empty)");
+    row++;
+  } else {
+    int cols = compute_card_columns(win);
+    size_t index = 0;
+    while (index < count) {
+      int top = row;
+      if (top + CARD_BOX_HEIGHT - 1 > max_inner_row) {
+        mvwprintw(win, max_inner_row, 4, "(truncated)");
+        return max_inner_row + 1;
+      }
+      int drawn_this_row = 0;
+      for (int col = 0; col < cols && index < count; ++col) {
+        int left = 2 + col * (CARD_BOX_WIDTH + 1);
+        if (left + CARD_BOX_WIDTH > getmaxx(win) - 1) {
+          break;
+        }
+        draw_ikz_card_box(win, top, left, &cards[index]);
+        index++;
+        drawn_this_row++;
+      }
+      if (drawn_this_row == 0) {
+        mvwprintw(win, row, 4, "(not enough width)");
+        row++;
+        break;
+      }
+      row += CARD_BOX_HEIGHT;
+      if (index < count) {
+        row++;
+      }
+    }
+  }
+
+  if (row <= max_inner_row) {
+    row++;
+  }
+  return row;
+}
+
+static int draw_opponent_info_section(WINDOW *win, int row, int max_inner_row,
+                                      const OpponentObservationData *data) {
+  if (!win || !data) {
+    return row;
+  }
+  if (row > max_inner_row) {
+    return row;
+  }
+  mvwprintw(win, row, 2, "Info:");
+  row++;
+  if (row > max_inner_row) {
+    return row;
+  }
+
+  mvwprintw(win, row++, 4, "Hand: %u  IKZ Pile: %u  Discard: %u",
+            data->hand_count,
+            data->ikz_pile_count,
+            data->discard_count);
+  if (row > max_inner_row) {
+    return row;
+  }
+  mvwprintw(win, row++, 4, "IKZ Token: %s", data->has_ikz_token ? "Yes" : "No");
+  if (row <= max_inner_row) {
+    row++;
+  }
+  return row;
+}
+
+static int draw_my_info_section(WINDOW *win, int row, int max_inner_row,
+                                const MyObservationData *data, size_t hand_count) {
+  if (!win || !data) {
+    return row;
+  }
+  if (row > max_inner_row) {
+    return row;
+  }
+  mvwprintw(win, row, 2, "Info:");
+  row++;
+  if (row > max_inner_row) {
+    return row;
+  }
+
+  mvwprintw(win, row++, 4, "Hand: %zu  IKZ Pile: %u  Discard: %u",
+            hand_count,
+            data->ikz_pile_count,
+            data->discard_count);
+  if (row > max_inner_row) {
+    return row;
+  }
+  mvwprintw(win, row++, 4, "IKZ Token: %s", data->has_ikz_token ? "Yes" : "No");
+  if (row <= max_inner_row) {
+    row++;
+  }
+  return row;
 }
 
 static void render_board(WINDOW *win, const ObservationData *observation, const GameState *gs) {
@@ -325,120 +603,91 @@ static void render_board(WINDOW *win, const ObservationData *observation, const 
     return;
   }
 
-  const int inner_height = getmaxy(win) - 2;
-  if (inner_height <= 0) {
+  const int max_inner_row = getmaxy(win) - 2;
+  if (max_inner_row <= 0) {
     return;
   }
 
   int row = 1;
-  int max_rows = getmaxy(win) - 2;
+  const OpponentObservationData *opponent = &observation->opponent_observation_data;
+  const MyObservationData *mine = &observation->my_observation_data;
 
   mvwprintw(win, row++, 2, "Opponent Board");
-  if (row > max_rows) {
+  if (row > max_inner_row) {
     return;
   }
 
-  {
-    char leader_summary[64];
-    format_leader_summary(&observation->opponent_observation_data.leader, leader_summary, sizeof leader_summary);
-    mvwprintw(win, row++, 4, "Leader: %s", leader_summary);
-  }
-  if (row > max_rows) {
+  row = draw_leader_gate_section(win, row, max_inner_row, &opponent->leader, &opponent->gate);
+  if (row > max_inner_row) {
     return;
   }
 
-  {
-    char gate_summary[64];
-    format_gate_summary(&observation->opponent_observation_data.gate, gate_summary, sizeof gate_summary);
-    mvwprintw(win, row++, 4, "Gate: %s", gate_summary);
-  }
-  if (row > max_rows) {
+  size_t opp_garden_count = card_observation_count(opponent->garden, GARDEN_SIZE);
+  row = draw_card_grid_section(win, row, max_inner_row, "Garden", opponent->garden, opp_garden_count);
+  if (row > max_inner_row) {
     return;
   }
 
-  size_t opp_garden_count = card_observation_count(observation->opponent_observation_data.garden, GARDEN_SIZE);
-  draw_card_group(win, row++, "Garden:", observation->opponent_observation_data.garden, opp_garden_count);
-  if (row > max_rows) {
+  size_t opp_alley_count = card_observation_count(opponent->alley, ALLEY_SIZE);
+  row = draw_card_grid_section(win, row, max_inner_row, "Alley", opponent->alley, opp_alley_count);
+  if (row > max_inner_row) {
     return;
   }
 
-  size_t opp_alley_count = card_observation_count(observation->opponent_observation_data.alley, ALLEY_SIZE);
-  draw_card_group(win, row++, "Alley:", observation->opponent_observation_data.alley, opp_alley_count);
-  if (row > max_rows) {
+  size_t opp_ikz_count = ikz_observation_count(opponent->ikz_area, IKZ_AREA_SIZE);
+  row = draw_ikz_grid_section(win, row, max_inner_row, "IKZ Area", opponent->ikz_area, opp_ikz_count);
+  if (row > max_inner_row) {
     return;
   }
 
-  size_t opp_ikz_area_count = ikz_observation_count(observation->opponent_observation_data.ikz_area, IKZ_AREA_SIZE);
-  draw_ikz_group(win, row++, "IKZ Area:", observation->opponent_observation_data.ikz_area, opp_ikz_area_count);
-  if (row > max_rows) {
+  row = draw_opponent_info_section(win, row, max_inner_row, opponent);
+  if (row > max_inner_row) {
     return;
   }
 
-  mvwprintw(win, row++, 4, "Hand: %u  IKZ Pile: %u  Discard: %u  IKZ Token: %s",
-            observation->opponent_observation_data.hand_count,
-            observation->opponent_observation_data.ikz_pile_count,
-            observation->opponent_observation_data.discard_count,
-            observation->opponent_observation_data.has_ikz_token ? "Yes" : "No");
-  if (row > max_rows) {
-    return;
+  if (row <= max_inner_row) {
+    row++;
   }
-
-  row++;
-  if (row > max_rows) {
+  if (row > max_inner_row) {
     return;
   }
 
   mvwprintw(win, row++, 2, "Your Board");
-  if (row > max_rows) {
+  if (row > max_inner_row) {
     return;
   }
 
-  {
-    char leader_summary[64];
-    format_leader_summary(&observation->my_observation_data.leader, leader_summary, sizeof leader_summary);
-    mvwprintw(win, row++, 4, "Leader: %s", leader_summary);
-  }
-  if (row > max_rows) {
+  row = draw_leader_gate_section(win, row, max_inner_row, &mine->leader, &mine->gate);
+  if (row > max_inner_row) {
     return;
   }
 
-  {
-    char gate_summary[64];
-    format_gate_summary(&observation->my_observation_data.gate, gate_summary, sizeof gate_summary);
-    mvwprintw(win, row++, 4, "Gate: %s", gate_summary);
-  }
-  if (row > max_rows) {
+  size_t my_garden_count = card_observation_count(mine->garden, GARDEN_SIZE);
+  row = draw_card_grid_section(win, row, max_inner_row, "Garden", mine->garden, my_garden_count);
+  if (row > max_inner_row) {
     return;
   }
 
-  size_t my_garden_count = card_observation_count(observation->my_observation_data.garden, GARDEN_SIZE);
-  draw_card_group(win, row++, "Garden:", observation->my_observation_data.garden, my_garden_count);
-  if (row > max_rows) {
+  size_t my_alley_count = card_observation_count(mine->alley, ALLEY_SIZE);
+  row = draw_card_grid_section(win, row, max_inner_row, "Alley", mine->alley, my_alley_count);
+  if (row > max_inner_row) {
     return;
   }
 
-  size_t my_alley_count = card_observation_count(observation->my_observation_data.alley, ALLEY_SIZE);
-  draw_card_group(win, row++, "Alley:", observation->my_observation_data.alley, my_alley_count);
-  if (row > max_rows) {
+  size_t my_hand_count = card_observation_count(mine->hand, MAX_HAND_SIZE);
+  row = draw_card_grid_section(win, row, max_inner_row, "Hand", mine->hand, my_hand_count);
+  if (row > max_inner_row) {
     return;
   }
 
-  size_t my_ikz_area_count = ikz_observation_count(observation->my_observation_data.ikz_area, IKZ_AREA_SIZE);
-  draw_ikz_group(win, row++, "IKZ Area:", observation->my_observation_data.ikz_area, my_ikz_area_count);
-  if (row > max_rows) {
+  size_t my_ikz_count = ikz_observation_count(mine->ikz_area, IKZ_AREA_SIZE);
+  row = draw_ikz_grid_section(win, row, max_inner_row, "IKZ Area", mine->ikz_area, my_ikz_count);
+  if (row > max_inner_row) {
     return;
   }
 
-  size_t my_hand_count = card_observation_count(observation->my_observation_data.hand, MAX_HAND_SIZE);
-  draw_card_group(win, row++, "Hand:", observation->my_observation_data.hand, my_hand_count);
-  if (row > max_rows) {
-    return;
-  }
-
-  mvwprintw(win, row++, 4, "IKZ Pile: %u  Discard: %u  IKZ Token: %s",
-            observation->my_observation_data.ikz_pile_count,
-            observation->my_observation_data.discard_count,
-            observation->my_observation_data.has_ikz_token ? "Yes" : "No");
+  row = draw_my_info_section(win, row, max_inner_row, mine, my_hand_count);
+  (void)row;
 }
 
 static void render_info(WINDOW *win, const GameState *gs) {

@@ -5,6 +5,7 @@ ECS_COMPONENT_DECLARE(ActionContext);
 ECS_COMPONENT_DECLARE(GameState);
 ECS_COMPONENT_DECLARE(PlayerNumber);
 ECS_COMPONENT_DECLARE(PlayerId);
+ECS_COMPONENT_DECLARE(ZoneIndex);
 
 ECS_ENTITY_DECLARE(Rel_OwnedBy);
 
@@ -32,7 +33,7 @@ void azk_register_components(ecs_world_t *world) {
   ECS_COMPONENT_DEFINE(world, GameState);
   ECS_COMPONENT_DEFINE(world, PlayerNumber);
   ECS_COMPONENT_DEFINE(world, PlayerId);
-
+  ECS_COMPONENT_DEFINE(world, ZoneIndex);
   {
     ecs_entity_desc_t desc = {
       .name = "Rel_OwnedBy",
