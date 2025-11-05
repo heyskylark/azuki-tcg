@@ -209,6 +209,13 @@ static char tap_state_char(const TapState *tap_state) {
   return tap_state->tapped ? 'T' : 'U';
 }
 
+static char cooldown_state_char(const TapState *tap_state) {
+  if (!tap_state) {
+    return '-';
+  }
+  return tap_state->cooldown ? 'C' : 'R';
+}
+
 static size_t card_observation_count(const CardObservationData *cards, size_t max_count) {
   if (!cards) {
     return 0;
@@ -311,10 +318,11 @@ static void build_standard_card_lines(const CardObservationData *card, char line
   }
 
   char tap = tap_state_char(&card->tap_state);
+  char cooldown = cooldown_state_char(&card->tap_state);
   if (card->ikz_cost.ikz_cost) {
-    snprintf(lines[3], CARD_BOX_TEXT_CAPACITY, "Tap:%c IKZ:%d", tap, card->ikz_cost.ikz_cost);
+    snprintf(lines[3], CARD_BOX_TEXT_CAPACITY, "T/C:%c/%c IKZ:%d", tap, cooldown, card->ikz_cost.ikz_cost);
   } else {
-    snprintf(lines[3], CARD_BOX_TEXT_CAPACITY, "Tap:%c", tap);
+    snprintf(lines[3], CARD_BOX_TEXT_CAPACITY, "T/C:%c/%c", tap, cooldown);
   }
 }
 
@@ -377,7 +385,8 @@ static void draw_ikz_card_box(WINDOW *win, int top, int left, const IKZCardObser
   const char *type_str = card_type_to_string(card->type.value);
   snprintf(lines[1], CARD_BOX_TEXT_CAPACITY, "Type: %s", type_str);
   char tap = tap_state_char(&card->tap_state);
-  snprintf(lines[2], CARD_BOX_TEXT_CAPACITY, "Tap:%c", tap);
+  char cooldown = cooldown_state_char(&card->tap_state);
+  snprintf(lines[2], CARD_BOX_TEXT_CAPACITY, "T/C:%c/%c", tap, cooldown);
   const char *line_ptrs[4] = { lines[0], lines[1], lines[2], lines[3] };
   draw_text_box(win, top, left, CARD_BOX_WIDTH, CARD_BOX_HEIGHT, line_ptrs, 4);
 }
@@ -648,7 +657,99 @@ static int draw_my_info_section(WINDOW *win, int row, int max_inner_row,
   return row;
 }
 
-static void render_board(WINDOW *win, const ObservationData *observation, const GameState *gs) {
+static void render_opponent_board_column(WINDOW *win, const OpponentObservationData *opponent) {
+  if (!win || !opponent) {
+    return;
+  }
+
+  werase(win);
+
+  int max_inner_row = getmaxy(win) - 1;
+  if (max_inner_row <= 0) {
+    return;
+  }
+
+  int row = 0;
+  mvwprintw(win, row++, 1, "Opponent Board");
+  if (row > max_inner_row) {
+    return;
+  }
+
+  row = draw_leader_gate_section(win, row, max_inner_row, &opponent->leader, &opponent->gate);
+  if (row > max_inner_row) {
+    return;
+  }
+
+  row = draw_card_grid_section(win, row, max_inner_row, "Garden", opponent->garden, GARDEN_SIZE, true);
+  if (row > max_inner_row) {
+    return;
+  }
+
+  row = draw_card_grid_section(win, row, max_inner_row, "Alley", opponent->alley, ALLEY_SIZE, true);
+  if (row > max_inner_row) {
+    return;
+  }
+
+  size_t opp_ikz_count = ikz_observation_count(opponent->ikz_area, IKZ_AREA_SIZE);
+  row = draw_ikz_grid_section(win, row, max_inner_row, "IKZ Area", opponent->ikz_area, opp_ikz_count);
+  if (row > max_inner_row) {
+    return;
+  }
+
+  row = draw_opponent_info_section(win, row, max_inner_row, opponent);
+  (void)row;
+}
+
+static void render_my_board_column(WINDOW *win, const MyObservationData *mine) {
+  if (!win || !mine) {
+    return;
+  }
+
+  werase(win);
+
+  int max_inner_row = getmaxy(win) - 1;
+  if (max_inner_row <= 0) {
+    return;
+  }
+
+  int row = 0;
+  mvwprintw(win, row++, 1, "Your Board");
+  if (row > max_inner_row) {
+    return;
+  }
+
+  row = draw_leader_gate_section(win, row, max_inner_row, &mine->leader, &mine->gate);
+  if (row > max_inner_row) {
+    return;
+  }
+
+  row = draw_card_grid_section(win, row, max_inner_row, "Garden", mine->garden, GARDEN_SIZE, true);
+  if (row > max_inner_row) {
+    return;
+  }
+
+  row = draw_card_grid_section(win, row, max_inner_row, "Alley", mine->alley, ALLEY_SIZE, true);
+  if (row > max_inner_row) {
+    return;
+  }
+
+  size_t my_hand_count = card_observation_count(mine->hand, MAX_HAND_SIZE);
+  row = draw_card_grid_section(win, row, max_inner_row, "Hand", mine->hand, MAX_HAND_SIZE, false);
+  if (row > max_inner_row) {
+    return;
+  }
+
+  size_t my_ikz_count = ikz_observation_count(mine->ikz_area, IKZ_AREA_SIZE);
+  row = draw_ikz_grid_section(win, row, max_inner_row, "IKZ Area", mine->ikz_area, my_ikz_count);
+  if (row > max_inner_row) {
+    return;
+  }
+
+  row = draw_my_info_section(win, row, max_inner_row, mine, my_hand_count);
+  (void)row;
+}
+
+static void render_board_single_column(WINDOW *win, const ObservationData *observation, const GameState *gs) {
   if (!win || !observation || !gs) {
     return;
   }
@@ -734,6 +835,52 @@ static void render_board(WINDOW *win, const ObservationData *observation, const 
 
   row = draw_my_info_section(win, row, max_inner_row, mine, my_hand_count);
   (void)row;
+}
+
+static void render_board(WINDOW *win, const ObservationData *observation, const GameState *gs) {
+  if (!win || !observation || !gs) {
+    return;
+  }
+
+  const int inner_height = getmaxy(win) - 2;
+  const int inner_width = getmaxx(win) - 2;
+  if (inner_height <= 0 || inner_width <= 0) {
+    return;
+  }
+
+  const int min_column_width = CARD_BOX_WIDTH + 4;
+  if (inner_width < min_column_width * 2) {
+    render_board_single_column(win, observation, gs);
+    return;
+  }
+
+  int left_width = inner_width / 2;
+  int right_width = inner_width - left_width;
+  if (left_width < min_column_width || right_width < min_column_width) {
+    render_board_single_column(win, observation, gs);
+    return;
+  }
+
+  WINDOW *left_win = derwin(win, inner_height, left_width, 1, 1);
+  WINDOW *right_win = derwin(win, inner_height, right_width, 1, 1 + left_width);
+  if (!left_win || !right_win) {
+    if (left_win) {
+      delwin(left_win);
+    }
+    if (right_win) {
+      delwin(right_win);
+    }
+    render_board_single_column(win, observation, gs);
+    return;
+  }
+
+  render_my_board_column(left_win, &observation->my_observation_data);
+  render_opponent_board_column(right_win, &observation->opponent_observation_data);
+
+  touchwin(win);
+
+  delwin(left_win);
+  delwin(right_win);
 }
 
 static void render_info(WINDOW *win, const GameState *gs) {

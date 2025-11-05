@@ -44,7 +44,7 @@ void HandleMulliganAction(ecs_iter_t *it) {
       break;
     case ACT_NOOP:
     case ACT_MULLIGAN_KEEP:
-      cli_render_log("[Mulligan] No action performed");
+      cli_render_log("[Mulligan] No mulligan performed, end turn");
       break;
     default:
       cli_render_logf("[Mulligan] Unknown mulligan action type: %d", action.type);

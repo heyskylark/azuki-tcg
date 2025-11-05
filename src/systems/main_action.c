@@ -40,7 +40,10 @@ static void handle_play_entity_to_garden(ecs_world_t *world, GameState *gs, Acti
   int result = play_entity_to_garden_or_alley(world, gs, ac, ZONE_GARDEN);
   if (result < 0) {
     ac->invalid_action = true;
+    return;
   }
+
+  cli_render_logf("[MainAction] Played entity to garden");
 }
 
 /**
@@ -54,7 +57,10 @@ static void handle_play_entity_to_alley(ecs_world_t *world, GameState *gs, Actio
   int result = play_entity_to_garden_or_alley(world, gs, ac, ZONE_ALLEY);
   if (result < 0) {
     ac->invalid_action = true;
+    return;
   }
+
+  cli_render_logf("[MainAction] Played entity to alley");
 }
 
 void HandleMainAction(ecs_iter_t *it) {
@@ -68,6 +74,10 @@ void HandleMainAction(ecs_iter_t *it) {
       break;
     case ACT_PLAY_ENTITY_TO_ALLEY:
       handle_play_entity_to_alley(world, gs, ac);
+      break;
+    case ACT_NOOP:
+    case ACT_END_TURN:
+      cli_render_log("[MainAction] End turn");
       break;
     default:
       cli_render_logf("[MainAction] Unknown main action type: %d", ac->user_action.type);
