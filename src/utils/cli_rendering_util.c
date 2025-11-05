@@ -182,8 +182,6 @@ static const char *phase_to_string(Phase phase) {
       return "Start of Turn";
     case PHASE_MAIN:
       return "Main";
-    case PHASE_COMBAT_DECLARED:
-      return "Combat Declared";
     case PHASE_RESPONSE_WINDOW:
       return "Response Window";
     case PHASE_COMBAT_RESOLVE:
@@ -217,10 +215,9 @@ static size_t card_observation_count(const CardObservationData *cards, size_t ma
   }
   size_t count = 0;
   for (size_t i = 0; i < max_count; i++) {
-    if (!cards[i].id.code) {
-      break;
+    if (cards[i].id.code) {
+      count++;
     }
-    count++;
   }
   return count;
 }
@@ -231,10 +228,9 @@ static size_t ikz_observation_count(const IKZCardObservationData *cards, size_t 
   }
   size_t count = 0;
   for (size_t i = 0; i < max_count; i++) {
-    if (!cards[i].id.code) {
-      break;
+    if (cards[i].id.code) {
+      count++;
     }
-    count++;
   }
   return count;
 }
@@ -331,6 +327,14 @@ static void draw_standard_card_box(WINDOW *win, int top, int left, const CardObs
   build_standard_card_lines(card, lines);
   const char *line_ptrs[4] = { lines[0], lines[1], lines[2], lines[3] };
   draw_text_box(win, top, left, CARD_BOX_WIDTH, CARD_BOX_HEIGHT, line_ptrs, 4);
+}
+
+static void draw_empty_card_box(WINDOW *win, int top, int left) {
+  if (!win) {
+    return;
+  }
+  const char *no_lines[1] = { NULL };
+  draw_text_box(win, top, left, CARD_BOX_WIDTH, CARD_BOX_HEIGHT, no_lines, 0);
 }
 
 static void draw_leader_box(WINDOW *win, int top, int left, const LeaderCardObservationData *leader) {
@@ -435,7 +439,8 @@ static int draw_leader_gate_section(WINDOW *win, int row, int max_inner_row,
 }
 
 static int draw_card_grid_section(WINDOW *win, int row, int max_inner_row, const char *label,
-                                  const CardObservationData *cards, size_t count) {
+                                  const CardObservationData *cards, size_t max_count,
+                                  bool use_zone_index) {
   if (!win) {
     return row;
   }
@@ -448,25 +453,70 @@ static int draw_card_grid_section(WINDOW *win, int row, int max_inner_row, const
     return row;
   }
 
-  if (count == 0) {
+  size_t count = card_observation_count(cards, max_count);
+
+  if (!use_zone_index && count == 0) {
     mvwprintw(win, row, 4, "(empty)");
     row++;
   } else {
     int cols = compute_card_columns(win);
+    size_t total_slots = use_zone_index ? max_count : count;
     size_t index = 0;
-    while (index < count) {
+    CardObservationData ordered_cards[max_count];
+    bool slot_has_card[max_count];
+    if (use_zone_index) {
+      for (size_t i = 0; i < max_count; ++i) {
+        ordered_cards[i] = (CardObservationData){0};
+        slot_has_card[i] = false;
+      }
+
+      size_t fallback_slot = 0;
+      for (size_t i = 0; i < max_count; ++i) {
+        const CardObservationData *card = &cards[i];
+        if (!card->id.code) {
+          continue;
+        }
+        size_t target_index = max_count;
+        if (card->has_zone_index && card->zone_index < max_count && !slot_has_card[card->zone_index]) {
+          target_index = card->zone_index;
+        }
+        if (target_index == max_count) {
+          while (fallback_slot < max_count && slot_has_card[fallback_slot]) {
+            fallback_slot++;
+          }
+          if (fallback_slot < max_count) {
+            target_index = fallback_slot;
+            fallback_slot++;
+          }
+        }
+        if (target_index < max_count) {
+          ordered_cards[target_index] = *card;
+          slot_has_card[target_index] = true;
+        }
+      }
+    }
+
+    while (index < total_slots) {
       int top = row;
       if (top + CARD_BOX_HEIGHT - 1 > max_inner_row) {
         mvwprintw(win, max_inner_row, 4, "(truncated)");
         return max_inner_row + 1;
       }
       int drawn_this_row = 0;
-      for (int col = 0; col < cols && index < count; ++col) {
+      for (int col = 0; col < cols && index < total_slots; ++col) {
         int left = 2 + col * (CARD_BOX_WIDTH + 1);
         if (left + CARD_BOX_WIDTH > getmaxx(win) - 1) {
           break;
         }
-        draw_standard_card_box(win, top, left, &cards[index]);
+        if (use_zone_index) {
+          if (slot_has_card[index]) {
+            draw_standard_card_box(win, top, left, &ordered_cards[index]);
+          } else {
+            draw_empty_card_box(win, top, left);
+          }
+        } else {
+          draw_standard_card_box(win, top, left, &cards[index]);
+        }
         index++;
         drawn_this_row++;
       }
@@ -476,7 +526,7 @@ static int draw_card_grid_section(WINDOW *win, int row, int max_inner_row, const
         break;
       }
       row += CARD_BOX_HEIGHT;
-      if (index < count) {
+      if (index < total_slots) {
         row++;
       }
     }
@@ -622,14 +672,12 @@ static void render_board(WINDOW *win, const ObservationData *observation, const 
     return;
   }
 
-  size_t opp_garden_count = card_observation_count(opponent->garden, GARDEN_SIZE);
-  row = draw_card_grid_section(win, row, max_inner_row, "Garden", opponent->garden, opp_garden_count);
+  row = draw_card_grid_section(win, row, max_inner_row, "Garden", opponent->garden, GARDEN_SIZE, true);
   if (row > max_inner_row) {
     return;
   }
 
-  size_t opp_alley_count = card_observation_count(opponent->alley, ALLEY_SIZE);
-  row = draw_card_grid_section(win, row, max_inner_row, "Alley", opponent->alley, opp_alley_count);
+  row = draw_card_grid_section(win, row, max_inner_row, "Alley", opponent->alley, ALLEY_SIZE, true);
   if (row > max_inner_row) {
     return;
   }
@@ -662,20 +710,18 @@ static void render_board(WINDOW *win, const ObservationData *observation, const 
     return;
   }
 
-  size_t my_garden_count = card_observation_count(mine->garden, GARDEN_SIZE);
-  row = draw_card_grid_section(win, row, max_inner_row, "Garden", mine->garden, my_garden_count);
+  row = draw_card_grid_section(win, row, max_inner_row, "Garden", mine->garden, GARDEN_SIZE, true);
   if (row > max_inner_row) {
     return;
   }
 
-  size_t my_alley_count = card_observation_count(mine->alley, ALLEY_SIZE);
-  row = draw_card_grid_section(win, row, max_inner_row, "Alley", mine->alley, my_alley_count);
+  row = draw_card_grid_section(win, row, max_inner_row, "Alley", mine->alley, ALLEY_SIZE, true);
   if (row > max_inner_row) {
     return;
   }
 
   size_t my_hand_count = card_observation_count(mine->hand, MAX_HAND_SIZE);
-  row = draw_card_grid_section(win, row, max_inner_row, "Hand", mine->hand, my_hand_count);
+  row = draw_card_grid_section(win, row, max_inner_row, "Hand", mine->hand, MAX_HAND_SIZE, false);
   if (row > max_inner_row) {
     return;
   }

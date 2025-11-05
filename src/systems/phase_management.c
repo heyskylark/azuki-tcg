@@ -7,7 +7,7 @@ static ecs_entity_t s_phase_management_system = 0;
 
 static bool is_invalid_action(ActionContext *ac) {
   if (ac->invalid_action) {
-    cli_render_logf("[PhaseManagement] Invalid mulligan action: %d", ac->user_action.type);
+    cli_render_logf("[PhaseManagement] Invalid action: %d", ac->user_action.type);
     ac->invalid_action = false;
     return true;
   }
@@ -28,6 +28,19 @@ static void start_of_turn_phase_handler(ecs_world_t *world, GameState *gs, Actio
   gs->phase = PHASE_MAIN;
 }
 
+static void main_phase_handler(ecs_world_t *world, GameState *gs, ActionContext *ac) {
+  if (ac->user_action.type == ACT_NOOP || ac->user_action.type == ACT_END_TURN) {
+    gs->phase = PHASE_END_TURN;
+    return;
+  }
+
+  if (ac->user_action.type == ACT_ATTACK) {
+    gs->active_player_index = (gs->active_player_index + 1) % MAX_PLAYERS_PER_MATCH;
+    gs->phase = PHASE_RESPONSE_WINDOW;
+    return;
+  }
+}
+
 void PhaseManagement(ecs_iter_t *it) {
   ecs_world_t *world = ecs_get_world(it->world);
   GameState *gs = ecs_field(it, GameState, 0);
@@ -44,6 +57,9 @@ void PhaseManagement(ecs_iter_t *it) {
       break;
     case PHASE_START_OF_TURN:
       start_of_turn_phase_handler(world, gs, ac);
+      break;
+    case PHASE_MAIN:
+      main_phase_handler(world, gs, ac);
       break;
     default:
       cli_render_logf("[PhaseManagement] Phase not implemented: %d", phase);

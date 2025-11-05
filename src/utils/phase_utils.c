@@ -6,7 +6,6 @@ static const bool PHASE_REQUIRES_USER_ACTION[PHASE_COUNT] = {
   [PHASE_PREGAME_MULLIGAN] = true,
   [PHASE_START_OF_TURN]    = false,
   [PHASE_MAIN]             = true,
-  [PHASE_COMBAT_DECLARED]  = true,
   [PHASE_RESPONSE_WINDOW]  = true,
   [PHASE_COMBAT_RESOLVE]   = false,
   [PHASE_END_TURN]         = true,

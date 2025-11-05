@@ -4,7 +4,12 @@
 #include "generated/card_defs.h"
 #include "utils/cli_rendering_util.h"
 
-static int play_entity_to_garden_or_alley(ecs_world_t *world, GameState *gs, ActionContext *ac, ecs_entity_t zone) {
+static int play_entity_to_garden_or_alley(
+  ecs_world_t *world,
+  GameState *gs,
+  ActionContext *ac,
+  ZonePlacementType placement_type
+) {
   ecs_entity_t hand_card_idx = ac->user_action.subaction_1;
   ecs_entity_t zone_card_idx = ac->user_action.subaction_2;
 
@@ -21,7 +26,7 @@ static int play_entity_to_garden_or_alley(ecs_world_t *world, GameState *gs, Act
     return -1;
   }
 
-  return insert_card_into_zone_index(world, hand_card, zone, zone_card_idx);
+  return insert_card_into_zone_index(world, hand_card, gs->players[gs->active_player_index], placement_type, zone_card_idx);
 }
 
 /**
@@ -32,7 +37,7 @@ static void handle_play_entity_to_garden(ecs_world_t *world, GameState *gs, Acti
     exit(EXIT_FAILURE);
   }
 
-  int result = play_entity_to_garden_or_alley(world, gs, ac, gs->zones[gs->active_player_index].garden);
+  int result = play_entity_to_garden_or_alley(world, gs, ac, ZONE_GARDEN);
   if (result < 0) {
     ac->invalid_action = true;
   }
@@ -46,7 +51,7 @@ static void handle_play_entity_to_alley(ecs_world_t *world, GameState *gs, Actio
     exit(EXIT_FAILURE);
   }
 
-  int result = play_entity_to_garden_or_alley(world, gs, ac, gs->zones[gs->active_player_index].alley);
+  int result = play_entity_to_garden_or_alley(world, gs, ac, ZONE_ALLEY);
   if (result < 0) {
     ac->invalid_action = true;
   }

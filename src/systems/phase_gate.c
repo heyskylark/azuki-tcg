@@ -6,7 +6,6 @@
 static ecs_entity_t MulliganPipeline;
 static ecs_entity_t StartOfTurnPipeline;
 static ecs_entity_t MainPipeline;
-static ecs_entity_t CombatDeclaredPipeline;
 static ecs_entity_t ResponseWindowPipeline;
 static ecs_entity_t CombatResolvePipeline;
 static ecs_entity_t EndTurnPipeline;
@@ -23,9 +22,6 @@ static void set_pipeline_for_phase(ecs_world_t *world, Phase phase) {
     break;
   case PHASE_MAIN:
     ecs_set_pipeline(world, MainPipeline);
-    break;
-  case PHASE_COMBAT_DECLARED:
-    ecs_set_pipeline(world, CombatDeclaredPipeline);
     break;
   case PHASE_RESPONSE_WINDOW:
     ecs_set_pipeline(world, ResponseWindowPipeline);
@@ -70,12 +66,6 @@ void init_phase_gate_system(ecs_world_t *world) {
     .query.terms = {
         { .id = EcsSystem }, // mandatory
         { .id = TMain }
-    }
-  });
-  CombatDeclaredPipeline = ecs_pipeline_init(world, &(ecs_pipeline_desc_t){
-    .query.terms = {
-        { .id = EcsSystem }, // mandatory
-        { .id = TCombatDeclared }
     }
   });
   ResponseWindowPipeline = ecs_pipeline_init(world, &(ecs_pipeline_desc_t){

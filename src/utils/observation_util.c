@@ -6,6 +6,14 @@ static CardObservationData get_card_observation(ecs_world_t *world, ecs_entity_t
   observation_data.id = *ecs_get(world, card, CardId);
   observation_data.tap_state = *ecs_get(world, card, TapState);
   observation_data.ikz_cost = *ecs_get(world, card, IKZCost);
+  const ZoneIndex *zone_index = ecs_get(world, card, ZoneIndex);
+  if (zone_index != NULL) {
+    observation_data.has_zone_index = true;
+    observation_data.zone_index = zone_index->index;
+  } else {
+    observation_data.has_zone_index = false;
+    observation_data.zone_index = 0;
+  }
 
   const CurStats *cur_stats = ecs_get(world, card, CurStats);
   if (cur_stats != NULL) {

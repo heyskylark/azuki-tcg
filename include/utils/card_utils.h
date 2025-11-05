@@ -4,6 +4,11 @@
 #include <flecs.h>
 #include "generated/card_defs.h"
 
+typedef enum {
+  ZONE_GARDEN = 0,
+  ZONE_ALLEY = 1
+} ZonePlacementType;
+
 bool is_card_type(ecs_world_t *world, ecs_entity_t card, CardType type);
 void discard_card(ecs_world_t *world, ecs_entity_t card);
 void untap_all_cards_in_zone(ecs_world_t *world, ecs_entity_t zone);
@@ -14,6 +19,6 @@ void untap_all_cards_in_zone(ecs_world_t *world, ecs_entity_t zone);
   The card will be added to the zone as a child and the ZoneIndex component will be set to the given index.
   If the given index is already occupied and the zone is full, the card will be discarded. Otherwise, this function will assert.
 */
-int insert_card_into_zone_index(ecs_world_t *world, ecs_entity_t card, ecs_entity_t zone, int index);
+int insert_card_into_zone_index(ecs_world_t *world, ecs_entity_t card, ecs_entity_t player, ZonePlacementType placement_type, int index);
 
 #endif

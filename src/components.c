@@ -22,7 +22,6 @@ ECS_TAG_DECLARE(ZDiscard);
 ECS_TAG_DECLARE(TMulligan);
 ECS_TAG_DECLARE(TStartOfTurn);
 ECS_TAG_DECLARE(TMain);
-ECS_TAG_DECLARE(TCombatDeclared);
 ECS_TAG_DECLARE(TResponseWindow);
 ECS_TAG_DECLARE(TCombatResolve);
 ECS_TAG_DECLARE(TEndTurn);
@@ -61,7 +60,6 @@ void azk_register_components(ecs_world_t *world) {
   ECS_TAG_DEFINE(world, TMulligan);
   ECS_TAG_DEFINE(world, TStartOfTurn);
   ECS_TAG_DEFINE(world, TMain);
-  ECS_TAG_DEFINE(world, TCombatDeclared);
   ECS_TAG_DEFINE(world, TResponseWindow);
   ECS_TAG_DEFINE(world, TCombatResolve);
   ECS_TAG_DEFINE(world, TEndTurn);

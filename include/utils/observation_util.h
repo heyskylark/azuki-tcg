@@ -28,6 +28,8 @@ typedef struct {
   CardId id;
   TapState tap_state;
   IKZCost ikz_cost;
+  bool has_zone_index;
+  uint8_t zone_index;
   bool has_cur_stats;
   CurStats cur_stats;
   bool has_gate_points;

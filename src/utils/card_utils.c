@@ -13,23 +13,44 @@ void discard_card(ecs_world_t *world, ecs_entity_t card) {
   ecs_entity_t owner = ecs_get_target(world, card, Rel_OwnedBy, 0);
   ecs_assert(owner != 0, ECS_INVALID_PARAMETER, "Card %d has no owner", card);
 
-  const PlayerNumber *player_number = ecs_get_id(world, owner, ecs_id(PlayerNumber));
+  const PlayerNumber *player_number = ecs_get(world, owner, PlayerNumber);
   ecs_assert(player_number != NULL, ECS_INVALID_PARAMETER, "PlayerNumber component not found for player %d", owner);
 
   const GameState *gs = ecs_singleton_get(world, GameState);
   ecs_entity_t discard_zone = gs->zones[player_number->player_number].discard;
 
-  ecs_remove_id(world, card, ecs_id(ZoneIndex));
+  ecs_remove_id(world, card, ecs_id(ZoneIndex)); 
+  ecs_set(world, card, TapState, { .tapped = false, .cooldown = false });
   ecs_add_pair(world, card, EcsChildOf, discard_zone);
 }
 
-int insert_card_into_zone_index(ecs_world_t *world, ecs_entity_t card, ecs_entity_t zone, int index) {
-  bool is_garden_zone = ecs_has_id(world, zone, ecs_id(ZGarden));
-  bool is_alley_zone = ecs_has_id(world, zone, ecs_id(ZAlley));
-  if (!is_garden_zone && !is_alley_zone) {
-    cli_render_logf("Zone %d is not a garden or alley", zone);
-    return -1;
+// TODO: IKZ check (need enough untapped IKZ to place, then must tap IKZ) (IKZ area as input)
+int insert_card_into_zone_index (
+  ecs_world_t *world,
+  ecs_entity_t card,
+  ecs_entity_t player,
+  ZonePlacementType placement_type,
+  int index
+) {
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  ecs_assert(gs != NULL, ECS_INVALID_PARAMETER, "GameState singleton missing");
+
+  const PlayerNumber *player_number = ecs_get(world, player, PlayerNumber);
+  ecs_assert(player_number != NULL, ECS_INVALID_PARAMETER, "PlayerNumber component not found for player %d", player);
+
+  ecs_entity_t zone = 0;
+  switch (placement_type) {
+    case ZONE_GARDEN:
+      zone = gs->zones[player_number->player_number].garden;
+      break;
+    case ZONE_ALLEY:
+      zone = gs->zones[player_number->player_number].alley;
+      break;
+    default:
+      cli_render_logf("Invalid placement type: %d", placement_type);
+      exit(EXIT_FAILURE);
   }
+
   // Garden and alley are the same size
   if (index < 0 || index >= GARDEN_SIZE) {
     cli_render_logf("Index %d is out of bounds for garden or alley", index);
@@ -38,17 +59,14 @@ int insert_card_into_zone_index(ecs_world_t *world, ecs_entity_t card, ecs_entit
 
   ecs_entity_t card_owner = ecs_get_target(world, card, Rel_OwnedBy, 0);
   ecs_assert(card_owner != 0, ECS_INVALID_PARAMETER, "Card %d has no owner", card);
-
-  ecs_entity_t zone_owner = ecs_get_target(world, zone, Rel_OwnedBy, 0);
-  ecs_assert(zone_owner != 0, ECS_INVALID_PARAMETER, "Zone %d has no owner", zone);
-  ecs_assert(zone_owner == card_owner, ECS_INVALID_PARAMETER, "Card %d and zone %d have different owners", card, zone);
+  ecs_assert(card_owner == player, ECS_INVALID_PARAMETER, "Card %d and player %d have different owners", card, player);
 
   // Find if card exists in given zone index.
   ecs_entities_t zone_cards = ecs_get_ordered_children(world, zone);
-  ecs_entity_t card_with_zone_index;
+  ecs_entity_t card_with_zone_index = 0;
   for (int32_t i = 0; i < zone_cards.count; i++) {
     ecs_entity_t card = zone_cards.ids[i];
-    const ZoneIndex *zone_index = ecs_get_id(world, card, ecs_id(ZoneIndex));
+    const ZoneIndex *zone_index = ecs_get(world, card, ZoneIndex);
     ecs_assert(zone_index != NULL, ECS_INVALID_PARAMETER, "Card %d in zone %d has no ZoneIndex component", card, zone);
     if (zone_index->index == index) {
       card_with_zone_index = card;
@@ -59,7 +77,7 @@ int insert_card_into_zone_index(ecs_world_t *world, ecs_entity_t card, ecs_entit
   bool is_zone_full = zone_cards.count >= GARDEN_SIZE; // Alley and garden are the same size
   if (card_with_zone_index != 0) {
     if (!is_zone_full) {
-      cli_render_logf("Card %d is already in zone %d at index %d | Zone is not full", card, zone, index);
+      cli_render_logf("Card %d is already in zone %d at index %d | Zone is not full", card_with_zone_index, zone, index);
       return -1;
     }
 
@@ -69,6 +87,10 @@ int insert_card_into_zone_index(ecs_world_t *world, ecs_entity_t card, ecs_entit
 
   ecs_add_pair(world, card, EcsChildOf, zone);
   ecs_set(world, card, ZoneIndex, { .index = index });
+
+  if (placement_type == ZONE_GARDEN) {
+    ecs_set(world, card, TapState, { .tapped = false, .cooldown = true });
+  }
   
   return 0;
 }
