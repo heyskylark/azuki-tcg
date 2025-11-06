@@ -90,6 +90,20 @@ static uint8_t get_zone_card_count(ecs_world_t *world, ecs_entity_t zone) {
   return cards.count;
 }
 
+static bool player_has_ready_ikz_token(ecs_world_t *world, ecs_entity_t player) {
+  const IKZToken *ikz_token = ecs_get(world, player, IKZToken);
+  if (ikz_token == NULL || ikz_token->ikz_token == 0) {
+    return false;
+  }
+
+  const TapState *tap_state = ecs_get(world, ikz_token->ikz_token, TapState);
+  if (tap_state == NULL) {
+    return false;
+  }
+
+  return tap_state->tapped == 0;
+}
+
 ObservationData create_observation_data(ecs_world_t *world) {
   const GameState *gs = ecs_singleton_get(world, GameState);
   ecs_assert(gs != NULL, ECS_INVALID_PARAMETER, "GameState singleton missing");
@@ -97,6 +111,9 @@ ObservationData create_observation_data(ecs_world_t *world) {
 
   const PlayerZones *my_zones = &gs->zones[active_player_index];
   const PlayerZones *opponent_zones = &gs->zones[(active_player_index + 1) % MAX_PLAYERS_PER_MATCH];
+
+  const ecs_entity_t my_player = gs->players[active_player_index];
+  const ecs_entity_t opponent_player = gs->players[(active_player_index + 1) % MAX_PLAYERS_PER_MATCH];
 
   MyObservationData my_observation_data = {0};
   my_observation_data.leader = get_leader_card_observation(world, my_zones->leader);
@@ -108,8 +125,7 @@ ObservationData create_observation_data(ecs_world_t *world) {
   get_ikz_card_observations_for_zone(world, my_zones->ikz_area, my_observation_data.ikz_area);
   my_observation_data.ikz_pile_count = get_zone_card_count(world, my_zones->ikz_pile);
   my_observation_data.discard_count = get_zone_card_count(world, my_zones->discard);
-  // TODO: Implement has_ikz_token
-  my_observation_data.has_ikz_token = 0;
+  my_observation_data.has_ikz_token = player_has_ready_ikz_token(world, my_player);
 
   OpponentObservationData opponent_observation_data = {0};
   opponent_observation_data.leader = get_leader_card_observation(world, opponent_zones->leader);
@@ -120,8 +136,7 @@ ObservationData create_observation_data(ecs_world_t *world) {
   opponent_observation_data.hand_count = get_zone_card_count(world, opponent_zones->hand);
   opponent_observation_data.ikz_pile_count = get_zone_card_count(world, opponent_zones->ikz_pile);
   opponent_observation_data.discard_count = get_zone_card_count(world, opponent_zones->discard);
-  // TODO: Implement has_ikz_token
-  opponent_observation_data.has_ikz_token = 0;
+  opponent_observation_data.has_ikz_token = player_has_ready_ikz_token(world, opponent_player);
 
   ObservationData observation_data = {0};
   observation_data.my_observation_data = my_observation_data;
