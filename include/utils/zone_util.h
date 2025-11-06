@@ -22,7 +22,8 @@ int summon_card_into_zone_index(
   ecs_entity_t card,
   ecs_entity_t player,
   ZonePlacementType placement_type,
-  int index
+  int index,
+  bool use_ikz_token
 );
 
 int gate_card_into_garden(

@@ -26,16 +26,55 @@ static ecs_entity_t find_card_in_zone_index(
   return card_with_zone_index;
 }
 
-static void get_tappable_ikz_cards(
+static int get_tappable_ikz_cards(
   ecs_world_t *world,
   ecs_entity_t ikz_area_zone,
   uint8_t ikz_cost,
   uint8_t *out_ikz_count,
-  ecs_entity_t *out_ikz_cards
+  ecs_entity_t *out_ikz_cards,
+  bool use_ikz_token
 ) {
+  if (ikz_cost == 0) {
+    return 0;
+  }
+
+  if (use_ikz_token) {
+    ecs_entity_t ikz_token_owner = ecs_get_target(world, ikz_area_zone, Rel_OwnedBy, 0);
+    ecs_assert(ikz_token_owner != 0, ECS_INVALID_PARAMETER, "IKZ area zone %d has no owner", ikz_area_zone);
+
+    const IKZToken *ikz_token = ecs_get(world, ikz_token_owner, IKZToken);
+    if (ikz_token == NULL) {
+      cli_render_logf("No IKZ token found for player %d", ikz_token_owner);
+      return -1;
+    } else if (is_card_tapped(world, ikz_token->ikz_token)) {
+      cli_render_logf("IKZ token %d is tapped", ikz_token->ikz_token);
+      return -1;
+    }
+
+    ecs_assert(
+      is_card_type(world, ikz_token->ikz_token, CARD_TYPE_IKZ) || is_card_type(world, ikz_token->ikz_token, CARD_TYPE_EXTRA_IKZ),
+      ECS_INVALID_PARAMETER,
+      "IKZ token %d is not an IKZ card or extra IKZ card", ikz_token->ikz_token
+    );
+
+    out_ikz_cards[*out_ikz_count] = ikz_token->ikz_token;
+    (*out_ikz_count)++;
+
+    if (*out_ikz_count == ikz_cost) {
+      return 0;
+    }
+  }
+
   ecs_entities_t ikz_area_cards = ecs_get_ordered_children(world, ikz_area_zone);
   for (int32_t i = 0; i < ikz_area_cards.count && *out_ikz_count < ikz_cost; i++) {
     ecs_entity_t ikz_card = ikz_area_cards.ids[i];
+
+    ecs_assert(
+      is_card_type(world, ikz_card, CARD_TYPE_IKZ) || is_card_type(world, ikz_card, CARD_TYPE_EXTRA_IKZ),
+      ECS_INVALID_PARAMETER,
+      "Card %d is not an IKZ card", ikz_card
+    );
+    
     const TapState *tap_state = ecs_get(world, ikz_card, TapState);
     ecs_assert(tap_state != NULL, ECS_INVALID_PARAMETER, "TapState component not found for card %d", ikz_card);
     if (!tap_state->tapped) {
@@ -43,6 +82,8 @@ static void get_tappable_ikz_cards(
       (*out_ikz_count)++;
     }
   }
+
+  return 0;
 }
 
 static int insert_card_into_zone_index(
@@ -92,7 +133,8 @@ int summon_card_into_zone_index (
   ecs_entity_t card,
   ecs_entity_t player,
   ZonePlacementType placement_type,
-  int index
+  int index,
+  bool use_ikz_token
 ) {
   const GameState *gs = ecs_singleton_get(world, GameState);
   ecs_assert(gs != NULL, ECS_INVALID_PARAMETER, "GameState singleton missing");
@@ -119,8 +161,18 @@ int summon_card_into_zone_index (
   uint8_t tappable_ikz_cards_count = 0;
   ecs_entity_t tappable_ikz_cards[ikz_cost->ikz_cost];
 
-  get_tappable_ikz_cards(world, ikz_area_zone, ikz_cost->ikz_cost, &tappable_ikz_cards_count, tappable_ikz_cards);
-  
+  int ikz_fetch_result = get_tappable_ikz_cards(
+    world,
+    ikz_area_zone,
+    ikz_cost->ikz_cost,
+    &tappable_ikz_cards_count,
+    tappable_ikz_cards,
+    use_ikz_token
+  );
+  if (ikz_fetch_result < 0) {
+    return ikz_fetch_result;
+  }
+
   if (tappable_ikz_cards_count < ikz_cost->ikz_cost) {
     cli_render_logf("Not enough untapped IKZ cards to place card %d", card);
     return -1;
@@ -155,9 +207,7 @@ static ecs_entity_t find_gate_card_in_zone(
   ecs_assert(gate_child_has_next, ECS_INVALID_PARAMETER, "Gate zone must contain at least 1 card child");
   ecs_assert(child_it.count == 1, ECS_INVALID_PARAMETER, "Gate zone must contain exactly 1 card, got %d", child_it.count);
   ecs_entity_t gate_card = child_it.entities[0];
-  const Type *type = ecs_get(world, gate_card, Type);
-  ecs_assert(type != NULL, ECS_INVALID_PARAMETER, "Type component not found for card %d", gate_card);
-  ecs_assert(type->value == CARD_TYPE_GATE, ECS_INVALID_PARAMETER, "Card %d is not a gate", gate_card);
+  ecs_assert(is_card_type(world, gate_card, CARD_TYPE_GATE), ECS_INVALID_PARAMETER, "Card %d is not a gate", gate_card);
   return gate_card;
 }
 

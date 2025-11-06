@@ -13,6 +13,7 @@ static int play_entity_to_garden_or_alley(
 ) {
   ecs_entity_t hand_card_idx = ac->user_action.subaction_1;
   ecs_entity_t zone_card_idx = ac->user_action.subaction_2;
+  bool use_ikz_token = ac->user_action.subaction_3 != 0;
 
   ecs_entity_t hand_zone = gs->zones[gs->active_player_index].hand;
   ecs_entities_t hand_cards = ecs_get_ordered_children(world, hand_zone);
@@ -38,12 +39,13 @@ static int play_entity_to_garden_or_alley(
     hand_card,
     gs->players[gs->active_player_index],
     placement_type,
-    zone_card_idx
+    zone_card_idx,
+    use_ikz_token
   );
 }
 
 /**
- * Expected Action: ACT_PLAY_ENTITY_TO_GARDEN, hand_index, garden_index, 0
+ * Expected Action: ACT_PLAY_ENTITY_TO_GARDEN, hand_index, garden_index, use ikz token
 */
 static void handle_play_entity_to_garden(ecs_world_t *world, GameState *gs, ActionContext *ac) {
   if (ac->user_action.type != ACT_PLAY_ENTITY_TO_GARDEN) {
@@ -60,7 +62,7 @@ static void handle_play_entity_to_garden(ecs_world_t *world, GameState *gs, Acti
 }
 
 /**
- * Expected Action: ACT_PLAY_ENTITY_TO_ALLEY, hand_index, alley_index, 0
+ * Expected Action: ACT_PLAY_ENTITY_TO_ALLEY, hand_index, alley_index, use ikz token
 */
 static void handle_play_entity_to_alley(ecs_world_t *world, GameState *gs, ActionContext *ac) {
   if (ac->user_action.type != ACT_PLAY_ENTITY_TO_ALLEY) {

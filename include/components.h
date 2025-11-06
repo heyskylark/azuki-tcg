@@ -63,6 +63,7 @@ typedef struct {
 } GameState;
 typedef struct { uint8_t player_number; } PlayerNumber;
 typedef struct { uint8_t pid; } PlayerId;
+typedef struct { ecs_entity_t ikz_token; } IKZToken;
 /*
 ZoneIndex must exist (even with ordered children) because cards can be placed in gaps in the zone.
 */
@@ -72,6 +73,7 @@ extern ECS_COMPONENT_DECLARE(ActionContext);
 extern ECS_COMPONENT_DECLARE(GameState);
 extern ECS_COMPONENT_DECLARE(PlayerNumber);
 extern ECS_COMPONENT_DECLARE(PlayerId);
+extern ECS_COMPONENT_DECLARE(IKZToken);
 extern ECS_COMPONENT_DECLARE(ZoneIndex);
 
 /* Relationship Entities */

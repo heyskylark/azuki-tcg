@@ -146,6 +146,14 @@ static void register_action_context_singleton(ecs_world_t *world) {
   ecs_singleton_set_ptr(world, ActionContext, &ac);
 }
 
+static void grant_player_ikz_token(ecs_world_t *world, ecs_entity_t player) {
+  const ecs_entity_t ikz_token_prefab = azk_prefab_from_id(CARD_DEF_IKZ_002);
+  ecs_assert(ikz_token_prefab != 0, ECS_INVALID_PARAMETER, "Prefab not found for IKZ token card");
+  const ecs_entity_t ikz_token = ecs_new_w_pair(world, EcsIsA, ikz_token_prefab);
+  ecs_set_name(world, ikz_token, "IKZTokenCard");
+  ecs_set(world, player, IKZToken, { .ikz_token = ikz_token });
+}
+
 ecs_world_t* azk_world_init(uint32_t seed) {
   ecs_world_t *world = ecs_init();
   azk_register_components(world);
@@ -171,6 +179,11 @@ ecs_world_t* azk_world_init(uint32_t seed) {
     ref.players[p] = player;
 
     init_all_player_zones(world, player, p, &ref);
+
+    // Player going second always gets the IKZ token
+    if (p == 1) {
+      grant_player_ikz_token(world, player);
+    }
 
     DeckType deck_type = random_deck_type(&rng_state);
     init_player_deck(world, player, deck_type, &ref.zones[p]);

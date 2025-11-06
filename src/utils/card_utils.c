@@ -6,7 +6,8 @@
 
 bool is_card_type(ecs_world_t *world, ecs_entity_t card, CardType type) {
   const Type *card_type = ecs_get(world, card, Type);
-  return card_type != NULL && card_type->value == type;
+  ecs_assert(card_type != NULL, ECS_INVALID_PARAMETER, "Type component not found for card %d", card);
+  return card_type->value == type;
 }
 
 void discard_card(ecs_world_t *world, ecs_entity_t card) {
