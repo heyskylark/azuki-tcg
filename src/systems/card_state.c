@@ -1,6 +1,6 @@
 #include "systems/card_state.h"
 #include "generated/card_defs.h"
-#include "utils/card_utils.h"
+#include "utils/zone_util.h"
 #include "utils/cli_rendering_util.h"
 
 void UntapAllCards(ecs_iter_t *it) {

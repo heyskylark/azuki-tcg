@@ -1,5 +1,6 @@
 #include "systems/main_action.h"
 #include "components.h"
+#include "utils/zone_util.h"
 #include "utils/card_utils.h"
 #include "generated/card_defs.h"
 #include "utils/cli_rendering_util.h"
@@ -32,7 +33,13 @@ static int play_entity_to_garden_or_alley(
     return -1;
   }
 
-  return insert_card_into_zone_index(world, hand_card, gs->players[gs->active_player_index], placement_type, zone_card_idx);
+  return summon_card_into_zone_index(
+    world,
+    hand_card,
+    gs->players[gs->active_player_index],
+    placement_type,
+    zone_card_idx
+  );
 }
 
 /**
@@ -69,6 +76,29 @@ static void handle_play_entity_to_alley(ecs_world_t *world, GameState *gs, Actio
   cli_render_logf("[MainAction] Played entity to alley");
 }
 
+/**
+ * Expected Action: ACT_GATE_PORTAL, alley_index, garden_index, 0
+*/
+static void handle_gate_portal(ecs_world_t *world, GameState *gs, ActionContext *ac) {
+  if (ac->user_action.type != ACT_GATE_PORTAL) {
+    exit(EXIT_FAILURE);
+  }
+
+  int result = gate_card_into_garden(
+    world,
+    gs->players[gs->active_player_index],
+    ac->user_action.subaction_1,
+    ac->user_action.subaction_2
+  );
+
+  if (result < 0) {
+    ac->invalid_action = true;
+    return;
+  }
+
+  cli_render_logf("[MainAction] Gate portal");
+}
+
 void HandleMainAction(ecs_iter_t *it) {
   ecs_world_t *world = ecs_get_world(it->world);
   GameState *gs = ecs_field(it, GameState, 0);
@@ -80,6 +110,9 @@ void HandleMainAction(ecs_iter_t *it) {
       break;
     case ACT_PLAY_ENTITY_TO_ALLEY:
       handle_play_entity_to_alley(world, gs, ac);
+      break;
+    case ACT_GATE_PORTAL:
+      handle_gate_portal(world, gs, ac);
       break;
     case ACT_NOOP:
     case ACT_END_TURN:

@@ -24,6 +24,7 @@ typedef enum {
   /* 3-5 reserved for weapons/spells once those flows are online */
   ACT_ATTACK = 6,
   ACT_DECLARE_DEFENDER = 7,
+  ACT_GATE_PORTAL = 8,
   /* 8-9 reserved for gate portal + ability activation */
   ACT_END_TURN = 10,
   ACT_MULLIGAN_KEEP = 11,
