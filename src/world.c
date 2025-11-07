@@ -137,7 +137,15 @@ static void init_all_player_zones(
 }
 
 static DeckType random_deck_type(unsigned int *state) {
-  return (DeckType)(rand_r(state) % 2);
+  unsigned int roll = rand_r(state);
+  DeckType type = (DeckType)(roll % 2);
+
+  // Rotate the state so subsequent calls start from a different seed bit-pattern.
+  const unsigned int bits = (unsigned int)(sizeof(*state) * 8u);
+  const unsigned int shift = 1u;
+  *state = (*state << shift) | (*state >> (bits - shift));
+
+  return type;
 }
 
 static void register_action_context_singleton(ecs_world_t *world) {

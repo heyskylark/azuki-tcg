@@ -25,6 +25,7 @@ ECS_TAG_DECLARE(TStartOfTurn);
 ECS_TAG_DECLARE(TMain);
 ECS_TAG_DECLARE(TResponseWindow);
 ECS_TAG_DECLARE(TCombatResolve);
+ECS_TAG_DECLARE(TEndTurnAction);
 ECS_TAG_DECLARE(TEndTurn);
 ECS_TAG_DECLARE(TEndMatch);
 
@@ -65,6 +66,7 @@ void azk_register_components(ecs_world_t *world) {
   ECS_TAG_DEFINE(world, TMain);
   ECS_TAG_DEFINE(world, TResponseWindow);
   ECS_TAG_DEFINE(world, TCombatResolve);
+  ECS_TAG_DEFINE(world, TEndTurnAction);
   ECS_TAG_DEFINE(world, TEndTurn);
   ECS_TAG_DEFINE(world, TEndMatch);
 

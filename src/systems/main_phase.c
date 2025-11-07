@@ -138,6 +138,7 @@ void HandleMainAction(ecs_iter_t *it) {
     case ACT_NOOP:
     case ACT_END_TURN:
       cli_render_log("[MainAction] End turn");
+      // TODO: Intelligent phase transition (if player action is required, goto END_TURN_ACTION)
       gs->phase = PHASE_END_TURN;
       break;
     default:
@@ -150,7 +151,7 @@ void HandleMainAction(ecs_iter_t *it) {
 void init_main_phase_system(ecs_world_t *world) {
   ecs_system(world, {
     .entity = ecs_entity(world, {
-      .name = "HandleMainPhase",
+      .name = "MainPhaseSystem",
       .add = ecs_ids(TMain)
     }),
     .query.terms = {

@@ -67,7 +67,7 @@ void HandleMulliganAction(ecs_iter_t *it) {
 void init_mulligan_phase_system(ecs_world_t *world) {
   ecs_system(world, {
     .entity = ecs_entity(world, {
-      .name = "HandleMulliganAction",
+      .name = "MulliganPhaseSystem",
       .add = ecs_ids(TMulligan)
     }),
     .query.terms = {

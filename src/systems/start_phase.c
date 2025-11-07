@@ -40,8 +40,8 @@ static void UntapAllCards(ecs_iter_t *it) {
   const GameState *state = ecs_field(it, GameState, 0);
   int8_t active_player_index = state->active_player_index;
 
-  ecs_entity_t alley_zone = state->zones[active_player_index].alley;
-  untap_all_cards_in_zone(world, alley_zone);
+  ecs_entity_t garden_zone = state->zones[active_player_index].garden;
+  untap_all_cards_in_zone(world, garden_zone);
 
   ecs_entity_t ikz_area_zone = state->zones[active_player_index].ikz_area;
   untap_all_cards_in_zone(world, ikz_area_zone);

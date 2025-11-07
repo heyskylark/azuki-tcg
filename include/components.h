@@ -12,8 +12,9 @@ typedef enum {
   PHASE_MAIN = 2,
   PHASE_RESPONSE_WINDOW = 3,
   PHASE_COMBAT_RESOLVE = 4,
-  PHASE_END_TURN = 5,
-  PHASE_END_MATCH = 6,
+  PHASE_END_TURN_ACTION = 5,
+  PHASE_END_TURN = 6,
+  PHASE_END_MATCH = 7,
   PHASE_COUNT = PHASE_END_MATCH + 1
 } Phase;
 
@@ -96,6 +97,7 @@ extern ECS_TAG_DECLARE(TStartOfTurn);
 extern ECS_TAG_DECLARE(TMain);
 extern ECS_TAG_DECLARE(TResponseWindow);
 extern ECS_TAG_DECLARE(TCombatResolve);
+extern ECS_TAG_DECLARE(TEndTurnAction);
 extern ECS_TAG_DECLARE(TEndTurn);
 extern ECS_TAG_DECLARE(TEndMatch);
 
