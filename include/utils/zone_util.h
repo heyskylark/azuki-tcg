@@ -9,6 +9,21 @@ typedef enum {
   ZONE_ALLEY = 1
 } ZonePlacementType;
 
+ecs_entity_t find_card_in_zone_index(
+  ecs_world_t *world,
+  ecs_entity_t zone,
+  int index
+);
+
+int get_tappable_ikz_cards(
+  ecs_world_t *world,
+  ecs_entity_t ikz_area_zone,
+  uint8_t ikz_cost,
+  uint8_t *out_ikz_count,
+  ecs_entity_t *out_ikz_cards,
+  bool use_ikz_token
+);
+
 void untap_all_cards_in_zone(ecs_world_t *world, ecs_entity_t zone);
 /**
   Inserts a card into a zone at a given index.
@@ -31,6 +46,16 @@ int gate_card_into_garden(
   ecs_entity_t player,
   int alley_index,
   int garden_index
+);
+
+ecs_entity_t find_gate_card_in_zone(
+  ecs_world_t *world,
+  ecs_entity_t zone
+);
+
+ecs_entity_t find_leader_card_in_zone(
+  ecs_world_t *world,
+  ecs_entity_t zone
 );
 
 #endif

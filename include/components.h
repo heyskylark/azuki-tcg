@@ -24,12 +24,13 @@ typedef enum {
   ACT_PLAY_ENTITY_TO_ALLEY = 2,
   /* 3-5 reserved for weapons/spells once those flows are online */
   ACT_ATTACK = 6,
-  ACT_DECLARE_DEFENDER = 7,
-  ACT_GATE_PORTAL = 8,
-  /* 8-9 reserved for gate portal + ability activation */
-  ACT_END_TURN = 10,
-  ACT_MULLIGAN_KEEP = 11,
-  ACT_MULLIGAN_SHUFFLE = 12
+  ACT_ATTACH_WEAPON_FROM_HAND = 7,
+  ACT_DECLARE_DEFENDER = 8,
+  ACT_GATE_PORTAL = 9,
+  /* 10-11 reserved for gate portal + ability activation */
+  ACT_END_TURN = 12,
+  ACT_MULLIGAN_KEEP = 13,
+  ACT_MULLIGAN_SHUFFLE = 14
 } ActionType;
 
 typedef struct {

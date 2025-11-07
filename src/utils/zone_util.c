@@ -6,7 +6,7 @@
 #include "utils/player_util.h"
 #include <stdio.h>
 
-static ecs_entity_t find_card_in_zone_index(
+ecs_entity_t find_card_in_zone_index(
   ecs_world_t *world,
   ecs_entity_t zone,
   int index
@@ -26,7 +26,7 @@ static ecs_entity_t find_card_in_zone_index(
   return card_with_zone_index;
 }
 
-static int get_tappable_ikz_cards(
+int get_tappable_ikz_cards(
   ecs_world_t *world,
   ecs_entity_t ikz_area_zone,
   uint8_t ikz_cost,
@@ -198,7 +198,7 @@ void untap_all_cards_in_zone(ecs_world_t *world, ecs_entity_t zone) {
   }
 }
 
-static ecs_entity_t find_gate_card_in_zone(
+ecs_entity_t find_gate_card_in_zone(
   ecs_world_t *world,
   ecs_entity_t zone
 ) {
@@ -209,6 +209,17 @@ static ecs_entity_t find_gate_card_in_zone(
   ecs_entity_t gate_card = child_it.entities[0];
   ecs_assert(is_card_type(world, gate_card, CARD_TYPE_GATE), ECS_INVALID_PARAMETER, "Card %d is not a gate", gate_card);
   return gate_card;
+}
+
+ecs_entity_t find_leader_card_in_zone(
+  ecs_world_t *world,
+  ecs_entity_t zone
+) {
+  ecs_entities_t cards = ecs_get_ordered_children(world, zone);
+  ecs_assert(cards.count == 1, ECS_INVALID_PARAMETER, "Leader zone must contain exactly 1 card, got %d", cards.count);
+  ecs_entity_t leader_card = cards.ids[0];
+  ecs_assert(is_card_type(world, leader_card, CARD_TYPE_LEADER), ECS_INVALID_PARAMETER, "Card %d is not a leader", leader_card);
+  return leader_card;
 }
 
 int gate_card_into_garden(

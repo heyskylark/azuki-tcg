@@ -2,6 +2,7 @@
 #include "components.h"
 #include "utils/zone_util.h"
 #include "utils/card_utils.h"
+#include "utils/weapon_util.h"
 #include "generated/card_defs.h"
 #include "utils/cli_rendering_util.h"
 #include "constants/game.h"
@@ -114,6 +115,31 @@ static void handle_attack(ecs_world_t *world, GameState *gs, ActionContext *ac) 
   cli_render_logf("[MainAction] Attack");
 }
 
+/**
+ * Expected Action: ACT_ATTACH_WEAPON_FROM_HAND, hand_index, entity_index, use ikz token
+ * entity_index of 5 is the leader
+*/
+static void handle_attach_weapon_from_hand(ecs_world_t *world, GameState *gs, ActionContext *ac) {
+  if (ac->user_action.type != ACT_ATTACH_WEAPON_FROM_HAND) {
+    exit(EXIT_FAILURE);
+  }
+
+  int result = attach_weapon_from_hand(
+    world,
+    gs->players[gs->active_player_index],
+    ac->user_action.subaction_1,
+    ac->user_action.subaction_2,
+    ac->user_action.subaction_3 != 0
+  );
+
+  if (result < 0) {
+    ac->invalid_action = true;
+    return;
+  }
+
+  cli_render_logf("[MainAction] Attach weapon");
+}
+
 void HandleMainAction(ecs_iter_t *it) {
   ecs_world_t *world = ecs_get_world(it->world);
   GameState *gs = ecs_field(it, GameState, 0);
@@ -128,6 +154,9 @@ void HandleMainAction(ecs_iter_t *it) {
       break;
     case ACT_GATE_PORTAL:
       handle_gate_portal(world, gs, ac);
+      break;
+    case ACT_ATTACH_WEAPON_FROM_HAND:
+      handle_attach_weapon_from_hand(world, gs, ac);
       break;
     case ACT_ATTACK:
       handle_attack(world, gs, ac);

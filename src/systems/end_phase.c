@@ -2,6 +2,7 @@
 #include "components.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/entity_util.h"
+#include "utils/zone_util.h"
 
 void HandleEndPhase(ecs_iter_t *it) {
   ecs_world_t *world = it->world;
@@ -15,9 +16,13 @@ void HandleEndPhase(ecs_iter_t *it) {
     ecs_entity_t garden_card = garden_cards.ids[i];
 
     reset_entity_health(world, garden_card);
-    // Expire end of turn effects on player's entities and leader
+    // Expire end of turn effects on player's entities
     discard_equipped_weapon_cards(world, garden_card);
   }
+
+  ecs_entity_t leader_card = find_leader_card_in_zone(world, gs->zones[gs->active_player_index].leader);
+  // Expire end of turn effects on player's leader
+  discard_equipped_weapon_cards(world, leader_card);
 
   gs->phase = PHASE_START_OF_TURN;
   gs->active_player_index = (gs->active_player_index + 1) % MAX_PLAYERS_PER_MATCH;
