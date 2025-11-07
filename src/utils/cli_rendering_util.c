@@ -16,11 +16,18 @@
 #define CARD_BOX_HEIGHT 6
 #define CARD_BOX_TEXT_WIDTH (CARD_BOX_WIDTH - 2)
 #define CARD_BOX_TEXT_CAPACITY (CARD_BOX_TEXT_WIDTH + 1)
+#define BOARD_PAD_BUFFER_ROWS 512
+#define BOARD_PAD_MAX_HEIGHT 4096
 
 static WINDOW *board_win = NULL;
 static WINDOW *log_win = NULL;
 static WINDOW *info_win = NULL;
 static WINDOW *input_win = NULL;
+static WINDOW *board_pad = NULL;
+static int board_pad_height = 0;
+static int board_pad_width = 0;
+static int board_scroll_offset = 0;
+static int board_content_height = 0;
 static int screen_rows = 0;
 static int screen_cols = 0;
 
@@ -82,7 +89,166 @@ static void refresh_log_window(void) {
   wrefresh(log_win);
 }
 
+static void destroy_board_pad(void) {
+  if (board_pad) {
+    delwin(board_pad);
+    board_pad = NULL;
+  }
+  board_pad_height = 0;
+  board_pad_width = 0;
+  board_scroll_offset = 0;
+  board_content_height = 0;
+}
+
+static void ensure_board_pad(void) {
+  if (!board_win) {
+    destroy_board_pad();
+    return;
+  }
+
+  int board_height = getmaxy(board_win);
+  int board_width = getmaxx(board_win);
+  if (board_height <= 2 || board_width <= 2) {
+    destroy_board_pad();
+    return;
+  }
+
+  int inner_width = board_width - 2;
+  int desired_height = board_height + BOARD_PAD_BUFFER_ROWS;
+  if (desired_height < board_height) {
+    desired_height = board_height;
+  }
+  if (desired_height > BOARD_PAD_MAX_HEIGHT) {
+    desired_height = BOARD_PAD_MAX_HEIGHT;
+  }
+  int desired_width = inner_width + 2;
+
+  if (board_pad && board_pad_height == desired_height && board_pad_width == desired_width) {
+    return;
+  }
+
+  destroy_board_pad();
+  board_pad = newpad(desired_height, desired_width);
+  if (!board_pad) {
+    return;
+  }
+  board_pad_height = desired_height;
+  board_pad_width = desired_width;
+}
+
+static void clamp_board_scroll(void) {
+  if (!board_win) {
+    board_scroll_offset = 0;
+    return;
+  }
+
+  int visible_inner_height = getmaxy(board_win) - 2;
+  if (visible_inner_height <= 0) {
+    board_scroll_offset = 0;
+    return;
+  }
+
+  int max_scroll = board_content_height - visible_inner_height;
+  if (max_scroll < 0) {
+    max_scroll = 0;
+  }
+  if (board_scroll_offset > max_scroll) {
+    board_scroll_offset = max_scroll;
+  }
+  if (board_scroll_offset < 0) {
+    board_scroll_offset = 0;
+  }
+}
+
+static void refresh_board_pad_view(void) {
+  if (!board_win || !board_pad) {
+    return;
+  }
+  int inner_height = getmaxy(board_win) - 2;
+  int inner_width = getmaxx(board_win) - 2;
+  if (inner_height <= 0 || inner_width <= 0) {
+    return;
+  }
+
+  clamp_board_scroll();
+
+  int content_max_row = board_pad_height - 2;
+  int start_row = board_scroll_offset + 1;
+  if (start_row > content_max_row) {
+    start_row = content_max_row;
+  }
+  if (start_row < 1) {
+    start_row = 1;
+  }
+  int end_row = start_row + inner_height - 1;
+  if (end_row > content_max_row) {
+    end_row = content_max_row;
+    start_row = end_row - inner_height + 1;
+    if (start_row < 1) {
+      start_row = 1;
+    }
+  }
+
+  int board_begy = 0;
+  int board_begx = 0;
+  getbegyx(board_win, board_begy, board_begx);
+
+  pnoutrefresh(board_pad,
+               start_row,
+               1,
+               board_begy + 1,
+               board_begx + 1,
+               board_begy + inner_height,
+               board_begx + inner_width);
+  doupdate();
+}
+
+static void scroll_board_to_offset(int offset) {
+  if (!board_win || !board_pad) {
+    return;
+  }
+
+  clamp_board_scroll();
+  int visible_inner_height = getmaxy(board_win) - 2;
+  int max_scroll = board_content_height - visible_inner_height;
+  if (max_scroll < 0) {
+    max_scroll = 0;
+  }
+  if (offset < 0) {
+    offset = 0;
+  }
+  if (offset > max_scroll) {
+    offset = max_scroll;
+  }
+
+  if (offset == board_scroll_offset) {
+    return;
+  }
+
+  board_scroll_offset = offset;
+  refresh_board_pad_view();
+}
+
+static void scroll_board_lines(int delta) {
+  if (delta == 0 || !board_win || !board_pad) {
+    return;
+  }
+  scroll_board_to_offset(board_scroll_offset + delta);
+}
+
+static void scroll_board_page(int direction) {
+  if (!board_win || direction == 0) {
+    return;
+  }
+  int inner_height = getmaxy(board_win) - 2;
+  if (inner_height <= 0) {
+    return;
+  }
+  scroll_board_to_offset(board_scroll_offset + direction * inner_height);
+}
+
 static void destroy_windows(void) {
+  destroy_board_pad();
   if (board_win) {
     delwin(board_win);
     board_win = NULL;
@@ -657,106 +823,106 @@ static int draw_my_info_section(WINDOW *win, int row, int max_inner_row,
   return row;
 }
 
-static void render_opponent_board_column(WINDOW *win, const OpponentObservationData *opponent) {
+static int render_opponent_board_column(WINDOW *win, const OpponentObservationData *opponent) {
   if (!win || !opponent) {
-    return;
+    return 0;
   }
 
   werase(win);
 
   int max_inner_row = getmaxy(win) - 1;
   if (max_inner_row <= 0) {
-    return;
+    return 0;
   }
 
   int row = 0;
   mvwprintw(win, row++, 1, "Opponent Board");
   if (row > max_inner_row) {
-    return;
+    return row;
   }
 
   row = draw_leader_gate_section(win, row, max_inner_row, &opponent->leader, &opponent->gate);
   if (row > max_inner_row) {
-    return;
+    return row;
   }
 
   row = draw_card_grid_section(win, row, max_inner_row, "Garden", opponent->garden, GARDEN_SIZE, true);
   if (row > max_inner_row) {
-    return;
+    return row;
   }
 
   row = draw_card_grid_section(win, row, max_inner_row, "Alley", opponent->alley, ALLEY_SIZE, true);
   if (row > max_inner_row) {
-    return;
+    return row;
   }
 
   size_t opp_ikz_count = ikz_observation_count(opponent->ikz_area, IKZ_AREA_SIZE);
   row = draw_ikz_grid_section(win, row, max_inner_row, "IKZ Area", opponent->ikz_area, opp_ikz_count);
   if (row > max_inner_row) {
-    return;
+    return row;
   }
 
   row = draw_opponent_info_section(win, row, max_inner_row, opponent);
-  (void)row;
+  return row;
 }
 
-static void render_my_board_column(WINDOW *win, const MyObservationData *mine) {
+static int render_my_board_column(WINDOW *win, const MyObservationData *mine) {
   if (!win || !mine) {
-    return;
+    return 0;
   }
 
   werase(win);
 
   int max_inner_row = getmaxy(win) - 1;
   if (max_inner_row <= 0) {
-    return;
+    return 0;
   }
 
   int row = 0;
   mvwprintw(win, row++, 1, "Your Board");
   if (row > max_inner_row) {
-    return;
+    return row;
   }
 
   row = draw_leader_gate_section(win, row, max_inner_row, &mine->leader, &mine->gate);
   if (row > max_inner_row) {
-    return;
+    return row;
   }
 
   row = draw_card_grid_section(win, row, max_inner_row, "Garden", mine->garden, GARDEN_SIZE, true);
   if (row > max_inner_row) {
-    return;
+    return row;
   }
 
   row = draw_card_grid_section(win, row, max_inner_row, "Alley", mine->alley, ALLEY_SIZE, true);
   if (row > max_inner_row) {
-    return;
+    return row;
   }
 
   size_t my_hand_count = card_observation_count(mine->hand, MAX_HAND_SIZE);
   row = draw_card_grid_section(win, row, max_inner_row, "Hand", mine->hand, MAX_HAND_SIZE, false);
   if (row > max_inner_row) {
-    return;
+    return row;
   }
 
   size_t my_ikz_count = ikz_observation_count(mine->ikz_area, IKZ_AREA_SIZE);
   row = draw_ikz_grid_section(win, row, max_inner_row, "IKZ Area", mine->ikz_area, my_ikz_count);
   if (row > max_inner_row) {
-    return;
+    return row;
   }
 
   row = draw_my_info_section(win, row, max_inner_row, mine, my_hand_count);
-  (void)row;
+  return row;
 }
 
-static void render_board_single_column(WINDOW *win, const ObservationData *observation, const GameState *gs) {
+static int render_board_single_column(WINDOW *win, const ObservationData *observation, const GameState *gs) {
   if (!win || !observation || !gs) {
-    return;
+    return 0;
   }
 
   const int max_inner_row = getmaxy(win) - 2;
   if (max_inner_row <= 0) {
-    return;
+    return 0;
   }
 
   int row = 1;
@@ -765,100 +931,98 @@ static void render_board_single_column(WINDOW *win, const ObservationData *obser
 
   mvwprintw(win, row++, 2, "Opponent Board");
   if (row > max_inner_row) {
-    return;
+    return row - 1;
   }
 
   row = draw_leader_gate_section(win, row, max_inner_row, &opponent->leader, &opponent->gate);
   if (row > max_inner_row) {
-    return;
+    return row - 1;
   }
 
   row = draw_card_grid_section(win, row, max_inner_row, "Garden", opponent->garden, GARDEN_SIZE, true);
   if (row > max_inner_row) {
-    return;
+    return row - 1;
   }
 
   row = draw_card_grid_section(win, row, max_inner_row, "Alley", opponent->alley, ALLEY_SIZE, true);
   if (row > max_inner_row) {
-    return;
+    return row - 1;
   }
 
   size_t opp_ikz_count = ikz_observation_count(opponent->ikz_area, IKZ_AREA_SIZE);
   row = draw_ikz_grid_section(win, row, max_inner_row, "IKZ Area", opponent->ikz_area, opp_ikz_count);
   if (row > max_inner_row) {
-    return;
+    return row - 1;
   }
 
   row = draw_opponent_info_section(win, row, max_inner_row, opponent);
   if (row > max_inner_row) {
-    return;
+    return row - 1;
   }
 
   if (row <= max_inner_row) {
     row++;
   }
   if (row > max_inner_row) {
-    return;
+    return row - 1;
   }
 
   mvwprintw(win, row++, 2, "Your Board");
   if (row > max_inner_row) {
-    return;
+    return row - 1;
   }
 
   row = draw_leader_gate_section(win, row, max_inner_row, &mine->leader, &mine->gate);
   if (row > max_inner_row) {
-    return;
+    return row - 1;
   }
 
   row = draw_card_grid_section(win, row, max_inner_row, "Garden", mine->garden, GARDEN_SIZE, true);
   if (row > max_inner_row) {
-    return;
+    return row - 1;
   }
 
   row = draw_card_grid_section(win, row, max_inner_row, "Alley", mine->alley, ALLEY_SIZE, true);
   if (row > max_inner_row) {
-    return;
+    return row - 1;
   }
 
   size_t my_hand_count = card_observation_count(mine->hand, MAX_HAND_SIZE);
   row = draw_card_grid_section(win, row, max_inner_row, "Hand", mine->hand, MAX_HAND_SIZE, false);
   if (row > max_inner_row) {
-    return;
+    return row - 1;
   }
 
   size_t my_ikz_count = ikz_observation_count(mine->ikz_area, IKZ_AREA_SIZE);
   row = draw_ikz_grid_section(win, row, max_inner_row, "IKZ Area", mine->ikz_area, my_ikz_count);
   if (row > max_inner_row) {
-    return;
+    return row - 1;
   }
 
   row = draw_my_info_section(win, row, max_inner_row, mine, my_hand_count);
-  (void)row;
+  return row > 1 ? row - 1 : 0;
 }
 
-static void render_board(WINDOW *win, const ObservationData *observation, const GameState *gs) {
+static int render_board(WINDOW *win, const ObservationData *observation, const GameState *gs) {
   if (!win || !observation || !gs) {
-    return;
+    return 0;
   }
 
   const int inner_height = getmaxy(win) - 2;
   const int inner_width = getmaxx(win) - 2;
   if (inner_height <= 0 || inner_width <= 0) {
-    return;
+    return 0;
   }
 
   const int min_column_width = CARD_BOX_WIDTH + 4;
   if (inner_width < min_column_width * 2) {
-    render_board_single_column(win, observation, gs);
-    return;
+    return render_board_single_column(win, observation, gs);
   }
 
   int left_width = inner_width / 2;
   int right_width = inner_width - left_width;
   if (left_width < min_column_width || right_width < min_column_width) {
-    render_board_single_column(win, observation, gs);
-    return;
+    return render_board_single_column(win, observation, gs);
   }
 
   WINDOW *left_win = derwin(win, inner_height, left_width, 1, 1);
@@ -870,17 +1034,18 @@ static void render_board(WINDOW *win, const ObservationData *observation, const 
     if (right_win) {
       delwin(right_win);
     }
-    render_board_single_column(win, observation, gs);
-    return;
+    return render_board_single_column(win, observation, gs);
   }
 
-  render_my_board_column(left_win, &observation->my_observation_data);
-  render_opponent_board_column(right_win, &observation->opponent_observation_data);
+  int left_height = render_my_board_column(left_win, &observation->my_observation_data);
+  int right_height = render_opponent_board_column(right_win, &observation->opponent_observation_data);
 
   touchwin(win);
 
   delwin(left_win);
   delwin(right_win);
+
+  return (left_height > right_height) ? left_height : right_height;
 }
 
 static void render_info(WINDOW *win, const GameState *gs) {
@@ -932,14 +1097,31 @@ void cli_render_draw(const ObservationData *observation, const GameState *gs) {
     return;
   }
 
+  ensure_board_pad();
+
   last_observation = *observation;
   last_state = *gs;
   has_last_state = true;
 
   werase(board_win);
   box(board_win, 0, 0);
-  render_board(board_win, observation, gs);
-  wrefresh(board_win);
+  if (board_pad) {
+    werase(board_pad);
+    board_content_height = render_board(board_pad, observation, gs);
+    if (board_content_height < 0) {
+      board_content_height = 0;
+    }
+    if (board_content_height > board_pad_height - 2) {
+      board_content_height = board_pad_height - 2;
+    }
+    clamp_board_scroll();
+    wrefresh(board_win);
+    refresh_board_pad_view();
+  } else {
+    board_content_height = render_board(board_win, observation, gs);
+    board_scroll_offset = 0;
+    wrefresh(board_win);
+  }
 
   refresh_log_window();
 
@@ -951,6 +1133,9 @@ void cli_render_draw(const ObservationData *observation, const GameState *gs) {
   werase(input_win);
   box(input_win, 0, 0);
   mvwprintw(input_win, 1, 2, "No input required.");
+  if (getmaxy(input_win) >= 4) {
+    mvwprintw(input_win, 2, 2, "Scroll board with Up/Down or PgUp/PgDn");
+  }
   wrefresh(input_win);
 
   curs_set(0);
@@ -961,16 +1146,22 @@ bool cli_render_prompt_user_action(int active_player_index, const char *message,
     return false;
   }
 
+  buffer[0] = '\0';
+  size_t input_length = 0;
+  bool success = false;
+
   ensure_windows();
 
   if (!input_win) {
     return false;
   }
 
+  curs_set(1);
+
   while (true) {
     ensure_windows();
     if (!input_win) {
-      return false;
+      break;
     }
     refresh_log_window();
 
@@ -978,12 +1169,18 @@ bool cli_render_prompt_user_action(int active_player_index, const char *message,
     box(input_win, 0, 0);
 
     int max_inner_rows = getmaxy(input_win) - 2;
+    if (max_inner_rows < 1) {
+      max_inner_rows = 1;
+    }
     int current_row = 1;
     if (message && message[0] != '\0' && current_row <= max_inner_rows) {
       mvwprintw(input_win, current_row++, 2, "%s", message);
     }
     if (current_row <= max_inner_rows) {
       mvwprintw(input_win, current_row++, 2, "Awaiting user action [Player %d] (type,p0,p1,p2):", active_player_index);
+    }
+    if (current_row <= max_inner_rows) {
+      mvwprintw(input_win, current_row++, 2, "Scroll board with Up/Down or PgUp/PgDn");
     }
     if (current_row > max_inner_rows) {
       current_row = max_inner_rows;
@@ -993,15 +1190,14 @@ bool cli_render_prompt_user_action(int active_player_index, const char *message,
     }
     wmove(input_win, current_row, 2);
     wclrtoeol(input_win);
+    if (input_length > 0) {
+      waddnstr(input_win, buffer, (int)input_length);
+    }
+    wmove(input_win, current_row, 2 + (int)input_length);
     wrefresh(input_win);
 
-    echo();
-    curs_set(1);
-    int result = wgetnstr(input_win, buffer, (int)buffer_length - 1);
-    noecho();
-    curs_set(0);
-
-    if (result == ERR) {
+    int ch = wgetch(input_win);
+    if (ch == ERR) {
       if (is_term_resized(screen_rows, screen_cols)) {
         if (has_last_state) {
           cli_render_draw(&last_observation, &last_state);
@@ -1010,15 +1206,70 @@ bool cli_render_prompt_user_action(int active_player_index, const char *message,
         }
         continue;
       }
-      return false;
+      break;
     }
 
-    size_t len = strlen(buffer);
-    while (len > 0 && (buffer[len - 1] == '\n' || buffer[len - 1] == '\r')) {
-      buffer[--len] = '\0';
+    if (ch == KEY_RESIZE) {
+      if (has_last_state) {
+        cli_render_draw(&last_observation, &last_state);
+      } else {
+        refresh();
+      }
+      continue;
     }
-    return true;
+
+    switch (ch) {
+      case KEY_PPAGE:
+        scroll_board_page(-1);
+        continue;
+      case KEY_NPAGE:
+        scroll_board_page(1);
+        continue;
+      case KEY_UP:
+        scroll_board_lines(-1);
+        continue;
+      case KEY_DOWN:
+        scroll_board_lines(1);
+        continue;
+      case KEY_HOME:
+        scroll_board_to_offset(0);
+        continue;
+      case KEY_END:
+        scroll_board_to_offset(board_content_height);
+        continue;
+      case KEY_BACKSPACE:
+      case 127:
+      case 8:
+        if (input_length > 0) {
+          input_length--;
+          buffer[input_length] = '\0';
+        }
+        continue;
+      case 21: // Ctrl+U
+        input_length = 0;
+        buffer[0] = '\0';
+        continue;
+      case KEY_ENTER:
+      case '\n':
+      case '\r':
+        buffer[input_length] = '\0';
+        success = true;
+        goto exit_loop;
+      default:
+        break;
+    }
+
+    if (ch >= 32 && ch <= 126) {
+      if (input_length < buffer_length - 1) {
+        buffer[input_length++] = (char)ch;
+        buffer[input_length] = '\0';
+      }
+    }
   }
+
+exit_loop:
+  curs_set(0);
+  return success;
 }
 
 void cli_render_log(const char *message) {
