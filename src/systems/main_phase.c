@@ -4,6 +4,7 @@
 #include "utils/card_utils.h"
 #include "generated/card_defs.h"
 #include "utils/cli_rendering_util.h"
+#include "constants/game.h"
 
 static int play_entity_to_garden_or_alley(
   ecs_world_t *world,
@@ -130,10 +131,14 @@ void HandleMainAction(ecs_iter_t *it) {
       break;
     case ACT_ATTACK:
       handle_attack(world, gs, ac);
+
+      gs->phase = PHASE_RESPONSE_WINDOW;
+      gs->active_player_index = (gs->active_player_index + 1) % MAX_PLAYERS_PER_MATCH;
       break;
     case ACT_NOOP:
     case ACT_END_TURN:
       cli_render_log("[MainAction] End turn");
+      gs->phase = PHASE_END_TURN;
       break;
     default:
       cli_render_logf("[MainAction] Unknown main action type: %d", ac->user_action.type);

@@ -19,6 +19,8 @@
 #define BOARD_PAD_BUFFER_ROWS 512
 #define BOARD_PAD_MAX_HEIGHT 4096
 
+#define CLI_COLOR_PAIR_CARD_ALERT 1
+
 static WINDOW *board_win = NULL;
 static WINDOW *log_win = NULL;
 static WINDOW *info_win = NULL;
@@ -38,6 +40,7 @@ static char log_lines[CLI_LOG_MAX_LINES][CLI_LOG_LINE_LENGTH];
 static size_t log_line_count = 0;
 static size_t log_line_head = 0;
 static void refresh_log_window(void);
+static bool cli_colors_enabled = false;
 
 static void append_log_line(const char *text) {
   if (!text) {
@@ -382,6 +385,13 @@ static char cooldown_state_char(const TapState *tap_state) {
   return tap_state->cooldown ? 'C' : 'R';
 }
 
+static bool tap_state_requires_highlight(const TapState *tap_state) {
+  if (!tap_state) {
+    return false;
+  }
+  return tap_state->tapped || tap_state->cooldown;
+}
+
 static size_t card_observation_count(const CardObservationData *cards, size_t max_count) {
   if (!cards) {
     return 0;
@@ -500,7 +510,15 @@ static void draw_standard_card_box(WINDOW *win, int top, int left, const CardObs
   memset(lines, 0, sizeof lines);
   build_standard_card_lines(card, lines);
   const char *line_ptrs[4] = { lines[0], lines[1], lines[2], lines[3] };
+  bool highlight = cli_colors_enabled && tap_state_requires_highlight(&card->tap_state);
+  attr_t color_attr = COLOR_PAIR(CLI_COLOR_PAIR_CARD_ALERT);
+  if (highlight) {
+    wattron(win, color_attr);
+  }
   draw_text_box(win, top, left, CARD_BOX_WIDTH, CARD_BOX_HEIGHT, line_ptrs, 4);
+  if (highlight) {
+    wattroff(win, color_attr);
+  }
 }
 
 static void draw_empty_card_box(WINDOW *win, int top, int left) {
@@ -554,7 +572,15 @@ static void draw_ikz_card_box(WINDOW *win, int top, int left, const IKZCardObser
   char cooldown = cooldown_state_char(&card->tap_state);
   snprintf(lines[2], CARD_BOX_TEXT_CAPACITY, "T/C:%c/%c", tap, cooldown);
   const char *line_ptrs[4] = { lines[0], lines[1], lines[2], lines[3] };
+  bool highlight = cli_colors_enabled && tap_state_requires_highlight(&card->tap_state);
+  attr_t color_attr = COLOR_PAIR(CLI_COLOR_PAIR_CARD_ALERT);
+  if (highlight) {
+    wattron(win, color_attr);
+  }
   draw_text_box(win, top, left, CARD_BOX_WIDTH, CARD_BOX_HEIGHT, line_ptrs, 4);
+  if (highlight) {
+    wattroff(win, color_attr);
+  }
 }
 
 static int compute_card_columns(WINDOW *win) {
@@ -1065,6 +1091,15 @@ static void render_info(WINDOW *win, const GameState *gs) {
 
 void cli_render_init(void) {
   initscr();
+  cli_colors_enabled = false;
+  if (has_colors()) {
+    if (start_color() != ERR) {
+      use_default_colors();
+      if (init_pair(CLI_COLOR_PAIR_CARD_ALERT, COLOR_RED, -1) != ERR) {
+        cli_colors_enabled = true;
+      }
+    }
+  }
   cbreak();
   noecho();
   keypad(stdscr, TRUE);
@@ -1083,6 +1118,7 @@ void cli_render_shutdown(void) {
   has_last_state = false;
   screen_rows = 0;
   screen_cols = 0;
+  cli_colors_enabled = false;
   endwin();
 }
 
