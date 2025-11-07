@@ -1,16 +1,12 @@
 #include "systems/main.h"
-#include "systems/economy.h"
-#include "systems/card_state.h"
 #include "systems/phase_gate.h"
-#include "systems/mulligan.h"
-#include "systems/phase_management.h"
-#include "systems/main_action.h"
+#include "systems/mulligan_phase.h"
+#include "systems/main_phase.h"
+#include "systems/start_phase.h"
 
 void init_all_system(ecs_world_t *world) {
   init_phase_gate_system(world);
-  init_mulligan_system(world);
-  init_main_action_system(world);
-  init_economy_systems(world);
-  init_card_state_systems(world);
-  init_phase_management_system(world);
+  init_start_phase_system(world);
+  init_mulligan_phase_system(world);
+  init_main_phase_system(world);
 }

@@ -1,6 +1,5 @@
 #include "world.h"
 #include "systems/phase_gate.h"
-#include "systems/phase_management.h"
 #include "utils/phase_utils.h"
 #include "utils/actions_util.h"
 #include "utils/observation_util.h"
@@ -23,8 +22,6 @@ int main(void) {
     run_phase_gate_system(world);
 
     ecs_progress(world, 0);
-
-    run_phase_management_system(world);
 
     gs = ecs_singleton_get(world, GameState);
     game_over = gs->winner != -1;

@@ -1,4 +1,4 @@
-#include "systems/main_action.h"
+#include "systems/main_phase.h"
 #include "components.h"
 #include "utils/zone_util.h"
 #include "utils/card_utils.h"
@@ -101,6 +101,18 @@ static void handle_gate_portal(ecs_world_t *world, GameState *gs, ActionContext 
   cli_render_logf("[MainAction] Gate portal");
 }
 
+/**
+ * Expected Action: ACT_ATTACK, gaden_attacker_index, defender_index (opponent tapped garden entity or leader)
+ * attacker_index and defender_index of 5 is the leader
+*/
+static void handle_attack(ecs_world_t *world, GameState *gs, ActionContext *ac) {
+  if (ac->user_action.type != ACT_ATTACK) {
+    exit(EXIT_FAILURE);
+  }
+
+  cli_render_logf("[MainAction] Attack");
+}
+
 void HandleMainAction(ecs_iter_t *it) {
   ecs_world_t *world = ecs_get_world(it->world);
   GameState *gs = ecs_field(it, GameState, 0);
@@ -116,6 +128,9 @@ void HandleMainAction(ecs_iter_t *it) {
     case ACT_GATE_PORTAL:
       handle_gate_portal(world, gs, ac);
       break;
+    case ACT_ATTACK:
+      handle_attack(world, gs, ac);
+      break;
     case ACT_NOOP:
     case ACT_END_TURN:
       cli_render_log("[MainAction] End turn");
@@ -127,10 +142,10 @@ void HandleMainAction(ecs_iter_t *it) {
   }
 }
 
-void init_main_action_system(ecs_world_t *world) {
+void init_main_phase_system(ecs_world_t *world) {
   ecs_system(world, {
     .entity = ecs_entity(world, {
-      .name = "HandleMainAction",
+      .name = "HandleMainPhase",
       .add = ecs_ids(TMain)
     }),
     .query.terms = {

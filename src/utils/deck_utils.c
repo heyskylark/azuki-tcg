@@ -52,7 +52,7 @@ void shuffle_deck(ecs_world_t *world, ecs_entity_t deck_zone) {
 }
 
 
-bool draw_cards(ecs_world_t *world, ecs_entity_t from_zone, ecs_entity_t to_zone, int draw_count, ecs_entity_t *out_cards) {
+bool move_cards_to_zone(ecs_world_t *world, ecs_entity_t from_zone, ecs_entity_t to_zone, int draw_count, ecs_entity_t *out_cards) {
   ecs_entities_t cards = ecs_get_ordered_children(world, from_zone);
   int32_t count = cards.count;
 
