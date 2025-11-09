@@ -19,7 +19,8 @@
 #define BOARD_PAD_BUFFER_ROWS 512
 #define BOARD_PAD_MAX_HEIGHT 4096
 
-#define CLI_COLOR_PAIR_CARD_ALERT 1
+#define CLI_COLOR_PAIR_CARD_TAPPED 1
+#define CLI_COLOR_PAIR_CARD_COOLDOWN 2
 
 static WINDOW *board_win = NULL;
 static WINDOW *log_win = NULL;
@@ -41,6 +42,8 @@ static size_t log_line_count = 0;
 static size_t log_line_head = 0;
 static void refresh_log_window(void);
 static bool cli_colors_enabled = false;
+static bool cli_tapped_color_available = false;
+static bool cli_cooldown_color_available = false;
 
 static void append_log_line(const char *text) {
   if (!text) {
@@ -385,11 +388,28 @@ static char cooldown_state_char(const TapState *tap_state) {
   return tap_state->cooldown ? 'C' : 'R';
 }
 
-static bool tap_state_requires_highlight(const TapState *tap_state) {
-  if (!tap_state) {
-    return false;
+static attr_t tap_state_color_attr(const TapState *tap_state) {
+  if (!tap_state || !cli_colors_enabled) {
+    return A_NORMAL;
   }
-  return tap_state->tapped || tap_state->cooldown;
+  if (tap_state->tapped) {
+    if (cli_tapped_color_available) {
+      return COLOR_PAIR(CLI_COLOR_PAIR_CARD_TAPPED);
+    }
+    if (cli_cooldown_color_available) {
+      return COLOR_PAIR(CLI_COLOR_PAIR_CARD_COOLDOWN);
+    }
+    return A_NORMAL;
+  }
+  if (tap_state->cooldown) {
+    if (cli_cooldown_color_available) {
+      return COLOR_PAIR(CLI_COLOR_PAIR_CARD_COOLDOWN);
+    }
+    if (cli_tapped_color_available) {
+      return COLOR_PAIR(CLI_COLOR_PAIR_CARD_TAPPED);
+    }
+  }
+  return A_NORMAL;
 }
 
 static size_t card_observation_count(const CardObservationData *cards, size_t max_count) {
@@ -510,14 +530,14 @@ static void draw_standard_card_box(WINDOW *win, int top, int left, const CardObs
   memset(lines, 0, sizeof lines);
   build_standard_card_lines(card, lines);
   const char *line_ptrs[4] = { lines[0], lines[1], lines[2], lines[3] };
-  bool highlight = cli_colors_enabled && tap_state_requires_highlight(&card->tap_state);
-  attr_t color_attr = COLOR_PAIR(CLI_COLOR_PAIR_CARD_ALERT);
+  attr_t highlight_attr = tap_state_color_attr(&card->tap_state);
+  bool highlight = highlight_attr != A_NORMAL;
   if (highlight) {
-    wattron(win, color_attr);
+    wattron(win, highlight_attr);
   }
   draw_text_box(win, top, left, CARD_BOX_WIDTH, CARD_BOX_HEIGHT, line_ptrs, 4);
   if (highlight) {
-    wattroff(win, color_attr);
+    wattroff(win, highlight_attr);
   }
 }
 
@@ -572,14 +592,14 @@ static void draw_ikz_card_box(WINDOW *win, int top, int left, const IKZCardObser
   char cooldown = cooldown_state_char(&card->tap_state);
   snprintf(lines[2], CARD_BOX_TEXT_CAPACITY, "T/C:%c/%c", tap, cooldown);
   const char *line_ptrs[4] = { lines[0], lines[1], lines[2], lines[3] };
-  bool highlight = cli_colors_enabled && tap_state_requires_highlight(&card->tap_state);
-  attr_t color_attr = COLOR_PAIR(CLI_COLOR_PAIR_CARD_ALERT);
+  attr_t highlight_attr = tap_state_color_attr(&card->tap_state);
+  bool highlight = highlight_attr != A_NORMAL;
   if (highlight) {
-    wattron(win, color_attr);
+    wattron(win, highlight_attr);
   }
   draw_text_box(win, top, left, CARD_BOX_WIDTH, CARD_BOX_HEIGHT, line_ptrs, 4);
   if (highlight) {
-    wattroff(win, color_attr);
+    wattroff(win, highlight_attr);
   }
 }
 
@@ -1092,12 +1112,18 @@ static void render_info(WINDOW *win, const GameState *gs) {
 void cli_render_init(void) {
   initscr();
   cli_colors_enabled = false;
+  cli_tapped_color_available = false;
+  cli_cooldown_color_available = false;
   if (has_colors()) {
     if (start_color() != ERR) {
       use_default_colors();
-      if (init_pair(CLI_COLOR_PAIR_CARD_ALERT, COLOR_RED, -1) != ERR) {
-        cli_colors_enabled = true;
+      if (init_pair(CLI_COLOR_PAIR_CARD_TAPPED, COLOR_RED, -1) != ERR) {
+        cli_tapped_color_available = true;
       }
+      if (init_pair(CLI_COLOR_PAIR_CARD_COOLDOWN, COLOR_YELLOW, -1) != ERR) {
+        cli_cooldown_color_available = true;
+      }
+      cli_colors_enabled = cli_tapped_color_available || cli_cooldown_color_available;
     }
   }
   cbreak();
@@ -1119,6 +1145,8 @@ void cli_render_shutdown(void) {
   screen_rows = 0;
   screen_cols = 0;
   cli_colors_enabled = false;
+  cli_tapped_color_available = false;
+  cli_cooldown_color_available = false;
   endwin();
 }
 

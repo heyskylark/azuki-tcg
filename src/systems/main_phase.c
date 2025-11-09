@@ -191,6 +191,8 @@ void HandleMainAction(ecs_iter_t *it) {
     case ACT_END_TURN:
       cli_render_log("[MainAction] End turn");
       // TODO: Intelligent phase transition (if player action is required, goto END_TURN_ACTION)
+      // TODO: Look into the possibility of not having to add another phase
+      //  and instead can figure out if action is needed in END_TURN programatically through observation validation
       gs->phase = PHASE_END_TURN;
       break;
     default:
