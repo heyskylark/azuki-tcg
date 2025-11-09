@@ -4,6 +4,7 @@
 #include "utils/cli_rendering_util.h"
 #include "utils/card_utils.h"
 #include "utils/player_util.h"
+#include "utils/card_utils.h"
 #include <stdio.h>
 
 ecs_entity_t find_card_in_zone_index(
@@ -236,14 +237,17 @@ int gate_card_into_garden(
   ecs_entity_t gate_zone = gs->zones[player_number].gate;
   ecs_entity_t gate_card = find_gate_card_in_zone(world, gate_zone);
   if (is_card_tapped(world, gate_card)) {
-    cli_render_logf("Gate card %d is tapped", gate_card);
+    cli_render_logf("[GateCardIntoGarden] Gate card %d is tapped", gate_card);
     return -1;
   }
 
   ecs_entity_t alley_zone = gs->zones[player_number].alley;
   ecs_entity_t card_with_zone_index = find_card_in_zone_index(world, alley_zone, alley_index);
   if (card_with_zone_index == 0) {
-    cli_render_logf("Card %d not found in alley at index %d", card_with_zone_index, alley_index);
+    cli_render_logf("[GateCardIntoGarden] Card %d not found in alley at index %d", card_with_zone_index, alley_index);
+    return -1;
+  } else if (is_card_tapped(world, card_with_zone_index)) {
+    cli_render_logf("[GateCardIntoGarden] Card %d is tapped", card_with_zone_index);
     return -1;
   }
 
