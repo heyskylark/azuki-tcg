@@ -29,15 +29,24 @@ int attack(
   if (garden_attacker_index == 5) {
     attacking_card = find_leader_card_in_zone(world, gs->zones[attacking_player_number].leader);
     ecs_assert(attacking_card != 0, ECS_INVALID_PARAMETER, "Attacking leader card not found");
+
+    const CurStats *attacking_card_cur_stats = ecs_get(world, attacking_card, CurStats);
+    ecs_assert(attacking_card_cur_stats != NULL, ECS_INVALID_PARAMETER, "Attacking card cur stats not found");
+    if (attacking_card_cur_stats->cur_atk <= 0) {
+      cli_render_logf("Attacking leader needs a weapon to attack");
+      return -1;
+    }
   } else {
     attacking_card = find_card_in_zone_index(world, gs->zones[attacking_player_number].garden, garden_attacker_index);
-   if (attacking_card == 0) {
-      cli_render_logf("Attacking player garden card %d not found", garden_attacker_index);
+    if (attacking_card == 0) {
+      cli_render_logf("Attacking player card %d not found", garden_attacker_index);
       return -1;
-    } else if (is_card_tapped(world, attacking_card) || is_card_cooldown(world, attacking_card)) {
-      cli_render_logf("Attacking player garden card %d is tapped or on cooldown", garden_attacker_index);
-      return -1;
-    } 
+    }
+  }
+
+  if (is_card_tapped(world, attacking_card) || is_card_cooldown(world, attacking_card)) {
+    cli_render_logf("Attacking %s card %d is tapped or on cooldown", garden_attacker_index == 5 ? "leader" : "entity", garden_attacker_index);
+    return -1;
   }
 
   ecs_entity_t defender_card;
