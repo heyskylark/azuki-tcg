@@ -143,3 +143,9 @@ ObservationData create_observation_data(ecs_world_t *world) {
   observation_data.opponent_observation_data = opponent_observation_data;
   return observation_data;
 }
+
+bool is_game_over(ecs_world_t *world) {
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  ecs_assert(gs != NULL, ECS_INVALID_PARAMETER, "GameState singleton missing");
+  return gs->winner != -1;
+}

@@ -23,8 +23,7 @@ int main(void) {
 
     ecs_progress(world, 0);
 
-    gs = ecs_singleton_get(world, GameState);
-    game_over = gs->winner != -1;
+    game_over = is_game_over(world);
   }
 
   cli_render_shutdown();

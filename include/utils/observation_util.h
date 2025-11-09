@@ -66,5 +66,6 @@ typedef struct {
 } ObservationData;
 
 ObservationData create_observation_data(ecs_world_t *world);
+bool is_game_over(ecs_world_t *world);
 
 #endif

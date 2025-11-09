@@ -125,8 +125,18 @@ static void handle_attack(ecs_world_t *world, GameState *gs, ActionContext *ac) 
     return;
   }
 
-  gs->phase = PHASE_RESPONSE_WINDOW;
-  gs->active_player_index = (gs->active_player_index + 1) % MAX_PLAYERS_PER_MATCH;
+  /*
+  TODO: Only go to response window under these conditions:
+  - has a response spell and enough IKZ
+  - has an untapped entity in the garden with the defender tag
+  - has any entities with effects that can be triggered on attack
+  */
+  // if (defender_can_respond(world, gs)) {
+  //   gs->phase = PHASE_RESPONSE_WINDOW;
+  //   gs->active_player_index = (gs->active_player_index + 1) % MAX_PLAYERS_PER_MATCH;
+  // } else {
+    gs->phase = PHASE_COMBAT_RESOLVE;
+  // }
 
   cli_render_logf("[MainAction] Attack");
 }

@@ -11,6 +11,7 @@ void HandleEndPhase(ecs_iter_t *it) {
   ecs_entity_t garden_zone = gs->zones[gs->active_player_index].garden;
   ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden_zone);
 
+  // TODO: Do i need to reset health of defender cards as well?
   for (int32_t i = 0; i < garden_cards.count; i++) {
     cli_render_logf("[EndPhase] Resetting entity health for garden card %d", i);
     ecs_entity_t garden_card = garden_cards.ids[i];

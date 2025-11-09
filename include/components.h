@@ -64,7 +64,7 @@ typedef struct {
   int8_t active_player_index;
   Phase phase;
   uint8_t response_window;
-  int8_t winner;
+  int8_t winner; // -1 if no winner, 0 if player 0, 1 if player 1, 2 if draw
   ecs_entity_t players[MAX_PLAYERS_PER_MATCH];
   PlayerZones zones[MAX_PLAYERS_PER_MATCH];
   CombatState combat_state;

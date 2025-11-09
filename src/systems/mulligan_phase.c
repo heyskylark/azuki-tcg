@@ -18,7 +18,9 @@ static void HandleMulliganShuffleAction(ecs_world_t *world, GameState *gs) {
 
   if (!move_cards_to_zone(world, deck_zone, hand_zone, INITIAL_DRAW_COUNT, NULL)) {
     cli_render_log("[Mulligan] No cards in deck");
-    // TODO: Player loses
+
+    gs->winner = (gs->active_player_index + 1) % 2;
+
     return;
   }
 
@@ -26,8 +28,10 @@ static void HandleMulliganShuffleAction(ecs_world_t *world, GameState *gs) {
   cli_render_log("[Mulligan] Shuffled deck");
 }
 
-static void handle_phase_transition(GameState *gs) {
-  if (gs->active_player_index == 0) {
+static void handle_phase_transition(ecs_world_t *world, GameState *gs) {
+  if (is_game_over(world)) {
+    gs->phase = PHASE_END_MATCH;
+  } else if (gs->active_player_index == 0) {
     gs->active_player_index = 1;
   } else {
     gs->active_player_index = 0;
@@ -61,7 +65,7 @@ void HandleMulliganAction(ecs_iter_t *it) {
       break;
   }
 
-  handle_phase_transition(gs);
+  handle_phase_transition(world, gs);
 }
 
 void init_mulligan_phase_system(ecs_world_t *world) {

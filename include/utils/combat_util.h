@@ -14,5 +14,6 @@ int attack(
   uint8_t garden_attacker_index,
   uint8_t defender_index
 );
+void resolve_combat(ecs_world_t *world);
 
 #endif
