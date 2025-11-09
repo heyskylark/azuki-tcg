@@ -6,6 +6,7 @@
 #include "generated/card_defs.h"
 #include "utils/cli_rendering_util.h"
 #include "constants/game.h"
+#include "utils/combat_util.h"
 
 static int play_entity_to_garden_or_alley(
   ecs_world_t *world,
@@ -112,6 +113,21 @@ static void handle_attack(ecs_world_t *world, GameState *gs, ActionContext *ac) 
     exit(EXIT_FAILURE);
   }
 
+  int result = attack(
+    world,
+    gs->players[gs->active_player_index],
+    ac->user_action.subaction_1,
+    ac->user_action.subaction_2
+  );
+
+  if (result < 0) {
+    ac->invalid_action = true;
+    return;
+  }
+
+  gs->phase = PHASE_RESPONSE_WINDOW;
+  gs->active_player_index = (gs->active_player_index + 1) % MAX_PLAYERS_PER_MATCH;
+
   cli_render_logf("[MainAction] Attack");
 }
 
@@ -160,9 +176,6 @@ void HandleMainAction(ecs_iter_t *it) {
       break;
     case ACT_ATTACK:
       handle_attack(world, gs, ac);
-
-      gs->phase = PHASE_RESPONSE_WINDOW;
-      gs->active_player_index = (gs->active_player_index + 1) % MAX_PLAYERS_PER_MATCH;
       break;
     case ACT_NOOP:
     case ACT_END_TURN:

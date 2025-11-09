@@ -8,7 +8,7 @@
  * Handles attack from attacker_index to defender_index.
  * attacker_index and defender_index of 5 is the leader
 */
-int handle_attack(
+int attack(
   ecs_world_t *world,
   ecs_entity_t attacking_player,
   uint8_t garden_attacker_index,

@@ -54,6 +54,11 @@ typedef struct {
   uint16_t deck_size, hand_size, leader_size, gate_size, garden_size, alley_size, ikz_pile_size, ikz_area_size, discard_size;
 } PlayerZones;
 
+typedef struct {
+  ecs_entity_t attacking_card;
+  ecs_entity_t defender_card;
+} CombatState;
+
 typedef struct { 
   uint32_t seed;
   int8_t active_player_index;
@@ -62,6 +67,7 @@ typedef struct {
   int8_t winner;
   ecs_entity_t players[MAX_PLAYERS_PER_MATCH];
   PlayerZones zones[MAX_PLAYERS_PER_MATCH];
+  CombatState combat_state;
 } GameState;
 typedef struct { uint8_t player_number; } PlayerNumber;
 typedef struct { uint8_t pid; } PlayerId;
