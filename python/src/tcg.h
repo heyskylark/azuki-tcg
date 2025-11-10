@@ -26,7 +26,7 @@ typedef struct {
   // Puffer I/O
   ObservationData* observations; 
   int* actions;                // ACTION_TYPE, subaction_1, subaction_2, subaction_3 // TODO: implement proper action space
-  float* rewards;              // scalar
+  float* rewards;              // 2 scalars
   unsigned char* terminals;    // scalar {0,1}
   Log log;
   Client* client;
@@ -44,8 +44,10 @@ void init(CAzukiTCG* env) {
 
 void c_reset(CAzukiTCG* env) {
   env->tick = 0;
-  env->terminals = NOT_DONE;
-  env->rewards = 0.0f;
+  env->terminals[0] = NOT_DONE;
+  env->terminals[1] = NOT_DONE;
+  env->rewards[0] = 0.0f;
+  env->rewards[1] = 0.0f;
 
   azk_engine_destroy(env->engine);
   env->engine = azk_engine_create(env->seed);

@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
 project(azuki-tcg C)
 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 set(CURSES_NEED_NCURSES TRUE)
 find_package(Curses REQUIRED)
 

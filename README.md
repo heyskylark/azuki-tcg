@@ -26,6 +26,13 @@ docker exec -it puffertank-dev bash
 cmake -S . -B build && cmake --build build --target azuki_puffer_env
 ```
 
+## Running Training
+
+```bash
+# In python/src/
+PYTHONPATH=/workspace/build/python/src:$PYTHONPATH uv run --active train.py
+```
+
 # Dependencies
 
 - **Linux**: Install development headers via your package manager (Ubuntu/Debian `sudo apt install libncurses-dev`, Fedora `sudo dnf install ncurses-devel`, Arch-based `sudo pacman -S ncurses` or `yay -S ncurses`).

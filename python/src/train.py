@@ -6,7 +6,7 @@ import pufferlib
 from pufferlib import emulation
 
 from observation import build_observation_space
-from binding import binding
+import binding
 
 class AzukiTCG(AECEnv):
   """
