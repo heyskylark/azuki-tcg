@@ -9,7 +9,7 @@
 
 #define ACTION_VALUE_COUNT AZK_USER_ACTION_VALUE_COUNT
 
-bool verify_user_action_player(GameState *gs, UserAction *action) {
+bool verify_user_action_player(const GameState *gs, const UserAction *action) {
   if (!gs || !action) {
     return false;
   }

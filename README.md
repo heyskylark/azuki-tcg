@@ -1,3 +1,24 @@
+# PufferTank for RL
+
+```bash
+PROJECT=~/git/azuki-tcg
+PUFFER=~/git/rl/SkyPufferLib
+
+docker run -d --name puffertank-dev \
+  --gpus all \
+  --ipc host \
+  -v "$PROJECT":/workspace \
+  -v "$PUFFER":/ext/SkyPufferLib \
+  -v "$HOME/.cache/pip":/root/.cache/pip \
+  -v "$HOME/.cache/huggingface":/root/.cache/huggingface \
+  -w /workspace \
+  pufferai/puffertank:3.0 bash -lc "sleep infinity"
+```
+
+```bash
+docker exec -it puffertank-dev bash
+```
+
 # Dependencies
 
 - **Linux**: Install development headers via your package manager (Ubuntu/Debian `sudo apt install libncurses-dev`, Fedora `sudo dnf install ncurses-devel`, Arch-based `sudo pacman -S ncurses` or `yay -S ncurses`).

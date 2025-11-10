@@ -7,7 +7,7 @@
 
 #define AZK_USER_ACTION_VALUE_COUNT 4
 
-bool verify_user_action_player(GameState *gs, UserAction *action);
+bool verify_user_action_player(const GameState *gs, const UserAction *action);
 bool azk_parse_user_action_values(ecs_world_t *world, const int values[AZK_USER_ACTION_VALUE_COUNT], UserAction *out_action);
 bool azk_parse_user_action_string(ecs_world_t *world, const char *input, UserAction *out_action);
 void azk_store_user_action(ecs_world_t *world, const UserAction *action);
