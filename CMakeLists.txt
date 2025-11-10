@@ -57,3 +57,5 @@ add_executable(world_tests
 )
 target_link_libraries(world_tests PRIVATE azuki_lib)
 add_test(NAME world_tests COMMAND world_tests)
+
+add_subdirectory(python/src)

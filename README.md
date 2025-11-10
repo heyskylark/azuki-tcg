@@ -19,6 +19,13 @@ docker run -d --name puffertank-dev \
 docker exec -it puffertank-dev bash
 ```
 
+## Building C Env
+
+```bash
+# In <root-directory> 
+cmake -S . -B build && cmake --build build --target azuki_puffer_env
+```
+
 # Dependencies
 
 - **Linux**: Install development headers via your package manager (Ubuntu/Debian `sudo apt install libncurses-dev`, Fedora `sudo dnf install ncurses-devel`, Arch-based `sudo pacman -S ncurses` or `yay -S ncurses`).
