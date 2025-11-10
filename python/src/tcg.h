@@ -32,16 +32,24 @@ typedef struct {
   Client* client;
 
   // Game State
-  GameState* game_state;
+  AzkEngine* engine;
+  uint32_t seed;
   int tick;
 } CAzukiTCG;
 
 void init(CAzukiTCG* env) {
-  // TODO: implement
+  env->engine = azk_engine_create(env->seed);
+  env->tick = 0;
 }
 
 void c_reset(CAzukiTCG* env) {
-  // TODO: implement
+  env->tick = 0;
+  env->terminals = NOT_DONE;
+  env->rewards = 0.0f;
+
+  azk_engine_destroy(env->engine);
+  env->engine = azk_engine_create(env->seed);
+  azk_engine_observe(env->engine, env->observations);
 }
 
 void c_step(CAzukiTCG* env) {
@@ -51,9 +59,7 @@ void c_step(CAzukiTCG* env) {
 }
 
 void c_close(CAzukiTCG* env) {
-  // TODO: implement
 }
 
 void c_render(CAzukiTCG* env) {
-  // TODO: implement
 }

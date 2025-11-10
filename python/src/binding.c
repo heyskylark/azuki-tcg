@@ -4,6 +4,7 @@
 #include "env_binding.h"
 
 static int my_init(Env* env, PyObject* args, PyObject* kwargs) {
+  env->seed = unpack(kwargs, "seed");
   init(env);
   return 0;
 }

@@ -22,31 +22,29 @@ class AzukiTCG(AECEnv):
     self.possible_agents = [f"player_{idx}" for idx in range(2)]
 
     # C binding arrays
-    self._obs = np.zeros(9, dtype=np.float32)
+    self._observations = np.zeros(9, dtype=np.float32)
     self._actions = np.zeros(1, dtype=np.int32)
-    self._rewards = np.zeros(1, dtype=np.float32)
-    self._terminals = np.zeros(1, dtype=np.bool_)
-    self._truncations = np.zeros(1, dtype=np.bool_)
+    self._rewards = np.zeros(2, dtype=np.float32)
+    self._terminals = np.zeros(2, dtype=np.bool_)
+    self._truncations = np.zeros(2, dtype=np.bool_)
+
+    # AEC state
+    self.agents = []
+    self._agent_selection = None
+    # self.rewards = {}
+    # self._cumulative_rewards = {}
+    # self.terminations = {}
+    # self.truncations = {}
+    # self.infos = {}
 
     self.c_envs = binding.env_init(
-      self._obs,
+      self._observations,
       self._actions,
       self._rewards,
       self._terminals,
       self._truncations,
       int(seed or 0),
-      random_open_prob=self.random_open_prob,
-      random_open_depth=self.random_open_depth,
     )
-
-    # AEC state
-    self.agents = []
-    self._agent_selection = None
-    self.rewards = {}
-    self._cumulative_rewards = {}
-    self.terminations = {}
-    self.truncations = {}
-    self.infos = {}
 
   def observation_space(self, agent: str):
     return build_observation_space()
@@ -61,13 +59,22 @@ class AzukiTCG(AECEnv):
     # TODO: Need to implement this based on the current game state
     return self._agent_selection
 
-  def reset(self, seed=None, options=None):
-    # TODO: use a reset from the C bindings (might need to reset any local script values)
-    raise NotImplementedError("reset() is not yet implemented")
+  def observe(self, agent):
+    obs = self._observations.copy()
+    return obs
 
-  def step(self, actions):
-    # TODO: Implement step using the C bindings
-    raise NotImplementedError("step() is not yet implemented")
+  def reset(self, seed=None, options=None):
+    binding.env_reset(self.c_envs, int(seed or 0))
+
+    self.agents = self.possible_agents[:]
+    # TODO: Do i need to carefully select who goes first?
+    # self._agent_selection = starting_agent
+    
+    super().reset(seed=seed)
+
+  def step(self, action):
+    self._actions[0] = int(action)
+    binding.env_step(self.c_envs)
 
 if __name__ == '__main__':
     env = AzukiTCG()
