@@ -24,7 +24,7 @@ typedef struct Log {
 typedef struct Client Client;
 typedef struct {
   // Puffer I/O
-  ObservationData observation; // Raw observation snapshot shared with Python
+  ObservationData* observations; 
   int* actions;                // ACTION_TYPE, subaction_1, subaction_2, subaction_3 // TODO: implement proper action space
   float* rewards;              // scalar
   unsigned char* terminals;    // scalar {0,1}
@@ -34,7 +34,7 @@ typedef struct {
   // Game State
   GameState* game_state;
   int tick;
-} AzukiTCG;
+} CAzukiTCG;
 
 void init(CAzukiTCG* env) {
   // TODO: implement
@@ -47,6 +47,10 @@ void c_reset(CAzukiTCG* env) {
 void c_step(CAzukiTCG* env) {
   env->tick++;
 
+  // TODO: implement
+}
+
+void c_close(CAzukiTCG* env) {
   // TODO: implement
 }
 
