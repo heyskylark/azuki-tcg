@@ -69,8 +69,12 @@ class AzukiTCG(AECEnv):
     self.agents = self.possible_agents[:]
     # TODO: Do i need to carefully select who goes first?
     # self._agent_selection = starting_agent
-    
-    super().reset(seed=seed)
+
+    self.rewards = {agent: 0.0 for agent in self.possible_agents}
+    self._cumulative_rewards = {agent: 0.0 for agent in self.possible_agents}
+    self.terminations = {agent: False for agent in self.possible_agents}
+    self.truncations = {agent: False for agent in self.possible_agents}
+    self.infos = {agent: {} for agent in self.possible_agents}
 
   def step(self, action):
     self._actions[0] = int(action)

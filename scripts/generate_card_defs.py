@@ -617,6 +617,8 @@ def render_c_file(records: Sequence[CardRecord], header_include: str) -> str:
     lines.append("")
     for tag in CARD_PREFAB_TAG_DECLARATIONS:
         lines.append(f"ECS_TAG_DECLARE({tag});")
+    lines.append("ECS_TAG_DECLARE(CardDefComponentsRegisteredTag);")
+    lines.append("ECS_TAG_DECLARE(CardDefPrefabsRegisteredTag);")
     lines.append("")
     lines.append("static const CardDef kGeneratedCardDefs[CARD_DEF_COUNT] = {")
     for record in records:
@@ -624,8 +626,6 @@ def render_c_file(records: Sequence[CardRecord], header_include: str) -> str:
     lines.append("};")
     lines.append("")
     lines.append("static ecs_entity_t kGeneratedPrefabs[CARD_DEF_COUNT];")
-    lines.append("static bool g_card_def_components_registered = false;")
-    lines.append("static bool g_card_prefabs_registered = false;")
     lines.append("")
     lines.append("size_t azk_card_def_count(void) {")
     lines.append("    return CARD_DEF_COUNT;")
@@ -648,16 +648,17 @@ def render_c_file(records: Sequence[CardRecord], header_include: str) -> str:
     lines.append("}")
     lines.append("")
     lines.append("void azk_register_card_def_resources(ecs_world_t *world) {")
-    lines.append("    if (!g_card_def_components_registered) {")
-    lines.append("        g_card_def_components_registered = true;")
+    lines.append("    ECS_TAG_DEFINE(world, CardDefComponentsRegisteredTag);")
+    lines.append("    ECS_TAG_DEFINE(world, CardDefPrefabsRegisteredTag);")
+    lines.append("")
+    lines.append("    if (!ecs_has_id(world, ecs_id(CardDefComponentsRegisteredTag), ecs_id(CardDefComponentsRegisteredTag))) {")
+    lines.append("        ecs_singleton_add(world, CardDefComponentsRegisteredTag);")
     for component in CARD_PREFAB_COMPONENT_DECLARATIONS:
         lines.append(f"        ECS_COMPONENT_DEFINE(world, {component});")
     if CARD_PREFAB_COMPONENT_DECLARATIONS:
         lines.append("")
     for tag in CARD_PREFAB_TAG_DECLARATIONS:
         lines.append(f"        ECS_TAG_DEFINE(world, {tag});")
-    if CARD_PREFAB_TAG_DECLARATIONS:
-        lines.append("")
     for component in CARD_PREFAB_ON_INSTANTIATE_COMPONENTS:
         lines.append(
             f"        ecs_add_pair(world, ecs_id({component}), EcsOnInstantiate, EcsInherit);"
@@ -666,10 +667,10 @@ def render_c_file(records: Sequence[CardRecord], header_include: str) -> str:
         lines.append("")
     lines.append("    }")
     lines.append("")
-    lines.append("    if (g_card_prefabs_registered) {")
+    lines.append("    if (ecs_has_id(world, ecs_id(CardDefPrefabsRegisteredTag), ecs_id(CardDefPrefabsRegisteredTag))) {")
     lines.append("        return;")
     lines.append("    }")
-    lines.append("    g_card_prefabs_registered = true;")
+    lines.append("    ecs_singleton_add(world, CardDefPrefabsRegisteredTag);")
     lines.append("")
     for record in records:
         lines.extend(render_prefab_block(record))

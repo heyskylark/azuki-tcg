@@ -18,6 +18,8 @@ ECS_TAG_DECLARE(TWeapon);
 ECS_TAG_DECLARE(TSpell);
 ECS_TAG_DECLARE(TIKZ);
 ECS_TAG_DECLARE(TExtraIKZCard);
+ECS_TAG_DECLARE(CardDefComponentsRegisteredTag);
+ECS_TAG_DECLARE(CardDefPrefabsRegisteredTag);
 
 static const CardDef kGeneratedCardDefs[CARD_DEF_COUNT] = {
     {
@@ -491,8 +493,6 @@ static const CardDef kGeneratedCardDefs[CARD_DEF_COUNT] = {
 };
 
 static ecs_entity_t kGeneratedPrefabs[CARD_DEF_COUNT];
-static bool g_card_def_components_registered = false;
-static bool g_card_prefabs_registered = false;
 
 size_t azk_card_def_count(void) {
     return CARD_DEF_COUNT;
@@ -552,8 +552,11 @@ const CardDefLookupEntry *azk_card_def_lookup_table(size_t *out_count) {
 }
 
 void azk_register_card_def_resources(ecs_world_t *world) {
-    if (!g_card_def_components_registered) {
-        g_card_def_components_registered = true;
+    ECS_TAG_DEFINE(world, CardDefComponentsRegisteredTag);
+    ECS_TAG_DEFINE(world, CardDefPrefabsRegisteredTag);
+
+    if (!ecs_has_id(world, ecs_id(CardDefComponentsRegisteredTag), ecs_id(CardDefComponentsRegisteredTag))) {
+        ecs_singleton_add(world, CardDefComponentsRegisteredTag);
         ECS_COMPONENT_DEFINE(world, CardId);
         ECS_COMPONENT_DEFINE(world, Name);
         ECS_COMPONENT_DEFINE(world, Type);
@@ -571,7 +574,6 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ECS_TAG_DEFINE(world, TSpell);
         ECS_TAG_DEFINE(world, TIKZ);
         ECS_TAG_DEFINE(world, TExtraIKZCard);
-
         ecs_add_pair(world, ecs_id(CardId), EcsOnInstantiate, EcsInherit);
         ecs_add_pair(world, ecs_id(Name), EcsOnInstantiate, EcsInherit);
         ecs_add_pair(world, ecs_id(Element), EcsOnInstantiate, EcsInherit);
@@ -583,10 +585,10 @@ void azk_register_card_def_resources(ecs_world_t *world) {
 
     }
 
-    if (g_card_prefabs_registered) {
+    if (ecs_has_id(world, ecs_id(CardDefPrefabsRegisteredTag), ecs_id(CardDefPrefabsRegisteredTag))) {
         return;
     }
-    g_card_prefabs_registered = true;
+    ecs_singleton_add(world, CardDefPrefabsRegisteredTag);
 
     {
         ecs_entity_desc_t desc = {
