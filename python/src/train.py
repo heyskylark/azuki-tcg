@@ -5,6 +5,9 @@ from pettingzoo.utils.conversions import turn_based_aec_to_parallel
 import pufferlib
 from pufferlib import emulation
 
+from observation import build_observation_space
+from binding import binding
+
 class AzukiTCG(AECEnv):
   """
   Azuki TCG environment using PettingZoo's AEC (Agent Environment Cycle) API.
@@ -15,6 +18,56 @@ class AzukiTCG(AECEnv):
     seed: int | None = None,
   ) -> None:
     super().__init__()
+    self.np_random = np.random.default_rng(seed)
+    self.possible_agents = [f"player_{idx}" for idx in range(2)]
+
+    # C binding arrays
+    self._obs = np.zeros(9, dtype=np.float32)
+    self._actions = np.zeros(1, dtype=np.int32)
+    self._rewards = np.zeros(1, dtype=np.float32)
+    self._terminals = np.zeros(1, dtype=np.bool_)
+    self._truncations = np.zeros(1, dtype=np.bool_)
+
+    self.c_envs = binding.env_init(
+      self._obs,
+      self._actions,
+      self._rewards,
+      self._terminals,
+      self._truncations,
+      int(seed or 0),
+      random_open_prob=self.random_open_prob,
+      random_open_depth=self.random_open_depth,
+    )
+
+    # AEC state
+    self.agents = []
+    self._agent_selection = None
+    self.rewards = {}
+    self._cumulative_rewards = {}
+    self.terminations = {}
+    self.truncations = {}
+    self.infos = {}
+
+  def observation_space(self, agent: str):
+    return build_observation_space()
+
+  def action_space(self, agent):
+    # TODO: Implement action space
+    return gym.spaces.Discrete(9)
+
+  @property
+  def agent_selection(self):
+    """Current agent whose turn it is to act."""
+    # TODO: Need to implement this based on the current game state
+    return self._agent_selection
+
+  def reset(self, seed=None, options=None):
+    # TODO: use a reset from the C bindings (might need to reset any local script values)
+    raise NotImplementedError("reset() is not yet implemented")
+
+  def step(self, actions):
+    # TODO: Implement step using the C bindings
+    raise NotImplementedError("step() is not yet implemented")
 
 if __name__ == '__main__':
     env = AzukiTCG()

@@ -123,6 +123,7 @@ ObservationData create_observation_data(ecs_world_t *world) {
   get_card_observation_array_for_zone(world, my_zones->alley, my_observation_data.alley);
   get_card_observation_array_for_zone(world, my_zones->garden, my_observation_data.garden);
   get_ikz_card_observations_for_zone(world, my_zones->ikz_area, my_observation_data.ikz_area);
+  my_observation_data.deck_count = get_zone_card_count(world, my_zones->deck);
   my_observation_data.ikz_pile_count = get_zone_card_count(world, my_zones->ikz_pile);
   my_observation_data.discard_count = get_zone_card_count(world, my_zones->discard);
   my_observation_data.has_ikz_token = player_has_ready_ikz_token(world, my_player);
@@ -134,6 +135,7 @@ ObservationData create_observation_data(ecs_world_t *world) {
   get_card_observation_array_for_zone(world, opponent_zones->garden, opponent_observation_data.garden);
   get_ikz_card_observations_for_zone(world, opponent_zones->ikz_area, opponent_observation_data.ikz_area);
   opponent_observation_data.hand_count = get_zone_card_count(world, opponent_zones->hand);
+  opponent_observation_data.deck_count = get_zone_card_count(world, opponent_zones->deck);
   opponent_observation_data.ikz_pile_count = get_zone_card_count(world, opponent_zones->ikz_pile);
   opponent_observation_data.discard_count = get_zone_card_count(world, opponent_zones->discard);
   opponent_observation_data.has_ikz_token = player_has_ready_ikz_token(world, opponent_player);
@@ -141,6 +143,7 @@ ObservationData create_observation_data(ecs_world_t *world) {
   ObservationData observation_data = {0};
   observation_data.my_observation_data = my_observation_data;
   observation_data.opponent_observation_data = opponent_observation_data;
+  observation_data.phase = gs->phase;
   return observation_data;
 }
 
