@@ -54,7 +54,7 @@ class AzukiTCG(AECEnv):
 
     # AEC state
     self.agents = []
-    self._agent_selection = None
+    self.agent_selection = None
     self.rewards = {}
     self._cumulative_rewards = {}
     self.terminations = {}
@@ -101,7 +101,7 @@ class AzukiTCG(AECEnv):
     self._actions.fill(0)
 
     self.agents = self.possible_agents[:]
-    self._agent_selection = self.agents[0]
+    self.agent_selection = self.agents[0]
 
     self.rewards = {agent: 0.0 for agent in self.possible_agents}
     self._cumulative_rewards = {agent: 0.0 for agent in self.possible_agents}
@@ -109,14 +109,14 @@ class AzukiTCG(AECEnv):
     self.truncations = {agent: False for agent in self.possible_agents}
     self.infos = {agent: {} for agent in self.possible_agents}
 
-    observation = self.observe(self._agent_selection)
-    return observation, self.infos[self._agent_selection]
+    observation = self.observe(self.agent_selection)
+    return observation, self.infos[self.agent_selection]
 
   def step(self, action):
     if not self.agents:
       raise RuntimeError("step() called on finished environment")
 
-    acting_agent = self._agent_selection
+    acting_agent = self.agent_selection
     agent_idx = self._player_index(acting_agent)
 
     encoded_action = np.asarray(action, dtype=np.int32)
@@ -168,5 +168,6 @@ if __name__ == '__main__':
     observations, infos = env.reset()
     print(_decode_observations(env, observations))
     actions = {agent: env.action_space(agent).sample() for agent in env.agents}
+    print(actions)
     observations, rewards, terminals, truncations, infos = env.step(actions)
     print(_decode_observations(env, observations))
