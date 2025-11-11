@@ -31,9 +31,9 @@ void azk_engine_destroy(AzkEngine *engine);
 const GameState *azk_engine_game_state(const AzkEngine *engine);
 
 /**
- * Snapshot the current ObservationData into the provided output struct.
+ * Snapshot the current ObservationData for the requested player perspective into the provided output struct.
  */
-bool azk_engine_observe(AzkEngine *engine, ObservationData *out_observation);
+bool azk_engine_observe(AzkEngine *engine, int8_t player_index, ObservationData *out_observation);
 
 /**
  * Returns true when the engine is waiting for a user/agent action.

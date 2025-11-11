@@ -24,12 +24,12 @@ const GameState *azk_engine_game_state(const AzkEngine *engine) {
   return ecs_singleton_get((const ecs_world_t *)engine, GameState);
 }
 
-bool azk_engine_observe(AzkEngine *engine, ObservationData *out_observation) {
+bool azk_engine_observe(AzkEngine *engine, int8_t player_index, ObservationData *out_observation) {
   if (!engine || !out_observation) {
     return false;
   }
 
-  *out_observation = create_observation_data(engine);
+  *out_observation = create_observation_data(engine, player_index);
   return true;
 }
 

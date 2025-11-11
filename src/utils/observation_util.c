@@ -104,16 +104,22 @@ static bool player_has_ready_ikz_token(ecs_world_t *world, ecs_entity_t player) 
   return tap_state->tapped == 0;
 }
 
-ObservationData create_observation_data(ecs_world_t *world) {
+ObservationData create_observation_data(ecs_world_t *world, int8_t player_index) {
   const GameState *gs = ecs_singleton_get(world, GameState);
   ecs_assert(gs != NULL, ECS_INVALID_PARAMETER, "GameState singleton missing");
-  const int8_t active_player_index = gs->active_player_index;
+  ecs_assert(
+    player_index >= 0 && player_index < MAX_PLAYERS_PER_MATCH,
+    ECS_INVALID_PARAMETER,
+    "Player index %d out of bounds",
+    player_index
+  );
+  const int8_t opponent_player_index = (player_index + 1) % MAX_PLAYERS_PER_MATCH;
 
-  const PlayerZones *my_zones = &gs->zones[active_player_index];
-  const PlayerZones *opponent_zones = &gs->zones[(active_player_index + 1) % MAX_PLAYERS_PER_MATCH];
+  const PlayerZones *my_zones = &gs->zones[player_index];
+  const PlayerZones *opponent_zones = &gs->zones[opponent_player_index];
 
-  const ecs_entity_t my_player = gs->players[active_player_index];
-  const ecs_entity_t opponent_player = gs->players[(active_player_index + 1) % MAX_PLAYERS_PER_MATCH];
+  const ecs_entity_t my_player = gs->players[player_index];
+  const ecs_entity_t opponent_player = gs->players[opponent_player_index];
 
   MyObservationData my_observation_data = {0};
   my_observation_data.leader = get_leader_card_observation(world, my_zones->leader);

@@ -68,7 +68,7 @@ typedef struct {
   Phase phase;
 } ObservationData;
 
-ObservationData create_observation_data(ecs_world_t *world);
+ObservationData create_observation_data(ecs_world_t *world, int8_t player_index);
 bool is_game_over(ecs_world_t *world);
 
 #endif

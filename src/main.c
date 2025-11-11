@@ -12,7 +12,7 @@ int main(void) {
   bool game_over = false;
   while (!game_over) {
     const GameState *gs = ecs_singleton_get(world, GameState);
-    ObservationData observation_data = create_observation_data(world);
+    ObservationData observation_data = create_observation_data(world, gs->active_player_index);
     cli_render_draw(&observation_data, gs);
     bool requires_user_action = phase_requires_user_action(gs->phase);
     if (requires_user_action) {

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Iterable, Sequence
 
+import ctypes
+
 import numpy as np
 from gymnasium import spaces
 
@@ -16,6 +18,112 @@ IKZ_AREA_SIZE = 10
 
 # Phase constants mirror include/components.h.
 PHASE_COUNT = 8
+
+
+class _Type(ctypes.Structure):
+    _fields_ = [("value", ctypes.c_int32)]
+
+
+class _CardId(ctypes.Structure):
+    _fields_ = [("id", ctypes.c_int32), ("code", ctypes.c_char_p)]
+
+
+class _TapState(ctypes.Structure):
+    _fields_ = [("tapped", ctypes.c_uint8), ("cooldown", ctypes.c_uint8)]
+
+
+class _IKZCost(ctypes.Structure):
+    _fields_ = [("ikz_cost", ctypes.c_int8)]
+
+
+class _CurStats(ctypes.Structure):
+    _fields_ = [("cur_atk", ctypes.c_int8), ("cur_hp", ctypes.c_int8)]
+
+
+class _GatePoints(ctypes.Structure):
+    _fields_ = [("gate_points", ctypes.c_uint8)]
+
+
+class _IKZCardObservationData(ctypes.Structure):
+    _fields_ = [
+        ("type", _Type),
+        ("id", _CardId),
+        ("tap_state", _TapState),
+    ]
+
+
+class _LeaderCardObservationData(ctypes.Structure):
+    _fields_ = [
+        ("type", _Type),
+        ("id", _CardId),
+        ("cur_stats", _CurStats),
+        ("tap_state", _TapState),
+    ]
+
+
+class _GateCardObservationData(ctypes.Structure):
+    _fields_ = [
+        ("type", _Type),
+        ("id", _CardId),
+        ("tap_state", _TapState),
+    ]
+
+
+class _CardObservationData(ctypes.Structure):
+    _fields_ = [
+        ("type", _Type),
+        ("id", _CardId),
+        ("tap_state", _TapState),
+        ("ikz_cost", _IKZCost),
+        ("has_zone_index", ctypes.c_bool),
+        ("zone_index", ctypes.c_uint8),
+        ("has_cur_stats", ctypes.c_bool),
+        ("cur_stats", _CurStats),
+        ("has_gate_points", ctypes.c_bool),
+        ("gate_points", _GatePoints),
+    ]
+
+
+class _MyObservationData(ctypes.Structure):
+    _fields_ = [
+        ("leader", _LeaderCardObservationData),
+        ("gate", _GateCardObservationData),
+        ("hand", _CardObservationData * MAX_HAND_SIZE),
+        ("alley", _CardObservationData * ALLEY_SIZE),
+        ("garden", _CardObservationData * GARDEN_SIZE),
+        ("ikz_area", _IKZCardObservationData * IKZ_AREA_SIZE),
+        ("deck_count", ctypes.c_uint8),
+        ("ikz_pile_count", ctypes.c_uint8),
+        ("discard_count", ctypes.c_uint8),
+        ("has_ikz_token", ctypes.c_bool),
+    ]
+
+
+class _OpponentObservationData(ctypes.Structure):
+    _fields_ = [
+        ("leader", _LeaderCardObservationData),
+        ("gate", _GateCardObservationData),
+        ("alley", _CardObservationData * ALLEY_SIZE),
+        ("garden", _CardObservationData * GARDEN_SIZE),
+        ("ikz_area", _IKZCardObservationData * IKZ_AREA_SIZE),
+        ("hand_count", ctypes.c_uint8),
+        ("deck_count", ctypes.c_uint8),
+        ("ikz_pile_count", ctypes.c_uint8),
+        ("discard_count", ctypes.c_uint8),
+        ("has_ikz_token", ctypes.c_bool),
+    ]
+
+
+class _ObservationData(ctypes.Structure):
+    _fields_ = [
+        ("my_observation_data", _MyObservationData),
+        ("opponent_observation_data", _OpponentObservationData),
+        ("phase", ctypes.c_int32),
+    ]
+
+
+OBSERVATION_CTYPE = _ObservationData
+OBSERVATION_STRUCT_SIZE = ctypes.sizeof(_ObservationData)
 
 # Broad ranges for enum-backed integer ids. Using the underlying C storage size
 # keeps Gym boxed spaces simple while still allowing future expansion.
@@ -33,26 +141,30 @@ def _bool_space() -> spaces.Space:
     return spaces.Discrete(2)
 
 
+def _scalar_box(low: int, high: int, *, dtype: np.dtype) -> spaces.Box:
+    return spaces.Box(low, high, shape=(), dtype=dtype)
+
+
 def _card_space(include_zone_index: bool) -> spaces.Dict:
     card_dict: dict[str, spaces.Space] = {
-        "type_id": spaces.Box(0, CARD_TYPE_MAX, dtype=np.uint8),
-        "card_id": spaces.Box(0, CARD_DEF_MAX, dtype=np.uint16),
+        "type_id": _scalar_box(0, CARD_TYPE_MAX, dtype=np.uint8),
+        "card_id": _scalar_box(0, CARD_DEF_MAX, dtype=np.uint16),
         "tapped": _bool_space(),
         "cooldown": _bool_space(),
-        "ikz_cost": spaces.Box(IKZ_COST_MIN, IKZ_COST_MAX, dtype=np.int16),
+        "ikz_cost": _scalar_box(IKZ_COST_MIN, IKZ_COST_MAX, dtype=np.int16),
         "has_zone_index": _bool_space(),
-        "zone_index": spaces.Box(0, ZONE_INDEX_MAX, dtype=np.uint8),
+        "zone_index": _scalar_box(0, ZONE_INDEX_MAX, dtype=np.uint8),
         "has_cur_stats": _bool_space(),
-        "attack": spaces.Box(STAT_MIN, STAT_MAX, dtype=np.int16),
-        "health": spaces.Box(STAT_MIN, STAT_MAX, dtype=np.int16),
+        "attack": _scalar_box(STAT_MIN, STAT_MAX, dtype=np.int16),
+        "health": _scalar_box(STAT_MIN, STAT_MAX, dtype=np.int16),
         "has_gate_points": _bool_space(),
-        "gate_points": spaces.Box(0, GATE_POINT_MAX, dtype=np.uint8),
+        "gate_points": _scalar_box(0, GATE_POINT_MAX, dtype=np.uint8),
     }
 
     if not include_zone_index:
         # Hand cards never expose zone indices; force observers to treat the
         # value as padding by constraining it to zero.
-        card_dict["zone_index"] = spaces.Box(0, 0, dtype=np.uint8)
+        card_dict["zone_index"] = _scalar_box(0, 0, dtype=np.uint8)
 
     return spaces.Dict(card_dict)
 
@@ -60,8 +172,8 @@ def _card_space(include_zone_index: bool) -> spaces.Dict:
 def _ikz_card_space() -> spaces.Dict:
     return spaces.Dict(
         {
-            "type_id": spaces.Box(0, CARD_TYPE_MAX, dtype=np.uint8),
-            "card_id": spaces.Box(0, CARD_DEF_MAX, dtype=np.uint16),
+            "type_id": _scalar_box(0, CARD_TYPE_MAX, dtype=np.uint8),
+            "card_id": _scalar_box(0, CARD_DEF_MAX, dtype=np.uint16),
             "tapped": _bool_space(),
             "cooldown": _bool_space(),
         }
@@ -71,12 +183,12 @@ def _ikz_card_space() -> spaces.Dict:
 def _leader_space() -> spaces.Dict:
     return spaces.Dict(
         {
-            "type_id": spaces.Box(0, CARD_TYPE_MAX, dtype=np.uint8),
-            "card_id": spaces.Box(0, CARD_DEF_MAX, dtype=np.uint16),
+            "type_id": _scalar_box(0, CARD_TYPE_MAX, dtype=np.uint8),
+            "card_id": _scalar_box(0, CARD_DEF_MAX, dtype=np.uint16),
             "tapped": _bool_space(),
             "cooldown": _bool_space(),
-            "attack": spaces.Box(STAT_MIN, STAT_MAX, dtype=np.int16),
-            "health": spaces.Box(STAT_MIN, STAT_MAX, dtype=np.int16),
+            "attack": _scalar_box(STAT_MIN, STAT_MAX, dtype=np.int16),
+            "health": _scalar_box(STAT_MIN, STAT_MAX, dtype=np.int16),
         }
     )
 
@@ -84,8 +196,8 @@ def _leader_space() -> spaces.Dict:
 def _gate_space() -> spaces.Dict:
     return spaces.Dict(
         {
-            "type_id": spaces.Box(0, CARD_TYPE_MAX, dtype=np.uint8),
-            "card_id": spaces.Box(0, CARD_DEF_MAX, dtype=np.uint16),
+            "type_id": _scalar_box(0, CARD_TYPE_MAX, dtype=np.uint8),
+            "card_id": _scalar_box(0, CARD_DEF_MAX, dtype=np.uint16),
             "tapped": _bool_space(),
             "cooldown": _bool_space(),
         }
@@ -108,9 +220,9 @@ def build_observation_space() -> spaces.Dict:
             "alley": _card_zone_space(ALLEY_SIZE, include_zone_index=True),
             "garden": _card_zone_space(GARDEN_SIZE, include_zone_index=True),
             "ikz_area": spaces.Tuple(tuple(_ikz_card_space() for _ in range(IKZ_AREA_SIZE))),
-            "deck_count": spaces.Box(0, MAX_DECK_SIZE, dtype=np.uint8),
-            "ikz_pile_count": spaces.Box(0, IKZ_PILE_SIZE, dtype=np.uint8),
-            "discard_count": spaces.Box(0, MAX_DECK_SIZE, dtype=np.uint8),
+            "deck_count": _scalar_box(0, MAX_DECK_SIZE, dtype=np.uint8),
+            "ikz_pile_count": _scalar_box(0, IKZ_PILE_SIZE, dtype=np.uint8),
+            "discard_count": _scalar_box(0, MAX_DECK_SIZE, dtype=np.uint8),
             "has_ikz_token": _bool_space(),
         }
     )
@@ -122,10 +234,10 @@ def build_observation_space() -> spaces.Dict:
             "alley": _card_zone_space(ALLEY_SIZE, include_zone_index=True),
             "garden": _card_zone_space(GARDEN_SIZE, include_zone_index=True),
             "ikz_area": spaces.Tuple(tuple(_ikz_card_space() for _ in range(IKZ_AREA_SIZE))),
-            "hand_count": spaces.Box(0, MAX_HAND_SIZE, dtype=np.uint8),
-            "deck_count": spaces.Box(0, MAX_DECK_SIZE, dtype=np.uint8),
-            "ikz_pile_count": spaces.Box(0, IKZ_PILE_SIZE, dtype=np.uint8),
-            "discard_count": spaces.Box(0, MAX_DECK_SIZE, dtype=np.uint8),
+            "hand_count": _scalar_box(0, MAX_HAND_SIZE, dtype=np.uint8),
+            "deck_count": _scalar_box(0, MAX_DECK_SIZE, dtype=np.uint8),
+            "ikz_pile_count": _scalar_box(0, IKZ_PILE_SIZE, dtype=np.uint8),
+            "discard_count": _scalar_box(0, MAX_DECK_SIZE, dtype=np.uint8),
             "has_ikz_token": _bool_space(),
         }
     )
@@ -269,4 +381,4 @@ def observation_to_dict(observation: Any) -> dict[str, Any]:
     }
 
 
-__all__ = ["build_observation_space", "observation_to_dict"]
+__all__ = ["build_observation_space", "observation_to_dict", "OBSERVATION_CTYPE", "OBSERVATION_STRUCT_SIZE"]

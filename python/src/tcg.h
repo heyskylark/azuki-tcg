@@ -24,10 +24,11 @@ typedef struct Log {
 typedef struct Client Client;
 typedef struct {
   // Puffer I/O
-  ObservationData* observations; 
-  int* actions;                // ACTION_TYPE, subaction_1, subaction_2, subaction_3 // TODO: implement proper action space
-  float* rewards;              // 2 scalars
-  unsigned char* terminals;    // scalar {0,1}
+  ObservationData* observations; // MAX_PLAYERS_PER_MATCH
+  int* actions;                  // ACTION_TYPE, subaction_1, subaction_2, subaction_3 // TODO: implement proper action space
+  float* rewards;                // MAX_PLAYERS_PER_MATCH scalars
+  unsigned char* terminals;      // MAX_PLAYERS_PER_MATCH scalars {0,1}
+  unsigned char* truncations;    // MAX_PLAYERS_PER_MATCH scalars {0,1}
   Log log;
   Client* client;
 
@@ -42,22 +43,31 @@ void init(CAzukiTCG* env) {
   env->tick = 0;
 }
 
+static void refresh_observations(CAzukiTCG* env) {
+  for (int8_t player_index = 0; player_index < MAX_PLAYERS_PER_MATCH; ++player_index) {
+    azk_engine_observe(env->engine, player_index, &env->observations[player_index]);
+  }
+}
+
 void c_reset(CAzukiTCG* env) {
   env->tick = 0;
   env->terminals[0] = NOT_DONE;
   env->terminals[1] = NOT_DONE;
+  env->truncations[0] = NOT_DONE;
+  env->truncations[1] = NOT_DONE;
   env->rewards[0] = 0.0f;
   env->rewards[1] = 0.0f;
 
   azk_engine_destroy(env->engine);
   env->engine = azk_engine_create(env->seed);
-  azk_engine_observe(env->engine, env->observations);
+  refresh_observations(env);
 }
 
 void c_step(CAzukiTCG* env) {
   env->tick++;
 
   // TODO: implement
+  refresh_observations(env);
 }
 
 void c_close(CAzukiTCG* env) {
