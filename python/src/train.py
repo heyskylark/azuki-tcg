@@ -1,21 +1,14 @@
 import ctypes
-from enum import IntEnum
 
 import numpy as np
-import gymnasium as gym
 from pettingzoo import AECEnv
 from pettingzoo.utils.conversions import turn_based_aec_to_parallel
 import pufferlib
 from pufferlib import emulation, MultiagentEpisodeStats
 from pufferlib.emulation import nativize
 
+from action import ACTION_COMPONENT_COUNT, build_action_space
 from observation import (
-    ALLEY_SIZE,
-    GARDEN_SIZE,
-    IKZ_AREA_SIZE,
-    IKZ_PILE_SIZE,
-    MAX_DECK_SIZE,
-    MAX_HAND_SIZE,
     MAX_PLAYERS_PER_MATCH,
     OBSERVATION_CTYPE,
     OBSERVATION_STRUCT_SIZE,
@@ -23,41 +16,6 @@ from observation import (
     observation_to_dict,
 )
 import binding
-
-
-class ActionType(IntEnum):
-  """Mirror include/components.h::ActionType."""
-  NOOP = 0
-  PLAY_ENTITY_TO_GARDEN = 1
-  PLAY_ENTITY_TO_ALLEY = 2
-  ATTACK = 6
-  ATTACH_WEAPON_FROM_HAND = 7
-  DECLARE_DEFENDER = 8
-  GATE_PORTAL = 9
-  END_TURN = 12
-  MULLIGAN_KEEP = 13
-  MULLIGAN_SHUFFLE = 14
-
-
-ACTION_COMPONENT_COUNT = 4  # ACTION_TYPE + three subactions; keep in sync with AZK_USER_ACTION_VALUE_COUNT.
-_SUBACTION_MAX = max(
-  MAX_DECK_SIZE,
-  MAX_HAND_SIZE,
-  GARDEN_SIZE,
-  ALLEY_SIZE,
-  IKZ_AREA_SIZE,
-  IKZ_PILE_SIZE,
-)
-_ACTION_N_VEC = np.array(
-  [
-    ActionType.MULLIGAN_SHUFFLE + 1,  # Inclusive of highest ActionType enum.
-    _SUBACTION_MAX,
-    _SUBACTION_MAX,
-    _SUBACTION_MAX,
-  ],
-  dtype=np.int64,
-)
-
 
 class AzukiTCG(AECEnv):
   """
@@ -76,7 +34,7 @@ class AzukiTCG(AECEnv):
     self.np_random = np.random.default_rng(seed)
     self.possible_agents = list(range(MAX_PLAYERS_PER_MATCH))
     self._agent_count = len(self.possible_agents)
-    self._action_space = gym.spaces.MultiDiscrete(_ACTION_N_VEC.copy())
+    self._action_space = build_action_space()
 
     # C binding arrays
     self._observations = np.zeros(
@@ -167,8 +125,7 @@ class AzukiTCG(AECEnv):
         f"AzukiTCG expects {ACTION_COMPONENT_COUNT} integers (type, subaction_1..3); got shape {encoded_action.shape}"
       )
 
-    # Both agents cannot act at the same time, so we assume action[0] is always the acting agent.
-    self._actions[0] = encoded_action
+    self._actions[agent_idx] = encoded_action
     binding.env_step(self.c_envs)
 
     reward = float(self._rewards[agent_idx])
