@@ -5,9 +5,9 @@ PROJECT=~/git/azuki-tcg
 PUFFER=~/git/rl/SkyPufferLib
 
 docker run -d --name puffertank-dev \
-  --gpus=all \
+  --gpus all \
   --network host \
-  --ipc=host \
+  --ipc host \
   --restart unless-stopped \
   -v "$PROJECT":/workspace \
   -v "$PUFFER":/ext/SkyPufferLib \

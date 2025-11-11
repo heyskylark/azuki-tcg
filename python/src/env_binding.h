@@ -275,6 +275,16 @@ static PyObject* env_masks(PyObject* self, PyObject* args) {
     return mask_list;
 }
 
+static PyObject* env_active_player(PyObject* self, PyObject* args) {
+    Env* env = unpack_env(args);
+    if (!env){
+        return NULL;
+    }
+
+    int8_t active_player = tcg_active_player_index(env);
+    return PyLong_FromLong(active_player);
+}
+
 static PyObject* env_put(PyObject* self, PyObject* args, PyObject* kwargs) {
     int num_args = PyTuple_Size(args);
     if (num_args != 1) {
@@ -686,6 +696,7 @@ static PyMethodDef methods[] = {
     {"env_close", env_close, METH_VARARGS, "Close the environment"},
     {"env_get", env_get, METH_VARARGS, "Get the environment state"},
     {"env_masks", env_masks, METH_VARARGS, "Get action mask metadata"},
+    {"env_active_player", env_active_player, METH_VARARGS, "Get the current active player index"},
     {"env_put", (PyCFunction)env_put, METH_VARARGS | METH_KEYWORDS, "Put stuff into env"},
     {"vectorize", vectorize, METH_VARARGS, "Make a vector of environment handles"},
     {"vec_init", (PyCFunction)vec_init, METH_VARARGS | METH_KEYWORDS, "Initialize a vector of environments"},

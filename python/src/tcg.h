@@ -53,6 +53,28 @@ void init(CAzukiTCG* env) {
   env->tick = 0;
 }
 
+static inline int8_t tcg_active_player_index(CAzukiTCG* env) {
+  if (env == NULL || env->engine == NULL) {
+    return -1;
+  }
+
+  if (azk_engine_is_game_over(env->engine)) {
+    return -1;
+  }
+
+  const GameState* game_state = azk_engine_game_state(env->engine);
+  if (game_state == NULL) {
+    return -1;
+  }
+
+  const int8_t active_player_index = game_state->active_player_index;
+  if (active_player_index < 0 || active_player_index >= MAX_PLAYERS_PER_MATCH) {
+    return -1;
+  }
+
+  return active_player_index;
+}
+
 static void refresh_action_masks(CAzukiTCG* env) {
   for (int8_t player_index = 0; player_index < MAX_PLAYERS_PER_MATCH; ++player_index) {
     azk_engine_build_action_mask(env->engine, player_index, &env->action_masks[player_index]);
@@ -83,7 +105,13 @@ void c_reset(CAzukiTCG* env) {
 void c_step(CAzukiTCG* env) {
   env->tick++;
 
-  const ActionVector action = env->actions[0];
+  const int8_t active_player_index = tcg_active_player_index(env);
+  if (active_player_index < 0) {
+    fprintf(stderr, "No active player available when stepping environment\n");
+    abort();
+  }
+
+  const ActionVector action = env->actions[active_player_index];
   const int values[AZK_USER_ACTION_VALUE_COUNT] = {
     action.type,
     action.subaction_1,

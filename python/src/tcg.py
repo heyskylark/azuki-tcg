@@ -55,6 +55,7 @@ class AzukiTCG(AECEnv):
     # AEC state
     self.agents = []
     self.agent_selection = None
+    self._active_player_index = None
     self.rewards = {}
     self._cumulative_rewards = {}
     self.terminations = {}
@@ -92,6 +93,23 @@ class AzukiTCG(AECEnv):
       for idx, agent in enumerate(self.possible_agents)
     }
 
+  def _sync_done_flags(self):
+    for idx, agent in enumerate(self.possible_agents):
+      self.terminations[agent] = bool(self._terminals[idx])
+      self.truncations[agent] = bool(self._truncations[idx])
+
+  def _sync_agent_selection(self):
+    active_idx = binding.env_active_player(self.c_envs)
+    if active_idx < 0 or active_idx >= self._agent_count:
+      raise ValueError(f"Active player index {active_idx} is out of range")
+
+    active_agent = self.possible_agents[active_idx]
+    if active_agent not in self.agents:
+      raise ValueError(f"Active agent {active_agent} not in agents {self.agents}")
+
+    self._active_player_index = active_idx
+    self.agent_selection = active_agent
+
   def _refresh_infos(self):
     """Populate mask info only for the agent that is about to act."""
     if not self.agents or self.agent_selection is None:
@@ -116,15 +134,17 @@ class AzukiTCG(AECEnv):
     self._actions.fill(0)
 
     self.agents = self.possible_agents[:]
-    self.agent_selection = self.agents[0]
-
     self.rewards = {agent: 0.0 for agent in self.possible_agents}
     self._cumulative_rewards = {agent: 0.0 for agent in self.possible_agents}
     self.terminations = {agent: False for agent in self.possible_agents}
     self.truncations = {agent: False for agent in self.possible_agents}
     self.infos = {agent: {} for agent in self.possible_agents}
+    self._active_player_index = None
 
+    self._sync_done_flags()
+    self._sync_agent_selection()
     self._refresh_infos()
+
     observation = self.observe(self.agent_selection)
     return observation, self.infos[self.agent_selection]
 
@@ -132,8 +152,20 @@ class AzukiTCG(AECEnv):
     if not self.agents:
       raise RuntimeError("step() called on finished environment")
 
+    if action is None:
+      raise ValueError("AzukiTCG received None action while the match is still running")
+
     acting_agent = self.agent_selection
+    if acting_agent is None:
+      raise RuntimeError("Environment does not have an active agent to step")
     agent_idx = self._player_index(acting_agent)
+    if (
+      self._active_player_index is not None
+      and agent_idx != self._active_player_index
+    ):
+      raise RuntimeError(
+        f"Attempted to act for agent {acting_agent}, but active player is {self._active_player_index}"
+      )
 
     encoded_action = np.asarray(action, dtype=np.int32)
     if encoded_action.shape != (ACTION_COMPONENT_COUNT,):
@@ -141,23 +173,30 @@ class AzukiTCG(AECEnv):
         f"AzukiTCG expects {ACTION_COMPONENT_COUNT} integers (type, subaction_1..3); got shape {encoded_action.shape}"
       )
 
+    self._clear_rewards()
     self._actions[agent_idx] = encoded_action
     binding.env_step(self.c_envs)
 
     reward = float(self._rewards[agent_idx])
-    termination = bool(self._terminals[agent_idx])
-    truncation = bool(self._truncations[agent_idx])
     info = {}
 
     self.rewards[acting_agent] = reward
-    self._cumulative_rewards[acting_agent] += reward
-    self.terminations[acting_agent] = termination
-    self.truncations[acting_agent] = truncation
     self.infos[acting_agent] = info
+    self._accumulate_rewards()
+    self._sync_done_flags()
+
+    if all(self.terminations[agent] or self.truncations[agent] for agent in self.possible_agents):
+      self.agents = []
+      self.agent_selection = None
+      self._active_player_index = None
+    else:
+      self._sync_agent_selection()
 
     self._refresh_infos()
     observation = self.observe(acting_agent)
 
+    termination = self.terminations[acting_agent]
+    truncation = self.truncations[acting_agent]
     return observation, reward, termination, truncation, info
 
 def _decode_observations(puffer_env, observations):
