@@ -93,14 +93,19 @@ class AzukiTCG(AECEnv):
     }
 
   def _refresh_infos(self):
+    """Populate mask info only for the agent that is about to act."""
+    if not self.agents or self.agent_selection is None:
+      return
+
     mask_payloads = binding.env_masks(self.c_envs)
-    for idx, agent in enumerate(self.possible_agents):
-      info = self.infos.get(agent)
-      if info is None:
-        continue
-      payload = mask_payloads[idx]
-      info["head0_mask"] = payload["head0_mask"]
-      info["legal_actions"] = payload["legal_actions"]
+    acting_agent = self.agent_selection
+    info = self.infos.get(acting_agent)
+    if info is None:
+      return
+
+    payload = mask_payloads[self._player_index(acting_agent)]
+    info["head0_mask"] = payload["head0_mask"]
+    info["legal_actions"] = payload["legal_actions"]
 
   def observe(self, agent):
     idx = self._player_index(agent)
