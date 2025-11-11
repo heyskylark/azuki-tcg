@@ -171,6 +171,7 @@ ecs_world_t* azk_world_init(uint32_t seed) {
   ecs_add_id(world, ecs_id(GameState), EcsSingleton);
   GameState gs = {
     .seed = seed,
+    .rng_state = seed,
     .active_player_index = 0,
     .phase = PHASE_PREGAME_MULLIGAN,
     .response_window = 0,

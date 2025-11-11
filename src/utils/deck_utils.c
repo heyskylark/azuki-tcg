@@ -33,7 +33,7 @@ void shuffle_deck(ecs_world_t *world, ecs_entity_t deck_zone) {
 
   memcpy(shuffled, deck_cards.ids, (size_t)count * sizeof(ecs_entity_t));
 
-  uint32_t rng_state = state->seed;
+  uint32_t rng_state = state->rng_state;
   for (int32_t i = count - 1; i > 0; --i) {
     uint32_t roll = deck_next_rand(&rng_state);
     int32_t j = (int32_t)(roll % (uint32_t)(i + 1));
@@ -45,7 +45,7 @@ void shuffle_deck(ecs_world_t *world, ecs_entity_t deck_zone) {
 
   ecs_set_child_order(world, deck_zone, shuffled, count);
 
-  state->seed = rng_state;
+  state->rng_state = rng_state;
   ecs_singleton_modified(world, GameState);
 
   ecs_os_free(shuffled);

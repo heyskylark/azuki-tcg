@@ -92,6 +92,16 @@ class AzukiTCG(AECEnv):
       for idx, agent in enumerate(self.possible_agents)
     }
 
+  def _refresh_infos(self):
+    mask_payloads = binding.env_masks(self.c_envs)
+    for idx, agent in enumerate(self.possible_agents):
+      info = self.infos.get(agent)
+      if info is None:
+        continue
+      payload = mask_payloads[idx]
+      info["head0_mask"] = payload["head0_mask"]
+      info["legal_actions"] = payload["legal_actions"]
+
   def observe(self, agent):
     idx = self._player_index(agent)
     return observation_to_dict(self._raw_observation(idx))
@@ -109,6 +119,7 @@ class AzukiTCG(AECEnv):
     self.truncations = {agent: False for agent in self.possible_agents}
     self.infos = {agent: {} for agent in self.possible_agents}
 
+    self._refresh_infos()
     observation = self.observe(self.agent_selection)
     return observation, self.infos[self.agent_selection]
 
@@ -139,6 +150,7 @@ class AzukiTCG(AECEnv):
     self.truncations[acting_agent] = truncation
     self.infos[acting_agent] = info
 
+    self._refresh_infos()
     observation = self.observe(acting_agent)
 
     return observation, reward, termination, truncation, info

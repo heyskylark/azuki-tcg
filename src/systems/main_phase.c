@@ -7,6 +7,7 @@
 #include "utils/cli_rendering_util.h"
 #include "constants/game.h"
 #include "utils/combat_util.h"
+#include "validation/action_validation.h"
 
 static int play_entity_to_garden_or_alley(
   ecs_world_t *world,
@@ -14,37 +15,21 @@ static int play_entity_to_garden_or_alley(
   ActionContext *ac,
   ZonePlacementType placement_type
 ) {
-  ecs_entity_t hand_card_idx = ac->user_action.subaction_1;
-  ecs_entity_t zone_card_idx = ac->user_action.subaction_2;
-  bool use_ikz_token = ac->user_action.subaction_3 != 0;
-
-  ecs_entity_t hand_zone = gs->zones[gs->active_player_index].hand;
-  ecs_entities_t hand_cards = ecs_get_ordered_children(world, hand_zone);
-  if (hand_card_idx < 0 || hand_card_idx >= hand_cards.count) {
-    cli_render_logf("Hand card index %d is out of bounds", hand_card_idx);
-    return -1;
-  }
-  
-  ecs_entity_t hand_card = hand_cards.ids[hand_card_idx];
-
-  if (!hand_card) {
-    cli_render_logf("Hand card %d not found", hand_card_idx);
-    return -1;
-  }
-  
-  if (!is_card_type(world, hand_card, CARD_TYPE_ENTITY)) {
-    cli_render_logf("Hand card %d is not an entity", hand_card);
+  ecs_entity_t player = gs->players[gs->active_player_index];
+  PlayEntityIntent intent = {0};
+  if (!azk_validate_play_entity_action(
+        world,
+        gs,
+        player,
+        placement_type,
+        &ac->user_action,
+        true,
+        &intent
+      )) {
     return -1;
   }
 
-  return summon_card_into_zone_index(
-    world,
-    hand_card,
-    gs->players[gs->active_player_index],
-    placement_type,
-    zone_card_idx,
-    use_ikz_token
-  );
+  return summon_card_into_zone_index(world, &intent);
 }
 
 /**
@@ -89,12 +74,14 @@ static void handle_gate_portal(ecs_world_t *world, GameState *gs, ActionContext 
     exit(EXIT_FAILURE);
   }
 
-  int result = gate_card_into_garden(
-    world,
-    gs->players[gs->active_player_index],
-    ac->user_action.subaction_1,
-    ac->user_action.subaction_2
-  );
+  ecs_entity_t player = gs->players[gs->active_player_index];
+  GatePortalIntent intent = {0};
+  if (!azk_validate_gate_portal_action(world, gs, player, &ac->user_action, true, &intent)) {
+    ac->invalid_action = true;
+    return;
+  }
+
+  int result = gate_card_into_garden(world, &intent);
 
   if (result < 0) {
     ac->invalid_action = true;
@@ -113,12 +100,14 @@ static void handle_attack(ecs_world_t *world, GameState *gs, ActionContext *ac) 
     exit(EXIT_FAILURE);
   }
 
-  int result = attack(
-    world,
-    gs->players[gs->active_player_index],
-    ac->user_action.subaction_1,
-    ac->user_action.subaction_2
-  );
+  ecs_entity_t player = gs->players[gs->active_player_index];
+  AttackIntent intent = {0};
+  if (!azk_validate_attack_action(world, gs, player, &ac->user_action, true, &intent)) {
+    ac->invalid_action = true;
+    return;
+  }
+
+  int result = attack(world, &intent);
 
   if (result < 0) {
     ac->invalid_action = true;
@@ -150,13 +139,14 @@ static void handle_attach_weapon_from_hand(ecs_world_t *world, GameState *gs, Ac
     exit(EXIT_FAILURE);
   }
 
-  int result = attach_weapon_from_hand(
-    world,
-    gs->players[gs->active_player_index],
-    ac->user_action.subaction_1,
-    ac->user_action.subaction_2,
-    ac->user_action.subaction_3 != 0
-  );
+  ecs_entity_t player = gs->players[gs->active_player_index];
+  AttachWeaponIntent intent = {0};
+  if (!azk_validate_attach_weapon_action(world, gs, player, &ac->user_action, true, &intent)) {
+    ac->invalid_action = true;
+    return;
+  }
+
+  int result = attach_weapon_from_hand(world, &intent);
 
   if (result < 0) {
     ac->invalid_action = true;
@@ -189,6 +179,10 @@ void HandleMainAction(ecs_iter_t *it) {
       break;
     case ACT_NOOP:
     case ACT_END_TURN:
+      if (!azk_validate_simple_action(world, gs, gs->players[gs->active_player_index], ac->user_action.type, true)) {
+        ac->invalid_action = true;
+        break;
+      }
       cli_render_log("[MainAction] End turn");
       // TODO: Intelligent phase transition (if player action is required, goto END_TURN_ACTION)
       // TODO: Look into the possibility of not having to add another phase

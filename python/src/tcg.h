@@ -45,6 +45,7 @@ typedef struct {
   AzkEngine* engine;
   uint32_t seed;
   int tick;
+  AzkActionMaskSet action_masks[MAX_PLAYERS_PER_MATCH];
 } CAzukiTCG;
 
 void init(CAzukiTCG* env) {
@@ -52,10 +53,17 @@ void init(CAzukiTCG* env) {
   env->tick = 0;
 }
 
+static void refresh_action_masks(CAzukiTCG* env) {
+  for (int8_t player_index = 0; player_index < MAX_PLAYERS_PER_MATCH; ++player_index) {
+    azk_engine_build_action_mask(env->engine, player_index, &env->action_masks[player_index]);
+  }
+}
+
 static void refresh_observations(CAzukiTCG* env) {
   for (int8_t player_index = 0; player_index < MAX_PLAYERS_PER_MATCH; ++player_index) {
     azk_engine_observe(env->engine, player_index, &env->observations[player_index]);
   }
+  refresh_action_masks(env);
 }
 
 void c_reset(CAzukiTCG* env) {
@@ -76,9 +84,36 @@ void c_step(CAzukiTCG* env) {
   env->tick++;
 
   const ActionVector action = env->actions[0];
-  const bool is_valid = azk_engine_submit_action(env->engine, &action);
+  const int values[AZK_USER_ACTION_VALUE_COUNT] = {
+    action.type,
+    action.subaction_1,
+    action.subaction_2,
+    action.subaction_3
+  };
+
+  UserAction parsed_action;
+  if (!azk_engine_parse_action_values(env->engine, values, &parsed_action)) {
+    fprintf(
+      stderr,
+      "Invalid action encoding: [%d, %d, %d, %d]\n",
+      action.type,
+      action.subaction_1,
+      action.subaction_2,
+      action.subaction_3
+    );
+    abort();
+  }
+
+  const bool is_valid = azk_engine_submit_action(env->engine, &parsed_action);
   if (!is_valid) {
-    fprintf(stderr, "Invalid action: %d\n", action);
+    fprintf(
+      stderr,
+      "Rejected action: [%d, %d, %d, %d]\n",
+      action.type,
+      action.subaction_1,
+      action.subaction_2,
+      action.subaction_3
+    );
     abort();
   }
 

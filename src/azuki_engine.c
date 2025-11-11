@@ -3,6 +3,7 @@
 #include "systems/phase_gate.h"
 #include "utils/phase_utils.h"
 #include "world.h"
+#include "validation/action_enumerator.h"
 
 AzkEngine *azk_engine_create(uint32_t seed) {
   return azk_world_init(seed);
@@ -83,4 +84,21 @@ void azk_engine_tick(AzkEngine *engine) {
 
   run_phase_gate_system(engine);
   ecs_progress(engine, 0);
+}
+
+bool azk_engine_build_action_mask(
+  AzkEngine *engine,
+  int8_t player_index,
+  AzkActionMaskSet *out_mask
+) {
+  if (!engine || !out_mask) {
+    return false;
+  }
+
+  const GameState *gs = ecs_singleton_get(engine, GameState);
+  if (!gs) {
+    return false;
+  }
+
+  return azk_build_action_mask_for_player(engine, gs, player_index, out_mask);
 }

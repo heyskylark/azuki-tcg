@@ -238,6 +238,43 @@ static PyObject* env_get(PyObject* self, PyObject* args) {
     return dict;
 }
 
+static PyObject* env_masks(PyObject* self, PyObject* args) {
+    Env* env = unpack_env(args);
+    if (!env){
+        return NULL;
+    }
+
+    PyObject* mask_list = PyList_New(MAX_PLAYERS_PER_MATCH);
+    for (int player_index = 0; player_index < MAX_PLAYERS_PER_MATCH; ++player_index) {
+        const AzkActionMaskSet* mask = &env->action_masks[player_index];
+        PyObject* mask_dict = PyDict_New();
+
+        PyObject* head0_list = PyList_New(AZK_ACTION_HEAD0_SIZE);
+        for (int i = 0; i < AZK_ACTION_HEAD0_SIZE; ++i) {
+            PyList_SET_ITEM(head0_list, i, PyLong_FromLong(mask->head0_mask[i]));
+        }
+        PyDict_SetItemString(mask_dict, "head0_mask", head0_list);
+        Py_DECREF(head0_list);
+
+        PyObject* actions_list = PyList_New(mask->legal_action_count);
+        for (int action_index = 0; action_index < mask->legal_action_count; ++action_index) {
+            const UserAction* action = &mask->legal_actions[action_index];
+            PyObject* tuple = PyTuple_New(4);
+            PyTuple_SET_ITEM(tuple, 0, PyLong_FromLong(action->type));
+            PyTuple_SET_ITEM(tuple, 1, PyLong_FromLong(action->subaction_1));
+            PyTuple_SET_ITEM(tuple, 2, PyLong_FromLong(action->subaction_2));
+            PyTuple_SET_ITEM(tuple, 3, PyLong_FromLong(action->subaction_3));
+            PyList_SET_ITEM(actions_list, action_index, tuple);
+        }
+        PyDict_SetItemString(mask_dict, "legal_actions", actions_list);
+        Py_DECREF(actions_list);
+
+        PyList_SET_ITEM(mask_list, player_index, mask_dict);
+    }
+
+    return mask_list;
+}
+
 static PyObject* env_put(PyObject* self, PyObject* args, PyObject* kwargs) {
     int num_args = PyTuple_Size(args);
     if (num_args != 1) {
@@ -648,6 +685,7 @@ static PyMethodDef methods[] = {
     {"env_render", env_render, METH_VARARGS, "Render the environment"},
     {"env_close", env_close, METH_VARARGS, "Close the environment"},
     {"env_get", env_get, METH_VARARGS, "Get the environment state"},
+    {"env_masks", env_masks, METH_VARARGS, "Get action mask metadata"},
     {"env_put", (PyCFunction)env_put, METH_VARARGS | METH_KEYWORDS, "Put stuff into env"},
     {"vectorize", vectorize, METH_VARARGS, "Make a vector of environment handles"},
     {"vec_init", (PyCFunction)vec_init, METH_VARARGS | METH_KEYWORDS, "Initialize a vector of environments"},

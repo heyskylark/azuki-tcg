@@ -157,7 +157,7 @@ static void test_azk_world_init_sets_game_state(void) {
   const GameState *gs = ecs_singleton_get(world, GameState);
   assert(gs != NULL);
   assert(gs->seed == seed);
-  assert(gs->phase == PHASE_START_OF_TURN);
+  assert(gs->phase == PHASE_PREGAME_MULLIGAN);
   assert(gs->active_player_index == 0);
   assert(gs->response_window == 0);
   assert(gs->winner == -1);
@@ -274,6 +274,7 @@ static void test_init_player_deck_raizen(void) {
 
   ecs_entity_t player = ecs_new(world);
   ecs_set(world, player, PlayerId, { .pid = 0 });
+  ecs_set(world, player, PlayerNumber, { .player_number = 0 });
 
   PlayerZones zones = {0};
   zones.deck = create_zone(world, player, ZDeck, "Deck");

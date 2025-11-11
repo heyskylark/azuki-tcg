@@ -4,7 +4,6 @@
 #include "utils/cli_rendering_util.h"
 #include "utils/card_utils.h"
 #include "utils/player_util.h"
-#include "utils/card_utils.h"
 #include <stdio.h>
 
 ecs_entity_t find_card_in_zone_index(
@@ -92,9 +91,10 @@ static int insert_card_into_zone_index(
   ecs_entity_t card,
   ecs_entity_t player,
   ecs_entity_t zone,
-  int index
+  int index,
+  ecs_entity_t displaced_card,
+  ZonePlacementType placement_type
 ) {
-  // Garden and alley are the same size
   if (index < 0 || index >= GARDEN_SIZE) {
     cli_render_logf("Index %d is out of bounds for garden or alley", index);
     return -1;
@@ -104,88 +104,42 @@ static int insert_card_into_zone_index(
   ecs_assert(card_owner != 0, ECS_INVALID_PARAMETER, "Card %d has no owner", card);
   ecs_assert(card_owner == player, ECS_INVALID_PARAMETER, "Card %d and player %d have different owners", card, player);
 
-  // Find if card exists in given zone index.
-  ecs_entities_t zone_cards = ecs_get_ordered_children(world, zone);
-  ecs_entity_t card_with_zone_index = find_card_in_zone_index(world, zone, index);
-
-  bool is_zone_full = zone_cards.count >= GARDEN_SIZE; // Alley and garden are the same size
-  if (card_with_zone_index != 0) {
-    if (!is_zone_full) {
-      cli_render_logf("Card %d is already in zone %d at index %d | Zone is not full", card_with_zone_index, zone, index);
-      return -1;
-    }
-
-    discard_card(world, card_with_zone_index);
-    card_with_zone_index = 0;
+  if (displaced_card != 0) {
+    discard_card(world, displaced_card);
   }
 
   ecs_add_pair(world, card, EcsChildOf, zone);
   ecs_set(world, card, ZoneIndex, { .index = index });
 
-  if (ecs_has_id(world, zone, ecs_id(ZGarden))) {
+  if (placement_type == ZONE_GARDEN) {
     set_card_to_cooldown(world, card);
   }
 
   return 0;
 }
 
-int summon_card_into_zone_index (
+int summon_card_into_zone_index(
   ecs_world_t *world,
-  ecs_entity_t card,
-  ecs_entity_t player,
-  ZonePlacementType placement_type,
-  int index,
-  bool use_ikz_token
+  const PlayEntityIntent *intent
 ) {
-  const GameState *gs = ecs_singleton_get(world, GameState);
-  ecs_assert(gs != NULL, ECS_INVALID_PARAMETER, "GameState singleton missing");
+  ecs_assert(world != NULL, ECS_INVALID_PARAMETER, "World is null");
+  ecs_assert(intent != NULL, ECS_INVALID_PARAMETER, "PlayEntityIntent is null");
 
-  const IKZCost *ikz_cost = ecs_get(world, card, IKZCost);
-  ecs_assert(ikz_cost != NULL, ECS_INVALID_PARAMETER, "IKZCost component not found for card %d", card);
-
-  uint8_t player_number = get_player_number(world, player);
-
-  ecs_entity_t zone = 0;
-  switch (placement_type) {
-    case ZONE_GARDEN:
-      zone = gs->zones[player_number].garden;
-      break;
-    case ZONE_ALLEY:
-      zone = gs->zones[player_number].alley;
-      break;
-    default:
-      cli_render_logf("Invalid placement type: %d", placement_type);
-      exit(EXIT_FAILURE);
-  }
-
-  ecs_entity_t ikz_area_zone = gs->zones[player_number].ikz_area;
-  uint8_t tappable_ikz_cards_count = 0;
-  ecs_entity_t tappable_ikz_cards[ikz_cost->ikz_cost];
-
-  int ikz_fetch_result = get_tappable_ikz_cards(
+  int results = insert_card_into_zone_index(
     world,
-    ikz_area_zone,
-    ikz_cost->ikz_cost,
-    &tappable_ikz_cards_count,
-    tappable_ikz_cards,
-    use_ikz_token
+    intent->card,
+    intent->player,
+    intent->target_zone,
+    intent->zone_index,
+    intent->displaced_card,
+    intent->placement_type
   );
-  if (ikz_fetch_result < 0) {
-    return ikz_fetch_result;
-  }
-
-  if (tappable_ikz_cards_count < ikz_cost->ikz_cost) {
-    cli_render_logf("Not enough untapped IKZ cards to place card %d", card);
-    return -1;
-  }
-
-  int results = insert_card_into_zone_index(world, card, player, zone, index);
   if (results < 0) {
     return results;
   }
 
-  for (int32_t i = 0; i < ikz_cost->ikz_cost; i++) {
-    set_card_to_tapped(world, tappable_ikz_cards[i]);
+  for (uint8_t i = 0; i < intent->ikz_card_count; ++i) {
+    set_card_to_tapped(world, intent->ikz_cards[i]);
   }
 
   return 0;
@@ -225,45 +179,26 @@ ecs_entity_t find_leader_card_in_zone(
 
 int gate_card_into_garden(
   ecs_world_t *world,
-  ecs_entity_t player,
-  int alley_index,
-  int garden_index
+  const GatePortalIntent *intent
 ) {
-  const GameState *gs = ecs_singleton_get(world, GameState);
-  ecs_assert(gs != NULL, ECS_INVALID_PARAMETER, "GameState singleton missing");
-
-  uint8_t player_number = get_player_number(world, player);
-
-  ecs_entity_t gate_zone = gs->zones[player_number].gate;
-  ecs_entity_t gate_card = find_gate_card_in_zone(world, gate_zone);
-  if (is_card_tapped(world, gate_card)) {
-    cli_render_logf("[GateCardIntoGarden] Gate card %d is tapped", gate_card);
-    return -1;
-  }
-
-  ecs_entity_t alley_zone = gs->zones[player_number].alley;
-  ecs_entity_t card_with_zone_index = find_card_in_zone_index(world, alley_zone, alley_index);
-  if (card_with_zone_index == 0) {
-    cli_render_logf("[GateCardIntoGarden] Card %d not found in alley at index %d", card_with_zone_index, alley_index);
-    return -1;
-  } else if (is_card_tapped(world, card_with_zone_index)) {
-    cli_render_logf("[GateCardIntoGarden] Card %d is tapped", card_with_zone_index);
-    return -1;
-  }
+  ecs_assert(world != NULL, ECS_INVALID_PARAMETER, "World is null");
+  ecs_assert(intent != NULL, ECS_INVALID_PARAMETER, "GatePortalIntent is null");
 
   int results = insert_card_into_zone_index(
     world,
-    card_with_zone_index,
-    player,
-    gs->zones[player_number].garden,
-    garden_index
+    intent->alley_card,
+    intent->player,
+    intent->target_zone,
+    intent->garden_index,
+    intent->displaced_card,
+    ZONE_GARDEN
   );
 
   if (results < 0) {
     return results;
   }
 
-  set_card_to_tapped(world, gate_card);
+  set_card_to_tapped(world, intent->gate_card);
 
   return 0;
 }

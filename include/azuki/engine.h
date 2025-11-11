@@ -7,6 +7,7 @@
 #include "components.h"
 #include "utils/actions_util.h"
 #include "utils/observation_util.h"
+#include "validation/action_enumerator.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -63,6 +64,15 @@ bool azk_engine_submit_action(AzkEngine *engine, const UserAction *action);
  * Advance the simulation by running the phase gate and Flecs progression.
  */
 void azk_engine_tick(AzkEngine *engine);
+
+/**
+ * Build the legal action mask for the requested player.
+ */
+bool azk_engine_build_action_mask(
+  AzkEngine *engine,
+  int8_t player_index,
+  AzkActionMaskSet *out_mask
+);
 
 #ifdef __cplusplus
 }

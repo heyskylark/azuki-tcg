@@ -3,11 +3,8 @@
 
 #include <flecs.h>
 #include "generated/card_defs.h"
-
-typedef enum {
-  ZONE_GARDEN = 0,
-  ZONE_ALLEY = 1
-} ZonePlacementType;
+#include "azuki/zone_types.h"
+#include "validation/action_intents.h"
 
 ecs_entity_t find_card_in_zone_index(
   ecs_world_t *world,
@@ -34,18 +31,12 @@ void untap_all_cards_in_zone(ecs_world_t *world, ecs_entity_t zone);
 */
 int summon_card_into_zone_index(
   ecs_world_t *world,
-  ecs_entity_t card,
-  ecs_entity_t player,
-  ZonePlacementType placement_type,
-  int index,
-  bool use_ikz_token
+  const PlayEntityIntent *intent
 );
 
 int gate_card_into_garden(
   ecs_world_t *world,
-  ecs_entity_t player,
-  int alley_index,
-  int garden_index
+  const GatePortalIntent *intent
 );
 
 ecs_entity_t find_gate_card_in_zone(

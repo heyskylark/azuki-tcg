@@ -2,13 +2,11 @@
 #define AZUKI_UTILS_WEAPON_UTIL_H
 
 #include <flecs.h>
+#include "validation/action_intents.h"
 
 int attach_weapon_from_hand(
   ecs_world_t *world,
-  ecs_entity_t player,
-  int hand_index,
-  int entity_index,
-  bool use_ikz_token
+  const AttachWeaponIntent *intent
 );
 
 #endif

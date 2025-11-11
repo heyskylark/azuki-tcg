@@ -61,6 +61,7 @@ typedef struct {
 
 typedef struct { 
   uint32_t seed;
+  uint32_t rng_state;
   int8_t active_player_index;
   Phase phase;
   uint8_t response_window;
