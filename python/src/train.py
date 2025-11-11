@@ -1,4 +1,6 @@
 import ctypes
+from enum import IntEnum
+
 import numpy as np
 import gymnasium as gym
 from pettingzoo import AECEnv
@@ -8,6 +10,12 @@ from pufferlib import emulation, MultiagentEpisodeStats
 from pufferlib.emulation import nativize
 
 from observation import (
+    ALLEY_SIZE,
+    GARDEN_SIZE,
+    IKZ_AREA_SIZE,
+    IKZ_PILE_SIZE,
+    MAX_DECK_SIZE,
+    MAX_HAND_SIZE,
     MAX_PLAYERS_PER_MATCH,
     OBSERVATION_CTYPE,
     OBSERVATION_STRUCT_SIZE,
@@ -15,6 +23,41 @@ from observation import (
     observation_to_dict,
 )
 import binding
+
+
+class ActionType(IntEnum):
+  """Mirror include/components.h::ActionType."""
+  NOOP = 0
+  PLAY_ENTITY_TO_GARDEN = 1
+  PLAY_ENTITY_TO_ALLEY = 2
+  ATTACK = 6
+  ATTACH_WEAPON_FROM_HAND = 7
+  DECLARE_DEFENDER = 8
+  GATE_PORTAL = 9
+  END_TURN = 12
+  MULLIGAN_KEEP = 13
+  MULLIGAN_SHUFFLE = 14
+
+
+ACTION_COMPONENT_COUNT = 4  # ACTION_TYPE + three subactions; keep in sync with AZK_USER_ACTION_VALUE_COUNT.
+_SUBACTION_MAX = max(
+  MAX_DECK_SIZE,
+  MAX_HAND_SIZE,
+  GARDEN_SIZE,
+  ALLEY_SIZE,
+  IKZ_AREA_SIZE,
+  IKZ_PILE_SIZE,
+)
+_ACTION_N_VEC = np.array(
+  [
+    ActionType.MULLIGAN_SHUFFLE + 1,  # Inclusive of highest ActionType enum.
+    _SUBACTION_MAX,
+    _SUBACTION_MAX,
+    _SUBACTION_MAX,
+  ],
+  dtype=np.int64,
+)
+
 
 class AzukiTCG(AECEnv):
   """
@@ -33,6 +76,7 @@ class AzukiTCG(AECEnv):
     self.np_random = np.random.default_rng(seed)
     self.possible_agents = list(range(MAX_PLAYERS_PER_MATCH))
     self._agent_count = len(self.possible_agents)
+    self._action_space = gym.spaces.MultiDiscrete(_ACTION_N_VEC.copy())
 
     # C binding arrays
     self._observations = np.zeros(
@@ -42,7 +86,10 @@ class AzukiTCG(AECEnv):
     self._observation_struct = ctypes.cast(
       self._observations.ctypes.data, ctypes.POINTER(OBSERVATION_CTYPE)
     )
-    self._actions = np.zeros(1, dtype=np.int32)
+    self._actions = np.zeros(
+      (self._agent_count, ACTION_COMPONENT_COUNT),
+      dtype=np.int32,
+    )
     self._rewards = np.zeros(self._agent_count, dtype=np.float32)
     self._terminals = np.zeros(self._agent_count, dtype=np.bool_)
     self._truncations = np.zeros(self._agent_count, dtype=np.bool_)
@@ -69,8 +116,7 @@ class AzukiTCG(AECEnv):
     return build_observation_space()
 
   def action_space(self, agent):
-    # TODO: Implement action space
-    return gym.spaces.Discrete(9)
+    return self._action_space
 
   def _player_index(self, agent) -> int:
     if isinstance(agent, str):
@@ -94,6 +140,7 @@ class AzukiTCG(AECEnv):
 
   def reset(self, seed=None, options=None):
     binding.env_reset(self.c_envs, int(seed or 0))
+    self._actions.fill(0)
 
     self.agents = self.possible_agents[:]
     self._agent_selection = self.agents[0]
@@ -114,7 +161,14 @@ class AzukiTCG(AECEnv):
     acting_agent = self._agent_selection
     agent_idx = self._player_index(acting_agent)
 
-    # TODO: Wire real action handling once the C env consumes action buffers.
+    encoded_action = np.asarray(action, dtype=np.int32)
+    if encoded_action.shape != (ACTION_COMPONENT_COUNT,):
+      raise ValueError(
+        f"AzukiTCG expects {ACTION_COMPONENT_COUNT} integers (type, subaction_1..3); got shape {encoded_action.shape}"
+      )
+
+    # Both agents cannot act at the same time, so we assume action[0] is always the acting agent.
+    self._actions[0] = encoded_action
     binding.env_step(self.c_envs)
 
     reward = float(self._rewards[agent_idx])
@@ -128,23 +182,7 @@ class AzukiTCG(AECEnv):
     self.truncations[acting_agent] = truncation
     self.infos[acting_agent] = info
 
-    current_index = self.agents.index(acting_agent)
-    if termination or truncation:
-      self.agents.remove(acting_agent)
-      if self.agents:
-        next_agent = self.agents[current_index % len(self.agents)]
-      else:
-        next_agent = None
-    else:
-      next_agent = self.agents[(current_index + 1) % len(self.agents)]
-
-    # TODO: Fix: Agents aren't taking turns one action at a time. sometimes they take multiple actions before the next agent's turn.
-    if next_agent is not None:
-      self._agent_selection = next_agent
-      observation = self.observe(next_agent)
-    else:
-      self._agent_selection = None
-      observation = None
+    observation = self.observe(acting_agent)
 
     return observation, reward, termination, truncation, info
 
