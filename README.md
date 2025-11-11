@@ -5,12 +5,15 @@ PROJECT=~/git/azuki-tcg
 PUFFER=~/git/rl/SkyPufferLib
 
 docker run -d --name puffertank-dev \
-  --gpus all \
-  --ipc host \
+  --gpus=all \
+  --network host \
+  --ipc=host \
+  --restart unless-stopped \
   -v "$PROJECT":/workspace \
   -v "$PUFFER":/ext/SkyPufferLib \
   -v "$HOME/.cache/pip":/root/.cache/pip \
   -v "$HOME/.cache/huggingface":/root/.cache/huggingface \
+  -v "$HOME/.cache/npm":/root/.npm \
   -w /workspace \
   pufferai/puffertank:3.0 bash -lc "sleep infinity"
 ```
@@ -30,7 +33,7 @@ cmake -S . -B build && cmake --build build --target azuki_puffer_env
 
 ```bash
 # In python/src/
-PYTHONPATH=build/python/src:python/src:$PYTHONPATH uv run --active python/src/train.py --config python/config/azuki.ini --train.total-timesteps 1_000_000
+PYTHONPATH=build/python/src:python/src:$PYTHONPATH uv run --active python/src/train.py --config python/config/azuki.ini --train.device cuda --train.total-timesteps 1_000_000
 ```
 
 # Dependencies
