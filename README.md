@@ -30,7 +30,7 @@ cmake -S . -B build && cmake --build build --target azuki_puffer_env
 
 ```bash
 # In python/src/
-PYTHONPATH=/workspace/build/python/src:$PYTHONPATH uv run --active train.py
+PYTHONPATH=build/python/src:python/src:$PYTHONPATH uv run --active python/src/train.py --config python/config/azuki.ini --train.total-timesteps 1_000_000
 ```
 
 # Dependencies

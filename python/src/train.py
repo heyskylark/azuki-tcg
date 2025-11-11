@@ -1,173 +1,103 @@
-import ctypes
+from __future__ import annotations
 
-import numpy as np
-from pettingzoo import AECEnv
+import argparse
+import functools
+import sys
+from pathlib import Path
+from typing import Sequence
+
+import torch
 from pettingzoo.utils.conversions import turn_based_aec_to_parallel
-import pufferlib
-from pufferlib import emulation, MultiagentEpisodeStats
-from pufferlib.emulation import nativize
+import pufferlib.models
+import pufferlib.vector
+from pufferlib import MultiagentEpisodeStats, emulation, pufferl
 
-from action import ACTION_COMPONENT_COUNT, build_action_space
-from observation import (
-    MAX_PLAYERS_PER_MATCH,
-    OBSERVATION_CTYPE,
-    OBSERVATION_STRUCT_SIZE,
-    build_observation_space,
-    observation_to_dict,
-)
-import binding
+# Ensure the compiled binding in build/python/src is importable before we pull in tcg.
+REPO_ROOT = Path(__file__).resolve().parents[2]
+BUILD_PYTHON_DIR = REPO_ROOT / "build" / "python" / "src"
+if str(BUILD_PYTHON_DIR) not in sys.path and BUILD_PYTHON_DIR.exists():
+    sys.path.insert(0, str(BUILD_PYTHON_DIR))
 
-class AzukiTCG(AECEnv):
-  """
-  Azuki TCG environment using PettingZoo's AEC (Agent Environment Cycle) API.
-  This is the natural fit for turn-based games where agents act sequentially.
-  """
-  metadata = {
-    'render_modes': ['human', 'ansi'],
-    'name': 'azuki_tcg_v0',
-  }
-  def __init__(
-    self,
-    seed: int | None = None,
-  ) -> None:
-    super().__init__()
-    self.np_random = np.random.default_rng(seed)
-    self.possible_agents = list(range(MAX_PLAYERS_PER_MATCH))
-    self._agent_count = len(self.possible_agents)
-    self._action_space = build_action_space()
+from tcg import AzukiTCG  # noqa: E402  (imports binding)
 
-    # C binding arrays
-    self._observations = np.zeros(
-      OBSERVATION_STRUCT_SIZE * self._agent_count,
-      dtype=np.uint8,
+DEFAULT_CONFIG_PATH = REPO_ROOT / "python" / "config" / "azuki.ini"
+
+
+def parse_script_args() -> tuple[argparse.Namespace, list[str]]:
+    parser = argparse.ArgumentParser(
+        description="PuffeRL trainer for the Azuki TCG environment."
     )
-    self._observation_struct = ctypes.cast(
-      self._observations.ctypes.data, ctypes.POINTER(OBSERVATION_CTYPE)
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=DEFAULT_CONFIG_PATH,
+        help="Path to the PuffeRL-compatible .ini file to load.",
     )
-    self._actions = np.zeros(
-      (self._agent_count, ACTION_COMPONENT_COUNT),
-      dtype=np.int32,
-    )
-    self._rewards = np.zeros(self._agent_count, dtype=np.float32)
-    self._terminals = np.zeros(self._agent_count, dtype=np.bool_)
-    self._truncations = np.zeros(self._agent_count, dtype=np.bool_)
+    return parser.parse_known_args()
 
-    # AEC state
-    self.agents = []
-    self.agent_selection = None
-    self.rewards = {}
-    self._cumulative_rewards = {}
-    self.terminations = {}
-    self.truncations = {}
-    self.infos = {}
 
-    self.c_envs = binding.env_init(
-      self._observations,
-      self._actions,
-      self._rewards,
-      self._terminals,
-      self._truncations,
-      int(seed or 0),
-    )
+def load_training_config(config_path: Path, forwarded_cli: Sequence[str]) -> dict:
+    parser = pufferl.make_parser()
+    original_argv = sys.argv[:]
+    sys.argv = [sys.argv[0], *forwarded_cli]
+    try:
+        return pufferl.load_config_file(str(config_path), fill_in_default=True, parser=parser)
+    finally:
+        sys.argv = original_argv
 
-  def observation_space(self, agent: str):
-    return build_observation_space()
 
-  def action_space(self, agent):
-    return self._action_space
-
-  def _player_index(self, agent) -> int:
-    if isinstance(agent, str):
-      if agent.startswith("player_"):
-        agent = agent.split("_")[-1]
-      agent = int(agent)
-    return int(agent)
-
-  def _raw_observation(self, agent_index: int):
-    return self._observation_struct[agent_index]
-
-  def _collect_observations(self):
-    return {
-      agent: observation_to_dict(self._raw_observation(idx))
-      for idx, agent in enumerate(self.possible_agents)
-    }
-
-  def observe(self, agent):
-    idx = self._player_index(agent)
-    return observation_to_dict(self._raw_observation(idx))
-
-  def reset(self, seed=None, options=None):
-    binding.env_reset(self.c_envs, int(seed or 0))
-    self._actions.fill(0)
-
-    self.agents = self.possible_agents[:]
-    self.agent_selection = self.agents[0]
-
-    self.rewards = {agent: 0.0 for agent in self.possible_agents}
-    self._cumulative_rewards = {agent: 0.0 for agent in self.possible_agents}
-    self.terminations = {agent: False for agent in self.possible_agents}
-    self.truncations = {agent: False for agent in self.possible_agents}
-    self.infos = {agent: {} for agent in self.possible_agents}
-
-    observation = self.observe(self.agent_selection)
-    return observation, self.infos[self.agent_selection]
-
-  def step(self, action):
-    if not self.agents:
-      raise RuntimeError("step() called on finished environment")
-
-    acting_agent = self.agent_selection
-    agent_idx = self._player_index(acting_agent)
-
-    encoded_action = np.asarray(action, dtype=np.int32)
-    if encoded_action.shape != (ACTION_COMPONENT_COUNT,):
-      raise ValueError(
-        f"AzukiTCG expects {ACTION_COMPONENT_COUNT} integers (type, subaction_1..3); got shape {encoded_action.shape}"
-      )
-
-    self._actions[agent_idx] = encoded_action
-    binding.env_step(self.c_envs)
-
-    reward = float(self._rewards[agent_idx])
-    termination = bool(self._terminals[agent_idx])
-    truncation = bool(self._truncations[agent_idx])
-    info = {}
-
-    self.rewards[acting_agent] = reward
-    self._cumulative_rewards[acting_agent] += reward
-    self.terminations[acting_agent] = termination
-    self.truncations[acting_agent] = truncation
-    self.infos[acting_agent] = info
-
-    observation = self.observe(acting_agent)
-
-    return observation, reward, termination, truncation, info
-
-def _decode_observations(puffer_env, observations):
-  """Convert flattened buffers back into structured dicts for debugging."""
-  space = getattr(puffer_env, "env_single_observation_space", None)
-  dtype = getattr(puffer_env, "obs_dtype", None)
-
-  if space is None or dtype is None:
-    # Fall back to any space/dtype combo we can find, or return the raw data.
-    space = getattr(puffer_env, "single_observation_space", None)
-    dtype = getattr(puffer_env, "obs_dtype", None)
-    if space is None or dtype is None:
-      return observations
-
-  return {
-    agent: nativize(obs, space, dtype)
-    for agent, obs in observations.items()
-  }
-
-if __name__ == '__main__':
-    env = AzukiTCG(seed=42)
+def make_azuki_env(**env_kwargs):
+    """Instantiate the wrapped Azuki env in the same order as the CLI."""
+    seed = env_kwargs.pop("seed", None)
+    env = AzukiTCG(seed=seed)
     env = turn_based_aec_to_parallel(env)
     env = MultiagentEpisodeStats(env)
     env = emulation.PettingZooPufferEnv(env)
-    observations, infos = env.reset()
-    print(_decode_observations(env, observations))
-    actions = {agent: env.action_space(agent).sample() for agent in env.agents}
-    print(actions)
-    observations, rewards, terminals, truncations, infos = env.step(actions)
-    print(_decode_observations(env, observations))
+    return env
+
+
+def build_vecenv(trainer_args: dict):
+    env_kwargs = dict(trainer_args.get("env", {}))
+    vec_kwargs = dict(trainer_args.get("vec", {}))
+    return pufferlib.vector.make(
+        functools.partial(make_azuki_env, **env_kwargs),
+        **vec_kwargs,
+    )
+
+
+def build_policy(vecenv, trainer_args: dict) -> torch.nn.Module:
+    policy_kwargs = dict(trainer_args.get("policy", {}))
+    hidden_size = policy_kwargs.get("hidden_size", 256)
+    policy = pufferlib.models.Default(vecenv.driver_env, hidden_size=hidden_size)
+    return policy.to(trainer_args["train"]["device"])
+
+
+def run_training(config_path: Path, forwarded_cli: Sequence[str]):
+    if not config_path.exists():
+        raise FileNotFoundError(f"Config file not found: {config_path}")
+
+    trainer_args = load_training_config(config_path, forwarded_cli)
+    trainer_args["train"]["env"] = trainer_args.get("env_name", "azuki_local")
+
+    vecenv = build_vecenv(trainer_args)
+    policy = build_policy(vecenv, trainer_args)
+    trainer = pufferl.PuffeRL(trainer_args["train"], vecenv, policy)
+
+    try:
+        while trainer.epoch < trainer.total_epochs:
+            trainer.evaluate()
+            logs = trainer.train()
+            if logs is not None:
+                print(f"[epoch {trainer.epoch}] {logs}")
+    finally:
+        trainer.print_dashboard()
+        trainer.close()
+
+
+def main():
+    script_args, forwarded_cli = parse_script_args()
+    run_training(script_args.config, forwarded_cli)
+
+
+if __name__ == "__main__":
+    main()
