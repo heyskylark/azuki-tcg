@@ -15,6 +15,7 @@ GARDEN_SIZE = 5
 ALLEY_SIZE = 5
 IKZ_PILE_SIZE = 10
 IKZ_AREA_SIZE = 10
+MAX_ATTACHED_WEAPONS = 10
 
 # Phase constants mirror include/components.h.
 PHASE_COUNT = 8
@@ -40,6 +41,10 @@ class _CurStats(ctypes.Structure):
     _fields_ = [("cur_atk", ctypes.c_int8), ("cur_hp", ctypes.c_int8)]
 
 
+class _BaseStats(ctypes.Structure):
+    _fields_ = [("attack", ctypes.c_int8), ("health", ctypes.c_int8)]
+
+
 class _GatePoints(ctypes.Structure):
     _fields_ = [("gate_points", ctypes.c_uint8)]
 
@@ -52,12 +57,23 @@ class _IKZCardObservationData(ctypes.Structure):
     ]
 
 
+class _WeaponObservationData(ctypes.Structure):
+    _fields_ = [
+        ("type", _Type),
+        ("id", _CardId),
+        ("base_stats", _BaseStats),
+        ("ikz_cost", _IKZCost),
+    ]
+
+
 class _LeaderCardObservationData(ctypes.Structure):
     _fields_ = [
         ("type", _Type),
         ("id", _CardId),
         ("cur_stats", _CurStats),
         ("tap_state", _TapState),
+        ("weapon_count", ctypes.c_uint8),
+        ("weapons", _WeaponObservationData * MAX_ATTACHED_WEAPONS),
     ]
 
 
@@ -81,6 +97,8 @@ class _CardObservationData(ctypes.Structure):
         ("cur_stats", _CurStats),
         ("has_gate_points", ctypes.c_bool),
         ("gate_points", _GatePoints),
+        ("weapon_count", ctypes.c_uint8),
+        ("weapons", _WeaponObservationData * MAX_ATTACHED_WEAPONS),
     ]
 
 
@@ -159,6 +177,8 @@ def _card_space(include_zone_index: bool) -> spaces.Dict:
         "health": _scalar_box(STAT_MIN, STAT_MAX, dtype=np.int16),
         "has_gate_points": _bool_space(),
         "gate_points": _scalar_box(0, GATE_POINT_MAX, dtype=np.uint8),
+        "weapon_count": _scalar_box(0, MAX_ATTACHED_WEAPONS, dtype=np.uint8),
+        "weapons": spaces.Tuple(tuple(_weapon_space() for _ in range(MAX_ATTACHED_WEAPONS))),
     }
 
     if not include_zone_index:
@@ -180,6 +200,18 @@ def _ikz_card_space() -> spaces.Dict:
     )
 
 
+def _weapon_space() -> spaces.Dict:
+    return spaces.Dict(
+        {
+            "type_id": _scalar_box(0, CARD_TYPE_MAX, dtype=np.uint8),
+            "card_id": _scalar_box(0, CARD_DEF_MAX, dtype=np.uint16),
+            "attack": _scalar_box(STAT_MIN, STAT_MAX, dtype=np.int16),
+            "health": _scalar_box(STAT_MIN, STAT_MAX, dtype=np.int16),
+            "ikz_cost": _scalar_box(IKZ_COST_MIN, IKZ_COST_MAX, dtype=np.int16),
+        }
+    )
+
+
 def _leader_space() -> spaces.Dict:
     return spaces.Dict(
         {
@@ -189,6 +221,8 @@ def _leader_space() -> spaces.Dict:
             "cooldown": _bool_space(),
             "attack": _scalar_box(STAT_MIN, STAT_MAX, dtype=np.int16),
             "health": _scalar_box(STAT_MIN, STAT_MAX, dtype=np.int16),
+            "weapon_count": _scalar_box(0, MAX_ATTACHED_WEAPONS, dtype=np.uint8),
+            "weapons": spaces.Tuple(tuple(_weapon_space() for _ in range(MAX_ATTACHED_WEAPONS))),
         }
     )
 
@@ -265,12 +299,29 @@ def _tap_fields(tap_state: Any) -> tuple[int, int]:
     return tapped, cooldown
 
 
+def _weapon_to_dict(weapon: Any) -> dict[str, int]:
+    base_stats = getattr(weapon, "base_stats", None)
+    return {
+        "type_id": _enum_value(getattr(weapon, "type", None)),
+        "card_id": _enum_value(getattr(weapon, "id", None), attr="id"),
+        "attack": int(getattr(base_stats, "attack", 0)) if base_stats else 0,
+        "health": int(getattr(base_stats, "health", 0)) if base_stats else 0,
+        "ikz_cost": int(getattr(getattr(weapon, "ikz_cost", None), "ikz_cost", 0)),
+    }
+
+
+def _weapon_array_to_tuple(weapons: Sequence[Any]) -> tuple[dict[str, int], ...]:
+    return tuple(_weapon_to_dict(weapon) for weapon in weapons)
+
+
 def _card_to_dict(card: Any) -> dict[str, int]:
     tapped, cooldown = _tap_fields(getattr(card, "tap_state", None))
     has_cur_stats = int(bool(getattr(card, "has_cur_stats", 0)))
     cur_stats = getattr(card, "cur_stats", None)
     has_zone_index = int(bool(getattr(card, "has_zone_index", 0)))
     has_gate_points = int(bool(getattr(card, "has_gate_points", 0)))
+    weapon_count = int(getattr(card, "weapon_count", 0))
+    weapon_entries = _weapon_array_to_tuple(getattr(card, "weapons", ()))
 
     return {
         "type_id": _enum_value(getattr(card, "type", None)),
@@ -287,6 +338,8 @@ def _card_to_dict(card: Any) -> dict[str, int]:
         "gate_points": int(getattr(getattr(card, "gate_points", None), "gate_points", 0))
         if has_gate_points
         else 0,
+        "weapon_count": weapon_count,
+        "weapons": weapon_entries,
     }
 
 
@@ -303,6 +356,8 @@ def _ikz_card_to_dict(card: Any) -> dict[str, int]:
 def _leader_to_dict(card: Any) -> dict[str, int]:
     tapped, cooldown = _tap_fields(getattr(card, "tap_state", None))
     cur_stats = getattr(card, "cur_stats", None)
+    weapon_count = int(getattr(card, "weapon_count", 0))
+    weapon_entries = _weapon_array_to_tuple(getattr(card, "weapons", ()))
     return {
         "type_id": _enum_value(getattr(card, "type", None)),
         "card_id": _enum_value(getattr(card, "id", None), attr="id"),
@@ -310,6 +365,8 @@ def _leader_to_dict(card: Any) -> dict[str, int]:
         "cooldown": cooldown,
         "attack": int(getattr(cur_stats, "cur_atk", 0)) if cur_stats else 0,
         "health": int(getattr(cur_stats, "cur_hp", 0)) if cur_stats else 0,
+        "weapon_count": weapon_count,
+        "weapons": weapon_entries,
     }
 
 

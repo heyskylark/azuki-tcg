@@ -1,4 +1,49 @@
 #include "utils/observation_util.h"
+#include "utils/cli_rendering_util.h"
+
+static WeaponObservationData get_weapon_observation(ecs_world_t *world, ecs_entity_t weapon_card) {
+  WeaponObservationData observation_data = {0};
+  observation_data.type = *ecs_get(world, weapon_card, Type);
+  observation_data.id = *ecs_get(world, weapon_card, CardId);
+  const BaseStats *base_stats = ecs_get(world, weapon_card, BaseStats);
+  if (base_stats != NULL) {
+    observation_data.base_stats = *base_stats;
+  }
+  const IKZCost *ikz_cost = ecs_get(world, weapon_card, IKZCost);
+  if (ikz_cost != NULL) {
+    observation_data.ikz_cost = *ikz_cost;
+  }
+  return observation_data;
+}
+
+static uint8_t set_attached_weapon_observations(ecs_world_t *world, ecs_entity_t parent_card, WeaponObservationData *weapons) {
+  uint8_t weapon_count = 0;
+  bool logged_overflow = false;
+  ecs_iter_t it = ecs_children(world, parent_card);
+  while (ecs_children_next(&it)) {
+    for (int i = 0; i < it.count; i++) {
+      ecs_entity_t child = it.entities[i];
+      if (!ecs_has_id(world, child, TWeapon)) {
+        continue;
+      }
+      if (weapon_count < MAX_ATTACHED_WEAPONS) {
+        weapons[weapon_count++] = get_weapon_observation(world, child);
+      } else if (!logged_overflow) {
+        const CardId *parent_card_id = ecs_get(world, parent_card, CardId);
+        const char *card_code = parent_card_id != NULL ? parent_card_id->code : "unknown";
+        cli_render_logf(
+          "[Observation] More than %d weapons attached to card %s (%d); truncating to %d",
+          MAX_ATTACHED_WEAPONS,
+          card_code,
+          parent_card,
+          MAX_ATTACHED_WEAPONS
+        );
+        logged_overflow = true;
+      }
+    }
+  }
+  return weapon_count;
+}
 
 static CardObservationData get_card_observation(ecs_world_t *world, ecs_entity_t card) {
   CardObservationData observation_data = {0};
@@ -31,6 +76,8 @@ static CardObservationData get_card_observation(ecs_world_t *world, ecs_entity_t
     observation_data.has_gate_points = false;
   }
 
+  observation_data.weapon_count = set_attached_weapon_observations(world, card, observation_data.weapons);
+
   return observation_data;
 }
 
@@ -53,6 +100,7 @@ static LeaderCardObservationData get_leader_card_observation(ecs_world_t *world,
   observation_data.id = *ecs_get(world, leader_card, CardId);
   observation_data.cur_stats = *ecs_get(world, leader_card, CurStats);
   observation_data.tap_state = *ecs_get(world, leader_card, TapState);
+  observation_data.weapon_count = set_attached_weapon_observations(world, leader_card, observation_data.weapons);
   return observation_data;
 }
 

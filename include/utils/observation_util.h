@@ -13,8 +13,17 @@ typedef struct {
 typedef struct {
   Type type;
   CardId id;
+  BaseStats base_stats;
+  IKZCost ikz_cost;
+} WeaponObservationData;
+
+typedef struct {
+  Type type;
+  CardId id;
   CurStats cur_stats;
   TapState tap_state;
+  uint8_t weapon_count;
+  WeaponObservationData weapons[MAX_ATTACHED_WEAPONS];
 } LeaderCardObservationData;
 
 typedef struct {
@@ -34,6 +43,8 @@ typedef struct {
   CurStats cur_stats;
   bool has_gate_points;
   GatePoints gate_points;
+  uint8_t weapon_count;
+  WeaponObservationData weapons[MAX_ATTACHED_WEAPONS];
 } CardObservationData;
 
 typedef struct {
