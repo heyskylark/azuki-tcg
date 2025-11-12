@@ -53,10 +53,10 @@ typedef struct {
   CardObservationData hand[MAX_HAND_SIZE];
   CardObservationData alley[ALLEY_SIZE];
   CardObservationData garden[GARDEN_SIZE];
+  CardObservationData discard[MAX_DECK_SIZE];
   IKZCardObservationData ikz_area[IKZ_AREA_SIZE];
   uint8_t deck_count;
   uint8_t ikz_pile_count;
-  uint8_t discard_count;
   bool has_ikz_token;
 } MyObservationData;
 
@@ -65,11 +65,11 @@ typedef struct {
   GateCardObservationData gate;
   CardObservationData alley[ALLEY_SIZE];
   CardObservationData garden[GARDEN_SIZE];
+  CardObservationData discard[MAX_DECK_SIZE];
   IKZCardObservationData ikz_area[IKZ_AREA_SIZE];
   uint8_t hand_count;
   uint8_t deck_count;
   uint8_t ikz_pile_count;
-  uint8_t discard_count;
   bool has_ikz_token;
 } OpponentObservationData;
 

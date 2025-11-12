@@ -827,10 +827,11 @@ static int draw_opponent_info_section(WINDOW *win, int row, int max_inner_row,
     return row;
   }
 
-  mvwprintw(win, row++, 4, "Hand: %u  IKZ Pile: %u  Discard: %u",
+  size_t discard_size = card_observation_count(data->discard, MAX_DECK_SIZE);
+  mvwprintw(win, row++, 4, "Hand: %u  IKZ Pile: %u  Discard: %zu",
             data->hand_count,
             data->ikz_pile_count,
-            data->discard_count);
+            discard_size);
   if (row > max_inner_row) {
     return row;
   }
@@ -855,10 +856,11 @@ static int draw_my_info_section(WINDOW *win, int row, int max_inner_row,
     return row;
   }
 
-  mvwprintw(win, row++, 4, "Hand: %zu  IKZ Pile: %u  Discard: %u",
+  size_t discard_size = card_observation_count(data->discard, MAX_DECK_SIZE);
+  mvwprintw(win, row++, 4, "Hand: %zu  IKZ Pile: %u  Discard: %zu",
             hand_count,
             data->ikz_pile_count,
-            data->discard_count);
+            discard_size);
   if (row > max_inner_row) {
     return row;
   }

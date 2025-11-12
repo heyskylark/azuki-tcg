@@ -81,10 +81,24 @@ static CardObservationData get_card_observation(ecs_world_t *world, ecs_entity_t
   return observation_data;
 }
 
-static void get_card_observation_array_for_zone(ecs_world_t *world, ecs_entity_t zone, CardObservationData *observation_data) {
+static void get_card_observation_array_for_zone(
+  ecs_world_t *world,
+  ecs_entity_t zone,
+  CardObservationData *observation_data,
+  size_t max_count
+) {
   ecs_entities_t cards = ecs_get_ordered_children(world, zone);
-  int32_t count = cards.count;
-  for (int32_t i = 0; i < count; i++) {
+  size_t count = cards.count;
+  if (count > max_count) {
+    cli_render_logf(
+      "[Observation] Zone %d has %zu cards; truncating to %zu for observation output",
+      zone,
+      count,
+      max_count
+    );
+    count = max_count;
+  }
+  for (size_t i = 0; i < count; i++) {
     ecs_entity_t card = cards.ids[i];
     observation_data[i] = get_card_observation(world, card);
   }
@@ -173,25 +187,25 @@ ObservationData create_observation_data(ecs_world_t *world, int8_t player_index)
   my_observation_data.leader = get_leader_card_observation(world, my_zones->leader);
   my_observation_data.gate = get_gate_card_observation(world, my_zones->gate);
   // TODO: Need to handle weapon and spell cards also
-  get_card_observation_array_for_zone(world, my_zones->hand, my_observation_data.hand);
-  get_card_observation_array_for_zone(world, my_zones->alley, my_observation_data.alley);
-  get_card_observation_array_for_zone(world, my_zones->garden, my_observation_data.garden);
+  get_card_observation_array_for_zone(world, my_zones->hand, my_observation_data.hand, MAX_HAND_SIZE);
+  get_card_observation_array_for_zone(world, my_zones->alley, my_observation_data.alley, ALLEY_SIZE);
+  get_card_observation_array_for_zone(world, my_zones->garden, my_observation_data.garden, GARDEN_SIZE);
+  get_card_observation_array_for_zone(world, my_zones->discard, my_observation_data.discard, MAX_DECK_SIZE);
   get_ikz_card_observations_for_zone(world, my_zones->ikz_area, my_observation_data.ikz_area);
   my_observation_data.deck_count = get_zone_card_count(world, my_zones->deck);
   my_observation_data.ikz_pile_count = get_zone_card_count(world, my_zones->ikz_pile);
-  my_observation_data.discard_count = get_zone_card_count(world, my_zones->discard);
   my_observation_data.has_ikz_token = player_has_ready_ikz_token(world, my_player);
 
   OpponentObservationData opponent_observation_data = {0};
   opponent_observation_data.leader = get_leader_card_observation(world, opponent_zones->leader);
   opponent_observation_data.gate = get_gate_card_observation(world, opponent_zones->gate);
-  get_card_observation_array_for_zone(world, opponent_zones->alley, opponent_observation_data.alley);
-  get_card_observation_array_for_zone(world, opponent_zones->garden, opponent_observation_data.garden);
+  get_card_observation_array_for_zone(world, opponent_zones->alley, opponent_observation_data.alley, ALLEY_SIZE);
+  get_card_observation_array_for_zone(world, opponent_zones->garden, opponent_observation_data.garden, GARDEN_SIZE);
+  get_card_observation_array_for_zone(world, opponent_zones->discard, opponent_observation_data.discard, MAX_DECK_SIZE);
   get_ikz_card_observations_for_zone(world, opponent_zones->ikz_area, opponent_observation_data.ikz_area);
   opponent_observation_data.hand_count = get_zone_card_count(world, opponent_zones->hand);
   opponent_observation_data.deck_count = get_zone_card_count(world, opponent_zones->deck);
   opponent_observation_data.ikz_pile_count = get_zone_card_count(world, opponent_zones->ikz_pile);
-  opponent_observation_data.discard_count = get_zone_card_count(world, opponent_zones->discard);
   opponent_observation_data.has_ikz_token = player_has_ready_ikz_token(world, opponent_player);
 
   ObservationData observation_data = {0};

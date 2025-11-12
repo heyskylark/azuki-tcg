@@ -109,10 +109,10 @@ class _MyObservationData(ctypes.Structure):
         ("hand", _CardObservationData * MAX_HAND_SIZE),
         ("alley", _CardObservationData * ALLEY_SIZE),
         ("garden", _CardObservationData * GARDEN_SIZE),
+        ("discard", _CardObservationData * MAX_DECK_SIZE),
         ("ikz_area", _IKZCardObservationData * IKZ_AREA_SIZE),
         ("deck_count", ctypes.c_uint8),
         ("ikz_pile_count", ctypes.c_uint8),
-        ("discard_count", ctypes.c_uint8),
         ("has_ikz_token", ctypes.c_bool),
     ]
 
@@ -123,11 +123,11 @@ class _OpponentObservationData(ctypes.Structure):
         ("gate", _GateCardObservationData),
         ("alley", _CardObservationData * ALLEY_SIZE),
         ("garden", _CardObservationData * GARDEN_SIZE),
+        ("discard", _CardObservationData * MAX_DECK_SIZE),
         ("ikz_area", _IKZCardObservationData * IKZ_AREA_SIZE),
         ("hand_count", ctypes.c_uint8),
         ("deck_count", ctypes.c_uint8),
         ("ikz_pile_count", ctypes.c_uint8),
-        ("discard_count", ctypes.c_uint8),
         ("has_ikz_token", ctypes.c_bool),
     ]
 
@@ -253,10 +253,10 @@ def build_observation_space() -> spaces.Dict:
             "hand": _card_zone_space(MAX_HAND_SIZE, include_zone_index=False),
             "alley": _card_zone_space(ALLEY_SIZE, include_zone_index=True),
             "garden": _card_zone_space(GARDEN_SIZE, include_zone_index=True),
+            "discard": _card_zone_space(MAX_DECK_SIZE, include_zone_index=False),
             "ikz_area": spaces.Tuple(tuple(_ikz_card_space() for _ in range(IKZ_AREA_SIZE))),
             "deck_count": _scalar_box(0, MAX_DECK_SIZE, dtype=np.uint8),
             "ikz_pile_count": _scalar_box(0, IKZ_PILE_SIZE, dtype=np.uint8),
-            "discard_count": _scalar_box(0, MAX_DECK_SIZE, dtype=np.uint8),
             "has_ikz_token": _bool_space(),
         }
     )
@@ -267,11 +267,11 @@ def build_observation_space() -> spaces.Dict:
             "gate": _gate_space(),
             "alley": _card_zone_space(ALLEY_SIZE, include_zone_index=True),
             "garden": _card_zone_space(GARDEN_SIZE, include_zone_index=True),
+            "discard": _card_zone_space(MAX_DECK_SIZE, include_zone_index=False),
             "ikz_area": spaces.Tuple(tuple(_ikz_card_space() for _ in range(IKZ_AREA_SIZE))),
             "hand_count": _scalar_box(0, MAX_HAND_SIZE, dtype=np.uint8),
             "deck_count": _scalar_box(0, MAX_DECK_SIZE, dtype=np.uint8),
             "ikz_pile_count": _scalar_box(0, IKZ_PILE_SIZE, dtype=np.uint8),
-            "discard_count": _scalar_box(0, MAX_DECK_SIZE, dtype=np.uint8),
             "has_ikz_token": _bool_space(),
         }
     )
@@ -411,10 +411,10 @@ def observation_to_dict(observation: Any) -> dict[str, Any]:
         "hand": _cards_to_tuple(getattr(my_obs, "hand", ()), include_zone_index=False),
         "alley": _cards_to_tuple(getattr(my_obs, "alley", ()), include_zone_index=True),
         "garden": _cards_to_tuple(getattr(my_obs, "garden", ()), include_zone_index=True),
+        "discard": _cards_to_tuple(getattr(my_obs, "discard", ()), include_zone_index=False),
         "ikz_area": _ikz_cards_to_tuple(getattr(my_obs, "ikz_area", ())),
         "deck_count": int(getattr(my_obs, "deck_count", 0)),
         "ikz_pile_count": int(getattr(my_obs, "ikz_pile_count", 0)),
-        "discard_count": int(getattr(my_obs, "discard_count", 0)),
         "has_ikz_token": int(bool(getattr(my_obs, "has_ikz_token", 0))),
     }
 
@@ -423,11 +423,11 @@ def observation_to_dict(observation: Any) -> dict[str, Any]:
         "gate": _gate_to_dict(getattr(opp_obs, "gate", None)),
         "alley": _cards_to_tuple(getattr(opp_obs, "alley", ()), include_zone_index=True),
         "garden": _cards_to_tuple(getattr(opp_obs, "garden", ()), include_zone_index=True),
+        "discard": _cards_to_tuple(getattr(opp_obs, "discard", ()), include_zone_index=False),
         "ikz_area": _ikz_cards_to_tuple(getattr(opp_obs, "ikz_area", ())),
         "hand_count": int(getattr(opp_obs, "hand_count", 0)),
         "deck_count": int(getattr(opp_obs, "deck_count", 0)),
         "ikz_pile_count": int(getattr(opp_obs, "ikz_pile_count", 0)),
-        "discard_count": int(getattr(opp_obs, "discard_count", 0)),
         "has_ikz_token": int(bool(getattr(opp_obs, "has_ikz_token", 0))),
     }
 
