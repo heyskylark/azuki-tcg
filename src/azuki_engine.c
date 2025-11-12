@@ -1,4 +1,5 @@
 #include "azuki/engine.h"
+#include <math.h>
 
 #include "systems/phase_gate.h"
 #include "utils/phase_utils.h"
@@ -101,4 +102,98 @@ bool azk_engine_build_action_mask(
   }
 
   return azk_build_action_mask_for_player(engine, gs, player_index, out_mask);
+}
+
+static float clamp01(float value) {
+  if (value < 0.0f) {
+    return 0.0f;
+  }
+  if (value > 1.0f) {
+    return 1.0f;
+  }
+  return value;
+}
+
+static float compute_leader_health_ratio(ecs_world_t *world, ecs_entity_t leader_zone) {
+  ecs_entities_t leader_cards = ecs_get_ordered_children(world, leader_zone);
+  ecs_assert(leader_cards.count > 0, ECS_INVALID_PARAMETER, "Leader zone has no cards");
+
+  ecs_entity_t leader_card = leader_cards.ids[0];
+  const CurStats *cur_stats = ecs_get(world, leader_card, CurStats);
+  ecs_assert(cur_stats != NULL, ECS_INVALID_PARAMETER, "Leader card has no CurStats component");
+  const BaseStats *base_stats = ecs_get(world, leader_card, BaseStats);
+  ecs_assert(base_stats != NULL, ECS_INVALID_PARAMETER, "Leader card has no BaseStats component");
+  if (base_stats->health <= 0) {
+    return 0.0f;
+  }
+
+  float ratio = (float)cur_stats->cur_hp / (float)base_stats->health;
+  return clamp01(ratio);
+}
+
+static void compute_garden_features(
+  ecs_world_t *world,
+  ecs_entity_t garden_zone,
+  float *out_attack_sum,
+  float *out_untapped_count
+) {
+  float attack_sum = 0.0f;
+  float untapped = 0.0f;
+  ecs_entities_t cards = ecs_get_ordered_children(world, garden_zone);
+  for (int32_t i = 0; i < cards.count; ++i) {
+    ecs_entity_t card = cards.ids[i];
+    const CurStats *cur_stats = ecs_get(world, card, CurStats);
+    ecs_assert(cur_stats != NULL, ECS_INVALID_PARAMETER, "Card %d has no CurStats component", card);
+    attack_sum += (float)cur_stats->cur_atk;
+
+    const TapState *tap_state = ecs_get(world, card, TapState);
+    ecs_assert(tap_state != NULL, ECS_INVALID_PARAMETER, "Card %d has no TapState component", card);
+
+    if (!tap_state->tapped && !tap_state->cooldown) {
+      untapped += 1.0f;
+    }
+  }
+  *out_attack_sum = attack_sum;
+  *out_untapped_count = untapped;
+}
+
+static float count_untapped_cards_in_zone(ecs_world_t *world, ecs_entity_t zone) {
+  float untapped = 0.0f;
+  ecs_entities_t cards = ecs_get_ordered_children(world, zone);
+  for (int32_t i = 0; i < cards.count; ++i) {
+    ecs_entity_t card = cards.ids[i];
+    const TapState *tap_state = ecs_get(world, card, TapState);
+    ecs_assert(tap_state != NULL, ECS_INVALID_PARAMETER, "Card %s has no TapState component", card);
+
+    if (!tap_state->tapped && !tap_state->cooldown) {
+      untapped += 1.0f;
+    }
+  }
+  return untapped;
+}
+
+bool azk_engine_reward_snapshot(AzkEngine *engine, AzkRewardSnapshot *out_snapshot) {
+  if (!engine || !out_snapshot) {
+    return false;
+  }
+
+  const GameState *gs = ecs_singleton_get(engine, GameState);
+  if (!gs) {
+    return false;
+  }
+
+  for (int player_index = 0; player_index < MAX_PLAYERS_PER_MATCH; ++player_index) {
+    const PlayerZones *zones = &gs->zones[player_index];
+    out_snapshot->leader_health_ratio[player_index] =
+      compute_leader_health_ratio(engine, zones->leader);
+    float garden_attack = 0.0f;
+    float untapped_garden = 0.0f;
+    compute_garden_features(engine, zones->garden, &garden_attack, &untapped_garden);
+    out_snapshot->garden_attack_sum[player_index] = garden_attack;
+    out_snapshot->untapped_garden_count[player_index] = untapped_garden;
+    out_snapshot->untapped_ikz_count[player_index] =
+      count_untapped_cards_in_zone(engine, zones->ikz_area);
+  }
+
+  return true;
 }

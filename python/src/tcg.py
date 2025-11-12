@@ -177,10 +177,11 @@ class AzukiTCG(AECEnv):
     self._actions[agent_idx] = encoded_action
     binding.env_step(self.c_envs)
 
-    reward = float(self._rewards[agent_idx])
+    for idx, agent in enumerate(self.possible_agents):
+      self.rewards[agent] = float(self._rewards[idx])
+    reward = self.rewards[acting_agent]
     info = {}
 
-    self.rewards[acting_agent] = reward
     self.infos[acting_agent] = info
     self._accumulate_rewards()
     self._sync_done_flags()

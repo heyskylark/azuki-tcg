@@ -74,6 +74,15 @@ bool azk_engine_build_action_mask(
   AzkActionMaskSet *out_mask
 );
 
+typedef struct {
+  float leader_health_ratio[MAX_PLAYERS_PER_MATCH];
+  float garden_attack_sum[MAX_PLAYERS_PER_MATCH];
+  float untapped_garden_count[MAX_PLAYERS_PER_MATCH];
+  float untapped_ikz_count[MAX_PLAYERS_PER_MATCH];
+} AzkRewardSnapshot;
+
+bool azk_engine_reward_snapshot(AzkEngine *engine, AzkRewardSnapshot *out_snapshot);
+
 #ifdef __cplusplus
 }
 #endif
