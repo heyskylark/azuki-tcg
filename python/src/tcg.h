@@ -283,10 +283,20 @@ void c_step(CAzukiTCG* env) {
     abort();
   }
 
+  bool checked_action_tick = false;
+
   // Some sub-actions do not require a user action
   // We should progress those until a user action is required (or the game ends)
   do {
     azk_engine_tick(env->engine);
+
+    if (!checked_action_tick) {
+      checked_action_tick = true;
+      if (azk_engine_was_prev_action_invalid(env->engine)) {
+        fprintf(stderr, "Invalid action detected at tick %d\n", env->tick);
+        abort();
+      }
+    }
   } while (!azk_engine_requires_action(env->engine) && !azk_engine_is_game_over(env->engine));
 
   if (azk_engine_is_game_over(env->engine)) {
@@ -295,7 +305,7 @@ void c_step(CAzukiTCG* env) {
   }
 
   refresh_observations(env);
-  
+
   if (azk_engine_is_game_over(env->engine)) {
     apply_terminal_rewards(env);
     return;

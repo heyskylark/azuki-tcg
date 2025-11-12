@@ -87,6 +87,16 @@ void azk_engine_tick(AzkEngine *engine) {
   ecs_progress(engine, 0);
 }
 
+bool azk_engine_was_prev_action_invalid(AzkEngine *engine) {
+  if (!engine) {
+    return false;
+  }
+
+  const ActionContext *ac = ecs_singleton_get(engine, ActionContext);
+  ecs_assert(ac != NULL, ECS_INVALID_PARAMETER, "Action context is NULL before checking if previous action was invalid");
+  return ac->invalid_action;
+}
+
 bool azk_engine_build_action_mask(
   AzkEngine *engine,
   int8_t player_index,
