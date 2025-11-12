@@ -66,6 +66,11 @@ bool azk_engine_submit_action(AzkEngine *engine, const UserAction *action);
 void azk_engine_tick(AzkEngine *engine);
 
 /**
+ * Returns true if the previous action was invalid.
+ */
+bool azk_engine_was_prev_action_invalid(AzkEngine *engine);
+
+/**
  * Build the legal action mask for the requested player.
  */
 bool azk_engine_build_action_mask(
