@@ -293,7 +293,15 @@ void c_step(CAzukiTCG* env) {
     if (!checked_action_tick) {
       checked_action_tick = true;
       if (azk_engine_was_prev_action_invalid(env->engine)) {
-        fprintf(stderr, "Invalid action detected at tick %d\n", env->tick);
+        fprintf(
+          stderr,
+          "Invalid action detected at tick %d: [%d, %d, %d, %d]\n",
+          env->tick,
+          action.type,
+          action.subaction_1,
+          action.subaction_2,
+          action.subaction_3
+        ); 
         abort();
       }
     }
