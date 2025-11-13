@@ -188,8 +188,6 @@ class TCG(nn.Module):
     )
 
     #### Process Set Processors ####
-    
-
     # Input: type emb, card id emb, zone index emb, is tapped
     IKZ_AREA_SET_INPUT_SIZE = CARD_TYPE_ENC_OUTPUT_SIZE + CARD_ID_ENC_OUTPUT_SIZE + INDEX_ENC_OUTPUT_SIZE + 1
     self.ally_ikz_area_set_processor = ProcessSetProcessor(IKZ_AREA_SET_INPUT_SIZE)
