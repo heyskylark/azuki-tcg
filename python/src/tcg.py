@@ -121,6 +121,9 @@ class AzukiTCG(AECEnv):
     if info is None:
       return
 
+    # TODO: Probably going to need to pass mask through observation space
+    # TODO: Need to handle enumurate masking (one subaction might mean the subactions next subactions are completely different)
+    # TODO: But before obs, maybe look into passing through modified pufferlib code.
     payload = mask_payloads[self._player_index(acting_agent)]
     info["head0_mask"] = payload["head0_mask"]
     info["legal_actions"] = payload["legal_actions"]
