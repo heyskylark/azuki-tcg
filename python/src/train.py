@@ -8,9 +8,14 @@ from typing import Sequence
 
 import torch
 from pettingzoo.utils.conversions import turn_based_aec_to_parallel
-import pufferlib.models
 import pufferlib.vector
 from pufferlib import MultiagentEpisodeStats, emulation, pufferl
+from policy.tcg_policy import (
+    LSTM_HIDDEN_SIZE,
+    PROCESS_SET_OUTPUT_SIZE,
+    TCG,
+    TCGLSTM,
+)
 
 # Ensure the compiled binding in build/python/src is importable before we pull in tcg.
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -66,9 +71,25 @@ def build_vecenv(trainer_args: dict):
 
 
 def build_policy(vecenv, trainer_args: dict) -> torch.nn.Module:
-    policy_kwargs = dict(trainer_args.get("policy", {}))
-    hidden_size = policy_kwargs.get("hidden_size", 256)
-    policy = pufferlib.models.Default(vecenv.driver_env, hidden_size=hidden_size)
+    # policy_kwargs = dict(trainer_args.get("policy", {}))
+    # lstm_kwargs = dict(policy_kwargs.pop("lstm", {}))
+
+    # legacy_hidden_size = policy_kwargs.pop("hidden_size", None)
+    # if legacy_hidden_size is not None and "hidden_size" not in lstm_kwargs:
+    #     lstm_kwargs["hidden_size"] = legacy_hidden_size
+
+    base_policy = TCG(
+        vecenv.driver_env,
+        # **policy_kwargs
+    )
+    # input_size = lstm_kwargs.pop("input_size", PROCESS_SET_OUTPUT_SIZE)
+    # hidden_size = lstm_kwargs.pop("hidden_size", LSTM_HIDDEN_SIZE)
+    policy = TCGLSTM(
+        vecenv.driver_env,
+        base_policy
+        # input_size=input_size,
+        # hidden_size=hidden_size,
+    )
     return policy.to(trainer_args["train"]["device"])
 
 

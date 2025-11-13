@@ -22,12 +22,13 @@ GAME_PHASE_ENC_OUTPUT_SIZE = 4
 PRIMARY_ACTION_ENC_OUTPUT_SIZE = 4
 INDEX_ENC_OUTPUT_SIZE = 16
 
+LSTM_INPUT_SIZE = 64
 LSTM_HIDDEN_SIZE = 4096
 PROCESS_SET_HIDDEN_SIZE = 256
 PROCESS_SET_OUTPUT_SIZE = 64
 
 class TCGLSTM(pufferlib.models.LSTMWrapper):
-  def __init__(self, env, policy, input_size=512, hidden_size=LSTM_HIDDEN_SIZE):
+  def __init__(self, env, policy, input_size=LSTM_INPUT_SIZE, hidden_size=LSTM_HIDDEN_SIZE):
     super().__init__(env, policy, input_size, hidden_size)
 
   def _split_encoded(self, encoded):
@@ -143,6 +144,7 @@ class TCG(nn.Module):
     super().__init__()
 
     self.value_fn = pufferlib.pytorch.layer_init(nn.Linear(PROCESS_SET_OUTPUT_SIZE, 1), std=1)
+    self.is_continuous = False
 
     # Categorical encodings
     self.owner_encoder = nn.Sequential(
@@ -224,9 +226,10 @@ class TCG(nn.Module):
     self.opponent_discard_set_processor = ProcessSetProcessor(HAND_AND_DISCARD_SET_INPUT_SIZE)
 
     #### Observation structure dtype ####
-    self._obs_struct_dtype = getattr(env, "obs_dtype", None)
-    if self._obs_struct_dtype is None:
-      raise AttributeError("env must expose obs_dtype for nativize")
+    emulated_spec = getattr(env, "emulated", None)
+    if emulated_spec is None:
+      raise AttributeError("env must expose emulated metadata for nativize")
+    self._obs_struct_dtype = pufferlib.pytorch.nativize_dtype(emulated_spec)
 
   def __batch_embed_primary_actions(self):
     embeddings = self.primary_action_encoder[0](self.primary_action_id_batch)
@@ -240,7 +243,7 @@ class TCG(nn.Module):
 
     type_embeddings = self.card_type_encoder[0](type_ids)
     card_embeddings = self.card_id_encoder[0](card_ids)
-    hand_index_embeddings = self.hand_index_encoder[0](hand_indices)
+    hand_index_embeddings = self.index_encoder[0](hand_indices)
 
     scalar_stack = torch.stack(
       [
@@ -287,9 +290,16 @@ class TCG(nn.Module):
     structured_obs = pufferlib.pytorch.nativize_tensor(obs_tensor, self._obs_struct_dtype)
     player_obs = structured_obs["player"]
     hand = player_obs["hand"]
+    if isinstance(hand, dict):
+      hand_slots = [hand[key] for key in sorted(hand.keys())]
+    else:
+      hand_slots = hand
 
     def stack_hand_field(field_name):
-      return torch.stack([slot[field_name] for slot in hand], dim=1)
+      stacked = torch.stack([slot[field_name] for slot in hand_slots], dim=1)
+      if stacked.size(-1) == 1:
+        stacked = stacked.squeeze(-1)
+      return stacked
 
     hand_type_tensor = stack_hand_field("type_id")
     hand_card_tensor = stack_hand_field("card_id")
