@@ -9,7 +9,10 @@ CARD_TYPE_COUNT = 7
 CARD_ID_COUNT = 37
 GAME_PHASE_COUNT = 8
 PRIMARY_ACTION_COUNT = 15
+PRIMARY_ACTION_ID_BATCH = tuple(range(PRIMARY_ACTION_COUNT))
 MAX_INDEX_SIZE = 50
+ACT_ATTACK = 6
+ACT_ATTACH_WEAPON_FROM_HAND = 7
 
 OWNER_ENC_OUTPUT_SIZE = 4
 GARDEN_OR_ALLEY_ENC_OUTPUT_SIZE = 4
@@ -19,11 +22,12 @@ GAME_PHASE_ENC_OUTPUT_SIZE = 4
 PRIMARY_ACTION_ENC_OUTPUT_SIZE = 4
 INDEX_ENC_OUTPUT_SIZE = 16
 
+LSTM_HIDDEN_SIZE = 4096
 PROCESS_SET_HIDDEN_SIZE = 256
 PROCESS_SET_OUTPUT_SIZE = 64
 
 class TCGLSTM(pufferlib.models.LSTMWrapper):
-  def __init__(self, env, policy, input_size=512, hidden_size=4096):
+  def __init__(self, env, policy, input_size=512, hidden_size=LSTM_HIDDEN_SIZE):
     super().__init__(env, policy, input_size, hidden_size)
 
   def _split_encoded(self, encoded):
@@ -138,6 +142,8 @@ class TCG(nn.Module):
   def __init__(self, env, **kwargs):
     super().__init__()
 
+    self.value_fn = pufferlib.pytorch.layer_init(nn.Linear(PROCESS_SET_OUTPUT_SIZE, 1), std=1)
+
     # Categorical encodings
     self.owner_encoder = nn.Sequential(
       nn.Embedding(MAX_PLAYERS_PER_MATCH, OWNER_ENC_OUTPUT_SIZE),
@@ -164,9 +170,14 @@ class TCG(nn.Module):
       nn.Flatten(),
     )
     self.primary_action_encoder = nn.Sequential(
-      nn.Embedding(PRIMARY_ACTION_COUNT, PRIMARY_ACTION_ENC_OUTPUT_SIZE),
+      nn.Embedding(PRIMARY_ACTION_COUNT, PROCESS_SET_OUTPUT_SIZE),
       nn.Flatten(),
     )
+    self.register_buffer(
+      "primary_action_id_batch",
+      torch.tensor(PRIMARY_ACTION_ID_BATCH, dtype=torch.long),
+    )
+    self._primary_action_embedding_batch = None
 
     #### Single Unit Projectors ####
     # Input: type emb, card id emb, weapons set emb, attack, health, is_tapped
@@ -186,6 +197,14 @@ class TCG(nn.Module):
     self.opponent_gate_projector = SingleUnitProjection(
       GATE_FEATURES_INPUT_SIZE
     )
+
+    self.gate_1_embeder = nn.Embedding(PRIMARY_ACTION_COUNT, PROCESS_SET_OUTPUT_SIZE)
+    self.gate_2_embeder = nn.Embedding(PRIMARY_ACTION_COUNT, PROCESS_SET_OUTPUT_SIZE)
+    self.q_primary = nn.Linear(LSTM_HIDDEN_SIZE, PROCESS_SET_OUTPUT_SIZE)
+    self.q_unit1 = nn.Linear(LSTM_HIDDEN_SIZE, PROCESS_SET_OUTPUT_SIZE)
+    self.q_unit2 = nn.Linear(LSTM_HIDDEN_SIZE, PROCESS_SET_OUTPUT_SIZE)
+    self.q_bins2 = nn.Linear(LSTM_HIDDEN_SIZE, MAX_INDEX_SIZE)
+    self.q_bins3 = nn.Linear(LSTM_HIDDEN_SIZE, MAX_INDEX_SIZE)
 
     #### Process Set Processors ####
     # Input: type emb, card id emb, zone index emb, is tapped
@@ -208,6 +227,11 @@ class TCG(nn.Module):
     self._obs_struct_dtype = getattr(env, "obs_dtype", None)
     if self._obs_struct_dtype is None:
       raise AttributeError("env must expose obs_dtype for nativize")
+
+  def __batch_embed_primary_actions(self):
+    embeddings = self.primary_action_encoder[0](self.primary_action_id_batch)
+    self._primary_action_embedding_batch = embeddings
+    return embeddings
 
   def __process_hand(self, hand_features):
     card_ids = hand_features["card_id"].long()
@@ -301,6 +325,10 @@ class TCG(nn.Module):
     if squeeze_batch:
       obs_tensor = obs_tensor.unsqueeze(0)
 
+    primary_action_embeddings = self.__batch_embed_primary_actions()
+    if state is not None:
+      state["primary_action_embeddings"] = primary_action_embeddings
+
     hand_features = self.__get_organized_obs_data(obs_tensor)
     
     target_matrix, target_vector = self.__process_hand(hand_features)
@@ -312,4 +340,82 @@ class TCG(nn.Module):
     return target_vector, target_matrix
 
   def decode_actions(self, flat_hidden, target_matrix=None):
-    raise NotImplementedError("TCG decode actions not implemented")
+    if target_matrix is None:
+      raise ValueError("decode_actions requires target_matrix for unit selections")
+
+    if target_matrix.dim() == 2:
+      target_matrix = target_matrix.unsqueeze(0)
+    elif target_matrix.dim() == 1:
+      target_matrix = target_matrix.unsqueeze(0).unsqueeze(0)
+
+    primary_action_embeddings = self.__batch_embed_primary_actions()
+
+    projected_hidden = self.q_primary(flat_hidden)
+    unit1_projected_hidden = self.q_unit1(flat_hidden)
+    unit2_projected_hidden = self.q_unit2(flat_hidden)
+    bins2_projected_hidden = self.q_bins2(flat_hidden)
+    bins3_projected_hidden = self.q_bins3(flat_hidden)
+
+    if projected_hidden.dim() == 1:
+      projected_hidden = projected_hidden.unsqueeze(0)
+    if unit1_projected_hidden.dim() == 1:
+      unit1_projected_hidden = unit1_projected_hidden.unsqueeze(0)
+    if unit2_projected_hidden.dim() == 1:
+      unit2_projected_hidden = unit2_projected_hidden.unsqueeze(0)
+    if bins2_projected_hidden.dim() == 1:
+      bins2_projected_hidden = bins2_projected_hidden.unsqueeze(0)
+    if bins3_projected_hidden.dim() == 1:
+      bins3_projected_hidden = bins3_projected_hidden.unsqueeze(0)
+
+    def _pad_or_trim_to_index_dim(tensor: torch.Tensor) -> torch.Tensor:
+      current = tensor.size(-1)
+      target = MAX_INDEX_SIZE
+      if current == target:
+        return tensor
+      if current > target:
+        return tensor[..., :target]
+      pad_size = target - current
+      pad_shape = (*tensor.shape[:-1], pad_size)
+      pad_value = torch.finfo(tensor.dtype).min
+      pad_tensor = torch.full(pad_shape, pad_value, device=tensor.device, dtype=tensor.dtype)
+      return torch.cat([tensor, pad_tensor], dim=-1)
+
+    primary_action_logits = projected_hidden @ primary_action_embeddings.T
+    chosen_action = primary_action_logits.argmax(dim=-1)
+
+    gate_1_weights = torch.sigmoid(self.gate_1_embeder(chosen_action)).unsqueeze(1)
+    gate_2_weights = torch.sigmoid(self.gate_2_embeder(chosen_action)).unsqueeze(1)
+
+    unit1_logits = torch.sum(
+      (target_matrix * gate_1_weights) * unit1_projected_hidden.unsqueeze(1),
+      dim=-1,
+    )
+    unit2_logits = torch.sum(
+      (target_matrix * gate_2_weights) * unit2_projected_hidden.unsqueeze(1),
+      dim=-1,
+    )
+
+    unit1_logits = _pad_or_trim_to_index_dim(unit1_logits)
+    unit2_logits = _pad_or_trim_to_index_dim(unit2_logits)
+
+    bins2_logits = bins2_projected_hidden
+    bins3_logits = bins3_projected_hidden
+
+    requires_unit_subaction2 = (chosen_action == ACT_ATTACK) | (chosen_action == ACT_ATTACH_WEAPON_FROM_HAND)
+    requires_unit_subaction2 = requires_unit_subaction2.unsqueeze(-1)
+    subaction2_logits = torch.where(
+      requires_unit_subaction2,
+      unit2_logits,
+      bins2_logits,
+    )
+
+    logits = (
+      primary_action_logits,
+      unit1_logits,
+      subaction2_logits,
+      bins3_logits,
+    )
+
+    values = self.value_fn(projected_hidden)
+    
+    return logits, values
