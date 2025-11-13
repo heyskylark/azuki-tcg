@@ -45,20 +45,14 @@ static uint8_t set_attached_weapon_observations(ecs_world_t *world, ecs_entity_t
   return weapon_count;
 }
 
-static CardObservationData get_card_observation(ecs_world_t *world, ecs_entity_t card) {
+static CardObservationData get_card_observation(ecs_world_t *world, ecs_entity_t card, uint8_t fallback_zone_index) {
   CardObservationData observation_data = {0};
   observation_data.type = *ecs_get(world, card, Type);
   observation_data.id = *ecs_get(world, card, CardId);
   observation_data.tap_state = *ecs_get(world, card, TapState);
   observation_data.ikz_cost = *ecs_get(world, card, IKZCost);
   const ZoneIndex *zone_index = ecs_get(world, card, ZoneIndex);
-  if (zone_index != NULL) {
-    observation_data.has_zone_index = true;
-    observation_data.zone_index = zone_index->index;
-  } else {
-    observation_data.has_zone_index = false;
-    observation_data.zone_index = 0;
-  }
+  observation_data.zone_index = zone_index != NULL ? zone_index->index : fallback_zone_index;
 
   const CurStats *cur_stats = ecs_get(world, card, CurStats);
   if (cur_stats != NULL) {
@@ -100,7 +94,7 @@ static void get_card_observation_array_for_zone(
   }
   for (size_t i = 0; i < count; i++) {
     ecs_entity_t card = cards.ids[i];
-    observation_data[i] = get_card_observation(world, card);
+    observation_data[i] = get_card_observation(world, card, (uint8_t)i);
   }
 }
 
@@ -130,11 +124,13 @@ static GateCardObservationData get_gate_card_observation(ecs_world_t *world, ecs
   return observation_data;
 }
   
-static IKZCardObservationData get_ikz_card_observation(ecs_world_t *world, ecs_entity_t card) {
+static IKZCardObservationData get_ikz_card_observation(ecs_world_t *world, ecs_entity_t card, uint8_t fallback_zone_index) {
   IKZCardObservationData observation_data = {0};
   observation_data.type = *ecs_get(world, card, Type);
   observation_data.id = *ecs_get(world, card, CardId);
   observation_data.tap_state = *ecs_get(world, card, TapState);
+  const ZoneIndex *zone_index = ecs_get(world, card, ZoneIndex);
+  observation_data.zone_index = zone_index != NULL ? zone_index->index : fallback_zone_index;
   return observation_data;
 }
 
@@ -143,7 +139,7 @@ static void get_ikz_card_observations_for_zone(ecs_world_t *world, ecs_entity_t 
   int32_t count = cards.count;
   for (int32_t i = 0; i < count; i++) {
     ecs_entity_t card = cards.ids[i];
-    observation_data[i] = get_ikz_card_observation(world, card);
+    observation_data[i] = get_ikz_card_observation(world, card, (uint8_t)i);
   }
 }
 

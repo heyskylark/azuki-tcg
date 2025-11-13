@@ -698,7 +698,7 @@ static int draw_card_grid_section(WINDOW *win, int row, int max_inner_row, const
           continue;
         }
         size_t target_index = max_count;
-        if (card->has_zone_index && card->zone_index < max_count && !slot_has_card[card->zone_index]) {
+        if (card->zone_index < max_count && !slot_has_card[card->zone_index]) {
           target_index = card->zone_index;
         }
         if (target_index == max_count) {

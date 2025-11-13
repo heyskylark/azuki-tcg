@@ -54,6 +54,7 @@ class _IKZCardObservationData(ctypes.Structure):
         ("type", _Type),
         ("id", _CardId),
         ("tap_state", _TapState),
+        ("zone_index", ctypes.c_uint8),
     ]
 
 
@@ -91,7 +92,6 @@ class _CardObservationData(ctypes.Structure):
         ("id", _CardId),
         ("tap_state", _TapState),
         ("ikz_cost", _IKZCost),
-        ("has_zone_index", ctypes.c_bool),
         ("zone_index", ctypes.c_uint8),
         ("has_cur_stats", ctypes.c_bool),
         ("cur_stats", _CurStats),
@@ -170,7 +170,6 @@ def _card_space(include_zone_index: bool) -> spaces.Dict:
         "tapped": _bool_space(),
         "cooldown": _bool_space(),
         "ikz_cost": _scalar_box(IKZ_COST_MIN, IKZ_COST_MAX, dtype=np.int16),
-        "has_zone_index": _bool_space(),
         "zone_index": _scalar_box(0, ZONE_INDEX_MAX, dtype=np.uint8),
         "has_cur_stats": _bool_space(),
         "attack": _scalar_box(STAT_MIN, STAT_MAX, dtype=np.int16),
@@ -182,8 +181,6 @@ def _card_space(include_zone_index: bool) -> spaces.Dict:
     }
 
     if not include_zone_index:
-        # Hand cards never expose zone indices; force observers to treat the
-        # value as padding by constraining it to zero.
         card_dict["zone_index"] = _scalar_box(0, 0, dtype=np.uint8)
 
     return spaces.Dict(card_dict)
@@ -196,6 +193,7 @@ def _ikz_card_space() -> spaces.Dict:
             "card_id": _scalar_box(0, CARD_DEF_MAX, dtype=np.uint16),
             "tapped": _bool_space(),
             "cooldown": _bool_space(),
+            "zone_index": _scalar_box(0, ZONE_INDEX_MAX, dtype=np.uint8),
         }
     )
 
@@ -250,10 +248,10 @@ def build_observation_space() -> spaces.Dict:
         {
             "leader": _leader_space(),
             "gate": _gate_space(),
-            "hand": _card_zone_space(MAX_HAND_SIZE, include_zone_index=False),
+            "hand": _card_zone_space(MAX_HAND_SIZE, include_zone_index=True),
             "alley": _card_zone_space(ALLEY_SIZE, include_zone_index=True),
             "garden": _card_zone_space(GARDEN_SIZE, include_zone_index=True),
-            "discard": _card_zone_space(MAX_DECK_SIZE, include_zone_index=False),
+            "discard": _card_zone_space(MAX_DECK_SIZE, include_zone_index=True),
             "ikz_area": spaces.Tuple(tuple(_ikz_card_space() for _ in range(IKZ_AREA_SIZE))),
             "deck_count": _scalar_box(0, MAX_DECK_SIZE, dtype=np.uint8),
             "ikz_pile_count": _scalar_box(0, IKZ_PILE_SIZE, dtype=np.uint8),
@@ -267,7 +265,7 @@ def build_observation_space() -> spaces.Dict:
             "gate": _gate_space(),
             "alley": _card_zone_space(ALLEY_SIZE, include_zone_index=True),
             "garden": _card_zone_space(GARDEN_SIZE, include_zone_index=True),
-            "discard": _card_zone_space(MAX_DECK_SIZE, include_zone_index=False),
+            "discard": _card_zone_space(MAX_DECK_SIZE, include_zone_index=True),
             "ikz_area": spaces.Tuple(tuple(_ikz_card_space() for _ in range(IKZ_AREA_SIZE))),
             "hand_count": _scalar_box(0, MAX_HAND_SIZE, dtype=np.uint8),
             "deck_count": _scalar_box(0, MAX_DECK_SIZE, dtype=np.uint8),
@@ -318,7 +316,6 @@ def _card_to_dict(card: Any) -> dict[str, int]:
     tapped, cooldown = _tap_fields(getattr(card, "tap_state", None))
     has_cur_stats = int(bool(getattr(card, "has_cur_stats", 0)))
     cur_stats = getattr(card, "cur_stats", None)
-    has_zone_index = int(bool(getattr(card, "has_zone_index", 0)))
     has_gate_points = int(bool(getattr(card, "has_gate_points", 0)))
     weapon_count = int(getattr(card, "weapon_count", 0))
     weapon_entries = _weapon_array_to_tuple(getattr(card, "weapons", ()))
@@ -329,8 +326,7 @@ def _card_to_dict(card: Any) -> dict[str, int]:
         "tapped": tapped,
         "cooldown": cooldown,
         "ikz_cost": int(getattr(getattr(card, "ikz_cost", None), "ikz_cost", 0)),
-        "has_zone_index": has_zone_index,
-        "zone_index": int(getattr(card, "zone_index", 0)) if has_zone_index else 0,
+        "zone_index": int(getattr(card, "zone_index", 0)),
         "has_cur_stats": has_cur_stats,
         "attack": int(getattr(cur_stats, "cur_atk", 0)) if has_cur_stats else 0,
         "health": int(getattr(cur_stats, "cur_hp", 0)) if has_cur_stats else 0,
@@ -350,6 +346,7 @@ def _ikz_card_to_dict(card: Any) -> dict[str, int]:
         "card_id": _enum_value(getattr(card, "id", None), attr="id"),
         "tapped": tapped,
         "cooldown": cooldown,
+        "zone_index": int(getattr(card, "zone_index", 0)),
     }
 
 
@@ -389,7 +386,6 @@ def _cards_to_tuple(cards: Sequence[Any], *, include_zone_index: bool) -> tuple[
     sanitized: list[dict[str, int]] = []
     for entry in card_dicts:
         copy = dict(entry)
-        copy["has_zone_index"] = 0
         copy["zone_index"] = 0
         sanitized.append(copy)
     return tuple(sanitized)
@@ -408,10 +404,10 @@ def observation_to_dict(observation: Any) -> dict[str, Any]:
     player_dict = {
         "leader": _leader_to_dict(getattr(my_obs, "leader", None)),
         "gate": _gate_to_dict(getattr(my_obs, "gate", None)),
-        "hand": _cards_to_tuple(getattr(my_obs, "hand", ()), include_zone_index=False),
+        "hand": _cards_to_tuple(getattr(my_obs, "hand", ()), include_zone_index=True),
         "alley": _cards_to_tuple(getattr(my_obs, "alley", ()), include_zone_index=True),
         "garden": _cards_to_tuple(getattr(my_obs, "garden", ()), include_zone_index=True),
-        "discard": _cards_to_tuple(getattr(my_obs, "discard", ()), include_zone_index=False),
+        "discard": _cards_to_tuple(getattr(my_obs, "discard", ()), include_zone_index=True),
         "ikz_area": _ikz_cards_to_tuple(getattr(my_obs, "ikz_area", ())),
         "deck_count": int(getattr(my_obs, "deck_count", 0)),
         "ikz_pile_count": int(getattr(my_obs, "ikz_pile_count", 0)),
@@ -423,7 +419,7 @@ def observation_to_dict(observation: Any) -> dict[str, Any]:
         "gate": _gate_to_dict(getattr(opp_obs, "gate", None)),
         "alley": _cards_to_tuple(getattr(opp_obs, "alley", ()), include_zone_index=True),
         "garden": _cards_to_tuple(getattr(opp_obs, "garden", ()), include_zone_index=True),
-        "discard": _cards_to_tuple(getattr(opp_obs, "discard", ()), include_zone_index=False),
+        "discard": _cards_to_tuple(getattr(opp_obs, "discard", ()), include_zone_index=True),
         "ikz_area": _ikz_cards_to_tuple(getattr(opp_obs, "ikz_area", ())),
         "hand_count": int(getattr(opp_obs, "hand_count", 0)),
         "deck_count": int(getattr(opp_obs, "deck_count", 0)),
