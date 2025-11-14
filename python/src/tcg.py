@@ -110,24 +110,6 @@ class AzukiTCG(AECEnv):
     self._active_player_index = active_idx
     self.agent_selection = active_agent
 
-  def _refresh_infos(self):
-    """Populate mask info only for the agent that is about to act."""
-    if not self.agents or self.agent_selection is None:
-      return
-
-    mask_payloads = binding.env_masks(self.c_envs)
-    acting_agent = self.agent_selection
-    info = self.infos.get(acting_agent)
-    if info is None:
-      return
-
-    # TODO: Probably going to need to pass mask through observation space
-    # TODO: Need to handle enumurate masking (one subaction might mean the subactions next subactions are completely different)
-    # TODO: But before obs, maybe look into passing through modified pufferlib code.
-    payload = mask_payloads[self._player_index(acting_agent)]
-    info["head0_mask"] = payload["head0_mask"]
-    info["legal_actions"] = payload["legal_actions"]
-
   def observe(self, agent):
     idx = self._player_index(agent)
     return observation_to_dict(self._raw_observation(idx))
@@ -146,7 +128,6 @@ class AzukiTCG(AECEnv):
 
     self._sync_done_flags()
     self._sync_agent_selection()
-    self._refresh_infos()
 
     observation = self.observe(self.agent_selection)
     return observation, self.infos[self.agent_selection]
@@ -196,7 +177,6 @@ class AzukiTCG(AECEnv):
     else:
       self._sync_agent_selection()
 
-    self._refresh_infos()
     observation = self.observe(acting_agent)
 
     termination = self.terminations[acting_agent]

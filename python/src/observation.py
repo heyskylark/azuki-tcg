@@ -131,14 +131,19 @@ class _OpponentObservationData(ctypes.Structure):
         ("has_ikz_token", ctypes.c_bool),
     ]
 
+class _ActionMaskData(ctypes.Structure):
+    _fields_ = [
+        ("primary", ctypes.c_uint8 * 15),
+        ("sub", ctypes.c_uint8 * 15 * 3 * 50),
+    ]
 
 class _ObservationData(ctypes.Structure):
     _fields_ = [
         ("my_observation_data", _MyObservationData),
         ("opponent_observation_data", _OpponentObservationData),
         ("phase", ctypes.c_int32),
+        ("action_mask", _ActionMaskData),
     ]
-
 
 OBSERVATION_CTYPE = _ObservationData
 OBSERVATION_STRUCT_SIZE = ctypes.sizeof(_ObservationData)
@@ -240,6 +245,11 @@ def _card_zone_space(count: int, *, include_zone_index: bool) -> spaces.Tuple:
     single = _card_space(include_zone_index=include_zone_index)
     return spaces.Tuple(tuple(single for _ in range(count)))
 
+def _action_mask_space() -> spaces.Dict:
+    return spaces.Dict({
+        "primary": spaces.MultiBinary(15),
+        "sub": spaces.MultiBinary(15, 3, 50),
+    })
 
 def build_observation_space() -> spaces.Dict:
     """Return the Gymnasium observation space shared by every agent."""
@@ -279,6 +289,7 @@ def build_observation_space() -> spaces.Dict:
             "phase": spaces.Discrete(PHASE_COUNT),
             "player": player_space,
             "opponent": opponent_space,
+            "action_mask": _action_mask_space(),
         }
     )
 
@@ -349,6 +360,11 @@ def _ikz_card_to_dict(card: Any) -> dict[str, int]:
         "zone_index": int(getattr(card, "zone_index", 0)),
     }
 
+def _action_mask_to_dict(action_mask: Any) -> dict[str, np.ndarray]:
+    return {
+        "primary": np.asarray(getattr(action_mask, "primary", ()), dtype=np.bool_),
+        "sub": np.asarray(getattr(action_mask, "sub", ()), dtype=np.bool_),
+    }
 
 def _leader_to_dict(card: Any) -> dict[str, int]:
     tapped, cooldown = _tap_fields(getattr(card, "tap_state", None))
@@ -427,10 +443,13 @@ def observation_to_dict(observation: Any) -> dict[str, Any]:
         "has_ikz_token": int(bool(getattr(opp_obs, "has_ikz_token", 0))),
     }
 
+    action_mask_dict = _action_mask_to_dict(getattr(observation, "action_mask", None))
+        
     return {
         "phase": int(getattr(getattr(observation, "phase", None), "value", getattr(observation, "phase", 0))),
         "player": player_dict,
         "opponent": opponent_dict,
+        "action_mask": action_mask_dict,
     }
 
 
