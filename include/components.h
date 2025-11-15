@@ -28,10 +28,11 @@ typedef enum {
   ACT_DECLARE_DEFENDER = 8,
   ACT_GATE_PORTAL = 9,
   /* 10-11 reserved for gate portal + ability activation */
-  ACT_END_TURN = 12,
-  ACT_MULLIGAN_KEEP = 13,
-  ACT_MULLIGAN_SHUFFLE = 14
+  ACT_MULLIGAN_KEEP = 12,
+  ACT_MULLIGAN_SHUFFLE = 13
 } ActionType;
+
+#define AZK_ACTION_TYPE_COUNT (ACT_MULLIGAN_SHUFFLE + 1)
 
 typedef struct {
   ecs_entity_t player;

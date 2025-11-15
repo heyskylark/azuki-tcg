@@ -1,5 +1,55 @@
 #include "utils/observation_util.h"
 #include "utils/cli_rendering_util.h"
+#include "validation/action_enumerator.h"
+
+static inline void set_subaction_bit(bool entries[AZK_OBSERVATION_SUBACTION_SIZE], int value) {
+  ecs_assert(value >= 0 && value < AZK_OBSERVATION_SUBACTION_SIZE, ECS_INVALID_PARAMETER, "Subaction value %d out of bounds", value);
+  entries[value] = true;
+}
+
+static void populate_action_mask_from_set(const AzkActionMaskSet *mask_set, ActionMaskObs *out_mask) {
+  ecs_assert(mask_set != NULL, ECS_INVALID_PARAMETER, "Mask set is null");
+  ecs_assert(out_mask != NULL, ECS_INVALID_PARAMETER, "Output mask is null");
+
+  size_t primary_action_count = AZK_ACTION_TYPE_COUNT;
+  ecs_assert(primary_action_count == AZK_ACTION_HEAD0_SIZE, ECS_INVALID_PARAMETER, "Primary action count %zu out of bounds, expected %zu", primary_action_count, AZK_ACTION_TYPE_COUNT);
+
+  for (size_t action_type = 0; action_type < primary_action_count; ++action_type) {
+    out_mask->primary_action_mask[action_type] = mask_set->head0_mask[action_type] != 0;
+  }
+
+  for (uint16_t i = 0; i < mask_set->legal_action_count; ++i) {
+    const UserAction *action = &mask_set->legal_actions[i];
+    ecs_assert(action->type >= 0 && action->type < AZK_ACTION_TYPE_COUNT, ECS_INVALID_PARAMETER, "Action type %d out of bounds", action->type);
+
+    SubActionMask *sub_mask = &out_mask->subaction_masks[action->type];
+    out_mask->primary_action_mask[action->type] = true;
+    set_subaction_bit(sub_mask->subaction_1, action->subaction_1);
+    set_subaction_bit(sub_mask->subaction_2, action->subaction_2);
+    set_subaction_bit(sub_mask->subaction_3, action->subaction_3);
+  }
+
+  // Noop is always allowed to avoid situation with full mask having no valid actions.
+  out_mask->primary_action_mask[ACT_NOOP] = true;
+  set_subaction_bit(out_mask->subaction_masks[ACT_NOOP].subaction_1, 0);
+  set_subaction_bit(out_mask->subaction_masks[ACT_NOOP].subaction_2, 0);
+  set_subaction_bit(out_mask->subaction_masks[ACT_NOOP].subaction_3, 0);
+}
+
+static ActionMaskObs build_observation_action_mask(ecs_world_t *world, const GameState *gs, int8_t player_index) {
+  ActionMaskObs action_mask = {0};
+  if (world == NULL || gs == NULL) {
+    return action_mask;
+  }
+
+  AzkActionMaskSet mask_set = {0};
+  if (!azk_build_action_mask_for_player(world, gs, player_index, &mask_set)) {
+    return action_mask;
+  }
+
+  populate_action_mask_from_set(&mask_set, &action_mask);
+  return action_mask;
+}
 
 static WeaponObservationData get_weapon_observation(ecs_world_t *world, ecs_entity_t weapon_card) {
   WeaponObservationData observation_data = {0};
@@ -208,6 +258,7 @@ ObservationData create_observation_data(ecs_world_t *world, int8_t player_index)
   observation_data.my_observation_data = my_observation_data;
   observation_data.opponent_observation_data = opponent_observation_data;
   observation_data.phase = gs->phase;
+  observation_data.action_mask = build_observation_action_mask(world, gs, player_index);
   return observation_data;
 }
 

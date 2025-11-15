@@ -13,7 +13,7 @@
 #define AZK_MAX_LEGAL_ACTIONS 1024
 
 typedef struct {
-  uint8_t head0_mask[AZK_ACTION_HEAD0_SIZE];
+  uint8_t head0_mask[AZK_ACTION_TYPE_COUNT];
   uint16_t legal_action_count;
   UserAction legal_actions[AZK_MAX_LEGAL_ACTIONS];
 } AzkActionMaskSet;

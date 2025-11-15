@@ -449,12 +449,6 @@ bool azk_validate_simple_action(
   }
 
   switch (type) {
-    case ACT_END_TURN:
-      if (gs->phase != PHASE_MAIN) {
-        VALIDATION_LOG(log_errors, "Cannot end turn during phase %d", gs->phase);
-        return false;
-      }
-      return true;
     case ACT_NOOP:
       if (gs->phase == PHASE_MAIN || gs->phase == PHASE_PREGAME_MULLIGAN) {
         return true;

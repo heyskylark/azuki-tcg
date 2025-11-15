@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Iterable, Sequence
+from typing import Any, Sequence
 
 import ctypes
 
@@ -16,6 +16,8 @@ ALLEY_SIZE = 5
 IKZ_PILE_SIZE = 10
 IKZ_AREA_SIZE = 10
 MAX_ATTACHED_WEAPONS = 10
+ACTION_TYPE_COUNT = 14  # Keep in sync with include/components.h::AZK_ACTION_TYPE_COUNT.
+SUBACTION_SELECTION_COUNT = 50  # Keep in sync with AZK_OBSERVATION_SUBACTION_SIZE.
 
 # Phase constants mirror include/components.h.
 PHASE_COUNT = 8
@@ -130,11 +132,18 @@ class _OpponentObservationData(ctypes.Structure):
         ("ikz_pile_count", ctypes.c_uint8),
         ("has_ikz_token", ctypes.c_bool),
     ]
-
-class _ActionMaskData(ctypes.Structure):
+class _SubActionMask(ctypes.Structure):
     _fields_ = [
-        ("primary", ctypes.c_uint8 * 15),
-        ("sub", ctypes.c_uint8 * 15 * 3 * 50),
+        ("subaction_1", ctypes.c_bool * SUBACTION_SELECTION_COUNT),
+        ("subaction_2", ctypes.c_bool * SUBACTION_SELECTION_COUNT),
+        ("subaction_3", ctypes.c_bool * SUBACTION_SELECTION_COUNT),
+    ]
+
+
+class _ActionMaskObs(ctypes.Structure):
+    _fields_ = [
+        ("primary_action_mask", ctypes.c_bool * ACTION_TYPE_COUNT),
+        ("subaction_masks", _SubActionMask * ACTION_TYPE_COUNT),
     ]
 
 class _ObservationData(ctypes.Structure):
@@ -142,7 +151,7 @@ class _ObservationData(ctypes.Structure):
         ("my_observation_data", _MyObservationData),
         ("opponent_observation_data", _OpponentObservationData),
         ("phase", ctypes.c_int32),
-        ("action_mask", _ActionMaskData),
+        ("action_mask", _ActionMaskObs),
     ]
 
 OBSERVATION_CTYPE = _ObservationData
@@ -158,6 +167,17 @@ STAT_MAX = 127
 IKZ_COST_MIN = -128
 IKZ_COST_MAX = 127
 GATE_POINT_MAX = 255
+
+def _coerce_bool_array(values: Any, length: int) -> np.ndarray:
+    """Convert ctypes arrays or iterables into fixed-length boolean numpy arrays."""
+    array = np.zeros(length, dtype=np.bool_)
+    if values is None:
+        return array
+    src = np.asarray(values, dtype=np.bool_).reshape(-1)
+    count = min(src.size, length)
+    if count > 0:
+        array[:count] = src[:count]
+    return array
 
 
 def _bool_space() -> spaces.Space:
@@ -245,11 +265,23 @@ def _card_zone_space(count: int, *, include_zone_index: bool) -> spaces.Tuple:
     single = _card_space(include_zone_index=include_zone_index)
     return spaces.Tuple(tuple(single for _ in range(count)))
 
+def _subaction_mask_space() -> spaces.Dict:
+    return spaces.Dict(
+        {
+            "subaction_1": spaces.MultiBinary(SUBACTION_SELECTION_COUNT),
+            "subaction_2": spaces.MultiBinary(SUBACTION_SELECTION_COUNT),
+            "subaction_3": spaces.MultiBinary(SUBACTION_SELECTION_COUNT),
+        }
+    )
+
+
 def _action_mask_space() -> spaces.Dict:
-    return spaces.Dict({
-        "primary": spaces.MultiBinary(15),
-        "sub": spaces.MultiBinary(15, 3, 50),
-    })
+    return spaces.Dict(
+        {
+            "primary_action_mask": spaces.MultiBinary(ACTION_TYPE_COUNT),
+            "subaction_masks": spaces.Tuple(tuple(_subaction_mask_space() for _ in range(ACTION_TYPE_COUNT))),
+        }
+    )
 
 def build_observation_space() -> spaces.Dict:
     """Return the Gymnasium observation space shared by every agent."""
@@ -360,10 +392,31 @@ def _ikz_card_to_dict(card: Any) -> dict[str, int]:
         "zone_index": int(getattr(card, "zone_index", 0)),
     }
 
-def _action_mask_to_dict(action_mask: Any) -> dict[str, np.ndarray]:
+def _subaction_mask_to_dict(sub_mask: Any) -> dict[str, np.ndarray]:
     return {
-        "primary": np.asarray(getattr(action_mask, "primary", ()), dtype=np.bool_),
-        "sub": np.asarray(getattr(action_mask, "sub", ()), dtype=np.bool_),
+        "subaction_1": _coerce_bool_array(getattr(sub_mask, "subaction_1", None), SUBACTION_SELECTION_COUNT),
+        "subaction_2": _coerce_bool_array(getattr(sub_mask, "subaction_2", None), SUBACTION_SELECTION_COUNT),
+        "subaction_3": _coerce_bool_array(getattr(sub_mask, "subaction_3", None), SUBACTION_SELECTION_COUNT),
+    }
+
+
+def _action_mask_to_dict(action_mask: Any) -> dict[str, Any]:
+    sub_masks_src = getattr(action_mask, "subaction_masks", ())
+    sub_masks: list[dict[str, np.ndarray]] = []
+    for idx in range(ACTION_TYPE_COUNT):
+        entry = None
+        try:
+            entry = sub_masks_src[idx]
+        except (TypeError, IndexError):
+            entry = None
+        sub_masks.append(_subaction_mask_to_dict(entry))
+
+    return {
+        "primary_action_mask": _coerce_bool_array(
+            getattr(action_mask, "primary_action_mask", None),
+            ACTION_TYPE_COUNT,
+        ),
+        "subaction_masks": tuple(sub_masks),
     }
 
 def _leader_to_dict(card: Any) -> dict[str, int]:

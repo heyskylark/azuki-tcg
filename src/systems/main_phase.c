@@ -178,7 +178,6 @@ void HandleMainAction(ecs_iter_t *it) {
       handle_attack(world, gs, ac);
       break;
     case ACT_NOOP:
-    case ACT_END_TURN:
       if (!azk_validate_simple_action(world, gs, gs->players[gs->active_player_index], ac->user_action.type, true)) {
         ac->invalid_action = true;
         break;

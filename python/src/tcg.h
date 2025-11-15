@@ -90,6 +90,7 @@ static inline float leader_health_transform(float normalized_hp) {
   return 0.5f * (x + 1.0f - one_minus_x_pow4);
 }
 
+// TODO: Amplify rewards for specific actions in ratio to number of turns elapsed (encourages aggressive play)
 static float compute_phi_for_player(const AzkRewardSnapshot* snapshot, int8_t player_index) {
   const int8_t opponent_index = (player_index + 1) % MAX_PLAYERS_PER_MATCH;
   const float leader_term = PBRS_LEADER_WEIGHT * (

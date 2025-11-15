@@ -73,10 +73,24 @@ typedef struct {
   bool has_ikz_token;
 } OpponentObservationData;
 
+#define AZK_OBSERVATION_SUBACTION_SIZE 50
+
+typedef struct {
+  bool subaction_1[AZK_OBSERVATION_SUBACTION_SIZE];
+  bool subaction_2[AZK_OBSERVATION_SUBACTION_SIZE];
+  bool subaction_3[AZK_OBSERVATION_SUBACTION_SIZE];
+} SubActionMask;
+
+typedef struct {
+  bool primary_action_mask[AZK_ACTION_TYPE_COUNT];
+  SubActionMask subaction_masks[AZK_ACTION_TYPE_COUNT];
+} ActionMaskObs;
+
 typedef struct {
   MyObservationData my_observation_data;
   OpponentObservationData opponent_observation_data;
   Phase phase;
+  ActionMaskObs action_mask;
 } ObservationData;
 
 ObservationData create_observation_data(ecs_world_t *world, int8_t player_index);
