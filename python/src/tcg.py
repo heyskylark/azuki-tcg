@@ -157,6 +157,8 @@ class AzukiTCG(AECEnv):
         f"AzukiTCG expects {ACTION_COMPONENT_COUNT} integers (type, subaction_1..3); got shape {encoded_action.shape}"
       )
 
+    encoded_action = self._enforce_action_mask(agent_idx, encoded_action)
+
     self._clear_rewards()
     self._actions[agent_idx] = encoded_action
     binding.env_step(self.c_envs)
@@ -182,6 +184,47 @@ class AzukiTCG(AECEnv):
     termination = self.terminations[acting_agent]
     truncation = self.truncations[acting_agent]
     return observation, reward, termination, truncation, info
+
+  def _enforce_action_mask(self, agent_idx: int, action: np.ndarray) -> np.ndarray:
+    """Clamp the sampled action to the current legal mask to avoid invalid submissions."""
+    obs = self._raw_observation(agent_idx)
+    mask = getattr(obs, "action_mask", None)
+    if mask is None:
+      return action
+
+    primary_mask = getattr(mask, "primary_action_mask", ())
+    primary_idx = int(action[0])
+    valid_primary = [idx for idx, flag in enumerate(primary_mask) if flag]
+    if valid_primary:
+      if primary_idx not in valid_primary:
+        primary_idx = valid_primary[0]
+    else:
+      primary_idx = 0
+
+    action[0] = primary_idx
+
+    sub_masks = getattr(mask, "subaction_masks", None)
+    if sub_masks is None:
+      return action
+
+    try:
+      sub_mask = sub_masks[primary_idx]
+    except (TypeError, IndexError):
+      return action
+
+    def _clamp_subaction(value, mask_array):
+      valid = [idx for idx, flag in enumerate(mask_array) if flag]
+      if not valid:
+        return 0
+      if int(value) not in valid:
+        return valid[0]
+      return int(value)
+
+    action[1] = _clamp_subaction(action[1], getattr(sub_mask, "subaction_1", ()))
+    action[2] = _clamp_subaction(action[2], getattr(sub_mask, "subaction_2", ()))
+    action[3] = _clamp_subaction(action[3], getattr(sub_mask, "subaction_3", ()))
+
+    return action
 
 def _decode_observations(puffer_env, observations):
   """Convert flattened buffers back into structured dicts for debugging."""

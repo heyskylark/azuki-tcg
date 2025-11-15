@@ -296,13 +296,60 @@ void c_step(CAzukiTCG* env) {
       if (azk_engine_was_prev_action_invalid(env->engine)) {
         fprintf(
           stderr,
-          "Invalid action detected at tick %d: [%d, %d, %d, %d]\n",
+          "Invalid action detected at tick %d in phase %d: [%d, %d, %d, %d]\n",
           env->tick,
+          env->observations[0].phase,
           action.type,
           action.subaction_1,
           action.subaction_2,
           action.subaction_3
         ); 
+        
+        int card_ikz_cost = 0;
+        if (action.type == 1 || action.type == 2) {
+          card_ikz_cost = env->observations[0].my_observation_data.hand[action.subaction_1].ikz_cost.ikz_cost;
+        }
+
+        const MyObservationData* my_observation_data = &env->observations[0].my_observation_data;
+        int hand_card_count = 0;
+        for (int i = 0; i < MAX_HAND_SIZE; ++i) {
+          if (my_observation_data->hand[i].id.code) {
+            hand_card_count++;
+          }
+        }
+
+        int untapped_ikz_card_count = 0;
+        for (int i = 0; i < IKZ_AREA_SIZE; ++i) {
+          const IKZCardObservationData* ikz_card = &my_observation_data->ikz_area[i];
+          if (ikz_card->id.code && !ikz_card->tap_state.tapped) {
+            untapped_ikz_card_count++;
+          }
+        }
+
+        bool occupied_garden_zones[GARDEN_SIZE] = {false};
+        int occupied_garden_slot_count = 0;
+        for (int i = 0; i < GARDEN_SIZE; ++i) {
+          if (my_observation_data->garden[i].id.code) {
+            occupied_garden_zones[i] = true;
+            occupied_garden_slot_count++;
+          }
+        }
+
+        fprintf(
+          stderr,
+          "Observation data, hand cards %d, card ikz cost %d, occupied garden slots %d/%d [%d, %d, %d, %d, %d], untapped ikz cards %d\n",
+          hand_card_count,
+          card_ikz_cost,
+          occupied_garden_slot_count,
+          GARDEN_SIZE,
+          occupied_garden_zones[0],
+          occupied_garden_zones[1],
+          occupied_garden_zones[2],
+          occupied_garden_zones[3],
+          occupied_garden_zones[4],
+          untapped_ikz_card_count
+        );
+
         abort();
       }
     }
