@@ -56,7 +56,6 @@ void HandleMulliganAction(ecs_iter_t *it) {
       HandleMulliganShuffleAction(world, gs);
       break;
     case ACT_NOOP:
-    case ACT_MULLIGAN_KEEP:
       cli_render_log("[Mulligan] No mulligan performed, end turn");
       break;
     default:

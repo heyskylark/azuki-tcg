@@ -24,7 +24,6 @@ static bool validate_action_for_mask(
     case ACT_ATTACH_WEAPON_FROM_HAND:
       return azk_validate_attach_weapon_action(world, gs, player, action, false, NULL);
     case ACT_NOOP:
-    case ACT_MULLIGAN_KEEP:
     case ACT_MULLIGAN_SHUFFLE:
       return azk_validate_simple_action(world, gs, player, action->type, false);
     default:

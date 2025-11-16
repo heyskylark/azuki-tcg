@@ -16,7 +16,7 @@ ALLEY_SIZE = 5
 IKZ_PILE_SIZE = 10
 IKZ_AREA_SIZE = 10
 MAX_ATTACHED_WEAPONS = 10
-ACTION_TYPE_COUNT = 14  # Keep in sync with include/components.h::AZK_ACTION_TYPE_COUNT.
+ACTION_TYPE_COUNT = 13  # Keep in sync with include/components.h::AZK_ACTION_TYPE_COUNT.
 SUBACTION_SELECTION_COUNT = 50  # Keep in sync with AZK_OBSERVATION_SUBACTION_SIZE.
 
 # Phase constants mirror include/components.h.

@@ -42,11 +42,6 @@ static const AzkActionSpec ACTION_SPECS[] = {
     .params = { GARDEN_OR_LEADER_PARAM, GARDEN_OR_LEADER_PARAM, UNUSED_PARAM }
   },
   {
-    .type = ACT_MULLIGAN_KEEP,
-    .phase_mask = AZK_PHASE_MASK(PHASE_PREGAME_MULLIGAN),
-    .params = { UNUSED_PARAM, UNUSED_PARAM, UNUSED_PARAM }
-  },
-  {
     .type = ACT_MULLIGAN_SHUFFLE,
     .phase_mask = AZK_PHASE_MASK(PHASE_PREGAME_MULLIGAN),
     .params = { UNUSED_PARAM, UNUSED_PARAM, UNUSED_PARAM }

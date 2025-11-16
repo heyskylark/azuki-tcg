@@ -455,7 +455,6 @@ bool azk_validate_simple_action(
       }
       VALIDATION_LOG(log_errors, "NOOP not allowed in phase %d", gs->phase);
       return false;
-    case ACT_MULLIGAN_KEEP:
     case ACT_MULLIGAN_SHUFFLE:
       if (gs->phase != PHASE_PREGAME_MULLIGAN) {
         VALIDATION_LOG(log_errors, "Mulligan action not allowed in phase %d", gs->phase);
