@@ -261,7 +261,6 @@ def _gate_space() -> spaces.Dict:
         }
     )
 
-
 def _card_zone_space(count: int, *, include_zone_index: bool) -> spaces.Tuple:
     single = _card_space(include_zone_index=include_zone_index)
     return spaces.Tuple(tuple(single for _ in range(count)))

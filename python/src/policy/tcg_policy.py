@@ -418,6 +418,8 @@ class TCG(nn.Module):
     action_mask_struct = structured_mask_obs["action_mask"]
 
     primary_action_mask = action_mask_struct["primary_action_mask"].to(dtype=torch.bool)
+    legal_action_count = action_mask_struct["legal_action_count"].to(dtype=torch.long)
+    print(f"legal_action_count: {legal_action_count[0:10].cpu().numpy()}")
     legal_actions = action_mask_struct["legal_actions"].to(dtype=torch.long)
     print(f"no legal actions: {(legal_actions == 0).all()}")
 
@@ -456,13 +458,15 @@ class TCG(nn.Module):
     primary_action_probs = torch.softmax(primary_action_logits, dim=-1)
     chosen_actions = primary_action_probs.argmax(dim=-1)
     
+    batch_indexes = torch.arange(B, device=chosen_actions.device).unsqueeze(1)
+    batch_indexes = batch_indexes.expand(*legal_actions.shape[:2])
+
     legal_primary_values = legal_actions[..., 0]
-    legal_primary_indexes = (legal_primary_values == chosen_actions.view(-1, 1))
+    legal_subaction1_matches = (legal_primary_values == chosen_actions.view(-1, 1))
 
     legal_subaction1_indexes = legal_actions[..., 1]
     legal_subaction1_mask = torch.zeros(B, MAX_INDEX_SIZE, dtype=torch.bool, device=legal_subaction1_indexes.device)
-    batch_indexes = torch.arange(B, device=chosen_actions.device).unsqueeze(1).expand_as(legal_subaction1_indexes)
-    legal_subaction1_mask[batch_indexes[legal_primary_indexes], legal_subaction1_indexes[legal_primary_indexes]] = True
+    legal_subaction1_mask[batch_indexes[legal_subaction1_matches], legal_subaction1_indexes[legal_subaction1_matches]] = True
 
     gate_1_weights = torch.sigmoid(self.gate_1_embeder(chosen_actions)).unsqueeze(1)
     gate_2_weights = torch.sigmoid(self.gate_2_embeder(chosen_actions)).unsqueeze(1)
@@ -479,7 +483,8 @@ class TCG(nn.Module):
 
     legal_subaction2_indexes = legal_actions[..., 2]
     legal_subaction2_mask = torch.zeros(B, MAX_INDEX_SIZE, dtype=torch.bool, device=legal_subaction2_indexes.device)
-    legal_subaction2_mask[batch_indexes[chosen_subaction1_indexes], legal_subaction2_indexes[chosen_subaction1_indexes]] = True
+    legal_subaction2_matches = legal_subaction1_matches & (legal_subaction1_indexes == chosen_subaction1_indexes.view(-1, 1))
+    legal_subaction2_mask[batch_indexes[legal_subaction2_matches], legal_subaction2_indexes[legal_subaction2_matches]] = True
 
     unit2_logits = torch.sum(
       (target_matrix * gate_2_weights) * unit2_projected_hidden.unsqueeze(1),
@@ -501,7 +506,8 @@ class TCG(nn.Module):
 
     legal_subaction3_indexes = legal_actions[..., 3]
     legal_subaction3_mask = torch.zeros(B, MAX_INDEX_SIZE, dtype=torch.bool, device=legal_subaction3_indexes.device)
-    legal_subaction3_mask[batch_indexes[chosen_subaction2s], legal_subaction3_indexes[chosen_subaction2s]] = True
+    legal_subaction3_matches = legal_subaction2_matches & (legal_subaction2_indexes == chosen_subaction2s.view(-1, 1))
+    legal_subaction3_mask[batch_indexes[legal_subaction3_matches], legal_subaction3_indexes[legal_subaction3_matches]] = True
 
     bins3_logits = bins3_projected_hidden
     bins3_logits = bins3_logits.masked_fill(~legal_subaction3_mask, MASK_MIN_VALUE)
@@ -509,7 +515,7 @@ class TCG(nn.Module):
     logits = (
       primary_action_logits,
       unit1_logits,
-      unit2_logits,
+      subaction2_logits,
       bins3_logits,
     )
 
