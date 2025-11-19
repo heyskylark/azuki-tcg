@@ -17,7 +17,10 @@ IKZ_PILE_SIZE = 10
 IKZ_AREA_SIZE = 10
 MAX_ATTACHED_WEAPONS = 10
 ACTION_TYPE_COUNT = 13  # Keep in sync with include/components.h::AZK_ACTION_TYPE_COUNT.
-SUBACTION_SELECTION_COUNT = 50  # Keep in sync with AZK_OBSERVATION_SUBACTION_SIZE.
+SUBACTION_SELECTION_COUNT = MAX_DECK_SIZE  # Keep in sync with AzkActionParamSpec upper bounds.
+MAX_LEGAL_ACTIONS_COUNT = 1024
+ACTION_COMPONENT_COUNT = 4  # Keep in sync with python/src/action.py::ACTION_COMPONENT_COUNT.
+LEGAL_ACTION_UNUSED = 0
 
 # Phase constants mirror include/components.h.
 PHASE_COUNT = 8
@@ -132,18 +135,16 @@ class _OpponentObservationData(ctypes.Structure):
         ("ikz_pile_count", ctypes.c_uint8),
         ("has_ikz_token", ctypes.c_bool),
     ]
-class _SubActionMask(ctypes.Structure):
-    _fields_ = [
-        ("subaction_1", ctypes.c_bool * SUBACTION_SELECTION_COUNT),
-        ("subaction_2", ctypes.c_bool * SUBACTION_SELECTION_COUNT),
-        ("subaction_3", ctypes.c_bool * SUBACTION_SELECTION_COUNT),
-    ]
+
+
+_LegalActionEntry = ctypes.c_int8 * ACTION_COMPONENT_COUNT
 
 
 class _ActionMaskObs(ctypes.Structure):
     _fields_ = [
         ("primary_action_mask", ctypes.c_bool * ACTION_TYPE_COUNT),
-        ("subaction_masks", _SubActionMask * ACTION_TYPE_COUNT),
+        ("legal_action_count", ctypes.c_uint16),
+        ("legal_actions", _LegalActionEntry * MAX_LEGAL_ACTIONS_COUNT),
     ]
 
 class _ObservationData(ctypes.Structure):
@@ -265,23 +266,52 @@ def _card_zone_space(count: int, *, include_zone_index: bool) -> spaces.Tuple:
     single = _card_space(include_zone_index=include_zone_index)
     return spaces.Tuple(tuple(single for _ in range(count)))
 
-def _subaction_mask_space() -> spaces.Dict:
-    return spaces.Dict(
-        {
-            "subaction_1": spaces.MultiBinary(SUBACTION_SELECTION_COUNT),
-            "subaction_2": spaces.MultiBinary(SUBACTION_SELECTION_COUNT),
-            "subaction_3": spaces.MultiBinary(SUBACTION_SELECTION_COUNT),
-        }
+def _legal_actions_space() -> spaces.Box:
+    base_row = np.array(
+        [ACTION_TYPE_COUNT, SUBACTION_SELECTION_COUNT, SUBACTION_SELECTION_COUNT, SUBACTION_SELECTION_COUNT],
+        dtype=np.uint8,
     )
+    return spaces.MultiDiscrete(np.tile(base_row, (MAX_LEGAL_ACTIONS_COUNT, 1)))
 
 
 def _action_mask_space() -> spaces.Dict:
     return spaces.Dict(
         {
             "primary_action_mask": spaces.MultiBinary(ACTION_TYPE_COUNT),
-            "subaction_masks": spaces.Tuple(tuple(_subaction_mask_space() for _ in range(ACTION_TYPE_COUNT))),
+            "legal_action_count": spaces.Discrete(MAX_LEGAL_ACTIONS_COUNT),
+            "legal_actions": _legal_actions_space(),
         }
     )
+
+
+def _empty_legal_actions_matrix() -> np.ndarray:
+    return np.full((MAX_LEGAL_ACTIONS_COUNT, ACTION_COMPONENT_COUNT), LEGAL_ACTION_UNUSED, dtype=np.int8)
+
+def _coerce_legal_actions_matrix(values: Any, count: int) -> np.ndarray:
+    matrix = _empty_legal_actions_matrix()
+    if values is None:
+        raise ValueError("Leagl action masking error: values is None")
+
+    limit = min(max(int(count), 0), MAX_LEGAL_ACTIONS_COUNT)
+
+    for idx in range(limit):
+        entry = values[idx]
+
+        try:
+            matrix[idx, 0] = entry[0]
+            matrix[idx, 1] = entry[1]
+            matrix[idx, 2] = entry[2]
+            matrix[idx, 3] = entry[3]
+            continue
+        except (TypeError, IndexError, AttributeError):
+            pass
+
+        matrix[idx, 0] = getattr(entry, "type", LEGAL_ACTION_UNUSED)
+        matrix[idx, 1] = getattr(entry, "subaction_1", LEGAL_ACTION_UNUSED)
+        matrix[idx, 2] = getattr(entry, "subaction_2", LEGAL_ACTION_UNUSED)
+        matrix[idx, 3] = getattr(entry, "subaction_3", LEGAL_ACTION_UNUSED)
+
+    return matrix
 
 def build_observation_space() -> spaces.Dict:
     """Return the Gymnasium observation space shared by every agent."""
@@ -392,31 +422,19 @@ def _ikz_card_to_dict(card: Any) -> dict[str, int]:
         "zone_index": int(getattr(card, "zone_index", 0)),
     }
 
-def _subaction_mask_to_dict(sub_mask: Any) -> dict[str, np.ndarray]:
-    return {
-        "subaction_1": _coerce_bool_array(getattr(sub_mask, "subaction_1", None), SUBACTION_SELECTION_COUNT),
-        "subaction_2": _coerce_bool_array(getattr(sub_mask, "subaction_2", None), SUBACTION_SELECTION_COUNT),
-        "subaction_3": _coerce_bool_array(getattr(sub_mask, "subaction_3", None), SUBACTION_SELECTION_COUNT),
-    }
-
-
 def _action_mask_to_dict(action_mask: Any) -> dict[str, Any]:
-    sub_masks_src = getattr(action_mask, "subaction_masks", ())
-    sub_masks: list[dict[str, np.ndarray]] = []
-    for idx in range(ACTION_TYPE_COUNT):
-        entry = None
-        try:
-            entry = sub_masks_src[idx]
-        except (TypeError, IndexError):
-            entry = None
-        sub_masks.append(_subaction_mask_to_dict(entry))
+    legal_action_count = int(getattr(action_mask, "legal_action_count", 0))
 
     return {
         "primary_action_mask": _coerce_bool_array(
             getattr(action_mask, "primary_action_mask", None),
             ACTION_TYPE_COUNT,
         ),
-        "subaction_masks": tuple(sub_masks),
+        "legal_action_count": legal_action_count,
+        "legal_actions": _coerce_legal_actions_matrix(
+            getattr(action_mask, "legal_actions", ()),
+            legal_action_count,
+        ),
     }
 
 def _leader_to_dict(card: Any) -> dict[str, int]:

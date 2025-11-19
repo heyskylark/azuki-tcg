@@ -3,6 +3,7 @@
 
 #include "components.h"
 #include "generated/card_defs.h"
+#include "validation/action_enumerator.h"
 
 typedef struct {
   Type type;
@@ -73,17 +74,12 @@ typedef struct {
   bool has_ikz_token;
 } OpponentObservationData;
 
-#define AZK_OBSERVATION_SUBACTION_SIZE 50
-
-typedef struct {
-  bool subaction_1[AZK_OBSERVATION_SUBACTION_SIZE];
-  bool subaction_2[AZK_OBSERVATION_SUBACTION_SIZE];
-  bool subaction_3[AZK_OBSERVATION_SUBACTION_SIZE];
-} SubActionMask;
+typedef uint8_t ObservationLegalAction[AZK_ACTION_HEAD_COUNT];
 
 typedef struct {
   bool primary_action_mask[AZK_ACTION_TYPE_COUNT];
-  SubActionMask subaction_masks[AZK_ACTION_TYPE_COUNT];
+  uint16_t legal_action_count;
+  ObservationLegalAction legal_actions[AZK_MAX_LEGAL_ACTIONS];
 } ActionMaskObs;
 
 typedef struct {

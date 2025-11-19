@@ -3,6 +3,7 @@ import pufferlib.pytorch
 
 from torch import nn
 import torch
+from pprint import pprint
 
 MAX_PLAYERS_PER_MATCH = 2
 CARD_TYPE_COUNT = 7
@@ -11,6 +12,8 @@ GAME_PHASE_COUNT = 8
 PRIMARY_ACTION_COUNT = 13
 PRIMARY_ACTION_ID_BATCH = tuple(range(PRIMARY_ACTION_COUNT))
 MAX_INDEX_SIZE = 50
+ACTION_COMPONENT_COUNT = 4
+ACT_NOOP = 0
 ACT_ATTACK = 6
 ACT_ATTACH_WEAPON_FROM_HAND = 7
 
@@ -305,6 +308,10 @@ class TCG(nn.Module):
       return tensor.squeeze(0)
     return tensor
 
+  def __action_mask_struct(self, observations):
+    structured_obs, squeeze_batch, _ = self.__prepare_structured_observations(observations)
+    return structured_obs["action_mask"], squeeze_batch
+
   def __store_mask_observations(self, obs_tensor: torch.Tensor, state):
     if obs_tensor is None:
       return
@@ -316,16 +323,6 @@ class TCG(nn.Module):
         pass
     self._cached_mask_observations = detached
 
-  def __mask_observations_from_state(self, state):
-    if state is not None:
-      try:
-        cached = state.get("_azk_mask_observations")
-      except AttributeError:
-        cached = None
-      if cached is not None:
-        return cached
-    return getattr(self, "_cached_mask_observations", None)
-
   def __mask_logits(self, logits: torch.Tensor, mask: torch.Tensor | None) -> torch.Tensor:
     if mask is None:
       raise ValueError("mask is None when mask_logits is called")
@@ -334,55 +331,6 @@ class TCG(nn.Module):
     if bool_mask.shape != logits.shape:
       bool_mask = bool_mask.expand_as(logits)
     return logits.masked_fill(~bool_mask, MASK_MIN_VALUE)
-
-  def __submask_entry(self, container, index: int):
-    if isinstance(container, dict):
-      for key in (f"f{index}", str(index), index):
-        if key in container:
-          return container[key]
-    try:
-      return container[index]
-    except (TypeError, IndexError, KeyError):
-      return None
-
-  def __first_submask_entry(self, container):
-    if isinstance(container, dict):
-      for idx in range(PRIMARY_ACTION_COUNT):
-        entry = self.__submask_entry(container, idx)
-        if entry is not None:
-          return entry
-      for value in container.values():
-        if value is not None:
-          return value
-    elif isinstance(container, (list, tuple)):
-      for entry in container:
-        if entry is not None:
-          return entry
-    return None
-
-  def __normalize_primary_action_index(self, primary_action_index, batch_size: int) -> torch.Tensor:
-    device = self.__policy_device()
-    if torch.is_tensor(primary_action_index):
-      index_tensor = primary_action_index.to(device=device, dtype=torch.long)
-    else:
-      index_tensor = torch.as_tensor(primary_action_index, device=device, dtype=torch.long)
-
-    if index_tensor.dim() == 0:
-      index_tensor = index_tensor.view(1).expand(batch_size)
-    elif index_tensor.dim() == 1:
-      if index_tensor.numel() == 1 and batch_size > 1:
-        index_tensor = index_tensor.expand(batch_size)
-      elif index_tensor.numel() != batch_size:
-        raise ValueError(
-          f"primary_action_index batch ({index_tensor.numel()}) does not match observations ({batch_size})"
-        )
-    else:
-      index_tensor = index_tensor.reshape(batch_size)
-
-    index_tensor = index_tensor.contiguous()
-    if torch.any((index_tensor < 0) | (index_tensor >= PRIMARY_ACTION_COUNT)):
-      raise ValueError("primary_action_index contains values outside the valid range")
-    return index_tensor
 
   def __get_organized_obs_data(self, structured_obs):
     player_obs = structured_obs["player"]
@@ -446,55 +394,9 @@ class TCG(nn.Module):
 
   def build_primary_action_mask_tensor(self, observations):
     """Return a bool tensor indicating which primary actions are legal."""
-    structured_obs, squeeze_batch, _ = self.__prepare_structured_observations(observations)
-    action_mask = structured_obs["action_mask"]
+    action_mask, squeeze_batch = self.__action_mask_struct(observations)
     primary_mask = action_mask["primary_action_mask"].to(dtype=torch.bool)
     return self.__maybe_squeeze_batch(primary_mask, squeeze_batch)
-
-  def build_subaction_mask_tensors(self, primary_action_index, observations):
-    """Return bool tensors of valid subaction choices for a chosen primary action."""
-    structured_obs, squeeze_batch, _ = self.__prepare_structured_observations(observations)
-    sub_masks_container = structured_obs["action_mask"]["subaction_masks"]
-
-    template_entry = self.__first_submask_entry(sub_masks_container)
-    if template_entry is None:
-      raise ValueError("Observation does not contain subaction mask data")
-
-    zero_sub1 = torch.zeros_like(template_entry["subaction_1"], dtype=torch.bool)
-    zero_sub2 = torch.zeros_like(template_entry["subaction_2"], dtype=torch.bool)
-    zero_sub3 = torch.zeros_like(template_entry["subaction_3"], dtype=torch.bool)
-
-    sub1_stack, sub2_stack, sub3_stack = [], [], []
-    for idx in range(PRIMARY_ACTION_COUNT):
-      entry = self.__submask_entry(sub_masks_container, idx)
-      if entry is None:
-        sub1_stack.append(zero_sub1)
-        sub2_stack.append(zero_sub2)
-        sub3_stack.append(zero_sub3)
-        continue
-
-      sub1_stack.append(entry["subaction_1"].to(dtype=torch.bool))
-      sub2_stack.append(entry["subaction_2"].to(dtype=torch.bool))
-      sub3_stack.append(entry["subaction_3"].to(dtype=torch.bool))
-
-    stacked_sub1 = torch.stack(sub1_stack, dim=1)
-    stacked_sub2 = torch.stack(sub2_stack, dim=1)
-    stacked_sub3 = torch.stack(sub3_stack, dim=1)
-
-    batch_size = stacked_sub1.size(0)
-    index_tensor = self.__normalize_primary_action_index(primary_action_index, batch_size)
-    mask_width = stacked_sub1.size(-1)
-    gather_idx = index_tensor.view(batch_size, 1, 1).expand(-1, 1, mask_width)
-
-    sub1_mask = torch.gather(stacked_sub1, 1, gather_idx).squeeze(1)
-    sub2_mask = torch.gather(stacked_sub2, 1, gather_idx).squeeze(1)
-    sub3_mask = torch.gather(stacked_sub3, 1, gather_idx).squeeze(1)
-
-    return (
-      self.__maybe_squeeze_batch(sub1_mask, squeeze_batch),
-      self.__maybe_squeeze_batch(sub2_mask, squeeze_batch),
-      self.__maybe_squeeze_batch(sub3_mask, squeeze_batch),
-    )
 
   def decode_actions(self, flat_hidden, target_matrix=None, state=None):
     if target_matrix is None:
@@ -505,15 +407,19 @@ class TCG(nn.Module):
     elif target_matrix.dim() == 1:
       target_matrix = target_matrix.unsqueeze(0).unsqueeze(0)
 
-    primary_action_embeddings = self.__batch_embed_primary_actions()
-    mask_observations = self.__mask_observations_from_state(state)
-    primary_action_mask = None
-    subaction_masks = None
+    B = target_matrix.size(0)
 
+    primary_action_embeddings = self.__batch_embed_primary_actions()
+    mask_observations = state["_azk_mask_observations"]
     if mask_observations is None:
       raise ValueError("mask_observations is None when decode_actions is called")
 
-    primary_action_mask = self.build_primary_action_mask_tensor(mask_observations)
+    structured_mask_obs, _, _ = self.__prepare_structured_observations(mask_observations)
+    action_mask_struct = structured_mask_obs["action_mask"]
+
+    primary_action_mask = action_mask_struct["primary_action_mask"].to(dtype=torch.bool)
+    legal_actions = action_mask_struct["legal_actions"].to(dtype=torch.long)
+    print(f"no legal actions: {(legal_actions == 0).all()}")
 
     projected_hidden = self.q_primary(flat_hidden)
     unit1_projected_hidden = self.q_unit1(flat_hidden)
@@ -546,46 +452,64 @@ class TCG(nn.Module):
       return torch.cat([tensor, pad_tensor], dim=-1)
 
     primary_action_logits = projected_hidden @ primary_action_embeddings.T
-    primary_action_logits = self.__mask_logits(primary_action_logits, primary_action_mask)
+    primary_action_logits = primary_action_logits.masked_fill(~primary_action_mask, MASK_MIN_VALUE)
     primary_action_probs = torch.softmax(primary_action_logits, dim=-1)
-    chosen_action = primary_action_probs.argmax(dim=-1)
+    chosen_actions = primary_action_probs.argmax(dim=-1)
+    
+    legal_primary_values = legal_actions[..., 0]
+    legal_primary_indexes = (legal_primary_values == chosen_actions.view(-1, 1))
 
-    subaction_masks = self.build_subaction_mask_tensors(chosen_action, mask_observations)
+    legal_subaction1_indexes = legal_actions[..., 1]
+    legal_subaction1_mask = torch.zeros(B, MAX_INDEX_SIZE, dtype=torch.bool, device=legal_subaction1_indexes.device)
+    batch_indexes = torch.arange(B, device=chosen_actions.device).unsqueeze(1).expand_as(legal_subaction1_indexes)
+    legal_subaction1_mask[batch_indexes[legal_primary_indexes], legal_subaction1_indexes[legal_primary_indexes]] = True
 
-    gate_1_weights = torch.sigmoid(self.gate_1_embeder(chosen_action)).unsqueeze(1)
-    gate_2_weights = torch.sigmoid(self.gate_2_embeder(chosen_action)).unsqueeze(1)
+    gate_1_weights = torch.sigmoid(self.gate_1_embeder(chosen_actions)).unsqueeze(1)
+    gate_2_weights = torch.sigmoid(self.gate_2_embeder(chosen_actions)).unsqueeze(1)
 
+    # (target_matrix [mult] gate_1_sigmoid) [dot] unit1_projected_hidden
     unit1_logits = torch.sum(
       (target_matrix * gate_1_weights) * unit1_projected_hidden.unsqueeze(1),
       dim=-1,
     )
+    unit1_logits = _pad_or_trim_to_index_dim(unit1_logits)
+    unit1_logits = unit1_logits.masked_fill(~legal_subaction1_mask, MASK_MIN_VALUE)
+    subaction1_probs = torch.softmax(unit1_logits, dim=-1)
+    chosen_subaction1_indexes = subaction1_probs.argmax(dim=-1)
+
+    legal_subaction2_indexes = legal_actions[..., 2]
+    legal_subaction2_mask = torch.zeros(B, MAX_INDEX_SIZE, dtype=torch.bool, device=legal_subaction2_indexes.device)
+    legal_subaction2_mask[batch_indexes[chosen_subaction1_indexes], legal_subaction2_indexes[chosen_subaction1_indexes]] = True
+
     unit2_logits = torch.sum(
       (target_matrix * gate_2_weights) * unit2_projected_hidden.unsqueeze(1),
       dim=-1,
     )
-
-    unit1_logits = _pad_or_trim_to_index_dim(unit1_logits)
     unit2_logits = _pad_or_trim_to_index_dim(unit2_logits)
-    unit1_logits = self.__mask_logits(unit1_logits, subaction_masks[0])
+    bins2_logits = _pad_or_trim_to_index_dim(bins2_projected_hidden)
 
-    bins2_logits = bins2_projected_hidden
-    bins3_logits = bins3_projected_hidden
-
-    requires_unit_subaction2 = (chosen_action == ACT_ATTACK) | (chosen_action == ACT_ATTACH_WEAPON_FROM_HAND)
+    requires_unit_subaction2 = (chosen_actions == ACT_ATTACK) | (chosen_actions == ACT_ATTACH_WEAPON_FROM_HAND)
     requires_unit_subaction2 = requires_unit_subaction2.unsqueeze(-1)
     subaction2_logits = torch.where(
       requires_unit_subaction2,
       unit2_logits,
       bins2_logits,
     )
+    subaction2_logits = subaction2_logits.masked_fill(~legal_subaction2_mask, MASK_MIN_VALUE)
+    subaction2_probs = torch.softmax(subaction2_logits, dim=-1)
+    chosen_subaction2s = subaction2_probs.argmax(dim=-1)
 
-    subaction2_logits = self.__mask_logits(subaction2_logits, subaction_masks[1])
-    bins3_logits = self.__mask_logits(bins3_logits, subaction_masks[2])
+    legal_subaction3_indexes = legal_actions[..., 3]
+    legal_subaction3_mask = torch.zeros(B, MAX_INDEX_SIZE, dtype=torch.bool, device=legal_subaction3_indexes.device)
+    legal_subaction3_mask[batch_indexes[chosen_subaction2s], legal_subaction3_indexes[chosen_subaction2s]] = True
+
+    bins3_logits = bins3_projected_hidden
+    bins3_logits = bins3_logits.masked_fill(~legal_subaction3_mask, MASK_MIN_VALUE)
 
     logits = (
       primary_action_logits,
       unit1_logits,
-      subaction2_logits,
+      unit2_logits,
       bins3_logits,
     )
 

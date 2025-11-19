@@ -2,9 +2,12 @@
 #include "utils/cli_rendering_util.h"
 #include "validation/action_enumerator.h"
 
-static inline void set_subaction_bit(bool entries[AZK_OBSERVATION_SUBACTION_SIZE], int value) {
-  ecs_assert(value >= 0 && value < AZK_OBSERVATION_SUBACTION_SIZE, ECS_INVALID_PARAMETER, "Subaction value %d out of bounds", value);
-  entries[value] = true;
+static void reset_legal_actions(ObservationLegalAction legal_actions[AZK_MAX_LEGAL_ACTIONS]) {
+  for (size_t i = 0; i < AZK_MAX_LEGAL_ACTIONS; ++i) {
+    for (size_t j = 0; j < AZK_ACTION_HEAD_COUNT; ++j) {
+      legal_actions[i][j] = (uint8_t)0;
+    }
+  }
 }
 
 static void populate_action_mask_from_set(const AzkActionMaskSet *mask_set, ActionMaskObs *out_mask) {
@@ -18,36 +21,46 @@ static void populate_action_mask_from_set(const AzkActionMaskSet *mask_set, Acti
     out_mask->primary_action_mask[action_type] = mask_set->head0_mask[action_type] != 0;
   }
 
-  for (uint16_t i = 0; i < mask_set->legal_action_count; ++i) {
-    const UserAction *action = &mask_set->legal_actions[i];
-    ecs_assert(action->type >= 0 && action->type < AZK_ACTION_TYPE_COUNT, ECS_INVALID_PARAMETER, "Action type %d out of bounds", action->type);
-
-    SubActionMask *sub_mask = &out_mask->subaction_masks[action->type];
-    out_mask->primary_action_mask[action->type] = true;
-    set_subaction_bit(sub_mask->subaction_1, action->subaction_1);
-    set_subaction_bit(sub_mask->subaction_2, action->subaction_2);
-    set_subaction_bit(sub_mask->subaction_3, action->subaction_3);
+  uint16_t legal_action_count = mask_set->legal_action_count;
+  if (legal_action_count > AZK_MAX_LEGAL_ACTIONS) {
+    legal_action_count = AZK_MAX_LEGAL_ACTIONS;
   }
 
-  // Noop is always allowed to avoid situation with full mask having no valid actions.
-  out_mask->primary_action_mask[ACT_NOOP] = true;
-  set_subaction_bit(out_mask->subaction_masks[ACT_NOOP].subaction_1, 0);
-  set_subaction_bit(out_mask->subaction_masks[ACT_NOOP].subaction_2, 0);
-  set_subaction_bit(out_mask->subaction_masks[ACT_NOOP].subaction_3, 0);
+  for (uint16_t i = 0; i < legal_action_count; ++i) {
+    const UserAction *action = &mask_set->legal_actions[i];
+    ecs_assert(action->type >= 0 && action->type < AZK_ACTION_TYPE_COUNT, ECS_INVALID_PARAMETER, "Action type %d out of bounds", action->type);
+    out_mask->legal_actions[i][0] = (uint8_t)action->type;
+    out_mask->legal_actions[i][1] = (uint8_t)action->subaction_1;
+    out_mask->legal_actions[i][2] = (uint8_t)action->subaction_2;
+    out_mask->legal_actions[i][3] = (uint8_t)action->subaction_3;
+  }
+
+  out_mask->legal_action_count = legal_action_count;
+
+  if (!out_mask->primary_action_mask[ACT_NOOP]) {
+    out_mask->primary_action_mask[ACT_NOOP] = true;
+    if (out_mask->legal_action_count < AZK_MAX_LEGAL_ACTIONS) {
+      ObservationLegalAction *noop_entry = &out_mask->legal_actions[out_mask->legal_action_count++];
+      (*noop_entry)[0] = (uint8_t)ACT_NOOP;
+      (*noop_entry)[1] = 0;
+      (*noop_entry)[2] = 0;
+      (*noop_entry)[3] = 0;
+    }
+  }
 }
 
 static ActionMaskObs build_observation_action_mask(ecs_world_t *world, const GameState *gs, int8_t player_index) {
+  ecs_assert(world != NULL, ECS_INVALID_PARAMETER, "World is null");
+  ecs_assert(gs != NULL, ECS_INVALID_PARAMETER, "GameState is null");
+  
   ActionMaskObs action_mask = {0};
-  if (world == NULL || gs == NULL) {
-    return action_mask;
-  }
+  reset_legal_actions(action_mask.legal_actions);
 
   AzkActionMaskSet mask_set = {0};
-  if (!azk_build_action_mask_for_player(world, gs, player_index, &mask_set)) {
-    return action_mask;
-  }
+  ecs_assert(azk_build_action_mask_for_player(world, gs, player_index, &mask_set), ECS_INVALID_PARAMETER, "Failed to build action mask");
 
   populate_action_mask_from_set(&mask_set, &action_mask);
+
   return action_mask;
 }
 

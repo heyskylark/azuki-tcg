@@ -45,8 +45,7 @@ PYTHONPATH=build/python/src:python/src:$PYTHONPATH uv run --active python/src/tr
 # How to Build 
 
 ```bash
-cmake -S . -B ./build -DCMAKE_BUILD_TYPE=Debug
-cmake --build ./build -j
+cmake -S . -B ./build -DCMAKE_BUILD_TYPE=Debug && cmake --build ./build -j
 ```
 
 ## Clean
