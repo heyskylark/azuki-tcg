@@ -159,6 +159,13 @@ class AzukiTCG(AECEnv):
 
     encoded_action = self._enforce_action_mask(agent_idx, encoded_action)
 
+    observation = self.observe(acting_agent) 
+
+    # print(f"prim: {observation['action_mask']['legal_actions']['legal_primary']}")
+    # print(f"sub1: {observation['action_mask']['legal_actions']['legal_sub1']}")
+    # print(f"sub2: {observation['action_mask']['legal_actions']['legal_sub2']}")
+    # print(f"sub3: {observation['action_mask']['legal_actions']['legal_sub3']}")
+
     self._clear_rewards()
     self._actions[agent_idx] = encoded_action
     binding.env_step(self.c_envs)
@@ -180,9 +187,9 @@ class AzukiTCG(AECEnv):
       self._sync_agent_selection()
 
     observation = self.observe(acting_agent)
-
     termination = self.terminations[acting_agent]
     truncation = self.truncations[acting_agent]
+
     return observation, reward, termination, truncation, info
 
   def _enforce_action_mask(self, agent_idx: int, action: np.ndarray) -> np.ndarray:

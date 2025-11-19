@@ -418,10 +418,18 @@ class TCG(nn.Module):
     action_mask_struct = structured_mask_obs["action_mask"]
 
     primary_action_mask = action_mask_struct["primary_action_mask"].to(dtype=torch.bool)
-    legal_action_count = action_mask_struct["legal_action_count"].to(dtype=torch.long)
-    print(f"legal_action_count: {legal_action_count[0:10].cpu().numpy()}")
-    legal_actions = action_mask_struct["legal_actions"].to(dtype=torch.long)
-    print(f"no legal actions: {(legal_actions == 0).all()}")
+    legal_actions = action_mask_struct["legal_actions"]
+    legal_actions = torch.stack(
+      (
+        legal_actions["legal_primary"],
+        legal_actions["legal_sub1"],
+        legal_actions["legal_sub2"],
+        legal_actions["legal_sub3"],
+      ),
+      dim=-1,
+    )
+    primary_action_mask = torch.zeros(B, 13, dtype=torch.bool, device=primary_action_mask.device)
+    legal_actions = legal_actions.to(dtype=torch.long)
 
     projected_hidden = self.q_primary(flat_hidden)
     unit1_projected_hidden = self.q_unit1(flat_hidden)

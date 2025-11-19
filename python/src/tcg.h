@@ -257,6 +257,7 @@ void c_step(CAzukiTCG* env) {
     action.subaction_2,
     action.subaction_3
   };
+  fprintf(stderr, "actions: [%d, %d, %d, %d]\n", values[0], values[1], values[2], values[3]);
 
   UserAction parsed_action;
   if (!azk_engine_parse_action_values(env->engine, values, &parsed_action)) {

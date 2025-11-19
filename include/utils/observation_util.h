@@ -74,12 +74,13 @@ typedef struct {
   bool has_ikz_token;
 } OpponentObservationData;
 
-typedef uint8_t ObservationLegalAction[AZK_ACTION_HEAD_COUNT];
-
 typedef struct {
   bool primary_action_mask[AZK_ACTION_TYPE_COUNT];
   uint16_t legal_action_count;
-  ObservationLegalAction legal_actions[AZK_MAX_LEGAL_ACTIONS];
+  uint8_t legal_primary[AZK_MAX_LEGAL_ACTIONS];
+  uint8_t legal_sub1[AZK_MAX_LEGAL_ACTIONS];
+  uint8_t legal_sub2[AZK_MAX_LEGAL_ACTIONS];
+  uint8_t legal_sub3[AZK_MAX_LEGAL_ACTIONS];
 } ActionMaskObs;
 
 typedef struct {

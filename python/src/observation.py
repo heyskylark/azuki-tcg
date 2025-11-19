@@ -137,14 +137,14 @@ class _OpponentObservationData(ctypes.Structure):
     ]
 
 
-_LegalActionEntry = ctypes.c_int8 * ACTION_COMPONENT_COUNT
-
-
 class _ActionMaskObs(ctypes.Structure):
     _fields_ = [
         ("primary_action_mask", ctypes.c_bool * ACTION_TYPE_COUNT),
         ("legal_action_count", ctypes.c_uint16),
-        ("legal_actions", _LegalActionEntry * MAX_LEGAL_ACTIONS_COUNT),
+        ("legal_primary", ctypes.c_uint8 * MAX_LEGAL_ACTIONS_COUNT),
+        ("legal_sub1", ctypes.c_uint8 * MAX_LEGAL_ACTIONS_COUNT),
+        ("legal_sub2", ctypes.c_uint8 * MAX_LEGAL_ACTIONS_COUNT),
+        ("legal_sub3", ctypes.c_uint8 * MAX_LEGAL_ACTIONS_COUNT),
     ]
 
 class _ObservationData(ctypes.Structure):
@@ -265,12 +265,15 @@ def _card_zone_space(count: int, *, include_zone_index: bool) -> spaces.Tuple:
     single = _card_space(include_zone_index=include_zone_index)
     return spaces.Tuple(tuple(single for _ in range(count)))
 
-def _legal_actions_space() -> spaces.Box:
-    base_row = np.array(
-        [ACTION_TYPE_COUNT, SUBACTION_SELECTION_COUNT, SUBACTION_SELECTION_COUNT, SUBACTION_SELECTION_COUNT],
-        dtype=np.uint8,
+def _legal_actions_space() -> spaces.Dict:
+    return spaces.Dict(
+        {
+            "legal_primary": spaces.MultiDiscrete(np.full(MAX_LEGAL_ACTIONS_COUNT, ACTION_TYPE_COUNT, dtype=np.uint8)),
+            "legal_sub1": spaces.MultiDiscrete(np.full(MAX_LEGAL_ACTIONS_COUNT, SUBACTION_SELECTION_COUNT, dtype=np.uint8)),
+            "legal_sub2": spaces.MultiDiscrete(np.full(MAX_LEGAL_ACTIONS_COUNT, SUBACTION_SELECTION_COUNT, dtype=np.uint8)),
+            "legal_sub3": spaces.MultiDiscrete(np.full(MAX_LEGAL_ACTIONS_COUNT, SUBACTION_SELECTION_COUNT, dtype=np.uint8)),
+        }
     )
-    return spaces.MultiDiscrete(np.tile(base_row, (MAX_LEGAL_ACTIONS_COUNT, 1)))
 
 
 def _action_mask_space() -> spaces.Dict:
@@ -283,34 +286,33 @@ def _action_mask_space() -> spaces.Dict:
     )
 
 
-def _empty_legal_actions_matrix() -> np.ndarray:
-    return np.full((MAX_LEGAL_ACTIONS_COUNT, ACTION_COMPONENT_COUNT), LEGAL_ACTION_UNUSED, dtype=np.int8)
-
-def _coerce_legal_actions_matrix(values: Any, count: int) -> np.ndarray:
-    matrix = _empty_legal_actions_matrix()
+def _coerce_legal_actions(values: Any, count: int) -> dict[str, np.ndarray]:
     if values is None:
-        raise ValueError("Leagl action masking error: values is None")
+        raise ValueError("Legal action masking error: values is None")
 
     limit = min(max(int(count), 0), MAX_LEGAL_ACTIONS_COUNT)
 
-    for idx in range(limit):
-        entry = values[idx]
+    def _extract(key: str) -> np.ndarray:
+        array = np.full(MAX_LEGAL_ACTIONS_COUNT, LEGAL_ACTION_UNUSED, dtype=np.int8)
+        src = None
+        if isinstance(values, dict):
+            src = values.get(key)
+        if src is None:
+            src = getattr(values, key, None)
+        if src is None:
+            return array
+        src_array = np.asarray(src, dtype=np.int16).reshape(-1)
+        copy_count = min(limit, src_array.size)
+        if copy_count > 0:
+            array[:copy_count] = src_array[:copy_count]
+        return array
 
-        try:
-            matrix[idx, 0] = entry[0]
-            matrix[idx, 1] = entry[1]
-            matrix[idx, 2] = entry[2]
-            matrix[idx, 3] = entry[3]
-            continue
-        except (TypeError, IndexError, AttributeError):
-            pass
-
-        matrix[idx, 0] = getattr(entry, "type", LEGAL_ACTION_UNUSED)
-        matrix[idx, 1] = getattr(entry, "subaction_1", LEGAL_ACTION_UNUSED)
-        matrix[idx, 2] = getattr(entry, "subaction_2", LEGAL_ACTION_UNUSED)
-        matrix[idx, 3] = getattr(entry, "subaction_3", LEGAL_ACTION_UNUSED)
-
-    return matrix
+    return {
+        "legal_primary": _extract("legal_primary"),
+        "legal_sub1": _extract("legal_sub1"),
+        "legal_sub2": _extract("legal_sub2"),
+        "legal_sub3": _extract("legal_sub3"),
+    }
 
 def build_observation_space() -> spaces.Dict:
     """Return the Gymnasium observation space shared by every agent."""
@@ -430,10 +432,7 @@ def _action_mask_to_dict(action_mask: Any) -> dict[str, Any]:
             ACTION_TYPE_COUNT,
         ),
         "legal_action_count": legal_action_count,
-        "legal_actions": _coerce_legal_actions_matrix(
-            getattr(action_mask, "legal_actions", ()),
-            legal_action_count,
-        ),
+        "legal_actions": _coerce_legal_actions(action_mask, legal_action_count),
     }
 
 def _leader_to_dict(card: Any) -> dict[str, int]:

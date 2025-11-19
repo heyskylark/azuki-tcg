@@ -2,11 +2,14 @@
 #include "utils/cli_rendering_util.h"
 #include "validation/action_enumerator.h"
 
-static void reset_legal_actions(ObservationLegalAction legal_actions[AZK_MAX_LEGAL_ACTIONS]) {
+static void reset_legal_actions(ActionMaskObs *action_mask) {
+  ecs_assert(action_mask != NULL, ECS_INVALID_PARAMETER, "Output mask is null");
+  action_mask->legal_action_count = 0;
   for (size_t i = 0; i < AZK_MAX_LEGAL_ACTIONS; ++i) {
-    for (size_t j = 0; j < AZK_ACTION_HEAD_COUNT; ++j) {
-      legal_actions[i][j] = (uint8_t)0;
-    }
+    action_mask->legal_primary[i] = (uint8_t)0;
+    action_mask->legal_sub1[i] = (uint8_t)0;
+    action_mask->legal_sub2[i] = (uint8_t)0;
+    action_mask->legal_sub3[i] = (uint8_t)0;
   }
 }
 
@@ -29,10 +32,10 @@ static void populate_action_mask_from_set(const AzkActionMaskSet *mask_set, Acti
   for (uint16_t i = 0; i < legal_action_count; ++i) {
     const UserAction *action = &mask_set->legal_actions[i];
     ecs_assert(action->type >= 0 && action->type < AZK_ACTION_TYPE_COUNT, ECS_INVALID_PARAMETER, "Action type %d out of bounds", action->type);
-    out_mask->legal_actions[i][0] = (uint8_t)action->type;
-    out_mask->legal_actions[i][1] = (uint8_t)action->subaction_1;
-    out_mask->legal_actions[i][2] = (uint8_t)action->subaction_2;
-    out_mask->legal_actions[i][3] = (uint8_t)action->subaction_3;
+    out_mask->legal_primary[i] = (uint8_t)action->type;
+    out_mask->legal_sub1[i] = (uint8_t)action->subaction_1;
+    out_mask->legal_sub2[i] = (uint8_t)action->subaction_2;
+    out_mask->legal_sub3[i] = (uint8_t)action->subaction_3;
   }
 
   out_mask->legal_action_count = legal_action_count;
@@ -40,11 +43,11 @@ static void populate_action_mask_from_set(const AzkActionMaskSet *mask_set, Acti
   if (!out_mask->primary_action_mask[ACT_NOOP]) {
     out_mask->primary_action_mask[ACT_NOOP] = true;
     if (out_mask->legal_action_count < AZK_MAX_LEGAL_ACTIONS) {
-      ObservationLegalAction *noop_entry = &out_mask->legal_actions[out_mask->legal_action_count++];
-      (*noop_entry)[0] = (uint8_t)ACT_NOOP;
-      (*noop_entry)[1] = 0;
-      (*noop_entry)[2] = 0;
-      (*noop_entry)[3] = 0;
+      uint16_t noop_idx = out_mask->legal_action_count++;
+      out_mask->legal_primary[noop_idx] = (uint8_t)ACT_NOOP;
+      out_mask->legal_sub1[noop_idx] = 0;
+      out_mask->legal_sub2[noop_idx] = 0;
+      out_mask->legal_sub3[noop_idx] = 0;
     }
   }
 }
@@ -54,7 +57,7 @@ static ActionMaskObs build_observation_action_mask(ecs_world_t *world, const Gam
   ecs_assert(gs != NULL, ECS_INVALID_PARAMETER, "GameState is null");
   
   ActionMaskObs action_mask = {0};
-  reset_legal_actions(action_mask.legal_actions);
+  reset_legal_actions(&action_mask);
 
   AzkActionMaskSet mask_set = {0};
   ecs_assert(azk_build_action_mask_for_player(world, gs, player_index, &mask_set), ECS_INVALID_PARAMETER, "Failed to build action mask");
