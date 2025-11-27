@@ -16,6 +16,7 @@ from policy.tcg_policy import (
     TCG,
     TCGLSTM,
 )
+from policy import tcg_sampler
 
 # Ensure the compiled binding in build/python/src is importable before we pull in tcg.
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -99,6 +100,10 @@ def run_training(config_path: Path, forwarded_cli: Sequence[str]):
 
     trainer_args = load_training_config(config_path, forwarded_cli)
     trainer_args["train"]["env"] = trainer_args.get("env_name", "azuki_local")
+
+    # Install the custom sampler before PuffeRL starts calling into sample_logits.
+    tcg_sampler.set_fallback_sampler(pufferlib.pytorch.sample_logits)
+    pufferlib.pytorch.sample_logits = tcg_sampler.tcg_sample_logits
 
     vecenv = build_vecenv(trainer_args)
     policy = build_policy(vecenv, trainer_args)
