@@ -1,0 +1,84 @@
+In python/src/policy/tcg_policy.py:59 you’re inside TCG.encode_observations, which currently receives the flat byte tensor
+  coming from PettingZooPufferEnv. To access myObservationData->garden, you first need to reinterpret that flat tensor as the
+  structured dict defined in observation.py. The usual pattern (mirroring pufferlib.models.Default) is:
+
+  # in __init__
+  self.obs_dtype = pufferlib.pytorch.nativize_dtype(env.emulated)
+
+  # in encode_observations(...)
+  garden_tensor = torch.stack([
+      torch.flatten(card_entry) for card_entry in garden
+  ], dim=1)  # optional flattening/processing
+
+  - nativize_tensor returns nested torch views without copies, so structured["player"]["garden"] is already a tuple of dicts, one
+    per garden slot, each exposing the scalar fields (type_id, tapped, etc.) built in observation.py.
+  - You can index individual slots (e.g., garden[0]) or iterate over them as shown to send different subsections into separate
+    encoders.
+
+  Using that approach lets you “drill down” into any sub-structure (leader, hand, opponent zones, etc.) straight from the
+  flattened observation buffer.
+
+
+› Awesome, so if i wanted to also get the weapons on each of the garden cards, i'd have to iterate through garden and get the
+  "weapons" key? Then what if I want to use certain sections as the input for the network? Like for garden I'd want to use
+  everything in each garden card minus the weapons and weapon_count, I'd like to pull those out and process those separately
+  (like in an undordered process set) and then concat and add as further input
+
+
+• I'll explain how to iterate over the nested tuple of dicts representing weapons (observation.py lines 317-343), separating
+  weapon fields from others. I'll describe using dict comprehensions to exclude weapon keys, converting these core fields into
+  flattened tensors per card and stacking them. I'll also cover building masks based on the weapon count and treating weapons via
+  pooling, emphasizing that values remain torch views after nativization. This will reference the garden entry structure around
+  line 302 and include step-by-step instructions as requested.
+
+─ Worked for 9s ─────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+• Right idea. Once you reinterpret the flat observation buffer with pufferlib.pytorch.nativize_tensor, the player["garden"] entry
+  you get back is a tuple of length GARDEN_SIZE, and each element is exactly the dict described in python/src/observation.py:317-
+  343. That means every garden slot already exposes:
+
+  - scalar card fields (type_id, tapped, ikz_cost, etc.)
+  - weapon_count
+  - weapons: a tuple of length MAX_ATTACHED_WEAPONS, where each item is the weapon dict defined in python/src/observation.py:302-
+    311
+
+  So inside encode_observations you can do:
+
+  structured = pufferlib.pytorch.nativize_tensor(observations, self.obs_dtype)
+  garden_cards = structured["player"]["garden"]
+  for slot_idx, card in enumerate(garden_cards):
+      weapons = card["weapons"]         # tuple of MAX_ATTACHED_WEAPONS weapon dicts
+      core_features = {k: v for k, v in card.items()
+                       if k not in ("weapon_count", "weapons")}
+      ...
+
+
+  1. Flatten/concatenate the core_features tensors per card (after removing weapon_count/weapons), giving you a (batch,
+     GARDEN_SIZE, core_dim) tensor for the garden cards.
+  2. Separately flatten each weapon dict, stack across MAX_ATTACHED_WEAPONS, and mask with weapon_count if you want order-
+     insensitive pooling (e.g., sum/mean over the attached weapons for each card).
+
+  Since the structured views are deterministic, you can freely split them into whatever sub-blocks your architecture needs,
+  process each block independently, and then concatenate the resulting embeddings back together before passing them deeper into
+  the network.
+
+
+› Does pytorch handle complex networks where a bunch of different processing is going on for different parts of obs that then
+  combine into a single lstm network for example. Then later further processing for action decoding similar to openai five?
+
+
+• Yes—PyTorch is just raw PyTorch. You can build any computation graph you like before the LSTM (or after it) and as long as the
+  tensors match, autograd handles it. Typical workflow for a “hybrid” policy looks like:
+
+  - Split the structured observation into meaningful chunks (e.g., board zones, player stats, inventories) using the nativize_*
+    helpers so you can keep everything as tensors.
+  - Feed each chunk through whatever encoder makes sense—shared linear layers, small CNNs, attention blocks, permutation-
+    invariant pooling, etc. They can run in parallel and produce separate embeddings.
+  - Concatenate or otherwise fuse those embeddings into one latent tensor. That tensor is what you pass into the LSTM (or
+    directly into the action/value heads if you’re not using recurrence).
+  - After the LSTM, you can branch again: one branch to decode actions (possibly as multiple heads, masking, etc.), another to
+    estimate value, yet another for auxiliary predictions if you need them.
+
+  OpenAI Five’s policy (and similar multi-stream models) is just a larger version of that pattern. As long as you express
+  the computation in PyTorch modules and keep tensor shapes consistent when you merge/split, the framework doesn’t impose any
+  limitation.
