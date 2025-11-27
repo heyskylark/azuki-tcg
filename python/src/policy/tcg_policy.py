@@ -428,7 +428,6 @@ class TCG(nn.Module):
       ),
       dim=-1,
     )
-    primary_action_mask = torch.zeros(B, 13, dtype=torch.bool, device=primary_action_mask.device)
     legal_actions = legal_actions.to(dtype=torch.long)
 
     projected_hidden = self.q_primary(flat_hidden)
