@@ -17,6 +17,8 @@ ACTION_COMPONENT_COUNT = 4
 ACT_NOOP = 0
 ACT_ATTACK = 6
 ACT_ATTACH_WEAPON_FROM_HAND = 7
+GARDEN_ZONE_ID = 0
+ALLEY_ZONE_ID = 1
 
 OWNER_ENC_OUTPUT_SIZE = 4
 GARDEN_OR_ALLEY_ENC_OUTPUT_SIZE = 4
@@ -29,7 +31,7 @@ WEAPON_SET_INPUT_SIZE = CARD_TYPE_ENC_OUTPUT_SIZE + CARD_ID_ENC_OUTPUT_SIZE + 2
 
 PROCESS_SET_HIDDEN_SIZE = 128 
 PROCESS_SET_OUTPUT_SIZE = 32
-TARGET_VECTOR_COMPONENT_COUNT = 5
+TARGET_VECTOR_COMPONENT_COUNT = 9
 LSTM_INPUT_SIZE = PROCESS_SET_OUTPUT_SIZE * TARGET_VECTOR_COMPONENT_COUNT
 LSTM_HIDDEN_SIZE = 4096
 
@@ -295,11 +297,75 @@ class TCG(nn.Module):
   def __process_discard(self, discard_features):
     raise NotImplementedError("TCG process discard data not implemented")
 
-  def __process_alley(self, alley_features):
-    raise NotImplementedError("TCG process alley data not implemented")
+  def __process_alley_or_garden(self, zone_slots, *, is_garden: bool, is_ally: bool):
+    zone_slots = self.__normalize_zone_entries(zone_slots)
 
-  def __process_garden(self, garden_features):
-    raise NotImplementedError("TCG process garden data not implemented")
+    type_ids = self.__stack_zone_field(zone_slots, "type_id").long()
+    card_ids = self.__stack_zone_field(zone_slots, "card_id").long()
+    zone_indices = self.__stack_zone_field(zone_slots, "zone_index").long()
+
+    tapped = self.__stack_zone_field(zone_slots, "tapped").float()
+    cooldown = self.__stack_zone_field(zone_slots, "cooldown").float()
+    ikz_cost = self.__stack_zone_field(zone_slots, "ikz_cost").float()
+    attack = self.__stack_zone_field(zone_slots, "attack").float()
+    health = self.__stack_zone_field(zone_slots, "health").float()
+    gate_points = self.__stack_zone_field(zone_slots, "gate_points").float()
+
+    type_embeddings = self.card_type_encoder[0](type_ids)
+    card_embeddings = self.card_id_encoder[0](card_ids)
+    zone_index_embeddings = self.index_encoder[0](zone_indices)
+
+    zone_value = GARDEN_ZONE_ID if is_garden else ALLEY_ZONE_ID
+    zone_tensor = torch.full_like(card_ids, zone_value, dtype=torch.long)
+    garden_or_alley_embeddings = self.garden_or_alley_encoder[0](zone_tensor)
+
+    weapon_embeddings = []
+    for slot in zone_slots:
+      slot_weapons = self.__normalize_zone_entries(slot["weapons"])
+      weapon_embedding = self.__process_weapons(
+        self.__build_weapon_features(slot_weapons),
+        self.__flatten_scalar(slot["weapon_count"]),
+      )
+      weapon_embeddings.append(weapon_embedding)
+    weapon_embeddings = torch.stack(weapon_embeddings, dim=1)
+
+    scalar_stack = torch.stack(
+      [
+        tapped,
+        cooldown,
+        ikz_cost,
+        attack,
+        health,
+        gate_points,
+      ],
+      dim=-1,
+    )
+
+    processor = self.ally_alley_and_garden_set_processor if is_ally else self.opponent_alley_and_garden_set_processor
+
+    card_mask = card_ids > 0
+
+    zone_input = torch.cat(
+      [
+        type_embeddings,
+        card_embeddings,
+        zone_index_embeddings,
+        garden_or_alley_embeddings,
+        weapon_embeddings,
+        scalar_stack,
+      ],
+      dim=-1,
+    )
+
+    set_embeddings, pooled = processor(zone_input, mask=card_mask)
+    set_embeddings = set_embeddings * card_mask.unsqueeze(-1).to(dtype=set_embeddings.dtype)
+    return set_embeddings, pooled
+
+  def __process_alley(self, alley_features, is_ally: bool):
+    return self.__process_alley_or_garden(alley_features, is_garden=False, is_ally=is_ally)
+
+  def __process_garden(self, garden_features, is_ally: bool):
+    return self.__process_alley_or_garden(garden_features, is_garden=True, is_ally=is_ally)
 
   def __policy_device(self) -> torch.device:
     sample_param = next(self.parameters(), None)
@@ -341,6 +407,11 @@ class TCG(nn.Module):
       except (TypeError, AttributeError):
         pass
     self._cached_mask_observations = detached
+
+  def __normalize_zone_entries(self, zone_entries):
+    if isinstance(zone_entries, dict):
+      return [zone_entries[key] for key in sorted(zone_entries.keys())]
+    return zone_entries
 
   def __stack_zone_field(self, slots, field_name):
     stacked = torch.stack([slot[field_name] for slot in slots], dim=1)
@@ -393,28 +464,27 @@ class TCG(nn.Module):
     player_obs = structured_obs["player"]
     opponent_obs = structured_obs["opponent"]
     
-    hand = player_obs["hand"]
-    if isinstance(hand, dict):
-      hand_slots = [hand[key] for key in sorted(hand.keys())]
-    else:
-      hand_slots = hand
-    if isinstance(player_obs["leader"]["weapons"], dict):
-      player_weapon_slots = [player_obs["leader"]["weapons"][key] for key in sorted(player_obs["leader"]["weapons"].keys())]
-    else:
-      player_weapon_slots = player_obs["leader"]["weapons"]
-    if isinstance(opponent_obs["leader"]["weapons"], dict):
-      opponent_weapon_slots = [opponent_obs["leader"]["weapons"][key] for key in sorted(opponent_obs["leader"]["weapons"].keys())]
-    else:
-      opponent_weapon_slots = opponent_obs["leader"]["weapons"]
+    hand_slots = self.__normalize_zone_entries(player_obs["hand"])
+    player_alley_slots = self.__normalize_zone_entries(player_obs["alley"])
+    player_garden_slots = self.__normalize_zone_entries(player_obs["garden"])
+    opponent_alley_slots = self.__normalize_zone_entries(opponent_obs["alley"])
+    opponent_garden_slots = self.__normalize_zone_entries(opponent_obs["garden"])
+
+    player_weapon_slots = self.__normalize_zone_entries(player_obs["leader"]["weapons"])
+    opponent_weapon_slots = self.__normalize_zone_entries(opponent_obs["leader"]["weapons"])
 
     return {
       "hand": self.__build_hand_features(hand_slots),
       "player_leader": player_obs["leader"],
       "player_leader_weapons": self.__build_weapon_features(player_weapon_slots),
       "player_gate": player_obs["gate"],
+      "player_alley": player_alley_slots,
+      "player_garden": player_garden_slots,
       "opponent_leader": opponent_obs["leader"],
       "opponent_leader_weapons": self.__build_weapon_features(opponent_weapon_slots),
       "opponent_gate": opponent_obs["gate"],
+      "opponent_alley": opponent_alley_slots,
+      "opponent_garden": opponent_garden_slots,
     }
 
   def __process_weapons(self, weapon_features, weapon_count):
@@ -494,6 +564,10 @@ class TCG(nn.Module):
     obs_data = self.__get_organized_obs_data(structured_obs)
     
     hand_matrix, hand_vector = self.__process_hand(obs_data["hand"])
+    player_garden_matrix, player_garden_vector = self.__process_garden(obs_data["player_garden"], is_ally=True)
+    player_alley_matrix, player_alley_vector = self.__process_alley(obs_data["player_alley"], is_ally=True)
+    opponent_garden_matrix, opponent_garden_vector = self.__process_garden(obs_data["opponent_garden"], is_ally=False)
+    opponent_alley_matrix, opponent_alley_vector = self.__process_alley(obs_data["opponent_alley"], is_ally=False)
     player_leader_embedding = self.__encode_leader_obs(obs_data["player_leader"], obs_data["player_leader_weapons"], is_ally=True)
     opponent_leader_embedding = self.__encode_leader_obs(obs_data["opponent_leader"], obs_data["opponent_leader_weapons"], is_ally=False)
     player_gate_embedding = self.__encode_gate_obs(obs_data["player_gate"], is_ally=True)
@@ -502,6 +576,10 @@ class TCG(nn.Module):
     target_vector = torch.cat(
       [
         hand_vector,
+        player_garden_vector,
+        player_alley_vector,
+        opponent_garden_vector,
+        opponent_alley_vector,
         player_leader_embedding,
         player_gate_embedding,
         opponent_leader_embedding,
@@ -513,6 +591,10 @@ class TCG(nn.Module):
     target_matrix = torch.cat(
       [
         hand_matrix,
+        player_garden_matrix,
+        player_alley_matrix,
+        opponent_garden_matrix,
+        opponent_alley_matrix,
         player_leader_embedding.unsqueeze(-2),
         player_gate_embedding.unsqueeze(-2),
         opponent_leader_embedding.unsqueeze(-2),
