@@ -25,11 +25,13 @@ CARD_ID_ENC_OUTPUT_SIZE = 8
 GAME_PHASE_ENC_OUTPUT_SIZE = 4
 PRIMARY_ACTION_ENC_OUTPUT_SIZE = 4
 INDEX_ENC_OUTPUT_SIZE = 16
+WEAPON_SET_INPUT_SIZE = CARD_TYPE_ENC_OUTPUT_SIZE + CARD_ID_ENC_OUTPUT_SIZE + 2
 
-LSTM_INPUT_SIZE = 64
+PROCESS_SET_HIDDEN_SIZE = 128 
+PROCESS_SET_OUTPUT_SIZE = 32
+TARGET_VECTOR_COMPONENT_COUNT = 5
+LSTM_INPUT_SIZE = PROCESS_SET_OUTPUT_SIZE * TARGET_VECTOR_COMPONENT_COUNT
 LSTM_HIDDEN_SIZE = 4096
-PROCESS_SET_HIDDEN_SIZE = 256
-PROCESS_SET_OUTPUT_SIZE = 64
 
 class TCGLSTM(pufferlib.models.LSTMWrapper):
   def __init__(self, env, policy, input_size=LSTM_INPUT_SIZE, hidden_size=LSTM_HIDDEN_SIZE):
@@ -111,7 +113,7 @@ class ProcessSetProcessor(nn.Module):
     self.fc2 = nn.Linear(hidden_size, output_size)
     self.output_size = output_size
 
-  def forward(self, x):
+  def forward(self, x, mask=None):
     """Process a set/matrix shaped (*, N, K) and return (element_embeddings, pooled_vector)."""
     if x.dim() == 1:
       # Handles single-element inputs by adding a fake dimension (1,K)
@@ -129,7 +131,18 @@ class ProcessSetProcessor(nn.Module):
         dtype=set_embeddings.dtype,
       )
     else:
-      pooled, _ = torch.max(set_embeddings, dim=-2)
+      if mask is not None:
+        if mask.dim() == set_embeddings.dim() - 1:
+          mask = mask.unsqueeze(-1)
+        mask = mask.to(dtype=torch.bool)
+        expanded_mask = mask.expand_as(set_embeddings)
+        masked_embeddings = set_embeddings.masked_fill(~expanded_mask, torch.finfo(set_embeddings.dtype).min)
+        pooled, _ = torch.max(masked_embeddings, dim=-2)
+        slot_valid = expanded_mask.any(dim=-2)
+        pooled = torch.where(slot_valid, pooled, torch.zeros_like(pooled))
+        pooled = torch.nan_to_num(pooled, nan=0.0, neginf=0.0, posinf=0.0)
+      else:
+        pooled, _ = torch.max(set_embeddings, dim=-2)
     return set_embeddings, pooled
 
 class SingleUnitProjection(nn.Module):
@@ -214,6 +227,7 @@ class TCG(nn.Module):
     self.q_bins3 = nn.Linear(LSTM_HIDDEN_SIZE, MAX_INDEX_SIZE)
 
     #### Process Set Processors ####
+    self.weapon_set_processor = ProcessSetProcessor(WEAPON_SET_INPUT_SIZE)
     # Input: type emb, card id emb, zone index emb, is tapped
     IKZ_AREA_SET_INPUT_SIZE = CARD_TYPE_ENC_OUTPUT_SIZE + CARD_ID_ENC_OUTPUT_SIZE + INDEX_ENC_OUTPUT_SIZE + 1
     self.ally_ikz_area_set_processor = ProcessSetProcessor(IKZ_AREA_SET_INPUT_SIZE)
@@ -307,6 +321,12 @@ class TCG(nn.Module):
       return tensor.squeeze(0)
     return tensor
 
+  def __flatten_scalar(self, tensor: torch.Tensor) -> torch.Tensor:
+    """Ensure scalar-like tensors drop trailing unit dims so embeddings stay 2D."""
+    if tensor.dim() > 1 and tensor.size(-1) == 1:
+      return tensor.squeeze(-1)
+    return tensor
+
   def __action_mask_struct(self, observations):
     structured_obs, squeeze_batch, _ = self.__prepare_structured_observations(observations)
     return structured_obs["action_mask"], squeeze_batch
@@ -322,29 +342,22 @@ class TCG(nn.Module):
         pass
     self._cached_mask_observations = detached
 
-  def __get_organized_obs_data(self, structured_obs):
-    player_obs = structured_obs["player"]
-    hand = player_obs["hand"]
-    if isinstance(hand, dict):
-      hand_slots = [hand[key] for key in sorted(hand.keys())]
-    else:
-      hand_slots = hand
+  def __stack_zone_field(self, slots, field_name):
+    stacked = torch.stack([slot[field_name] for slot in slots], dim=1)
+    if stacked.size(-1) == 1:
+      stacked = stacked.squeeze(-1)
+    return stacked
 
-    def stack_hand_field(field_name):
-      stacked = torch.stack([slot[field_name] for slot in hand_slots], dim=1)
-      if stacked.size(-1) == 1:
-        stacked = stacked.squeeze(-1)
-      return stacked
+  def __build_hand_features(self, hand_slots):
+    hand_type_tensor = self.__stack_zone_field(hand_slots, "type_id")
+    hand_card_tensor = self.__stack_zone_field(hand_slots, "card_id")
+    hand_ikz_tensor = self.__stack_zone_field(hand_slots, "ikz_cost")
+    hand_attack_tensor = self.__stack_zone_field(hand_slots, "attack")
+    hand_health_tensor = self.__stack_zone_field(hand_slots, "health")
+    hand_gate_tensor = self.__stack_zone_field(hand_slots, "gate_points")
+    hand_zone_tensor = self.__stack_zone_field(hand_slots, "zone_index")
 
-    hand_type_tensor = stack_hand_field("type_id")
-    hand_card_tensor = stack_hand_field("card_id")
-    hand_ikz_tensor = stack_hand_field("ikz_cost")
-    hand_attack_tensor = stack_hand_field("attack")
-    hand_health_tensor = stack_hand_field("health")
-    hand_gate_tensor = stack_hand_field("gate_points")
-    hand_zone_tensor = stack_hand_field("zone_index")
-
-    hand_features = {
+    return {
       "type_id": hand_type_tensor,
       "card_id": hand_card_tensor,
       "ikz_cost": hand_ikz_tensor,
@@ -354,7 +367,117 @@ class TCG(nn.Module):
       "zone_index": hand_zone_tensor,
     }
 
-    return hand_features
+  def __build_weapon_features(self, weapon_slots):
+    def stack_weapon_field(field_name, default_zero=False):
+      try:
+        return self.__stack_zone_field(weapon_slots, field_name)
+      except (KeyError, AttributeError):
+        if not default_zero:
+          raise
+        reference = self.__stack_zone_field(weapon_slots, "attack")
+        return torch.zeros_like(reference)
+
+    weapon_type_tensor = stack_weapon_field("type_id")
+    weapon_card_tensor = stack_weapon_field("card_id")
+    weapon_attack_tensor = stack_weapon_field("attack")
+    weapon_ikz_tensor = stack_weapon_field("ikz_cost")
+
+    return {
+      "type_id": weapon_type_tensor,
+      "card_id": weapon_card_tensor,
+      "attack": weapon_attack_tensor,
+      "ikz_cost": weapon_ikz_tensor,
+    }
+
+  def __get_organized_obs_data(self, structured_obs):
+    player_obs = structured_obs["player"]
+    opponent_obs = structured_obs["opponent"]
+    
+    hand = player_obs["hand"]
+    if isinstance(hand, dict):
+      hand_slots = [hand[key] for key in sorted(hand.keys())]
+    else:
+      hand_slots = hand
+    if isinstance(player_obs["leader"]["weapons"], dict):
+      player_weapon_slots = [player_obs["leader"]["weapons"][key] for key in sorted(player_obs["leader"]["weapons"].keys())]
+    else:
+      player_weapon_slots = player_obs["leader"]["weapons"]
+    if isinstance(opponent_obs["leader"]["weapons"], dict):
+      opponent_weapon_slots = [opponent_obs["leader"]["weapons"][key] for key in sorted(opponent_obs["leader"]["weapons"].keys())]
+    else:
+      opponent_weapon_slots = opponent_obs["leader"]["weapons"]
+
+    return {
+      "hand": self.__build_hand_features(hand_slots),
+      "player_leader": player_obs["leader"],
+      "player_leader_weapons": self.__build_weapon_features(player_weapon_slots),
+      "player_gate": player_obs["gate"],
+      "opponent_leader": opponent_obs["leader"],
+      "opponent_leader_weapons": self.__build_weapon_features(opponent_weapon_slots),
+      "opponent_gate": opponent_obs["gate"],
+    }
+
+  def __process_weapons(self, weapon_features, weapon_count):
+    type_ids = self.__flatten_scalar(weapon_features["type_id"]).long()
+    card_ids = self.__flatten_scalar(weapon_features["card_id"]).long()
+    attack = self.__flatten_scalar(weapon_features["attack"]).float()
+    ikz_cost = self.__flatten_scalar(weapon_features["ikz_cost"]).float()
+
+    type_embeddings = self.card_type_encoder[0](type_ids)
+    card_embeddings = self.card_id_encoder[0](card_ids)
+
+    scalar_stack = torch.stack(
+      [
+        attack,
+        ikz_cost,
+      ],
+      dim=-1,
+    )
+
+    weapon_input = torch.cat([type_embeddings, card_embeddings, scalar_stack], dim=-1)
+    if weapon_input.dim() == 2:
+      weapon_input = weapon_input.unsqueeze(-2)
+
+    max_slots = weapon_input.size(-2)
+    device = weapon_input.device
+    counts = self.__flatten_scalar(weapon_count).long().view(-1, 1)
+    slot_indices = torch.arange(max_slots, device=device).unsqueeze(0)
+    weapon_mask = slot_indices < counts
+
+    _, weapon_pooled = self.weapon_set_processor(weapon_input, mask=weapon_mask)
+    return weapon_pooled
+
+  def __encode_leader_obs(self, leader_obs, weapon_features, is_ally: bool):
+    weapon_count = self.__flatten_scalar(leader_obs["weapon_count"]).long()
+    weapon_embedding = self.__process_weapons(weapon_features, weapon_count)
+
+    type_ids = self.__flatten_scalar(leader_obs["type_id"]).long()
+    card_ids = self.__flatten_scalar(leader_obs["card_id"]).long()
+    type_embedding = self.card_type_encoder[0](type_ids)
+    card_embedding = self.card_id_encoder[0](card_ids)
+
+    scalar_stack = torch.stack(
+      [
+        self.__flatten_scalar(leader_obs["attack"]).float(),
+        self.__flatten_scalar(leader_obs["health"]).float(),
+        self.__flatten_scalar(leader_obs["tapped"]).float(),
+      ],
+      dim=-1,
+    )
+
+    leader_input = torch.cat([type_embedding, card_embedding, weapon_embedding, scalar_stack], dim=-1)
+    return self.__process_leader(leader_input, is_ally)
+
+  def __encode_gate_obs(self, gate_obs, is_ally: bool):
+    type_ids = self.__flatten_scalar(gate_obs["type_id"]).long()
+    card_ids = self.__flatten_scalar(gate_obs["card_id"]).long()
+    type_embedding = self.card_type_encoder[0](type_ids)
+    card_embedding = self.card_id_encoder[0](card_ids)
+
+    tap_tensor = self.__flatten_scalar(gate_obs["tapped"]).float().view(-1, 1)
+
+    gate_input = torch.cat([type_embedding, card_embedding, tap_tensor], dim=-1)
+    return self.__process_gate(gate_input, is_ally)
   
   def forward(self, x, state=None):
     target_vector, target_matrix = self.encode_observations(x, state=state)
@@ -368,9 +491,35 @@ class TCG(nn.Module):
     structured_obs, squeeze_batch, obs_tensor = self.__prepare_structured_observations(observations)
     self.__store_mask_observations(obs_tensor, state)
 
-    hand_features = self.__get_organized_obs_data(structured_obs)
+    obs_data = self.__get_organized_obs_data(structured_obs)
     
-    target_matrix, target_vector = self.__process_hand(hand_features)
+    hand_matrix, hand_vector = self.__process_hand(obs_data["hand"])
+    player_leader_embedding = self.__encode_leader_obs(obs_data["player_leader"], obs_data["player_leader_weapons"], is_ally=True)
+    opponent_leader_embedding = self.__encode_leader_obs(obs_data["opponent_leader"], obs_data["opponent_leader_weapons"], is_ally=False)
+    player_gate_embedding = self.__encode_gate_obs(obs_data["player_gate"], is_ally=True)
+    opponent_gate_embedding = self.__encode_gate_obs(obs_data["opponent_gate"], is_ally=False)
+
+    target_vector = torch.cat(
+      [
+        hand_vector,
+        player_leader_embedding,
+        player_gate_embedding,
+        opponent_leader_embedding,
+        opponent_gate_embedding,
+      ],
+      dim=-1,
+    )
+
+    target_matrix = torch.cat(
+      [
+        hand_matrix,
+        player_leader_embedding.unsqueeze(-2),
+        player_gate_embedding.unsqueeze(-2),
+        opponent_leader_embedding.unsqueeze(-2),
+        opponent_gate_embedding.unsqueeze(-2),
+      ],
+      dim=-2,
+    )
 
     if squeeze_batch:
       target_vector = target_vector.squeeze(0)
