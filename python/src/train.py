@@ -100,6 +100,11 @@ def run_training(config_path: Path, forwarded_cli: Sequence[str]):
 
     trainer_args = load_training_config(config_path, forwarded_cli)
     trainer_args["train"]["env"] = trainer_args.get("env_name", "azuki_local")
+    logger = None
+    if trainer_args.get("wandb"):
+        logger = pufferl.WandbLogger(trainer_args)
+    elif trainer_args.get("neptune"):
+        logger = pufferl.NeptuneLogger(trainer_args)
 
     # Install the custom sampler before PuffeRL starts calling into sample_logits.
     tcg_sampler.set_fallback_sampler(pufferlib.pytorch.sample_logits)
@@ -107,7 +112,7 @@ def run_training(config_path: Path, forwarded_cli: Sequence[str]):
 
     vecenv = build_vecenv(trainer_args)
     policy = build_policy(vecenv, trainer_args)
-    trainer = pufferl.PuffeRL(trainer_args["train"], vecenv, policy)
+    trainer = pufferl.PuffeRL(trainer_args["train"], vecenv, policy, logger=logger)
 
     try:
         while trainer.epoch < trainer.total_epochs:
@@ -117,7 +122,9 @@ def run_training(config_path: Path, forwarded_cli: Sequence[str]):
                 print(f"[epoch {trainer.epoch}] {logs}")
     finally:
         trainer.print_dashboard()
-        trainer.close()
+        model_path = trainer.close()
+        if logger is not None:
+            logger.close(model_path)
 
 
 def main():

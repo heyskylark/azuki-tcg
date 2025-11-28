@@ -32,7 +32,8 @@ WEAPON_SET_INPUT_SIZE = CARD_TYPE_ENC_OUTPUT_SIZE + CARD_ID_ENC_OUTPUT_SIZE + 2
 PROCESS_SET_HIDDEN_SIZE = 128 
 PROCESS_SET_OUTPUT_SIZE = 32
 TARGET_VECTOR_COMPONENT_COUNT = 11
-LSTM_INPUT_SIZE = PROCESS_SET_OUTPUT_SIZE * TARGET_VECTOR_COMPONENT_COUNT
+GLOBAL_SCALAR_COMPONENT_COUNT = 7
+LSTM_INPUT_SIZE = PROCESS_SET_OUTPUT_SIZE * TARGET_VECTOR_COMPONENT_COUNT + GLOBAL_SCALAR_COMPONENT_COUNT
 LSTM_HIDDEN_SIZE = 4096
 
 class TCGLSTM(pufferlib.models.LSTMWrapper):
@@ -537,6 +538,13 @@ class TCG(nn.Module):
       "opponent_alley": opponent_alley_slots,
       "opponent_garden": opponent_garden_slots,
       "opponent_ikz_area": self.__build_ikz_area_features(opponent_ikz_slots),
+      "player_deck_count": player_obs["deck_count"],
+      "opponent_deck_count": opponent_obs["deck_count"],
+      "player_ikz_pile_count": player_obs["ikz_pile_count"],
+      "opponent_ikz_pile_count": opponent_obs["ikz_pile_count"],
+      "player_has_ikz_token": player_obs["has_ikz_token"],
+      "opponent_has_ikz_token": opponent_obs["has_ikz_token"],
+      "opponent_hand_count": opponent_obs["hand_count"],
     }
 
   def __process_weapons(self, weapon_features, weapon_count):
@@ -627,6 +635,19 @@ class TCG(nn.Module):
     player_gate_embedding = self.__encode_gate_obs(obs_data["player_gate"], is_ally=True)
     opponent_gate_embedding = self.__encode_gate_obs(obs_data["opponent_gate"], is_ally=False)
 
+    global_scalar_features = torch.stack(
+      [
+        self.__flatten_scalar(obs_data["player_deck_count"]).float(),
+        self.__flatten_scalar(obs_data["opponent_deck_count"]).float(),
+        self.__flatten_scalar(obs_data["player_ikz_pile_count"]).float(),
+        self.__flatten_scalar(obs_data["opponent_ikz_pile_count"]).float(),
+        self.__flatten_scalar(obs_data["player_has_ikz_token"]).float(),
+        self.__flatten_scalar(obs_data["opponent_has_ikz_token"]).float(),
+        self.__flatten_scalar(obs_data["opponent_hand_count"]).float(),
+      ],
+      dim=-1,
+    )
+
     target_vector = torch.cat(
       [
         hand_vector,
@@ -640,6 +661,7 @@ class TCG(nn.Module):
         opponent_gate_embedding,
         player_ikz_vector,
         opponent_ikz_vector,
+        global_scalar_features,
       ],
       dim=-1,
     )

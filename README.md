@@ -36,6 +36,13 @@ cmake -S . -B build && cmake --build build --target azuki_puffer_env
 PYTHONPATH=build/python/src:python/src:$PYTHONPATH uv run --active python/src/train.py --config python/config/azuki.ini --train.device cuda --train.total-timesteps 1_000_000
 ```
 
+```bash
+WANDB_API_KEY=$WANDB_KEY WANDB_ENTITY=heyskylark-self-affiliated \
+  PYTHONPATH=build/python/src:python/src:$PYTHONPATH uv run --active python/src/train.py \
+    --config python/config/azuki.ini --wandb --wandb-project azuki-tcg --wandb-group azuki \
+    --tag tcg-mvp --train.device cuda --train.total-timesteps 1_000_000
+```
+
 # Dependencies
 
 - **Linux**: Install development headers via your package manager (Ubuntu/Debian `sudo apt install libncurses-dev`, Fedora `sudo dnf install ncurses-devel`, Arch-based `sudo pacman -S ncurses` or `yay -S ncurses`).
