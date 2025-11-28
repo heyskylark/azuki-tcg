@@ -31,7 +31,7 @@ WEAPON_SET_INPUT_SIZE = CARD_TYPE_ENC_OUTPUT_SIZE + CARD_ID_ENC_OUTPUT_SIZE + 2
 
 PROCESS_SET_HIDDEN_SIZE = 128 
 PROCESS_SET_OUTPUT_SIZE = 32
-TARGET_VECTOR_COMPONENT_COUNT = 9
+TARGET_VECTOR_COMPONENT_COUNT = 11
 LSTM_INPUT_SIZE = PROCESS_SET_OUTPUT_SIZE * TARGET_VECTOR_COMPONENT_COUNT
 LSTM_HIDDEN_SIZE = 4096
 
@@ -230,8 +230,8 @@ class TCG(nn.Module):
 
     #### Process Set Processors ####
     self.weapon_set_processor = ProcessSetProcessor(WEAPON_SET_INPUT_SIZE)
-    # Input: type emb, card id emb, zone index emb, is tapped
-    IKZ_AREA_SET_INPUT_SIZE = CARD_TYPE_ENC_OUTPUT_SIZE + CARD_ID_ENC_OUTPUT_SIZE + INDEX_ENC_OUTPUT_SIZE + 1
+    # Input: type emb, card id emb, zone index emb, tapped, cooldown
+    IKZ_AREA_SET_INPUT_SIZE = CARD_TYPE_ENC_OUTPUT_SIZE + CARD_ID_ENC_OUTPUT_SIZE + INDEX_ENC_OUTPUT_SIZE + 2
     self.ally_ikz_area_set_processor = ProcessSetProcessor(IKZ_AREA_SET_INPUT_SIZE)
     self.opponent_ikz_area_set_processor = ProcessSetProcessor(IKZ_AREA_SET_INPUT_SIZE)
 
@@ -291,8 +291,41 @@ class TCG(nn.Module):
     else:
       return self.opponent_gate_projector(gate_features)
 
-  def __process_ikz_area(self, ikz_area_features):
-    raise NotImplementedError("TCG process ikz area data not implemented")
+  def __process_ikz_area(self, ikz_area_features, is_ally: bool):
+    type_ids = ikz_area_features["type_id"].long()
+    card_ids = ikz_area_features["card_id"].long()
+    zone_indices = ikz_area_features["zone_index"].long()
+    tapped = ikz_area_features["tapped"].float()
+    cooldown = ikz_area_features["cooldown"].float()
+
+    type_embeddings = self.card_type_encoder[0](type_ids)
+    card_embeddings = self.card_id_encoder[0](card_ids)
+    zone_index_embeddings = self.index_encoder[0](zone_indices)
+
+    scalar_stack = torch.stack(
+      [
+        tapped,
+        cooldown,
+      ],
+      dim=-1,
+    )
+
+    processor = self.ally_ikz_area_set_processor if is_ally else self.opponent_ikz_area_set_processor
+    card_mask = card_ids > 0
+
+    zone_input = torch.cat(
+      [
+        type_embeddings,
+        card_embeddings,
+        zone_index_embeddings,
+        scalar_stack,
+      ],
+      dim=-1,
+    )
+
+    set_embeddings, pooled = processor(zone_input, mask=card_mask)
+    set_embeddings = set_embeddings * card_mask.unsqueeze(-1).to(dtype=set_embeddings.dtype)
+    return set_embeddings, pooled
 
   def __process_discard(self, discard_features):
     raise NotImplementedError("TCG process discard data not implemented")
@@ -438,6 +471,21 @@ class TCG(nn.Module):
       "zone_index": hand_zone_tensor,
     }
 
+  def __build_ikz_area_features(self, ikz_slots):
+    ikz_type_tensor = self.__stack_zone_field(ikz_slots, "type_id")
+    ikz_card_tensor = self.__stack_zone_field(ikz_slots, "card_id")
+    ikz_zone_tensor = self.__stack_zone_field(ikz_slots, "zone_index")
+    ikz_tapped_tensor = self.__stack_zone_field(ikz_slots, "tapped")
+    ikz_cooldown_tensor = self.__stack_zone_field(ikz_slots, "cooldown")
+
+    return {
+      "type_id": ikz_type_tensor,
+      "card_id": ikz_card_tensor,
+      "zone_index": ikz_zone_tensor,
+      "tapped": ikz_tapped_tensor,
+      "cooldown": ikz_cooldown_tensor,
+    }
+
   def __build_weapon_features(self, weapon_slots):
     def stack_weapon_field(field_name, default_zero=False):
       try:
@@ -469,6 +517,8 @@ class TCG(nn.Module):
     player_garden_slots = self.__normalize_zone_entries(player_obs["garden"])
     opponent_alley_slots = self.__normalize_zone_entries(opponent_obs["alley"])
     opponent_garden_slots = self.__normalize_zone_entries(opponent_obs["garden"])
+    player_ikz_slots = self.__normalize_zone_entries(player_obs["ikz_area"])
+    opponent_ikz_slots = self.__normalize_zone_entries(opponent_obs["ikz_area"])
 
     player_weapon_slots = self.__normalize_zone_entries(player_obs["leader"]["weapons"])
     opponent_weapon_slots = self.__normalize_zone_entries(opponent_obs["leader"]["weapons"])
@@ -480,11 +530,13 @@ class TCG(nn.Module):
       "player_gate": player_obs["gate"],
       "player_alley": player_alley_slots,
       "player_garden": player_garden_slots,
+      "player_ikz_area": self.__build_ikz_area_features(player_ikz_slots),
       "opponent_leader": opponent_obs["leader"],
       "opponent_leader_weapons": self.__build_weapon_features(opponent_weapon_slots),
       "opponent_gate": opponent_obs["gate"],
       "opponent_alley": opponent_alley_slots,
       "opponent_garden": opponent_garden_slots,
+      "opponent_ikz_area": self.__build_ikz_area_features(opponent_ikz_slots),
     }
 
   def __process_weapons(self, weapon_features, weapon_count):
@@ -568,6 +620,8 @@ class TCG(nn.Module):
     player_alley_matrix, player_alley_vector = self.__process_alley(obs_data["player_alley"], is_ally=True)
     opponent_garden_matrix, opponent_garden_vector = self.__process_garden(obs_data["opponent_garden"], is_ally=False)
     opponent_alley_matrix, opponent_alley_vector = self.__process_alley(obs_data["opponent_alley"], is_ally=False)
+    player_ikz_matrix, player_ikz_vector = self.__process_ikz_area(obs_data["player_ikz_area"], is_ally=True)
+    opponent_ikz_matrix, opponent_ikz_vector = self.__process_ikz_area(obs_data["opponent_ikz_area"], is_ally=False)
     player_leader_embedding = self.__encode_leader_obs(obs_data["player_leader"], obs_data["player_leader_weapons"], is_ally=True)
     opponent_leader_embedding = self.__encode_leader_obs(obs_data["opponent_leader"], obs_data["opponent_leader_weapons"], is_ally=False)
     player_gate_embedding = self.__encode_gate_obs(obs_data["player_gate"], is_ally=True)
@@ -584,6 +638,8 @@ class TCG(nn.Module):
         player_gate_embedding,
         opponent_leader_embedding,
         opponent_gate_embedding,
+        player_ikz_vector,
+        opponent_ikz_vector,
       ],
       dim=-1,
     )
@@ -599,6 +655,8 @@ class TCG(nn.Module):
         player_gate_embedding.unsqueeze(-2),
         opponent_leader_embedding.unsqueeze(-2),
         opponent_gate_embedding.unsqueeze(-2),
+        player_ikz_matrix,
+        opponent_ikz_matrix,
       ],
       dim=-2,
     )
