@@ -1,6 +1,7 @@
 import os
 import pufferlib.models
 import pufferlib.pytorch
+from gymnasium.wrappers.normalize import RunningMeanStd
 
 from python.src.observation import MAX_ATTACHED_WEAPONS
 from torch import nn
@@ -37,6 +38,93 @@ TARGET_VECTOR_COMPONENT_COUNT = 11
 GLOBAL_SCALAR_COMPONENT_COUNT = 7
 LSTM_INPUT_SIZE = PROCESS_SET_OUTPUT_SIZE * TARGET_VECTOR_COMPONENT_COUNT + GLOBAL_SCALAR_COMPONENT_COUNT
 LSTM_HIDDEN_SIZE = 4096
+
+
+class ScalarRunningNorm(nn.Module):
+  """Normalizes scalar/boolean tensors with running mean/std and clamps to [-clip, clip]."""
+  def __init__(self, *, clip: float = 5.0, eps: float = 1e-8, rms_epsilon: float = 1e-4):
+    super().__init__()
+    self.clip = clip
+    self.eps = eps
+    self.rms_epsilon = rms_epsilon
+    self._rms = {}
+
+  def _buffer_names(self, key: str):
+    return (
+      f"_rms_{key}_mean",
+      f"_rms_{key}_var",
+      f"_rms_{key}_count",
+    )
+
+  def _ensure_buffers(self, key: str, feature_shape):
+    mean_name, var_name, count_name = self._buffer_names(key)
+    shape = torch.Size(feature_shape) if feature_shape else torch.Size([])
+    if not hasattr(self, mean_name):
+      self.register_buffer(mean_name, torch.zeros(shape, dtype=torch.float64))
+      self.register_buffer(var_name, torch.ones(shape, dtype=torch.float64))
+      self.register_buffer(count_name, torch.tensor(self.rms_epsilon, dtype=torch.float64))
+
+  def _get_rms(self, key: str, feature_shape):
+    if key in self._rms:
+      return self._rms[key]
+
+    mean_name, var_name, count_name = self._buffer_names(key)
+    mean_buf = getattr(self, mean_name, None)
+    if mean_buf is not None:
+      var_buf = getattr(self, var_name)
+      count_buf = getattr(self, count_name)
+      rms = RunningMeanStd(shape=tuple(mean_buf.shape), epsilon=self.rms_epsilon)
+      rms.mean = mean_buf.detach().cpu().numpy()
+      rms.var = var_buf.detach().cpu().numpy()
+      rms.count = float(count_buf.detach().cpu().item())
+    else:
+      rms = RunningMeanStd(shape=feature_shape, epsilon=self.rms_epsilon)
+      self._ensure_buffers(key, feature_shape)
+    self._rms[key] = rms
+    return rms
+
+  def _sync_buffers(self, key: str, rms: RunningMeanStd):
+    mean_name, var_name, count_name = self._buffer_names(key)
+    setattr(self, mean_name, torch.as_tensor(rms.mean, dtype=torch.float64))
+    setattr(self, var_name, torch.as_tensor(rms.var, dtype=torch.float64))
+    setattr(self, count_name, torch.tensor(rms.count, dtype=torch.float64))
+
+  def _get_stats(self, key: str, device: torch.device, dtype: torch.dtype):
+    mean_name, var_name, _ = self._buffer_names(key)
+    mean = getattr(self, mean_name).to(device=device, dtype=dtype)
+    var = getattr(self, var_name).to(device=device, dtype=dtype)
+    return mean, var
+
+  def forward(self, key: str, tensor: torch.Tensor, mask: torch.Tensor | None = None) -> torch.Tensor:
+    if tensor is None:
+      return tensor
+
+    tensor = tensor.float()
+    feature_shape = () if tensor.dim() == 1 else (tensor.shape[-1],)
+    rms = self._get_rms(key, feature_shape)
+
+    with torch.no_grad():
+      values_for_update = tensor
+      if mask is not None:
+        mask_update = mask
+        if mask_update.dim() == tensor.dim():
+          mask_update = mask_update.any(dim=-1)
+        values_for_update = tensor[mask_update]
+      np_values = values_for_update.detach().cpu().numpy()
+      if np_values.size > 0:
+        rms.update(np_values.reshape((-1, *feature_shape)) if feature_shape else np_values.reshape(-1))
+        self._sync_buffers(key, rms)
+
+    mean, var = self._get_stats(key, tensor.device, tensor.dtype)
+    normalized = (tensor - mean) / torch.sqrt(var + self.eps)
+
+    if mask is not None:
+      mask_broadcast = mask
+      while mask_broadcast.dim() < normalized.dim():
+        mask_broadcast = mask_broadcast.unsqueeze(-1)
+      normalized = torch.where(mask_broadcast, normalized, torch.zeros_like(normalized))
+
+    return torch.clamp(normalized, -self.clip, self.clip)
 
 class TCGLSTM(pufferlib.models.LSTMWrapper):
   def __init__(self, env, policy, input_size=LSTM_INPUT_SIZE, hidden_size=LSTM_HIDDEN_SIZE):
@@ -167,6 +255,7 @@ class TCG(nn.Module):
 
     self.value_fn = pufferlib.pytorch.layer_init(nn.Linear(PROCESS_SET_OUTPUT_SIZE, 1), std=1)
     self.is_continuous = False
+    self.scalar_normalizer = ScalarRunningNorm()
 
     # Categorical encodings
     self.owner_encoder = nn.Sequential(
@@ -264,6 +353,8 @@ class TCG(nn.Module):
     card_ids = hand_features["card_id"].long()
     type_ids = hand_features["type_id"].long()
     hand_indices = hand_features["zone_index"].long()
+    # Empty slots default to type_id == 0; real cards (entities/weapons/spells/ikz) are > 0.
+    card_mask = type_ids > 0
 
     type_embeddings = self.card_type_encoder[0](type_ids)
     card_embeddings = self.card_id_encoder[0](card_ids)
@@ -278,6 +369,7 @@ class TCG(nn.Module):
       ],
       dim=-1,
     )
+    scalar_stack = self.scalar_normalizer("hand_scalar", scalar_stack, mask=card_mask)
 
     hand_input = torch.cat([type_embeddings, card_embeddings, hand_index_embeddings, scalar_stack], dim=-1)
     return self.hand_set_processor(hand_input)
@@ -300,6 +392,8 @@ class TCG(nn.Module):
     zone_indices = ikz_area_features["zone_index"].long()
     tapped = ikz_area_features["tapped"].float()
     cooldown = ikz_area_features["cooldown"].float()
+    # Empty slots default to type_id == 0.
+    card_mask = type_ids > 0
 
     type_embeddings = self.card_type_encoder[0](type_ids)
     card_embeddings = self.card_id_encoder[0](card_ids)
@@ -314,7 +408,7 @@ class TCG(nn.Module):
     )
 
     processor = self.ally_ikz_area_set_processor if is_ally else self.opponent_ikz_area_set_processor
-    card_mask = card_ids > 0
+    scalar_stack = self.scalar_normalizer("ikz_area_scalar", scalar_stack, mask=card_mask)
 
     zone_input = torch.cat(
       [
@@ -339,6 +433,8 @@ class TCG(nn.Module):
     type_ids = self.__stack_zone_field(zone_slots, "type_id").long()
     card_ids = self.__stack_zone_field(zone_slots, "card_id").long()
     zone_indices = self.__stack_zone_field(zone_slots, "zone_index").long()
+    # Empty slots default to type_id == 0.
+    card_mask = type_ids > 0
 
     tapped = self.__stack_zone_field(zone_slots, "tapped").float()
     cooldown = self.__stack_zone_field(zone_slots, "cooldown").float()
@@ -379,7 +475,7 @@ class TCG(nn.Module):
 
     processor = self.ally_alley_and_garden_set_processor if is_ally else self.opponent_alley_and_garden_set_processor
 
-    card_mask = card_ids > 0
+    scalar_stack = self.scalar_normalizer("alley_garden_scalar", scalar_stack, mask=card_mask)
 
     zone_input = torch.cat(
       [
@@ -574,15 +670,19 @@ class TCG(nn.Module):
       dim=-1,
     )
 
-    weapon_input = torch.cat([type_embeddings, card_embeddings, scalar_stack], dim=-1)
-    if weapon_input.dim() == 2:
-      weapon_input = weapon_input.unsqueeze(-2)
+    if scalar_stack.dim() == 2:
+      scalar_stack = scalar_stack.unsqueeze(-2)
+      type_embeddings = type_embeddings.unsqueeze(-2)
+      card_embeddings = card_embeddings.unsqueeze(-2)
 
-    max_slots = weapon_input.size(-2)
-    device = weapon_input.device
+    max_slots = scalar_stack.size(-2)
+    device = scalar_stack.device
     counts = self.__flatten_scalar(weapon_count).long().view(-1, 1)
     slot_indices = torch.arange(max_slots, device=device).unsqueeze(0)
     weapon_mask = slot_indices < counts
+    scalar_stack = self.scalar_normalizer("weapon_scalar", scalar_stack, mask=weapon_mask)
+
+    weapon_input = torch.cat([type_embeddings, card_embeddings, scalar_stack], dim=-1)
 
     _, weapon_pooled = self.weapon_set_processor(weapon_input, mask=weapon_mask)
     return weapon_pooled
@@ -604,6 +704,7 @@ class TCG(nn.Module):
       ],
       dim=-1,
     )
+    scalar_stack = self.scalar_normalizer("leader_scalar", scalar_stack)
 
     leader_input = torch.cat([type_embedding, card_embedding, weapon_embedding, scalar_stack], dim=-1)
     return self.__process_leader(leader_input, is_ally)
@@ -615,6 +716,7 @@ class TCG(nn.Module):
     card_embedding = self.card_id_encoder[0](card_ids)
 
     tap_tensor = self.__flatten_scalar(gate_obs["tapped"]).float().view(-1, 1)
+    tap_tensor = self.scalar_normalizer("gate_scalar", tap_tensor)
 
     gate_input = torch.cat([type_embedding, card_embedding, tap_tensor], dim=-1)
     return self.__process_gate(gate_input, is_ally)
@@ -657,6 +759,7 @@ class TCG(nn.Module):
       ],
       dim=-1,
     )
+    global_scalar_features = self.scalar_normalizer("global_scalar", global_scalar_features)
 
     target_vector = torch.cat(
       [
