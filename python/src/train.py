@@ -52,13 +52,14 @@ def load_training_config(config_path: Path, forwarded_cli: Sequence[str]) -> dic
         sys.argv = original_argv
 
 
-def make_azuki_env(**env_kwargs):
+def make_azuki_env(*, seed: int | None = None, buf=None, **env_kwargs):
     """Instantiate the wrapped Azuki env in the same order as the CLI."""
-    seed = env_kwargs.pop("seed", None)
+    # seed is provided by pufferlib.vector.make; fall back to config if not set.
+    seed = seed if seed is not None else env_kwargs.pop("seed", None)
     env = AzukiTCG(seed=seed)
     env = turn_based_aec_to_parallel(env)
     env = MultiagentEpisodeStats(env)
-    env = emulation.PettingZooPufferEnv(env)
+    env = emulation.PettingZooPufferEnv(env, buf=buf, seed=seed)
     return env
 
 
@@ -72,24 +73,12 @@ def build_vecenv(trainer_args: dict):
 
 
 def build_policy(vecenv, trainer_args: dict) -> torch.nn.Module:
-    # policy_kwargs = dict(trainer_args.get("policy", {}))
-    # lstm_kwargs = dict(policy_kwargs.pop("lstm", {}))
-
-    # legacy_hidden_size = policy_kwargs.pop("hidden_size", None)
-    # if legacy_hidden_size is not None and "hidden_size" not in lstm_kwargs:
-    #     lstm_kwargs["hidden_size"] = legacy_hidden_size
-
     base_policy = TCG(
         vecenv.driver_env,
-        # **policy_kwargs
     )
-    # input_size = lstm_kwargs.pop("input_size", PROCESS_SET_OUTPUT_SIZE)
-    # hidden_size = lstm_kwargs.pop("hidden_size", LSTM_HIDDEN_SIZE)
     policy = TCGLSTM(
         vecenv.driver_env,
         base_policy
-        # input_size=input_size,
-        # hidden_size=hidden_size,
     )
     return policy.to(trainer_args["train"]["device"])
 

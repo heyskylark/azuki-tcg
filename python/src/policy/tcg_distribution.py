@@ -23,3 +23,6 @@ class TCGActionDistribution:
 
     def batch_size(self) -> int:
         return self.primary_logits.shape[0]
+
+    def primary_actions(self) -> bool:
+        return self.primary_action_mask.to(dtype=torch.bool).detach().cpu().sum(dim=-1).tolist()

@@ -1,6 +1,8 @@
+import os
 import pufferlib.models
 import pufferlib.pytorch
 
+from python.src.observation import MAX_ATTACHED_WEAPONS
 from torch import nn
 import torch
 
@@ -552,6 +554,14 @@ class TCG(nn.Module):
     card_ids = self.__flatten_scalar(weapon_features["card_id"]).long()
     attack = self.__flatten_scalar(weapon_features["attack"]).float()
     ikz_cost = self.__flatten_scalar(weapon_features["ikz_cost"]).float()
+
+    if not torch.all((type_ids >= 0) & (type_ids < CARD_TYPE_COUNT)):
+      out_of_bounds = type_ids[(type_ids < 0) | (type_ids >= CARD_TYPE_COUNT)]
+      raise AssertionError(f"Some type_ids out of bounds: {out_of_bounds}")
+    if not torch.all((card_ids >= 0) & (card_ids < CARD_ID_COUNT)):
+      out_of_bounds = card_ids[(card_ids < 0) | (card_ids >= CARD_ID_COUNT)]
+      raise AssertionError(f"Some card_ids out of bounds: {out_of_bounds}")
+    assert torch.all(weapon_count < MAX_ATTACHED_WEAPONS), f"weapon_count must be < {MAX_ATTACHED_WEAPONS}, got: {weapon_count}"
 
     type_embeddings = self.card_type_encoder[0](type_ids)
     card_embeddings = self.card_id_encoder[0](card_ids)

@@ -184,6 +184,12 @@ static PyObject* env_reset(PyObject* self, PyObject* args) {
     if (!env){
         return NULL;
     }
+    PyObject* seed_arg = PyTuple_GetItem(args, 1);
+    if (!PyObject_TypeCheck(seed_arg, &PyLong_Type)) {
+        PyErr_SetString(PyExc_TypeError, "seed must be an integer");
+        return NULL;
+    }
+    env->seed = PyLong_AsLong(seed_arg);
     c_reset(env);
     Py_RETURN_NONE;
 }

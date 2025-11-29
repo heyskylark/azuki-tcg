@@ -1,12 +1,6 @@
 import ctypes
-
 import numpy as np
 from pettingzoo import AECEnv
-from pettingzoo.utils.conversions import turn_based_aec_to_parallel
-import pufferlib
-from pufferlib import emulation, MultiagentEpisodeStats
-from pufferlib.emulation import nativize
-
 from action import ACTION_COMPONENT_COUNT, build_action_space
 from observation import (
     MAX_PLAYERS_PER_MATCH,
@@ -115,7 +109,13 @@ class AzukiTCG(AECEnv):
     return observation_to_dict(self._raw_observation(idx))
 
   def reset(self, seed=None, options=None):
-    binding.env_reset(self.c_envs, int(seed or 0))
+    if seed is None:
+      # Use the local RNG to produce a fresh episode seed; deterministic if ctor seed was fixed.
+      seed = int(self.np_random.integers(0, 2**31 - 1))
+    else:
+      seed = int(seed)
+
+    binding.env_reset(self.c_envs, seed)
     self._actions.fill(0)
 
     self.agents = self.possible_agents[:]
@@ -157,14 +157,7 @@ class AzukiTCG(AECEnv):
         f"AzukiTCG expects {ACTION_COMPONENT_COUNT} integers (type, subaction_1..3); got shape {encoded_action.shape}"
       )
 
-    encoded_action = self._enforce_action_mask(agent_idx, encoded_action)
-
     observation = self.observe(acting_agent) 
-
-    # print(f"prim: {observation['action_mask']['legal_actions']['legal_primary']}")
-    # print(f"sub1: {observation['action_mask']['legal_actions']['legal_sub1']}")
-    # print(f"sub2: {observation['action_mask']['legal_actions']['legal_sub2']}")
-    # print(f"sub3: {observation['action_mask']['legal_actions']['legal_sub3']}")
 
     self._clear_rewards()
     self._actions[agent_idx] = encoded_action
@@ -191,73 +184,3 @@ class AzukiTCG(AECEnv):
     truncation = self.truncations[acting_agent]
 
     return observation, reward, termination, truncation, info
-
-  def _enforce_action_mask(self, agent_idx: int, action: np.ndarray) -> np.ndarray:
-    """Clamp the sampled action to the current legal mask to avoid invalid submissions."""
-    obs = self._raw_observation(agent_idx)
-    mask = getattr(obs, "action_mask", None)
-    if mask is None:
-      return action
-
-    primary_mask = getattr(mask, "primary_action_mask", ())
-    primary_idx = int(action[0])
-    valid_primary = [idx for idx, flag in enumerate(primary_mask) if flag]
-    if valid_primary:
-      if primary_idx not in valid_primary:
-        primary_idx = valid_primary[0]
-    else:
-      primary_idx = 0
-
-    action[0] = primary_idx
-
-    sub_masks = getattr(mask, "subaction_masks", None)
-    if sub_masks is None:
-      return action
-
-    try:
-      sub_mask = sub_masks[primary_idx]
-    except (TypeError, IndexError):
-      return action
-
-    def _clamp_subaction(value, mask_array):
-      valid = [idx for idx, flag in enumerate(mask_array) if flag]
-      if not valid:
-        return 0
-      if int(value) not in valid:
-        return valid[0]
-      return int(value)
-
-    action[1] = _clamp_subaction(action[1], getattr(sub_mask, "subaction_1", ()))
-    action[2] = _clamp_subaction(action[2], getattr(sub_mask, "subaction_2", ()))
-    action[3] = _clamp_subaction(action[3], getattr(sub_mask, "subaction_3", ()))
-
-    return action
-
-def _decode_observations(puffer_env, observations):
-  """Convert flattened buffers back into structured dicts for debugging."""
-  space = getattr(puffer_env, "env_single_observation_space", None)
-  dtype = getattr(puffer_env, "obs_dtype", None)
-
-  if space is None or dtype is None:
-    # Fall back to any space/dtype combo we can find, or return the raw data.
-    space = getattr(puffer_env, "single_observation_space", None)
-    dtype = getattr(puffer_env, "obs_dtype", None)
-    if space is None or dtype is None:
-      return observations
-
-  return {
-    agent: nativize(obs, space, dtype)
-    for agent, obs in observations.items()
-  }
-
-if __name__ == '__main__':
-    env = AzukiTCG(seed=42)
-    env = turn_based_aec_to_parallel(env)
-    env = MultiagentEpisodeStats(env)
-    env = emulation.PettingZooPufferEnv(env)
-    observations, infos = env.reset()
-    print(_decode_observations(env, observations))
-    actions = {agent: env.action_space(agent).sample() for agent in env.agents}
-    print(actions)
-    observations, rewards, terminals, truncations, infos = env.step(actions)
-    print(_decode_observations(env, observations))

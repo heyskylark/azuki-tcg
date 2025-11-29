@@ -97,23 +97,6 @@ bool azk_engine_was_prev_action_invalid(AzkEngine *engine) {
   return ac->invalid_action;
 }
 
-bool azk_engine_build_action_mask(
-  AzkEngine *engine,
-  int8_t player_index,
-  AzkActionMaskSet *out_mask
-) {
-  if (!engine || !out_mask) {
-    return false;
-  }
-
-  const GameState *gs = ecs_singleton_get(engine, GameState);
-  if (!gs) {
-    return false;
-  }
-
-  return azk_build_action_mask_for_player(engine, gs, player_index, out_mask);
-}
-
 static float clamp01(float value) {
   if (value < 0.0f) {
     return 0.0f;

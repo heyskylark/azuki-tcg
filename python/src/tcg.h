@@ -211,17 +211,10 @@ static inline int8_t tcg_active_player_index(CAzukiTCG* env) {
   return active_player_index;
 }
 
-static void refresh_action_masks(CAzukiTCG* env) {
-  for (int8_t player_index = 0; player_index < MAX_PLAYERS_PER_MATCH; ++player_index) {
-    azk_engine_build_action_mask(env->engine, player_index, &env->action_masks[player_index]);
-  }
-}
-
 static void refresh_observations(CAzukiTCG* env) {
   for (int8_t player_index = 0; player_index < MAX_PLAYERS_PER_MATCH; ++player_index) {
     azk_engine_observe(env->engine, player_index, &env->observations[player_index]);
   }
-  refresh_action_masks(env);
 }
 
 void c_reset(CAzukiTCG* env) {

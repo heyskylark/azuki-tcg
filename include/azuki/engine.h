@@ -70,15 +70,6 @@ void azk_engine_tick(AzkEngine *engine);
  */
 bool azk_engine_was_prev_action_invalid(AzkEngine *engine);
 
-/**
- * Build the legal action mask for the requested player.
- */
-bool azk_engine_build_action_mask(
-  AzkEngine *engine,
-  int8_t player_index,
-  AzkActionMaskSet *out_mask
-);
-
 typedef struct {
   float leader_health_ratio[MAX_PLAYERS_PER_MATCH];
   float garden_attack_sum[MAX_PLAYERS_PER_MATCH];

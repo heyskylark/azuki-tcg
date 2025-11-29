@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from typing import Callable, Tuple
 
 import torch
@@ -13,8 +14,11 @@ from policy.tcg_policy import (
 )
 
 MASK_MIN_VALUE = -1e9
+LOG_EPS = 1e-8
+PRIMARY_TEMPERATURE = 1.0
+SUBACTION_TEMPERATURE = 1.2
+SMOOTHING_EPS = 0.05
 _FALLBACK_SAMPLE_LOGITS: Callable | None = None
-
 
 def set_fallback_sampler(func: Callable) -> None:
     """Store the default sampler so we can fall back for non-TCG policies."""
@@ -25,9 +29,7 @@ def set_fallback_sampler(func: Callable) -> None:
 def tcg_sample_logits(logits, action=None):
     """Custom sampler that masks Azuki actions after the policy forward pass."""
     if not isinstance(logits, TCGActionDistribution):
-        if _FALLBACK_SAMPLE_LOGITS is None:
-            raise RuntimeError("Fallback sampler is not configured")
-        return _FALLBACK_SAMPLE_LOGITS(logits, action=action)
+        raise ValueError("logits is not a TCGActionDistribution")
 
     distribution = logits
     device = distribution.primary_logits.device
@@ -49,10 +51,22 @@ def tcg_sample_logits(logits, action=None):
     gate2_table = distribution.gate2_table.to(device)
 
     primary_mask = _ensure_valid_mask(distribution.primary_action_mask.to(device))
+
+    # legal_counts = distribution.legal_action_count.detach().cpu().tolist()
+    # primary_true = primary_mask.detach().cpu().sum(dim=-1).tolist()
+    # print(
+    #     "[tcg_sample_debug]",
+    #     f"batch={batch}",
+    #     f"legal_action_count={legal_counts[:4]}",
+    #     f"primary_true_counts={primary_true[:4]}",
+    # )
+
     primary_choice, primary_logprob, primary_entropy = _sample_stage(
         distribution.primary_logits,
         primary_mask,
         provided_action[:, 0] if provided_action is not None else None,
+        temperature=PRIMARY_TEMPERATURE,
+        smoothing_eps=0.0,
     )
 
     sub1_mask = _build_subaction_mask(
@@ -74,6 +88,8 @@ def tcg_sample_logits(logits, action=None):
         unit1_logits,
         sub1_mask,
         provided_action[:, 1] if provided_action is not None else None,
+        temperature=SUBACTION_TEMPERATURE,
+        smoothing_eps=SMOOTHING_EPS,
     )
 
     sub2_mask = _build_subaction_mask(
@@ -99,6 +115,8 @@ def tcg_sample_logits(logits, action=None):
         sub2_logits,
         sub2_mask,
         provided_action[:, 2] if provided_action is not None else None,
+        temperature=SUBACTION_TEMPERATURE,
+        smoothing_eps=SMOOTHING_EPS,
     )
 
     sub3_mask = _build_subaction_mask(
@@ -114,6 +132,8 @@ def tcg_sample_logits(logits, action=None):
         bins3_logits,
         sub3_mask,
         provided_action[:, 3] if provided_action is not None else None,
+        temperature=SUBACTION_TEMPERATURE,
+        smoothing_eps=SMOOTHING_EPS,
     )
 
     chosen_actions = torch.stack(
@@ -137,10 +157,22 @@ def _sample_stage(
     logits: torch.Tensor,
     mask: torch.Tensor,
     provided: torch.Tensor | None,
+    *,
+    temperature: float = 1.0,
+    smoothing_eps: float = 0.0,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     masked_logits = logits.masked_fill(~mask, MASK_MIN_VALUE)
-    log_probs = torch.log_softmax(masked_logits, dim=-1)
-    probs = torch.exp(log_probs)
+    if temperature != 1.0:
+        masked_logits = masked_logits / temperature
+
+    probs = torch.softmax(masked_logits, dim=-1)
+    if smoothing_eps > 0.0:
+        legal = mask.to(dtype=probs.dtype)
+        legal_count = legal.sum(dim=-1, keepdim=True).clamp(min=1.0)
+        uniform = legal / legal_count
+        probs = (1.0 - smoothing_eps) * probs + smoothing_eps * uniform
+
+    log_probs = torch.log(probs + LOG_EPS)
     entropy = -(probs * log_probs).sum(dim=-1)
     if provided is None:
         sampled = torch.multinomial(torch.nan_to_num(probs, nan=0.0), 1).squeeze(-1)
@@ -158,6 +190,7 @@ def _ensure_valid_mask(mask: torch.Tensor) -> torch.Tensor:
     valid = mask.any(dim=-1, keepdim=True)
     if valid.all():
         return mask
+
     mask = mask.clone()
     mask[~valid.expand_as(mask)] = False
     mask[~valid.squeeze(-1), 0] = True
