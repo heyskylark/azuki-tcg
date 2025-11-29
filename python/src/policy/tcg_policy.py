@@ -34,7 +34,7 @@ WEAPON_SET_INPUT_SIZE = CARD_TYPE_ENC_OUTPUT_SIZE + CARD_ID_ENC_OUTPUT_SIZE + 2
 
 PROCESS_SET_HIDDEN_SIZE = 128 
 PROCESS_SET_OUTPUT_SIZE = 32
-TARGET_VECTOR_COMPONENT_COUNT = 11
+TARGET_VECTOR_COMPONENT_COUNT = 13
 GLOBAL_SCALAR_COMPONENT_COUNT = 7
 LSTM_INPUT_SIZE = PROCESS_SET_OUTPUT_SIZE * TARGET_VECTOR_COMPONENT_COUNT + GLOBAL_SCALAR_COMPONENT_COUNT
 LSTM_HIDDEN_SIZE = 4096
@@ -349,6 +349,36 @@ class TCG(nn.Module):
     self._primary_action_embedding_batch = embeddings
     return embeddings
 
+  def __process_discard(self, discard_features, is_ally: bool):
+    card_ids = discard_features["card_id"].long()
+    type_ids = discard_features["type_id"].long()
+    discard_indices = discard_features["zone_index"].long()
+    # Empty slots default to type_id == 0; real cards (entities/weapons/spells/ikz) are > 0.
+    card_mask = type_ids > 0
+
+    type_embeddings = self.card_type_encoder[0](type_ids)
+    card_embeddings = self.card_id_encoder[0](card_ids)
+    discard_index_embeddings = self.index_encoder[0](discard_indices)
+
+    scalar_stack = torch.stack(
+      [
+        discard_features["ikz_cost"].float(),
+        discard_features["attack"].float(),
+        discard_features["health"].float(),
+        discard_features["gate_points"].float(),
+      ],
+      dim=-1,
+    )
+    scalar_stack = self.scalar_normalizer("discard_scalar", scalar_stack, mask=card_mask)
+
+    discard_input = torch.cat([type_embeddings, card_embeddings, discard_index_embeddings, scalar_stack], dim=-1)
+
+    processor = self.ally_discard_set_processor if is_ally else self.opponent_discard_set_processor
+
+    set_embeddings, pooled = processor(discard_input, mask=card_mask)
+    set_embeddings = set_embeddings * card_mask.unsqueeze(-1).to(dtype=set_embeddings.dtype)
+    return set_embeddings, pooled
+
   def __process_hand(self, hand_features):
     card_ids = hand_features["card_id"].long()
     type_ids = hand_features["type_id"].long()
@@ -423,9 +453,6 @@ class TCG(nn.Module):
     set_embeddings, pooled = processor(zone_input, mask=card_mask)
     set_embeddings = set_embeddings * card_mask.unsqueeze(-1).to(dtype=set_embeddings.dtype)
     return set_embeddings, pooled
-
-  def __process_discard(self, discard_features):
-    raise NotImplementedError("TCG process discard data not implemented")
 
   def __process_alley_or_garden(self, zone_slots, *, is_garden: bool, is_ally: bool):
     zone_slots = self.__normalize_zone_entries(zone_slots)
@@ -569,6 +596,25 @@ class TCG(nn.Module):
       "gate_points": hand_gate_tensor,
       "zone_index": hand_zone_tensor,
     }
+  
+  def __build_discard_features(self, discard_slots):
+    discard_type_tensor = self.__stack_zone_field(discard_slots, "type_id")
+    discard_card_tensor = self.__stack_zone_field(discard_slots, "card_id")
+    discard_zone_tensor = self.__stack_zone_field(discard_slots, "zone_index")
+    discard_ikz_cost_tensor = self.__stack_zone_field(discard_slots, "ikz_cost")
+    discard_attack_tensor = self.__stack_zone_field(discard_slots, "attack")
+    discard_health_tensor = self.__stack_zone_field(discard_slots, "health")
+    discard_gate_points_tensor = self.__stack_zone_field(discard_slots, "gate_points")
+
+    return {
+      "type_id": discard_type_tensor,
+      "card_id": discard_card_tensor,
+      "zone_index": discard_zone_tensor,
+      "ikz_cost": discard_ikz_cost_tensor,
+      "attack": discard_attack_tensor,
+      "health": discard_health_tensor,
+      "gate_points": discard_gate_points_tensor,
+    }
 
   def __build_ikz_area_features(self, ikz_slots):
     ikz_type_tensor = self.__stack_zone_field(ikz_slots, "type_id")
@@ -618,18 +664,22 @@ class TCG(nn.Module):
     opponent_garden_slots = self.__normalize_zone_entries(opponent_obs["garden"])
     player_ikz_slots = self.__normalize_zone_entries(player_obs["ikz_area"])
     opponent_ikz_slots = self.__normalize_zone_entries(opponent_obs["ikz_area"])
+    player_discard_slots = self.__normalize_zone_entries(player_obs["discard"])
+    opponent_discard_slots = self.__normalize_zone_entries(opponent_obs["discard"])
 
     player_weapon_slots = self.__normalize_zone_entries(player_obs["leader"]["weapons"])
     opponent_weapon_slots = self.__normalize_zone_entries(opponent_obs["leader"]["weapons"])
 
     return {
       "hand": self.__build_hand_features(hand_slots),
+      "player_discard": self.__build_discard_features(player_discard_slots),
       "player_leader": player_obs["leader"],
       "player_leader_weapons": self.__build_weapon_features(player_weapon_slots),
       "player_gate": player_obs["gate"],
       "player_alley": player_alley_slots,
       "player_garden": player_garden_slots,
       "player_ikz_area": self.__build_ikz_area_features(player_ikz_slots),
+      "opponent_discard": self.__build_discard_features(opponent_discard_slots),
       "opponent_leader": opponent_obs["leader"],
       "opponent_leader_weapons": self.__build_weapon_features(opponent_weapon_slots),
       "opponent_gate": opponent_obs["gate"],
@@ -736,6 +786,8 @@ class TCG(nn.Module):
     obs_data = self.__get_organized_obs_data(structured_obs)
     
     hand_matrix, hand_vector = self.__process_hand(obs_data["hand"])
+    player_discard_matrix, player_discard_vector = self.__process_discard(obs_data["player_discard"], is_ally=True)
+    _, opponent_discard_vector = self.__process_discard(obs_data["opponent_discard"], is_ally=False)
     player_garden_matrix, player_garden_vector = self.__process_garden(obs_data["player_garden"], is_ally=True)
     player_alley_matrix, player_alley_vector = self.__process_alley(obs_data["player_alley"], is_ally=True)
     opponent_garden_matrix, opponent_garden_vector = self.__process_garden(obs_data["opponent_garden"], is_ally=False)
@@ -764,6 +816,8 @@ class TCG(nn.Module):
     target_vector = torch.cat(
       [
         hand_vector,
+        player_discard_vector,
+        opponent_discard_vector,
         player_garden_vector,
         player_alley_vector,
         opponent_garden_vector,
@@ -782,6 +836,7 @@ class TCG(nn.Module):
     target_matrix = torch.cat(
       [
         hand_matrix,
+        player_discard_matrix,
         player_garden_matrix,
         player_alley_matrix,
         opponent_garden_matrix,

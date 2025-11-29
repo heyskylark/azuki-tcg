@@ -10,5 +10,3 @@
 - mess with reward shaping some more, I think right now its impact is really small
   - also add time based rewards if thats not already a thing to enforce faster actioning (i think it is)
     - might need to adjust the time degradation
-
-- add discard obs (will also blow up obs space a bit more since its max is 50 cards)
