@@ -104,6 +104,26 @@ class AzukiTCG(AECEnv):
     self._active_player_index = active_idx
     self.agent_selection = active_agent
 
+  def _update_terminal_infos(self):
+    """Fetch C-side episode stats and fan them out per-agent."""
+    log = binding.env_log(self.c_envs)
+    if not log:
+      return
+
+    per_agent_stats = (
+      {
+        "win": float(log.get("p0_winrate", 0.0)),
+        "leader_health": float(log.get("p0_avg_leader_health", 0.0)),
+      },
+      {
+        "win": float(log.get("p1_winrate", 0.0)),
+        "leader_health": float(log.get("p1_avg_leader_health", 0.0)),
+      },
+    )
+
+    for agent, stats in zip(self.possible_agents, per_agent_stats):
+      self.infos[agent].update(stats)
+
   def observe(self, agent):
     idx = self._player_index(agent)
     return observation_to_dict(self._raw_observation(idx))
@@ -172,7 +192,12 @@ class AzukiTCG(AECEnv):
     self._accumulate_rewards()
     self._sync_done_flags()
 
-    if all(self.terminations[agent] or self.truncations[agent] for agent in self.possible_agents):
+    all_done = all(
+      self.terminations[agent] or self.truncations[agent]
+      for agent in self.possible_agents
+    )
+    if all_done:
+      self._update_terminal_infos()
       self.agents = []
       self.agent_selection = None
       self._active_player_index = None
@@ -182,5 +207,6 @@ class AzukiTCG(AECEnv):
     observation = self.observe(acting_agent)
     termination = self.terminations[acting_agent]
     truncation = self.truncations[acting_agent]
+    info = self.infos[acting_agent]
 
     return observation, reward, termination, truncation, info

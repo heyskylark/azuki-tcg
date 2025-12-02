@@ -7,8 +7,8 @@
 
 #define PBRS_LEADER_WEIGHT 4.0f
 #define PBRS_GARDEN_ATTACK_WEIGHT 0.7f
-#define PBRS_UNTAPPED_GARDEN_WEIGHT 0.4f
-#define PBRS_UNTAPPED_IKZ_WEIGHT 0.2f
+#define PBRS_UNTAPPED_GARDEN_WEIGHT 0.15f
+#define PBRS_UNTAPPED_IKZ_WEIGHT 0.15f
 
 #define PBRS_GARDEN_ATTACK_CAP 10.0f
 #define PBRS_UNTAPPED_GARDEN_CAP 5.0f
@@ -30,9 +30,11 @@ typedef struct Log {
     float score;
     float episode_return;
     float episode_length;
+    float p0_winrate;
     float p1_winrate;
-    float p2_winrate;
     float draw_rate;
+    float p0_avg_leader_health;
+    float p1_avg_leader_health;
     float n;
 } Log;
 
@@ -158,6 +160,31 @@ static void apply_terminal_rewards(CAzukiTCG* env) {
     env->rewards[0] = 0.0f;
     env->rewards[1] = 0.0f;
   }
+}
+
+static void record_episode_stats(CAzukiTCG* env) {
+  AzkRewardSnapshot snapshot = {0};
+  if (!azk_engine_reward_snapshot(env->engine, &snapshot)) {
+    fprintf(stderr, "Failed to collect reward snapshot for episode stats\n");
+  }
+
+  const GameState* game_state = azk_engine_game_state(env->engine);
+  if (game_state == NULL) {
+    fprintf(stderr, "No game state available when recording episode stats\n");
+    return;
+  }
+
+  env->log.n += 1.0f;
+  if (game_state->winner == 0) {
+    env->log.p0_winrate += 1.0f;
+  } else if (game_state->winner == 1) {
+    env->log.p1_winrate += 1.0f;
+  } else {
+    env->log.draw_rate += 1.0f;
+  }
+
+  env->log.p0_avg_leader_health += snapshot.leader_health_ratio[0];
+  env->log.p1_avg_leader_health += snapshot.leader_health_ratio[1];
 }
 
 static void apply_shaped_rewards(CAzukiTCG* env, int8_t acting_player_index) {
@@ -357,6 +384,7 @@ void c_step(CAzukiTCG* env) {
 
   if (azk_engine_is_game_over(env->engine)) {
     apply_terminal_rewards(env);
+    record_episode_stats(env);
     return;
   }
 

@@ -614,6 +614,33 @@ static int assign_to_dict(PyObject* dict, char* key, float value) {
     return 0;
 }
 
+static PyObject* env_log(PyObject* self, PyObject* args) {
+    Env* env = unpack_env(args);
+    if (!env) {
+        return NULL;
+    }
+
+    PyObject* dict = PyDict_New();
+    if (env->log.n == 0.0f) {
+        return dict;
+    }
+
+    Log aggregate = env->log;
+    int num_keys = sizeof(Log) / sizeof(float);
+    for (int j = 0; j < num_keys; j++) {
+        ((float*)&env->log)[j] = 0.0f;
+    }
+
+    float n = aggregate.n;
+    for (int i = 0; i < num_keys; i++) {
+        ((float*)&aggregate)[i] /= n;
+    }
+
+    my_log(dict, &aggregate);
+    assign_to_dict(dict, "n", n);
+    return dict;
+}
+
 static PyObject* vec_log(PyObject* self, PyObject* args) {
     VecEnv* vec = unpack_vecenv(args);
     if (!vec) {
@@ -701,6 +728,7 @@ static PyMethodDef methods[] = {
     {"env_render", env_render, METH_VARARGS, "Render the environment"},
     {"env_close", env_close, METH_VARARGS, "Close the environment"},
     {"env_get", env_get, METH_VARARGS, "Get the environment state"},
+    {"env_log", env_log, METH_VARARGS, "Get and reset the environment log"},
     {"env_masks", env_masks, METH_VARARGS, "Get action mask metadata"},
     {"env_active_player", env_active_player, METH_VARARGS, "Get the current active player index"},
     {"env_put", (PyCFunction)env_put, METH_VARARGS | METH_KEYWORDS, "Put stuff into env"},
