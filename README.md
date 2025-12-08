@@ -78,3 +78,11 @@ python3 scripts/generate_card_defs.py path/to/cards.jsonl \
 ```
 
 Each line of the JSONL file must describe a single card object containing the card's base stats, IKZ cost, element, type, and other metadata. The script validates the shape of each record before emitting both the source (lookup tables) and header (enums, structs, and accessors). Override `-o` or `--header` as needed to place the generated files elsewhere.
+
+# Resources
+
+- [Dota 2 with Large Scale Deep Reinforcement Learning](https://arxiv.org/pdf/1912.06680)
+
+- [Cardsformer: Grounding Language to Learna Generalizable Policy in Hearthstone](https://www.researchgate.net/publication/374299909_Cardsformer_Grounding_Language_to_Learn_a_Generalizable_Policy_in_Hearthstone)
+
+- [Learning With Generalised Card Representations for “Magic: The Gathering”](https://arxiv.org/html/2407.05879v1?utm_source=chatgpt.com)
