@@ -210,14 +210,19 @@ static PyObject* env_step(PyObject* self, PyObject* args) {
     Py_RETURN_NONE;
 }
 
-// Python function to step the environment
+// Python function to render the environment and return an ANSI frame
 static PyObject* env_render(PyObject* self, PyObject* args) {
     Env* env = unpack_env(args);
     if (!env){
         return NULL;
     }
-    c_render(env);
-    Py_RETURN_NONE;
+    char* frame = c_render(env);
+    if (!frame) {
+        Py_RETURN_NONE;
+    }
+    PyObject* result = PyUnicode_FromString(frame);
+    free(frame);
+    return result;
 }
 
 // Python function to close the environment
@@ -596,8 +601,13 @@ static PyObject* vec_render(PyObject* self, PyObject* args) {
     }
     int env_id = PyLong_AsLong(env_id_arg);
  
-    c_render(vec->envs[env_id]);
-    Py_RETURN_NONE;
+    char* frame = c_render(vec->envs[env_id]);
+    if (!frame) {
+        Py_RETURN_NONE;
+    }
+    PyObject* result = PyUnicode_FromString(frame);
+    free(frame);
+    return result;
 }
 
 static int assign_to_dict(PyObject* dict, char* key, float value) {

@@ -25,6 +25,7 @@ class AzukiTCG(AECEnv):
     seed: int | None = None,
   ) -> None:
     super().__init__()
+    self.render_mode = "ansi"
     self.np_random = np.random.default_rng(seed)
     self.possible_agents = list(range(MAX_PLAYERS_PER_MATCH))
     self._agent_count = len(self.possible_agents)
@@ -210,3 +211,15 @@ class AzukiTCG(AECEnv):
     info = self.infos[acting_agent]
 
     return observation, reward, termination, truncation, info
+
+  def render(self, mode="human"):
+    if mode not in self.metadata.get("render_modes", []):
+      raise ValueError(f"Unsupported render mode {mode}; expected one of {self.metadata.get('render_modes', [])}")
+
+    frame = binding.env_render(self.c_envs)
+    if frame is None:
+      return None
+    if mode == "ansi":
+      return frame
+    print(frame)
+    return None

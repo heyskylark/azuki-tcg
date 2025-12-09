@@ -43,6 +43,13 @@ WANDB_API_KEY=$WANDB_KEY WANDB_ENTITY=heyskylark-self-affiliated \
     --tag tcg-mvp --train.device cuda --train.total-timesteps 1_000_000
 ```
 
+## Rendering & Playback
+
+- The Python env now supports `render(mode="ansi")` and exposes a playback helper at `python/src/playback.py` that loads a checkpoint, rolls out single-env self-play, and emits text frames you can pipe to `ttyrec`/`asciinema` or convert with `ffmpeg`. Example:  
+  `PYTHONPATH=build/python/src:python/src:$PYTHONPATH python python/src/playback.py --checkpoint <path/to/model.pt> --output renders/epoch_010000.ansi --episodes 1 --max-steps 200`
+- Training can optionally trigger playback automatically: `--render-playback-interval N` runs a short render every N epochs, `--render-playback-final` runs once at the end, `--render-playback-dir` saves frames instead of spamming stdout, and `--render-playback-device` lets you offload playback to CPU.
+- To avoid bloating storage with random early games, start rendering once the policy stabilizes (e.g., after 70–80% of planned epochs) and keep intervals coarse (every 25–50 epochs) with `--render-playback-steps` around 200 so each capture stays small.
+
 # Dependencies
 
 - **Linux**: Install development headers via your package manager (Ubuntu/Debian `sudo apt install libncurses-dev`, Fedora `sudo dnf install ncurses-devel`, Arch-based `sudo pacman -S ncurses` or `yay -S ncurses`).
