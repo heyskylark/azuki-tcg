@@ -8,8 +8,7 @@
 #include "azuki/zone_types.h"
 #include "components.h"
 #include "constants/game.h"
-
-#define AZK_MAX_IKZ_PAYMENT (IKZ_AREA_SIZE + 1)
+#include "abilities/ability.h"
 
 typedef struct {
   ecs_entity_t player;
@@ -51,5 +50,20 @@ typedef struct {
   uint8_t defender_index;
   bool attacker_is_leader;
 } AttackIntent;
+
+typedef struct {
+  ecs_entity_t player;
+  ecs_entity_t source_card;
+  const AbilityDef *ability;
+  bool use_ikz_token;
+  ecs_entity_t ikz_cards[AZK_MAX_IKZ_PAYMENT];
+  uint8_t ikz_card_count;
+} ActivateAbilityIntent;
+
+typedef struct {
+  ecs_entity_t player;
+  AbilitySelectionPhase phase;
+  ecs_entity_t target;
+} AbilitySelectIntent;
 
 #endif

@@ -1,5 +1,6 @@
 #include "systems/start_phase.h"
 #include "components.h"
+#include "abilities/ability_runtime.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/deck_utils.h"
 #include "utils/zone_util.h"
@@ -58,6 +59,9 @@ static void handle_phase_transition(ecs_world_t *world, GameState *gs) {
 void StartPhase(ecs_iter_t *it) {
   ecs_world_t *world = it->world;
   GameState *gs = ecs_field(it, GameState, 0);
+
+  gs->response_window = 0;
+  azk_reset_once_per_turn_for_player(world, gs->players[gs->active_player_index]);
 
   UntapAllCards(world, gs);
   DrawCard(world, gs);

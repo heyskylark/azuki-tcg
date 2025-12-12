@@ -82,7 +82,7 @@ bool azk_parse_user_action_values(ecs_world_t *world, const int values[ACTION_VA
   ecs_assert(active_index >= 0 && active_index < MAX_PLAYERS_PER_MATCH, ECS_INVALID_PARAMETER, "Active player index out of range");
 
   ActionType type = (ActionType)values[0];
-  if (type < ACT_NOOP || type > ACT_MULLIGAN_SHUFFLE) {
+  if (type < ACT_NOOP || type >= AZK_ACTION_TYPE_COUNT) {
     return false;
   }
 

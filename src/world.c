@@ -154,11 +154,18 @@ static void register_action_context_singleton(ecs_world_t *world) {
   ecs_singleton_set_ptr(world, ActionContext, &ac);
 }
 
+static void register_ability_context_singleton(ecs_world_t *world) {
+  ecs_add_id(world, ecs_id(AbilityContext), EcsSingleton);
+  AbilityContext ctx = {0};
+  ecs_singleton_set_ptr(world, AbilityContext, &ctx);
+}
+
 static void grant_player_ikz_token(ecs_world_t *world, ecs_entity_t player) {
   const ecs_entity_t ikz_token_prefab = azk_prefab_from_id(CARD_DEF_IKZ_002);
   ecs_assert(ikz_token_prefab != 0, ECS_INVALID_PARAMETER, "Prefab not found for IKZ token card");
   const ecs_entity_t ikz_token = ecs_new_w_pair(world, EcsIsA, ikz_token_prefab);
   ecs_set_name(world, ikz_token, "IKZTokenCard");
+  ecs_set(world, ikz_token, AbilityUsage, { .once_per_turn_mask = 0 });
   ecs_set(world, player, IKZToken, { .ikz_token = ikz_token });
 }
 
@@ -203,6 +210,7 @@ ecs_world_t* azk_world_init(uint32_t seed) {
 
   ecs_singleton_set_ptr(world, GameState, &gs);
   register_action_context_singleton(world);
+  register_ability_context_singleton(world);
   
   for (int p=0; p<MAX_PLAYERS_PER_MATCH; p++) {
     shuffle_deck(world, ref.zones[p].deck);
@@ -250,6 +258,7 @@ static void register_card(
     ecs_assert(placement.zone != 0, ECS_INVALID_PARAMETER, "Card zone not found for type %d", type->value);
     ecs_add_pair(world, card, EcsChildOf, placement.zone);
     ecs_add_pair(world, card, Rel_OwnedBy, player);
+    ecs_set(world, card, AbilityUsage, { .once_per_turn_mask = 0 });
 
     // Used for validating the final card distribution sizes
     if (ecs_has_id(world, placement.zone, ZLeader)) {

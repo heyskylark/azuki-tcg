@@ -28,10 +28,14 @@ typedef enum {
   ACT_DECLARE_DEFENDER = 8,
   ACT_GATE_PORTAL = 9,
   /* 10-11 reserved for gate portal + ability activation */
-  ACT_MULLIGAN_SHUFFLE = 12
+  ACT_MULLIGAN_SHUFFLE = 12,
+  ACT_ACTIVATE_ABILITY = 13,
+  ACT_SELECT_COST_TARGET = 14,
+  ACT_SELECT_EFFECT_TARGET = 15,
+  ACT_ACCEPT_TRIGGERED_ABILITY = 16
 } ActionType;
 
-#define AZK_ACTION_TYPE_COUNT (ACT_MULLIGAN_SHUFFLE + 1)
+#define AZK_ACTION_TYPE_COUNT (ACT_ACCEPT_TRIGGERED_ABILITY + 1)
 
 typedef struct {
   ecs_entity_t player;
@@ -59,6 +63,37 @@ typedef struct {
   ecs_entity_t defender_card;
 } CombatState;
 
+typedef enum {
+  ABILITY_SELECTION_NONE = 0,
+  ABILITY_SELECTION_PROMPT = 1,
+  ABILITY_SELECTION_COST = 2,
+  ABILITY_SELECTION_EFFECT = 3
+} AbilitySelectionPhase;
+
+#define AZK_MAX_ABILITY_SELECTIONS 3
+
+typedef struct {
+  bool has_pending;
+  bool from_trigger;
+  bool optional;
+  bool awaiting_consent;
+  ecs_entity_t source_card;
+  ecs_entity_t player;
+  uint16_t ability_uid; // card_def_id << 8 | ability_index
+  AbilitySelectionPhase phase;
+  uint8_t cost_min, effect_min;
+  uint8_t cost_expected, cost_filled;
+  uint8_t effect_expected, effect_filled;
+  ecs_entity_t cost_targets[AZK_MAX_ABILITY_SELECTIONS];
+  ecs_entity_t effect_targets[AZK_MAX_ABILITY_SELECTIONS];
+  ecs_entity_t ikz_cards[AZK_MAX_IKZ_PAYMENT];
+  uint8_t ikz_card_count;
+} AbilityContext;
+
+typedef struct {
+  uint32_t once_per_turn_mask;
+} AbilityUsage;
+
 typedef struct { 
   uint32_t seed;
   uint32_t rng_state;
@@ -84,6 +119,8 @@ extern ECS_COMPONENT_DECLARE(PlayerNumber);
 extern ECS_COMPONENT_DECLARE(PlayerId);
 extern ECS_COMPONENT_DECLARE(IKZToken);
 extern ECS_COMPONENT_DECLARE(ZoneIndex);
+extern ECS_COMPONENT_DECLARE(AbilityContext);
+extern ECS_COMPONENT_DECLARE(AbilityUsage);
 
 /* Relationship Entities */
 extern ECS_ENTITY_DECLARE(Rel_OwnedBy);

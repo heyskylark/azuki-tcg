@@ -65,4 +65,7 @@ void resolve_combat(ecs_world_t *world) {
   }
 
   // TODO: Resolve "after attacking" or "when attacked" effects that trigger from the outcome
+
+  gs->combat_state.attacking_card = 0;
+  gs->combat_state.defender_card = 0;
 }

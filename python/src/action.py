@@ -26,6 +26,10 @@ class ActionType(IntEnum):
   DECLARE_DEFENDER = 8
   GATE_PORTAL = 9
   MULLIGAN_SHUFFLE = 12
+  ACTIVATE_ABILITY = 13
+  SELECT_COST_TARGET = 14
+  SELECT_EFFECT_TARGET = 15
+  ACCEPT_TRIGGERED_ABILITY = 16
 
 
 ACTION_COMPONENT_COUNT = 4  # ACTION_TYPE + three subactions; keep in sync with AZK_USER_ACTION_VALUE_COUNT.
@@ -39,7 +43,7 @@ _SUBACTION_MAX = max(
 )
 _ACTION_N_VEC = np.array(
   [
-    ActionType.MULLIGAN_SHUFFLE + 1,  # Inclusive of highest ActionType enum.
+    ActionType.ACCEPT_TRIGGERED_ABILITY + 1,  # Inclusive of highest ActionType enum.
     _SUBACTION_MAX,
     _SUBACTION_MAX,
     _SUBACTION_MAX,

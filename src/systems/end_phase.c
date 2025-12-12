@@ -1,5 +1,6 @@
 #include "systems/end_phase.h"
 #include "components.h"
+#include "abilities/ability_runtime.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/entity_util.h"
 #include "utils/zone_util.h"
@@ -7,6 +8,8 @@
 void HandleEndPhase(ecs_iter_t *it) {
   ecs_world_t *world = it->world;
   GameState *gs = ecs_field(it, GameState, 0);
+  AbilityContext *actx = ecs_singleton_get_mut(world, AbilityContext);
+  azk_clear_ability_context(actx);
 
   ecs_entity_t active_player_garden_zone = gs->zones[gs->active_player_index].garden;
   ecs_entities_t active_player_garden_cards = ecs_get_ordered_children(world, active_player_garden_zone);

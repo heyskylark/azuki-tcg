@@ -51,4 +51,32 @@ bool azk_validate_simple_action(
   bool log_errors
 );
 
+bool azk_validate_activate_ability_action(
+  ecs_world_t *world,
+  const GameState *gs,
+  ecs_entity_t player,
+  const UserAction *action,
+  bool log_errors,
+  ActivateAbilityIntent *out_intent
+);
+
+bool azk_validate_select_ability_target_action(
+  ecs_world_t *world,
+  const GameState *gs,
+  const AbilityContext *actx,
+  ecs_entity_t player,
+  const UserAction *action,
+  bool log_errors,
+  AbilitySelectIntent *out_intent
+);
+
+bool azk_validate_accept_triggered_ability_action(
+  ecs_world_t *world,
+  const GameState *gs,
+  const AbilityContext *actx,
+  ecs_entity_t player,
+  const UserAction *action,
+  bool log_errors
+);
+
 #endif
