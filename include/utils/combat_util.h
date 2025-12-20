@@ -2,7 +2,7 @@
 #define AZUKI_UTILS_COMBAT_UTIL_H
 
 #include <flecs.h>
-#include "components.h"
+#include "components/components.h"
 #include "validation/action_intents.h"
 
 int attack(

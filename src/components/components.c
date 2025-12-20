@@ -1,7 +1,9 @@
-#include "components.h"
+#include "components/components.h"
 #include "generated/card_defs.h"
+#include "components/abilities.h"
 
 ECS_COMPONENT_DECLARE(ActionContext);
+ECS_COMPONENT_DECLARE(AbilityContext);
 ECS_COMPONENT_DECLARE(GameState);
 ECS_COMPONENT_DECLARE(PlayerNumber);
 ECS_COMPONENT_DECLARE(PlayerId);
@@ -31,6 +33,7 @@ ECS_TAG_DECLARE(TEndMatch);
 
 void azk_register_components(ecs_world_t *world) {
   ECS_COMPONENT_DEFINE(world, ActionContext);
+  ECS_COMPONENT_DEFINE(world, AbilityContext);
   ECS_COMPONENT_DEFINE(world, GameState);
   ECS_COMPONENT_DEFINE(world, PlayerNumber);
   ECS_COMPONENT_DEFINE(world, PlayerId);
@@ -70,5 +73,6 @@ void azk_register_components(ecs_world_t *world) {
   ECS_TAG_DEFINE(world, TEndTurn);
   ECS_TAG_DEFINE(world, TEndMatch);
 
+  azk_register_ability_components(world);
   azk_register_card_def_resources(world);
 }

@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "components.h"
+#include "components/components.h"
 
 #define AZK_PHASE_MASK(phase) (1u << (phase))
 

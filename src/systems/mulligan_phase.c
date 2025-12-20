@@ -1,5 +1,5 @@
 #include "systems/mulligan_phase.h"
-#include "components.h"
+#include "components/components.h"
 #include "utils/deck_utils.h"
 #include "utils/actions_util.h"
 #include "constants/game.h"

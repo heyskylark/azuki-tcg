@@ -1,6 +1,6 @@
 #include "utils/card_utils.h"
 #include "generated/card_defs.h"
-#include "components.h"
+#include "components/components.h"
 #include "utils/cli_rendering_util.h"
 #include <stdio.h>
 

@@ -1,5 +1,5 @@
 #include "systems/combat_resolve_phase.h"
-#include "components.h"
+#include "components/components.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/combat_util.h"
 #include "utils/observation_util.h"

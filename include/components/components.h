@@ -19,16 +19,26 @@ typedef enum {
 } Phase;
 
 typedef enum {
+  NONE = 0,
+  PHASE_ABILITY_CONFIRMATION = 3,
+  PHASE_ABILITY_COST_SELECTION = 4,
+  PHASE_ABILITY_EFFECT_SELECTION = 5,
+} AbilityPhase;
+
+typedef enum {
   ACT_NOOP = 0,
   ACT_PLAY_ENTITY_TO_GARDEN = 1,
   ACT_PLAY_ENTITY_TO_ALLEY = 2,
-  /* 3-5 reserved for weapons/spells once those flows are online */
   ACT_ATTACK = 6,
   ACT_ATTACH_WEAPON_FROM_HAND = 7,
-  ACT_DECLARE_DEFENDER = 8,
-  ACT_GATE_PORTAL = 9,
-  /* 10-11 reserved for gate portal + ability activation */
-  ACT_MULLIGAN_SHUFFLE = 12
+  ACT_PLAY_SPELL_FROM_HAND = 8,
+  ACT_DECLARE_DEFENDER = 9,
+  ACT_GATE_PORTAL = 10,
+  ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY = 11,
+  ACT_ACTIVATE_ALLEY_ABILITY = 12,
+  ACT_SELECT_COST_TARGET = 13,
+  ACT_SELECT_EFFECT_TARGET = 14,
+  ACT_MULLIGAN_SHUFFLE = 15
 } ActionType;
 
 #define AZK_ACTION_TYPE_COUNT (ACT_MULLIGAN_SHUFFLE + 1)
@@ -59,6 +69,16 @@ typedef struct {
   ecs_entity_t defender_card;
 } CombatState;
 
+typedef struct {
+  AbilityPhase phase;
+  ecs_entity_t source_card;
+  uint8_t cost_min, effect_min;
+  uint8_t cost_expected, effect_expected;
+  uint8_t cost_filled, effect_filled;
+  ecs_entity_t cost_targets[MAX_ABILITY_SELECTION];
+  ecs_entity_t effect_targets[MAX_ABILITY_SELECTION];
+} AbilityContext;
+
 typedef struct { 
   uint32_t seed;
   uint32_t rng_state;
@@ -79,6 +99,7 @@ ZoneIndex must exist (even with ordered children) because cards can be placed in
 typedef struct { uint8_t index; } ZoneIndex;
 
 extern ECS_COMPONENT_DECLARE(ActionContext);
+extern ECS_COMPONENT_DECLARE(AbilityContext);
 extern ECS_COMPONENT_DECLARE(GameState);
 extern ECS_COMPONENT_DECLARE(PlayerNumber);
 extern ECS_COMPONENT_DECLARE(PlayerId);

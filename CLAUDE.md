@@ -213,7 +213,7 @@ Systems in `src/systems/` correspond to these phases.
 ### ECS Component-System Model
 
 When modifying game logic:
-1. **Define components** in `include/components.h` (structs with game state)
+1. **Define components** in `include/components/components.h` (structs with game state)
 2. **Create systems** in `src/systems/` that query and modify components
 3. **Register systems** in `world.c` initialization with correct phase ordering
 4. **Update queries** in `src/queries/` if new entity lookups are needed

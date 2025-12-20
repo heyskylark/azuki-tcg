@@ -1,5 +1,5 @@
 #include "utils/player_util.h"
-#include "components.h"
+#include "components/components.h"
 
 uint8_t get_player_number(ecs_world_t *world, ecs_entity_t player) {
   const PlayerNumber *player_number = ecs_get(world, player, PlayerNumber);

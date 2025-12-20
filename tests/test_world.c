@@ -6,7 +6,7 @@
 #include <flecs.h>
 
 #include "world.h"
-#include "components.h"
+#include "components/components.h"
 #include "generated/card_defs.h"
 
 static const CardDef *find_card_def_by_entity_name(const char *entity_name) {

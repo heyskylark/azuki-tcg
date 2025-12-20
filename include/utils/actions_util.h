@@ -3,7 +3,7 @@
 
 #include <stdbool.h>
 
-#include "components.h"
+#include "components/components.h"
 
 #define AZK_USER_ACTION_VALUE_COUNT 4
 

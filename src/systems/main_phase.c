@@ -1,5 +1,5 @@
 #include "systems/main_phase.h"
-#include "components.h"
+#include "components/components.h"
 #include "utils/zone_util.h"
 #include "utils/card_utils.h"
 #include "utils/weapon_util.h"

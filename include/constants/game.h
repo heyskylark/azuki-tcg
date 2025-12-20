@@ -11,6 +11,7 @@
 #define MAX_ATTACHED_WEAPONS 10
 #define INITIAL_DRAW_COUNT 7
 #define MAX_USER_ACTION_HISTORY_SIZE 5000
+#define MAX_ABILITY_SELECTION 4 // Expand if we find an ability that has much more
 
 #define REQUIRED_DECK_SIZE 50
 #define REQUIRED_LEADER_SIZE 1

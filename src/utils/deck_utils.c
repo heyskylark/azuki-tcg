@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <string.h>
 
-#include "components.h"
+#include "components/components.h"
 
 static inline uint32_t deck_next_rand(uint32_t *state) {
   uint32_t x = *state;

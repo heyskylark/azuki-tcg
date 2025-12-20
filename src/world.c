@@ -178,6 +178,10 @@ ecs_world_t* azk_world_init(uint32_t seed) {
     .winner = -1,
   };
 
+  ecs_add_id(world, ecs_id(AbilityContext), EcsSingleton);
+  AbilityContext ac = {0};
+  ecs_singleton_set_ptr(world, AbilityContext, &ac);
+
   ecs_entity_t players[MAX_PLAYERS_PER_MATCH];
   for (int p=0; p<MAX_PLAYERS_PER_MATCH; p++) {
     ecs_entity_t player = ecs_new(world);

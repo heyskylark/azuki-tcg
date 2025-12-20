@@ -16,7 +16,7 @@ from observation import (
 
 
 class ActionType(IntEnum):
-  """Mirror include/components.h::ActionType."""
+  """Mirror include/components/components.h::ActionType."""
 
   NOOP = 0
   PLAY_ENTITY_TO_GARDEN = 1

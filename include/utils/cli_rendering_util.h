@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 
-#include "components.h"
+#include "components/components.h"
 #include "utils/observation_util.h"
 
 void cli_render_init(void);

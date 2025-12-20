@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 #include "azuki/zone_types.h"
-#include "components.h"
+#include "components/components.h"
 #include "constants/game.h"
 
 #define AZK_MAX_IKZ_PAYMENT (IKZ_AREA_SIZE + 1)

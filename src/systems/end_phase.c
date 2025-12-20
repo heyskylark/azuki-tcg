@@ -1,5 +1,5 @@
 #include "systems/end_phase.h"
-#include "components.h"
+#include "components/components.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/entity_util.h"
 #include "utils/zone_util.h"

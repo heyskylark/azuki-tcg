@@ -1,5 +1,5 @@
 #include "utils/phase_utils.h"
-#include "components.h"
+#include "components/components.h"
 
 // TODO: Temporary, need more intelligent checks later.
 static const bool PHASE_REQUIRES_USER_ACTION[PHASE_COUNT] = {
