@@ -1,4 +1,5 @@
 #include "components/components.h"
+#include "abilities/ability_registry.h"
 #include "generated/card_defs.h"
 #include "components/abilities.h"
 
@@ -75,4 +76,5 @@ void azk_register_components(ecs_world_t *world) {
 
   azk_register_ability_components(world);
   azk_register_card_def_resources(world);
+  azk_init_ability_registry(world);
 }

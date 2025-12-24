@@ -1,6 +1,7 @@
 #ifndef AZUKI_ECS_COMPONENTS_H
 #define AZUKI_ECS_COMPONENTS_H
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <flecs.h>
 
@@ -19,10 +20,10 @@ typedef enum {
 } Phase;
 
 typedef enum {
-  NONE = 0,
-  PHASE_ABILITY_CONFIRMATION = 3,
-  PHASE_ABILITY_COST_SELECTION = 4,
-  PHASE_ABILITY_EFFECT_SELECTION = 5,
+  ABILITY_PHASE_NONE = 0,
+  ABILITY_PHASE_CONFIRMATION = 1,
+  ABILITY_PHASE_COST_SELECTION = 2,
+  ABILITY_PHASE_EFFECT_SELECTION = 3,
 } AbilityPhase;
 
 typedef enum {
@@ -38,7 +39,8 @@ typedef enum {
   ACT_ACTIVATE_ALLEY_ABILITY = 12,
   ACT_SELECT_COST_TARGET = 13,
   ACT_SELECT_EFFECT_TARGET = 14,
-  ACT_MULLIGAN_SHUFFLE = 15
+  ACT_CONFIRM_ABILITY = 16,
+  ACT_MULLIGAN_SHUFFLE = 17  // Must always be highest for AZK_ACTION_TYPE_COUNT
 } ActionType;
 
 #define AZK_ACTION_TYPE_COUNT (ACT_MULLIGAN_SHUFFLE + 1)
@@ -72,6 +74,8 @@ typedef struct {
 typedef struct {
   AbilityPhase phase;
   ecs_entity_t source_card;
+  ecs_entity_t owner;
+  bool is_optional;
   uint8_t cost_min, effect_min;
   uint8_t cost_expected, effect_expected;
   uint8_t cost_filled, effect_filled;

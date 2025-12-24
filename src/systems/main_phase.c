@@ -1,4 +1,6 @@
 #include "systems/main_phase.h"
+#include "abilities/ability_registry.h"
+#include "abilities/ability_system.h"
 #include "components/components.h"
 #include "utils/zone_util.h"
 #include "utils/card_utils.h"
@@ -13,7 +15,9 @@ static int play_entity_to_garden_or_alley(
   ecs_world_t *world,
   GameState *gs,
   ActionContext *ac,
-  ZonePlacementType placement_type
+  ZonePlacementType placement_type,
+  ecs_entity_t *out_card,
+  ecs_entity_t *out_player
 ) {
   ecs_entity_t player = gs->players[gs->active_player_index];
   PlayEntityIntent intent = {0};
@@ -29,7 +33,14 @@ static int play_entity_to_garden_or_alley(
     return -1;
   }
 
-  return summon_card_into_zone_index(world, &intent);
+  int result = summon_card_into_zone_index(world, &intent);
+  if (result == 0 && out_card) {
+    *out_card = intent.card;
+  }
+  if (result == 0 && out_player) {
+    *out_player = intent.player;
+  }
+  return result;
 }
 
 /**
@@ -40,13 +51,20 @@ static void handle_play_entity_to_garden(ecs_world_t *world, GameState *gs, Acti
     exit(EXIT_FAILURE);
   }
 
-  int result = play_entity_to_garden_or_alley(world, gs, ac, ZONE_GARDEN);
+  ecs_entity_t played_card = 0;
+  ecs_entity_t player = 0;
+  int result = play_entity_to_garden_or_alley(world, gs, ac, ZONE_GARDEN, &played_card, &player);
   if (result < 0) {
     ac->invalid_action = true;
     return;
   }
 
   cli_render_logf("[MainAction] Played entity to garden");
+
+  // Check for on-play abilities
+  if (played_card != 0 && player != 0) {
+    azk_trigger_on_play_ability(world, played_card, player);
+  }
 }
 
 /**
@@ -57,13 +75,20 @@ static void handle_play_entity_to_alley(ecs_world_t *world, GameState *gs, Actio
     exit(EXIT_FAILURE);
   }
 
-  int result = play_entity_to_garden_or_alley(world, gs, ac, ZONE_ALLEY);
+  ecs_entity_t played_card = 0;
+  ecs_entity_t player = 0;
+  int result = play_entity_to_garden_or_alley(world, gs, ac, ZONE_ALLEY, &played_card, &player);
   if (result < 0) {
     ac->invalid_action = true;
     return;
   }
 
   cli_render_logf("[MainAction] Played entity to alley");
+
+  // Check for on-play abilities
+  if (played_card != 0 && player != 0) {
+    azk_trigger_on_play_ability(world, played_card, player);
+  }
 }
 
 /**
@@ -161,6 +186,66 @@ void HandleMainAction(ecs_iter_t *it) {
   GameState *gs = ecs_field(it, GameState, 0);
   ActionContext *ac = ecs_field(it, ActionContext, 1);
 
+  // Check if we're in an ability sub-phase
+  AbilityPhase ability_phase = azk_get_ability_phase(world);
+
+  if (ability_phase != ABILITY_PHASE_NONE) {
+    // In ability phase - only handle ability-related actions
+    switch (ac->user_action.type) {
+      case ACT_CONFIRM_ABILITY:
+        if (ability_phase == ABILITY_PHASE_CONFIRMATION) {
+          if (!azk_process_ability_confirmation(world)) {
+            ac->invalid_action = true;
+          }
+        } else {
+          cli_render_logf("[MainAction] ACT_CONFIRM_ABILITY not valid in ability phase %d", ability_phase);
+          ac->invalid_action = true;
+        }
+        break;
+
+      case ACT_NOOP:
+        // In confirmation phase, NOOP means decline
+        if (ability_phase == ABILITY_PHASE_CONFIRMATION) {
+          if (!azk_process_ability_decline(world)) {
+            ac->invalid_action = true;
+          }
+        } else {
+          cli_render_logf("[MainAction] ACT_NOOP not valid in ability phase %d", ability_phase);
+          ac->invalid_action = true;
+        }
+        break;
+
+      case ACT_SELECT_COST_TARGET:
+        if (ability_phase == ABILITY_PHASE_COST_SELECTION) {
+          if (!azk_process_cost_selection(world, ac->user_action.subaction_1)) {
+            ac->invalid_action = true;
+          }
+        } else {
+          cli_render_logf("[MainAction] ACT_SELECT_COST_TARGET not valid in ability phase %d", ability_phase);
+          ac->invalid_action = true;
+        }
+        break;
+
+      case ACT_SELECT_EFFECT_TARGET:
+        if (ability_phase == ABILITY_PHASE_EFFECT_SELECTION) {
+          if (!azk_process_effect_selection(world, ac->user_action.subaction_1)) {
+            ac->invalid_action = true;
+          }
+        } else {
+          cli_render_logf("[MainAction] ACT_SELECT_EFFECT_TARGET not valid in ability phase %d", ability_phase);
+          ac->invalid_action = true;
+        }
+        break;
+
+      default:
+        cli_render_logf("[MainAction] Action type %d not valid during ability phase", ac->user_action.type);
+        ac->invalid_action = true;
+        break;
+    }
+    return;
+  }
+
+  // Normal main phase handling
   switch (ac->user_action.type) {
     case ACT_PLAY_ENTITY_TO_GARDEN:
       handle_play_entity_to_garden(world, gs, ac);
