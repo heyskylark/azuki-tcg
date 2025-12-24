@@ -45,6 +45,11 @@ static const AzkActionSpec ACTION_SPECS[] = {
     .type = ACT_MULLIGAN_SHUFFLE,
     .phase_mask = AZK_PHASE_MASK(PHASE_PREGAME_MULLIGAN),
     .params = { UNUSED_PARAM, UNUSED_PARAM, UNUSED_PARAM }
+  },
+  {
+    .type = ACT_PLAY_SPELL_FROM_HAND,
+    .phase_mask = AZK_PHASE_MASK(PHASE_RESPONSE_WINDOW),
+    .params = { HAND_INDEX_PARAM, UNUSED_PARAM, BOOL_PARAM }
   }
 };
 

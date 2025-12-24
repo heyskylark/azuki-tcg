@@ -1,6 +1,7 @@
 #include "abilities/ability_registry.h"
 
 #include "abilities/cards/st01_007.h"
+#include "abilities/cards/stt02_015.h"
 #include "components/abilities.h"
 
 // Static registry table - most entries are empty (no ability)
@@ -51,6 +52,28 @@ void azk_init_ability_registry(ecs_world_t* world) {
         .validate_effect_target = NULL,
         .apply_costs = st01_007_apply_costs,
         .apply_effects = st01_007_apply_effects,
+    };
+
+    // STT02-015 "Commune with Water": [Response] Return an entity with cost <= 3 in any Garden to its owner's hand
+    kAbilityRegistry[CARD_DEF_STT02_015] = (AbilityDef){
+        .has_ability = true,
+        .is_optional = false,  // Spells are not optional once cast
+        .cost_req = {
+            .type = ABILITY_TARGET_NONE,
+            .min = 0,
+            .max = 0
+        },
+        .effect_req = {
+            .type = ABILITY_TARGET_ANY_GARDEN_ENTITY,
+            .min = 1,
+            .max = 1
+        },
+        .timing_tag = ecs_id(AResponse),
+        .validate = stt02_015_validate,
+        .validate_cost_target = NULL,
+        .validate_effect_target = stt02_015_validate_effect_target,
+        .apply_costs = NULL,
+        .apply_effects = stt02_015_apply_effects,
     };
 
     kRegistryInitialized = true;

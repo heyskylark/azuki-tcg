@@ -1,4 +1,5 @@
 #include "world.h"
+#include "components/abilities.h"
 #include "constants/game.h"
 #include "systems/main.h"
 #include "queries/main.h"
@@ -244,8 +245,11 @@ static void register_card(
 
     uint8_t player_number = pnum->player_number;
     snprintf(entity_name, sizeof(entity_name), "%s_P%u_%zu", card_id_component->code, player_number, index + 1);
-    ecs_entity_t card = ecs_new_w_pair(world, EcsIsA, prefab); 
+    ecs_entity_t card = ecs_new_w_pair(world, EcsIsA, prefab);
     ecs_set_name(world, card, entity_name);
+
+    // Attach ability timing tags (AOnPlay, AResponse, etc.) if card has an ability
+    attach_ability_components(world, card);
 
     const Type *type = ecs_get_id(world, card, ecs_id(Type));
     ecs_assert(type != NULL, ECS_INVALID_PARAMETER, "Type component not found for card %d", card);

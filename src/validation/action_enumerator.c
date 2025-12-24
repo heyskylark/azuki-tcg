@@ -124,7 +124,39 @@ static void enumerate_ability_actions(
           }
           break;
         }
-        // Add other target types as needed
+        case ABILITY_TARGET_ANY_GARDEN_ENTITY: {
+          // Index encoding: 0-4 = self garden, 5-9 = opponent garden
+          // Check self garden
+          ecs_entity_t self_garden = gs->zones[player_num].garden;
+          ecs_entities_t self_cards = ecs_get_ordered_children(world, self_garden);
+          for (int i = 0; i < self_cards.count; i++) {
+            ecs_entity_t target = self_cards.ids[i];
+            const ZoneIndex* zi = ecs_get(world, target, ZoneIndex);
+            if (!zi) continue;
+            if (def->validate_effect_target &&
+                !def->validate_effect_target(world, ctx->source_card, ctx->owner, target)) {
+              continue;
+            }
+            action.subaction_1 = zi->index;  // 0-4 for self garden
+            add_valid_action(out_mask, &action);
+          }
+          // Check opponent garden
+          uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
+          ecs_entity_t enemy_garden = gs->zones[enemy_num].garden;
+          ecs_entities_t enemy_cards = ecs_get_ordered_children(world, enemy_garden);
+          for (int i = 0; i < enemy_cards.count; i++) {
+            ecs_entity_t target = enemy_cards.ids[i];
+            const ZoneIndex* zi = ecs_get(world, target, ZoneIndex);
+            if (!zi) continue;
+            if (def->validate_effect_target &&
+                !def->validate_effect_target(world, ctx->source_card, ctx->owner, target)) {
+              continue;
+            }
+            action.subaction_1 = zi->index + GARDEN_SIZE;  // 5-9 for opponent garden
+            add_valid_action(out_mask, &action);
+          }
+          break;
+        }
         default:
           break;
       }
@@ -153,6 +185,8 @@ static bool validate_action_for_mask(
       return azk_validate_attack_action(world, gs, player, action, false, NULL);
     case ACT_ATTACH_WEAPON_FROM_HAND:
       return azk_validate_attach_weapon_action(world, gs, player, action, false, NULL);
+    case ACT_PLAY_SPELL_FROM_HAND:
+      return azk_validate_play_spell_action(world, gs, player, action, false, NULL);
     case ACT_NOOP:
     case ACT_MULLIGAN_SHUFFLE:
       return azk_validate_simple_action(world, gs, player, action->type, false);

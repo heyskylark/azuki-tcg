@@ -17,6 +17,7 @@ typedef enum {
   ABILITY_TARGET_ENEMY_LEADER = 9,
   ABILITY_TARGET_ENEMY_LEADER_OR_GARDEN_ENTITY = 10,
   ABILITY_TARGET_ANY_LEADER_OR_GARDEN_ENTITY = 11,
+  ABILITY_TARGET_ANY_GARDEN_ENTITY = 12,  // 0-4 = self garden, 5-9 = opponent garden
 } AbilityTargetType;
 
 typedef struct {

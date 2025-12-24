@@ -38,4 +38,9 @@ AbilityPhase azk_get_ability_phase(ecs_world_t* world);
 // Clear ability context (call after ability completes or is cancelled)
 void azk_clear_ability_context(ecs_world_t* world);
 
+// Trigger a spell ability after the spell has been cast
+// Unlike on-play abilities, spells skip confirmation (already committed to casting)
+// Returns true if ability requires target selection, false if auto-executes
+bool azk_trigger_spell_ability(ecs_world_t* world, ecs_entity_t spell_card, ecs_entity_t owner);
+
 #endif // AZUKI_ABILITY_SYSTEM_H

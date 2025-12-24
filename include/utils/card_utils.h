@@ -6,6 +6,7 @@
 
 bool is_card_type(ecs_world_t *world, ecs_entity_t card, CardType type);
 void discard_card(ecs_world_t *world, ecs_entity_t card);
+void return_card_to_hand(ecs_world_t *world, ecs_entity_t card);
 void set_card_to_tapped(ecs_world_t *world, ecs_entity_t card);
 void set_card_to_cooldown(ecs_world_t *world, ecs_entity_t card);
 bool is_card_tapped(ecs_world_t *world, ecs_entity_t card);

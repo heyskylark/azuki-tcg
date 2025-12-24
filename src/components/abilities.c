@@ -1,4 +1,5 @@
 #include "components/abilities.h"
+#include "abilities/ability_registry.h"
 #include "generated/card_defs.h"
 
 ECS_COMPONENT_DECLARE(AbilityRepeatContext);
@@ -56,6 +57,17 @@ void azk_register_ability_components(ecs_world_t *world) {
 }
 
 void attach_ability_components(ecs_world_t* world, ecs_entity_t card) {
-  const card_id = ecs_get(world, card, CardId);
+  const CardId* card_id = ecs_get(world, card, CardId);
   ecs_assert(card_id != 0, ECS_INVALID_PARAMETER, "CardId component not found for card %d", card);
+
+  // Look up ability definition from registry
+  const AbilityDef* ability_def = azk_get_ability_def(card_id->id);
+  if (ability_def == NULL || !ability_def->has_ability) {
+    return;
+  }
+
+  // Attach the timing tag if one is defined
+  if (ability_def->timing_tag != 0) {
+    ecs_add_id(world, card, ability_def->timing_tag);
+  }
 }

@@ -1,9 +1,11 @@
 #include "systems/main_phase.h"
 #include "abilities/ability_registry.h"
 #include "abilities/ability_system.h"
+#include "components/abilities.h"
 #include "components/components.h"
 #include "utils/zone_util.h"
 #include "utils/card_utils.h"
+#include "utils/player_util.h"
 #include "utils/weapon_util.h"
 #include "generated/card_defs.h"
 #include "utils/cli_rendering_util.h"
@@ -117,6 +119,56 @@ static void handle_gate_portal(ecs_world_t *world, GameState *gs, ActionContext 
 }
 
 /**
+ * Check if the defending player has any response spells they can play.
+ * Returns true if defender has at least one response spell in hand with enough IKZ to cast.
+*/
+static bool defender_can_respond(ecs_world_t *world, const GameState *gs, uint8_t defender_index) {
+  ecs_entity_t hand = gs->zones[defender_index].hand;
+  ecs_entity_t ikz_area = gs->zones[defender_index].ikz_area;
+
+  // Count available untapped IKZ
+  ecs_entities_t ikz_cards = ecs_get_ordered_children(world, ikz_area);
+  uint8_t available_ikz = 0;
+  for (int i = 0; i < ikz_cards.count; i++) {
+    if (!is_card_tapped(world, ikz_cards.ids[i])) {
+      available_ikz++;
+    }
+  }
+
+  // Check IKZ token
+  ecs_entity_t defender_player = gs->players[defender_index];
+  const IKZToken *ikz_token = ecs_get(world, defender_player, IKZToken);
+  if (ikz_token && ikz_token->ikz_token != 0 && !is_card_tapped(world, ikz_token->ikz_token)) {
+    available_ikz++;
+  }
+
+  // Check if any card in hand is a response spell with affordable cost
+  ecs_entities_t hand_cards = ecs_get_ordered_children(world, hand);
+  for (int i = 0; i < hand_cards.count; i++) {
+    ecs_entity_t card = hand_cards.ids[i];
+
+    // Check if it's a spell with AResponse timing
+    if (!is_card_type(world, card, CARD_TYPE_SPELL)) continue;
+    if (!ecs_has(world, card, AResponse)) continue;
+
+    // Check if we have the ability registered
+    const CardId *card_id = ecs_get(world, card, CardId);
+    if (!card_id || !azk_has_ability(card_id->id)) continue;
+
+    // Check IKZ cost
+    const IKZCost *ikz_cost = ecs_get(world, card, IKZCost);
+    if (!ikz_cost) continue;
+
+    if (ikz_cost->ikz_cost <= available_ikz) {
+      // Found at least one playable response spell
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * Expected Action: ACT_ATTACK, gaden_attacker_index, defender_index (opponent tapped garden entity or leader)
  * attacker_index and defender_index of 5 is the leader
 */
@@ -139,20 +191,16 @@ static void handle_attack(ecs_world_t *world, GameState *gs, ActionContext *ac) 
     return;
   }
 
-  /*
-  TODO: Only go to response window under these conditions:
-  - has a response spell and enough IKZ
-  - has an untapped entity in the garden with the defender tag
-  - has any entities with effects that can be triggered on attack
-  */
-  // if (defender_can_respond(world, gs)) {
-  //   gs->phase = PHASE_RESPONSE_WINDOW;
-  //   gs->active_player_index = (gs->active_player_index + 1) % MAX_PLAYERS_PER_MATCH;
-  // } else {
+  // Check if defender can respond (has response spells and IKZ)
+  uint8_t defender_index = (gs->active_player_index + 1) % MAX_PLAYERS_PER_MATCH;
+  if (defender_can_respond(world, gs, defender_index)) {
+    gs->phase = PHASE_RESPONSE_WINDOW;
+    gs->active_player_index = defender_index;
+    cli_render_logf("[MainAction] Attack declared - defender has response options");
+  } else {
     gs->phase = PHASE_COMBAT_RESOLVE;
-  // }
-
-  cli_render_logf("[MainAction] Attack");
+    cli_render_logf("[MainAction] Attack declared - proceeding to combat");
+  }
 }
 
 /**

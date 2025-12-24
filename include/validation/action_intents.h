@@ -52,4 +52,12 @@ typedef struct {
   bool attacker_is_leader;
 } AttackIntent;
 
+typedef struct {
+  ecs_entity_t player;
+  ecs_entity_t spell_card;
+  bool use_ikz_token;
+  ecs_entity_t ikz_cards[AZK_MAX_IKZ_PAYMENT];
+  uint8_t ikz_card_count;
+} PlaySpellIntent;
+
 #endif
