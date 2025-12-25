@@ -574,3 +574,77 @@ bool azk_validate_play_spell_action(
 
   return true;
 }
+
+bool azk_validate_activate_alley_ability_action(
+  ecs_world_t *world,
+  const GameState *gs,
+  ecs_entity_t player,
+  const UserAction *action,
+  bool log_errors,
+  ActivateAbilityIntent *out_intent
+) {
+  ecs_assert(world != NULL, ECS_INVALID_PARAMETER, "World is null");
+  ecs_assert(gs != NULL, ECS_INVALID_PARAMETER, "GameState is null");
+  ecs_assert(action != NULL, ECS_INVALID_PARAMETER, "Action is null");
+
+  if (!ensure_active_player(world, gs, player, log_errors)) {
+    return false;
+  }
+
+  // Main phase abilities can only be activated during main phase
+  if (gs->phase != PHASE_MAIN) {
+    VALIDATION_LOG(log_errors, "Alley ability cannot be activated in phase %d", gs->phase);
+    return false;
+  }
+
+  int ability_index = action->subaction_1;  // For future multi-ability support (currently always 0)
+  int alley_slot = action->subaction_2;
+
+  (void)ability_index;  // Unused for now
+
+  if (alley_slot < 0 || alley_slot >= ALLEY_SIZE) {
+    VALIDATION_LOG(log_errors, "Alley slot %d out of bounds", alley_slot);
+    return false;
+  }
+
+  uint8_t player_number = get_player_number(world, player);
+  ecs_entity_t alley_zone = gs->zones[player_number].alley;
+  ecs_entity_t card = find_card_in_zone_index(world, alley_zone, alley_slot);
+
+  if (card == 0) {
+    VALIDATION_LOG(log_errors, "No card at alley slot %d", alley_slot);
+    return false;
+  }
+
+  // Verify card has AMain timing tag (main phase ability)
+  if (!ecs_has(world, card, AMain)) {
+    VALIDATION_LOG(log_errors, "Card %llu does not have a main phase ability", (unsigned long long)card);
+    return false;
+  }
+
+  // Verify card has an ability in the registry
+  const CardId *card_id = ecs_get(world, card, CardId);
+  if (!card_id || !azk_has_ability(card_id->id)) {
+    VALIDATION_LOG(log_errors, "Card %llu has no registered ability", (unsigned long long)card);
+    return false;
+  }
+
+  // Verify ability can actually be activated (passes validation)
+  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  if (def && def->validate && !def->validate(world, card, player)) {
+    VALIDATION_LOG(log_errors, "Card %llu ability cannot be activated (validation failed)", (unsigned long long)card);
+    return false;
+  }
+
+  if (out_intent) {
+    ActivateAbilityIntent intent = {
+      .player = player,
+      .card = card,
+      .ability_index = (uint8_t)ability_index,
+      .slot_index = (uint8_t)alley_slot
+    };
+    *out_intent = intent;
+  }
+
+  return true;
+}

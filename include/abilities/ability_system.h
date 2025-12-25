@@ -43,4 +43,9 @@ void azk_clear_ability_context(ecs_world_t* world);
 // Returns true if ability requires target selection, false if auto-executes
 bool azk_trigger_spell_ability(ecs_world_t* world, ecs_entity_t spell_card, ecs_entity_t owner);
 
+// Trigger a main phase ability (AMain tag) for a card in the alley
+// These are optional abilities that can be activated during the main phase
+// Returns true if ability requires confirmation/selection, false if auto-executes or no ability
+bool azk_trigger_main_ability(ecs_world_t* world, ecs_entity_t card, ecs_entity_t owner);
+
 #endif // AZUKI_ABILITY_SYSTEM_H

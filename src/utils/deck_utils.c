@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "components/components.h"
+#include "utils/player_util.h"
 
 static inline uint32_t deck_next_rand(uint32_t *state) {
   uint32_t x = *state;
@@ -81,4 +82,45 @@ bool move_cards_to_zone(ecs_world_t *world, ecs_entity_t from_zone, ecs_entity_t
   }
 
   return to_draw == draw_count;
+}
+
+bool draw_cards_with_deckout_check(ecs_world_t *world, ecs_entity_t player, int draw_count, ecs_entity_t *out_cards) {
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  uint8_t player_num = get_player_number(world, player);
+  ecs_entity_t deck = gs->zones[player_num].deck;
+  ecs_entity_t hand = gs->zones[player_num].hand;
+
+  // Get deck snapshot once to avoid Flecs deferred operation issues
+  // (calling move_cards_to_zone repeatedly would re-fetch stale children)
+  ecs_entities_t deck_cards = ecs_get_ordered_children(world, deck);
+  int32_t deck_count = deck_cards.count;
+
+  for (int i = 0; i < draw_count; i++) {
+    if (deck_count == 0) {
+      // Couldn't draw (deck was already empty)
+      gs->winner = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
+      gs->phase = PHASE_END_MATCH;
+      ecs_singleton_modified(world, GameState);
+      return false;
+    }
+
+    // Move the top card (last in ordered list) to hand
+    ecs_entity_t card = deck_cards.ids[deck_count - 1 - i];
+    ecs_add_pair(world, card, EcsChildOf, hand);
+
+    if (out_cards) {
+      out_cards[i] = card;
+    }
+
+    // Check if deck is now empty after this draw
+    // (deck_count - i - 1 = remaining cards after this draw)
+    int remaining = deck_count - i - 1;
+    if (remaining == 0) {
+      gs->winner = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
+      gs->phase = PHASE_END_MATCH;
+      ecs_singleton_modified(world, GameState);
+      return false;  // Player loses due to deck-out
+    }
+  }
+  return true;
 }

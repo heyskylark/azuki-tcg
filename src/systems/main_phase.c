@@ -204,6 +204,28 @@ static void handle_attack(ecs_world_t *world, GameState *gs, ActionContext *ac) 
 }
 
 /**
+ * Expected Action: ACT_ACTIVATE_ALLEY_ABILITY, ability_index, alley_index, unused
+ * ability_index is 0 for now (single ability per card)
+*/
+static void handle_activate_alley_ability(ecs_world_t *world, GameState *gs, ActionContext *ac) {
+  if (ac->user_action.type != ACT_ACTIVATE_ALLEY_ABILITY) {
+    exit(EXIT_FAILURE);
+  }
+
+  ecs_entity_t player = gs->players[gs->active_player_index];
+  ActivateAbilityIntent intent = {0};
+  if (!azk_validate_activate_alley_ability_action(world, gs, player, &ac->user_action, true, &intent)) {
+    ac->invalid_action = true;
+    return;
+  }
+
+  // Trigger the main phase ability
+  azk_trigger_main_ability(world, intent.card, player);
+
+  cli_render_logf("[MainAction] Activated alley ability");
+}
+
+/**
  * Expected Action: ACT_ATTACH_WEAPON_FROM_HAND, hand_index, entity_index, use ikz token
  * entity_index of 5 is the leader
 */
@@ -309,6 +331,9 @@ void HandleMainAction(ecs_iter_t *it) {
       break;
     case ACT_ATTACK:
       handle_attack(world, gs, ac);
+      break;
+    case ACT_ACTIVATE_ALLEY_ABILITY:
+      handle_activate_alley_ability(world, gs, ac);
       break;
     case ACT_NOOP:
       if (!azk_validate_simple_action(world, gs, gs->players[gs->active_player_index], ac->user_action.type, true)) {

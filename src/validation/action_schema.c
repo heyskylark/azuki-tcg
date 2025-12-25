@@ -50,6 +50,11 @@ static const AzkActionSpec ACTION_SPECS[] = {
     .type = ACT_PLAY_SPELL_FROM_HAND,
     .phase_mask = AZK_PHASE_MASK(PHASE_RESPONSE_WINDOW),
     .params = { HAND_INDEX_PARAM, UNUSED_PARAM, BOOL_PARAM }
+  },
+  {
+    .type = ACT_ACTIVATE_ALLEY_ABILITY,
+    .phase_mask = AZK_PHASE_MASK(PHASE_MAIN),
+    .params = { UNUSED_PARAM, ALLEY_INDEX_PARAM, UNUSED_PARAM }  // subaction_1=ability_index (0 for now), subaction_2=alley_slot
   }
 };
 

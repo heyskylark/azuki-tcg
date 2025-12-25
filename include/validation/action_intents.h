@@ -60,4 +60,11 @@ typedef struct {
   uint8_t ikz_card_count;
 } PlaySpellIntent;
 
+typedef struct {
+  ecs_entity_t player;
+  ecs_entity_t card;
+  uint8_t ability_index;
+  uint8_t slot_index;
+} ActivateAbilityIntent;
+
 #endif

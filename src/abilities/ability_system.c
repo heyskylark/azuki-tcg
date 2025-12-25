@@ -106,10 +106,18 @@ bool azk_process_ability_confirmation(ecs_world_t* world) {
         ctx->phase = ABILITY_PHASE_COST_SELECTION;
         cli_render_logf("[Ability] Confirmed, selecting cost targets");
     } else if (def->effect_req.min > 0) {
+        // No cost targets to select, but still apply costs (e.g., sacrifice self, draw cards)
+        if (def->apply_costs) {
+            def->apply_costs(world, ctx);
+            cli_render_logf("[Ability] Applied costs (no cost targets needed)");
+        }
         ctx->phase = ABILITY_PHASE_EFFECT_SELECTION;
         cli_render_logf("[Ability] Confirmed, selecting effect targets");
     } else {
-        // No targets needed - apply immediately
+        // No targets needed - apply costs and effects immediately
+        if (def->apply_costs) {
+            def->apply_costs(world, ctx);
+        }
         if (def->apply_effects) {
             def->apply_effects(world, ctx);
         }
@@ -358,6 +366,81 @@ void azk_clear_ability_context(ecs_world_t* world) {
     }
 
     ecs_singleton_modified(world, AbilityContext);
+}
+
+bool azk_trigger_main_ability(ecs_world_t* world, ecs_entity_t card, ecs_entity_t owner) {
+    // Get card ID
+    const CardId* card_id = ecs_get(world, card, CardId);
+    if (!card_id) {
+        return false;
+    }
+
+    // Check if card has an ability
+    if (!azk_has_ability(card_id->id)) {
+        return false;
+    }
+
+    const AbilityDef* def = azk_get_ability_def(card_id->id);
+    if (!def || !def->has_ability) {
+        return false;
+    }
+
+    // Check if it's a Main phase ability
+    if (def->timing_tag != ecs_id(AMain)) {
+        return false;
+    }
+
+    // Validate the ability can be activated
+    if (def->validate && !def->validate(world, card, owner)) {
+        cli_render_logf("[Ability] Main ability validation failed");
+        return false;
+    }
+
+    // Get ability context singleton
+    AbilityContext* ctx = ecs_singleton_get_mut(world, AbilityContext);
+
+    // Set up the ability context
+    ctx->source_card = card;
+    ctx->owner = owner;
+    ctx->is_optional = def->is_optional;
+    ctx->cost_min = def->cost_req.min;
+    ctx->cost_expected = def->cost_req.max;
+    ctx->cost_filled = 0;
+    ctx->effect_min = def->effect_req.min;
+    ctx->effect_expected = def->effect_req.max;
+    ctx->effect_filled = 0;
+
+    // Clear target arrays
+    for (int i = 0; i < MAX_ABILITY_SELECTION; i++) {
+        ctx->cost_targets[i] = 0;
+        ctx->effect_targets[i] = 0;
+    }
+
+    // Main abilities are triggered by player action, so skip confirmation phase
+    // (player already opted in by taking the action)
+    if (def->cost_req.min > 0) {
+        ctx->phase = ABILITY_PHASE_COST_SELECTION;
+        cli_render_logf("[Ability] Triggered main ability, selecting cost targets");
+    } else if (def->effect_req.min > 0) {
+        // No cost targets needed, apply costs (if any) and go to effect selection
+        if (def->apply_costs) {
+            def->apply_costs(world, ctx);
+        }
+        ctx->phase = ABILITY_PHASE_EFFECT_SELECTION;
+        cli_render_logf("[Ability] Triggered main ability, selecting effect targets");
+    } else {
+        // No targets needed - apply immediately
+        if (def->apply_costs) {
+            def->apply_costs(world, ctx);
+        }
+        if (def->apply_effects) {
+            def->apply_effects(world, ctx);
+        }
+        ctx->phase = ABILITY_PHASE_NONE;
+        cli_render_logf("[Ability] Applied main ability with no targets");
+    }
+    ecs_singleton_modified(world, AbilityContext);
+    return ctx->phase != ABILITY_PHASE_NONE;
 }
 
 bool azk_trigger_spell_ability(ecs_world_t* world, ecs_entity_t spell_card, ecs_entity_t owner) {

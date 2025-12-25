@@ -187,6 +187,8 @@ static bool validate_action_for_mask(
       return azk_validate_attach_weapon_action(world, gs, player, action, false, NULL);
     case ACT_PLAY_SPELL_FROM_HAND:
       return azk_validate_play_spell_action(world, gs, player, action, false, NULL);
+    case ACT_ACTIVATE_ALLEY_ABILITY:
+      return azk_validate_activate_alley_ability_action(world, gs, player, action, false, NULL);
     case ACT_NOOP:
     case ACT_MULLIGAN_SHUFFLE:
       return azk_validate_simple_action(world, gs, player, action->type, false);
