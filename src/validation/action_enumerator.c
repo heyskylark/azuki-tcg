@@ -75,7 +75,22 @@ static void enumerate_ability_actions(
           }
           break;
         }
-        // Add other target types as needed
+        case ABILITY_TARGET_FRIENDLY_GARDEN_ENTITY: {
+          ecs_entity_t garden = gs->zones[player_num].garden;
+          ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
+          for (int i = 0; i < garden_cards.count; i++) {
+            ecs_entity_t target = garden_cards.ids[i];
+            const ZoneIndex* zi = ecs_get(world, target, ZoneIndex);
+            if (!zi) continue;
+            if (def->validate_cost_target &&
+                !def->validate_cost_target(world, ctx->source_card, ctx->owner, target)) {
+              continue;
+            }
+            action.subaction_1 = zi->index;
+            add_valid_action(out_mask, &action);
+          }
+          break;
+        }
         default:
           break;
       }
@@ -89,6 +104,12 @@ static void enumerate_ability_actions(
 
       const AbilityDef* def = azk_get_ability_def(card_id->id);
       if (!def) break;
+
+      // Allow skipping effect selection if min is 0 ("up to" effects)
+      if (ctx->effect_min == 0 && ctx->effect_filled == 0) {
+        action.type = ACT_NOOP;
+        add_valid_action(out_mask, &action);
+      }
 
       action.type = ACT_SELECT_EFFECT_TARGET;
 

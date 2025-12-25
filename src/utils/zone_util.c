@@ -108,8 +108,19 @@ static int insert_card_into_zone_index(
     discard_card(world, displaced_card);
   }
 
+  // Suspend deferring to ensure the zone change is immediately visible
+  // This is needed for on-play ability validation which runs right after placement
+  bool was_deferred = ecs_is_deferred(world);
+  if (was_deferred) {
+    ecs_defer_suspend(world);
+  }
+
   ecs_add_pair(world, card, EcsChildOf, zone);
   ecs_set(world, card, ZoneIndex, { .index = index });
+
+  if (was_deferred) {
+    ecs_defer_resume(world);
+  }
 
   if (placement_type == ZONE_GARDEN) {
     set_card_to_cooldown(world, card);

@@ -2,6 +2,7 @@
 
 #include "abilities/cards/st01_007.h"
 #include "abilities/cards/stt01_005.h"
+#include "abilities/cards/stt02_009.h"
 #include "abilities/cards/stt02_015.h"
 #include "components/abilities.h"
 
@@ -84,6 +85,26 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .validate_effect_target = stt01_005_validate_effect_target,
       .apply_costs = stt01_005_apply_costs,
       .apply_effects = stt01_005_apply_effects,
+  };
+
+  // STT02-009 "Aya": [On Play] You may return an entity with cost >= 2 in your
+  // Garden to your hand: Return up to 1 entity with cost <= 2 in opponent's
+  // Garden to its owner's hand.
+  kAbilityRegistry[CARD_DEF_STT02_009] = (AbilityDef){
+      .has_ability = true,
+      .is_optional = true,
+      .cost_req = {.type = ABILITY_TARGET_FRIENDLY_GARDEN_ENTITY,
+                   .min = 1,
+                   .max = 1},
+      .effect_req = {.type = ABILITY_TARGET_ENEMY_GARDEN_ENTITY,
+                     .min = 0, // "up to 1"
+                     .max = 1},
+      .timing_tag = ecs_id(AOnPlay),
+      .validate = stt02_009_validate,
+      .validate_cost_target = stt02_009_validate_cost_target,
+      .validate_effect_target = stt02_009_validate_effect_target,
+      .apply_costs = stt02_009_apply_costs,
+      .apply_effects = stt02_009_apply_effects,
   };
 
   kRegistryInitialized = true;

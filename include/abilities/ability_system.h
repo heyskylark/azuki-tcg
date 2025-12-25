@@ -29,6 +29,11 @@ bool azk_process_cost_selection(ecs_world_t* world, int target_index);
 // Returns true if target is valid and added, false otherwise
 bool azk_process_effect_selection(ecs_world_t* world, int target_index);
 
+// Skip effect target selection (ACT_NOOP during effect selection when min=0)
+// For "up to" effects where the player can choose to not select any targets
+// Returns true if skipping is valid (min=0), false otherwise
+bool azk_process_effect_skip(ecs_world_t* world);
+
 // Check if we're currently in an ability sub-phase
 bool azk_is_in_ability_phase(ecs_world_t* world);
 

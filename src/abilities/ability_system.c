@@ -178,7 +178,18 @@ bool azk_process_cost_selection(ecs_world_t* world, int target_index) {
             }
             break;
         }
-        // Add other target types as needed
+        case ABILITY_TARGET_FRIENDLY_GARDEN_ENTITY: {
+            ecs_entity_t garden = gs->zones[player_num].garden;
+            ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
+            for (int i = 0; i < garden_cards.count; i++) {
+                const ZoneIndex* zi = ecs_get(world, garden_cards.ids[i], ZoneIndex);
+                if (zi && zi->index == target_index) {
+                    target = garden_cards.ids[i];
+                    break;
+                }
+            }
+            break;
+        }
         default:
             break;
     }
@@ -214,11 +225,12 @@ bool azk_process_cost_selection(ecs_world_t* world, int target_index) {
         }
 
         // Move to effect selection or apply effects
-        if (def->effect_req.min > 0) {
+        // Use max > 0 (not min > 0) to enter effect selection for "up to" effects
+        if (def->effect_req.max > 0) {
             ctx->phase = ABILITY_PHASE_EFFECT_SELECTION;
             cli_render_logf("[Ability] Moving to effect selection");
         } else {
-            // Apply effects and finish
+            // No effect targets possible - apply effects and finish
             if (def->apply_effects) {
                 def->apply_effects(world, ctx);
                 cli_render_logf("[Ability] Applied effects");
@@ -333,6 +345,41 @@ bool azk_process_effect_selection(ecs_world_t* world, int target_index) {
         ecs_singleton_modified(world, AbilityContext);
     }
 
+    return true;
+}
+
+bool azk_process_effect_skip(ecs_world_t* world) {
+    AbilityContext* ctx = ecs_singleton_get_mut(world, AbilityContext);
+
+    if (ctx->phase != ABILITY_PHASE_EFFECT_SELECTION) {
+        return false;
+    }
+
+    // Can only skip if minimum is 0 ("up to" effects)
+    if (ctx->effect_min > 0) {
+        cli_render_logf("[Ability] Cannot skip effect selection - minimum targets required");
+        return false;
+    }
+
+    const CardId* card_id = ecs_get(world, ctx->source_card, CardId);
+    if (!card_id) {
+        azk_clear_ability_context(world);
+        return false;
+    }
+
+    const AbilityDef* def = azk_get_ability_def(card_id->id);
+    if (!def) {
+        azk_clear_ability_context(world);
+        return false;
+    }
+
+    // Apply effects with no targets (effect_filled == 0)
+    if (def->apply_effects) {
+        def->apply_effects(world, ctx);
+        cli_render_logf("[Ability] Applied effects (skipped target selection)");
+    }
+
+    azk_clear_ability_context(world);
     return true;
 }
 

@@ -279,6 +279,11 @@ void HandleMainAction(ecs_iter_t *it) {
           if (!azk_process_ability_decline(world)) {
             ac->invalid_action = true;
           }
+        } else if (ability_phase == ABILITY_PHASE_EFFECT_SELECTION) {
+          // In effect selection phase, NOOP means skip (for "up to" effects with min=0)
+          if (!azk_process_effect_skip(world)) {
+            ac->invalid_action = true;
+          }
         } else {
           cli_render_logf("[MainAction] ACT_NOOP not valid in ability phase %d", ability_phase);
           ac->invalid_action = true;
