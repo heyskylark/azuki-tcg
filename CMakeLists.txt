@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.20)
 project(azuki-tcg C)
 
+option(BUILD_PYTHON_BINDINGS "Build Python bindings for PufferLib (requires Python3 + NumPy)" ON)
+
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 set(CURSES_NEED_NCURSES TRUE)
@@ -60,4 +62,6 @@ add_executable(world_tests
 target_link_libraries(world_tests PRIVATE azuki_lib)
 add_test(NAME world_tests COMMAND world_tests)
 
-add_subdirectory(python/src)
+if(BUILD_PYTHON_BINDINGS)
+  add_subdirectory(python/src)
+endif()

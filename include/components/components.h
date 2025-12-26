@@ -1,8 +1,9 @@
 #ifndef AZUKI_ECS_COMPONENTS_H
 #define AZUKI_ECS_COMPONENTS_H
 
-#include <stdint.h>
 #include <flecs.h>
+#include <stdbool.h>
+#include <stdint.h>
 
 #include "constants/game.h"
 
@@ -19,16 +20,27 @@ typedef enum {
 } Phase;
 
 typedef enum {
+  ABILITY_PHASE_NONE = 0,
+  ABILITY_PHASE_CONFIRMATION = 1,
+  ABILITY_PHASE_COST_SELECTION = 2,
+  ABILITY_PHASE_EFFECT_SELECTION = 3,
+} AbilityPhase;
+
+typedef enum {
   ACT_NOOP = 0,
   ACT_PLAY_ENTITY_TO_GARDEN = 1,
   ACT_PLAY_ENTITY_TO_ALLEY = 2,
-  /* 3-5 reserved for weapons/spells once those flows are online */
   ACT_ATTACK = 6,
   ACT_ATTACH_WEAPON_FROM_HAND = 7,
-  ACT_DECLARE_DEFENDER = 8,
-  ACT_GATE_PORTAL = 9,
-  /* 10-11 reserved for gate portal + ability activation */
-  ACT_MULLIGAN_SHUFFLE = 12
+  ACT_PLAY_SPELL_FROM_HAND = 8,
+  ACT_DECLARE_DEFENDER = 9,
+  ACT_GATE_PORTAL = 10,
+  ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY = 11,
+  ACT_ACTIVATE_ALLEY_ABILITY = 12,
+  ACT_SELECT_COST_TARGET = 13,
+  ACT_SELECT_EFFECT_TARGET = 14,
+  ACT_CONFIRM_ABILITY = 16,
+  ACT_MULLIGAN_SHUFFLE = 17 // Must always be highest for AZK_ACTION_TYPE_COUNT
 } ActionType;
 
 #define AZK_ACTION_TYPE_COUNT (ACT_MULLIGAN_SHUFFLE + 1)
@@ -50,8 +62,10 @@ typedef struct {
 } ActionContext;
 
 typedef struct {
-  ecs_entity_t deck, hand, leader, gate, garden, alley, ikz_pile, ikz_area, discard;
-  uint16_t deck_size, hand_size, leader_size, gate_size, garden_size, alley_size, ikz_pile_size, ikz_area_size, discard_size;
+  ecs_entity_t deck, hand, leader, gate, garden, alley, ikz_pile, ikz_area,
+      discard;
+  uint16_t deck_size, hand_size, leader_size, gate_size, garden_size,
+      alley_size, ikz_pile_size, ikz_area_size, discard_size;
 } PlayerZones;
 
 typedef struct {
@@ -59,7 +73,19 @@ typedef struct {
   ecs_entity_t defender_card;
 } CombatState;
 
-typedef struct { 
+typedef struct {
+  AbilityPhase phase;
+  ecs_entity_t source_card;
+  ecs_entity_t owner;
+  bool is_optional;
+  uint8_t cost_min, effect_min;
+  uint8_t cost_expected, effect_expected;
+  uint8_t cost_filled, effect_filled;
+  ecs_entity_t cost_targets[MAX_ABILITY_SELECTION];
+  ecs_entity_t effect_targets[MAX_ABILITY_SELECTION];
+} AbilityContext;
+
+typedef struct {
   uint32_t seed;
   uint32_t rng_state;
   int8_t active_player_index;
@@ -70,20 +96,45 @@ typedef struct {
   PlayerZones zones[MAX_PLAYERS_PER_MATCH];
   CombatState combat_state;
 } GameState;
-typedef struct { uint8_t player_number; } PlayerNumber;
-typedef struct { uint8_t pid; } PlayerId;
-typedef struct { ecs_entity_t ikz_token; } IKZToken;
+typedef struct {
+  uint8_t player_number;
+} PlayerNumber;
+typedef struct {
+  uint8_t pid;
+} PlayerId;
+typedef struct {
+  ecs_entity_t ikz_token;
+} IKZToken;
 /*
-ZoneIndex must exist (even with ordered children) because cards can be placed in gaps in the zone.
+ZoneIndex must exist (even with ordered children) because cards can be placed in
+gaps in the zone.
 */
-typedef struct { uint8_t index; } ZoneIndex;
+typedef struct {
+  uint8_t index;
+} ZoneIndex;
+
+/* Triggered effect queue for deferred ability processing */
+typedef struct {
+  ecs_entity_t source_card;
+  ecs_entity_t owner;
+  uint8_t timing_tag; // Index into timing tag array (AOnPlay, etc.)
+} PendingTriggeredEffect;
+
+#define MAX_TRIGGERED_EFFECT_QUEUE 8
+
+typedef struct {
+  PendingTriggeredEffect effects[MAX_TRIGGERED_EFFECT_QUEUE];
+  uint8_t count;
+} TriggeredEffectQueue;
 
 extern ECS_COMPONENT_DECLARE(ActionContext);
+extern ECS_COMPONENT_DECLARE(AbilityContext);
 extern ECS_COMPONENT_DECLARE(GameState);
 extern ECS_COMPONENT_DECLARE(PlayerNumber);
 extern ECS_COMPONENT_DECLARE(PlayerId);
 extern ECS_COMPONENT_DECLARE(IKZToken);
 extern ECS_COMPONENT_DECLARE(ZoneIndex);
+extern ECS_COMPONENT_DECLARE(TriggeredEffectQueue);
 
 /* Relationship Entities */
 extern ECS_ENTITY_DECLARE(Rel_OwnedBy);

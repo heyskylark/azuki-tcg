@@ -1,5 +1,5 @@
 #include "systems/start_phase.h"
-#include "components.h"
+#include "components/components.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/deck_utils.h"
 #include "utils/zone_util.h"

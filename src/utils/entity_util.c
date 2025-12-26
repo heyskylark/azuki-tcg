@@ -13,20 +13,21 @@ void reset_entity_health(ecs_world_t *world, ecs_entity_t entity) {
 
 static void discard_weapon_card(ecs_world_t *world, ecs_entity_t entity, ecs_entity_t weapon_card) {
   const CurStats *entity_cur_stats = ecs_get(world, entity, CurStats);
-  ecs_assert(entity_cur_stats != NULL, ECS_INVALID_PARAMETER, "CurStats component not found for entity %d", entity);
+  ecs_assert(entity_cur_stats != NULL, ECS_INVALID_PARAMETER,
+             "CurStats component not found for entity %llu",
+             (unsigned long long)entity);
 
-  const BaseStats *weapon_card_base_stats = ecs_get(world, weapon_card, BaseStats);
-  ecs_assert(weapon_card_base_stats != NULL, ECS_INVALID_PARAMETER, "BaseStats component not found for weapon card %d", weapon_card);
+  // Use weapon's CurStats.cur_atk (which includes base + any buffs)
+  const CurStats *weapon_cur_stats = ecs_get(world, weapon_card, CurStats);
+  ecs_assert(weapon_cur_stats != NULL, ECS_INVALID_PARAMETER,
+             "CurStats component not found for weapon %llu",
+             (unsigned long long)weapon_card);
 
-  ecs_set(
-    world,
-    entity,
-    CurStats,
-    {
-      .cur_atk = entity_cur_stats->cur_atk - weapon_card_base_stats->attack,
-      .cur_hp = entity_cur_stats->cur_hp,
-    }
-  );
+  ecs_set(world, entity, CurStats,
+          {
+              .cur_atk = entity_cur_stats->cur_atk - weapon_cur_stats->cur_atk,
+              .cur_hp = entity_cur_stats->cur_hp,
+          });
 
   discard_card(world, weapon_card);
 }

@@ -1,7 +1,7 @@
 #ifndef AZUKI_UTILS_OBSERVATION_UTIL_H
 #define AZUKI_UTILS_OBSERVATION_UTIL_H
 
-#include "components.h"
+#include "components/components.h"
 #include "generated/card_defs.h"
 #include "validation/action_enumerator.h"
 

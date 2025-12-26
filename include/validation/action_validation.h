@@ -51,4 +51,22 @@ bool azk_validate_simple_action(
   bool log_errors
 );
 
+bool azk_validate_play_spell_action(
+  ecs_world_t *world,
+  const GameState *gs,
+  ecs_entity_t player,
+  const UserAction *action,
+  bool log_errors,
+  PlaySpellIntent *out_intent
+);
+
+bool azk_validate_activate_alley_ability_action(
+  ecs_world_t *world,
+  const GameState *gs,
+  ecs_entity_t player,
+  const UserAction *action,
+  bool log_errors,
+  ActivateAbilityIntent *out_intent
+);
+
 #endif

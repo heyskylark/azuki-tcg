@@ -1,5 +1,5 @@
 #include "utils/combat_util.h"
-#include "components.h"
+#include "components/components.h"
 #include "utils/card_utils.h"
 
 int attack(

@@ -824,6 +824,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_WEAPON });
         ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 1, .health = 0 });
+        ecs_set(world, prefab, CurStats, { .cur_atk = 1, .cur_hp = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 1 });
     }
     {
@@ -840,6 +841,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_WEAPON });
         ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 1, .health = 0 });
+        ecs_set(world, prefab, CurStats, { .cur_atk = 1, .cur_hp = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 1 });
     }
     {
@@ -856,6 +858,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_WEAPON });
         ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 2, .health = 0 });
+        ecs_set(world, prefab, CurStats, { .cur_atk = 2, .cur_hp = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 2 });
     }
     {
@@ -872,6 +875,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_WEAPON });
         ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 3, .health = 0 });
+        ecs_set(world, prefab, CurStats, { .cur_atk = 3, .cur_hp = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 3 });
     }
     {
@@ -888,6 +892,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_WEAPON });
         ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 4, .health = 0 });
+        ecs_set(world, prefab, CurStats, { .cur_atk = 4, .cur_hp = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 4 });
     }
     {

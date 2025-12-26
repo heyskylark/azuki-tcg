@@ -3,7 +3,7 @@
 
 #include "generated/card_defs.h"
 #include "constants/game.h"
-#include "components.h"
+#include "components/components.h"
 
 typedef enum {
   RAIZEN = 0,

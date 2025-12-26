@@ -470,7 +470,7 @@ def render_prefab_component_sets(record: CardRecord, indent: str) -> List[str]:
             f"{indent}ecs_set(world, prefab, BaseStats, {{ .attack = {record.base_attack}, .health = {record.base_health} }});"
         )
 
-    if record.card_type in {"ENTITY", "LEADER"}:
+    if record.card_type in {"ENTITY", "LEADER", "WEAPON"}:
         lines.append(
             f"{indent}ecs_set(world, prefab, CurStats, {{ .cur_atk = {record.base_attack}, .cur_hp = {record.base_health} }});"
         )

@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "components.h"
+#include "components/components.h"
 #include "validation/action_intents.h"
 
 #define AZK_ACTION_HEAD_COUNT 4

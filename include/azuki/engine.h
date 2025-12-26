@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "components.h"
+#include "components/components.h"
 #include "utils/actions_util.h"
 #include "utils/observation_util.h"
 #include "validation/action_enumerator.h"

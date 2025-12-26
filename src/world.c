@@ -1,4 +1,5 @@
 #include "world.h"
+#include "components/abilities.h"
 #include "constants/game.h"
 #include "systems/main.h"
 #include "queries/main.h"
@@ -178,6 +179,10 @@ ecs_world_t* azk_world_init(uint32_t seed) {
     .winner = -1,
   };
 
+  ecs_add_id(world, ecs_id(AbilityContext), EcsSingleton);
+  AbilityContext ac = {0};
+  ecs_singleton_set_ptr(world, AbilityContext, &ac);
+
   ecs_entity_t players[MAX_PLAYERS_PER_MATCH];
   for (int p=0; p<MAX_PLAYERS_PER_MATCH; p++) {
     ecs_entity_t player = ecs_new(world);
@@ -240,8 +245,11 @@ static void register_card(
 
     uint8_t player_number = pnum->player_number;
     snprintf(entity_name, sizeof(entity_name), "%s_P%u_%zu", card_id_component->code, player_number, index + 1);
-    ecs_entity_t card = ecs_new_w_pair(world, EcsIsA, prefab); 
+    ecs_entity_t card = ecs_new_w_pair(world, EcsIsA, prefab);
     ecs_set_name(world, card, entity_name);
+
+    // Attach ability timing tags (AOnPlay, AResponse, etc.) if card has an ability
+    attach_ability_components(world, card);
 
     const Type *type = ecs_get_id(world, card, ecs_id(Type));
     ecs_assert(type != NULL, ECS_INVALID_PARAMETER, "Type component not found for card %d", card);

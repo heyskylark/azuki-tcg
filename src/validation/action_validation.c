@@ -2,6 +2,8 @@
 
 #include <string.h>
 
+#include "abilities/ability_registry.h"
+#include "components/abilities.h"
 #include "utils/card_utils.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/player_util.h"
@@ -450,7 +452,7 @@ bool azk_validate_simple_action(
 
   switch (type) {
     case ACT_NOOP:
-      if (gs->phase == PHASE_MAIN || gs->phase == PHASE_PREGAME_MULLIGAN) {
+      if (gs->phase == PHASE_MAIN || gs->phase == PHASE_PREGAME_MULLIGAN || gs->phase == PHASE_RESPONSE_WINDOW) {
         return true;
       }
       VALIDATION_LOG(log_errors, "NOOP not allowed in phase %d", gs->phase);
@@ -465,4 +467,184 @@ bool azk_validate_simple_action(
       VALIDATION_LOG(log_errors, "No validator for action type %d", type);
       return false;
   }
+}
+
+bool azk_validate_play_spell_action(
+  ecs_world_t *world,
+  const GameState *gs,
+  ecs_entity_t player,
+  const UserAction *action,
+  bool log_errors,
+  PlaySpellIntent *out_intent
+) {
+  ecs_assert(world != NULL, ECS_INVALID_PARAMETER, "World is null");
+  ecs_assert(gs != NULL, ECS_INVALID_PARAMETER, "GameState is null");
+  ecs_assert(action != NULL, ECS_INVALID_PARAMETER, "Action is null");
+
+  if (!ensure_active_player(world, gs, player, log_errors)) {
+    return false;
+  }
+
+  // Response spells can only be played during response window
+  if (gs->phase != PHASE_RESPONSE_WINDOW) {
+    VALIDATION_LOG(log_errors, "Spell cannot be played in phase %d", gs->phase);
+    return false;
+  }
+
+  int hand_index = action->subaction_1;
+  bool use_ikz_token = action->subaction_3 != 0;
+
+  if (hand_index < 0 || hand_index >= MAX_HAND_SIZE) {
+    VALIDATION_LOG(log_errors, "Hand index %d out of bounds", hand_index);
+    return false;
+  }
+
+  uint8_t player_number = get_player_number(world, player);
+  ecs_entity_t hand_zone = gs->zones[player_number].hand;
+  ecs_entities_t hand_cards = ecs_get_ordered_children(world, hand_zone);
+  if (hand_index >= hand_cards.count) {
+    VALIDATION_LOG(log_errors, "Hand index %d exceeds card count %d", hand_index, hand_cards.count);
+    return false;
+  }
+
+  ecs_entity_t spell_card = hand_cards.ids[hand_index];
+  if (spell_card == 0) {
+    VALIDATION_LOG(log_errors, "No card found at hand index %d", hand_index);
+    return false;
+  }
+
+  // Verify card is a spell
+  if (!is_card_type(world, spell_card, CARD_TYPE_SPELL)) {
+    VALIDATION_LOG(log_errors, "Card %llu is not a spell", (unsigned long long)spell_card);
+    return false;
+  }
+
+  // Verify card has AResponse timing tag (is a response spell)
+  if (!ecs_has(world, spell_card, AResponse)) {
+    VALIDATION_LOG(log_errors, "Spell %llu is not a response spell", (unsigned long long)spell_card);
+    return false;
+  }
+
+  // Verify card has an ability in the registry
+  const CardId *card_id = ecs_get(world, spell_card, CardId);
+  if (!card_id || !azk_has_ability(card_id->id)) {
+    VALIDATION_LOG(log_errors, "Spell %llu has no registered ability", (unsigned long long)spell_card);
+    return false;
+  }
+
+  // Get IKZ cost and verify payment
+  const IKZCost *ikz_cost = ecs_get(world, spell_card, IKZCost);
+  if (!ikz_cost) {
+    VALIDATION_LOG(log_errors, "Spell %llu has no IKZ cost component", (unsigned long long)spell_card);
+    return false;
+  }
+
+  ecs_entity_t ikz_cards[AZK_MAX_IKZ_PAYMENT] = {0};
+  uint8_t ikz_card_count = 0;
+  ecs_entity_t ikz_zone = gs->zones[player_number].ikz_area;
+  if (!fetch_ikz_payment(
+        world,
+        ikz_zone,
+        ikz_cost->ikz_cost,
+        use_ikz_token,
+        log_errors,
+        ikz_cards,
+        &ikz_card_count
+      )) {
+    return false;
+  }
+
+  // Verify spell can actually be activated (has valid targets)
+  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  if (def && def->validate && !def->validate(world, spell_card, player)) {
+    VALIDATION_LOG(log_errors, "Spell %llu cannot be activated (no valid targets)", (unsigned long long)spell_card);
+    return false;
+  }
+
+  if (out_intent) {
+    PlaySpellIntent intent = {
+      .player = player,
+      .spell_card = spell_card,
+      .use_ikz_token = use_ikz_token,
+      .ikz_card_count = ikz_card_count
+    };
+    memcpy(intent.ikz_cards, ikz_cards, sizeof(ecs_entity_t) * ikz_card_count);
+    *out_intent = intent;
+  }
+
+  return true;
+}
+
+bool azk_validate_activate_alley_ability_action(
+  ecs_world_t *world,
+  const GameState *gs,
+  ecs_entity_t player,
+  const UserAction *action,
+  bool log_errors,
+  ActivateAbilityIntent *out_intent
+) {
+  ecs_assert(world != NULL, ECS_INVALID_PARAMETER, "World is null");
+  ecs_assert(gs != NULL, ECS_INVALID_PARAMETER, "GameState is null");
+  ecs_assert(action != NULL, ECS_INVALID_PARAMETER, "Action is null");
+
+  if (!ensure_active_player(world, gs, player, log_errors)) {
+    return false;
+  }
+
+  // Main phase abilities can only be activated during main phase
+  if (gs->phase != PHASE_MAIN) {
+    VALIDATION_LOG(log_errors, "Alley ability cannot be activated in phase %d", gs->phase);
+    return false;
+  }
+
+  int ability_index = action->subaction_1;  // For future multi-ability support (currently always 0)
+  int alley_slot = action->subaction_2;
+
+  (void)ability_index;  // Unused for now
+
+  if (alley_slot < 0 || alley_slot >= ALLEY_SIZE) {
+    VALIDATION_LOG(log_errors, "Alley slot %d out of bounds", alley_slot);
+    return false;
+  }
+
+  uint8_t player_number = get_player_number(world, player);
+  ecs_entity_t alley_zone = gs->zones[player_number].alley;
+  ecs_entity_t card = find_card_in_zone_index(world, alley_zone, alley_slot);
+
+  if (card == 0) {
+    VALIDATION_LOG(log_errors, "No card at alley slot %d", alley_slot);
+    return false;
+  }
+
+  // Verify card has AMain timing tag (main phase ability)
+  if (!ecs_has(world, card, AMain)) {
+    VALIDATION_LOG(log_errors, "Card %llu does not have a main phase ability", (unsigned long long)card);
+    return false;
+  }
+
+  // Verify card has an ability in the registry
+  const CardId *card_id = ecs_get(world, card, CardId);
+  if (!card_id || !azk_has_ability(card_id->id)) {
+    VALIDATION_LOG(log_errors, "Card %llu has no registered ability", (unsigned long long)card);
+    return false;
+  }
+
+  // Verify ability can actually be activated (passes validation)
+  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  if (def && def->validate && !def->validate(world, card, player)) {
+    VALIDATION_LOG(log_errors, "Card %llu ability cannot be activated (validation failed)", (unsigned long long)card);
+    return false;
+  }
+
+  if (out_intent) {
+    ActivateAbilityIntent intent = {
+      .player = player,
+      .card = card,
+      .ability_index = (uint8_t)ability_index,
+      .slot_index = (uint8_t)alley_slot
+    };
+    *out_intent = intent;
+  }
+
+  return true;
 }

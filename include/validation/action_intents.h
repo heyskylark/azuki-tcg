@@ -6,7 +6,7 @@
 #include <stdint.h>
 
 #include "azuki/zone_types.h"
-#include "components.h"
+#include "components/components.h"
 #include "constants/game.h"
 
 #define AZK_MAX_IKZ_PAYMENT (IKZ_AREA_SIZE + 1)
@@ -51,5 +51,20 @@ typedef struct {
   uint8_t defender_index;
   bool attacker_is_leader;
 } AttackIntent;
+
+typedef struct {
+  ecs_entity_t player;
+  ecs_entity_t spell_card;
+  bool use_ikz_token;
+  ecs_entity_t ikz_cards[AZK_MAX_IKZ_PAYMENT];
+  uint8_t ikz_card_count;
+} PlaySpellIntent;
+
+typedef struct {
+  ecs_entity_t player;
+  ecs_entity_t card;
+  uint8_t ability_index;
+  uint8_t slot_index;
+} ActivateAbilityIntent;
 
 #endif

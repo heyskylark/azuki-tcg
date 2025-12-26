@@ -6,7 +6,13 @@
 #include <flecs.h>
 
 #include "world.h"
-#include "components.h"
+#include "abilities/ability_registry.h"
+#include "abilities/ability_system.h"
+#include "abilities/cards/st01_007.h"
+#include "abilities/cards/stt01_005.h"
+#include "components/abilities.h"
+#include "components/components.h"
+#include "utils/deck_utils.h"
 #include "generated/card_defs.h"
 
 static const CardDef *find_card_def_by_entity_name(const char *entity_name) {
@@ -366,9 +372,781 @@ static void test_init_player_deck_raizen(void) {
   ecs_fini(world);
 }
 
+static void test_ability_registry_lookup(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  // ST01-007 should have an ability
+  assert(azk_has_ability(CARD_DEF_STT01_007));
+  const AbilityDef *def = azk_get_ability_def(CARD_DEF_STT01_007);
+  assert(def != NULL);
+  assert(def->has_ability);
+  assert(def->is_optional);
+  assert(def->timing_tag == ecs_id(AOnPlay));
+  assert(def->cost_req.min == 1);
+  assert(def->cost_req.max == 1);
+  assert(def->cost_req.type == ABILITY_TARGET_FRIENDLY_HAND);
+  assert(def->effect_req.min == 0);
+  assert(def->effect_req.max == 0);
+  assert(def->validate != NULL);
+  assert(def->validate_cost_target != NULL);
+  assert(def->apply_costs != NULL);
+  assert(def->apply_effects != NULL);
+
+  // A card without ability should return NULL or has_ability=false
+  const AbilityDef *no_ability = azk_get_ability_def(CARD_DEF_STT01_003);
+  assert(no_ability == NULL || !no_ability->has_ability);
+
+  ecs_fini(world);
+}
+
+static void test_st01_007_validate_needs_hand_and_deck(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  // Initialize singletons
+  ecs_set(world, ecs_id(GameState), GameState, {0});
+  ecs_set(world, ecs_id(AbilityContext), AbilityContext, {0});
+
+  // Create player
+  ecs_entity_t player = ecs_new(world);
+  ecs_set(world, player, PlayerId, { .pid = 0 });
+  ecs_set(world, player, PlayerNumber, { .player_number = 0 });
+
+  // Create zones
+  ecs_entity_t hand = create_zone(world, player, ZHand, "Hand");
+  ecs_entity_t deck = create_zone(world, player, ZDeck, "Deck");
+
+  // Set up GameState with zones
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->players[0] = player;
+  gs->zones[0].hand = hand;
+  gs->zones[0].deck = deck;
+  ecs_singleton_modified(world, GameState);
+
+  // Create the ST01-007 card (source of ability)
+  ecs_entity_t source_card = ecs_new(world);
+  ecs_set(world, source_card, CardId, { .id = CARD_DEF_STT01_007 });
+
+  // Test: Empty hand + empty deck = validation fails
+  assert(!st01_007_validate(world, source_card, player));
+
+  // Add a card to hand
+  ecs_entity_t hand_card = ecs_new(world);
+  ecs_add_pair(world, hand_card, EcsChildOf, hand);
+  ecs_set(world, hand_card, Element, { .element = 1 });
+
+  // Test: Hand has card, but deck is empty = validation fails
+  assert(!st01_007_validate(world, source_card, player));
+
+  // Add a card to deck
+  ecs_entity_t deck_card = ecs_new(world);
+  ecs_add_pair(world, deck_card, EcsChildOf, deck);
+  ecs_set(world, deck_card, Element, { .element = 1 });
+
+  // Test: Hand has card and deck has card = validation passes
+  assert(st01_007_validate(world, source_card, player));
+
+  ecs_fini(world);
+}
+
+static void test_st01_007_validate_cost_target(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  // Initialize singletons
+  ecs_set(world, ecs_id(GameState), GameState, {0});
+  ecs_set(world, ecs_id(AbilityContext), AbilityContext, {0});
+
+  // Create two players
+  ecs_entity_t player0 = ecs_new(world);
+  ecs_set(world, player0, PlayerId, { .pid = 0 });
+  ecs_set(world, player0, PlayerNumber, { .player_number = 0 });
+
+  ecs_entity_t player1 = ecs_new(world);
+  ecs_set(world, player1, PlayerId, { .pid = 1 });
+  ecs_set(world, player1, PlayerNumber, { .player_number = 1 });
+
+  // Create zones
+  ecs_entity_t hand0 = create_zone(world, player0, ZHand, "Hand_P0");
+  ecs_entity_t hand1 = create_zone(world, player1, ZHand, "Hand_P1");
+
+  // Set up GameState
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->players[0] = player0;
+  gs->players[1] = player1;
+  gs->zones[0].hand = hand0;
+  gs->zones[1].hand = hand1;
+  ecs_singleton_modified(world, GameState);
+
+  // Create source card
+  ecs_entity_t source_card = ecs_new(world);
+  ecs_set(world, source_card, CardId, { .id = CARD_DEF_STT01_007 });
+
+  // Create card in player0's hand
+  ecs_entity_t card_in_hand = ecs_new(world);
+  ecs_add_pair(world, card_in_hand, EcsChildOf, hand0);
+  ecs_add_pair(world, card_in_hand, Rel_OwnedBy, player0);
+  ecs_set(world, card_in_hand, Element, { .element = 1 });
+
+  // Create card in player1's hand
+  ecs_entity_t enemy_card = ecs_new(world);
+  ecs_add_pair(world, enemy_card, EcsChildOf, hand1);
+  ecs_add_pair(world, enemy_card, Rel_OwnedBy, player1);
+  ecs_set(world, enemy_card, Element, { .element = 1 });
+
+  // Test: Can target own hand card
+  assert(st01_007_validate_cost_target(world, source_card, player0, card_in_hand));
+
+  // Test: Cannot target enemy's hand card
+  assert(!st01_007_validate_cost_target(world, source_card, player0, enemy_card));
+
+  // Test: Cannot target non-existent card
+  assert(!st01_007_validate_cost_target(world, source_card, player0, 0));
+
+  ecs_fini(world);
+}
+
+static void test_st01_007_ability_flow_confirm_and_execute(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  // Initialize singletons
+  ecs_set(world, ecs_id(GameState), GameState, {0});
+  ecs_set(world, ecs_id(AbilityContext), AbilityContext, {0});
+
+  // Create player
+  ecs_entity_t player = ecs_new(world);
+  ecs_set(world, player, PlayerId, { .pid = 0 });
+  ecs_set(world, player, PlayerNumber, { .player_number = 0 });
+
+  // Create zones
+  ecs_entity_t hand = create_zone(world, player, ZHand, "Hand_P0");
+  ecs_entity_t deck = create_zone(world, player, ZDeck, "Deck_P0");
+  ecs_entity_t discard = create_zone(world, player, ZDiscard, "Discard_P0");
+
+  // Set up GameState
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->players[0] = player;
+  gs->zones[0].hand = hand;
+  gs->zones[0].deck = deck;
+  gs->zones[0].discard = discard;
+  ecs_singleton_modified(world, GameState);
+
+  // Initialize AbilityContext singleton
+  azk_clear_ability_context(world);
+
+  // Create the ST01-007 card (the card that was played)
+  ecs_entity_t st01_007_card = ecs_new(world);
+  ecs_set_name(world, st01_007_card, "ST01-007_test");
+  ecs_set(world, st01_007_card, CardId, { .id = CARD_DEF_STT01_007 });
+  ecs_set(world, st01_007_card, Element, { .element = 1 });
+
+  // Create a card in hand (to discard)
+  ecs_entity_t hand_card = ecs_new(world);
+  ecs_set_name(world, hand_card, "HandCard");
+  ecs_add_pair(world, hand_card, EcsChildOf, hand);
+  ecs_add_pair(world, hand_card, Rel_OwnedBy, player);
+  ecs_set(world, hand_card, Element, { .element = 2 });
+
+  // Create cards in deck (to draw from)
+  ecs_entity_t deck_card1 = ecs_new(world);
+  ecs_set_name(world, deck_card1, "DeckCard1");
+  ecs_add_pair(world, deck_card1, EcsChildOf, deck);
+  ecs_add_pair(world, deck_card1, Rel_OwnedBy, player);
+  ecs_set(world, deck_card1, Element, { .element = 3 });
+
+  ecs_entity_t deck_card2 = ecs_new(world);
+  ecs_set_name(world, deck_card2, "DeckCard2");
+  ecs_add_pair(world, deck_card2, EcsChildOf, deck);
+  ecs_add_pair(world, deck_card2, Rel_OwnedBy, player);
+  ecs_set(world, deck_card2, Element, { .element = 4 });
+
+  // Verify initial state
+  ecs_entities_t initial_hand = ecs_get_ordered_children(world, hand);
+  ecs_entities_t initial_deck = ecs_get_ordered_children(world, deck);
+  assert(initial_hand.count == 1);
+  assert(initial_deck.count == 2);
+
+  // Step 1: Queue the ability (queues for next loop iteration)
+  bool queued = azk_trigger_on_play_ability(world, st01_007_card, player);
+  assert(queued);
+
+  // Ability is queued, not yet in ability phase
+  assert(azk_has_queued_triggered_effects(world));
+  assert(!azk_is_in_ability_phase(world));
+
+  // Process the queue (simulates what happens on next game loop)
+  bool processed = azk_process_triggered_effect_queue(world);
+  assert(processed);
+
+  // Should be in confirmation phase (optional ability)
+  assert(azk_is_in_ability_phase(world));
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_CONFIRMATION);
+
+  // Step 2: Confirm the ability
+  bool confirmed = azk_process_ability_confirmation(world);
+  assert(confirmed);
+
+  // Should now be in cost selection phase
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_COST_SELECTION);
+
+  // Step 3: Select cost target (index 0 = the hand card)
+  bool cost_selected = azk_process_cost_selection(world, 0);
+  assert(cost_selected);
+
+  // Ability should be complete (effect has no targets to select)
+  assert(!azk_is_in_ability_phase(world));
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_NONE);
+
+  // Verify final state: hand_card should be in discard, deck_card2 should be in hand
+  // (draw takes from end of deck: cards.ids[count - 1 - index])
+  ecs_entities_t final_hand = ecs_get_ordered_children(world, hand);
+  ecs_entities_t final_deck = ecs_get_ordered_children(world, deck);
+  ecs_entities_t final_discard = ecs_get_ordered_children(world, discard);
+
+  assert(final_hand.count == 1);  // Drew 1 card
+  assert(final_deck.count == 1);  // Lost 1 card from deck
+  assert(final_discard.count == 1);  // Discarded 1 card
+
+  // The drawn card should be the last card from the deck (deck_card2)
+  assert(final_hand.ids[0] == deck_card2);
+  // The remaining deck card should be deck_card1
+  assert(final_deck.ids[0] == deck_card1);
+  // The discarded card should be the original hand card
+  assert(final_discard.ids[0] == hand_card);
+
+  ecs_fini(world);
+}
+
+static void test_st01_007_ability_flow_decline(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  // Initialize singletons
+  ecs_set(world, ecs_id(GameState), GameState, {0});
+  ecs_set(world, ecs_id(AbilityContext), AbilityContext, {0});
+
+  // Create player
+  ecs_entity_t player = ecs_new(world);
+  ecs_set(world, player, PlayerId, { .pid = 0 });
+  ecs_set(world, player, PlayerNumber, { .player_number = 0 });
+
+  // Create zones
+  ecs_entity_t hand = create_zone(world, player, ZHand, "Hand_P0");
+  ecs_entity_t deck = create_zone(world, player, ZDeck, "Deck_P0");
+  ecs_entity_t discard = create_zone(world, player, ZDiscard, "Discard_P0");
+
+  // Set up GameState
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->players[0] = player;
+  gs->zones[0].hand = hand;
+  gs->zones[0].deck = deck;
+  gs->zones[0].discard = discard;
+  ecs_singleton_modified(world, GameState);
+
+  // Initialize AbilityContext singleton
+  azk_clear_ability_context(world);
+
+  // Create the ST01-007 card
+  ecs_entity_t st01_007_card = ecs_new(world);
+  ecs_set(world, st01_007_card, CardId, { .id = CARD_DEF_STT01_007 });
+  ecs_set(world, st01_007_card, Element, { .element = 1 });
+
+  // Create a card in hand
+  ecs_entity_t hand_card = ecs_new(world);
+  ecs_add_pair(world, hand_card, EcsChildOf, hand);
+  ecs_add_pair(world, hand_card, Rel_OwnedBy, player);
+  ecs_set(world, hand_card, Element, { .element = 2 });
+
+  // Create a card in deck
+  ecs_entity_t deck_card = ecs_new(world);
+  ecs_add_pair(world, deck_card, EcsChildOf, deck);
+  ecs_add_pair(world, deck_card, Rel_OwnedBy, player);
+  ecs_set(world, deck_card, Element, { .element = 3 });
+
+  // Step 1: Queue the ability
+  bool queued = azk_trigger_on_play_ability(world, st01_007_card, player);
+  assert(queued);
+
+  // Ability is queued, not yet in ability phase
+  assert(azk_has_queued_triggered_effects(world));
+  assert(!azk_is_in_ability_phase(world));
+
+  // Process the queue (simulates what happens on next game loop)
+  bool processed = azk_process_triggered_effect_queue(world);
+  assert(processed);
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_CONFIRMATION);
+
+  // Step 2: Decline the ability (use process_ability_decline)
+  bool declined = azk_process_ability_decline(world);
+  assert(declined);
+
+  // Ability should be cleared
+  assert(!azk_is_in_ability_phase(world));
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_NONE);
+
+  // Verify state unchanged: hand and deck should be same as before
+  ecs_entities_t final_hand = ecs_get_ordered_children(world, hand);
+  ecs_entities_t final_deck = ecs_get_ordered_children(world, deck);
+  ecs_entities_t final_discard = ecs_get_ordered_children(world, discard);
+
+  assert(final_hand.count == 1);
+  assert(final_deck.count == 1);
+  assert(final_discard.count == 0);
+  assert(final_hand.ids[0] == hand_card);
+  assert(final_deck.ids[0] == deck_card);
+
+  ecs_fini(world);
+}
+
+// ============================================================================
+// STT01-005 Tests: "Main; Alley Only; You may sacrifice this card: Draw 3 cards and discard 2"
+// ============================================================================
+
+static void test_stt01_005_ability_registry_check(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  // STT01-005 should have an ability
+  assert(azk_has_ability(CARD_DEF_STT01_005));
+  const AbilityDef *def = azk_get_ability_def(CARD_DEF_STT01_005);
+  assert(def != NULL);
+  assert(def->has_ability);
+  // Note: is_optional doesn't matter for main abilities - player explicitly triggers them
+  assert(!def->is_optional);
+  assert(def->timing_tag == ecs_id(AMain));
+  // No cost selection (sacrifice is automatic)
+  assert(def->cost_req.type == ABILITY_TARGET_NONE);
+  assert(def->cost_req.min == 0);
+  assert(def->cost_req.max == 0);
+  // Effect requires selecting 2 cards from hand to discard
+  assert(def->effect_req.type == ABILITY_TARGET_FRIENDLY_HAND);
+  assert(def->effect_req.min == 2);
+  assert(def->effect_req.max == 2);
+  assert(def->validate != NULL);
+  assert(def->validate_effect_target != NULL);
+  assert(def->apply_costs != NULL);
+  assert(def->apply_effects != NULL);
+
+  ecs_fini(world);
+}
+
+static void test_stt01_005_validate_needs_deck_cards(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  // Initialize singletons
+  ecs_set(world, ecs_id(GameState), GameState, {0});
+  ecs_set(world, ecs_id(AbilityContext), AbilityContext, {0});
+
+  // Create player
+  ecs_entity_t player = ecs_new(world);
+  ecs_set(world, player, PlayerId, { .pid = 0 });
+  ecs_set(world, player, PlayerNumber, { .player_number = 0 });
+
+  // Create zones
+  ecs_entity_t deck = create_zone(world, player, ZDeck, "Deck_P0");
+  ecs_entity_t alley = create_zone(world, player, ZAlley, "Alley_P0");
+
+  // Set up GameState
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->players[0] = player;
+  gs->zones[0].deck = deck;
+  gs->zones[0].alley = alley;
+  ecs_singleton_modified(world, GameState);
+
+  // Create the STT01-005 card in alley
+  ecs_entity_t stt01_005_card = ecs_new(world);
+  ecs_set(world, stt01_005_card, CardId, { .id = CARD_DEF_STT01_005 });
+  ecs_add_pair(world, stt01_005_card, EcsChildOf, alley);
+
+  // Test: Empty deck = validation fails
+  assert(!stt01_005_validate(world, stt01_005_card, player));
+
+  // Add a card to deck
+  ecs_entity_t deck_card = ecs_new(world);
+  ecs_add_pair(world, deck_card, EcsChildOf, deck);
+  ecs_set(world, deck_card, Element, { .element = 1 });
+
+  // Test: Deck has card = validation passes
+  assert(stt01_005_validate(world, stt01_005_card, player));
+
+  ecs_fini(world);
+}
+
+static void test_stt01_005_validate_only_in_alley(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  // Initialize singletons
+  ecs_set(world, ecs_id(GameState), GameState, {0});
+  ecs_set(world, ecs_id(AbilityContext), AbilityContext, {0});
+
+  // Create player
+  ecs_entity_t player = ecs_new(world);
+  ecs_set(world, player, PlayerId, { .pid = 0 });
+  ecs_set(world, player, PlayerNumber, { .player_number = 0 });
+
+  // Create zones
+  ecs_entity_t deck = create_zone(world, player, ZDeck, "Deck_P0");
+  ecs_entity_t alley = create_zone(world, player, ZAlley, "Alley_P0");
+  ecs_entity_t garden = create_zone(world, player, ZGarden, "Garden_P0");
+
+  // Set up GameState
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->players[0] = player;
+  gs->zones[0].deck = deck;
+  gs->zones[0].alley = alley;
+  gs->zones[0].garden = garden;
+  ecs_singleton_modified(world, GameState);
+
+  // Add cards to deck so that's not the blocker
+  for (int i = 0; i < 5; i++) {
+    ecs_entity_t deck_card = ecs_new(world);
+    ecs_add_pair(world, deck_card, EcsChildOf, deck);
+    ecs_set(world, deck_card, Element, { .element = 1 });
+  }
+
+  // Create the STT01-005 card in garden (not alley)
+  ecs_entity_t stt01_005_card = ecs_new(world);
+  ecs_set(world, stt01_005_card, CardId, { .id = CARD_DEF_STT01_005 });
+  ecs_add_pair(world, stt01_005_card, EcsChildOf, garden);
+
+  // Test: Card in garden = validation fails (AAlleyOnly)
+  assert(!stt01_005_validate(world, stt01_005_card, player));
+
+  // Move card to alley
+  ecs_remove_pair(world, stt01_005_card, EcsChildOf, garden);
+  ecs_add_pair(world, stt01_005_card, EcsChildOf, alley);
+
+  // Test: Card in alley = validation passes
+  assert(stt01_005_validate(world, stt01_005_card, player));
+
+  ecs_fini(world);
+}
+
+static void test_stt01_005_validate_effect_target(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  // Initialize singletons
+  ecs_set(world, ecs_id(GameState), GameState, {0});
+  ecs_set(world, ecs_id(AbilityContext), AbilityContext, {0});
+
+  // Create two players
+  ecs_entity_t player0 = ecs_new(world);
+  ecs_set(world, player0, PlayerId, { .pid = 0 });
+  ecs_set(world, player0, PlayerNumber, { .player_number = 0 });
+
+  ecs_entity_t player1 = ecs_new(world);
+  ecs_set(world, player1, PlayerId, { .pid = 1 });
+  ecs_set(world, player1, PlayerNumber, { .player_number = 1 });
+
+  // Create zones
+  ecs_entity_t hand0 = create_zone(world, player0, ZHand, "Hand_P0");
+  ecs_entity_t hand1 = create_zone(world, player1, ZHand, "Hand_P1");
+  ecs_entity_t deck0 = create_zone(world, player0, ZDeck, "Deck_P0");
+
+  // Set up GameState
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->players[0] = player0;
+  gs->players[1] = player1;
+  gs->zones[0].hand = hand0;
+  gs->zones[0].deck = deck0;
+  gs->zones[1].hand = hand1;
+  ecs_singleton_modified(world, GameState);
+
+  // Create source card
+  ecs_entity_t source_card = ecs_new(world);
+  ecs_set(world, source_card, CardId, { .id = CARD_DEF_STT01_005 });
+
+  // Create card in player0's hand
+  ecs_entity_t card_in_hand = ecs_new(world);
+  ecs_add_pair(world, card_in_hand, EcsChildOf, hand0);
+  ecs_add_pair(world, card_in_hand, Rel_OwnedBy, player0);
+  ecs_set(world, card_in_hand, Element, { .element = 1 });
+
+  // Create card in player1's hand
+  ecs_entity_t enemy_card = ecs_new(world);
+  ecs_add_pair(world, enemy_card, EcsChildOf, hand1);
+  ecs_add_pair(world, enemy_card, Rel_OwnedBy, player1);
+  ecs_set(world, enemy_card, Element, { .element = 1 });
+
+  // Create card in deck (not in hand)
+  ecs_entity_t deck_card = ecs_new(world);
+  ecs_add_pair(world, deck_card, EcsChildOf, deck0);
+  ecs_add_pair(world, deck_card, Rel_OwnedBy, player0);
+  ecs_set(world, deck_card, Element, { .element = 1 });
+
+  // Test: Can target own hand card
+  assert(stt01_005_validate_effect_target(world, source_card, player0, card_in_hand));
+
+  // Test: Cannot target enemy's hand card
+  assert(!stt01_005_validate_effect_target(world, source_card, player0, enemy_card));
+
+  // Test: Cannot target card in deck
+  assert(!stt01_005_validate_effect_target(world, source_card, player0, deck_card));
+
+  // Test: Cannot target non-existent card
+  assert(!stt01_005_validate_effect_target(world, source_card, player0, 0));
+
+  ecs_fini(world);
+}
+
+static void test_stt01_005_ability_flow_full(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  // Initialize singletons
+  ecs_set(world, ecs_id(GameState), GameState, {0});
+  ecs_set(world, ecs_id(AbilityContext), AbilityContext, {0});
+
+  // Create player
+  ecs_entity_t player = ecs_new(world);
+  ecs_set(world, player, PlayerId, { .pid = 0 });
+  ecs_set(world, player, PlayerNumber, { .player_number = 0 });
+
+  // Create zones
+  ecs_entity_t hand = create_zone(world, player, ZHand, "Hand_P0");
+  ecs_entity_t deck = create_zone(world, player, ZDeck, "Deck_P0");
+  ecs_entity_t alley = create_zone(world, player, ZAlley, "Alley_P0");
+  ecs_entity_t discard = create_zone(world, player, ZDiscard, "Discard_P0");
+
+  // Set up GameState
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->players[0] = player;
+  gs->zones[0].hand = hand;
+  gs->zones[0].deck = deck;
+  gs->zones[0].alley = alley;
+  gs->zones[0].discard = discard;
+  ecs_singleton_modified(world, GameState);
+
+  // Initialize AbilityContext singleton
+  azk_clear_ability_context(world);
+
+  // Create the STT01-005 card in alley
+  ecs_entity_t stt01_005_card = ecs_new(world);
+  ecs_set_name(world, stt01_005_card, "STT01-005_test");
+  ecs_set(world, stt01_005_card, CardId, { .id = CARD_DEF_STT01_005 });
+  ecs_set(world, stt01_005_card, Element, { .element = 1 });
+  ecs_add_pair(world, stt01_005_card, EcsChildOf, alley);
+  ecs_add_pair(world, stt01_005_card, Rel_OwnedBy, player);
+
+  // Create 2 cards already in hand (will keep one, discard both after draw)
+  ecs_entity_t hand_card1 = ecs_new(world);
+  ecs_set_name(world, hand_card1, "HandCard1");
+  ecs_add_pair(world, hand_card1, EcsChildOf, hand);
+  ecs_add_pair(world, hand_card1, Rel_OwnedBy, player);
+  ecs_set(world, hand_card1, Element, { .element = 2 });
+
+  ecs_entity_t hand_card2 = ecs_new(world);
+  ecs_set_name(world, hand_card2, "HandCard2");
+  ecs_add_pair(world, hand_card2, EcsChildOf, hand);
+  ecs_add_pair(world, hand_card2, Rel_OwnedBy, player);
+  ecs_set(world, hand_card2, Element, { .element = 3 });
+
+  // Create 5 cards in deck (will draw 3)
+  ecs_entity_t deck_cards[5];
+  for (int i = 0; i < 5; i++) {
+    deck_cards[i] = ecs_new(world);
+    char name[32];
+    snprintf(name, sizeof(name), "DeckCard%d", i);
+    ecs_set_name(world, deck_cards[i], name);
+    ecs_add_pair(world, deck_cards[i], EcsChildOf, deck);
+    ecs_add_pair(world, deck_cards[i], Rel_OwnedBy, player);
+    ecs_set(world, deck_cards[i], Element, { .element = (uint8_t)(4 + i) });
+  }
+
+  // Verify initial state
+  ecs_entities_t initial_hand = ecs_get_ordered_children(world, hand);
+  ecs_entities_t initial_deck = ecs_get_ordered_children(world, deck);
+  ecs_entities_t initial_alley = ecs_get_ordered_children(world, alley);
+  assert(initial_hand.count == 2);
+  assert(initial_deck.count == 5);
+  assert(initial_alley.count == 1);
+
+  // Step 1: Trigger the ability
+  // Main abilities skip confirmation (player already opted in via action)
+  bool triggered = azk_trigger_main_ability(world, stt01_005_card, player);
+  assert(triggered);
+
+  // Should go directly to effect selection (costs applied, sacrifice + draw 3)
+  assert(azk_is_in_ability_phase(world));
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_EFFECT_SELECTION);
+
+  // Verify: card was sacrificed (moved to discard), 3 cards drawn
+  ecs_entities_t after_cost_hand = ecs_get_ordered_children(world, hand);
+  ecs_entities_t after_cost_deck = ecs_get_ordered_children(world, deck);
+  ecs_entities_t after_cost_alley = ecs_get_ordered_children(world, alley);
+  ecs_entities_t after_cost_discard = ecs_get_ordered_children(world, discard);
+  assert(after_cost_hand.count == 5);   // 2 original + 3 drawn
+  assert(after_cost_deck.count == 2);   // 5 - 3 = 2
+  assert(after_cost_alley.count == 0);  // sacrificed
+  assert(after_cost_discard.count == 1); // the sacrificed card
+
+  // Step 3: Select first card to discard (select index 0 in hand)
+  bool effect1_selected = azk_process_effect_selection(world, 0);
+  assert(effect1_selected);
+  // Still in effect selection (need to select 2 cards)
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_EFFECT_SELECTION);
+
+  // Step 4: Select second card to discard (select index 0 again - next card after first was removed conceptually)
+  // Note: The hand still has all cards until apply_effects, so we select index 1
+  bool effect2_selected = azk_process_effect_selection(world, 1);
+  assert(effect2_selected);
+
+  // Ability should be complete now
+  assert(!azk_is_in_ability_phase(world));
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_NONE);
+
+  // Verify final state
+  ecs_entities_t final_hand = ecs_get_ordered_children(world, hand);
+  ecs_entities_t final_deck = ecs_get_ordered_children(world, deck);
+  ecs_entities_t final_discard = ecs_get_ordered_children(world, discard);
+
+  assert(final_hand.count == 3);    // 5 - 2 discarded
+  assert(final_deck.count == 2);    // 5 - 3 drawn
+  assert(final_discard.count == 3); // 1 sacrificed + 2 discarded
+
+  ecs_fini(world);
+}
+
+static void test_draw_cards_with_deckout_check(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  // Initialize singletons
+  ecs_set(world, ecs_id(GameState), GameState, {0});
+
+  // Create players
+  ecs_entity_t player0 = ecs_new(world);
+  ecs_set(world, player0, PlayerId, { .pid = 0 });
+  ecs_set(world, player0, PlayerNumber, { .player_number = 0 });
+
+  ecs_entity_t player1 = ecs_new(world);
+  ecs_set(world, player1, PlayerId, { .pid = 1 });
+  ecs_set(world, player1, PlayerNumber, { .player_number = 1 });
+
+  // Create zones
+  ecs_entity_t hand = create_zone(world, player0, ZHand, "Hand_P0");
+  ecs_entity_t deck = create_zone(world, player0, ZDeck, "Deck_P0");
+
+  // Set up GameState
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->players[0] = player0;
+  gs->players[1] = player1;
+  gs->zones[0].hand = hand;
+  gs->zones[0].deck = deck;
+  gs->phase = PHASE_MAIN;
+  gs->winner = -1;
+  ecs_singleton_modified(world, GameState);
+
+  // Create exactly 3 cards in deck
+  ecs_entity_t deck_cards[3];
+  for (int i = 0; i < 3; i++) {
+    deck_cards[i] = ecs_new(world);
+    ecs_add_pair(world, deck_cards[i], EcsChildOf, deck);
+    ecs_set(world, deck_cards[i], Element, { .element = (uint8_t)(i + 1) });
+  }
+
+  // Test: Draw 3 cards when deck has exactly 3 = deck-out (deck empty after draw)
+  ecs_entity_t drawn[3];
+  bool success = draw_cards_with_deckout_check(world, player0, 3, drawn);
+
+  // Should return false because deck is empty after drawing
+  assert(!success);
+
+  // Verify deck-out occurred
+  gs = ecs_singleton_get_mut(world, GameState);
+  assert(gs->winner == 1);  // Player 1 wins (opponent of player 0)
+  assert(gs->phase == PHASE_END_MATCH);
+
+  // Verify cards were drawn before deck-out
+  ecs_entities_t final_hand = ecs_get_ordered_children(world, hand);
+  ecs_entities_t final_deck = ecs_get_ordered_children(world, deck);
+  assert(final_hand.count == 3);  // All 3 cards drawn
+  assert(final_deck.count == 0);  // Deck is empty
+
+  ecs_fini(world);
+}
+
+static void test_draw_cards_with_deckout_check_success(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  // Initialize singletons
+  ecs_set(world, ecs_id(GameState), GameState, {0});
+
+  // Create players
+  ecs_entity_t player0 = ecs_new(world);
+  ecs_set(world, player0, PlayerId, { .pid = 0 });
+  ecs_set(world, player0, PlayerNumber, { .player_number = 0 });
+
+  ecs_entity_t player1 = ecs_new(world);
+  ecs_set(world, player1, PlayerId, { .pid = 1 });
+  ecs_set(world, player1, PlayerNumber, { .player_number = 1 });
+
+  // Create zones
+  ecs_entity_t hand = create_zone(world, player0, ZHand, "Hand_P0");
+  ecs_entity_t deck = create_zone(world, player0, ZDeck, "Deck_P0");
+
+  // Set up GameState
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->players[0] = player0;
+  gs->players[1] = player1;
+  gs->zones[0].hand = hand;
+  gs->zones[0].deck = deck;
+  gs->phase = PHASE_MAIN;
+  gs->winner = -1;
+  ecs_singleton_modified(world, GameState);
+
+  // Create 5 cards in deck
+  for (int i = 0; i < 5; i++) {
+    ecs_entity_t deck_card = ecs_new(world);
+    ecs_add_pair(world, deck_card, EcsChildOf, deck);
+    ecs_set(world, deck_card, Element, { .element = (uint8_t)(i + 1) });
+  }
+
+  // Test: Draw 3 cards when deck has 5 = success (deck has 2 remaining)
+  ecs_entity_t drawn[3];
+  bool success = draw_cards_with_deckout_check(world, player0, 3, drawn);
+
+  // Should return true (no deck-out)
+  assert(success);
+
+  // Verify no deck-out occurred
+  gs = ecs_singleton_get_mut(world, GameState);
+  assert(gs->winner == -1);  // No winner yet
+  assert(gs->phase == PHASE_MAIN);
+
+  // Verify cards were drawn
+  ecs_entities_t final_hand = ecs_get_ordered_children(world, hand);
+  ecs_entities_t final_deck = ecs_get_ordered_children(world, deck);
+  assert(final_hand.count == 3);  // 3 cards drawn
+  assert(final_deck.count == 2);  // 2 cards remaining
+
+  ecs_fini(world);
+}
+
 int main(void) {
   test_azk_world_init_sets_game_state();
   test_world_init_creates_player_zones();
   test_init_player_deck_raizen();
+  test_ability_registry_lookup();
+  test_st01_007_validate_needs_hand_and_deck();
+  test_st01_007_validate_cost_target();
+  test_st01_007_ability_flow_confirm_and_execute();
+  test_st01_007_ability_flow_decline();
+
+  // STT01-005 tests
+  test_stt01_005_ability_registry_check();
+  test_stt01_005_validate_needs_deck_cards();
+  test_stt01_005_validate_only_in_alley();
+  test_stt01_005_validate_effect_target();
+  test_stt01_005_ability_flow_full();
+  test_draw_cards_with_deckout_check();
+  test_draw_cards_with_deckout_check_success();
+
   return 0;
 }

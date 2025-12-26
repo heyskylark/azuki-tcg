@@ -1,12 +1,16 @@
-#include "components.h"
+#include "components/components.h"
+#include "abilities/ability_registry.h"
 #include "generated/card_defs.h"
+#include "components/abilities.h"
 
 ECS_COMPONENT_DECLARE(ActionContext);
+ECS_COMPONENT_DECLARE(AbilityContext);
 ECS_COMPONENT_DECLARE(GameState);
 ECS_COMPONENT_DECLARE(PlayerNumber);
 ECS_COMPONENT_DECLARE(PlayerId);
 ECS_COMPONENT_DECLARE(ZoneIndex);
 ECS_COMPONENT_DECLARE(IKZToken);
+ECS_COMPONENT_DECLARE(TriggeredEffectQueue);
 
 ECS_ENTITY_DECLARE(Rel_OwnedBy);
 
@@ -31,12 +35,17 @@ ECS_TAG_DECLARE(TEndMatch);
 
 void azk_register_components(ecs_world_t *world) {
   ECS_COMPONENT_DEFINE(world, ActionContext);
+  ECS_COMPONENT_DEFINE(world, AbilityContext);
   ECS_COMPONENT_DEFINE(world, GameState);
   ECS_COMPONENT_DEFINE(world, PlayerNumber);
   ECS_COMPONENT_DEFINE(world, PlayerId);
   ECS_COMPONENT_DEFINE(world, ZoneIndex);
   ECS_COMPONENT_DEFINE(world, IKZToken);
-  
+  ECS_COMPONENT_DEFINE(world, TriggeredEffectQueue);
+
+  // Initialize TriggeredEffectQueue singleton
+  ecs_singleton_set(world, TriggeredEffectQueue, {.count = 0});
+
   {
     ecs_entity_desc_t desc = {
       .name = "Rel_OwnedBy",
@@ -70,5 +79,7 @@ void azk_register_components(ecs_world_t *world) {
   ECS_TAG_DEFINE(world, TEndTurn);
   ECS_TAG_DEFINE(world, TEndMatch);
 
+  azk_register_ability_components(world);
   azk_register_card_def_resources(world);
+  azk_init_ability_registry(world);
 }
