@@ -10,6 +10,7 @@ ECS_COMPONENT_DECLARE(PlayerNumber);
 ECS_COMPONENT_DECLARE(PlayerId);
 ECS_COMPONENT_DECLARE(ZoneIndex);
 ECS_COMPONENT_DECLARE(IKZToken);
+ECS_COMPONENT_DECLARE(TriggeredEffectQueue);
 
 ECS_ENTITY_DECLARE(Rel_OwnedBy);
 
@@ -40,7 +41,11 @@ void azk_register_components(ecs_world_t *world) {
   ECS_COMPONENT_DEFINE(world, PlayerId);
   ECS_COMPONENT_DEFINE(world, ZoneIndex);
   ECS_COMPONENT_DEFINE(world, IKZToken);
-  
+  ECS_COMPONENT_DEFINE(world, TriggeredEffectQueue);
+
+  // Initialize TriggeredEffectQueue singleton
+  ecs_singleton_set(world, TriggeredEffectQueue, {.count = 0});
+
   {
     ecs_entity_desc_t desc = {
       .name = "Rel_OwnedBy",

@@ -25,22 +25,11 @@ static int play_entity_to_garden_or_alley(ecs_world_t *world, GameState *gs,
     return -1;
   }
 
-  // Suspend deferring to ensure the zone change is immediately visible
-  // This is needed for on-play ability validation which runs right after
-  // placement
-  bool was_deferred = ecs_is_deferred(world);
-  if (was_deferred) {
-    ecs_defer_suspend(world);
-  }
-
   int result = summon_card_into_zone_index(world, &intent);
 
-  if (was_deferred) {
-    ecs_defer_resume(world);
-  }
-
   if (result == 0) {
-    ecs_defer_flush(world);
+    // Queue on-play ability for processing on next loop iteration.
+    // This allows deferred zone operations to flush first.
     azk_trigger_on_play_ability(world, intent.card, intent.player);
   }
 

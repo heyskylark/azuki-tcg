@@ -274,7 +274,7 @@ bool azk_build_action_mask_for_player(
     return false;
   }
 
-  if (gs->winner != -1 || !phase_requires_user_action(gs->phase)) {
+  if (gs->winner != -1 || !phase_requires_user_action(world, gs->phase)) {
     return true;
   }
 

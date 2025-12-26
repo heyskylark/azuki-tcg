@@ -41,7 +41,7 @@ bool azk_engine_requires_action(AzkEngine *engine) {
   }
 
   const GameState *gs = ecs_singleton_get(engine, GameState);
-  return gs && phase_requires_user_action(gs->phase);
+  return gs && phase_requires_user_action(engine, gs->phase);
 }
 
 bool azk_engine_is_game_over(AzkEngine *engine) {

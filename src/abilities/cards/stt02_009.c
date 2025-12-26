@@ -11,9 +11,10 @@
 // Garden to its owner's hand.
 
 // Helper to check if an entity has cost >= 2 (valid cost target)
-static bool is_valid_cost_target(ecs_world_t *world, ecs_entity_t entity) {
+static bool is_valid_cost_target(ecs_world_t *world, ecs_entity_t entity,
+                                 bool ignore_zone_check) {
   // Must be an entity card
-  if (!is_card_type(world, entity, CARD_TYPE_ENTITY)) {
+  if (!ignore_zone_check && !is_card_type(world, entity, CARD_TYPE_ENTITY)) {
     return false;
   }
 
@@ -47,12 +48,13 @@ bool stt02_009_validate(ecs_world_t *world, ecs_entity_t card,
   const GameState *gs = ecs_singleton_get(world, GameState);
   uint8_t player_num = get_player_number(world, owner);
   ecs_entity_t garden = gs->zones[player_num].garden;
-  ecs_entity_t hand = gs->zones[player_num].hand;
 
-  // Check other cards in the garden
+  // Check cards currently in the garden
+  // Note: Since triggered effects are queued and processed after deferred ops
+  // flush, the card is now properly in the garden via ChildOf
   ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
   for (int i = 0; i < garden_cards.count; i++) {
-    if (is_valid_cost_target(world, garden_cards.ids[i])) {
+    if (is_valid_cost_target(world, garden_cards.ids[i], false)) {
       return true; // Found at least one valid cost target
     }
   }
@@ -70,15 +72,18 @@ bool stt02_009_validate_cost_target(ecs_world_t *world, ecs_entity_t card,
 
   const GameState *gs = ecs_singleton_get(world, GameState);
   uint8_t player_num = get_player_number(world, owner);
+  ecs_entity_t garden = gs->zones[player_num].garden;
 
   // Target must be in owner's garden
+  // Note: Since triggered effects are processed after deferred ops flush,
+  // ChildOf is now correct
   ecs_entity_t parent = ecs_get_target(world, target, EcsChildOf, 0);
-  if (parent != gs->zones[player_num].garden) {
+  if (parent != garden) {
     return false;
   }
 
   // Target must have cost >= 2
-  return is_valid_cost_target(world, target);
+  return is_valid_cost_target(world, target, false);
 }
 
 bool stt02_009_validate_effect_target(ecs_world_t *world, ecs_entity_t card,

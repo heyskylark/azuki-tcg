@@ -568,9 +568,17 @@ static void test_st01_007_ability_flow_confirm_and_execute(void) {
   assert(initial_hand.count == 1);
   assert(initial_deck.count == 2);
 
-  // Step 1: Trigger the ability
-  bool triggered = azk_trigger_on_play_ability(world, st01_007_card, player);
-  assert(triggered);
+  // Step 1: Queue the ability (queues for next loop iteration)
+  bool queued = azk_trigger_on_play_ability(world, st01_007_card, player);
+  assert(queued);
+
+  // Ability is queued, not yet in ability phase
+  assert(azk_has_queued_triggered_effects(world));
+  assert(!azk_is_in_ability_phase(world));
+
+  // Process the queue (simulates what happens on next game loop)
+  bool processed = azk_process_triggered_effect_queue(world);
+  assert(processed);
 
   // Should be in confirmation phase (optional ability)
   assert(azk_is_in_ability_phase(world));
@@ -657,9 +665,17 @@ static void test_st01_007_ability_flow_decline(void) {
   ecs_add_pair(world, deck_card, Rel_OwnedBy, player);
   ecs_set(world, deck_card, Element, { .element = 3 });
 
-  // Step 1: Trigger the ability
-  bool triggered = azk_trigger_on_play_ability(world, st01_007_card, player);
-  assert(triggered);
+  // Step 1: Queue the ability
+  bool queued = azk_trigger_on_play_ability(world, st01_007_card, player);
+  assert(queued);
+
+  // Ability is queued, not yet in ability phase
+  assert(azk_has_queued_triggered_effects(world));
+  assert(!azk_is_in_ability_phase(world));
+
+  // Process the queue (simulates what happens on next game loop)
+  bool processed = azk_process_triggered_effect_queue(world);
+  assert(processed);
   assert(azk_get_ability_phase(world) == ABILITY_PHASE_CONFIRMATION);
 
   // Step 2: Decline the ability (use process_ability_decline)

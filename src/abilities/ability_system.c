@@ -7,6 +7,9 @@
 #include "utils/cli_rendering_util.h"
 #include "utils/player_util.h"
 
+// Forward declaration of timing tag constant
+#define TIMING_TAG_ON_PLAY_FWD 0
+
 bool azk_trigger_on_play_ability(ecs_world_t *world, ecs_entity_t card,
                                  ecs_entity_t owner) {
   // Get card ID
@@ -30,60 +33,11 @@ bool azk_trigger_on_play_ability(ecs_world_t *world, ecs_entity_t card,
     return false;
   }
 
-  // Validate the ability can be activated
-  if (def->validate && !def->validate(world, card, owner)) {
-    cli_render_logf("[Ability] On play ability validation failed");
-    return false;
-  }
-
-  // Get ability context singleton
-  AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
-
-  // Set up the ability context
-  ctx->source_card = card;
-  ctx->owner = owner;
-  ctx->is_optional = def->is_optional;
-  ctx->cost_min = def->cost_req.min;
-  ctx->cost_expected = def->cost_req.max;
-  ctx->cost_filled = 0;
-  ctx->effect_min = def->effect_req.min;
-  ctx->effect_expected = def->effect_req.max;
-  ctx->effect_filled = 0;
-
-  // Clear target arrays
-  for (int i = 0; i < MAX_ABILITY_SELECTION; i++) {
-    ctx->cost_targets[i] = 0;
-    ctx->effect_targets[i] = 0;
-  }
-
-  if (def->is_optional) {
-    // Optional ability - enter confirmation phase
-    ctx->phase = ABILITY_PHASE_CONFIRMATION;
-    cli_render_logf(
-        "[Ability] Triggered optional ability, waiting for confirmation");
-    ecs_singleton_modified(world, AbilityContext);
-    return true;
-  } else {
-    // Non-optional ability - skip confirmation, go straight to cost selection
-    if (def->cost_req.min > 0) {
-      ctx->phase = ABILITY_PHASE_COST_SELECTION;
-      cli_render_logf(
-          "[Ability] Triggered mandatory ability, selecting cost targets");
-    } else if (def->effect_req.min > 0) {
-      ctx->phase = ABILITY_PHASE_EFFECT_SELECTION;
-      cli_render_logf(
-          "[Ability] Triggered mandatory ability, selecting effect targets");
-    } else {
-      // No targets needed - apply immediately
-      if (def->apply_effects) {
-        def->apply_effects(world, ctx);
-      }
-      ctx->phase = ABILITY_PHASE_NONE;
-      cli_render_logf("[Ability] Applied mandatory ability with no targets");
-    }
-    ecs_singleton_modified(world, AbilityContext);
-    return ctx->phase != ABILITY_PHASE_NONE;
-  }
+  // Queue the effect for processing on next loop iteration
+  // This is necessary because during ecs_progress(), zone changes (ChildOf)
+  // are deferred and not visible yet. By queuing, we ensure the card is
+  // in the correct zone when validation runs.
+  return azk_queue_triggered_effect(world, card, owner, TIMING_TAG_ON_PLAY_FWD);
 }
 
 bool azk_process_ability_confirmation(ecs_world_t *world) {
@@ -560,4 +514,170 @@ bool azk_trigger_spell_ability(ecs_world_t *world, ecs_entity_t spell_card,
 
   ecs_singleton_modified(world, AbilityContext);
   return ctx->phase != ABILITY_PHASE_NONE;
+}
+
+// Timing tag constants for queue indexing
+#define TIMING_TAG_ON_PLAY 0
+#define TIMING_TAG_START_OF_TURN 1
+#define TIMING_TAG_END_OF_TURN 2
+#define TIMING_TAG_WHEN_EQUIPPING 3
+#define TIMING_TAG_WHEN_EQUIPPED 4
+#define TIMING_TAG_WHEN_ATTACKING 5
+#define TIMING_TAG_WHEN_ATTACKED 6
+
+bool azk_queue_triggered_effect(ecs_world_t *world, ecs_entity_t card,
+                                ecs_entity_t owner, uint8_t timing_tag) {
+  TriggeredEffectQueue *queue =
+      ecs_singleton_get_mut(world, TriggeredEffectQueue);
+
+  if (queue->count >= MAX_TRIGGERED_EFFECT_QUEUE) {
+    cli_render_logf("[Ability] Triggered effect queue full, cannot queue");
+    return false;
+  }
+
+  queue->effects[queue->count].source_card = card;
+  queue->effects[queue->count].owner = owner;
+  queue->effects[queue->count].timing_tag = timing_tag;
+  queue->count++;
+
+  cli_render_logf("[Ability] Queued triggered effect (tag=%d, count=%d)",
+                  timing_tag, queue->count);
+  ecs_singleton_modified(world, TriggeredEffectQueue);
+  return true;
+}
+
+bool azk_has_queued_triggered_effects(ecs_world_t *world) {
+  const TriggeredEffectQueue *queue =
+      ecs_singleton_get(world, TriggeredEffectQueue);
+  return queue && queue->count > 0;
+}
+
+// Helper to get the expected timing tag ecs_id for a given tag index
+static ecs_id_t get_timing_tag_id(uint8_t tag_index) {
+  switch (tag_index) {
+  case TIMING_TAG_ON_PLAY:
+    return ecs_id(AOnPlay);
+  case TIMING_TAG_START_OF_TURN:
+    return ecs_id(AStartOfTurn);
+  case TIMING_TAG_END_OF_TURN:
+    return ecs_id(AEndOfTurn);
+  case TIMING_TAG_WHEN_EQUIPPING:
+    return ecs_id(AWhenEquipping);
+  case TIMING_TAG_WHEN_EQUIPPED:
+    return ecs_id(AWhenEquipped);
+  case TIMING_TAG_WHEN_ATTACKING:
+    return ecs_id(AWhenAttacking);
+  case TIMING_TAG_WHEN_ATTACKED:
+    return ecs_id(AWhenAttacked);
+  default:
+    return 0;
+  }
+}
+
+bool azk_process_triggered_effect_queue(ecs_world_t *world) {
+  TriggeredEffectQueue *queue =
+      ecs_singleton_get_mut(world, TriggeredEffectQueue);
+
+  if (!queue || queue->count == 0) {
+    return false;
+  }
+
+  // Pop first effect (FIFO)
+  PendingTriggeredEffect effect = queue->effects[0];
+
+  // Shift remaining effects
+  for (uint8_t i = 0; i < queue->count - 1; i++) {
+    queue->effects[i] = queue->effects[i + 1];
+  }
+  queue->count--;
+  ecs_singleton_modified(world, TriggeredEffectQueue);
+
+  cli_render_logf("[Ability] Processing queued effect (tag=%d, remaining=%d)",
+                  effect.timing_tag, queue->count);
+
+  // Now process the effect - card should be in correct zone after deferred ops
+  // flushed
+  ecs_entity_t card = effect.source_card;
+  ecs_entity_t owner = effect.owner;
+
+  // Get card ID
+  const CardId *card_id = ecs_get(world, card, CardId);
+  if (!card_id) {
+    cli_render_logf("[Ability] Queued effect: card no longer valid");
+    return false;
+  }
+
+  // Check if card has an ability
+  if (!azk_has_ability(card_id->id)) {
+    cli_render_logf("[Ability] Queued effect: card has no ability");
+    return false;
+  }
+
+  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  if (!def || !def->has_ability) {
+    cli_render_logf("[Ability] Queued effect: no ability definition");
+    return false;
+  }
+
+  // Check if it's the correct timing tag
+  ecs_id_t expected_tag = get_timing_tag_id(effect.timing_tag);
+  if (def->timing_tag != expected_tag) {
+    cli_render_logf("[Ability] Queued effect: timing tag mismatch");
+    return false;
+  }
+
+  // Validate the ability can be activated (card is now in correct zone)
+  if (def->validate && !def->validate(world, card, owner)) {
+    cli_render_logf("[Ability] Queued effect: validation failed");
+    return false;
+  }
+
+  // Get ability context singleton
+  AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
+
+  // Set up the ability context
+  ctx->source_card = card;
+  ctx->owner = owner;
+  ctx->is_optional = def->is_optional;
+  ctx->cost_min = def->cost_req.min;
+  ctx->cost_expected = def->cost_req.max;
+  ctx->cost_filled = 0;
+  ctx->effect_min = def->effect_req.min;
+  ctx->effect_expected = def->effect_req.max;
+  ctx->effect_filled = 0;
+
+  // Clear target arrays
+  for (int i = 0; i < MAX_ABILITY_SELECTION; i++) {
+    ctx->cost_targets[i] = 0;
+    ctx->effect_targets[i] = 0;
+  }
+
+  if (def->is_optional) {
+    // Optional ability - enter confirmation phase
+    ctx->phase = ABILITY_PHASE_CONFIRMATION;
+    cli_render_logf(
+        "[Ability] Triggered optional ability, waiting for confirmation");
+    ecs_singleton_modified(world, AbilityContext);
+    return true;
+  } else {
+    // Non-optional ability - skip confirmation, go straight to cost selection
+    if (def->cost_req.min > 0) {
+      ctx->phase = ABILITY_PHASE_COST_SELECTION;
+      cli_render_logf(
+          "[Ability] Triggered mandatory ability, selecting cost targets");
+    } else if (def->effect_req.min > 0) {
+      ctx->phase = ABILITY_PHASE_EFFECT_SELECTION;
+      cli_render_logf(
+          "[Ability] Triggered mandatory ability, selecting effect targets");
+    } else {
+      // No targets needed - apply immediately
+      if (def->apply_effects) {
+        def->apply_effects(world, ctx);
+      }
+      ctx->phase = ABILITY_PHASE_NONE;
+      cli_render_logf("[Ability] Applied mandatory ability with no targets");
+    }
+    ecs_singleton_modified(world, AbilityContext);
+    return ctx->phase != ABILITY_PHASE_NONE;
+  }
 }

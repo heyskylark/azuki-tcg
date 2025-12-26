@@ -53,4 +53,20 @@ bool azk_trigger_spell_ability(ecs_world_t* world, ecs_entity_t spell_card, ecs_
 // Returns true if ability requires confirmation/selection, false if auto-executes or no ability
 bool azk_trigger_main_ability(ecs_world_t* world, ecs_entity_t card, ecs_entity_t owner);
 
+// Queue a triggered effect for processing on next game loop
+// This is used for timing-based triggers (on play, on equip, etc.) where
+// deferred zone operations haven't flushed yet
+// timing_tag is the index of the timing tag (e.g., AOnPlay)
+// Returns true if successfully queued, false if queue is full
+bool azk_queue_triggered_effect(ecs_world_t* world, ecs_entity_t card,
+                                ecs_entity_t owner, uint8_t timing_tag);
+
+// Check if there are pending triggered effects in the queue
+bool azk_has_queued_triggered_effects(ecs_world_t* world);
+
+// Process the next triggered effect in the queue
+// Validates the ability and sets up AbilityContext
+// Returns true if an ability requires user input, false otherwise
+bool azk_process_triggered_effect_queue(ecs_world_t* world);
+
 #endif // AZUKI_ABILITY_SYSTEM_H
