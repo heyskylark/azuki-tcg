@@ -2,6 +2,7 @@
 
 #include "abilities/cards/st01_007.h"
 #include "abilities/cards/stt01_005.h"
+#include "abilities/cards/stt02_007.h"
 #include "abilities/cards/stt02_009.h"
 #include "abilities/cards/stt02_015.h"
 #include "components/abilities.h"
@@ -47,6 +48,20 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .validate_effect_target = NULL,
       .apply_costs = st01_007_apply_costs,
       .apply_effects = st01_007_apply_effects,
+  };
+
+  // STT02-007 "Benzai the Merchant": On Play; Draw 1
+  kAbilityRegistry[CARD_DEF_STT02_007] = (AbilityDef){
+      .has_ability = true,
+      .is_optional = false,
+      .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .effect_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .timing_tag = ecs_id(AOnPlay),
+      .validate = stt02_007_validate,
+      .validate_cost_target = NULL,
+      .validate_effect_target = NULL,
+      .apply_costs = NULL,
+      .apply_effects = stt02_007_apply_effects,
   };
 
   // STT02-015 "Commune with Water": [Response] Return an entity with cost <= 3

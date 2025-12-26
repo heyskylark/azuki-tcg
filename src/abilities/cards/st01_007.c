@@ -59,13 +59,6 @@ void st01_007_apply_costs(ecs_world_t* world, const AbilityContext* ctx) {
 }
 
 void st01_007_apply_effects(ecs_world_t* world, const AbilityContext* ctx) {
-    // Draw 1 card
-    ecs_entity_t owner = ctx->owner;
-    const GameState* gs = ecs_singleton_get(world, GameState);
-    uint8_t player_num = get_player_number(world, owner);
-
-    ecs_entity_t deck = gs->zones[player_num].deck;
-    ecs_entity_t hand = gs->zones[player_num].hand;
-
-    move_cards_to_zone(world, deck, hand, 1, NULL);
+    // Draw 1 card (with deck-out check)
+    draw_cards_with_deckout_check(world, ctx->owner, 1, NULL);
 }
