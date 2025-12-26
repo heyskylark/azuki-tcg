@@ -2,6 +2,7 @@
 
 #include "abilities/cards/st01_007.h"
 #include "abilities/cards/stt01_005.h"
+#include "abilities/cards/stt01_013.h"
 #include "abilities/cards/stt02_007.h"
 #include "abilities/cards/stt02_009.h"
 #include "abilities/cards/stt02_015.h"
@@ -120,6 +121,21 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .validate_effect_target = stt02_009_validate_effect_target,
       .apply_costs = stt02_009_apply_costs,
       .apply_effects = stt02_009_apply_effects,
+  };
+
+  // STT01-013 "Black Jade Dagger": On Play; You may deal damage to your leader:
+  // this card gives an additional +1 attack
+  kAbilityRegistry[CARD_DEF_STT01_013] = (AbilityDef){
+      .has_ability = true,
+      .is_optional = true,
+      .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .effect_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .timing_tag = ecs_id(AOnPlay),
+      .validate = stt01_013_validate,
+      .validate_cost_target = NULL,
+      .validate_effect_target = NULL,
+      .apply_costs = stt01_013_apply_costs,
+      .apply_effects = stt01_013_apply_effects,
   };
 
   kRegistryInitialized = true;
