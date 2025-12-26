@@ -31,6 +31,7 @@ static int board_pad_height = 0;
 static int board_pad_width = 0;
 static int board_scroll_offset = 0;
 static int board_content_height = 0;
+static int log_scroll_offset = 0;
 static int screen_rows = 0;
 static int screen_cols = 0;
 
@@ -72,13 +73,31 @@ static void render_logs(WINDOW *win) {
     return;
   }
 
-  int lines_to_show = (int)((log_line_count < (size_t)max_inner_rows) ? log_line_count : (size_t)max_inner_rows);
-  if (lines_to_show <= 0) {
+  if (log_line_count == 0) {
     mvwprintw(win, 1, 2, "(no log messages)");
     return;
   }
 
-  size_t start_index = (log_line_head + CLI_LOG_MAX_LINES - (size_t)lines_to_show) % CLI_LOG_MAX_LINES;
+  // Clamp scroll offset
+  int max_scroll = (int)log_line_count - max_inner_rows;
+  if (max_scroll < 0) {
+    max_scroll = 0;
+  }
+  if (log_scroll_offset > max_scroll) {
+    log_scroll_offset = max_scroll;
+  }
+  if (log_scroll_offset < 0) {
+    log_scroll_offset = 0;
+  }
+
+  int lines_to_show = (int)((log_line_count < (size_t)max_inner_rows) ? log_line_count : (size_t)max_inner_rows);
+
+  // Calculate start index based on scroll offset from the bottom
+  // Newest message is at log_line_head - 1
+  // We want to show lines_to_show messages starting from (total - scroll_offset - lines_to_show)
+  size_t first_visible = (size_t)(log_line_count - log_scroll_offset - lines_to_show);
+  size_t start_index = (log_line_head + CLI_LOG_MAX_LINES - log_line_count + first_visible) % CLI_LOG_MAX_LINES;
+
   for (int i = 0; i < lines_to_show; ++i) {
     size_t idx = (start_index + i) % CLI_LOG_MAX_LINES;
     mvwprintw(win, i + 1, 2, "%s", log_lines[idx]);
@@ -253,6 +272,49 @@ static void scroll_board_page(int direction) {
   scroll_board_to_offset(board_scroll_offset + direction * inner_height);
 }
 
+static void scroll_log_to_offset(int offset) {
+  if (!log_win) {
+    return;
+  }
+
+  int max_inner_rows = getmaxy(log_win) - 2;
+  int max_scroll = (int)log_line_count - max_inner_rows;
+  if (max_scroll < 0) {
+    max_scroll = 0;
+  }
+  if (offset < 0) {
+    offset = 0;
+  }
+  if (offset > max_scroll) {
+    offset = max_scroll;
+  }
+
+  if (offset == log_scroll_offset) {
+    return;
+  }
+
+  log_scroll_offset = offset;
+  refresh_log_window();
+}
+
+static void scroll_log_lines(int delta) {
+  if (delta == 0 || !log_win) {
+    return;
+  }
+  scroll_log_to_offset(log_scroll_offset + delta);
+}
+
+static void scroll_log_page(int direction) {
+  if (!log_win || direction == 0) {
+    return;
+  }
+  int inner_height = getmaxy(log_win) - 2;
+  if (inner_height <= 0) {
+    return;
+  }
+  scroll_log_to_offset(log_scroll_offset + direction * inner_height);
+}
+
 static void destroy_windows(void) {
   destroy_board_pad();
   if (board_win) {
@@ -271,6 +333,7 @@ static void destroy_windows(void) {
     delwin(input_win);
     input_win = NULL;
   }
+  log_scroll_offset = 0;
 }
 
 static void ensure_windows(void) {
@@ -1146,6 +1209,7 @@ void cli_render_shutdown(void) {
   has_last_state = false;
   screen_rows = 0;
   screen_cols = 0;
+  log_scroll_offset = 0;
   cli_colors_enabled = false;
   cli_tapped_color_available = false;
   cli_cooldown_color_available = false;
@@ -1200,7 +1264,7 @@ void cli_render_draw(const ObservationData *observation, const GameState *gs) {
   box(input_win, 0, 0);
   mvwprintw(input_win, 1, 2, "No input required.");
   if (getmaxy(input_win) >= 4) {
-    mvwprintw(input_win, 2, 2, "Scroll board with Up/Down or PgUp/PgDn");
+    mvwprintw(input_win, 2, 2, "Board: Up/Down/PgUp/PgDn | Logs: w/s/W/S");
   }
   wrefresh(input_win);
 
@@ -1246,7 +1310,7 @@ bool cli_render_prompt_user_action(int active_player_index, const char *message,
       mvwprintw(input_win, current_row++, 2, "Awaiting user action [Player %d] (type,p0,p1,p2):", active_player_index);
     }
     if (current_row <= max_inner_rows) {
-      mvwprintw(input_win, current_row++, 2, "Scroll board with Up/Down or PgUp/PgDn");
+      mvwprintw(input_win, current_row++, 2, "Board: Up/Down/PgUp/PgDn | Logs: w/s/W/S");
     }
     if (current_row > max_inner_rows) {
       current_row = max_inner_rows;
@@ -1303,6 +1367,18 @@ bool cli_render_prompt_user_action(int active_player_index, const char *message,
       case KEY_END:
         scroll_board_to_offset(board_content_height);
         continue;
+      case 'w':
+        scroll_log_lines(-1);
+        continue;
+      case 's':
+        scroll_log_lines(1);
+        continue;
+      case 'W':
+        scroll_log_page(-1);
+        continue;
+      case 'S':
+        scroll_log_page(1);
+        continue;
       case KEY_BACKSPACE:
       case 127:
       case 8:
@@ -1343,6 +1419,10 @@ void cli_render_log(const char *message) {
     return;
   }
   append_log_line(message);
+  // Keep scroll at bottom (showing newest) if we were already at bottom
+  if (log_scroll_offset == 0) {
+    log_scroll_offset = 0; // Stay at newest
+  }
   refresh_log_window();
 }
 
