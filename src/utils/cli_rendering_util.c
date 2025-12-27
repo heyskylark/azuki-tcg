@@ -567,6 +567,17 @@ static void draw_text_box(WINDOW *win, int top, int left, int width, int height,
   }
 }
 
+static const char *status_effect_string(bool is_frozen, bool is_shocked) {
+  if (is_frozen && is_shocked) {
+    return "F/S";
+  } else if (is_frozen) {
+    return "F";
+  } else if (is_shocked) {
+    return "S";
+  }
+  return NULL;
+}
+
 static void build_standard_card_lines(const CardObservationData *card,
                                       char lines[4][CARD_BOX_TEXT_CAPACITY]) {
   const char *code = card_code_or_placeholder(&card->id);
@@ -590,7 +601,12 @@ static void build_standard_card_lines(const CardObservationData *card,
 
   char tap = tap_state_char(&card->tap_state);
   char cooldown = cooldown_state_char(&card->tap_state);
-  if (card->ikz_cost.ikz_cost) {
+  const char *status = status_effect_string(card->is_frozen, card->is_shocked);
+  if (status) {
+    // Status effects take priority over IKZ cost display
+    snprintf(lines[3], CARD_BOX_TEXT_CAPACITY, "T/C:%c/%c %s", tap, cooldown,
+             status);
+  } else if (card->ikz_cost.ikz_cost) {
     snprintf(lines[3], CARD_BOX_TEXT_CAPACITY, "T/C:%c/%c IKZ:%d", tap,
              cooldown, card->ikz_cost.ikz_cost);
   } else {

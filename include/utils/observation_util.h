@@ -46,6 +46,8 @@ typedef struct {
   GatePoints gate_points;
   uint8_t weapon_count;
   WeaponObservationData weapons[MAX_ATTACHED_WEAPONS];
+  bool is_frozen;
+  bool is_shocked;
 } CardObservationData;
 
 typedef struct {

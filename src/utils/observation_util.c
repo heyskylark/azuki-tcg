@@ -1,4 +1,6 @@
 #include "utils/observation_util.h"
+
+#include "components/abilities.h"
 #include "utils/cli_rendering_util.h"
 #include "validation/action_enumerator.h"
 
@@ -154,6 +156,10 @@ static CardObservationData get_card_observation(ecs_world_t *world,
 
   observation_data.weapon_count =
       set_attached_weapon_observations(world, card, observation_data.weapons);
+
+  // Check for status effects
+  observation_data.is_frozen = ecs_has(world, card, Frozen);
+  observation_data.is_shocked = ecs_has(world, card, Shocked);
 
   return observation_data;
 }
