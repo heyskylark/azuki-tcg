@@ -237,6 +237,27 @@ static uint8_t get_zone_card_count(ecs_world_t *world, ecs_entity_t zone) {
   return cards.count;
 }
 
+// Populate selection from AbilityContext during ability phases (preserves indices/gaps)
+static void get_selection_from_ability_context(ecs_world_t *world,
+                                               const AbilityContext *ctx,
+                                               CardObservationData *observation_data,
+                                               uint8_t *out_count) {
+  uint8_t count = 0;
+  for (int i = 0; i < ctx->selection_count && i < MAX_SELECTION_ZONE_SIZE; i++) {
+    ecs_entity_t card = ctx->selection_cards[i];
+    if (card != 0) {
+      observation_data[i] = get_card_observation(world, card, (uint8_t)i);
+      observation_data[i].zone_index = (uint8_t)i;  // Preserve original index
+      count++;
+    } else {
+      // Empty slot - leave as zero-initialized (id.code will be NULL)
+      observation_data[i] = (CardObservationData){0};
+      observation_data[i].zone_index = (uint8_t)i;
+    }
+  }
+  *out_count = count;
+}
+
 static bool player_has_ready_ikz_token(ecs_world_t *world,
                                        ecs_entity_t player) {
   const IKZToken *ikz_token = ecs_get(world, player, IKZToken);
@@ -281,16 +302,31 @@ ObservationData create_observation_data(ecs_world_t *world,
                                       my_observation_data.garden, GARDEN_SIZE);
   get_card_observation_array_for_zone(
       world, my_zones->discard, my_observation_data.discard, MAX_DECK_SIZE);
-  get_card_observation_array_for_zone(world, my_zones->selection,
-                                      my_observation_data.selection,
-                                      MAX_SELECTION_ZONE_SIZE);
+
+  // For selection zone, check if we're in an ability phase that uses selection
+  // If so, read from AbilityContext to preserve original indices (with gaps for picked cards)
+  const AbilityContext *ctx = ecs_singleton_get(world, AbilityContext);
+  bool use_ability_context_selection =
+      ctx && ctx->selection_count > 0 &&
+      (ctx->phase == ABILITY_PHASE_SELECTION_PICK ||
+       ctx->phase == ABILITY_PHASE_BOTTOM_DECK);
+
+  if (use_ability_context_selection) {
+    get_selection_from_ability_context(world, ctx, my_observation_data.selection,
+                                       &my_observation_data.selection_count);
+  } else {
+    get_card_observation_array_for_zone(world, my_zones->selection,
+                                        my_observation_data.selection,
+                                        MAX_SELECTION_ZONE_SIZE);
+    my_observation_data.selection_count =
+        get_zone_card_count(world, my_zones->selection);
+  }
+
   get_ikz_card_observations_for_zone(world, my_zones->ikz_area,
                                      my_observation_data.ikz_area);
   my_observation_data.deck_count = get_zone_card_count(world, my_zones->deck);
   my_observation_data.ikz_pile_count =
       get_zone_card_count(world, my_zones->ikz_pile);
-  my_observation_data.selection_count =
-      get_zone_card_count(world, my_zones->selection);
   my_observation_data.has_ikz_token =
       player_has_ready_ikz_token(world, my_player);
 

@@ -1045,10 +1045,24 @@ static int render_my_board_column(WINDOW *win, const MyObservationData *mine) {
   }
 
   // Render selection zone if there are cards to examine
+  // Use zone_index rendering to show gaps for picked/bottom-decked cards
   if (mine->selection_count > 0) {
+    // Count total slots (including empty) by finding max zone_index
+    size_t total_slots = 0;
+    for (size_t i = 0; i < MAX_SELECTION_ZONE_SIZE; i++) {
+      if (mine->selection[i].id.code != NULL) {
+        if (mine->selection[i].zone_index + 1 > total_slots) {
+          total_slots = mine->selection[i].zone_index + 1;
+        }
+      }
+    }
+    // If we have cards but couldn't determine slots, use max
+    if (total_slots == 0 && mine->selection_count > 0) {
+      total_slots = MAX_SELECTION_ZONE_SIZE;
+    }
     row =
         draw_card_grid_section(win, row, max_inner_row, "Selection (examining)",
-                               mine->selection, MAX_SELECTION_ZONE_SIZE, false);
+                               mine->selection, total_slots, true);
     if (row > max_inner_row) {
       return row;
     }
@@ -1156,10 +1170,24 @@ static int render_board_single_column(WINDOW *win,
   }
 
   // Render selection zone if there are cards to examine
+  // Use zone_index rendering to show gaps for picked/bottom-decked cards
   if (mine->selection_count > 0) {
+    // Count total slots (including empty) by finding max zone_index
+    size_t total_slots = 0;
+    for (size_t i = 0; i < MAX_SELECTION_ZONE_SIZE; i++) {
+      if (mine->selection[i].id.code != NULL) {
+        if (mine->selection[i].zone_index + 1 > total_slots) {
+          total_slots = mine->selection[i].zone_index + 1;
+        }
+      }
+    }
+    // If we have cards but couldn't determine slots, use max
+    if (total_slots == 0 && mine->selection_count > 0) {
+      total_slots = MAX_SELECTION_ZONE_SIZE;
+    }
     row =
         draw_card_grid_section(win, row, max_inner_row, "Selection (examining)",
-                               mine->selection, MAX_SELECTION_ZONE_SIZE, false);
+                               mine->selection, total_slots, true);
     if (row > max_inner_row) {
       return row - 1;
     }

@@ -2,6 +2,7 @@
 #include "components/components.h"
 #include "generated/card_defs.h"
 #include "utils/cli_rendering_util.h"
+#include "utils/entity_util.h"
 #include <stdio.h>
 
 bool is_card_type(ecs_world_t *world, ecs_entity_t card, CardType type) {
@@ -44,6 +45,8 @@ void return_card_to_hand(ecs_world_t *world, ecs_entity_t card) {
   const GameState *gs = ecs_singleton_get(world, GameState);
   ecs_entity_t hand_zone = gs->zones[player_number->player_number].hand;
 
+  // Discard any equipped weapons before returning to hand
+  discard_equipped_weapon_cards(world, card);
   // Remove zone index if present (entity was in garden/alley)
   ecs_remove_id(world, card, ecs_id(ZoneIndex));
   // Reset tap state
