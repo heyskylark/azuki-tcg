@@ -1,6 +1,7 @@
 #include "abilities/ability_registry.h"
 
 #include "abilities/cards/st01_007.h"
+#include "abilities/cards/stt01_003.h"
 #include "abilities/cards/stt01_004.h"
 #include "abilities/cards/stt01_005.h"
 #include "abilities/cards/stt01_013.h"
@@ -51,6 +52,22 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .validate_effect_target = NULL,
       .apply_costs = st01_007_apply_costs,
       .apply_effects = st01_007_apply_effects,
+  };
+
+  // STT01-003 "Crate Rat Kurobo": On Play; You may put 3 cards from the top of
+  // your deck into your discard pile. If you have no weapon cards in your
+  // discard pile, put 5 cards instead.
+  kAbilityRegistry[CARD_DEF_STT01_003] = (AbilityDef){
+      .has_ability = true,
+      .is_optional = true,
+      .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .effect_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .timing_tag = ecs_id(AOnPlay),
+      .validate = stt01_003_validate,
+      .validate_cost_target = NULL,
+      .validate_effect_target = NULL,
+      .apply_costs = NULL,
+      .apply_effects = stt01_003_apply_effects,
   };
 
   // STT01-004: "On Play; You may discard a weapon card: look at the top 5 cards

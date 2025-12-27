@@ -9,6 +9,7 @@
 #include "abilities/ability_registry.h"
 #include "abilities/ability_system.h"
 #include "abilities/cards/st01_007.h"
+#include "abilities/cards/stt01_003.h"
 #include "abilities/cards/stt01_005.h"
 #include "components/abilities.h"
 #include "components/components.h"
@@ -393,8 +394,19 @@ static void test_ability_registry_lookup(void) {
   assert(def->apply_costs != NULL);
   assert(def->apply_effects != NULL);
 
+  // STT01-003 should have an ability (mill effect)
+  const AbilityDef *stt01_003_def = azk_get_ability_def(CARD_DEF_STT01_003);
+  assert(stt01_003_def != NULL);
+  assert(stt01_003_def->has_ability);
+  assert(stt01_003_def->is_optional);
+  assert(stt01_003_def->timing_tag == ecs_id(AOnPlay));
+  assert(stt01_003_def->cost_req.type == ABILITY_TARGET_NONE);
+  assert(stt01_003_def->effect_req.type == ABILITY_TARGET_NONE);
+  assert(stt01_003_def->validate != NULL);
+  assert(stt01_003_def->apply_effects != NULL);
+
   // A card without ability should return NULL or has_ability=false
-  const AbilityDef *no_ability = azk_get_ability_def(CARD_DEF_STT01_003);
+  const AbilityDef *no_ability = azk_get_ability_def(CARD_DEF_IKZ_001);
   assert(no_ability == NULL || !no_ability->has_ability);
 
   ecs_fini(world);
@@ -696,6 +708,341 @@ static void test_st01_007_ability_flow_decline(void) {
   assert(final_discard.count == 0);
   assert(final_hand.ids[0] == hand_card);
   assert(final_deck.ids[0] == deck_card);
+
+  ecs_fini(world);
+}
+
+// ============================================================================
+// STT01-003 Tests: "On Play; You may put 3 cards from the top of your deck
+// into your discard pile. If you have no weapon cards in your discard pile,
+// put 5 cards instead."
+// ============================================================================
+
+static void test_stt01_003_mills_5_without_weapons(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  // Initialize singletons
+  ecs_set(world, ecs_id(GameState), GameState, {0});
+  ecs_set(world, ecs_id(AbilityContext), AbilityContext, {0});
+
+  // Create player
+  ecs_entity_t player = ecs_new(world);
+  ecs_set(world, player, PlayerId, {.pid = 0});
+  ecs_set(world, player, PlayerNumber, {.player_number = 0});
+
+  // Create zones
+  ecs_entity_t deck = create_zone(world, player, ZDeck, "Deck_P0");
+  ecs_entity_t discard = create_zone(world, player, ZDiscard, "Discard_P0");
+
+  // Set up GameState
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->players[0] = player;
+  gs->zones[0].deck = deck;
+  gs->zones[0].discard = discard;
+  ecs_singleton_modified(world, GameState);
+
+  // Initialize AbilityContext singleton
+  azk_clear_ability_context(world);
+
+  // Create deck cards (7 cards - enough to mill 5)
+  ecs_entity_t deck_cards[7];
+  for (int i = 0; i < 7; i++) {
+    deck_cards[i] = ecs_new(world);
+    char name[32];
+    snprintf(name, sizeof(name), "DeckCard%d", i);
+    ecs_set_name(world, deck_cards[i], name);
+    ecs_add_pair(world, deck_cards[i], EcsChildOf, deck);
+    ecs_add_pair(world, deck_cards[i], Rel_OwnedBy, player);
+    // All entity cards (not weapons)
+    ecs_set(world, deck_cards[i], Type, {.value = CARD_TYPE_ENTITY});
+  }
+
+  // Create the STT01-003 card
+  ecs_entity_t stt01_003_card = ecs_new(world);
+  ecs_set_name(world, stt01_003_card, "STT01-003_test");
+  ecs_set(world, stt01_003_card, CardId, {.id = CARD_DEF_STT01_003});
+
+  // Verify initial state: 7 cards in deck, 0 in discard (no weapons)
+  ecs_entities_t initial_deck = ecs_get_ordered_children(world, deck);
+  ecs_entities_t initial_discard = ecs_get_ordered_children(world, discard);
+  assert(initial_deck.count == 7);
+  assert(initial_discard.count == 0);
+
+  // Queue the ability
+  bool queued = azk_trigger_on_play_ability(world, stt01_003_card, player);
+  assert(queued);
+
+  // Process the queue
+  bool processed = azk_process_triggered_effect_queue(world);
+  assert(processed);
+
+  // Should be in confirmation phase (optional ability)
+  assert(azk_is_in_ability_phase(world));
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_CONFIRMATION);
+
+  // Confirm the ability
+  bool confirmed = azk_process_ability_confirmation(world);
+  assert(confirmed);
+
+  // Ability should complete immediately (no cost/effect targets)
+  assert(!azk_is_in_ability_phase(world));
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_NONE);
+
+  // Verify final state: 5 cards milled (no weapons in discard)
+  ecs_entities_t final_deck = ecs_get_ordered_children(world, deck);
+  ecs_entities_t final_discard = ecs_get_ordered_children(world, discard);
+
+  assert(final_deck.count == 2);    // 7 - 5 = 2 remaining
+  assert(final_discard.count == 5); // 5 cards milled
+
+  // Verify the correct cards were milled (top 5 from deck = last 5 in array)
+  // deck_cards[6], deck_cards[5], deck_cards[4], deck_cards[3], deck_cards[2]
+  // should now be in discard
+  assert(final_deck.ids[0] == deck_cards[0]);
+  assert(final_deck.ids[1] == deck_cards[1]);
+
+  ecs_fini(world);
+}
+
+static void test_stt01_003_mills_3_with_weapons(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  // Initialize singletons
+  ecs_set(world, ecs_id(GameState), GameState, {0});
+  ecs_set(world, ecs_id(AbilityContext), AbilityContext, {0});
+
+  // Create player
+  ecs_entity_t player = ecs_new(world);
+  ecs_set(world, player, PlayerId, {.pid = 0});
+  ecs_set(world, player, PlayerNumber, {.player_number = 0});
+
+  // Create zones
+  ecs_entity_t deck = create_zone(world, player, ZDeck, "Deck_P0");
+  ecs_entity_t discard = create_zone(world, player, ZDiscard, "Discard_P0");
+
+  // Set up GameState
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->players[0] = player;
+  gs->zones[0].deck = deck;
+  gs->zones[0].discard = discard;
+  ecs_singleton_modified(world, GameState);
+
+  // Initialize AbilityContext singleton
+  azk_clear_ability_context(world);
+
+  // Create a weapon card in discard
+  ecs_entity_t weapon_in_discard = ecs_new(world);
+  ecs_set_name(world, weapon_in_discard, "WeaponInDiscard");
+  ecs_add_pair(world, weapon_in_discard, EcsChildOf, discard);
+  ecs_add_pair(world, weapon_in_discard, Rel_OwnedBy, player);
+  ecs_set(world, weapon_in_discard, Type, {.value = CARD_TYPE_WEAPON});
+
+  // Create deck cards (7 cards - enough to mill 3)
+  ecs_entity_t deck_cards[7];
+  for (int i = 0; i < 7; i++) {
+    deck_cards[i] = ecs_new(world);
+    char name[32];
+    snprintf(name, sizeof(name), "DeckCard%d", i);
+    ecs_set_name(world, deck_cards[i], name);
+    ecs_add_pair(world, deck_cards[i], EcsChildOf, deck);
+    ecs_add_pair(world, deck_cards[i], Rel_OwnedBy, player);
+    ecs_set(world, deck_cards[i], Type, {.value = CARD_TYPE_ENTITY});
+  }
+
+  // Create the STT01-003 card
+  ecs_entity_t stt01_003_card = ecs_new(world);
+  ecs_set_name(world, stt01_003_card, "STT01-003_test");
+  ecs_set(world, stt01_003_card, CardId, {.id = CARD_DEF_STT01_003});
+
+  // Verify initial state: 7 cards in deck, 1 weapon in discard
+  ecs_entities_t initial_deck = ecs_get_ordered_children(world, deck);
+  ecs_entities_t initial_discard = ecs_get_ordered_children(world, discard);
+  assert(initial_deck.count == 7);
+  assert(initial_discard.count == 1);
+
+  // Queue the ability
+  bool queued = azk_trigger_on_play_ability(world, stt01_003_card, player);
+  assert(queued);
+
+  // Process the queue
+  bool processed = azk_process_triggered_effect_queue(world);
+  assert(processed);
+
+  // Should be in confirmation phase (optional ability)
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_CONFIRMATION);
+
+  // Confirm the ability
+  bool confirmed = azk_process_ability_confirmation(world);
+  assert(confirmed);
+
+  // Ability should complete immediately
+  assert(!azk_is_in_ability_phase(world));
+
+  // Verify final state: 3 cards milled (weapon was in discard)
+  ecs_entities_t final_deck = ecs_get_ordered_children(world, deck);
+  ecs_entities_t final_discard = ecs_get_ordered_children(world, discard);
+
+  assert(final_deck.count == 4);    // 7 - 3 = 4 remaining
+  assert(final_discard.count == 4); // 1 original + 3 milled
+
+  // Verify the remaining deck cards (first 4 should remain)
+  assert(final_deck.ids[0] == deck_cards[0]);
+  assert(final_deck.ids[1] == deck_cards[1]);
+  assert(final_deck.ids[2] == deck_cards[2]);
+  assert(final_deck.ids[3] == deck_cards[3]);
+
+  ecs_fini(world);
+}
+
+static void test_stt01_003_decline_does_nothing(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  // Initialize singletons
+  ecs_set(world, ecs_id(GameState), GameState, {0});
+  ecs_set(world, ecs_id(AbilityContext), AbilityContext, {0});
+
+  // Create player
+  ecs_entity_t player = ecs_new(world);
+  ecs_set(world, player, PlayerId, {.pid = 0});
+  ecs_set(world, player, PlayerNumber, {.player_number = 0});
+
+  // Create zones
+  ecs_entity_t deck = create_zone(world, player, ZDeck, "Deck_P0");
+  ecs_entity_t discard = create_zone(world, player, ZDiscard, "Discard_P0");
+
+  // Set up GameState
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->players[0] = player;
+  gs->zones[0].deck = deck;
+  gs->zones[0].discard = discard;
+  ecs_singleton_modified(world, GameState);
+
+  // Initialize AbilityContext singleton
+  azk_clear_ability_context(world);
+
+  // Create deck cards (5 cards)
+  ecs_entity_t deck_cards[5];
+  for (int i = 0; i < 5; i++) {
+    deck_cards[i] = ecs_new(world);
+    char name[32];
+    snprintf(name, sizeof(name), "DeckCard%d", i);
+    ecs_set_name(world, deck_cards[i], name);
+    ecs_add_pair(world, deck_cards[i], EcsChildOf, deck);
+    ecs_add_pair(world, deck_cards[i], Rel_OwnedBy, player);
+    ecs_set(world, deck_cards[i], Type, {.value = CARD_TYPE_ENTITY});
+  }
+
+  // Create the STT01-003 card
+  ecs_entity_t stt01_003_card = ecs_new(world);
+  ecs_set_name(world, stt01_003_card, "STT01-003_test");
+  ecs_set(world, stt01_003_card, CardId, {.id = CARD_DEF_STT01_003});
+
+  // Verify initial state: 5 cards in deck, 0 in discard
+  ecs_entities_t initial_deck = ecs_get_ordered_children(world, deck);
+  ecs_entities_t initial_discard = ecs_get_ordered_children(world, discard);
+  assert(initial_deck.count == 5);
+  assert(initial_discard.count == 0);
+
+  // Queue the ability
+  bool queued = azk_trigger_on_play_ability(world, stt01_003_card, player);
+  assert(queued);
+
+  // Process the queue
+  bool processed = azk_process_triggered_effect_queue(world);
+  assert(processed);
+
+  // Should be in confirmation phase (optional ability)
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_CONFIRMATION);
+
+  // Decline the ability
+  bool declined = azk_process_ability_decline(world);
+  assert(declined);
+
+  // Ability should be cleared
+  assert(!azk_is_in_ability_phase(world));
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_NONE);
+
+  // Verify state unchanged: deck and discard should be same as before
+  ecs_entities_t final_deck = ecs_get_ordered_children(world, deck);
+  ecs_entities_t final_discard = ecs_get_ordered_children(world, discard);
+
+  assert(final_deck.count == 5);    // Unchanged
+  assert(final_discard.count == 0); // Unchanged
+
+  ecs_fini(world);
+}
+
+static void test_stt01_003_mills_all_if_deck_smaller(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  // Initialize singletons
+  ecs_set(world, ecs_id(GameState), GameState, {0});
+  ecs_set(world, ecs_id(AbilityContext), AbilityContext, {0});
+
+  // Create player
+  ecs_entity_t player = ecs_new(world);
+  ecs_set(world, player, PlayerId, {.pid = 0});
+  ecs_set(world, player, PlayerNumber, {.player_number = 0});
+
+  // Create zones
+  ecs_entity_t deck = create_zone(world, player, ZDeck, "Deck_P0");
+  ecs_entity_t discard = create_zone(world, player, ZDiscard, "Discard_P0");
+
+  // Set up GameState
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->players[0] = player;
+  gs->zones[0].deck = deck;
+  gs->zones[0].discard = discard;
+  ecs_singleton_modified(world, GameState);
+
+  // Initialize AbilityContext singleton
+  azk_clear_ability_context(world);
+
+  // Create only 2 cards in deck (less than 5 or 3)
+  ecs_entity_t deck_cards[2];
+  for (int i = 0; i < 2; i++) {
+    deck_cards[i] = ecs_new(world);
+    char name[32];
+    snprintf(name, sizeof(name), "DeckCard%d", i);
+    ecs_set_name(world, deck_cards[i], name);
+    ecs_add_pair(world, deck_cards[i], EcsChildOf, deck);
+    ecs_add_pair(world, deck_cards[i], Rel_OwnedBy, player);
+    ecs_set(world, deck_cards[i], Type, {.value = CARD_TYPE_ENTITY});
+  }
+
+  // Create the STT01-003 card
+  ecs_entity_t stt01_003_card = ecs_new(world);
+  ecs_set_name(world, stt01_003_card, "STT01-003_test");
+  ecs_set(world, stt01_003_card, CardId, {.id = CARD_DEF_STT01_003});
+
+  // Verify initial state: 2 cards in deck, 0 in discard (no weapons)
+  ecs_entities_t initial_deck = ecs_get_ordered_children(world, deck);
+  assert(initial_deck.count == 2);
+
+  // Queue and process the ability
+  bool queued = azk_trigger_on_play_ability(world, stt01_003_card, player);
+  assert(queued);
+
+  bool processed = azk_process_triggered_effect_queue(world);
+  assert(processed);
+
+  // Confirm the ability
+  bool confirmed = azk_process_ability_confirmation(world);
+  assert(confirmed);
+
+  // Ability should complete immediately
+  assert(!azk_is_in_ability_phase(world));
+
+  // Verify final state: all 2 cards milled (would mill 5 but only 2 available)
+  ecs_entities_t final_deck = ecs_get_ordered_children(world, deck);
+  ecs_entities_t final_discard = ecs_get_ordered_children(world, discard);
+
+  assert(final_deck.count == 0);    // All milled
+  assert(final_discard.count == 2); // Both cards in discard
 
   ecs_fini(world);
 }
@@ -1138,6 +1485,12 @@ int main(void) {
   test_st01_007_validate_cost_target();
   test_st01_007_ability_flow_confirm_and_execute();
   test_st01_007_ability_flow_decline();
+
+  // STT01-003 tests
+  test_stt01_003_mills_5_without_weapons();
+  test_stt01_003_mills_3_with_weapons();
+  test_stt01_003_decline_does_nothing();
+  test_stt01_003_mills_all_if_deck_smaller();
 
   // STT01-005 tests
   test_stt01_005_ability_registry_check();
