@@ -2,6 +2,7 @@
 #include "components/components.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/deck_utils.h"
+#include "utils/status_util.h"
 #include "utils/zone_util.h"
 
 void DrawCard(ecs_world_t *world, GameState *gs) {
@@ -58,6 +59,10 @@ static void handle_phase_transition(ecs_world_t *world, GameState *gs) {
 void StartPhase(ecs_iter_t *it) {
   ecs_world_t *world = it->world;
   GameState *gs = ecs_field(it, GameState, 0);
+
+  // Tick down status effect durations for BOTH players before untap
+  tick_status_effects_for_player(world, 0);
+  tick_status_effects_for_player(world, 1);
 
   UntapAllCards(world, gs);
   DrawCard(world, gs);

@@ -670,6 +670,12 @@ void azk_clear_ability_context(ecs_world_t *world) {
 
 bool azk_trigger_main_ability(ecs_world_t *world, ecs_entity_t card,
                               ecs_entity_t owner) {
+  // Check if card is frozen (frozen cards cannot activate abilities)
+  if (ecs_has(world, card, Frozen)) {
+    cli_render_logf("[Ability] Card is frozen and cannot activate abilities");
+    return false;
+  }
+
   // Get card ID
   const CardId *card_id = ecs_get(world, card, CardId);
   if (!card_id) {

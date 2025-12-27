@@ -172,6 +172,38 @@ static void handle_activate_alley_ability(ecs_world_t *world, GameState *gs,
 }
 
 /**
+ * Expected Action: ACT_PLAY_SPELL_FROM_HAND, hand_index, unused, use_ikz_token
+ */
+static void handle_play_spell_from_hand(ecs_world_t *world, GameState *gs,
+                                        ActionContext *ac) {
+  if (ac->user_action.type != ACT_PLAY_SPELL_FROM_HAND) {
+    ac->invalid_action = true;
+    return;
+  }
+
+  ecs_entity_t player = gs->players[gs->active_player_index];
+  PlaySpellIntent intent = {0};
+  if (!azk_validate_play_spell_action(world, gs, player, &ac->user_action, true,
+                                      &intent)) {
+    ac->invalid_action = true;
+    return;
+  }
+
+  // Pay IKZ cost (tap IKZ cards)
+  for (int i = 0; i < intent.ikz_card_count; i++) {
+    set_card_to_tapped(world, intent.ikz_cards[i]);
+  }
+
+  // Move spell card to discard
+  discard_card(world, intent.spell_card);
+
+  cli_render_logf("[MainAction] Played spell from hand");
+
+  // Trigger the spell's ability
+  azk_trigger_spell_ability(world, intent.spell_card, player);
+}
+
+/**
  * Expected Action: ACT_ATTACH_WEAPON_FROM_HAND, hand_index, entity_index, use
  * ikz token entity_index of 5 is the leader
  */
@@ -344,6 +376,9 @@ void HandleMainAction(ecs_iter_t *it) {
     break;
   case ACT_ACTIVATE_ALLEY_ABILITY:
     handle_activate_alley_ability(world, gs, ac);
+    break;
+  case ACT_PLAY_SPELL_FROM_HAND:
+    handle_play_spell_from_hand(world, gs, ac);
     break;
   case ACT_NOOP:
     if (!azk_validate_simple_action(world, gs,

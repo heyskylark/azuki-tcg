@@ -315,6 +315,12 @@ bool azk_validate_attack_action(
     return false;
   }
 
+  // Check if attacker is frozen
+  if (ecs_has(world, attacking_card, Frozen)) {
+    VALIDATION_LOG(log_errors, "Attacking card is frozen and cannot attack");
+    return false;
+  }
+
   ecs_entity_t defending_card = 0;
   bool defender_is_leader = defender_index == GARDEN_SIZE;
   if (defender_is_leader) {
@@ -485,8 +491,8 @@ bool azk_validate_play_spell_action(
     return false;
   }
 
-  // Response spells can only be played during response window
-  if (gs->phase != PHASE_RESPONSE_WINDOW) {
+  // Spells can only be played in main phase or response window
+  if (gs->phase != PHASE_MAIN && gs->phase != PHASE_RESPONSE_WINDOW) {
     VALIDATION_LOG(log_errors, "Spell cannot be played in phase %d", gs->phase);
     return false;
   }
@@ -519,9 +525,20 @@ bool azk_validate_play_spell_action(
     return false;
   }
 
-  // Verify card has AResponse timing tag (is a response spell)
-  if (!ecs_has(world, spell_card, AResponse)) {
-    VALIDATION_LOG(log_errors, "Spell %llu is not a response spell", (unsigned long long)spell_card);
+  // Check spell timing tag vs current phase
+  bool is_response_spell = ecs_has(world, spell_card, AResponse);
+  bool is_main_spell = ecs_has(world, spell_card, AMain);
+
+  if (is_response_spell && gs->phase != PHASE_RESPONSE_WINDOW) {
+    VALIDATION_LOG(log_errors, "Response spell cannot be played in phase %d", gs->phase);
+    return false;
+  }
+  if (is_main_spell && gs->phase != PHASE_MAIN) {
+    VALIDATION_LOG(log_errors, "Main spell cannot be played in phase %d", gs->phase);
+    return false;
+  }
+  if (!is_response_spell && !is_main_spell) {
+    VALIDATION_LOG(log_errors, "Spell %llu has no valid timing tag", (unsigned long long)spell_card);
     return false;
   }
 
@@ -613,6 +630,12 @@ bool azk_validate_activate_alley_ability_action(
 
   if (card == 0) {
     VALIDATION_LOG(log_errors, "No card at alley slot %d", alley_slot);
+    return false;
+  }
+
+  // Check if card is frozen (frozen cards cannot activate abilities)
+  if (ecs_has(world, card, Frozen)) {
+    VALIDATION_LOG(log_errors, "Card is frozen and cannot activate abilities");
     return false;
   }
 

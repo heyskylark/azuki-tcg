@@ -28,6 +28,8 @@ ECS_TAG_DECLARE(Godmode);
 ECS_TAG_DECLARE(Frozen);
 ECS_TAG_DECLARE(Shocked);
 
+ECS_COMPONENT_DECLARE(CardConditionCountdown);
+
 void azk_register_ability_components(ecs_world_t *world) {
   ECS_COMPONENT_DEFINE(world, AbilityRepeatContext);
   ECS_COMPONENT_DEFINE(world, AbilityCostRequirements);
@@ -54,6 +56,8 @@ void azk_register_ability_components(ecs_world_t *world) {
 
   ECS_TAG_DEFINE(world, Frozen);
   ECS_TAG_DEFINE(world, Shocked);
+
+  ECS_COMPONENT_DEFINE(world, CardConditionCountdown);
 }
 
 void attach_ability_components(ecs_world_t* world, ecs_entity_t card) {

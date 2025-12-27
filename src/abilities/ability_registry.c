@@ -6,6 +6,7 @@
 #include "abilities/cards/stt01_013.h"
 #include "abilities/cards/stt02_007.h"
 #include "abilities/cards/stt02_009.h"
+#include "abilities/cards/stt02_014.h"
 #include "abilities/cards/stt02_015.h"
 #include "components/abilities.h"
 
@@ -85,6 +86,23 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .validate_effect_target = NULL,
       .apply_costs = NULL,
       .apply_effects = stt02_007_apply_effects,
+  };
+
+  // STT02-014 "Chilling Water": [Main] Freeze an entity with cost <= 2 in
+  // opponent's garden for 2 turns
+  kAbilityRegistry[CARD_DEF_STT02_014] = (AbilityDef){
+      .has_ability = true,
+      .is_optional = false, // Spells are not optional once cast
+      .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .effect_req = {.type = ABILITY_TARGET_ENEMY_GARDEN_ENTITY,
+                     .min = 1,
+                     .max = 1},
+      .timing_tag = ecs_id(AMain),
+      .validate = stt02_014_validate,
+      .validate_cost_target = NULL,
+      .validate_effect_target = stt02_014_validate_effect_target,
+      .apply_costs = NULL,
+      .apply_effects = stt02_014_apply_effects,
   };
 
   // STT02-015 "Commune with Water": [Response] Return an entity with cost <= 3
