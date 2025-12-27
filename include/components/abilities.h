@@ -1,8 +1,8 @@
 #ifndef AZUKI_ECS_ABILITIES_H
 #define AZUKI_ECS_ABILITIES_H
 
-#include <stdint.h>
 #include <flecs.h>
+#include <stdint.h>
 
 typedef enum {
   ABILITY_TARGET_NONE = 0,
@@ -17,7 +17,12 @@ typedef enum {
   ABILITY_TARGET_ENEMY_LEADER = 9,
   ABILITY_TARGET_ENEMY_LEADER_OR_GARDEN_ENTITY = 10,
   ABILITY_TARGET_ANY_LEADER_OR_GARDEN_ENTITY = 11,
-  ABILITY_TARGET_ANY_GARDEN_ENTITY = 12,  // 0-4 = self garden, 5-9 = opponent garden
+  ABILITY_TARGET_ANY_GARDEN_ENTITY =
+      12, // 0-4 = self garden, 5-9 = opponent garden
+  ABILITY_TARGET_FRIENDLY_SELECTION = 13, // Any card in selection zone
+  ABILITY_TARGET_FRIENDLY_SELECTION_WEAPON =
+      14,                                   // Weapon card in selection zone
+  ABILITY_TARGET_FRIENDLY_HAND_WEAPON = 15, // Weapon card in hand
 } AbilityTargetType;
 
 typedef struct {
@@ -38,10 +43,11 @@ typedef struct {
 } AbilityRepeatContext;
 
 typedef struct {
-  void (*init_observer)(ecs_world_t,ecs_entity_t,ecs_entity_t);
+  void (*init_observer)(ecs_world_t, ecs_entity_t, ecs_entity_t);
   bool (*validate_all)(ecs_world_t); // informs if the ability can be run
   void (*validate_cost)(uint8_t); // validate then pass target to AbilityContext
-  void (*apply_all_costs)(); // Take all targets from ability context, run through validate to get intents, apply mutations
+  void (*apply_all_costs)();      // Take all targets from ability context, run
+                             // through validate to get intents, apply mutations
   void (*validate_effect)(uint8_t); // Same as cost routine
   void (*apply_all_effects)();
 } AbilityFunctions;
@@ -76,6 +82,6 @@ extern ECS_TAG_DECLARE(Frozen);
 extern ECS_TAG_DECLARE(Shocked);
 
 void azk_register_ability_components(ecs_world_t *world);
-void attach_ability_components(ecs_world_t* world, ecs_entity_t card);
+void attach_ability_components(ecs_world_t *world, ecs_entity_t card);
 
 #endif

@@ -23,6 +23,7 @@ ECS_TAG_DECLARE(ZAlley);
 ECS_TAG_DECLARE(ZIKZPileTag);
 ECS_TAG_DECLARE(ZIKZAreaTag);
 ECS_TAG_DECLARE(ZDiscard);
+ECS_TAG_DECLARE(ZSelection);
   
 ECS_TAG_DECLARE(TMulligan);
 ECS_TAG_DECLARE(TStartOfTurn);
@@ -69,6 +70,7 @@ void azk_register_components(ecs_world_t *world) {
   ECS_TAG_DEFINE(world, ZIKZPileTag);
   ECS_TAG_DEFINE(world, ZIKZAreaTag);
   ECS_TAG_DEFINE(world, ZDiscard);
+  ECS_TAG_DEFINE(world, ZSelection);
 
   ECS_TAG_DEFINE(world, TMulligan);
   ECS_TAG_DEFINE(world, TStartOfTurn);

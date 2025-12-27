@@ -24,6 +24,8 @@ typedef enum {
   ABILITY_PHASE_CONFIRMATION = 1,
   ABILITY_PHASE_COST_SELECTION = 2,
   ABILITY_PHASE_EFFECT_SELECTION = 3,
+  ABILITY_PHASE_SELECTION_PICK = 4, // Pick from selection zone
+  ABILITY_PHASE_BOTTOM_DECK = 5,    // Order cards to bottom of deck
 } AbilityPhase;
 
 typedef enum {
@@ -40,7 +42,10 @@ typedef enum {
   ACT_SELECT_COST_TARGET = 13,
   ACT_SELECT_EFFECT_TARGET = 14,
   ACT_CONFIRM_ABILITY = 16,
-  ACT_MULLIGAN_SHUFFLE = 17 // Must always be highest for AZK_ACTION_TYPE_COUNT
+  ACT_SELECT_FROM_SELECTION = 18, // Pick card from selection zone
+  ACT_BOTTOM_DECK_CARD = 19,      // Bottom deck a single card from selection
+  ACT_BOTTOM_DECK_ALL = 20,       // Bottom deck all remaining cards in order
+  ACT_MULLIGAN_SHUFFLE = 21 // Must always be highest for AZK_ACTION_TYPE_COUNT
 } ActionType;
 
 #define AZK_ACTION_TYPE_COUNT (ACT_MULLIGAN_SHUFFLE + 1)
@@ -63,9 +68,9 @@ typedef struct {
 
 typedef struct {
   ecs_entity_t deck, hand, leader, gate, garden, alley, ikz_pile, ikz_area,
-      discard;
+      discard, selection;
   uint16_t deck_size, hand_size, leader_size, gate_size, garden_size,
-      alley_size, ikz_pile_size, ikz_area_size, discard_size;
+      alley_size, ikz_pile_size, ikz_area_size, discard_size, selection_size;
 } PlayerZones;
 
 typedef struct {
@@ -83,6 +88,12 @@ typedef struct {
   uint8_t cost_filled, effect_filled;
   ecs_entity_t cost_targets[MAX_ABILITY_SELECTION];
   ecs_entity_t effect_targets[MAX_ABILITY_SELECTION];
+
+  // Selection zone tracking for reveal/examine effects
+  uint8_t selection_count;    // Cards currently in selection zone
+  uint8_t selection_picked;   // Cards picked from selection zone
+  uint8_t selection_pick_max; // Max cards to pick (e.g., 1 for "up to 1")
+  ecs_entity_t selection_cards[MAX_SELECTION_ZONE_SIZE];
 } AbilityContext;
 
 typedef struct {
@@ -149,6 +160,7 @@ extern ECS_TAG_DECLARE(ZAlley);
 extern ECS_TAG_DECLARE(ZIKZPileTag);
 extern ECS_TAG_DECLARE(ZIKZAreaTag);
 extern ECS_TAG_DECLARE(ZDiscard);
+extern ECS_TAG_DECLARE(ZSelection);
 
 /* System Phase Tags */
 extern ECS_TAG_DECLARE(TMulligan);

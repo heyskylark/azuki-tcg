@@ -129,7 +129,8 @@ bool azk_process_cost_selection(ecs_world_t *world, int target_index) {
   uint8_t player_num = get_player_number(world, ctx->owner);
 
   switch (def->cost_req.type) {
-  case ABILITY_TARGET_FRIENDLY_HAND: {
+  case ABILITY_TARGET_FRIENDLY_HAND:
+  case ABILITY_TARGET_FRIENDLY_HAND_WEAPON: {
     ecs_entity_t hand = gs->zones[player_num].hand;
     ecs_entities_t hand_cards = ecs_get_ordered_children(world, hand);
     if (target_index >= 0 && target_index < hand_cards.count) {
@@ -183,6 +184,19 @@ bool azk_process_cost_selection(ecs_world_t *world, int target_index) {
     if (def->apply_costs) {
       def->apply_costs(world, ctx);
       cli_render_logf("[Ability] Applied costs");
+    }
+
+    // Call on_cost_paid callback if defined (for multi-step abilities)
+    if (def->on_cost_paid) {
+      def->on_cost_paid(world, ctx);
+      cli_render_logf("[Ability] Called on_cost_paid callback");
+      // on_cost_paid may have set up selection phase - check if we should
+      // continue
+      if (ctx->phase == ABILITY_PHASE_SELECTION_PICK ||
+          ctx->phase == ABILITY_PHASE_BOTTOM_DECK) {
+        ecs_singleton_modified(world, AbilityContext);
+        return true;
+      }
     }
 
     // Move to effect selection or apply effects
@@ -348,6 +362,272 @@ bool azk_process_effect_skip(ecs_world_t *world) {
   return true;
 }
 
+bool azk_process_selection_pick(ecs_world_t *world, int selection_index) {
+  AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
+
+  if (ctx->phase != ABILITY_PHASE_SELECTION_PICK) {
+    return false;
+  }
+
+  // Validate index is in range
+  if (selection_index < 0 || selection_index >= ctx->selection_count) {
+    cli_render_logf("[Ability] Invalid selection index %d (count=%d)",
+                    selection_index, ctx->selection_count);
+    return false;
+  }
+
+  ecs_entity_t target = ctx->selection_cards[selection_index];
+  if (target == 0) {
+    cli_render_logf("[Ability] Selection slot %d is empty", selection_index);
+    return false;
+  }
+
+  const CardId *card_id = ecs_get(world, ctx->source_card, CardId);
+  if (!card_id) {
+    azk_clear_ability_context(world);
+    return false;
+  }
+
+  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  if (!def) {
+    azk_clear_ability_context(world);
+    return false;
+  }
+
+  // Validate the selection target if validation function exists
+  if (def->validate_selection_target &&
+      !def->validate_selection_target(world, ctx->source_card, ctx->owner,
+                                      target)) {
+    cli_render_logf("[Ability] Selection target validation failed");
+    return false;
+  }
+
+  // Store the picked card in effect_targets (reusing the array)
+  if (ctx->selection_picked < MAX_ABILITY_SELECTION) {
+    ctx->effect_targets[ctx->selection_picked] = target;
+  }
+  ctx->selection_picked++;
+
+  // Mark this slot as picked by setting to 0
+  ctx->selection_cards[selection_index] = 0;
+
+  cli_render_logf("[Ability] Picked selection %d (%d/%d)", selection_index,
+                  ctx->selection_picked, ctx->selection_pick_max);
+
+  // Check if we've picked enough
+  if (ctx->selection_picked >= ctx->selection_pick_max) {
+    // Call on_selection_complete callback
+    if (def->on_selection_complete) {
+      def->on_selection_complete(world, ctx);
+      cli_render_logf("[Ability] Called on_selection_complete callback");
+    }
+
+    // After selection complete, should be in BOTTOM_DECK or done
+    if (ctx->phase != ABILITY_PHASE_BOTTOM_DECK &&
+        ctx->phase != ABILITY_PHASE_NONE) {
+      // Move to bottom deck phase if there are remaining cards
+      int remaining = 0;
+      for (int i = 0; i < ctx->selection_count; i++) {
+        if (ctx->selection_cards[i] != 0) {
+          remaining++;
+        }
+      }
+      if (remaining > 0) {
+        ctx->phase = ABILITY_PHASE_BOTTOM_DECK;
+      } else {
+        azk_clear_ability_context(world);
+        return true;
+      }
+    }
+  }
+
+  ecs_singleton_modified(world, AbilityContext);
+  return true;
+}
+
+bool azk_process_skip_selection(ecs_world_t *world) {
+  AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
+
+  if (ctx->phase != ABILITY_PHASE_SELECTION_PICK) {
+    return false;
+  }
+
+  // For "up to" effects - allow skipping even if we haven't picked any
+  // This is different from effect selection where min determines if we can skip
+
+  const CardId *card_id = ecs_get(world, ctx->source_card, CardId);
+  if (!card_id) {
+    azk_clear_ability_context(world);
+    return false;
+  }
+
+  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  if (!def) {
+    azk_clear_ability_context(world);
+    return false;
+  }
+
+  cli_render_logf("[Ability] Skipped selection pick");
+
+  // Call on_selection_complete callback (even with no picks)
+  if (def->on_selection_complete) {
+    def->on_selection_complete(world, ctx);
+    cli_render_logf("[Ability] Called on_selection_complete callback");
+  }
+
+  // Check if there are remaining cards to bottom deck
+  int remaining = 0;
+  for (int i = 0; i < ctx->selection_count; i++) {
+    if (ctx->selection_cards[i] != 0) {
+      remaining++;
+    }
+  }
+
+  if (remaining > 0) {
+    ctx->phase = ABILITY_PHASE_BOTTOM_DECK;
+    ecs_singleton_modified(world, AbilityContext);
+  } else {
+    azk_clear_ability_context(world);
+  }
+
+  return true;
+}
+
+bool azk_process_bottom_deck(ecs_world_t *world, int selection_index) {
+  AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
+
+  if (ctx->phase != ABILITY_PHASE_BOTTOM_DECK) {
+    return false;
+  }
+
+  // Validate index is in range
+  if (selection_index < 0 || selection_index >= ctx->selection_count) {
+    cli_render_logf("[Ability] Invalid bottom deck index %d", selection_index);
+    return false;
+  }
+
+  ecs_entity_t card = ctx->selection_cards[selection_index];
+  if (card == 0) {
+    cli_render_logf("[Ability] Selection slot %d already empty",
+                    selection_index);
+    return false;
+  }
+
+  // Get player for deck access
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  uint8_t player_num = get_player_number(world, ctx->owner);
+  ecs_entity_t deck = gs->zones[player_num].deck;
+
+  // Move card from selection zone to bottom of deck
+  ecs_add_pair(world, card, EcsChildOf, deck);
+
+  // Reorder to put at bottom (position 0)
+  ecs_entities_t deck_cards = ecs_get_ordered_children(world, deck);
+  int32_t count = deck_cards.count;
+
+  if (count > 1) {
+    ecs_entity_t *new_order = ecs_os_malloc_n(ecs_entity_t, count);
+    int card_idx = -1;
+    for (int32_t i = 0; i < count; i++) {
+      if (deck_cards.ids[i] == card) {
+        card_idx = i;
+        break;
+      }
+    }
+
+    if (card_idx >= 0) {
+      new_order[0] = card;
+      int dest = 1;
+      for (int32_t i = 0; i < count; i++) {
+        if (i != card_idx) {
+          new_order[dest++] = deck_cards.ids[i];
+        }
+      }
+      ecs_set_child_order(world, deck, new_order, count);
+    }
+    ecs_os_free(new_order);
+  }
+
+  // Mark slot as empty
+  ctx->selection_cards[selection_index] = 0;
+
+  cli_render_logf("[Ability] Bottom decked card from slot %d", selection_index);
+
+  // Check if there are remaining cards
+  int remaining = 0;
+  for (int i = 0; i < ctx->selection_count; i++) {
+    if (ctx->selection_cards[i] != 0) {
+      remaining++;
+    }
+  }
+
+  if (remaining == 0) {
+    cli_render_logf("[Ability] All cards bottom decked, ability complete");
+    azk_clear_ability_context(world);
+  } else {
+    ecs_singleton_modified(world, AbilityContext);
+  }
+
+  return true;
+}
+
+bool azk_process_bottom_deck_all(ecs_world_t *world) {
+  AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
+
+  if (ctx->phase != ABILITY_PHASE_BOTTOM_DECK) {
+    return false;
+  }
+
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  uint8_t player_num = get_player_number(world, ctx->owner);
+  ecs_entity_t deck = gs->zones[player_num].deck;
+
+  // Bottom deck all remaining cards in order (0, 1, 2, ...)
+  for (int i = 0; i < ctx->selection_count; i++) {
+    ecs_entity_t card = ctx->selection_cards[i];
+    if (card == 0) {
+      continue;
+    }
+
+    // Move card to deck
+    ecs_add_pair(world, card, EcsChildOf, deck);
+
+    // Reorder to put at bottom
+    ecs_entities_t deck_cards = ecs_get_ordered_children(world, deck);
+    int32_t count = deck_cards.count;
+
+    if (count > 1) {
+      ecs_entity_t *new_order = ecs_os_malloc_n(ecs_entity_t, count);
+      int card_idx = -1;
+      for (int32_t j = 0; j < count; j++) {
+        if (deck_cards.ids[j] == card) {
+          card_idx = j;
+          break;
+        }
+      }
+
+      if (card_idx >= 0) {
+        new_order[0] = card;
+        int dest = 1;
+        for (int32_t j = 0; j < count; j++) {
+          if (j != card_idx) {
+            new_order[dest++] = deck_cards.ids[j];
+          }
+        }
+        ecs_set_child_order(world, deck, new_order, count);
+      }
+      ecs_os_free(new_order);
+    }
+
+    ctx->selection_cards[i] = 0;
+  }
+
+  cli_render_logf(
+      "[Ability] Bottom decked all remaining cards, ability complete");
+  azk_clear_ability_context(world);
+  return true;
+}
+
 bool azk_is_in_ability_phase(ecs_world_t *world) {
   const AbilityContext *ctx = ecs_singleton_get(world, AbilityContext);
   return ctx && ctx->phase != ABILITY_PHASE_NONE;
@@ -375,6 +655,14 @@ void azk_clear_ability_context(ecs_world_t *world) {
   for (int i = 0; i < MAX_ABILITY_SELECTION; i++) {
     ctx->cost_targets[i] = 0;
     ctx->effect_targets[i] = 0;
+  }
+
+  // Clear selection zone tracking
+  ctx->selection_count = 0;
+  ctx->selection_picked = 0;
+  ctx->selection_pick_max = 0;
+  for (int i = 0; i < MAX_SELECTION_ZONE_SIZE; i++) {
+    ctx->selection_cards[i] = 0;
   }
 
   ecs_singleton_modified(world, AbilityContext);

@@ -55,9 +55,11 @@ typedef struct {
   CardObservationData alley[ALLEY_SIZE];
   CardObservationData garden[GARDEN_SIZE];
   CardObservationData discard[MAX_DECK_SIZE];
+  CardObservationData selection[MAX_SELECTION_ZONE_SIZE];
   IKZCardObservationData ikz_area[IKZ_AREA_SIZE];
   uint8_t deck_count;
   uint8_t ikz_pile_count;
+  uint8_t selection_count;
   bool has_ikz_token;
 } MyObservationData;
 
@@ -90,7 +92,8 @@ typedef struct {
   ActionMaskObs action_mask;
 } ObservationData;
 
-ObservationData create_observation_data(ecs_world_t *world, int8_t player_index);
+ObservationData create_observation_data(ecs_world_t *world,
+                                        int8_t player_index);
 bool is_game_over(ecs_world_t *world);
 
 #endif

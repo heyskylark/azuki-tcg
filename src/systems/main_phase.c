@@ -238,6 +238,11 @@ void HandleMainAction(ecs_iter_t *it) {
         if (!azk_process_effect_skip(world)) {
           ac->invalid_action = true;
         }
+      } else if (ability_phase == ABILITY_PHASE_SELECTION_PICK) {
+        // In selection pick phase, NOOP means skip picking from selection
+        if (!azk_process_skip_selection(world)) {
+          ac->invalid_action = true;
+        }
       } else {
         cli_render_logf("[MainAction] ACT_NOOP not valid in ability phase %d",
                         ability_phase);
@@ -265,6 +270,45 @@ void HandleMainAction(ecs_iter_t *it) {
         }
       } else {
         cli_render_logf("[MainAction] ACT_SELECT_EFFECT_TARGET not valid in "
+                        "ability phase %d",
+                        ability_phase);
+        ac->invalid_action = true;
+      }
+      break;
+
+    case ACT_SELECT_FROM_SELECTION:
+      if (ability_phase == ABILITY_PHASE_SELECTION_PICK) {
+        if (!azk_process_selection_pick(world, ac->user_action.subaction_1)) {
+          ac->invalid_action = true;
+        }
+      } else {
+        cli_render_logf("[MainAction] ACT_SELECT_FROM_SELECTION not valid in "
+                        "ability phase %d",
+                        ability_phase);
+        ac->invalid_action = true;
+      }
+      break;
+
+    case ACT_BOTTOM_DECK_CARD:
+      if (ability_phase == ABILITY_PHASE_BOTTOM_DECK) {
+        if (!azk_process_bottom_deck(world, ac->user_action.subaction_1)) {
+          ac->invalid_action = true;
+        }
+      } else {
+        cli_render_logf("[MainAction] ACT_BOTTOM_DECK_CARD not valid in "
+                        "ability phase %d",
+                        ability_phase);
+        ac->invalid_action = true;
+      }
+      break;
+
+    case ACT_BOTTOM_DECK_ALL:
+      if (ability_phase == ABILITY_PHASE_BOTTOM_DECK) {
+        if (!azk_process_bottom_deck_all(world)) {
+          ac->invalid_action = true;
+        }
+      } else {
+        cli_render_logf("[MainAction] ACT_BOTTOM_DECK_ALL not valid in "
                         "ability phase %d",
                         ability_phase);
         ac->invalid_action = true;

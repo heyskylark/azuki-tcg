@@ -1,6 +1,7 @@
 #include "abilities/ability_registry.h"
 
 #include "abilities/cards/st01_007.h"
+#include "abilities/cards/stt01_004.h"
 #include "abilities/cards/stt01_005.h"
 #include "abilities/cards/stt01_013.h"
 #include "abilities/cards/stt02_007.h"
@@ -49,6 +50,27 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .validate_effect_target = NULL,
       .apply_costs = st01_007_apply_costs,
       .apply_effects = st01_007_apply_effects,
+  };
+
+  // STT01-004: "On Play; You may discard a weapon card: look at the top 5 cards
+  // of your deck, reveal up to 1 weapon card and add it to your hand, then
+  // bottom deck the rest in any order"
+  kAbilityRegistry[CARD_DEF_STT01_004] = (AbilityDef){
+      .has_ability = true,
+      .is_optional = true,
+      .cost_req = {.type = ABILITY_TARGET_FRIENDLY_HAND_WEAPON,
+                   .min = 1,
+                   .max = 1},
+      .effect_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .timing_tag = ecs_id(AOnPlay),
+      .validate = stt01_004_validate,
+      .validate_cost_target = stt01_004_validate_cost_target,
+      .validate_effect_target = NULL,
+      .apply_costs = stt01_004_apply_costs,
+      .on_cost_paid = stt01_004_on_cost_paid,
+      .validate_selection_target = stt01_004_validate_selection_target,
+      .on_selection_complete = stt01_004_on_selection_complete,
+      .apply_effects = NULL,
   };
 
   // STT02-007 "Benzai the Merchant": On Play; Draw 1

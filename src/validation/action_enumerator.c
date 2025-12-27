@@ -5,13 +5,14 @@
 #include "abilities/ability_registry.h"
 #include "abilities/ability_system.h"
 #include "generated/card_defs.h"
-#include "validation/action_schema.h"
-#include "validation/action_validation.h"
 #include "utils/phase_utils.h"
 #include "utils/player_util.h"
+#include "validation/action_schema.h"
+#include "validation/action_validation.h"
 
 // Helper to add a valid action to the mask set
-static void add_valid_action(AzkActionMaskSet *out_mask, const UserAction *action) {
+static void add_valid_action(AzkActionMaskSet *out_mask,
+                             const UserAction *action) {
   if (out_mask->legal_action_count < AZK_MAX_LEGAL_ACTIONS) {
     out_mask->legal_actions[out_mask->legal_action_count++] = *action;
   }
@@ -19,214 +20,275 @@ static void add_valid_action(AzkActionMaskSet *out_mask, const UserAction *actio
 }
 
 // Enumerate ability actions based on current ability phase
-static void enumerate_ability_actions(
-  ecs_world_t *world,
-  const GameState *gs,
-  ecs_entity_t player,
-  AzkActionMaskSet *out_mask
-) {
-  const AbilityContext* ctx = ecs_singleton_get(world, AbilityContext);
+static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
+                                      ecs_entity_t player,
+                                      AzkActionMaskSet *out_mask) {
+  const AbilityContext *ctx = ecs_singleton_get(world, AbilityContext);
   if (!ctx || ctx->phase == ABILITY_PHASE_NONE) {
     return;
   }
 
-  UserAction action = {
-    .player = player,
-    .type = ACT_NOOP,
-    .subaction_1 = 0,
-    .subaction_2 = 0,
-    .subaction_3 = 0
-  };
+  UserAction action = {.player = player,
+                       .type = ACT_NOOP,
+                       .subaction_1 = 0,
+                       .subaction_2 = 0,
+                       .subaction_3 = 0};
 
   switch (ctx->phase) {
-    case ABILITY_PHASE_CONFIRMATION:
-      // Can confirm or decline (NOOP)
-      action.type = ACT_CONFIRM_ABILITY;
-      add_valid_action(out_mask, &action);
+  case ABILITY_PHASE_CONFIRMATION:
+    // Can confirm or decline (NOOP)
+    action.type = ACT_CONFIRM_ABILITY;
+    add_valid_action(out_mask, &action);
 
-      action.type = ACT_NOOP;
-      add_valid_action(out_mask, &action);
+    action.type = ACT_NOOP;
+    add_valid_action(out_mask, &action);
+    break;
+
+  case ABILITY_PHASE_COST_SELECTION: {
+    // Get ability def to know target type
+    const CardId *card_id = ecs_get(world, ctx->source_card, CardId);
+    if (!card_id)
       break;
 
-    case ABILITY_PHASE_COST_SELECTION: {
-      // Get ability def to know target type
-      const CardId* card_id = ecs_get(world, ctx->source_card, CardId);
-      if (!card_id) break;
-
-      const AbilityDef* def = azk_get_ability_def(card_id->id);
-      if (!def) break;
-
-      action.type = ACT_SELECT_COST_TARGET;
-
-      // Enumerate valid cost targets based on type
-      uint8_t player_num = get_player_number(world, ctx->owner);
-      switch (def->cost_req.type) {
-        case ABILITY_TARGET_FRIENDLY_HAND: {
-          ecs_entity_t hand = gs->zones[player_num].hand;
-          ecs_entities_t hand_cards = ecs_get_ordered_children(world, hand);
-          for (int i = 0; i < hand_cards.count; i++) {
-            ecs_entity_t target = hand_cards.ids[i];
-            if (def->validate_cost_target &&
-                !def->validate_cost_target(world, ctx->source_card, ctx->owner, target)) {
-              continue;
-            }
-            action.subaction_1 = i;
-            add_valid_action(out_mask, &action);
-          }
-          break;
-        }
-        case ABILITY_TARGET_FRIENDLY_GARDEN_ENTITY: {
-          ecs_entity_t garden = gs->zones[player_num].garden;
-          ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
-          for (int i = 0; i < garden_cards.count; i++) {
-            ecs_entity_t target = garden_cards.ids[i];
-            const ZoneIndex* zi = ecs_get(world, target, ZoneIndex);
-            if (!zi) continue;
-            if (def->validate_cost_target &&
-                !def->validate_cost_target(world, ctx->source_card, ctx->owner, target)) {
-              continue;
-            }
-            action.subaction_1 = zi->index;
-            add_valid_action(out_mask, &action);
-          }
-          break;
-        }
-        default:
-          break;
-      }
+    const AbilityDef *def = azk_get_ability_def(card_id->id);
+    if (!def)
       break;
-    }
 
-    case ABILITY_PHASE_EFFECT_SELECTION: {
-      // Get ability def to know target type
-      const CardId* card_id = ecs_get(world, ctx->source_card, CardId);
-      if (!card_id) break;
+    action.type = ACT_SELECT_COST_TARGET;
 
-      const AbilityDef* def = azk_get_ability_def(card_id->id);
-      if (!def) break;
-
-      // Allow skipping effect selection if min is 0 ("up to" effects)
-      if (ctx->effect_min == 0 && ctx->effect_filled == 0) {
-        action.type = ACT_NOOP;
+    // Enumerate valid cost targets based on type
+    uint8_t player_num = get_player_number(world, ctx->owner);
+    switch (def->cost_req.type) {
+    case ABILITY_TARGET_FRIENDLY_HAND:
+    case ABILITY_TARGET_FRIENDLY_HAND_WEAPON: {
+      ecs_entity_t hand = gs->zones[player_num].hand;
+      ecs_entities_t hand_cards = ecs_get_ordered_children(world, hand);
+      for (int i = 0; i < hand_cards.count; i++) {
+        ecs_entity_t target = hand_cards.ids[i];
+        if (def->validate_cost_target &&
+            !def->validate_cost_target(world, ctx->source_card, ctx->owner,
+                                       target)) {
+          continue;
+        }
+        action.subaction_1 = i;
         add_valid_action(out_mask, &action);
       }
-
-      action.type = ACT_SELECT_EFFECT_TARGET;
-
-      // Enumerate valid effect targets based on type
-      uint8_t player_num = get_player_number(world, ctx->owner);
-      switch (def->effect_req.type) {
-        case ABILITY_TARGET_FRIENDLY_HAND: {
-          ecs_entity_t hand = gs->zones[player_num].hand;
-          ecs_entities_t hand_cards = ecs_get_ordered_children(world, hand);
-          for (int i = 0; i < hand_cards.count; i++) {
-            ecs_entity_t target = hand_cards.ids[i];
-            if (def->validate_effect_target &&
-                !def->validate_effect_target(world, ctx->source_card, ctx->owner, target)) {
-              continue;
-            }
-            action.subaction_1 = i;
-            add_valid_action(out_mask, &action);
-          }
-          break;
+      break;
+    }
+    case ABILITY_TARGET_FRIENDLY_GARDEN_ENTITY: {
+      ecs_entity_t garden = gs->zones[player_num].garden;
+      ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
+      for (int i = 0; i < garden_cards.count; i++) {
+        ecs_entity_t target = garden_cards.ids[i];
+        const ZoneIndex *zi = ecs_get(world, target, ZoneIndex);
+        if (!zi)
+          continue;
+        if (def->validate_cost_target &&
+            !def->validate_cost_target(world, ctx->source_card, ctx->owner,
+                                       target)) {
+          continue;
         }
-        case ABILITY_TARGET_ENEMY_GARDEN_ENTITY: {
-          uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
-          ecs_entity_t garden = gs->zones[enemy_num].garden;
-          ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
-          for (int i = 0; i < garden_cards.count; i++) {
-            ecs_entity_t target = garden_cards.ids[i];
-            if (def->validate_effect_target &&
-                !def->validate_effect_target(world, ctx->source_card, ctx->owner, target)) {
-              continue;
-            }
-            action.subaction_1 = i;
-            add_valid_action(out_mask, &action);
-          }
-          break;
-        }
-        case ABILITY_TARGET_ANY_GARDEN_ENTITY: {
-          // Index encoding: 0-4 = self garden, 5-9 = opponent garden
-          // Check self garden
-          ecs_entity_t self_garden = gs->zones[player_num].garden;
-          ecs_entities_t self_cards = ecs_get_ordered_children(world, self_garden);
-          for (int i = 0; i < self_cards.count; i++) {
-            ecs_entity_t target = self_cards.ids[i];
-            const ZoneIndex* zi = ecs_get(world, target, ZoneIndex);
-            if (!zi) continue;
-            if (def->validate_effect_target &&
-                !def->validate_effect_target(world, ctx->source_card, ctx->owner, target)) {
-              continue;
-            }
-            action.subaction_1 = zi->index;  // 0-4 for self garden
-            add_valid_action(out_mask, &action);
-          }
-          // Check opponent garden
-          uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
-          ecs_entity_t enemy_garden = gs->zones[enemy_num].garden;
-          ecs_entities_t enemy_cards = ecs_get_ordered_children(world, enemy_garden);
-          for (int i = 0; i < enemy_cards.count; i++) {
-            ecs_entity_t target = enemy_cards.ids[i];
-            const ZoneIndex* zi = ecs_get(world, target, ZoneIndex);
-            if (!zi) continue;
-            if (def->validate_effect_target &&
-                !def->validate_effect_target(world, ctx->source_card, ctx->owner, target)) {
-              continue;
-            }
-            action.subaction_1 = zi->index + GARDEN_SIZE;  // 5-9 for opponent garden
-            add_valid_action(out_mask, &action);
-          }
-          break;
-        }
-        default:
-          break;
+        action.subaction_1 = zi->index;
+        add_valid_action(out_mask, &action);
       }
       break;
     }
-
     default:
       break;
+    }
+    break;
   }
-}
 
-static bool validate_action_for_mask(
-  ecs_world_t *world,
-  const GameState *gs,
-  ecs_entity_t player,
-  const UserAction *action
-) {
-  switch (action->type) {
-    case ACT_PLAY_ENTITY_TO_GARDEN:
-      return azk_validate_play_entity_action(world, gs, player, ZONE_GARDEN, action, false, NULL);
-    case ACT_PLAY_ENTITY_TO_ALLEY:
-      return azk_validate_play_entity_action(world, gs, player, ZONE_ALLEY, action, false, NULL);
-    case ACT_GATE_PORTAL:
-      return azk_validate_gate_portal_action(world, gs, player, action, false, NULL);
-    case ACT_ATTACK:
-      return azk_validate_attack_action(world, gs, player, action, false, NULL);
-    case ACT_ATTACH_WEAPON_FROM_HAND:
-      return azk_validate_attach_weapon_action(world, gs, player, action, false, NULL);
-    case ACT_PLAY_SPELL_FROM_HAND:
-      return azk_validate_play_spell_action(world, gs, player, action, false, NULL);
-    case ACT_ACTIVATE_ALLEY_ABILITY:
-      return azk_validate_activate_alley_ability_action(world, gs, player, action, false, NULL);
-    case ACT_NOOP:
-    case ACT_MULLIGAN_SHUFFLE:
-      return azk_validate_simple_action(world, gs, player, action->type, false);
+  case ABILITY_PHASE_EFFECT_SELECTION: {
+    // Get ability def to know target type
+    const CardId *card_id = ecs_get(world, ctx->source_card, CardId);
+    if (!card_id)
+      break;
+
+    const AbilityDef *def = azk_get_ability_def(card_id->id);
+    if (!def)
+      break;
+
+    // Allow skipping effect selection if min is 0 ("up to" effects)
+    if (ctx->effect_min == 0 && ctx->effect_filled == 0) {
+      action.type = ACT_NOOP;
+      add_valid_action(out_mask, &action);
+    }
+
+    action.type = ACT_SELECT_EFFECT_TARGET;
+
+    // Enumerate valid effect targets based on type
+    uint8_t player_num = get_player_number(world, ctx->owner);
+    switch (def->effect_req.type) {
+    case ABILITY_TARGET_FRIENDLY_HAND: {
+      ecs_entity_t hand = gs->zones[player_num].hand;
+      ecs_entities_t hand_cards = ecs_get_ordered_children(world, hand);
+      for (int i = 0; i < hand_cards.count; i++) {
+        ecs_entity_t target = hand_cards.ids[i];
+        if (def->validate_effect_target &&
+            !def->validate_effect_target(world, ctx->source_card, ctx->owner,
+                                         target)) {
+          continue;
+        }
+        action.subaction_1 = i;
+        add_valid_action(out_mask, &action);
+      }
+      break;
+    }
+    case ABILITY_TARGET_ENEMY_GARDEN_ENTITY: {
+      uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
+      ecs_entity_t garden = gs->zones[enemy_num].garden;
+      ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
+      for (int i = 0; i < garden_cards.count; i++) {
+        ecs_entity_t target = garden_cards.ids[i];
+        if (def->validate_effect_target &&
+            !def->validate_effect_target(world, ctx->source_card, ctx->owner,
+                                         target)) {
+          continue;
+        }
+        action.subaction_1 = i;
+        add_valid_action(out_mask, &action);
+      }
+      break;
+    }
+    case ABILITY_TARGET_ANY_GARDEN_ENTITY: {
+      // Index encoding: 0-4 = self garden, 5-9 = opponent garden
+      // Check self garden
+      ecs_entity_t self_garden = gs->zones[player_num].garden;
+      ecs_entities_t self_cards = ecs_get_ordered_children(world, self_garden);
+      for (int i = 0; i < self_cards.count; i++) {
+        ecs_entity_t target = self_cards.ids[i];
+        const ZoneIndex *zi = ecs_get(world, target, ZoneIndex);
+        if (!zi)
+          continue;
+        if (def->validate_effect_target &&
+            !def->validate_effect_target(world, ctx->source_card, ctx->owner,
+                                         target)) {
+          continue;
+        }
+        action.subaction_1 = zi->index; // 0-4 for self garden
+        add_valid_action(out_mask, &action);
+      }
+      // Check opponent garden
+      uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
+      ecs_entity_t enemy_garden = gs->zones[enemy_num].garden;
+      ecs_entities_t enemy_cards =
+          ecs_get_ordered_children(world, enemy_garden);
+      for (int i = 0; i < enemy_cards.count; i++) {
+        ecs_entity_t target = enemy_cards.ids[i];
+        const ZoneIndex *zi = ecs_get(world, target, ZoneIndex);
+        if (!zi)
+          continue;
+        if (def->validate_effect_target &&
+            !def->validate_effect_target(world, ctx->source_card, ctx->owner,
+                                         target)) {
+          continue;
+        }
+        action.subaction_1 = zi->index + GARDEN_SIZE; // 5-9 for opponent garden
+        add_valid_action(out_mask, &action);
+      }
+      break;
+    }
     default:
-      return false;
+      break;
+    }
+    break;
+  }
+
+  case ABILITY_PHASE_SELECTION_PICK: {
+    // Get ability def for validation
+    const CardId *card_id = ecs_get(world, ctx->source_card, CardId);
+    if (!card_id)
+      break;
+
+    const AbilityDef *def = azk_get_ability_def(card_id->id);
+    if (!def)
+      break;
+
+    // Always allow skipping selection pick for "up to" effects
+    action.type = ACT_NOOP;
+    add_valid_action(out_mask, &action);
+
+    // Enumerate valid selection targets
+    action.type = ACT_SELECT_FROM_SELECTION;
+    for (int i = 0; i < ctx->selection_count; i++) {
+      ecs_entity_t target = ctx->selection_cards[i];
+      if (target == 0)
+        continue; // Already picked or empty
+
+      // Validate against selection target validator if defined
+      if (def->validate_selection_target &&
+          !def->validate_selection_target(world, ctx->source_card, ctx->owner,
+                                          target)) {
+        continue;
+      }
+
+      action.subaction_1 = i;
+      add_valid_action(out_mask, &action);
+    }
+    break;
+  }
+
+  case ABILITY_PHASE_BOTTOM_DECK: {
+    // Enumerate remaining selection cards for bottom decking
+    action.type = ACT_BOTTOM_DECK_CARD;
+    for (int i = 0; i < ctx->selection_count; i++) {
+      ecs_entity_t card = ctx->selection_cards[i];
+      if (card == 0)
+        continue; // Already bottom decked
+
+      action.subaction_1 = i;
+      add_valid_action(out_mask, &action);
+    }
+
+    // Also allow ACT_BOTTOM_DECK_ALL to finish quickly
+    action.type = ACT_BOTTOM_DECK_ALL;
+    action.subaction_1 = 0;
+    add_valid_action(out_mask, &action);
+    break;
+  }
+
+  default:
+    break;
   }
 }
 
-static void enumerate_parameters(
-  ecs_world_t *world,
-  const GameState *gs,
-  ecs_entity_t player,
-  const AzkActionSpec *spec,
-  int param_index,
-  UserAction *action,
-  AzkActionMaskSet *out_mask
-) {
+static bool validate_action_for_mask(ecs_world_t *world, const GameState *gs,
+                                     ecs_entity_t player,
+                                     const UserAction *action) {
+  switch (action->type) {
+  case ACT_PLAY_ENTITY_TO_GARDEN:
+    return azk_validate_play_entity_action(world, gs, player, ZONE_GARDEN,
+                                           action, false, NULL);
+  case ACT_PLAY_ENTITY_TO_ALLEY:
+    return azk_validate_play_entity_action(world, gs, player, ZONE_ALLEY,
+                                           action, false, NULL);
+  case ACT_GATE_PORTAL:
+    return azk_validate_gate_portal_action(world, gs, player, action, false,
+                                           NULL);
+  case ACT_ATTACK:
+    return azk_validate_attack_action(world, gs, player, action, false, NULL);
+  case ACT_ATTACH_WEAPON_FROM_HAND:
+    return azk_validate_attach_weapon_action(world, gs, player, action, false,
+                                             NULL);
+  case ACT_PLAY_SPELL_FROM_HAND:
+    return azk_validate_play_spell_action(world, gs, player, action, false,
+                                          NULL);
+  case ACT_ACTIVATE_ALLEY_ABILITY:
+    return azk_validate_activate_alley_ability_action(world, gs, player, action,
+                                                      false, NULL);
+  case ACT_NOOP:
+  case ACT_MULLIGAN_SHUFFLE:
+    return azk_validate_simple_action(world, gs, player, action->type, false);
+  default:
+    return false;
+  }
+}
+
+static void enumerate_parameters(ecs_world_t *world, const GameState *gs,
+                                 ecs_entity_t player, const AzkActionSpec *spec,
+                                 int param_index, UserAction *action,
+                                 AzkActionMaskSet *out_mask) {
   if (param_index >= 3) {
     if (validate_action_for_mask(world, gs, player, action)) {
       if (out_mask->legal_action_count < AZK_MAX_LEGAL_ACTIONS) {
@@ -240,33 +302,40 @@ static void enumerate_parameters(
   const AzkActionParamSpec *param = &spec->params[param_index];
   int *target_subaction = NULL;
   switch (param_index) {
-    case 0: target_subaction = &action->subaction_1; break;
-    case 1: target_subaction = &action->subaction_2; break;
-    case 2: target_subaction = &action->subaction_3; break;
-    default: return;
+  case 0:
+    target_subaction = &action->subaction_1;
+    break;
+  case 1:
+    target_subaction = &action->subaction_2;
+    break;
+  case 2:
+    target_subaction = &action->subaction_3;
+    break;
+  default:
+    return;
   }
 
   if (param->kind == AZK_ACTION_PARAM_UNUSED) {
     *target_subaction = 0;
-    enumerate_parameters(world, gs, player, spec, param_index + 1, action, out_mask);
+    enumerate_parameters(world, gs, player, spec, param_index + 1, action,
+                         out_mask);
     return;
   }
 
   for (int value = param->min_value; value <= param->max_value; ++value) {
     *target_subaction = value;
-    enumerate_parameters(world, gs, player, spec, param_index + 1, action, out_mask);
+    enumerate_parameters(world, gs, player, spec, param_index + 1, action,
+                         out_mask);
   }
 }
 
-bool azk_build_action_mask_for_player(
-  ecs_world_t *world,
-  const GameState *gs,
-  int8_t player_index,
-  AzkActionMaskSet *out_mask
-) {
+bool azk_build_action_mask_for_player(ecs_world_t *world, const GameState *gs,
+                                      int8_t player_index,
+                                      AzkActionMaskSet *out_mask) {
   ecs_assert(world != NULL, ECS_INVALID_PARAMETER, "World is null");
   ecs_assert(gs != NULL, ECS_INVALID_PARAMETER, "GameState is null");
-  ecs_assert(out_mask != NULL, ECS_INVALID_PARAMETER, "Output mask pointer is null");
+  ecs_assert(out_mask != NULL, ECS_INVALID_PARAMETER,
+             "Output mask pointer is null");
 
   memset(out_mask, 0, sizeof(*out_mask));
 
@@ -300,13 +369,11 @@ bool azk_build_action_mask_for_player(
       continue;
     }
 
-    UserAction action = {
-      .player = player,
-      .type = spec->type,
-      .subaction_1 = 0,
-      .subaction_2 = 0,
-      .subaction_3 = 0
-    };
+    UserAction action = {.player = player,
+                         .type = spec->type,
+                         .subaction_1 = 0,
+                         .subaction_2 = 0,
+                         .subaction_3 = 0};
 
     enumerate_parameters(world, gs, player, spec, 0, &action, out_mask);
   }

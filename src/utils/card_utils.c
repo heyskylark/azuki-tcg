@@ -89,3 +89,22 @@ bool is_card_cooldown(ecs_world_t *world, ecs_entity_t card) {
              "TapState component not found for card %d", card);
   return tap_state->cooldown;
 }
+
+bool is_weapon_card(ecs_world_t *world, ecs_entity_t card) {
+  const Type *card_type = ecs_get(world, card, Type);
+  if (!card_type) {
+    return false;
+  }
+  return card_type->value == CARD_TYPE_WEAPON;
+}
+
+int count_weapons_in_zone(ecs_world_t *world, ecs_entity_t zone) {
+  ecs_entities_t children = ecs_get_ordered_children(world, zone);
+  int count = 0;
+  for (int32_t i = 0; i < children.count; i++) {
+    if (is_weapon_card(world, children.ids[i])) {
+      count++;
+    }
+  }
+  return count;
+}
