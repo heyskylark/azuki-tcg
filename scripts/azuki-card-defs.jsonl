@@ -1,36 +1,36 @@
 {"card_id": "IKZ-001", "name": "IKZ Card", "rarity": "IKZ", "element": "NORMAL", "type": "IKZ"}
 {"card_id": "IKZ-002", "name": "Extra IKZ Card", "rarity": "IKZ", "element": "NORMAL", "type": "IKZ"}
-{"card_id": "STT01-001", "name": "Raizan", "rarity": "L", "element": "LIGHTNING", "type": "LEADER", "health": 20}
+{"card_id": "STT01-001", "name": "Raizan", "rarity": "L", "element": "LIGHTNING", "type": "LEADER", "health": 20, "subtypes": ["Raizan", "Steelborn"]}
 {"card_id": "STT01-002", "name": "Surge", "rarity": "G", "element": "LIGHTNING", "type": "GATE"}
-{"card_id": "STT01-003", "name": "Crate Rat Kurobo", "rarity": "C", "element": "LIGHTNING", "type": "ENTITY", "ikz_cost": 1, "attack": 1, "health": 1, "gate_points": 1}
-{"card_id": "STT01-004", "name": "Black Jade Recruit", "rarity": "C", "element": "NORMAL", "type": "ENTITY", "ikz_cost": 1, "attack": 1, "health": 1, "gate_points": 1}
-{"card_id": "STT01-005", "name": "Alpine Prowler", "rarity": "C", "element": "LIGHTNING", "type": "ENTITY", "ikz_cost": 2, "attack": 1, "health": 1, "gate_points": 2}
-{"card_id": "STT01-006", "name": "Silver Current, Haruhi", "rarity": "R", "element": "LIGHTNING", "type": "ENTITY", "ikz_cost": 2, "attack": 1, "health": 2, "gate_points": 1}
-{"card_id": "STT01-007", "name": "Alley Guy", "rarity": "C", "element": "NORMAL", "type": "ENTITY", "ikz_cost": 2, "attack": 1, "health": 2, "gate_points": 0}
-{"card_id": "STT01-008", "name": "Black Jade Crewleader", "rarity": "UC", "element": "LIGHTNING", "type": "ENTITY", "ikz_cost": 3, "attack": 2, "health": 2, "gate_points": 1}
-{"card_id": "STT01-009", "name": "Weapon Master Yamada", "rarity": "UC", "element": "LIGHTNING", "type": "ENTITY", "ikz_cost": 4, "attack": 2, "health": 2, "gate_points": 2}
-{"card_id": "STT01-010", "name": "Indra", "rarity": "R", "element": "LIGHTNING", "type": "ENTITY", "ikz_cost": 5, "attack": 3, "health": 2, "gate_points": 3}
-{"card_id": "STT01-011", "name": "Raizan", "rarity": "SR", "element": "LIGHTNING", "type": "ENTITY", "ikz_cost": 6, "attack": 4, "health": 3, "gate_points": 4}
-{"card_id": "STT01-012", "name": "Lightning Shuriken", "rarity": "C", "element": "LIGHTNING", "type": "WEAPON", "ikz_cost": 1, "attack": 1}
-{"card_id": "STT01-013", "name": "Black Jade Dagger", "rarity": "C", "element": "NORMAL", "type": "WEAPON", "ikz_cost": 1, "attack": 1}
-{"card_id": "STT01-014", "name": "Tenshin", "rarity": "C", "element": "NORMAL", "type": "WEAPON", "ikz_cost": 2, "attack": 2}
-{"card_id": "STT01-015", "name": "Tenraku", "rarity": "UC", "element": "NORMAL", "type": "WEAPON", "ikz_cost": 3, "attack": 3}
-{"card_id": "STT01-016", "name": "Raizan's Zanbato", "rarity": "SR", "element": "LIGHTNING", "type": "WEAPON", "ikz_cost": 4, "attack": 4}
-{"card_id": "STT01-017", "name": "Lightning Orb", "rarity": "UC", "element": "LIGHTNING", "type": "SPELL", "ikz_cost": 1}
-{"card_id": "STT02-001", "name": "Shao", "rarity": "L", "element": "WATER", "type": "LEADER", "health": 20}
+{"card_id": "STT01-003", "name": "Crate Rat Kurobo", "rarity": "C", "element": "LIGHTNING", "type": "ENTITY", "ikz_cost": 1, "attack": 1, "health": 1, "gate_points": 1, "subtypes": ["Black Jade"]}
+{"card_id": "STT01-004", "name": "Black Jade Recruit", "rarity": "C", "element": "NORMAL", "type": "ENTITY", "ikz_cost": 1, "attack": 1, "health": 1, "gate_points": 1, "subtypes": ["Black Jade", "Dawnling"]}
+{"card_id": "STT01-005", "name": "Alpine Prowler", "rarity": "C", "element": "LIGHTNING", "type": "ENTITY", "ikz_cost": 2, "attack": 1, "health": 1, "gate_points": 2, "subtypes": ["Bandit"]}
+{"card_id": "STT01-006", "name": "Silver Current, Haruhi", "rarity": "R", "element": "LIGHTNING", "type": "ENTITY", "ikz_cost": 2, "attack": 1, "health": 2, "gate_points": 1, "subtypes": ["Elder", "Monk"]}
+{"card_id": "STT01-007", "name": "Alley Guy", "rarity": "C", "element": "NORMAL", "type": "ENTITY", "ikz_cost": 2, "attack": 1, "health": 2, "gate_points": 0, "subtypes": ["Dawnling", "Alley Dweller"]}
+{"card_id": "STT01-008", "name": "Black Jade Crewleader", "rarity": "UC", "element": "LIGHTNING", "type": "ENTITY", "ikz_cost": 3, "attack": 2, "health": 2, "gate_points": 1, "subtypes": ["Black Jade", "Steelborn"]}
+{"card_id": "STT01-009", "name": "Weapon Master Yamada", "rarity": "UC", "element": "LIGHTNING", "type": "ENTITY", "ikz_cost": 4, "attack": 2, "health": 2, "gate_points": 2, "subtypes": ["Steelborn"]}
+{"card_id": "STT01-010", "name": "Indra", "rarity": "R", "element": "LIGHTNING", "type": "ENTITY", "ikz_cost": 5, "attack": 3, "health": 2, "gate_points": 3, "subtypes": ["Monk", "Steelborn"]}
+{"card_id": "STT01-011", "name": "Raizan", "rarity": "SR", "element": "LIGHTNING", "type": "ENTITY", "ikz_cost": 6, "attack": 4, "health": 3, "gate_points": 4, "subtypes": ["Raizan", "Steelborn"]}
+{"card_id": "STT01-012", "name": "Lightning Shuriken", "rarity": "C", "element": "LIGHTNING", "type": "WEAPON", "ikz_cost": 1, "attack": 1, "subtypes": ["Shuriken", "Shadowfang"]}
+{"card_id": "STT01-013", "name": "Black Jade Dagger", "rarity": "C", "element": "NORMAL", "type": "WEAPON", "ikz_cost": 1, "attack": 1, "subtypes": ["Black Jade", "Sword"]}
+{"card_id": "STT01-014", "name": "Tenshin", "rarity": "C", "element": "NORMAL", "type": "WEAPON", "ikz_cost": 2, "attack": 2, "subtypes": ["Sword"]}
+{"card_id": "STT01-015", "name": "Tenraku", "rarity": "UC", "element": "NORMAL", "type": "WEAPON", "ikz_cost": 3, "attack": 3, "subtypes": ["Sword"]}
+{"card_id": "STT01-016", "name": "Raizan's Zanbato", "rarity": "SR", "element": "LIGHTNING", "type": "WEAPON", "ikz_cost": 4, "attack": 4, "subtypes": ["Raizan", "Sword"]}
+{"card_id": "STT01-017", "name": "Lightning Orb", "rarity": "UC", "element": "LIGHTNING", "type": "SPELL", "ikz_cost": 1, "subtypes": ["Stormcaller", "Orb"]}
+{"card_id": "STT02-001", "name": "Shao", "rarity": "L", "element": "WATER", "type": "LEADER", "health": 20, "subtypes": ["Shao", "Driftward"]}
 {"card_id": "STT02-002", "name": "Hydromancy", "rarity": "G", "element": "WATER", "type": "GATE"}
-{"card_id": "STT02-003", "name": "Hayabusa Itto", "rarity": "C", "element": "WATER", "type": "ENTITY", "ikz_cost": 1, "attack": 1, "health": 1, "gate_points": 1}
-{"card_id": "STT02-004", "name": "Rei", "rarity": "C", "element": "NORMAL", "type": "ENTITY", "ikz_cost": 1, "attack": 1, "health": 2, "gate_points": 0}
-{"card_id": "STT02-005", "name": "Hayabusa Saburo", "rarity": "UC", "element": "WATER", "type": "ENTITY", "ikz_cost": 1, "attack": 1, "health": 1, "gate_points": 1}
-{"card_id": "STT02-006", "name": "Foamback Crab", "rarity": "C", "element": "WATER", "type": "ENTITY", "ikz_cost": 2, "attack": 0, "health": 1, "gate_points": 1, "keywords": ["defender", "effect_immune"]}
-{"card_id": "STT02-007", "name": "Benzai the Merchant", "rarity": "C", "element": "WATER", "type": "ENTITY", "ikz_cost": 2, "attack": 1, "health": 2, "gate_points": 0}
-{"card_id": "STT02-008", "name": "Serene Fist, Misaki", "rarity": "UC", "element": "WATER", "type": "ENTITY", "ikz_cost": 2, "attack": 2, "health": 1, "gate_points": 0}
-{"card_id": "STT02-009", "name": "Aya", "rarity": "C", "element": "WATER", "type": "ENTITY", "ikz_cost": 3, "attack": 1, "health": 2, "gate_points": 1}
-{"card_id": "STT02-010", "name": "Selis of the Shore", "rarity": "R", "element": "WATER", "type": "ENTITY", "ikz_cost": 3, "attack": 1, "health": 3, "gate_points": 1}
-{"card_id": "STT02-011", "name": "Bubblemancer", "rarity": "C", "element": "WATER", "type": "ENTITY", "ikz_cost": 3, "attack": 2, "health": 2, "gate_points": 0}
-{"card_id": "STT02-012", "name": "Young Shao", "rarity": "UC", "element": "NORMAL", "type": "ENTITY", "ikz_cost": 4, "attack": 2, "health": 2, "gate_points": 2}
-{"card_id": "STT02-013", "name": "Mizuki", "rarity": "SR", "element": "WATER", "type": "ENTITY", "ikz_cost": 5, "attack": 3, "health": 4, "gate_points": 2}
-{"card_id": "STT02-014", "name": "Chilling Water", "rarity": "C", "element": "WATER", "type": "SPELL", "ikz_cost": 1}
-{"card_id": "STT02-015", "name": "Commune with Water", "rarity": "UC", "element": "WATER", "type": "SPELL", "ikz_cost": 2}
-{"card_id": "STT02-016", "name": "Water Orb", "rarity": "R", "element": "WATER", "type": "SPELL", "ikz_cost": 1}
-{"card_id": "STT02-017", "name": "Shao's Perseverance", "rarity": "SR", "element": "WATER", "type": "SPELL", "ikz_cost": 6}
+{"card_id": "STT02-003", "name": "Hayabusa Itto", "rarity": "C", "element": "WATER", "type": "ENTITY", "ikz_cost": 1, "attack": 1, "health": 1, "gate_points": 1, "subtypes": ["Elder", "Sushi Chef"]}
+{"card_id": "STT02-004", "name": "Rei", "rarity": "C", "element": "NORMAL", "type": "ENTITY", "ikz_cost": 1, "attack": 1, "health": 2, "gate_points": 0, "subtypes": ["Dawnling"]}
+{"card_id": "STT02-005", "name": "Hayabusa Saburo", "rarity": "UC", "element": "WATER", "type": "ENTITY", "ikz_cost": 1, "attack": 1, "health": 1, "gate_points": 1, "subtypes": ["Sushi Chef"]}
+{"card_id": "STT02-006", "name": "Foamback Crab", "rarity": "C", "element": "WATER", "type": "ENTITY", "ikz_cost": 2, "attack": 0, "health": 1, "gate_points": 1, "subtypes": ["Crab", "Rippleborn", "Driftward"], "keywords": ["defender", "effect_immune"]}
+{"card_id": "STT02-007", "name": "Benzai the Merchant", "rarity": "C", "element": "WATER", "type": "ENTITY", "ikz_cost": 2, "attack": 1, "health": 2, "gate_points": 0, "subtypes": ["Frog", "Wavecaller"]}
+{"card_id": "STT02-008", "name": "Serene Fist, Misaki", "rarity": "UC", "element": "WATER", "type": "ENTITY", "ikz_cost": 2, "attack": 2, "health": 1, "gate_points": 0, "subtypes": ["Driftward"]}
+{"card_id": "STT02-009", "name": "Aya", "rarity": "C", "element": "WATER", "type": "ENTITY", "ikz_cost": 3, "attack": 1, "health": 2, "gate_points": 1, "subtypes": ["Watercrafting", "Water Painter"]}
+{"card_id": "STT02-010", "name": "Selis of the Shore", "rarity": "R", "element": "WATER", "type": "ENTITY", "ikz_cost": 3, "attack": 1, "health": 3, "gate_points": 1, "subtypes": ["Wavecaller"]}
+{"card_id": "STT02-011", "name": "Bubblemancer", "rarity": "C", "element": "WATER", "type": "ENTITY", "ikz_cost": 3, "attack": 2, "health": 2, "gate_points": 0, "subtypes": ["Driftward"]}
+{"card_id": "STT02-012", "name": "Young Shao", "rarity": "UC", "element": "NORMAL", "type": "ENTITY", "ikz_cost": 4, "attack": 2, "health": 2, "gate_points": 2, "subtypes": ["Shao", "Dawnling"]}
+{"card_id": "STT02-013", "name": "Mizuki", "rarity": "SR", "element": "WATER", "type": "ENTITY", "ikz_cost": 5, "attack": 3, "health": 4, "gate_points": 2, "subtypes": ["Wavecaller"]}
+{"card_id": "STT02-014", "name": "Chilling Water", "rarity": "C", "element": "WATER", "type": "SPELL", "ikz_cost": 1, "subtypes": ["Subzero", "Watercrafting"]}
+{"card_id": "STT02-015", "name": "Commune with Water", "rarity": "UC", "element": "WATER", "type": "SPELL", "ikz_cost": 2, "subtypes": ["Watercrafting"]}
+{"card_id": "STT02-016", "name": "Water Orb", "rarity": "R", "element": "WATER", "type": "SPELL", "ikz_cost": 1, "subtypes": ["Watercrafting", "Orb"]}
+{"card_id": "STT02-017", "name": "Shao's Perseverance", "rarity": "SR", "element": "WATER", "type": "SPELL", "ikz_cost": 6, "subtypes": ["Watercrafting", "Shao"]}

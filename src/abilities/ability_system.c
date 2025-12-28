@@ -63,6 +63,21 @@ bool azk_process_ability_confirmation(ecs_world_t *world) {
   if (def->cost_req.min > 0) {
     ctx->phase = ABILITY_PHASE_COST_SELECTION;
     cli_render_logf("[Ability] Confirmed, selecting cost targets");
+  } else if (def->on_cost_paid) {
+    // No cost targets to select, but has on_cost_paid callback
+    // (e.g., STT02-003 which has selection phase without cost)
+    if (def->apply_costs) {
+      def->apply_costs(world, ctx);
+      cli_render_logf("[Ability] Applied costs (no cost targets needed)");
+    }
+    def->on_cost_paid(world, ctx);
+    cli_render_logf("[Ability] Called on_cost_paid callback");
+    // on_cost_paid sets the next phase (SELECTION_PICK or BOTTOM_DECK)
+    // Check if we're done or need further processing
+    if (ctx->phase == ABILITY_PHASE_NONE) {
+      azk_clear_ability_context(world);
+      return true;
+    }
   } else if (def->effect_req.min > 0) {
     // No cost targets to select, but still apply costs (e.g., sacrifice self,
     // draw cards)
