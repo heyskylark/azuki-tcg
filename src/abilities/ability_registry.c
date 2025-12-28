@@ -7,6 +7,7 @@
 #include "abilities/cards/stt01_013.h"
 #include "abilities/cards/stt02_007.h"
 #include "abilities/cards/stt02_009.h"
+#include "abilities/cards/stt02_005.h"
 #include "abilities/cards/stt02_011.h"
 #include "abilities/cards/stt02_014.h"
 #include "abilities/cards/stt02_015.h"
@@ -214,6 +215,20 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .validate_effect_target = stt02_011_validate_effect_target,
       .apply_costs = stt02_011_apply_costs,
       .apply_effects = stt02_011_apply_effects,
+  };
+
+  // STT02-005: On Play; If you played 2 other entities this turn, draw 1
+  kAbilityRegistry[CARD_DEF_STT02_005] = (AbilityDef){
+      .has_ability = true,
+      .is_optional = true,
+      .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .effect_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .timing_tag = ecs_id(AOnPlay),
+      .validate = stt02_005_validate,
+      .validate_cost_target = NULL,
+      .validate_effect_target = NULL,
+      .apply_costs = NULL,
+      .apply_effects = stt02_005_apply_effects,
   };
 
   kRegistryInitialized = true;
