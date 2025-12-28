@@ -16,7 +16,7 @@ import os
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, List, Optional, Sequence
+from typing import Iterable, List, Optional, Sequence, Set, Tuple
 
 
 RARITY_ORDER = ["L", "G", "C", "UC", "R", "SR", "IKZ"]
@@ -30,34 +30,36 @@ BASE_REQUIRED_FIELDS = {"card_id", "name", "rarity", "element", "type"}
 
 TYPE_RULES = {
     "LEADER": {
-        "allowed": BASE_REQUIRED_FIELDS | {"attack", "health"},
+        "allowed": BASE_REQUIRED_FIELDS | {"attack", "health", "subtypes"},
         "required": {"health"},
     },
     "GATE": {
-        "allowed": BASE_REQUIRED_FIELDS,
+        "allowed": BASE_REQUIRED_FIELDS | {"subtypes"},
         "required": set(),
     },
     "ENTITY": {
-        "allowed": BASE_REQUIRED_FIELDS | {"attack", "health", "ikz_cost", "gate_points"},
+        "allowed": BASE_REQUIRED_FIELDS | {"attack", "health", "ikz_cost", "gate_points", "subtypes"},
         "required": {"attack", "health", "ikz_cost"},
     },
     "WEAPON": {
-        "allowed": BASE_REQUIRED_FIELDS | {"attack", "ikz_cost"},
+        "allowed": BASE_REQUIRED_FIELDS | {"attack", "ikz_cost", "subtypes"},
         "required": {"attack", "ikz_cost"},
     },
     "SPELL": {
-        "allowed": BASE_REQUIRED_FIELDS | {"ikz_cost"},
+        "allowed": BASE_REQUIRED_FIELDS | {"ikz_cost", "subtypes"},
         "required": {"ikz_cost"},
     },
     "IKZ": {
-        "allowed": BASE_REQUIRED_FIELDS,
+        "allowed": BASE_REQUIRED_FIELDS | {"subtypes"},
         "required": set(),
     },
     "EXTRA_IKZ": {
-        "allowed": BASE_REQUIRED_FIELDS,
+        "allowed": BASE_REQUIRED_FIELDS | {"subtypes"},
         "required": set(),
     },
 }
+
+MAX_SUBTYPES_PER_CARD = 3
 
 CARD_PREFAB_COMPONENT_STRUCTS = [
     ("BaseStats", "int8_t attack, health;"),
@@ -109,6 +111,22 @@ class CardValidationError(Exception):
         super().__init__(f"Line {lineno}: {message}")
 
 
+def make_subtype_tag_name(subtype: str) -> str:
+    """Convert a subtype name to a C identifier tag name.
+
+    Examples:
+        "Black Jade" -> "TSubtype_BlackJade"
+        "Sushi Chef" -> "TSubtype_SushiChef"
+        "Watercrafting" -> "TSubtype_Watercrafting"
+    """
+    # Remove spaces and capitalize each word (PascalCase)
+    words = subtype.split()
+    pascal = "".join(word.capitalize() for word in words)
+    # Clean any remaining non-alphanumeric characters
+    cleaned = "".join(ch if ch.isalnum() else "" for ch in pascal)
+    return f"TSubtype_{cleaned}"
+
+
 @dataclass(frozen=True)
 class CardRecord:
     card_id: str
@@ -124,6 +142,7 @@ class CardRecord:
     health: Optional[int]
     gate_points: Optional[int]
     ikz_cost: Optional[int]
+    subtypes: tuple  # Tuple of subtype strings (immutable for frozen dataclass)
 
     @property
     def has_base_stats(self) -> bool:
@@ -173,6 +192,14 @@ class CardRecord:
     def prefab_entity_name(self) -> str:
         return f"CardPrefab::{self.card_id}"
 
+    @property
+    def has_subtypes(self) -> bool:
+        return len(self.subtypes) > 0
+
+    @property
+    def subtype_tags(self) -> List[str]:
+        return [make_subtype_tag_name(s) for s in self.subtypes]
+
 
 def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
@@ -199,12 +226,19 @@ def parse_args(argv: Optional[Sequence[str]] = None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def load_cards(path: Path) -> List[CardRecord]:
+def load_cards(path: Path) -> Tuple[List[CardRecord], List[str]]:
+    """Load card records from a JSONL file.
+
+    Returns:
+        A tuple of (records, all_subtypes) where all_subtypes is a sorted list
+        of all unique subtype names discovered across all cards.
+    """
     if not path.is_file():
         raise FileNotFoundError(f"Input file not found: {path}")
 
     records: List[CardRecord] = []
     seen_ids: set[str] = set()
+    all_subtypes: Set[str] = set()
 
     with path.open("r", encoding="utf-8") as handle:
         for lineno, raw_line in enumerate(handle, start=1):
@@ -224,10 +258,15 @@ def load_cards(path: Path) -> List[CardRecord]:
             seen_ids.add(record.card_id)
             records.append(record)
 
+            # Collect unique subtypes
+            for subtype in record.subtypes:
+                all_subtypes.add(subtype)
+
     if not records:
         raise ValueError(f"No card definitions found in {path}")
 
-    return records
+    # Return sorted list for deterministic code generation
+    return records, sorted(all_subtypes)
 
 
 def validate_card_payload(payload: object, lineno: int) -> CardRecord:
@@ -299,6 +338,9 @@ def validate_card_payload(payload: object, lineno: int) -> CardRecord:
         # Not strictly required by spec, but helpful for future-proofing.
         pass
 
+    # Parse subtypes
+    subtypes = parse_subtypes(payload, lineno)
+
     return CardRecord(
         card_id=card_id,
         name=name,
@@ -313,6 +355,7 @@ def validate_card_payload(payload: object, lineno: int) -> CardRecord:
         health=health,
         gate_points=gate_points,
         ikz_cost=ikz_cost,
+        subtypes=subtypes,
     )
 
 
@@ -340,6 +383,43 @@ def parse_optional_int(
         return None
     value = payload[field]
     return coerce_int(value, field, lineno, minimum, maximum)
+
+
+def parse_subtypes(payload: dict, lineno: int) -> tuple:
+    """Parse the subtypes array from a card payload.
+
+    Returns a tuple of subtype strings (immutable for frozen dataclass).
+    """
+    if "subtypes" not in payload or payload["subtypes"] is None:
+        return tuple()
+
+    subtypes_raw = payload["subtypes"]
+    if not isinstance(subtypes_raw, list):
+        raise CardValidationError(
+            lineno, "Field 'subtypes' must be an array."
+        )
+
+    if len(subtypes_raw) > MAX_SUBTYPES_PER_CARD:
+        raise CardValidationError(
+            lineno,
+            f"Field 'subtypes' has {len(subtypes_raw)} entries, "
+            f"max is {MAX_SUBTYPES_PER_CARD}.",
+        )
+
+    subtypes = []
+    for i, item in enumerate(subtypes_raw):
+        if not isinstance(item, str):
+            raise CardValidationError(
+                lineno, f"Subtype at index {i} must be a string."
+            )
+        stripped = item.strip()
+        if not stripped:
+            raise CardValidationError(
+                lineno, f"Subtype at index {i} cannot be empty."
+            )
+        subtypes.append(stripped)
+
+    return tuple(subtypes)
 
 
 def coerce_int(
@@ -502,6 +582,9 @@ def render_prefab_block(record: CardRecord) -> List[str]:
     )
     lines.append(f"        kGeneratedPrefabs[{record.enum_name}] = prefab;")
     lines.extend(render_prefab_component_sets(record, "        "))
+    # Add subtype tags to prefab
+    for subtype_tag in record.subtype_tags:
+        lines.append(f"        ecs_add(world, prefab, {subtype_tag});")
     lines.append("    }")
     return lines
 
@@ -557,7 +640,36 @@ def render_component_and_tag_declarations() -> List[str]:
     return lines
 
 
-def render_header(records: Sequence[CardRecord], include_guard: str) -> str:
+def render_subtype_tag_declarations(all_subtypes: List[str]) -> List[str]:
+    """Render extern declarations for subtype tags."""
+    lines: List[str] = []
+    lines.append("/* Subtype Tags (auto-generated from JSONL) */")
+    for subtype in all_subtypes:
+        tag_name = make_subtype_tag_name(subtype)
+        lines.append(f"extern ECS_TAG_DECLARE({tag_name});")
+    return lines
+
+
+def render_subtype_tag_definitions(all_subtypes: List[str]) -> List[str]:
+    """Render ECS_TAG_DECLARE for subtype tags in the C file."""
+    lines: List[str] = []
+    lines.append("/* Subtype Tags (auto-generated from JSONL) */")
+    for subtype in all_subtypes:
+        tag_name = make_subtype_tag_name(subtype)
+        lines.append(f"ECS_TAG_DECLARE({tag_name});")
+    return lines
+
+
+def render_subtype_tag_registrations(all_subtypes: List[str], indent: str) -> List[str]:
+    """Render ECS_TAG_DEFINE calls for subtype tags."""
+    lines: List[str] = []
+    for subtype in all_subtypes:
+        tag_name = make_subtype_tag_name(subtype)
+        lines.append(f"{indent}ECS_TAG_DEFINE(world, {tag_name});")
+    return lines
+
+
+def render_header(records: Sequence[CardRecord], all_subtypes: List[str], include_guard: str) -> str:
     lines: List[str] = []
     lines.append("// This file is auto-generated by scripts/generate_card_defs.py. Do not edit manually.")
     lines.append(f"#ifndef {include_guard}")
@@ -587,6 +699,9 @@ def render_header(records: Sequence[CardRecord], include_guard: str) -> str:
     lines.extend(render_lookup_struct_definition())
     lines.append("")
     lines.extend(render_component_and_tag_declarations())
+    if all_subtypes:
+        lines.append("")
+        lines.extend(render_subtype_tag_declarations(all_subtypes))
     lines.append("")
     lines.append("#ifdef __cplusplus")
     lines.append("extern \"C\" {")
@@ -607,7 +722,7 @@ def render_header(records: Sequence[CardRecord], include_guard: str) -> str:
     return "\n".join(lines)
 
 
-def render_c_file(records: Sequence[CardRecord], header_include: str) -> str:
+def render_c_file(records: Sequence[CardRecord], all_subtypes: List[str], header_include: str) -> str:
     lines: List[str] = []
     lines.append("// This file is auto-generated by scripts/generate_card_defs.py. Do not edit manually.")
     lines.append(f"#include \"{header_include}\"")
@@ -619,6 +734,9 @@ def render_c_file(records: Sequence[CardRecord], header_include: str) -> str:
         lines.append(f"ECS_TAG_DECLARE({tag});")
     lines.append("ECS_TAG_DECLARE(CardDefComponentsRegisteredTag);")
     lines.append("ECS_TAG_DECLARE(CardDefPrefabsRegisteredTag);")
+    if all_subtypes:
+        lines.append("")
+        lines.extend(render_subtype_tag_definitions(all_subtypes))
     lines.append("")
     lines.append("static const CardDef kGeneratedCardDefs[CARD_DEF_COUNT] = {")
     for record in records:
@@ -659,6 +777,9 @@ def render_c_file(records: Sequence[CardRecord], header_include: str) -> str:
         lines.append("")
     for tag in CARD_PREFAB_TAG_DECLARATIONS:
         lines.append(f"        ECS_TAG_DEFINE(world, {tag});")
+    if all_subtypes:
+        lines.append("")
+        lines.extend(render_subtype_tag_registrations(all_subtypes, "        "))
     for component in CARD_PREFAB_ON_INSTANTIATE_COMPONENTS:
         lines.append(
             f"        ecs_add_pair(world, ecs_id({component}), EcsOnInstantiate, EcsInherit);"
@@ -720,22 +841,22 @@ def compute_header_include(c_path: Path, header_path: Path) -> str:
 def main(argv: Optional[Sequence[str]] = None) -> int:
     args = parse_args(argv)
     try:
-        records = load_cards(args.input)
+        records, all_subtypes = load_cards(args.input)
     except Exception as exc:  # noqa: BLE001 - surface useful error to CLI
         print(exc, file=sys.stderr)
         return 1
 
     header_guard = make_include_guard(args.header)
-    header_content = render_header(records, header_guard)
+    header_content = render_header(records, all_subtypes, header_guard)
     ensure_parent_directory(args.header)
     args.header.write_text(header_content, encoding="utf-8")
 
     header_include = compute_header_include(args.output, args.header)
-    rendered = render_c_file(records, header_include)
+    rendered = render_c_file(records, all_subtypes, header_include)
     ensure_parent_directory(args.output)
     args.output.write_text(rendered, encoding="utf-8")
     print(
-        f"Wrote {len(records)} card definition(s) to {args.output} "
+        f"Wrote {len(records)} card definition(s) ({len(all_subtypes)} subtypes) to {args.output} "
         f"and declarations to {args.header}"
     )
     return 0

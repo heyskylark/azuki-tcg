@@ -7,6 +7,7 @@
 #include "abilities/cards/stt01_013.h"
 #include "abilities/cards/stt02_007.h"
 #include "abilities/cards/stt02_009.h"
+#include "abilities/cards/stt02_003.h"
 #include "abilities/cards/stt02_011.h"
 #include "abilities/cards/stt02_014.h"
 #include "abilities/cards/stt02_015.h"
@@ -104,6 +105,25 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .validate_effect_target = NULL,
       .apply_costs = NULL,
       .apply_effects = stt02_007_apply_effects,
+  };
+
+  // STT02-003 "Hayabusa Itto": [On Play] Look at the top 5 cards of your deck,
+  // reveal up to 1 (Watercrafting) card and add it to your hand, then bottom
+  // deck the rest in any order
+  kAbilityRegistry[CARD_DEF_STT02_003] = (AbilityDef){
+      .has_ability = true,
+      .is_optional = true,
+      .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .effect_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .timing_tag = ecs_id(AOnPlay),
+      .validate = stt02_003_validate,
+      .validate_cost_target = NULL,
+      .validate_effect_target = NULL,
+      .apply_costs = NULL,
+      .on_cost_paid = stt02_003_on_cost_paid,
+      .validate_selection_target = stt02_003_validate_selection_target,
+      .on_selection_complete = stt02_003_on_selection_complete,
+      .apply_effects = NULL,
   };
 
   // STT02-014 "Chilling Water": [Main] Freeze an entity with cost <= 2 in

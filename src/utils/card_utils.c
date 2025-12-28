@@ -111,3 +111,26 @@ int count_weapons_in_zone(ecs_world_t *world, ecs_entity_t zone) {
   }
   return count;
 }
+
+bool has_subtype(ecs_world_t *world, ecs_entity_t card, ecs_id_t subtype_tag) {
+  if (card == 0 || subtype_tag == 0) {
+    return false;
+  }
+  return ecs_has_id(world, card, subtype_tag);
+}
+
+bool is_watercrafting_card(ecs_world_t *world, ecs_entity_t card) {
+  return has_subtype(world, card, ecs_id(TSubtype_Watercrafting));
+}
+
+int count_subtype_in_zone(ecs_world_t *world, ecs_entity_t zone,
+                          ecs_id_t subtype_tag) {
+  ecs_entities_t children = ecs_get_ordered_children(world, zone);
+  int count = 0;
+  for (int32_t i = 0; i < children.count; i++) {
+    if (has_subtype(world, children.ids[i], subtype_tag)) {
+      count++;
+    }
+  }
+  return count;
+}

@@ -21,6 +21,31 @@ ECS_TAG_DECLARE(TExtraIKZCard);
 ECS_TAG_DECLARE(CardDefComponentsRegisteredTag);
 ECS_TAG_DECLARE(CardDefPrefabsRegisteredTag);
 
+/* Subtype Tags (auto-generated from JSONL) */
+ECS_TAG_DECLARE(TSubtype_AlleyDweller);
+ECS_TAG_DECLARE(TSubtype_Bandit);
+ECS_TAG_DECLARE(TSubtype_BlackJade);
+ECS_TAG_DECLARE(TSubtype_Crab);
+ECS_TAG_DECLARE(TSubtype_Dawnling);
+ECS_TAG_DECLARE(TSubtype_Driftward);
+ECS_TAG_DECLARE(TSubtype_Elder);
+ECS_TAG_DECLARE(TSubtype_Frog);
+ECS_TAG_DECLARE(TSubtype_Monk);
+ECS_TAG_DECLARE(TSubtype_Orb);
+ECS_TAG_DECLARE(TSubtype_Raizan);
+ECS_TAG_DECLARE(TSubtype_Rippleborn);
+ECS_TAG_DECLARE(TSubtype_Shadowfang);
+ECS_TAG_DECLARE(TSubtype_Shao);
+ECS_TAG_DECLARE(TSubtype_Shuriken);
+ECS_TAG_DECLARE(TSubtype_Steelborn);
+ECS_TAG_DECLARE(TSubtype_Stormcaller);
+ECS_TAG_DECLARE(TSubtype_Subzero);
+ECS_TAG_DECLARE(TSubtype_SushiChef);
+ECS_TAG_DECLARE(TSubtype_Sword);
+ECS_TAG_DECLARE(TSubtype_WaterPainter);
+ECS_TAG_DECLARE(TSubtype_Watercrafting);
+ECS_TAG_DECLARE(TSubtype_Wavecaller);
+
 static const CardDef kGeneratedCardDefs[CARD_DEF_COUNT] = {
     {
         .card_id = "IKZ-001",
@@ -574,6 +599,30 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ECS_TAG_DEFINE(world, TSpell);
         ECS_TAG_DEFINE(world, TIKZ);
         ECS_TAG_DEFINE(world, TExtraIKZCard);
+
+        ECS_TAG_DEFINE(world, TSubtype_AlleyDweller);
+        ECS_TAG_DEFINE(world, TSubtype_Bandit);
+        ECS_TAG_DEFINE(world, TSubtype_BlackJade);
+        ECS_TAG_DEFINE(world, TSubtype_Crab);
+        ECS_TAG_DEFINE(world, TSubtype_Dawnling);
+        ECS_TAG_DEFINE(world, TSubtype_Driftward);
+        ECS_TAG_DEFINE(world, TSubtype_Elder);
+        ECS_TAG_DEFINE(world, TSubtype_Frog);
+        ECS_TAG_DEFINE(world, TSubtype_Monk);
+        ECS_TAG_DEFINE(world, TSubtype_Orb);
+        ECS_TAG_DEFINE(world, TSubtype_Raizan);
+        ECS_TAG_DEFINE(world, TSubtype_Rippleborn);
+        ECS_TAG_DEFINE(world, TSubtype_Shadowfang);
+        ECS_TAG_DEFINE(world, TSubtype_Shao);
+        ECS_TAG_DEFINE(world, TSubtype_Shuriken);
+        ECS_TAG_DEFINE(world, TSubtype_Steelborn);
+        ECS_TAG_DEFINE(world, TSubtype_Stormcaller);
+        ECS_TAG_DEFINE(world, TSubtype_Subzero);
+        ECS_TAG_DEFINE(world, TSubtype_SushiChef);
+        ECS_TAG_DEFINE(world, TSubtype_Sword);
+        ECS_TAG_DEFINE(world, TSubtype_WaterPainter);
+        ECS_TAG_DEFINE(world, TSubtype_Watercrafting);
+        ECS_TAG_DEFINE(world, TSubtype_Wavecaller);
         ecs_add_pair(world, ecs_id(CardId), EcsOnInstantiate, EcsInherit);
         ecs_add_pair(world, ecs_id(Name), EcsOnInstantiate, EcsInherit);
         ecs_add_pair(world, ecs_id(Element), EcsOnInstantiate, EcsInherit);
@@ -633,6 +682,8 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 0, .health = 20 });
         ecs_set(world, prefab, CurStats, { .cur_atk = 0, .cur_hp = 20 });
+        ecs_add(world, prefab, TSubtype_Raizan);
+        ecs_add(world, prefab, TSubtype_Steelborn);
     }
     {
         ecs_entity_desc_t desc = {
@@ -665,6 +716,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, CurStats, { .cur_atk = 1, .cur_hp = 1 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 1 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 1 });
+        ecs_add(world, prefab, TSubtype_BlackJade);
     }
     {
         ecs_entity_desc_t desc = {
@@ -683,6 +735,8 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, CurStats, { .cur_atk = 1, .cur_hp = 1 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 1 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 1 });
+        ecs_add(world, prefab, TSubtype_BlackJade);
+        ecs_add(world, prefab, TSubtype_Dawnling);
     }
     {
         ecs_entity_desc_t desc = {
@@ -701,6 +755,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, CurStats, { .cur_atk = 1, .cur_hp = 1 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 2 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 2 });
+        ecs_add(world, prefab, TSubtype_Bandit);
     }
     {
         ecs_entity_desc_t desc = {
@@ -719,6 +774,8 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, CurStats, { .cur_atk = 1, .cur_hp = 2 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 1 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 2 });
+        ecs_add(world, prefab, TSubtype_Elder);
+        ecs_add(world, prefab, TSubtype_Monk);
     }
     {
         ecs_entity_desc_t desc = {
@@ -737,6 +794,8 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, CurStats, { .cur_atk = 1, .cur_hp = 2 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 2 });
+        ecs_add(world, prefab, TSubtype_Dawnling);
+        ecs_add(world, prefab, TSubtype_AlleyDweller);
     }
     {
         ecs_entity_desc_t desc = {
@@ -755,6 +814,8 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, CurStats, { .cur_atk = 2, .cur_hp = 2 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 1 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 3 });
+        ecs_add(world, prefab, TSubtype_BlackJade);
+        ecs_add(world, prefab, TSubtype_Steelborn);
     }
     {
         ecs_entity_desc_t desc = {
@@ -773,6 +834,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, CurStats, { .cur_atk = 2, .cur_hp = 2 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 2 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 4 });
+        ecs_add(world, prefab, TSubtype_Steelborn);
     }
     {
         ecs_entity_desc_t desc = {
@@ -791,6 +853,8 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, CurStats, { .cur_atk = 3, .cur_hp = 2 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 3 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 5 });
+        ecs_add(world, prefab, TSubtype_Monk);
+        ecs_add(world, prefab, TSubtype_Steelborn);
     }
     {
         ecs_entity_desc_t desc = {
@@ -809,6 +873,8 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, CurStats, { .cur_atk = 4, .cur_hp = 3 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 4 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 6 });
+        ecs_add(world, prefab, TSubtype_Raizan);
+        ecs_add(world, prefab, TSubtype_Steelborn);
     }
     {
         ecs_entity_desc_t desc = {
@@ -826,6 +892,8 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, BaseStats, { .attack = 1, .health = 0 });
         ecs_set(world, prefab, CurStats, { .cur_atk = 1, .cur_hp = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 1 });
+        ecs_add(world, prefab, TSubtype_Shuriken);
+        ecs_add(world, prefab, TSubtype_Shadowfang);
     }
     {
         ecs_entity_desc_t desc = {
@@ -843,6 +911,8 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, BaseStats, { .attack = 1, .health = 0 });
         ecs_set(world, prefab, CurStats, { .cur_atk = 1, .cur_hp = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 1 });
+        ecs_add(world, prefab, TSubtype_BlackJade);
+        ecs_add(world, prefab, TSubtype_Sword);
     }
     {
         ecs_entity_desc_t desc = {
@@ -860,6 +930,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, BaseStats, { .attack = 2, .health = 0 });
         ecs_set(world, prefab, CurStats, { .cur_atk = 2, .cur_hp = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 2 });
+        ecs_add(world, prefab, TSubtype_Sword);
     }
     {
         ecs_entity_desc_t desc = {
@@ -877,6 +948,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, BaseStats, { .attack = 3, .health = 0 });
         ecs_set(world, prefab, CurStats, { .cur_atk = 3, .cur_hp = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 3 });
+        ecs_add(world, prefab, TSubtype_Sword);
     }
     {
         ecs_entity_desc_t desc = {
@@ -894,6 +966,8 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, BaseStats, { .attack = 4, .health = 0 });
         ecs_set(world, prefab, CurStats, { .cur_atk = 4, .cur_hp = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 4 });
+        ecs_add(world, prefab, TSubtype_Raizan);
+        ecs_add(world, prefab, TSubtype_Sword);
     }
     {
         ecs_entity_desc_t desc = {
@@ -909,6 +983,8 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_SPELL });
         ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 1 });
+        ecs_add(world, prefab, TSubtype_Stormcaller);
+        ecs_add(world, prefab, TSubtype_Orb);
     }
     {
         ecs_entity_desc_t desc = {
@@ -925,6 +1001,8 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 0, .health = 20 });
         ecs_set(world, prefab, CurStats, { .cur_atk = 0, .cur_hp = 20 });
+        ecs_add(world, prefab, TSubtype_Shao);
+        ecs_add(world, prefab, TSubtype_Driftward);
     }
     {
         ecs_entity_desc_t desc = {
@@ -957,6 +1035,8 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, CurStats, { .cur_atk = 1, .cur_hp = 1 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 1 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 1 });
+        ecs_add(world, prefab, TSubtype_Elder);
+        ecs_add(world, prefab, TSubtype_SushiChef);
     }
     {
         ecs_entity_desc_t desc = {
@@ -975,6 +1055,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, CurStats, { .cur_atk = 1, .cur_hp = 2 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 1 });
+        ecs_add(world, prefab, TSubtype_Dawnling);
     }
     {
         ecs_entity_desc_t desc = {
@@ -993,6 +1074,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, CurStats, { .cur_atk = 1, .cur_hp = 1 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 1 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 1 });
+        ecs_add(world, prefab, TSubtype_SushiChef);
     }
     {
         ecs_entity_desc_t desc = {
@@ -1011,6 +1093,9 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, CurStats, { .cur_atk = 0, .cur_hp = 1 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 1 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 2 });
+        ecs_add(world, prefab, TSubtype_Crab);
+        ecs_add(world, prefab, TSubtype_Rippleborn);
+        ecs_add(world, prefab, TSubtype_Driftward);
     }
     {
         ecs_entity_desc_t desc = {
@@ -1029,6 +1114,8 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, CurStats, { .cur_atk = 1, .cur_hp = 2 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 2 });
+        ecs_add(world, prefab, TSubtype_Frog);
+        ecs_add(world, prefab, TSubtype_Wavecaller);
     }
     {
         ecs_entity_desc_t desc = {
@@ -1047,6 +1134,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, CurStats, { .cur_atk = 2, .cur_hp = 1 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 2 });
+        ecs_add(world, prefab, TSubtype_Driftward);
     }
     {
         ecs_entity_desc_t desc = {
@@ -1065,6 +1153,8 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, CurStats, { .cur_atk = 1, .cur_hp = 2 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 1 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 3 });
+        ecs_add(world, prefab, TSubtype_Watercrafting);
+        ecs_add(world, prefab, TSubtype_WaterPainter);
     }
     {
         ecs_entity_desc_t desc = {
@@ -1083,6 +1173,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, CurStats, { .cur_atk = 1, .cur_hp = 3 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 1 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 3 });
+        ecs_add(world, prefab, TSubtype_Wavecaller);
     }
     {
         ecs_entity_desc_t desc = {
@@ -1101,6 +1192,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, CurStats, { .cur_atk = 2, .cur_hp = 2 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 3 });
+        ecs_add(world, prefab, TSubtype_Driftward);
     }
     {
         ecs_entity_desc_t desc = {
@@ -1119,6 +1211,8 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, CurStats, { .cur_atk = 2, .cur_hp = 2 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 2 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 4 });
+        ecs_add(world, prefab, TSubtype_Shao);
+        ecs_add(world, prefab, TSubtype_Dawnling);
     }
     {
         ecs_entity_desc_t desc = {
@@ -1137,6 +1231,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, CurStats, { .cur_atk = 3, .cur_hp = 4 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 2 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 5 });
+        ecs_add(world, prefab, TSubtype_Wavecaller);
     }
     {
         ecs_entity_desc_t desc = {
@@ -1152,6 +1247,8 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_SPELL });
         ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 1 });
+        ecs_add(world, prefab, TSubtype_Subzero);
+        ecs_add(world, prefab, TSubtype_Watercrafting);
     }
     {
         ecs_entity_desc_t desc = {
@@ -1167,6 +1264,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_SPELL });
         ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 2 });
+        ecs_add(world, prefab, TSubtype_Watercrafting);
     }
     {
         ecs_entity_desc_t desc = {
@@ -1182,6 +1280,8 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_SPELL });
         ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 1 });
+        ecs_add(world, prefab, TSubtype_Watercrafting);
+        ecs_add(world, prefab, TSubtype_Orb);
     }
     {
         ecs_entity_desc_t desc = {
@@ -1197,6 +1297,8 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_SPELL });
         ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 6 });
+        ecs_add(world, prefab, TSubtype_Watercrafting);
+        ecs_add(world, prefab, TSubtype_Shao);
     }
 }
 
