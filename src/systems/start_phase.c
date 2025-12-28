@@ -64,6 +64,12 @@ void StartPhase(ecs_iter_t *it) {
   tick_status_effects_for_player(world, 0);
   tick_status_effects_for_player(world, 1);
 
+  // Reset entities played this turn counters
+  for (int i = 0; i < MAX_PLAYERS_PER_MATCH; i++) {
+    gs->entities_played_garden_this_turn[i] = 0;
+    gs->entities_played_alley_this_turn[i] = 0;
+  }
+
   UntapAllCards(world, gs);
   DrawCard(world, gs);
   GrantIKZ(world, gs);

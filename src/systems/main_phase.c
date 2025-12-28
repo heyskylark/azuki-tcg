@@ -28,6 +28,13 @@ static int play_entity_to_garden_or_alley(ecs_world_t *world, GameState *gs,
   int result = summon_card_into_zone_index(world, &intent);
 
   if (result == 0) {
+    // Increment entity played counter for this turn
+    if (placement_type == ZONE_GARDEN) {
+      gs->entities_played_garden_this_turn[gs->active_player_index]++;
+    } else {
+      gs->entities_played_alley_this_turn[gs->active_player_index]++;
+    }
+
     // Queue on-play ability for processing on next loop iteration.
     // This allows deferred zone operations to flush first.
     azk_trigger_on_play_ability(world, intent.card, intent.player);
