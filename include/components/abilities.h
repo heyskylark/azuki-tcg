@@ -81,11 +81,15 @@ extern ECS_TAG_DECLARE(Godmode);
 extern ECS_TAG_DECLARE(Frozen);
 extern ECS_TAG_DECLARE(Shocked);
 
+/* Positive Condition Tags */
+extern ECS_TAG_DECLARE(EffectImmune);
+
 /* Card Condition Countdowns - tracks duration of status effects */
 /* -1 = permanent, 0 = expired (remove tag), >0 = turns remaining */
 typedef struct {
   int8_t frozen_duration;
   int8_t shocked_duration;
+  int8_t effect_immune_duration;
 } CardConditionCountdown;
 
 extern ECS_COMPONENT_DECLARE(CardConditionCountdown);

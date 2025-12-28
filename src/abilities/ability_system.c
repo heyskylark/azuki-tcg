@@ -250,6 +250,18 @@ bool azk_process_effect_selection(ecs_world_t *world, int target_index) {
     }
     break;
   }
+  case ABILITY_TARGET_FRIENDLY_GARDEN_ENTITY: {
+    ecs_entity_t garden = gs->zones[player_num].garden;
+    ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
+    for (int i = 0; i < garden_cards.count; i++) {
+      const ZoneIndex *zi = ecs_get(world, garden_cards.ids[i], ZoneIndex);
+      if (zi && zi->index == target_index) {
+        target = garden_cards.ids[i];
+        break;
+      }
+    }
+    break;
+  }
   case ABILITY_TARGET_ENEMY_GARDEN_ENTITY: {
     uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
     ecs_entity_t garden = gs->zones[enemy_num].garden;

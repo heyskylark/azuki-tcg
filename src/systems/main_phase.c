@@ -172,6 +172,31 @@ static void handle_activate_alley_ability(ecs_world_t *world, GameState *gs,
 }
 
 /**
+ * Expected Action: ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY, slot_index, unused,
+ * unused slot_index is 0-4 for garden, 5 for leader
+ */
+static void handle_activate_garden_or_leader_ability(ecs_world_t *world,
+                                                      GameState *gs,
+                                                      ActionContext *ac) {
+  if (ac->user_action.type != ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY) {
+    exit(EXIT_FAILURE);
+  }
+
+  ecs_entity_t player = gs->players[gs->active_player_index];
+  ActivateAbilityIntent intent = {0};
+  if (!azk_validate_activate_garden_or_leader_ability_action(
+          world, gs, player, &ac->user_action, true, &intent)) {
+    ac->invalid_action = true;
+    return;
+  }
+
+  // Trigger the main phase ability
+  azk_trigger_main_ability(world, intent.card, player);
+
+  cli_render_logf("[MainAction] Activated garden/leader ability");
+}
+
+/**
  * Expected Action: ACT_PLAY_SPELL_FROM_HAND, hand_index, unused, use_ikz_token
  */
 static void handle_play_spell_from_hand(ecs_world_t *world, GameState *gs,
@@ -376,6 +401,9 @@ void HandleMainAction(ecs_iter_t *it) {
     break;
   case ACT_ACTIVATE_ALLEY_ABILITY:
     handle_activate_alley_ability(world, gs, ac);
+    break;
+  case ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY:
+    handle_activate_garden_or_leader_ability(world, gs, ac);
     break;
   case ACT_PLAY_SPELL_FROM_HAND:
     handle_play_spell_from_hand(world, gs, ac);

@@ -13,7 +13,9 @@ void apply_frozen(ecs_world_t *world, ecs_entity_t entity, int8_t duration) {
       ecs_get_mut(world, entity, CardConditionCountdown);
   if (!countdown) {
     ecs_set(world, entity, CardConditionCountdown,
-            {.frozen_duration = duration, .shocked_duration = 0});
+            {.frozen_duration = duration,
+             .shocked_duration = 0,
+             .effect_immune_duration = 0});
   } else {
     countdown->frozen_duration = duration;
     ecs_modified(world, entity, CardConditionCountdown);
@@ -37,6 +39,45 @@ void remove_frozen(ecs_world_t *world, ecs_entity_t entity) {
 
 bool is_frozen(ecs_world_t *world, ecs_entity_t entity) {
   return ecs_has(world, entity, Frozen);
+}
+
+void apply_effect_immune(ecs_world_t *world, ecs_entity_t entity,
+                         int8_t duration) {
+  // Add the EffectImmune tag
+  ecs_add(world, entity, EffectImmune);
+
+  // Set or update CardConditionCountdown component
+  CardConditionCountdown *countdown =
+      ecs_get_mut(world, entity, CardConditionCountdown);
+  if (!countdown) {
+    ecs_set(world, entity, CardConditionCountdown,
+            {.frozen_duration = 0,
+             .shocked_duration = 0,
+             .effect_immune_duration = duration});
+  } else {
+    countdown->effect_immune_duration = duration;
+    ecs_modified(world, entity, CardConditionCountdown);
+  }
+
+  cli_render_logf("[Status] Applied EffectImmune (duration=%d) to entity",
+                  duration);
+}
+
+void remove_effect_immune(ecs_world_t *world, ecs_entity_t entity) {
+  ecs_remove(world, entity, EffectImmune);
+
+  CardConditionCountdown *countdown =
+      ecs_get_mut(world, entity, CardConditionCountdown);
+  if (countdown) {
+    countdown->effect_immune_duration = 0;
+    ecs_modified(world, entity, CardConditionCountdown);
+  }
+
+  cli_render_logf("[Status] Removed EffectImmune from entity");
+}
+
+bool is_effect_immune(ecs_world_t *world, ecs_entity_t entity) {
+  return ecs_has(world, entity, EffectImmune);
 }
 
 // Helper to process a single zone's cards for status tick-down
@@ -68,6 +109,15 @@ static void tick_zone_status_effects(ecs_world_t *world, ecs_entity_t zone) {
       if (countdown->shocked_duration == 0) {
         ecs_remove(world, card, Shocked);
         cli_render_logf("[Status] Shocked expired on entity");
+      }
+    }
+
+    // Process EffectImmune duration
+    if (countdown->effect_immune_duration > 0) {
+      countdown->effect_immune_duration--;
+      if (countdown->effect_immune_duration == 0) {
+        ecs_remove(world, card, EffectImmune);
+        cli_render_logf("[Status] EffectImmune expired on entity");
       }
     }
 

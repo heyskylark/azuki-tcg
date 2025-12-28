@@ -7,6 +7,7 @@
 #include "abilities/cards/stt01_013.h"
 #include "abilities/cards/stt02_007.h"
 #include "abilities/cards/stt02_009.h"
+#include "abilities/cards/stt02_011.h"
 #include "abilities/cards/stt02_014.h"
 #include "abilities/cards/stt02_015.h"
 #include "components/abilities.h"
@@ -193,6 +194,26 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .validate_effect_target = NULL,
       .apply_costs = stt01_013_apply_costs,
       .apply_effects = stt01_013_apply_effects,
+  };
+
+  // STT02-011: "Garden only; Main; You may sacrifice this card: choose an
+  // entity in your garden; it cannot take damage from card effects until the
+  // start of your next turn."
+  kAbilityRegistry[CARD_DEF_STT02_011] = (AbilityDef){
+      .has_ability = true,
+      .is_optional = false, // Once activated, must select a target
+      .cost_req = {.type = ABILITY_TARGET_NONE, // Sacrifice self is automatic
+                   .min = 0,
+                   .max = 0},
+      .effect_req = {.type = ABILITY_TARGET_FRIENDLY_GARDEN_ENTITY,
+                     .min = 1,
+                     .max = 1},
+      .timing_tag = ecs_id(AMain),
+      .validate = stt02_011_validate,
+      .validate_cost_target = NULL,
+      .validate_effect_target = stt02_011_validate_effect_target,
+      .apply_costs = stt02_011_apply_costs,
+      .apply_effects = stt02_011_apply_effects,
   };
 
   kRegistryInitialized = true;

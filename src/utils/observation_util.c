@@ -160,6 +160,7 @@ static CardObservationData get_card_observation(ecs_world_t *world,
   // Check for status effects
   observation_data.is_frozen = ecs_has(world, card, Frozen);
   observation_data.is_shocked = ecs_has(world, card, Shocked);
+  observation_data.is_effect_immune = ecs_has(world, card, EffectImmune);
 
   return observation_data;
 }

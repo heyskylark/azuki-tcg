@@ -135,6 +135,24 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
       }
       break;
     }
+    case ABILITY_TARGET_FRIENDLY_GARDEN_ENTITY: {
+      ecs_entity_t garden = gs->zones[player_num].garden;
+      ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
+      for (int i = 0; i < garden_cards.count; i++) {
+        ecs_entity_t target = garden_cards.ids[i];
+        const ZoneIndex *zi = ecs_get(world, target, ZoneIndex);
+        if (!zi)
+          continue;
+        if (def->validate_effect_target &&
+            !def->validate_effect_target(world, ctx->source_card, ctx->owner,
+                                         target)) {
+          continue;
+        }
+        action.subaction_1 = zi->index;
+        add_valid_action(out_mask, &action);
+      }
+      break;
+    }
     case ABILITY_TARGET_ENEMY_GARDEN_ENTITY: {
       uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
       ecs_entity_t garden = gs->zones[enemy_num].garden;
@@ -277,6 +295,9 @@ static bool validate_action_for_mask(ecs_world_t *world, const GameState *gs,
   case ACT_ACTIVATE_ALLEY_ABILITY:
     return azk_validate_activate_alley_ability_action(world, gs, player, action,
                                                       false, NULL);
+  case ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY:
+    return azk_validate_activate_garden_or_leader_ability_action(
+        world, gs, player, action, false, NULL);
   case ACT_NOOP:
   case ACT_MULLIGAN_SHUFFLE:
     return azk_validate_simple_action(world, gs, player, action->type, false);

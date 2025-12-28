@@ -48,6 +48,7 @@ typedef struct {
   WeaponObservationData weapons[MAX_ATTACHED_WEAPONS];
   bool is_frozen;
   bool is_shocked;
+  bool is_effect_immune;
 } CardObservationData;
 
 typedef struct {

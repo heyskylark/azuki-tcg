@@ -567,15 +567,29 @@ static void draw_text_box(WINDOW *win, int top, int left, int width, int height,
   }
 }
 
-static const char *status_effect_string(bool is_frozen, bool is_shocked) {
-  if (is_frozen && is_shocked) {
-    return "F/S";
-  } else if (is_frozen) {
-    return "F";
-  } else if (is_shocked) {
-    return "S";
+static const char *status_effect_string(bool is_frozen, bool is_shocked,
+                                        bool is_effect_immune) {
+  // Build status string based on active effects
+  // F = Frozen, S = Shocked, I = Effect Immune
+  static char status_buf[8];
+  int pos = 0;
+
+  if (is_frozen) {
+    status_buf[pos++] = 'F';
   }
-  return NULL;
+  if (is_shocked) {
+    if (pos > 0)
+      status_buf[pos++] = '/';
+    status_buf[pos++] = 'S';
+  }
+  if (is_effect_immune) {
+    if (pos > 0)
+      status_buf[pos++] = '/';
+    status_buf[pos++] = 'I';
+  }
+  status_buf[pos] = '\0';
+
+  return pos > 0 ? status_buf : NULL;
 }
 
 static void build_standard_card_lines(const CardObservationData *card,
@@ -601,7 +615,8 @@ static void build_standard_card_lines(const CardObservationData *card,
 
   char tap = tap_state_char(&card->tap_state);
   char cooldown = cooldown_state_char(&card->tap_state);
-  const char *status = status_effect_string(card->is_frozen, card->is_shocked);
+  const char *status = status_effect_string(card->is_frozen, card->is_shocked,
+                                            card->is_effect_immune);
   if (status) {
     // Status effects take priority over IKZ cost display
     snprintf(lines[3], CARD_BOX_TEXT_CAPACITY, "T/C:%c/%c %s", tap, cooldown,

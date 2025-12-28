@@ -28,6 +28,8 @@ ECS_TAG_DECLARE(Godmode);
 ECS_TAG_DECLARE(Frozen);
 ECS_TAG_DECLARE(Shocked);
 
+ECS_TAG_DECLARE(EffectImmune);
+
 ECS_COMPONENT_DECLARE(CardConditionCountdown);
 
 void azk_register_ability_components(ecs_world_t *world) {
@@ -56,6 +58,8 @@ void azk_register_ability_components(ecs_world_t *world) {
 
   ECS_TAG_DEFINE(world, Frozen);
   ECS_TAG_DEFINE(world, Shocked);
+
+  ECS_TAG_DEFINE(world, EffectImmune);
 
   ECS_COMPONENT_DEFINE(world, CardConditionCountdown);
 }

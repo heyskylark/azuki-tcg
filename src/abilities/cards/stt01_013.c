@@ -3,6 +3,7 @@
 #include "components/components.h"
 #include "generated/card_defs.h"
 #include "utils/cli_rendering_util.h"
+#include "utils/damage_util.h"
 #include "utils/player_util.h"
 #include "utils/zone_util.h"
 
@@ -32,16 +33,16 @@ void stt01_013_apply_costs(ecs_world_t *world, const AbilityContext *ctx) {
   ecs_entity_t leader =
       find_leader_card_in_zone(world, gs->zones[player_num].leader);
 
-  // Deal 1 damage to owner's leader
-  CurStats *leader_stats = ecs_get_mut(world, leader, CurStats);
-  ecs_assert(leader_stats != NULL, ECS_INVALID_PARAMETER,
-             "CurStats not found for leader");
-
-  leader_stats->cur_hp -= 1;
-  ecs_modified(world, leader, CurStats);
-
-  cli_render_logf("[STT01-013] Dealt 1 damage to leader (HP: %d)",
-                  leader_stats->cur_hp);
+  // Deal 1 damage to owner's leader (may be blocked by EffectImmune)
+  // The +1 attack effect still applies regardless of whether damage is blocked
+  bool damage_dealt = deal_effect_damage(world, leader, 1);
+  if (damage_dealt) {
+    const CurStats *leader_stats = ecs_get(world, leader, CurStats);
+    cli_render_logf("[STT01-013] Dealt 1 damage to leader (HP: %d)",
+                    leader_stats->cur_hp);
+  } else {
+    cli_render_logf("[STT01-013] Damage to leader blocked by EffectImmune");
+  }
 }
 
 void stt01_013_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
