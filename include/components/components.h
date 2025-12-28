@@ -76,6 +76,7 @@ typedef struct {
 typedef struct {
   ecs_entity_t attacking_card;
   ecs_entity_t defender_card;
+  bool defender_intercepted;
 } CombatState;
 
 typedef struct {

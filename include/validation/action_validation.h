@@ -78,4 +78,13 @@ bool azk_validate_activate_garden_or_leader_ability_action(
   ActivateAbilityIntent *out_intent
 );
 
+bool azk_validate_declare_defender_action(
+  ecs_world_t *world,
+  const GameState *gs,
+  ecs_entity_t player,
+  const UserAction *action,
+  bool log_errors,
+  DeclareDefenderIntent *out_intent
+);
+
 #endif

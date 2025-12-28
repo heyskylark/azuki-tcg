@@ -769,3 +769,78 @@ bool azk_validate_activate_garden_or_leader_ability_action(
 
   return true;
 }
+
+bool azk_validate_declare_defender_action(
+  ecs_world_t *world,
+  const GameState *gs,
+  ecs_entity_t player,
+  const UserAction *action,
+  bool log_errors,
+  DeclareDefenderIntent *out_intent
+) {
+  ecs_assert(world != NULL, ECS_INVALID_PARAMETER, "World is null");
+  ecs_assert(gs != NULL, ECS_INVALID_PARAMETER, "GameState is null");
+  ecs_assert(action != NULL, ECS_INVALID_PARAMETER, "Action is null");
+
+  if (!ensure_active_player(world, gs, player, log_errors)) {
+    return false;
+  }
+
+  // Can only declare defender during response window
+  if (gs->phase != PHASE_RESPONSE_WINDOW) {
+    VALIDATION_LOG(log_errors, "Cannot declare defender outside response window");
+    return false;
+  }
+
+  // Check defender hasn't already been declared
+  if (gs->combat_state.defender_intercepted) {
+    VALIDATION_LOG(log_errors, "Defender already declared this combat");
+    return false;
+  }
+
+  // Check attacker doesn't have Infiltrate
+  if (ecs_has(world, gs->combat_state.attacking_card, Infiltrate)) {
+    VALIDATION_LOG(log_errors, "Attacker has Infiltrate - cannot declare defender");
+    return false;
+  }
+
+  // Get the defender card from subaction_1 (garden index)
+  int garden_index = action->subaction_1;
+  if (garden_index < 0 || garden_index >= GARDEN_SIZE) {
+    VALIDATION_LOG(log_errors, "Garden index %d out of bounds", garden_index);
+    return false;
+  }
+
+  uint8_t player_number = get_player_number(world, player);
+  ecs_entity_t defender_card = find_card_in_zone_index(
+    world, gs->zones[player_number].garden, garden_index
+  );
+
+  if (defender_card == 0) {
+    VALIDATION_LOG(log_errors, "No card at garden index %d", garden_index);
+    return false;
+  }
+
+  // Check card has Defender tag
+  if (!ecs_has(world, defender_card, Defender)) {
+    VALIDATION_LOG(log_errors, "Card does not have Defender keyword");
+    return false;
+  }
+
+  // Check card is untapped (not affected by cooldown)
+  if (is_card_tapped(world, defender_card)) {
+    VALIDATION_LOG(log_errors, "Defender card is tapped");
+    return false;
+  }
+
+  if (out_intent) {
+    DeclareDefenderIntent intent = {
+      .player = player,
+      .defender_card = defender_card,
+      .garden_index = (uint8_t)garden_index
+    };
+    *out_intent = intent;
+  }
+
+  return true;
+}

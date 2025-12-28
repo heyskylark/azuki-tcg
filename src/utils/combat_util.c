@@ -19,6 +19,7 @@ int attack(
   CombatState combat_state = {
     .attacking_card = intent->attacking_card,
     .defender_card = intent->defending_card,
+    .defender_intercepted = false,
   };
   gs->combat_state = combat_state;
 

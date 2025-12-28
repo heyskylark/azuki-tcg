@@ -22,7 +22,7 @@
 {"card_id": "STT02-003", "name": "Hayabusa Itto", "rarity": "C", "element": "WATER", "type": "ENTITY", "ikz_cost": 1, "attack": 1, "health": 1, "gate_points": 1}
 {"card_id": "STT02-004", "name": "Rei", "rarity": "C", "element": "NORMAL", "type": "ENTITY", "ikz_cost": 1, "attack": 1, "health": 2, "gate_points": 0}
 {"card_id": "STT02-005", "name": "Hayabusa Saburo", "rarity": "UC", "element": "WATER", "type": "ENTITY", "ikz_cost": 1, "attack": 1, "health": 1, "gate_points": 1}
-{"card_id": "STT02-006", "name": "Foamback Crab", "rarity": "C", "element": "WATER", "type": "ENTITY", "ikz_cost": 2, "attack": 0, "health": 1, "gate_points": 1}
+{"card_id": "STT02-006", "name": "Foamback Crab", "rarity": "C", "element": "WATER", "type": "ENTITY", "ikz_cost": 2, "attack": 0, "health": 1, "gate_points": 1, "keywords": ["defender", "effect_immune"]}
 {"card_id": "STT02-007", "name": "Benzai the Merchant", "rarity": "C", "element": "WATER", "type": "ENTITY", "ikz_cost": 2, "attack": 1, "health": 2, "gate_points": 0}
 {"card_id": "STT02-008", "name": "Serene Fist, Misaki", "rarity": "UC", "element": "WATER", "type": "ENTITY", "ikz_cost": 2, "attack": 2, "health": 1, "gate_points": 0}
 {"card_id": "STT02-009", "name": "Aya", "rarity": "C", "element": "WATER", "type": "ENTITY", "ikz_cost": 3, "attack": 1, "health": 2, "gate_points": 1}

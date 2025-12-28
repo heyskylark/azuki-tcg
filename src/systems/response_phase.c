@@ -33,6 +33,29 @@ static bool check_auto_transition_after_ability(ecs_world_t *world,
   return false;
 }
 
+static void handle_declare_defender(ecs_world_t *world, GameState *gs,
+                                    ActionContext *ac) {
+  if (ac->user_action.type != ACT_DECLARE_DEFENDER) {
+    ac->invalid_action = true;
+    return;
+  }
+
+  ecs_entity_t player = gs->players[gs->active_player_index];
+  DeclareDefenderIntent intent = {0};
+  if (!azk_validate_declare_defender_action(world, gs, player, &ac->user_action,
+                                            true, &intent)) {
+    ac->invalid_action = true;
+    return;
+  }
+
+  // Update combat state with new defender
+  gs->combat_state.defender_card = intent.defender_card;
+  gs->combat_state.defender_intercepted = true;
+
+  cli_render_logf("[ResponseAction] Declared defender at garden index %d",
+                  intent.garden_index);
+}
+
 static void handle_play_spell_from_hand(ecs_world_t *world, GameState *gs,
                                         ActionContext *ac) {
   if (ac->user_action.type != ACT_PLAY_SPELL_FROM_HAND) {
@@ -171,6 +194,10 @@ void HandleResponseAction(ecs_iter_t *it) {
     if (!ac->invalid_action) {
       check_auto_transition_after_ability(world, gs);
     }
+    break;
+
+  case ACT_DECLARE_DEFENDER:
+    handle_declare_defender(world, gs, ac);
     break;
 
   case ACT_NOOP:

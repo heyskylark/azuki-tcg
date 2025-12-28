@@ -62,6 +62,11 @@ void azk_register_ability_components(ecs_world_t *world) {
   ECS_TAG_DEFINE(world, EffectImmune);
 
   ECS_COMPONENT_DEFINE(world, CardConditionCountdown);
+
+  // Ensure CardConditionCountdown is copied to each instance on instantiation
+  // (EcsOverride gives each instance its own mutable copy, unlike EcsInherit)
+  ecs_add_pair(world, ecs_id(CardConditionCountdown), EcsOnInstantiate,
+               EcsOverride);
 }
 
 void attach_ability_components(ecs_world_t* world, ecs_entity_t card) {

@@ -42,11 +42,17 @@ void HandleCombatResolution(ecs_iter_t *it) {
       !attacker_valid ? "attacker" : "defender");
     gs->combat_state.attacking_card = 0;
     gs->combat_state.defender_card = 0;
+    gs->combat_state.defender_intercepted = false;
     gs->phase = PHASE_MAIN;
     return;
   }
 
   resolve_combat(world);
+
+  // Reset combat state
+  gs->combat_state.attacking_card = 0;
+  gs->combat_state.defender_card = 0;
+  gs->combat_state.defender_intercepted = false;
 
   if (is_game_over(world)) {
     gs->phase = PHASE_END_MATCH;

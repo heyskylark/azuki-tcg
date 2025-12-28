@@ -55,7 +55,10 @@ void apply_effect_immune(ecs_world_t *world, ecs_entity_t entity,
              .shocked_duration = 0,
              .effect_immune_duration = duration});
   } else {
-    countdown->effect_immune_duration = duration;
+    // Don't override permanent immunity (-1) with temporary
+    if (countdown->effect_immune_duration != -1) {
+      countdown->effect_immune_duration = duration;
+    }
     ecs_modified(world, entity, CardConditionCountdown);
   }
 

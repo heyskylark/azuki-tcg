@@ -298,6 +298,9 @@ static bool validate_action_for_mask(ecs_world_t *world, const GameState *gs,
   case ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY:
     return azk_validate_activate_garden_or_leader_ability_action(
         world, gs, player, action, false, NULL);
+  case ACT_DECLARE_DEFENDER:
+    return azk_validate_declare_defender_action(world, gs, player, action, false,
+                                                NULL);
   case ACT_NOOP:
   case ACT_MULLIGAN_SHUFFLE:
     return azk_validate_simple_action(world, gs, player, action->type, false);

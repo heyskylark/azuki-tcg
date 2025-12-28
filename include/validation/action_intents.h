@@ -54,6 +54,12 @@ typedef struct {
 
 typedef struct {
   ecs_entity_t player;
+  ecs_entity_t defender_card;
+  uint8_t garden_index;
+} DeclareDefenderIntent;
+
+typedef struct {
+  ecs_entity_t player;
   ecs_entity_t spell_card;
   bool use_ikz_token;
   ecs_entity_t ikz_cards[AZK_MAX_IKZ_PAYMENT];
