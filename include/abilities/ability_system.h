@@ -41,6 +41,14 @@ bool azk_process_effect_skip(ecs_world_t *world);
 // Returns true if selection is valid, false otherwise
 bool azk_process_selection_pick(ecs_world_t *world, int selection_index);
 
+// Process selection to alley (ACT_SELECT_TO_ALLEY)
+// selection_index is the index into the selection zone
+// alley_slot_index is the target alley slot (0-4)
+// Moves an entity card directly to alley without IKZ cost
+// Returns true if successful, false otherwise
+bool azk_process_selection_to_alley(ecs_world_t *world, int selection_index,
+                                    int alley_slot_index);
+
 // Skip selection pick (ACT_NOOP during selection pick when selection_pick_max >
 // 0 allows) For "up to" effects where the player can choose to not select any
 // cards Returns true if skipping is valid, false otherwise

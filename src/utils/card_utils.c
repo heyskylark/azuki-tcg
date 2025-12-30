@@ -123,6 +123,14 @@ bool is_watercrafting_card(ecs_world_t *world, ecs_entity_t card) {
   return has_subtype(world, card, ecs_id(TSubtype_Watercrafting));
 }
 
+bool is_water_element_card(ecs_world_t *world, ecs_entity_t card) {
+  const Element *elem = ecs_get(world, card, Element);
+  if (!elem) {
+    return false;
+  }
+  return elem->element == (uint8_t)CARD_ELEMENT_WATER;
+}
+
 int count_subtype_in_zone(ecs_world_t *world, ecs_entity_t zone,
                           ecs_id_t subtype_tag) {
   ecs_entities_t children = ecs_get_ordered_children(world, zone);

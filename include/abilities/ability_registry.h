@@ -11,6 +11,7 @@
 typedef struct {
   bool has_ability;
   bool is_optional;
+  bool can_select_to_alley; // If true, entity cards can be selected to alley
   AbilityCostRequirements cost_req;
   AbilityEffectRequirements effect_req;
   ecs_id_t timing_tag; // AOnPlay, AStartOfTurn, etc. (0 if none)

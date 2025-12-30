@@ -4,6 +4,7 @@
 #include "components/abilities.h"
 #include "components/components.h"
 #include "generated/card_defs.h"
+#include "utils/card_utils.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/player_util.h"
 #include "utils/zone_util.h"
@@ -461,6 +462,156 @@ bool azk_process_selection_pick(ecs_world_t *world, int selection_index) {
 
   cli_render_logf("[Ability] Picked selection %d (%d/%d)", selection_index,
                   ctx->selection_picked, ctx->selection_pick_max);
+
+  // Check if we've picked enough
+  if (ctx->selection_picked >= ctx->selection_pick_max) {
+    // Call on_selection_complete callback
+    if (def->on_selection_complete) {
+      def->on_selection_complete(world, ctx);
+      cli_render_logf("[Ability] Called on_selection_complete callback");
+    }
+
+    // After selection complete, should be in BOTTOM_DECK or done
+    if (ctx->phase != ABILITY_PHASE_BOTTOM_DECK &&
+        ctx->phase != ABILITY_PHASE_NONE) {
+      // Move to bottom deck phase if there are remaining cards
+      int remaining = 0;
+      for (int i = 0; i < ctx->selection_count; i++) {
+        if (ctx->selection_cards[i] != 0) {
+          remaining++;
+        }
+      }
+      if (remaining > 0) {
+        ctx->phase = ABILITY_PHASE_BOTTOM_DECK;
+      } else {
+        azk_clear_ability_context(world);
+        return true;
+      }
+    }
+  }
+
+  ecs_singleton_modified(world, AbilityContext);
+  return true;
+}
+
+bool azk_process_selection_to_alley(ecs_world_t *world, int selection_index,
+                                    int alley_slot_index) {
+  AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
+
+  if (ctx->phase != ABILITY_PHASE_SELECTION_PICK) {
+    return false;
+  }
+
+  // Validate selection index is in range
+  if (selection_index < 0 || selection_index >= ctx->selection_count) {
+    cli_render_logf("[Ability] Invalid selection index %d (count=%d)",
+                    selection_index, ctx->selection_count);
+    return false;
+  }
+
+  // Validate alley slot index is in range
+  if (alley_slot_index < 0 || alley_slot_index >= ALLEY_SIZE) {
+    cli_render_logf("[Ability] Invalid alley slot index %d", alley_slot_index);
+    return false;
+  }
+
+  ecs_entity_t target = ctx->selection_cards[selection_index];
+  if (target == 0) {
+    cli_render_logf("[Ability] Selection slot %d is empty", selection_index);
+    return false;
+  }
+
+  const CardId *card_id = ecs_get(world, ctx->source_card, CardId);
+  if (!card_id) {
+    azk_clear_ability_context(world);
+    return false;
+  }
+
+  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  if (!def) {
+    azk_clear_ability_context(world);
+    return false;
+  }
+
+  // Verify the ability allows selecting to alley
+  if (!def->can_select_to_alley) {
+    cli_render_logf("[Ability] This ability does not allow selecting to alley");
+    return false;
+  }
+
+  // Verify the target is an entity card
+  const Type *target_type = ecs_get(world, target, Type);
+  if (!target_type || target_type->value != CARD_TYPE_ENTITY) {
+    cli_render_logf("[Ability] Only entity cards can be selected to alley");
+    return false;
+  }
+
+  // Validate the selection target if validation function exists
+  if (def->validate_selection_target &&
+      !def->validate_selection_target(world, ctx->source_card, ctx->owner,
+                                      target)) {
+    cli_render_logf("[Ability] Selection target validation failed");
+    return false;
+  }
+
+  // Get game state and zones
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  uint8_t player_num = get_player_number(world, ctx->owner);
+  ecs_entity_t alley = gs->zones[player_num].alley;
+
+  // Check for displaced card at the target slot
+  ecs_entity_t displaced_card = 0;
+  ecs_entities_t alley_cards = ecs_get_ordered_children(world, alley);
+  for (int32_t i = 0; i < alley_cards.count; i++) {
+    const ZoneIndex *zi = ecs_get(world, alley_cards.ids[i], ZoneIndex);
+    if (zi && zi->index == alley_slot_index) {
+      displaced_card = alley_cards.ids[i];
+      break;
+    }
+  }
+
+  // Handle displaced card - only allow replacement if alley is full
+  if (displaced_card != 0) {
+    bool alley_full = alley_cards.count >= ALLEY_SIZE;
+    if (!alley_full) {
+      // Reject: slot occupied but alley has empty slots available
+      cli_render_logf("[Ability] Alley slot %d is already occupied",
+                      alley_slot_index);
+      return false;
+    }
+    // Alley is full - forced replacement allowed
+    discard_card(world, displaced_card);
+    cli_render_logf("[Ability] Displaced card from alley slot %d",
+                    alley_slot_index);
+  }
+
+  // Move the selected card to the alley slot
+  ecs_add_pair(world, target, EcsChildOf, alley);
+  ecs_set(world, target, ZoneIndex, {.index = (uint8_t)alley_slot_index});
+
+  // Reset tap state for newly placed card
+  ecs_set(world, target, TapState, {.tapped = false, .cooldown = false});
+
+  // Track that an entity was played to alley this turn (for abilities like
+  // STT02-005)
+  GameState *gs_mut = ecs_singleton_get_mut(world, GameState);
+  gs_mut->entities_played_alley_this_turn[player_num]++;
+  ecs_singleton_modified(world, GameState);
+
+  // Queue on-play ability for the played entity (if it has one)
+  // Will be processed after current ability completes (including bottom deck)
+  azk_trigger_on_play_ability(world, target, ctx->owner);
+
+  cli_render_logf("[Ability] Selected card to alley slot %d", alley_slot_index);
+
+  // Don't store in effect_targets - the card is already moved to alley.
+  // Storing it would cause on_selection_complete to incorrectly move it to hand
+  // due to Flecs deferred operations (parent check sees old value).
+  // Just increment the pick count.
+  ctx->selection_picked++;
+
+  // Mark this slot as picked by setting to 0
+  ctx->selection_cards[selection_index] = 0;
 
   // Check if we've picked enough
   if (ctx->selection_picked >= ctx->selection_pick_max) {

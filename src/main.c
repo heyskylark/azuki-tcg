@@ -18,7 +18,10 @@ int main(void) {
     cli_render_draw(&observation_data, gs);
 
     // Check for queued triggered effects to auto-process
-    if (azk_has_queued_triggered_effects(world)) {
+    // Only process when no ability is currently active to avoid overwriting
+    // AbilityContext mid-ability (e.g., during BOTTOM_DECK phase)
+    if (azk_has_queued_triggered_effects(world) &&
+        !azk_is_in_ability_phase(world)) {
       // Auto-process the queued effect (no user input needed)
       // This just validates and sets up AbilityContext - no systems run
       azk_process_triggered_effect_queue(world);

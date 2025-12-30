@@ -46,6 +46,14 @@ bool has_subtype(ecs_world_t *world, ecs_entity_t card, ecs_id_t subtype_tag);
 bool is_watercrafting_card(ecs_world_t *world, ecs_entity_t card);
 
 /**
+ * Check if a card has the Water element.
+ * @param world The ECS world
+ * @param card The card entity to check
+ * @return true if the card has the Water element
+ */
+bool is_water_element_card(ecs_world_t *world, ecs_entity_t card);
+
+/**
  * Count cards with a specific subtype in a zone.
  * @param world The ECS world
  * @param zone The zone entity to search
