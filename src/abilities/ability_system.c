@@ -1096,6 +1096,18 @@ bool azk_process_triggered_effect_queue(ecs_world_t *world) {
   ecs_entity_t card = effect.source_card;
   ecs_entity_t owner = effect.owner;
 
+  // Switch active player to ability owner if different
+  // This ensures the correct player has control to confirm/decline
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  uint8_t owner_player_num = get_player_number(world, owner);
+  if (gs->active_player_index != owner_player_num) {
+    cli_render_logf(
+        "[Ability] Switching control to player %d for triggered ability",
+        owner_player_num);
+    gs->active_player_index = owner_player_num;
+    ecs_singleton_modified(world, GameState);
+  }
+
   // Get card ID
   const CardId *card_id = ecs_get(world, card, CardId);
   if (!card_id) {
