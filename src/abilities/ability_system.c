@@ -1078,6 +1078,7 @@ bool azk_trigger_leader_response_ability(ecs_world_t *world, ecs_entity_t card,
 #define TIMING_TAG_WHEN_ATTACKING 5
 #define TIMING_TAG_WHEN_ATTACKED 6
 #define TIMING_TAG_WHEN_RETURNED_TO_HAND 7
+#define TIMING_TAG_ON_GATE_PORTAL 8
 
 bool azk_queue_triggered_effect(ecs_world_t *world, ecs_entity_t card,
                                 ecs_entity_t owner, uint8_t timing_tag) {
@@ -1125,6 +1126,8 @@ static ecs_id_t get_timing_tag_id(uint8_t tag_index) {
     return ecs_id(AWhenAttacked);
   case TIMING_TAG_WHEN_RETURNED_TO_HAND:
     return ecs_id(AWhenReturnedToHand);
+  case TIMING_TAG_ON_GATE_PORTAL:
+    return ecs_id(AOnGatePortal);
   default:
     return 0;
   }
@@ -1293,4 +1296,53 @@ void azk_trigger_return_to_hand_observers(ecs_world_t *world,
                       ecs_get_name(world, card));
     }
   }
+}
+
+void azk_trigger_gate_portal_ability(ecs_world_t *world, ecs_entity_t gate_card,
+                                     ecs_entity_t portaled_card,
+                                     ecs_entity_t owner) {
+  // Verify this is actually a gate card
+  ecs_assert(is_card_type(world, gate_card, CARD_TYPE_GATE),
+             ECS_INVALID_PARAMETER,
+             "Gate portal ability triggered on non-gate card %llu",
+             (unsigned long long)gate_card);
+
+  const CardId *card_id = ecs_get(world, gate_card, CardId);
+  ecs_assert(card_id != NULL, ECS_INVALID_PARAMETER,
+             "Gate card %llu has no CardId component",
+             (unsigned long long)gate_card);
+
+  // All gate cards must have a registered ability
+  ecs_assert(azk_has_ability(card_id->id), ECS_INVALID_PARAMETER,
+             "Gate card %llu (def %d) has no registered ability",
+             (unsigned long long)gate_card, card_id->id);
+
+  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  ecs_assert(def != NULL && def->timing_tag == ecs_id(AOnGatePortal),
+             ECS_INVALID_PARAMETER,
+             "Gate card %llu ability has wrong timing tag",
+             (unsigned long long)gate_card);
+
+  // Validate can still fail (e.g., conditional effects)
+  if (def->validate && !def->validate(world, gate_card, owner)) {
+    return;
+  }
+
+  // Set up context with portaled card info
+  AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
+  ctx->source_card = gate_card;
+  ctx->owner = owner;
+  ctx->is_optional = def->is_optional;
+  ctx->effect_targets[0] = portaled_card; // Store portaled card for effect
+  ctx->effect_filled = 1;
+
+  // Apply effect immediately (non-optional, no targets needed)
+  if (def->apply_effects) {
+    def->apply_effects(world, ctx);
+  }
+  ctx->phase = ABILITY_PHASE_NONE;
+  ecs_singleton_modified(world, AbilityContext);
+
+  cli_render_logf("[Ability] Applied gate portal ability for %s",
+                  ecs_get_name(world, gate_card));
 }
