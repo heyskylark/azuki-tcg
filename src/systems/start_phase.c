@@ -1,4 +1,5 @@
 #include "systems/start_phase.h"
+#include "components/abilities.h"
 #include "components/components.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/deck_utils.h"
@@ -30,6 +31,28 @@ void GrantIKZ(ecs_world_t *world, GameState *gs) {
   }
 
   cli_render_log("[GrantIKZ] IKZ granted");
+}
+
+static void reset_once_per_turn_in_zone(ecs_world_t *world, ecs_entity_t zone) {
+  ecs_entities_t cards = ecs_get_ordered_children(world, zone);
+  for (int i = 0; i < cards.count; i++) {
+    ecs_entity_t card = cards.ids[i];
+    if (ecs_has(world, card, AOnceTurn)) {
+      ecs_set(world, card, AbilityRepeatContext, {
+        .is_once_per_turn = true,
+        .was_applied = false
+      });
+    }
+  }
+}
+
+static void ResetOnceTurnAbilities(ecs_world_t *world, GameState *gs) {
+  // Reset once-per-turn abilities for BOTH players at start of each turn
+  for (int i = 0; i < MAX_PLAYERS_PER_MATCH; i++) {
+    reset_once_per_turn_in_zone(world, gs->zones[i].garden);
+    reset_once_per_turn_in_zone(world, gs->zones[i].alley);
+    reset_once_per_turn_in_zone(world, gs->zones[i].leader);
+  }
 }
 
 static void UntapAllCards(ecs_world_t *world, GameState *gs) {
@@ -70,6 +93,9 @@ void StartPhase(ecs_iter_t *it) {
     gs->entities_played_alley_this_turn[i] = 0;
     gs->entities_returned_to_hand_this_turn[i] = 0;
   }
+
+  // Reset once-per-turn abilities for both players
+  ResetOnceTurnAbilities(world, gs);
 
   UntapAllCards(world, gs);
   DrawCard(world, gs);

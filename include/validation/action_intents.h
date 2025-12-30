@@ -71,6 +71,9 @@ typedef struct {
   ecs_entity_t card;
   uint8_t ability_index;
   uint8_t slot_index;
+  bool use_ikz_token;
+  ecs_entity_t ikz_cards[AZK_MAX_IKZ_PAYMENT];
+  uint8_t ikz_card_count;
 } ActivateAbilityIntent;
 
 #endif

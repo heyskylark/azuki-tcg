@@ -87,4 +87,13 @@ void attach_ability_components(ecs_world_t* world, ecs_entity_t card) {
   if (ability_def->timing_tag != 0) {
     ecs_add_id(world, card, ability_def->timing_tag);
   }
+
+  // Attach once-per-turn tracking if needed
+  if (ability_def->is_once_per_turn) {
+    ecs_add(world, card, AOnceTurn);
+    ecs_set(world, card, AbilityRepeatContext, {
+      .is_once_per_turn = true,
+      .was_applied = false
+    });
+  }
 }

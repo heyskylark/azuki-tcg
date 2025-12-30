@@ -11,7 +11,9 @@
 typedef struct {
   bool has_ability;
   bool is_optional;
+  bool is_once_per_turn;   // If true, ability can only be used once per turn
   bool can_select_to_alley; // If true, entity cards can be selected to alley
+  int8_t ikz_cost;         // IKZ cost for activating ability (0 = no cost)
   AbilityCostRequirements cost_req;
   AbilityEffectRequirements effect_req;
   ecs_id_t timing_tag; // AOnPlay, AStartOfTurn, etc. (0 if none)

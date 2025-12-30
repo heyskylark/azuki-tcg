@@ -688,8 +688,11 @@ bool azk_validate_activate_garden_or_leader_ability_action(
     return false;
   }
 
-  // Main phase abilities can only be activated during main phase
-  if (gs->phase != PHASE_MAIN) {
+  // Determine if this is a main phase or response phase activation
+  bool is_response_phase = (gs->phase == PHASE_RESPONSE_WINDOW);
+  bool is_main_phase = (gs->phase == PHASE_MAIN);
+
+  if (!is_main_phase && !is_response_phase) {
     VALIDATION_LOG(log_errors, "Garden/leader ability cannot be activated in phase %d", gs->phase);
     return false;
   }
@@ -698,6 +701,12 @@ bool azk_validate_activate_garden_or_leader_ability_action(
 
   if (slot_index < 0 || slot_index > GARDEN_SIZE) {
     VALIDATION_LOG(log_errors, "Slot index %d out of bounds (0-%d)", slot_index, GARDEN_SIZE);
+    return false;
+  }
+
+  // Response phase abilities are currently only supported for leaders
+  if (is_response_phase && slot_index != GARDEN_SIZE) {
+    VALIDATION_LOG(log_errors, "Response abilities only supported for leader (slot %d)", GARDEN_SIZE);
     return false;
   }
 
@@ -737,10 +746,18 @@ bool azk_validate_activate_garden_or_leader_ability_action(
     }
   }
 
-  // Verify card has AMain timing tag (main phase ability)
-  if (!ecs_has(world, card, AMain)) {
-    VALIDATION_LOG(log_errors, "Card %llu does not have a main phase ability", (unsigned long long)card);
-    return false;
+  // Verify card has the appropriate timing tag for the current phase
+  if (is_main_phase) {
+    if (!ecs_has(world, card, AMain)) {
+      VALIDATION_LOG(log_errors, "Card %llu does not have a main phase ability", (unsigned long long)card);
+      return false;
+    }
+  } else {
+    // Response phase
+    if (!ecs_has(world, card, AResponse)) {
+      VALIDATION_LOG(log_errors, "Card %llu does not have a response ability", (unsigned long long)card);
+      return false;
+    }
   }
 
   // Verify card has an ability in the registry
@@ -750,11 +767,25 @@ bool azk_validate_activate_garden_or_leader_ability_action(
     return false;
   }
 
-  // Verify ability can actually be activated (passes validation)
   const AbilityDef *def = azk_get_ability_def(card_id->id);
+
+  // Verify ability can actually be activated (passes validation)
   if (def && def->validate && !def->validate(world, card, player)) {
     VALIDATION_LOG(log_errors, "Card %llu ability cannot be activated (validation failed)", (unsigned long long)card);
     return false;
+  }
+
+  // For abilities with IKZ cost, validate payment
+  ecs_entity_t ikz_cards[AZK_MAX_IKZ_PAYMENT] = {0};
+  uint8_t ikz_card_count = 0;
+  bool use_ikz_token = (action->subaction_3 != 0);
+
+  if (def && def->ikz_cost > 0) {
+    ecs_entity_t ikz_zone = gs->zones[player_number].ikz_area;
+    if (!fetch_ikz_payment(world, ikz_zone, def->ikz_cost, use_ikz_token, log_errors,
+                           ikz_cards, &ikz_card_count)) {
+      return false;
+    }
   }
 
   if (out_intent) {
@@ -762,8 +793,11 @@ bool azk_validate_activate_garden_or_leader_ability_action(
       .player = player,
       .card = card,
       .ability_index = 0,
-      .slot_index = (uint8_t)slot_index
+      .slot_index = (uint8_t)slot_index,
+      .use_ikz_token = use_ikz_token,
+      .ikz_card_count = ikz_card_count
     };
+    memcpy(intent.ikz_cards, ikz_cards, sizeof(ikz_cards));
     *out_intent = intent;
   }
 

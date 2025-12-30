@@ -5,6 +5,7 @@
 #include "abilities/cards/stt01_004.h"
 #include "abilities/cards/stt01_005.h"
 #include "abilities/cards/stt01_013.h"
+#include "abilities/cards/stt02_001.h"
 #include "abilities/cards/stt02_003.h"
 #include "abilities/cards/stt02_005.h"
 #include "abilities/cards/stt02_007.h"
@@ -46,6 +47,23 @@ void azk_init_ability_registry(ecs_world_t *world) {
   if (kRegistryInitialized) {
     return;
   }
+
+  // STT02-001 "Shao": [Response] [Once/Turn] Pay 1 IKZ: Reduce a leader's or
+  // entity's attack by 1 until the end of the turn.
+  kAbilityRegistry[CARD_DEF_STT02_001] = (AbilityDef){
+      .has_ability = true,
+      .is_optional = false,
+      .is_once_per_turn = true,
+      .ikz_cost = 1,
+      .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .effect_req = {.type = ABILITY_TARGET_ENEMY_LEADER_OR_GARDEN_ENTITY,
+                     .min = 1,
+                     .max = 1},
+      .timing_tag = ecs_id(AResponse),
+      .validate = stt02_001_validate,
+      .validate_effect_target = stt02_001_validate_effect_target,
+      .apply_effects = stt02_001_apply_effects,
+  };
 
   // ST01-007 "Alley Guy": On Play; You may discard 1:Draw 1
   kAbilityRegistry[CARD_DEF_STT01_007] = (AbilityDef){

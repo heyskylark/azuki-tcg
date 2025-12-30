@@ -60,6 +60,40 @@ bool defender_can_respond(ecs_world_t *world, const GameState *gs,
     }
   }
 
+  // Check for leader response abilities
+  ecs_entity_t leader_zone = gs->zones[defender_index].leader;
+  ecs_entity_t leader = find_leader_card_in_zone(world, leader_zone);
+  if (leader != 0 && ecs_has(world, leader, AResponse)) {
+    // Check if leader is frozen
+    if (!ecs_has(world, leader, Frozen)) {
+      // Check once-per-turn
+      bool once_turn_blocked = false;
+      if (ecs_has(world, leader, AOnceTurn)) {
+        const AbilityRepeatContext *repeat_ctx = ecs_get(world, leader, AbilityRepeatContext);
+        if (repeat_ctx && repeat_ctx->was_applied) {
+          once_turn_blocked = true;
+        }
+      }
+
+      if (!once_turn_blocked) {
+        // Check if ability is registered and valid
+        const CardId *card_id = ecs_get(world, leader, CardId);
+        if (card_id && azk_has_ability(card_id->id)) {
+          const AbilityDef *def = azk_get_ability_def(card_id->id);
+          if (def && def->timing_tag == ecs_id(AResponse)) {
+            // Check IKZ cost from ability registry
+            if (def->ikz_cost <= available_ikz) {
+              // Check ability's own validation
+              if (!def->validate || def->validate(world, leader, gs->players[defender_index])) {
+                return true;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   // Check for declare defender option
   if (!gs->combat_state.defender_intercepted) {
     // Check if attacker has Infiltrate

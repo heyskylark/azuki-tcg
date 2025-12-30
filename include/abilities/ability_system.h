@@ -87,6 +87,12 @@ bool azk_trigger_spell_ability(ecs_world_t *world, ecs_entity_t spell_card,
 bool azk_trigger_main_ability(ecs_world_t *world, ecs_entity_t card,
                               ecs_entity_t owner);
 
+// Trigger a leader response ability (AResponse tag) during response window
+// Similar to spell abilities but for leader cards with response timing
+// Returns true if ability requires target selection, false if auto-executes
+bool azk_trigger_leader_response_ability(ecs_world_t *world, ecs_entity_t card,
+                                         ecs_entity_t owner);
+
 // Trigger observer abilities when a card is returned to hand from garden/alley
 // Scans both players' gardens for cards with AWhenReturnedToHand timing tag
 // and queues triggered effects for valid observers

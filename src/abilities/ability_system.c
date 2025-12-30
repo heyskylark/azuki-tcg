@@ -1009,6 +1009,66 @@ bool azk_trigger_spell_ability(ecs_world_t *world, ecs_entity_t spell_card,
   return ctx->phase != ABILITY_PHASE_NONE;
 }
 
+bool azk_trigger_leader_response_ability(ecs_world_t *world, ecs_entity_t card,
+                                         ecs_entity_t owner) {
+  // Get card ID
+  const CardId *card_id = ecs_get(world, card, CardId);
+  if (!card_id) {
+    return false;
+  }
+
+  // Check if card has an ability
+  if (!azk_has_ability(card_id->id)) {
+    return false;
+  }
+
+  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  if (!def || !def->has_ability) {
+    return false;
+  }
+
+  // Get ability context singleton
+  AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
+
+  // Set up the ability context
+  ctx->source_card = card;
+  ctx->owner = owner;
+  ctx->is_optional = false; // Response abilities are already activated
+  ctx->cost_min = def->cost_req.min;
+  ctx->cost_expected = def->cost_req.max;
+  ctx->cost_filled = 0;
+  ctx->effect_min = def->effect_req.min;
+  ctx->effect_expected = def->effect_req.max;
+  ctx->effect_filled = 0;
+
+  // Clear target arrays
+  for (int i = 0; i < MAX_ABILITY_SELECTION; i++) {
+    ctx->cost_targets[i] = 0;
+    ctx->effect_targets[i] = 0;
+  }
+
+  // Leader response abilities skip confirmation (already activated)
+  // Go straight to cost or effect selection
+  if (def->cost_req.min > 0) {
+    ctx->phase = ABILITY_PHASE_COST_SELECTION;
+    cli_render_logf("[Ability] Leader response triggered, selecting cost targets");
+  } else if (def->effect_req.min > 0) {
+    ctx->phase = ABILITY_PHASE_EFFECT_SELECTION;
+    cli_render_logf("[Ability] Leader response triggered, selecting effect targets");
+  } else {
+    // No targets needed - apply immediately
+    if (def->apply_effects) {
+      def->apply_effects(world, ctx);
+    }
+    ctx->phase = ABILITY_PHASE_NONE;
+    cli_render_logf("[Ability] Applied leader response with no targets");
+    return false; // No further action required
+  }
+
+  ecs_singleton_modified(world, AbilityContext);
+  return ctx->phase != ABILITY_PHASE_NONE;
+}
+
 // Timing tag constants for queue indexing
 #define TIMING_TAG_ON_PLAY 0
 #define TIMING_TAG_START_OF_TURN 1
