@@ -68,6 +68,7 @@ void StartPhase(ecs_iter_t *it) {
   for (int i = 0; i < MAX_PLAYERS_PER_MATCH; i++) {
     gs->entities_played_garden_this_turn[i] = 0;
     gs->entities_played_alley_this_turn[i] = 0;
+    gs->entities_returned_to_hand_this_turn[i] = 0;
   }
 
   UntapAllCards(world, gs);

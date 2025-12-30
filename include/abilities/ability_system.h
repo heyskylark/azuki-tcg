@@ -87,6 +87,12 @@ bool azk_trigger_spell_ability(ecs_world_t *world, ecs_entity_t spell_card,
 bool azk_trigger_main_ability(ecs_world_t *world, ecs_entity_t card,
                               ecs_entity_t owner);
 
+// Trigger observer abilities when a card is returned to hand from garden/alley
+// Scans both players' gardens for cards with AWhenReturnedToHand timing tag
+// and queues triggered effects for valid observers
+void azk_trigger_return_to_hand_observers(ecs_world_t *world,
+                                          ecs_entity_t bounced_card);
+
 // Queue a triggered effect for processing on next game loop
 // This is used for timing-based triggers (on play, on equip, etc.) where
 // deferred zone operations haven't flushed yet
