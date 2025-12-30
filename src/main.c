@@ -15,7 +15,7 @@ int main(void) {
     const GameState *gs = ecs_singleton_get(world, GameState);
     ObservationData observation_data =
         create_observation_data(world, gs->active_player_index);
-    cli_render_draw(&observation_data, gs);
+    cli_render_draw(world, &observation_data, gs);
 
     // Check for queued triggered effects to auto-process
     // Only process when no ability is currently active to avoid overwriting

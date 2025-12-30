@@ -33,6 +33,7 @@ ECS_TAG_DECLARE(TCombatResolve);
 ECS_TAG_DECLARE(TEndTurnAction);
 ECS_TAG_DECLARE(TEndTurn);
 ECS_TAG_DECLARE(TEndMatch);
+ECS_TAG_DECLARE(TAbilityResolution);
 
 void azk_register_components(ecs_world_t *world) {
   ECS_COMPONENT_DEFINE(world, ActionContext);
@@ -80,6 +81,7 @@ void azk_register_components(ecs_world_t *world) {
   ECS_TAG_DEFINE(world, TEndTurnAction);
   ECS_TAG_DEFINE(world, TEndTurn);
   ECS_TAG_DEFINE(world, TEndMatch);
+  ECS_TAG_DEFINE(world, TAbilityResolution);
 
   azk_register_ability_components(world);
   azk_register_card_def_resources(world);

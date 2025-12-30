@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <flecs.h>
 #include "systems/phase_gate.h"
+#include "abilities/ability_system.h"
 #include "utils/cli_rendering_util.h"
 
 static ecs_entity_t MulliganPipeline;
@@ -10,6 +11,7 @@ static ecs_entity_t ResponseWindowPipeline;
 static ecs_entity_t CombatResolvePipeline;
 static ecs_entity_t EndTurnPipeline;
 static ecs_entity_t EndMatchPipeline;
+static ecs_entity_t AbilityResolutionPipeline;
 static ecs_entity_t s_phase_gate_system = 0;
 
 static void set_pipeline_for_phase(ecs_world_t *world, Phase phase) {
@@ -45,6 +47,15 @@ void PhaseGate(ecs_iter_t *it) {
   ecs_world_t *world = ecs_get_world(it->world);
   GameState *gs = ecs_field(it, GameState, 0);
   Phase phase = gs->phase;
+
+  // Check ability phase FIRST (except during END_MATCH)
+  if (phase != PHASE_END_MATCH) {
+    AbilityPhase ability_phase = azk_get_ability_phase(world);
+    if (ability_phase != ABILITY_PHASE_NONE) {
+      ecs_set_pipeline(world, AbilityResolutionPipeline);
+      return;
+    }
+  }
 
   set_pipeline_for_phase(world, phase);
 }
@@ -90,6 +101,12 @@ void init_phase_gate_system(ecs_world_t *world) {
     .query.terms = {
         { .id = EcsSystem }, // mandatory
         { .id = TEndMatch }
+    }
+  });
+  AbilityResolutionPipeline = ecs_pipeline_init(world, &(ecs_pipeline_desc_t){
+    .query.terms = {
+        { .id = EcsSystem }, // mandatory
+        { .id = TAbilityResolution }
     }
   });
 

@@ -176,6 +176,7 @@ extern ECS_TAG_DECLARE(TCombatResolve);
 extern ECS_TAG_DECLARE(TEndTurnAction);
 extern ECS_TAG_DECLARE(TEndTurn);
 extern ECS_TAG_DECLARE(TEndMatch);
+extern ECS_TAG_DECLARE(TAbilityResolution);
 
 void azk_register_components(ecs_world_t *world);
 

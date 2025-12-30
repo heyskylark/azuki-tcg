@@ -5,6 +5,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "abilities/ability_system.h"
+
 #define MIN_BOARD_HEIGHT 8
 #define MIN_LOG_HEIGHT 4
 #define MIN_INFO_HEIGHT 3
@@ -37,6 +39,7 @@ static int screen_cols = 0;
 
 static ObservationData last_observation = {0};
 static GameState last_state = {0};
+static ecs_world_t *last_world = NULL;
 static bool has_last_state = false;
 static char log_lines[CLI_LOG_MAX_LINES][CLI_LOG_LINE_LENGTH];
 static size_t log_line_count = 0;
@@ -429,6 +432,25 @@ static const char *phase_to_string(Phase phase) {
     return "End Turn";
   case PHASE_END_MATCH:
     return "End Match";
+  default:
+    return "Unknown";
+  }
+}
+
+static const char *ability_phase_to_string(AbilityPhase phase) {
+  switch (phase) {
+  case ABILITY_PHASE_NONE:
+    return "None";
+  case ABILITY_PHASE_CONFIRMATION:
+    return "Confirmation";
+  case ABILITY_PHASE_COST_SELECTION:
+    return "Cost Selection";
+  case ABILITY_PHASE_EFFECT_SELECTION:
+    return "Effect Selection";
+  case ABILITY_PHASE_SELECTION_PICK:
+    return "Selection Pick";
+  case ABILITY_PHASE_BOTTOM_DECK:
+    return "Bottom Deck";
   default:
     return "Unknown";
   }
@@ -1283,14 +1305,22 @@ static int render_board(WINDOW *win, const ObservationData *observation,
   return (left_height > right_height) ? left_height : right_height;
 }
 
-static void render_info(WINDOW *win, const GameState *gs) {
+static void render_info(WINDOW *win, ecs_world_t *world, const GameState *gs) {
   if (!win || !gs) {
     return;
   }
   int row = 1;
   mvwprintw(win, row++, 2, "Phase: %s", phase_to_string(gs->phase));
+
+  // Display ability sub-phase and queued effects
+  AbilityPhase ability_phase = azk_get_ability_phase(world);
+  const TriggeredEffectQueue *queue =
+      ecs_singleton_get(world, TriggeredEffectQueue);
+  uint8_t queued_count = queue ? queue->count : 0;
+  mvwprintw(win, row++, 2, "Ability: %s | Queued: %u",
+            ability_phase_to_string(ability_phase), queued_count);
+
   mvwprintw(win, row++, 2, "Active Player: %d", gs->active_player_index);
-  mvwprintw(win, row++, 2, "Response Window: %u", gs->response_window);
   if (gs->winner >= 0) {
     mvwprintw(win, row++, 2, "Winner: Player %d", gs->winner);
   } else {
@@ -1341,8 +1371,9 @@ void cli_render_shutdown(void) {
   endwin();
 }
 
-void cli_render_draw(const ObservationData *observation, const GameState *gs) {
-  if (!observation || !gs) {
+void cli_render_draw(ecs_world_t *world, const ObservationData *observation,
+                     const GameState *gs) {
+  if (!world || !observation || !gs) {
     return;
   }
 
@@ -1356,6 +1387,7 @@ void cli_render_draw(const ObservationData *observation, const GameState *gs) {
 
   last_observation = *observation;
   last_state = *gs;
+  last_world = world;
   has_last_state = true;
 
   werase(board_win);
@@ -1382,7 +1414,7 @@ void cli_render_draw(const ObservationData *observation, const GameState *gs) {
 
   werase(info_win);
   box(info_win, 0, 0);
-  render_info(info_win, gs);
+  render_info(info_win, world, gs);
   wrefresh(info_win);
 
   werase(input_win);
@@ -1459,7 +1491,7 @@ bool cli_render_prompt_user_action(int active_player_index, const char *message,
     if (ch == ERR) {
       if (is_term_resized(screen_rows, screen_cols)) {
         if (has_last_state) {
-          cli_render_draw(&last_observation, &last_state);
+          cli_render_draw(last_world, &last_observation, &last_state);
         } else {
           refresh();
         }
@@ -1470,7 +1502,7 @@ bool cli_render_prompt_user_action(int active_player_index, const char *message,
 
     if (ch == KEY_RESIZE) {
       if (has_last_state) {
-        cli_render_draw(&last_observation, &last_state);
+        cli_render_draw(last_world, &last_observation, &last_state);
       } else {
         refresh();
       }

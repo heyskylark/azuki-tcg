@@ -11,33 +11,6 @@
 #include "utils/zone_util.h"
 #include "validation/action_validation.h"
 
-/**
- * Check if ability processing is complete and defender has no more response
- * options. If so, auto-transition to combat resolve phase. Returns true if
- * auto-transition occurred.
- */
-static bool check_auto_transition_after_ability(ecs_world_t *world,
-                                                GameState *gs) {
-  AbilityPhase current_phase = azk_get_ability_phase(world);
-  if (current_phase == ABILITY_PHASE_NONE) {
-    // Don't auto-transition if there are queued effects pending
-    if (azk_has_queued_triggered_effects(world)) {
-      return false;
-    }
-
-    // Ability processing complete - check if defender can still respond
-    if (!defender_can_respond(world, gs, gs->active_player_index)) {
-      cli_render_log("[ResponseAction] Ability complete, no more response "
-                     "options - proceeding to combat");
-      gs->active_player_index =
-          (gs->active_player_index + 1) % MAX_PLAYERS_PER_MATCH;
-      gs->phase = PHASE_COMBAT_RESOLVE;
-      return true;
-    }
-  }
-  return false;
-}
-
 static void handle_declare_defender(ecs_world_t *world, GameState *gs,
                                     ActionContext *ac) {
   if (ac->user_action.type != ACT_DECLARE_DEFENDER) {
@@ -95,92 +68,11 @@ void HandleResponseAction(ecs_iter_t *it) {
   GameState *gs = ecs_field(it, GameState, 0);
   ActionContext *ac = ecs_field(it, ActionContext, 1);
 
-  // Check if we're in an ability sub-phase
-  AbilityPhase ability_phase = azk_get_ability_phase(world);
+  // Ability phase actions are now handled by AbilityResolutionPhaseSystem
+  // This system should only run when ability_phase == NONE
+  // (enforced by phase_gate.c pipeline selection)
 
-  if (ability_phase != ABILITY_PHASE_NONE) {
-    // In ability phase - handle ability-related actions
-    switch (ac->user_action.type) {
-    case ACT_CONFIRM_ABILITY:
-      if (ability_phase == ABILITY_PHASE_CONFIRMATION) {
-        if (!azk_process_ability_confirmation(world)) {
-          ac->invalid_action = true;
-        } else {
-          check_auto_transition_after_ability(world, gs);
-        }
-      } else {
-        cli_render_logf("[ResponseAction] ACT_CONFIRM_ABILITY not valid in "
-                        "ability phase %d",
-                        ability_phase);
-        ac->invalid_action = true;
-      }
-      break;
-
-    case ACT_NOOP:
-      // In confirmation phase, NOOP means decline
-      if (ability_phase == ABILITY_PHASE_CONFIRMATION) {
-        if (!azk_process_ability_decline(world)) {
-          ac->invalid_action = true;
-        } else {
-          check_auto_transition_after_ability(world, gs);
-        }
-      } else if (ability_phase == ABILITY_PHASE_EFFECT_SELECTION) {
-        // In effect selection phase, NOOP means skip (for "up to" effects with
-        // min=0)
-        if (!azk_process_effect_skip(world)) {
-          ac->invalid_action = true;
-        } else {
-          check_auto_transition_after_ability(world, gs);
-        }
-      } else {
-        cli_render_logf(
-            "[ResponseAction] ACT_NOOP not valid in ability phase %d",
-            ability_phase);
-        ac->invalid_action = true;
-      }
-      break;
-
-    case ACT_SELECT_COST_TARGET:
-      if (ability_phase == ABILITY_PHASE_COST_SELECTION) {
-        if (!azk_process_cost_selection(world, ac->user_action.subaction_1)) {
-          ac->invalid_action = true;
-        } else {
-          check_auto_transition_after_ability(world, gs);
-        }
-      } else {
-        cli_render_logf("[ResponseAction] ACT_SELECT_COST_TARGET not valid in "
-                        "ability phase %d",
-                        ability_phase);
-        ac->invalid_action = true;
-      }
-      break;
-
-    case ACT_SELECT_EFFECT_TARGET:
-      if (ability_phase == ABILITY_PHASE_EFFECT_SELECTION) {
-        if (!azk_process_effect_selection(world, ac->user_action.subaction_1)) {
-          ac->invalid_action = true;
-        } else {
-          check_auto_transition_after_ability(world, gs);
-        }
-      } else {
-        cli_render_logf("[ResponseAction] ACT_SELECT_EFFECT_TARGET not valid "
-                        "in ability phase %d",
-                        ability_phase);
-        ac->invalid_action = true;
-      }
-      break;
-
-    default:
-      cli_render_logf(
-          "[ResponseAction] Action type %d not valid during ability phase",
-          ac->user_action.type);
-      ac->invalid_action = true;
-      break;
-    }
-    return;
-  }
-
-  // No ability sub-phase active - check if defender can still respond
+  // Check if defender can still respond
   // If not, auto-transition to combat without requiring NOOP input
   // Also check for queued effects - must process those first
   if (!azk_has_queued_triggered_effects(world) &&
@@ -197,10 +89,9 @@ void HandleResponseAction(ecs_iter_t *it) {
   switch (ac->user_action.type) {
   case ACT_PLAY_SPELL_FROM_HAND:
     handle_play_spell_from_hand(world, gs, ac);
-    // Check for auto-transition if spell applied immediately without sub-phases
-    if (!ac->invalid_action) {
-      check_auto_transition_after_ability(world, gs);
-    }
+    // Spell ability triggers via azk_trigger_spell_ability.
+    // If ability requires selection, AbilityResolutionPhaseSystem handles it.
+    // Auto-transition after ability completion is handled there.
     break;
 
   case ACT_DECLARE_DEFENDER:
