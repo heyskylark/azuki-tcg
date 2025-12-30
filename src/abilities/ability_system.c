@@ -604,10 +604,10 @@ bool azk_process_selection_to_alley(ecs_world_t *world, int selection_index,
 
   cli_render_logf("[Ability] Selected card to alley slot %d", alley_slot_index);
 
-  // Store the picked card in effect_targets (reusing the array)
-  if (ctx->selection_picked < MAX_ABILITY_SELECTION) {
-    ctx->effect_targets[ctx->selection_picked] = target;
-  }
+  // Don't store in effect_targets - the card is already moved to alley.
+  // Storing it would cause on_selection_complete to incorrectly move it to hand
+  // due to Flecs deferred operations (parent check sees old value).
+  // Just increment the pick count.
   ctx->selection_picked++;
 
   // Mark this slot as picked by setting to 0

@@ -106,9 +106,26 @@ bool stt02_013_validate_selection_target(ecs_world_t *world, ecs_entity_t card,
 }
 
 // Called after selection pick is complete
-// The card has already been moved to hand (via ACT_SELECT_FROM_SELECTION)
-// or to alley (via ACT_SELECT_TO_ALLEY) by the ability system
+// ACT_SELECT_TO_ALLEY moves the card to alley, but ACT_SELECT_FROM_SELECTION
+// only stores it in effect_targets - we need to move it to hand here
 void stt02_013_on_selection_complete(ecs_world_t *world, AbilityContext *ctx) {
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  uint8_t player_num = get_player_number(world, ctx->owner);
+  ecs_entity_t selection_zone = gs->zones[player_num].selection;
+
+  // Move any picked cards to hand if still in selection zone
+  // (ACT_SELECT_TO_ALLEY already moved to alley, so skip those)
+  for (int i = 0; i < ctx->selection_picked && i < MAX_ABILITY_SELECTION; i++) {
+    ecs_entity_t picked = ctx->effect_targets[i];
+    if (picked != 0) {
+      ecs_entity_t parent = ecs_get_target(world, picked, EcsChildOf, 0);
+      if (parent == selection_zone) {
+        move_selection_to_hand(world, picked);
+        cli_render_logf("[STT02-013] Added card to hand");
+      }
+    }
+  }
+
   // Count remaining cards to bottom deck
   int remaining = 0;
   for (int i = 0; i < ctx->selection_count; i++) {
