@@ -7,6 +7,7 @@
 #include "generated/card_defs.h"
 #include "utils/phase_utils.h"
 #include "utils/player_util.h"
+#include "utils/zone_util.h"
 #include "validation/action_schema.h"
 #include "validation/action_validation.h"
 
@@ -204,6 +205,41 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
         }
         action.subaction_1 = zi->index + GARDEN_SIZE; // 5-9 for opponent garden
         add_valid_action(out_mask, &action);
+      }
+      break;
+    }
+    case ABILITY_TARGET_ENEMY_LEADER_OR_GARDEN_ENTITY: {
+      // Index encoding: 0-4 = opponent garden slots (by ZoneIndex), 5 = opponent leader
+      uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
+
+      // Check opponent garden entities
+      ecs_entity_t enemy_garden = gs->zones[enemy_num].garden;
+      ecs_entities_t enemy_cards =
+          ecs_get_ordered_children(world, enemy_garden);
+      for (int i = 0; i < enemy_cards.count; i++) {
+        ecs_entity_t target = enemy_cards.ids[i];
+        const ZoneIndex *zi = ecs_get(world, target, ZoneIndex);
+        if (!zi)
+          continue;
+        if (def->validate_effect_target &&
+            !def->validate_effect_target(world, ctx->source_card, ctx->owner,
+                                         target)) {
+          continue;
+        }
+        action.subaction_1 = zi->index; // 0-4 for opponent garden
+        add_valid_action(out_mask, &action);
+      }
+
+      // Check opponent leader (index 5)
+      ecs_entity_t leader =
+          find_leader_card_in_zone(world, gs->zones[enemy_num].leader);
+      if (leader != 0) {
+        if (!def->validate_effect_target ||
+            def->validate_effect_target(world, ctx->source_card, ctx->owner,
+                                        leader)) {
+          action.subaction_1 = GARDEN_SIZE; // 5 for leader
+          add_valid_action(out_mask, &action);
+        }
       }
       break;
     }

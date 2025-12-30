@@ -90,6 +90,8 @@ typedef struct {
   int8_t frozen_duration;
   int8_t shocked_duration;
   int8_t effect_immune_duration;
+  int8_t attack_modifier;           // Negative for debuff, positive for buff (stacks additively)
+  bool attack_modifier_expires_eot; // If true, expires at end of current turn
 } CardConditionCountdown;
 
 extern ECS_COMPONENT_DECLARE(CardConditionCountdown);

@@ -6,6 +6,7 @@
 #include "generated/card_defs.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/player_util.h"
+#include "utils/zone_util.h"
 
 // Forward declaration of timing tag constant
 #define TIMING_TAG_ON_PLAY_FWD 0
@@ -283,6 +284,26 @@ bool azk_process_effect_selection(ecs_world_t *world, int target_index) {
     ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
     if (target_index >= 0 && target_index < garden_cards.count) {
       target = garden_cards.ids[target_index];
+    }
+    break;
+  }
+  case ABILITY_TARGET_ENEMY_LEADER_OR_GARDEN_ENTITY: {
+    // Index encoding: 0-4 = opponent garden slots (by ZoneIndex), 5 = opponent leader
+    uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
+    if (target_index < GARDEN_SIZE) {
+      // Garden entity by zone index
+      ecs_entity_t garden = gs->zones[enemy_num].garden;
+      ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
+      for (int i = 0; i < garden_cards.count; i++) {
+        const ZoneIndex *zi = ecs_get(world, garden_cards.ids[i], ZoneIndex);
+        if (zi && zi->index == target_index) {
+          target = garden_cards.ids[i];
+          break;
+        }
+      }
+    } else if (target_index == GARDEN_SIZE) {
+      // Leader
+      target = find_leader_card_in_zone(world, gs->zones[enemy_num].leader);
     }
     break;
   }

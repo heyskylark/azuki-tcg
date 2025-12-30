@@ -12,6 +12,7 @@
 #include "abilities/cards/stt02_011.h"
 #include "abilities/cards/stt02_014.h"
 #include "abilities/cards/stt02_015.h"
+#include "abilities/cards/stt02_016.h"
 #include "components/abilities.h"
 
 // Static registry table - most entries are empty (no ability)
@@ -249,6 +250,23 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .validate_effect_target = NULL,
       .apply_costs = NULL,
       .apply_effects = stt02_005_apply_effects,
+  };
+
+  // STT02-016: [Response] Discard 1: Reduce a leader's or entity's attack by 2
+  // until the end of the turn.
+  kAbilityRegistry[CARD_DEF_STT02_016] = (AbilityDef){
+      .has_ability = true,
+      .is_optional = false, // Spells are not optional once cast
+      .cost_req = {.type = ABILITY_TARGET_FRIENDLY_HAND, .min = 1, .max = 1},
+      .effect_req = {.type = ABILITY_TARGET_ENEMY_LEADER_OR_GARDEN_ENTITY,
+                     .min = 1,
+                     .max = 1},
+      .timing_tag = ecs_id(AResponse),
+      .validate = stt02_016_validate,
+      .validate_cost_target = stt02_016_validate_cost_target,
+      .validate_effect_target = stt02_016_validate_effect_target,
+      .apply_costs = stt02_016_apply_costs,
+      .apply_effects = stt02_016_apply_effects,
   };
 
   kRegistryInitialized = true;

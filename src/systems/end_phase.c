@@ -2,6 +2,7 @@
 #include "components/components.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/entity_util.h"
+#include "utils/status_util.h"
 #include "utils/zone_util.h"
 
 void HandleEndPhase(ecs_iter_t *it) {
@@ -16,9 +17,12 @@ void HandleEndPhase(ecs_iter_t *it) {
     ecs_entity_t garden_card = active_player_garden_cards.ids[i];
 
     reset_entity_health(world, garden_card);
-    // TODO: Expire end of turn effects on player's entities
     discard_equipped_weapon_cards(world, garden_card);
   }
+
+  // Expire end-of-turn attack modifiers for both players
+  expire_eot_attack_modifiers_in_zone(world, gs->zones[gs->active_player_index].garden);
+  expire_eot_attack_modifiers_in_zone(world, gs->zones[gs->active_player_index].leader);
 
   ecs_entity_t defending_player_garden_zone = gs->zones[(gs->active_player_index + 1) % MAX_PLAYERS_PER_MATCH].garden;
   ecs_entities_t defending_player_garden_cards = ecs_get_ordered_children(world, defending_player_garden_zone);
@@ -30,8 +34,12 @@ void HandleEndPhase(ecs_iter_t *it) {
     reset_entity_health(world, garden_card);
   }
 
+  // Expire end-of-turn attack modifiers for defending player
+  uint8_t defending_player_index = (gs->active_player_index + 1) % MAX_PLAYERS_PER_MATCH;
+  expire_eot_attack_modifiers_in_zone(world, gs->zones[defending_player_index].garden);
+  expire_eot_attack_modifiers_in_zone(world, gs->zones[defending_player_index].leader);
+
   ecs_entity_t leader_card = find_leader_card_in_zone(world, gs->zones[gs->active_player_index].leader);
-  // TODO: Expire end of turn effects on player's leader
   discard_equipped_weapon_cards(world, leader_card);
 
   gs->phase = PHASE_START_OF_TURN;
