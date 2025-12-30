@@ -353,6 +353,20 @@ void HandleMainAction(ecs_iter_t *it) {
       }
       break;
 
+    case ACT_SELECT_TO_ALLEY:
+      if (ability_phase == ABILITY_PHASE_SELECTION_PICK) {
+        if (!azk_process_selection_to_alley(world, ac->user_action.subaction_1,
+                                            ac->user_action.subaction_2)) {
+          ac->invalid_action = true;
+        }
+      } else {
+        cli_render_logf("[MainAction] ACT_SELECT_TO_ALLEY not valid in "
+                        "ability phase %d",
+                        ability_phase);
+        ac->invalid_action = true;
+      }
+      break;
+
     case ACT_BOTTOM_DECK_CARD:
       if (ability_phase == ABILITY_PHASE_BOTTOM_DECK) {
         if (!azk_process_bottom_deck(world, ac->user_action.subaction_1)) {

@@ -5,6 +5,7 @@
 #include "abilities/ability_registry.h"
 #include "abilities/ability_system.h"
 #include "generated/card_defs.h"
+#include "utils/card_utils.h"
 #include "utils/phase_utils.h"
 #include "utils/player_util.h"
 #include "utils/zone_util.h"
@@ -264,7 +265,6 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
     add_valid_action(out_mask, &action);
 
     // Enumerate valid selection targets
-    action.type = ACT_SELECT_FROM_SELECTION;
     for (int i = 0; i < ctx->selection_count; i++) {
       ecs_entity_t target = ctx->selection_cards[i];
       if (target == 0)
@@ -277,8 +277,21 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
         continue;
       }
 
+      // Add ACT_SELECT_FROM_SELECTION (add to hand)
+      action.type = ACT_SELECT_FROM_SELECTION;
       action.subaction_1 = i;
+      action.subaction_2 = 0;
       add_valid_action(out_mask, &action);
+
+      // If can_select_to_alley and target is an entity, enumerate alley slots
+      if (def->can_select_to_alley && is_card_type(world, target, CARD_TYPE_ENTITY)) {
+        action.type = ACT_SELECT_TO_ALLEY;
+        action.subaction_1 = i; // selection index
+        for (int slot = 0; slot < ALLEY_SIZE; slot++) {
+          action.subaction_2 = slot; // alley slot index
+          add_valid_action(out_mask, &action);
+        }
+      }
     }
     break;
   }
