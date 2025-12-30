@@ -1122,7 +1122,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
     {
         ecs_entity_desc_t desc = {
             .name = "CardPrefab::STT02-008",
-            .add = (ecs_id_t[]){ EcsPrefab, TEntity, 0 }
+            .add = (ecs_id_t[]){ EcsPrefab, TEntity, EffectImmune, 0 }
         };
         ecs_entity_t prefab = ecs_entity_init(world, &desc);
         ecs_assert(prefab != 0, ECS_INVALID_PARAMETER, "failed to create prefab for card STT02-008");
@@ -1136,6 +1136,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, CurStats, { .cur_atk = 2, .cur_hp = 1 });
         ecs_set(world, prefab, GatePoints, { .gate_points = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 2 });
+        ecs_set(world, prefab, CardConditionCountdown, { .frozen_duration = 0, .shocked_duration = 0, .effect_immune_duration = -1 });
         ecs_add(world, prefab, TSubtype_Driftward);
     }
     {
