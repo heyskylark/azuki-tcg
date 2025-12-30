@@ -13,6 +13,7 @@
 #include "abilities/cards/stt02_014.h"
 #include "abilities/cards/stt02_015.h"
 #include "abilities/cards/stt02_016.h"
+#include "abilities/cards/stt02_017.h"
 #include "components/abilities.h"
 
 // Static registry table - most entries are empty (no ability)
@@ -267,6 +268,21 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .validate_effect_target = stt02_016_validate_effect_target,
       .apply_costs = stt02_016_apply_costs,
       .apply_effects = stt02_016_apply_effects,
+  };
+
+  // STT02-017 "Shao's Perseverance": [Main] If your leader's Shao, return all
+  // entities with cost <= 4 in opponent's garden to their owner's hand
+  kAbilityRegistry[CARD_DEF_STT02_017] = (AbilityDef){
+      .has_ability = true,
+      .is_optional = false, // Spells are not optional once cast
+      .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .effect_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .timing_tag = ecs_id(AMain),
+      .validate = stt02_017_validate,
+      .validate_cost_target = NULL,
+      .validate_effect_target = NULL,
+      .apply_costs = NULL,
+      .apply_effects = stt02_017_apply_effects,
   };
 
   kRegistryInitialized = true;
