@@ -20,6 +20,11 @@ static bool check_auto_transition_after_ability(ecs_world_t *world,
                                                 GameState *gs) {
   AbilityPhase current_phase = azk_get_ability_phase(world);
   if (current_phase == ABILITY_PHASE_NONE) {
+    // Don't auto-transition if there are queued effects pending
+    if (azk_has_queued_triggered_effects(world)) {
+      return false;
+    }
+
     // Ability processing complete - check if defender can still respond
     if (!defender_can_respond(world, gs, gs->active_player_index)) {
       cli_render_log("[ResponseAction] Ability complete, no more response "
@@ -177,7 +182,9 @@ void HandleResponseAction(ecs_iter_t *it) {
 
   // No ability sub-phase active - check if defender can still respond
   // If not, auto-transition to combat without requiring NOOP input
-  if (!defender_can_respond(world, gs, gs->active_player_index)) {
+  // Also check for queued effects - must process those first
+  if (!azk_has_queued_triggered_effects(world) &&
+      !defender_can_respond(world, gs, gs->active_player_index)) {
     cli_render_log("[ResponseAction] Defender has no response options - "
                    "proceeding to combat");
     gs->active_player_index =
@@ -201,7 +208,13 @@ void HandleResponseAction(ecs_iter_t *it) {
     break;
 
   case ACT_NOOP:
-    // Pass on responding - proceed to combat
+    // Pass on responding - but first check for queued effects
+    if (azk_has_queued_triggered_effects(world)) {
+      // Can't pass while queued abilities need resolution
+      cli_render_log("[ResponseAction] Cannot pass - queued effects pending");
+      ac->invalid_action = true;
+      break;
+    }
     if (!azk_validate_simple_action(world, gs,
                                     gs->players[gs->active_player_index],
                                     ac->user_action.type, true)) {

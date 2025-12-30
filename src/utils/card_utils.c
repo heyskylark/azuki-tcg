@@ -1,8 +1,11 @@
 #include "utils/card_utils.h"
+
+#include "abilities/ability_system.h"
 #include "components/components.h"
 #include "generated/card_defs.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/entity_util.h"
+#include "utils/player_util.h"
 #include <stdio.h>
 
 bool is_card_type(ecs_world_t *world, ecs_entity_t card, CardType type) {
@@ -35,6 +38,9 @@ void discard_card(ecs_world_t *world, ecs_entity_t card) {
 }
 
 void return_card_to_hand(ecs_world_t *world, ecs_entity_t card) {
+  // Check source zone BEFORE changing ChildOf
+  ecs_entity_t source_parent = ecs_get_target(world, card, EcsChildOf, 0);
+
   ecs_entity_t owner = ecs_get_target(world, card, Rel_OwnedBy, 0);
   ecs_assert(owner != 0, ECS_INVALID_PARAMETER, "Card %d has no owner", card);
 
@@ -43,7 +49,18 @@ void return_card_to_hand(ecs_world_t *world, ecs_entity_t card) {
              "PlayerNumber component not found for player %d", owner);
 
   const GameState *gs = ecs_singleton_get(world, GameState);
-  ecs_entity_t hand_zone = gs->zones[player_number->player_number].hand;
+  uint8_t player_num = player_number->player_number;
+  ecs_entity_t hand_zone = gs->zones[player_num].hand;
+
+  // Determine if card is returning from play (garden/alley)
+  bool from_play = false;
+  for (int p = 0; p < MAX_PLAYERS_PER_MATCH; p++) {
+    if (source_parent == gs->zones[p].garden ||
+        source_parent == gs->zones[p].alley) {
+      from_play = true;
+      break;
+    }
+  }
 
   // Discard any equipped weapons before returning to hand
   discard_equipped_weapon_cards(world, card);
@@ -61,6 +78,14 @@ void return_card_to_hand(ecs_world_t *world, ecs_entity_t card) {
   ecs_add_pair(world, card, EcsChildOf, hand_zone);
 
   cli_render_logf("[CardUtils] Returned card to hand");
+
+  // Trigger observers only if card came from play (garden/alley)
+  if (from_play) {
+    GameState *gs_mut = ecs_singleton_get_mut(world, GameState);
+    gs_mut->entities_returned_to_hand_this_turn[player_num]++;
+    ecs_singleton_modified(world, GameState);
+    azk_trigger_return_to_hand_observers(world, card);
+  }
 }
 
 void set_card_to_tapped(ecs_world_t *world, ecs_entity_t card) {

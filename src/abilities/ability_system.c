@@ -1017,6 +1017,7 @@ bool azk_trigger_spell_ability(ecs_world_t *world, ecs_entity_t spell_card,
 #define TIMING_TAG_WHEN_EQUIPPED 4
 #define TIMING_TAG_WHEN_ATTACKING 5
 #define TIMING_TAG_WHEN_ATTACKED 6
+#define TIMING_TAG_WHEN_RETURNED_TO_HAND 7
 
 bool azk_queue_triggered_effect(ecs_world_t *world, ecs_entity_t card,
                                 ecs_entity_t owner, uint8_t timing_tag) {
@@ -1062,6 +1063,8 @@ static ecs_id_t get_timing_tag_id(uint8_t tag_index) {
     return ecs_id(AWhenAttacking);
   case TIMING_TAG_WHEN_ATTACKED:
     return ecs_id(AWhenAttacked);
+  case TIMING_TAG_WHEN_RETURNED_TO_HAND:
+    return ecs_id(AWhenReturnedToHand);
   default:
     return 0;
   }
@@ -1092,6 +1095,18 @@ bool azk_process_triggered_effect_queue(ecs_world_t *world) {
   // flushed
   ecs_entity_t card = effect.source_card;
   ecs_entity_t owner = effect.owner;
+
+  // Switch active player to ability owner if different
+  // This ensures the correct player has control to confirm/decline
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  uint8_t owner_player_num = get_player_number(world, owner);
+  if (gs->active_player_index != owner_player_num) {
+    cli_render_logf(
+        "[Ability] Switching control to player %d for triggered ability",
+        owner_player_num);
+    gs->active_player_index = owner_player_num;
+    ecs_singleton_modified(world, GameState);
+  }
 
   // Get card ID
   const CardId *card_id = ecs_get(world, card, CardId);
@@ -1172,5 +1187,50 @@ bool azk_process_triggered_effect_queue(ecs_world_t *world) {
     }
     ecs_singleton_modified(world, AbilityContext);
     return ctx->phase != ABILITY_PHASE_NONE;
+  }
+}
+
+void azk_trigger_return_to_hand_observers(ecs_world_t *world,
+                                          ecs_entity_t bounced_card) {
+  (void)bounced_card; // May be used in future for filtering
+
+  const GameState *gs = ecs_singleton_get(world, GameState);
+
+  // Scan BOTH players' gardens for cards with AWhenReturnedToHand ability
+  for (int p = 0; p < MAX_PLAYERS_PER_MATCH; p++) {
+    ecs_entity_t player = gs->players[p];
+    ecs_entity_t garden = gs->zones[p].garden;
+    ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
+
+    for (int32_t i = 0; i < garden_cards.count; i++) {
+      ecs_entity_t card = garden_cards.ids[i];
+
+      // Check if card has AWhenReturnedToHand timing tag
+      if (!ecs_has(world, card, AWhenReturnedToHand)) {
+        continue;
+      }
+
+      // Get card ID and ability def
+      const CardId *card_id = ecs_get(world, card, CardId);
+      if (!card_id || !azk_has_ability(card_id->id)) {
+        continue;
+      }
+
+      const AbilityDef *def = azk_get_ability_def(card_id->id);
+      if (!def || def->timing_tag != ecs_id(AWhenReturnedToHand)) {
+        continue;
+      }
+
+      // Validate the ability can be activated
+      if (def->validate && !def->validate(world, card, player)) {
+        continue;
+      }
+
+      // Queue the triggered effect
+      azk_queue_triggered_effect(world, card, player,
+                                 TIMING_TAG_WHEN_RETURNED_TO_HAND);
+      cli_render_logf("[Ability] Queued return-to-hand observer for card %s",
+                      ecs_get_name(world, card));
+    }
   }
 }

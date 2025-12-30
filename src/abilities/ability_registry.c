@@ -9,6 +9,7 @@
 #include "abilities/cards/stt02_005.h"
 #include "abilities/cards/stt02_007.h"
 #include "abilities/cards/stt02_009.h"
+#include "abilities/cards/stt02_010.h"
 #include "abilities/cards/stt02_011.h"
 #include "abilities/cards/stt02_013.h"
 #include "abilities/cards/stt02_014.h"
@@ -218,6 +219,22 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .validate_effect_target = NULL,
       .apply_costs = stt01_013_apply_costs,
       .apply_effects = stt01_013_apply_effects,
+  };
+
+  // STT02-010: "Garden only; whenever an entity is returned to its owner's
+  // hand, you may tap this card, then draw 1. (this ability is not affected by
+  // cooldown)"
+  kAbilityRegistry[CARD_DEF_STT02_010] = (AbilityDef){
+      .has_ability = true,
+      .is_optional = true, // "you may"
+      .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .effect_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .timing_tag = ecs_id(AWhenReturnedToHand),
+      .validate = stt02_010_validate,
+      .validate_cost_target = NULL,
+      .validate_effect_target = NULL,
+      .apply_costs = stt02_010_apply_costs,
+      .apply_effects = stt02_010_apply_effects,
   };
 
   // STT02-011: "Garden only; Main; You may sacrifice this card: choose an

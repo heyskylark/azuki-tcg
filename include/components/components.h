@@ -110,6 +110,7 @@ typedef struct {
   CombatState combat_state;
   uint8_t entities_played_garden_this_turn[MAX_PLAYERS_PER_MATCH];
   uint8_t entities_played_alley_this_turn[MAX_PLAYERS_PER_MATCH];
+  uint8_t entities_returned_to_hand_this_turn[MAX_PLAYERS_PER_MATCH];
 } GameState;
 typedef struct {
   uint8_t player_number;
