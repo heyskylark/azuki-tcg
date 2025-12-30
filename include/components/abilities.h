@@ -72,6 +72,7 @@ extern ECS_TAG_DECLARE(AGardenOnly);
 extern ECS_TAG_DECLARE(AOnceTurn);
 extern ECS_TAG_DECLARE(AWhenReturnedToHand);
 extern ECS_TAG_DECLARE(AIgnoresCooldown);
+extern ECS_TAG_DECLARE(AOnGatePortal);
 
 /* Keyword Ability Tags */
 extern ECS_TAG_DECLARE(Charge);

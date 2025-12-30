@@ -21,6 +21,7 @@ ECS_TAG_DECLARE(AGardenOnly);
 ECS_TAG_DECLARE(AOnceTurn);
 ECS_TAG_DECLARE(AWhenReturnedToHand);
 ECS_TAG_DECLARE(AIgnoresCooldown);
+ECS_TAG_DECLARE(AOnGatePortal);
 
 ECS_TAG_DECLARE(Charge);
 ECS_TAG_DECLARE(Defender);
@@ -54,6 +55,7 @@ void azk_register_ability_components(ecs_world_t *world) {
   ECS_TAG_DEFINE(world, AOnceTurn);
   ECS_TAG_DEFINE(world, AWhenReturnedToHand);
   ECS_TAG_DEFINE(world, AIgnoresCooldown);
+  ECS_TAG_DEFINE(world, AOnGatePortal);
 
   ECS_TAG_DEFINE(world, Charge);
   ECS_TAG_DEFINE(world, Defender);

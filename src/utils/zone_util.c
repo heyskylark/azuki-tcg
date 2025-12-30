@@ -1,4 +1,6 @@
 #include "utils/zone_util.h"
+
+#include "abilities/ability_system.h"
 #include "components/components.h"
 #include "generated/card_defs.h"
 #include "utils/card_utils.h"
@@ -137,6 +139,22 @@ void untap_all_cards_in_zone(ecs_world_t *world, ecs_entity_t zone) {
   }
 }
 
+uint8_t untap_n_ikz_cards(ecs_world_t *world, ecs_entity_t ikz_area,
+                          uint8_t max_untap) {
+  uint8_t untapped = 0;
+  ecs_entities_t cards = ecs_get_ordered_children(world, ikz_area);
+  for (int32_t i = 0; i < cards.count && untapped < max_untap; i++) {
+    ecs_entity_t card = cards.ids[i];
+    const TapState *ts = ecs_get(world, card, TapState);
+    if (ts && ts->tapped) {
+      ecs_set(world, card, TapState,
+              {.tapped = false, .cooldown = ts->cooldown});
+      untapped++;
+    }
+  }
+  return untapped;
+}
+
 ecs_entity_t find_gate_card_in_zone(ecs_world_t *world, ecs_entity_t zone) {
   ecs_iter_t child_it = ecs_children(world, zone);
   bool gate_child_has_next = ecs_children_next(&child_it);
@@ -173,6 +191,10 @@ int gate_card_into_garden(ecs_world_t *world, const GatePortalIntent *intent) {
   }
 
   set_card_to_tapped(world, intent->gate_card);
+
+  // Trigger gate card's portal ability (if any)
+  azk_trigger_gate_portal_ability(world, intent->gate_card, intent->alley_card,
+                                  intent->player);
 
   return 0;
 }

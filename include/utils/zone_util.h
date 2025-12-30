@@ -22,6 +22,14 @@ int get_tappable_ikz_cards(
 );
 
 void untap_all_cards_in_zone(ecs_world_t *world, ecs_entity_t zone);
+
+/**
+  Untap up to max_untap tapped IKZ cards in the given IKZ area zone.
+  Returns the number of cards actually untapped.
+*/
+uint8_t untap_n_ikz_cards(ecs_world_t *world, ecs_entity_t ikz_area,
+                          uint8_t max_untap);
+
 /**
   Inserts a card into a zone at a given index.
   If the given zone is not a garden or alley, or the index is out of bounds, this function will assert.

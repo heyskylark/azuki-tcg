@@ -99,6 +99,15 @@ bool azk_trigger_leader_response_ability(ecs_world_t *world, ecs_entity_t card,
 void azk_trigger_return_to_hand_observers(ecs_world_t *world,
                                           ecs_entity_t bounced_card);
 
+// Trigger gate card's portal ability after successfully portaling an entity
+// gate_card: the gate card that was used to portal
+// portaled_card: the entity card that was moved from alley to garden
+// owner: the player who owns the gate card
+// All gate cards must have a registered ability with AOnGatePortal timing tag
+void azk_trigger_gate_portal_ability(ecs_world_t *world, ecs_entity_t gate_card,
+                                     ecs_entity_t portaled_card,
+                                     ecs_entity_t owner);
+
 // Queue a triggered effect for processing on next game loop
 // This is used for timing-based triggers (on play, on equip, etc.) where
 // deferred zone operations haven't flushed yet
