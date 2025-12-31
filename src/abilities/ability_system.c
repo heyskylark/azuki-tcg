@@ -289,7 +289,8 @@ bool azk_process_effect_selection(ecs_world_t *world, int target_index) {
     break;
   }
   case ABILITY_TARGET_ENEMY_LEADER_OR_GARDEN_ENTITY: {
-    // Index encoding: 0-4 = opponent garden slots (by ZoneIndex), 5 = opponent leader
+    // Index encoding: 0-4 = opponent garden slots (by ZoneIndex), 5 = opponent
+    // leader
     uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
     if (target_index < GARDEN_SIZE) {
       // Garden entity by zone index
@@ -1051,10 +1052,12 @@ bool azk_trigger_leader_response_ability(ecs_world_t *world, ecs_entity_t card,
   // Go straight to cost or effect selection
   if (def->cost_req.min > 0) {
     ctx->phase = ABILITY_PHASE_COST_SELECTION;
-    cli_render_logf("[Ability] Leader response triggered, selecting cost targets");
+    cli_render_logf(
+        "[Ability] Leader response triggered, selecting cost targets");
   } else if (def->effect_req.min > 0) {
     ctx->phase = ABILITY_PHASE_EFFECT_SELECTION;
-    cli_render_logf("[Ability] Leader response triggered, selecting effect targets");
+    cli_render_logf(
+        "[Ability] Leader response triggered, selecting effect targets");
   } else {
     // No targets needed - apply immediately
     if (def->apply_effects) {
