@@ -5,6 +5,7 @@
 #include "abilities/cards/stt01_004.h"
 #include "abilities/cards/stt01_005.h"
 #include "abilities/cards/stt01_006.h"
+#include "abilities/cards/stt01_012.h"
 #include "abilities/cards/stt01_013.h"
 #include "abilities/cards/stt02_001.h"
 #include "abilities/cards/stt02_003.h"
@@ -366,6 +367,21 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .validate_effect_target = stt01_006_validate_effect_target,
       .apply_costs = NULL,
       .apply_effects = stt01_006_apply_effects,
+  };
+
+  // STT01-012 "Lightning Shuriken": [When Attacking] Put the top card of your
+  // deck into your discard pile.
+  kAbilityRegistry[CARD_DEF_STT01_012] = (AbilityDef){
+      .has_ability = true,
+      .is_optional = true,
+      .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .effect_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .timing_tag = ecs_id(AWhenAttacking),
+      .validate = stt01_012_validate,
+      .validate_cost_target = NULL,
+      .validate_effect_target = NULL,
+      .apply_costs = NULL,
+      .apply_effects = stt01_012_apply_effects,
   };
 
   // STT02-017 "Shao's Perseverance": [Main] If your leader's Shao, return all
