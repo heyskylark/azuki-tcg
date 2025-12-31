@@ -79,4 +79,12 @@ bool is_water_element_card(ecs_world_t *world, ecs_entity_t card);
 int count_subtype_in_zone(ecs_world_t *world, ecs_entity_t zone,
                           ecs_id_t subtype_tag);
 
+/**
+ * Check if an entity has a weapon equipped (attached as child).
+ * @param world The ECS world
+ * @param entity The entity to check (garden entity or leader)
+ * @return true if the entity has at least one weapon attached
+ */
+bool has_equipped_weapon(ecs_world_t *world, ecs_entity_t entity);
+
 #endif
