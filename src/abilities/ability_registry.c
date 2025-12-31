@@ -8,7 +8,9 @@
 #include "abilities/cards/stt01_012.h"
 #include "abilities/cards/stt01_013.h"
 #include "abilities/cards/stt01_014.h"
+#include "abilities/cards/stt01_016.h"
 #include "abilities/cards/stt02_001.h"
+#include "abilities/cards/stt02_002.h"
 #include "abilities/cards/stt02_003.h"
 #include "abilities/cards/stt02_005.h"
 #include "abilities/cards/stt02_007.h"
@@ -19,7 +21,6 @@
 #include "abilities/cards/stt02_014.h"
 #include "abilities/cards/stt02_015.h"
 #include "abilities/cards/stt02_016.h"
-#include "abilities/cards/stt02_002.h"
 #include "abilities/cards/stt02_017.h"
 #include "components/abilities.h"
 
@@ -337,8 +338,8 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .apply_effects = stt02_016_apply_effects,
   };
 
-  // STT02-002 "Hydromancy": On Gate Portal; untap IKZ up to portaled card's gate
-  // points
+  // STT02-002 "Hydromancy": On Gate Portal; untap IKZ up to portaled card's
+  // gate points
   kAbilityRegistry[CARD_DEF_STT02_002] = (AbilityDef){
       .has_ability = true,
       .is_optional = false,
@@ -399,6 +400,20 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .validate_effect_target = stt01_014_validate_effect_target,
       .apply_costs = NULL,
       .apply_effects = stt01_014_apply_effects,
+  };
+  // STT01-016 "Raizan's Zanbato": [When Attacking] If equipped to a (Raizan)
+  // card, deal 1 damage to all entities in your opponent's garden.
+  kAbilityRegistry[CARD_DEF_STT01_016] = (AbilityDef){
+      .has_ability = true,
+      .is_optional = true,
+      .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .effect_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .timing_tag = ecs_id(AWhenAttacking),
+      .validate = stt01_016_validate,
+      .validate_cost_target = NULL,
+      .validate_effect_target = NULL,
+      .apply_costs = NULL,
+      .apply_effects = stt01_016_apply_effects,
   };
 
   // STT02-017 "Shao's Perseverance": [Main] If your leader's Shao, return all
