@@ -855,6 +855,12 @@ AbilityPhase azk_get_ability_phase(ecs_world_t *world) {
 void azk_clear_ability_context(ecs_world_t *world) {
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
 
+  // Mark once-per-turn abilities as used before clearing context
+  if (ctx->source_card != 0 && ecs_has(world, ctx->source_card, AOnceTurn)) {
+    ecs_set(world, ctx->source_card, AbilityRepeatContext,
+            {.is_once_per_turn = true, .was_applied = true});
+  }
+
   ctx->phase = ABILITY_PHASE_NONE;
   ctx->source_card = 0;
   ctx->owner = 0;

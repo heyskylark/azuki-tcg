@@ -207,6 +207,11 @@ static void handle_activate_alley_ability(ecs_world_t *world, GameState *gs,
     return;
   }
 
+  // Pay IKZ cost (tap IKZ cards)
+  for (int i = 0; i < intent.ikz_card_count; i++) {
+    tap_card(world, intent.ikz_cards[i]);
+  }
+
   // Trigger the main phase ability
   azk_trigger_main_ability(world, intent.card, player);
 
@@ -230,6 +235,11 @@ static void handle_activate_garden_or_leader_ability(ecs_world_t *world,
           world, gs, player, &ac->user_action, true, &intent)) {
     ac->invalid_action = true;
     return;
+  }
+
+  // Pay IKZ cost (tap IKZ cards)
+  for (int i = 0; i < intent.ikz_card_count; i++) {
+    tap_card(world, intent.ikz_cards[i]);
   }
 
   // Trigger the main phase ability
