@@ -14,7 +14,7 @@ int attack(
   GameState *gs = ecs_singleton_get_mut(world, GameState);
   ecs_assert(gs != NULL, ECS_INVALID_PARAMETER, "GameState singleton missing");
 
-  set_card_to_tapped(world, intent->attacking_card);
+  tap_card(world, intent->attacking_card);
 
   CombatState combat_state = {
     .attacking_card = intent->attacking_card,

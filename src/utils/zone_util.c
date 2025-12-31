@@ -128,7 +128,7 @@ int summon_card_into_zone_index(ecs_world_t *world,
   }
 
   for (uint8_t i = 0; i < intent->ikz_card_count; ++i) {
-    set_card_to_tapped(world, intent->ikz_cards[i]);
+    tap_card(world, intent->ikz_cards[i]);
   }
 
   return 0;
@@ -193,7 +193,7 @@ int gate_card_into_garden(ecs_world_t *world, const GatePortalIntent *intent) {
     return results;
   }
 
-  set_card_to_tapped(world, intent->gate_card);
+  tap_card(world, intent->gate_card);
 
   // Trigger gate card's portal ability (if any)
   azk_trigger_gate_portal_ability(world, intent->gate_card, intent->alley_card,

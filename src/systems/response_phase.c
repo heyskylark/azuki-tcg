@@ -52,7 +52,7 @@ static void handle_activate_leader_response_ability(ecs_world_t *world,
 
   // Pay IKZ cost (tap IKZ cards)
   for (int i = 0; i < intent.ikz_card_count; i++) {
-    set_card_to_tapped(world, intent.ikz_cards[i]);
+    tap_card(world, intent.ikz_cards[i]);
   }
 
   // Mark once-per-turn as used
@@ -86,7 +86,7 @@ static void handle_play_spell_from_hand(ecs_world_t *world, GameState *gs,
 
   // Pay IKZ cost (tap IKZ cards)
   for (int i = 0; i < intent.ikz_card_count; i++) {
-    set_card_to_tapped(world, intent.ikz_cards[i]);
+    tap_card(world, intent.ikz_cards[i]);
   }
 
   // Move spell card to discard

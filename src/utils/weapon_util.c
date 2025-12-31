@@ -23,7 +23,7 @@ int attach_weapon_from_hand(
   ecs_add_pair(world, intent->weapon_card, EcsChildOf, intent->target_card);
 
   for (uint8_t i = 0; i < intent->ikz_card_count; ++i) {
-    set_card_to_tapped(world, intent->ikz_cards[i]);
+    tap_card(world, intent->ikz_cards[i]);
   }
 
   return 0;

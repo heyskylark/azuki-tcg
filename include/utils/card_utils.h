@@ -7,7 +7,23 @@
 bool is_card_type(ecs_world_t *world, ecs_entity_t card, CardType type);
 void discard_card(ecs_world_t *world, ecs_entity_t card);
 void return_card_to_hand(ecs_world_t *world, ecs_entity_t card);
-void set_card_to_tapped(ecs_world_t *world, ecs_entity_t card);
+/**
+ * Check if a card can be tapped.
+ * Returns false if card is already tapped or on cooldown (unless ignored).
+ * @param world The ECS world
+ * @param card The card entity to check
+ * @param ignore_cooldown If true, cooldown does not prevent tapping
+ * @return true if the card can be tapped
+ */
+bool can_tap_card(ecs_world_t *world, ecs_entity_t card, bool ignore_cooldown);
+
+/**
+ * Tap a card. Caller should validate with can_tap_card() first.
+ * @param world The ECS world
+ * @param card The card entity to tap
+ */
+void tap_card(ecs_world_t *world, ecs_entity_t card);
+
 void set_card_to_cooldown(ecs_world_t *world, ecs_entity_t card);
 bool is_card_tapped(ecs_world_t *world, ecs_entity_t card);
 bool is_card_cooldown(ecs_world_t *world, ecs_entity_t card);

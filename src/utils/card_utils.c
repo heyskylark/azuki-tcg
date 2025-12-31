@@ -88,12 +88,22 @@ void return_card_to_hand(ecs_world_t *world, ecs_entity_t card) {
   }
 }
 
-void set_card_to_tapped(ecs_world_t *world, ecs_entity_t card) {
-  const TapState *tap_state = ecs_get(world, card, TapState);
-  ecs_assert(tap_state != NULL, ECS_INVALID_PARAMETER,
+bool can_tap_card(ecs_world_t *world, ecs_entity_t card, bool ignore_cooldown) {
+  const TapState *ts = ecs_get(world, card, TapState);
+  ecs_assert(ts != NULL, ECS_INVALID_PARAMETER,
              "TapState component not found for card %d", card);
-  ecs_set(world, card, TapState,
-          {.tapped = true, .cooldown = tap_state->cooldown});
+  if (ts->tapped)
+    return false;
+  if (ts->cooldown && !ignore_cooldown)
+    return false;
+  return true;
+}
+
+void tap_card(ecs_world_t *world, ecs_entity_t card) {
+  const TapState *ts = ecs_get(world, card, TapState);
+  ecs_assert(ts != NULL, ECS_INVALID_PARAMETER,
+             "TapState component not found for card %d", card);
+  ecs_set(world, card, TapState, {.tapped = true, .cooldown = ts->cooldown});
 }
 
 void set_card_to_cooldown(ecs_world_t *world, ecs_entity_t card) {

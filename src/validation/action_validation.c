@@ -310,8 +310,8 @@ bool azk_validate_attack_action(
     }
   }
 
-  if (is_card_tapped(world, attacking_card) || is_card_cooldown(world, attacking_card)) {
-    VALIDATION_LOG(log_errors, "Attacking card %d is tapped or on cooldown", attacking_card);
+  if (!can_tap_card(world, attacking_card, false)) {
+    VALIDATION_LOG(log_errors, "Attacking card %d cannot be tapped (already tapped or on cooldown)", attacking_card);
     return false;
   }
 

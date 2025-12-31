@@ -21,13 +21,11 @@ bool stt02_010_validate(ecs_world_t *world, ecs_entity_t card,
     return false;
   }
 
-  // Card must not be tapped (cost is tapping this card)
-  if (is_card_tapped(world, card)) {
+  // Card must be tappable (cost is tapping this card)
+  // Note: ignore_cooldown=true because this ability has AIgnoresCooldown
+  if (!can_tap_card(world, card, true)) {
     return false;
   }
-
-  // Note: Cooldown does NOT prevent activation (AIgnoresCooldown)
-  // No cooldown check!
 
   // Must have at least one card in deck to draw
   ecs_entity_t deck = gs->zones[player_num].deck;
@@ -41,7 +39,7 @@ bool stt02_010_validate(ecs_world_t *world, ecs_entity_t card,
 
 void stt02_010_apply_costs(ecs_world_t *world, const AbilityContext *ctx) {
   // Tap this card
-  set_card_to_tapped(world, ctx->source_card);
+  tap_card(world, ctx->source_card);
   cli_render_logf("[STT02-010] Tapped card as cost");
 }
 
