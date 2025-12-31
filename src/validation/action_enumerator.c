@@ -244,6 +244,34 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
       }
       break;
     }
+    case ABILITY_TARGET_ANY_LEADER: {
+      // Index encoding: 0 = friendly leader, 1 = enemy leader
+      // Check friendly leader (index 0)
+      ecs_entity_t friendly_leader =
+          find_leader_card_in_zone(world, gs->zones[player_num].leader);
+      if (friendly_leader != 0) {
+        if (!def->validate_effect_target ||
+            def->validate_effect_target(world, ctx->source_card, ctx->owner,
+                                        friendly_leader)) {
+          action.subaction_1 = 0; // 0 for friendly leader
+          add_valid_action(out_mask, &action);
+        }
+      }
+
+      // Check enemy leader (index 1)
+      uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
+      ecs_entity_t enemy_leader =
+          find_leader_card_in_zone(world, gs->zones[enemy_num].leader);
+      if (enemy_leader != 0) {
+        if (!def->validate_effect_target ||
+            def->validate_effect_target(world, ctx->source_card, ctx->owner,
+                                        enemy_leader)) {
+          action.subaction_1 = 1; // 1 for enemy leader
+          add_valid_action(out_mask, &action);
+        }
+      }
+      break;
+    }
     default:
       break;
     }

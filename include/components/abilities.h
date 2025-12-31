@@ -19,6 +19,7 @@ typedef enum {
   ABILITY_TARGET_ANY_LEADER_OR_GARDEN_ENTITY = 11,
   ABILITY_TARGET_ANY_GARDEN_ENTITY =
       12, // 0-4 = self garden, 5-9 = opponent garden
+  ABILITY_TARGET_ANY_LEADER = 16, // 0 = friendly leader, 1 = enemy leader
   ABILITY_TARGET_FRIENDLY_SELECTION = 13, // Any card in selection zone
   ABILITY_TARGET_FRIENDLY_SELECTION_WEAPON =
       14,                                   // Weapon card in selection zone

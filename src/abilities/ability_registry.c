@@ -7,6 +7,7 @@
 #include "abilities/cards/stt01_006.h"
 #include "abilities/cards/stt01_012.h"
 #include "abilities/cards/stt01_013.h"
+#include "abilities/cards/stt01_014.h"
 #include "abilities/cards/stt02_001.h"
 #include "abilities/cards/stt02_003.h"
 #include "abilities/cards/stt02_005.h"
@@ -382,6 +383,22 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .validate_effect_target = NULL,
       .apply_costs = NULL,
       .apply_effects = stt01_012_apply_effects,
+  };
+
+  // STT01-014 "Tenshin": [On Play] Deal up to 1 damage to a leader.
+  kAbilityRegistry[CARD_DEF_STT01_014] = (AbilityDef){
+      .has_ability = true,
+      .is_optional = true,
+      .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .effect_req = {.type = ABILITY_TARGET_ANY_LEADER,
+                     .min = 0, // "up to" means optional
+                     .max = 1},
+      .timing_tag = ecs_id(AOnPlay),
+      .validate = stt01_014_validate,
+      .validate_cost_target = NULL,
+      .validate_effect_target = stt01_014_validate_effect_target,
+      .apply_costs = NULL,
+      .apply_effects = stt01_014_apply_effects,
   };
 
   // STT02-017 "Shao's Perseverance": [Main] If your leader's Shao, return all

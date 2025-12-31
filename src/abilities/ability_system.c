@@ -80,7 +80,8 @@ bool azk_process_ability_confirmation(ecs_world_t *world) {
       azk_clear_ability_context(world);
       return true;
     }
-  } else if (def->effect_req.min > 0) {
+  } else if (def->effect_req.max > 0) {
+    // Use max > 0 (not min > 0) to enter effect selection for "up to" effects
     // No cost targets to select, but still apply costs (e.g., sacrifice self,
     // draw cards)
     if (def->apply_costs) {
@@ -330,6 +331,19 @@ bool azk_process_effect_selection(ecs_world_t *world, int target_index) {
         break;
       }
     }
+    break;
+  }
+  case ABILITY_TARGET_ANY_LEADER: {
+    // Index encoding: 0 = friendly leader, 1 = enemy leader
+    uint8_t target_player_num;
+    if (target_index == 0) {
+      target_player_num = player_num;
+    } else if (target_index == 1) {
+      target_player_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
+    } else {
+      break; // Invalid index
+    }
+    target = find_leader_card_in_zone(world, gs->zones[target_player_num].leader);
     break;
   }
   default:
