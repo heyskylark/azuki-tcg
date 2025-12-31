@@ -6,6 +6,17 @@
 
 #include "components/components.h"
 
+// Timing tag constants for queue indexing
+#define TIMING_TAG_ON_PLAY 0
+#define TIMING_TAG_START_OF_TURN 1
+#define TIMING_TAG_END_OF_TURN 2
+#define TIMING_TAG_WHEN_EQUIPPING 3
+#define TIMING_TAG_WHEN_EQUIPPED 4
+#define TIMING_TAG_WHEN_ATTACKING 5
+#define TIMING_TAG_WHEN_ATTACKED 6
+#define TIMING_TAG_WHEN_RETURNED_TO_HAND 7
+#define TIMING_TAG_ON_GATE_PORTAL 8
+
 // Trigger an on-play ability for a card that was just played
 // Returns true if an ability was triggered (player needs to confirm/decline)
 // Returns false if no ability, ability invalid, or ability is non-optional and

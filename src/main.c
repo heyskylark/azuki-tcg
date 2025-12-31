@@ -29,6 +29,20 @@ int main(void) {
       continue;
     }
 
+    // Run phase gate BEFORE checking for user action to handle auto-transitions
+    // (e.g., pending combat after "when attacking" effects resolve)
+    Phase phase_before = gs->phase;
+    run_phase_gate_system(world);
+
+    // Re-fetch gs since phase may have changed
+    gs = ecs_singleton_get(world, GameState);
+
+    // If phase changed, re-render before asking for user input
+    if (gs->phase != phase_before) {
+      game_over = is_game_over(world);
+      continue;
+    }
+
     // Normal flow: check if user input needed
     bool requires_user_action = phase_requires_user_action(world, gs->phase);
     if (requires_user_action) {

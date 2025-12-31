@@ -140,7 +140,24 @@ static void handle_attack(ecs_world_t *world, GameState *gs,
     return;
   }
 
-  // Check if defender can respond (has response spells and IKZ)
+  // Check if attacking card has a "when attacking" ability before queueing
+  const CardId *card_id = ecs_get(world, intent.attacking_card, CardId);
+  if (card_id &&
+      azk_has_ability_with_timing(card_id->id, ecs_id(AWhenAttacking))) {
+    // Queue "when attacking" triggered ability for the attacking card
+    azk_queue_triggered_effect(world, intent.attacking_card, player,
+                               TIMING_TAG_WHEN_ATTACKING);
+
+    // Stay in MAIN phase to let effects resolve. The transition to response
+    // window will happen after effects are processed (handled by phase gate).
+    if (azk_has_queued_triggered_effects(world)) {
+      cli_render_logf(
+          "[MainAction] Attack declared - processing when attacking effects");
+      return;
+    }
+  }
+
+  // No when-attacking ability or queue empty, proceed with normal flow
   uint8_t defender_index =
       (gs->active_player_index + 1) % MAX_PLAYERS_PER_MATCH;
   if (defender_can_respond(world, gs, defender_index)) {

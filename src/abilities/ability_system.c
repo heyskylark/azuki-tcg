@@ -1069,17 +1069,6 @@ bool azk_trigger_leader_response_ability(ecs_world_t *world, ecs_entity_t card,
   return ctx->phase != ABILITY_PHASE_NONE;
 }
 
-// Timing tag constants for queue indexing
-#define TIMING_TAG_ON_PLAY 0
-#define TIMING_TAG_START_OF_TURN 1
-#define TIMING_TAG_END_OF_TURN 2
-#define TIMING_TAG_WHEN_EQUIPPING 3
-#define TIMING_TAG_WHEN_EQUIPPED 4
-#define TIMING_TAG_WHEN_ATTACKING 5
-#define TIMING_TAG_WHEN_ATTACKED 6
-#define TIMING_TAG_WHEN_RETURNED_TO_HAND 7
-#define TIMING_TAG_ON_GATE_PORTAL 8
-
 bool azk_queue_triggered_effect(ecs_world_t *world, ecs_entity_t card,
                                 ecs_entity_t owner, uint8_t timing_tag) {
   TriggeredEffectQueue *queue =
