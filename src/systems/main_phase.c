@@ -147,14 +147,32 @@ static void handle_attack(ecs_world_t *world, GameState *gs,
     // Queue "when attacking" triggered ability for the attacking card
     azk_queue_triggered_effect(world, intent.attacking_card, player,
                                TIMING_TAG_WHEN_ATTACKING);
+  }
 
-    // Stay in MAIN phase to let effects resolve. The transition to response
-    // window will happen after effects are processed (handled by phase gate).
-    if (azk_has_queued_triggered_effects(world)) {
-      cli_render_logf(
-          "[MainAction] Attack declared - processing when attacking effects");
-      return;
+  // Also check attached weapons for "when attacking" abilities
+  ecs_iter_t weapon_it = ecs_children(world, intent.attacking_card);
+  while (ecs_children_next(&weapon_it)) {
+    for (int i = 0; i < weapon_it.count; i++) {
+      ecs_entity_t weapon = weapon_it.entities[i];
+      if (!ecs_has_id(world, weapon, TWeapon)) {
+        continue;
+      }
+
+      const CardId *weapon_id = ecs_get(world, weapon, CardId);
+      if (weapon_id &&
+          azk_has_ability_with_timing(weapon_id->id, ecs_id(AWhenAttacking))) {
+        azk_queue_triggered_effect(world, weapon, player,
+                                   TIMING_TAG_WHEN_ATTACKING);
+      }
     }
+  }
+
+  // Stay in MAIN phase to let effects resolve. The transition to response
+  // window will happen after effects are processed (handled by phase gate).
+  if (azk_has_queued_triggered_effects(world)) {
+    cli_render_logf(
+        "[MainAction] Attack declared - processing when attacking effects");
+    return;
   }
 
   // No when-attacking ability or queue empty, proceed with normal flow
