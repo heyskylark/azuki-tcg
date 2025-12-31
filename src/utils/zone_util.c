@@ -1,6 +1,7 @@
 #include "utils/zone_util.h"
 
 #include "abilities/ability_system.h"
+#include "components/abilities.h"
 #include "components/components.h"
 #include "generated/card_defs.h"
 #include "utils/card_utils.h"
@@ -106,7 +107,9 @@ static int insert_card_into_zone_index(ecs_world_t *world, ecs_entity_t card,
   ecs_set(world, card, ZoneIndex, {.index = index});
 
   if (placement_type == ZONE_GARDEN) {
-    set_card_to_cooldown(world, card);
+    if (!ecs_has(world, card, Charge)) {
+      set_card_to_cooldown(world, card);
+    }
   }
 
   return 0;

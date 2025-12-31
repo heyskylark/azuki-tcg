@@ -840,7 +840,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
     {
         ecs_entity_desc_t desc = {
             .name = "CardPrefab::STT01-010",
-            .add = (ecs_id_t[]){ EcsPrefab, TEntity, 0 }
+            .add = (ecs_id_t[]){ EcsPrefab, TEntity, Charge, 0 }
         };
         ecs_entity_t prefab = ecs_entity_init(world, &desc);
         ecs_assert(prefab != 0, ECS_INVALID_PARAMETER, "failed to create prefab for card STT01-010");

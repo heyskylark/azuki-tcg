@@ -9,7 +9,7 @@
 {"card_id": "STT01-007", "name": "Alley Guy", "rarity": "C", "element": "NORMAL", "type": "ENTITY", "ikz_cost": 2, "attack": 1, "health": 2, "gate_points": 0, "subtypes": ["Dawnling", "Alley Dweller"]}
 {"card_id": "STT01-008", "name": "Black Jade Crewleader", "rarity": "UC", "element": "LIGHTNING", "type": "ENTITY", "ikz_cost": 3, "attack": 2, "health": 2, "gate_points": 1, "subtypes": ["Black Jade", "Steelborn"]}
 {"card_id": "STT01-009", "name": "Weapon Master Yamada", "rarity": "UC", "element": "LIGHTNING", "type": "ENTITY", "ikz_cost": 4, "attack": 2, "health": 2, "gate_points": 2, "subtypes": ["Steelborn"]}
-{"card_id": "STT01-010", "name": "Indra", "rarity": "R", "element": "LIGHTNING", "type": "ENTITY", "ikz_cost": 5, "attack": 3, "health": 2, "gate_points": 3, "subtypes": ["Monk", "Steelborn"]}
+{"card_id": "STT01-010", "name": "Indra", "rarity": "R", "element": "LIGHTNING", "type": "ENTITY", "ikz_cost": 5, "attack": 3, "health": 2, "gate_points": 3, "subtypes": ["Monk", "Steelborn"], "keywords": ["charge"]}
 {"card_id": "STT01-011", "name": "Raizan", "rarity": "SR", "element": "LIGHTNING", "type": "ENTITY", "ikz_cost": 6, "attack": 4, "health": 3, "gate_points": 4, "subtypes": ["Raizan", "Steelborn"]}
 {"card_id": "STT01-012", "name": "Lightning Shuriken", "rarity": "C", "element": "LIGHTNING", "type": "WEAPON", "ikz_cost": 1, "attack": 1, "subtypes": ["Shuriken", "Shadowfang"]}
 {"card_id": "STT01-013", "name": "Black Jade Dagger", "rarity": "C", "element": "NORMAL", "type": "WEAPON", "ikz_cost": 1, "attack": 1, "subtypes": ["Black Jade", "Sword"]}
