@@ -2,7 +2,9 @@
 #include <flecs.h>
 #include "systems/phase_gate.h"
 #include "abilities/ability_system.h"
+#include "constants/game.h"
 #include "utils/cli_rendering_util.h"
+#include "utils/player_util.h"
 
 static ecs_entity_t MulliganPipeline;
 static ecs_entity_t StartOfTurnPipeline;
@@ -54,6 +56,33 @@ void PhaseGate(ecs_iter_t *it) {
     if (ability_phase != ABILITY_PHASE_NONE) {
       ecs_set_pipeline(world, AbilityResolutionPipeline);
       return;
+    }
+
+    // Check for pending combat transition after "when attacking" effects
+    // resolved If in MAIN phase with pending combat and no queued effects,
+    // transition to response window
+    if (phase == PHASE_MAIN && gs->combat_state.attacking_card != 0 &&
+        !azk_has_queued_triggered_effects(world)) {
+      // Active player is the attacker (we stayed in MAIN after queueing effect)
+      uint8_t defender_index =
+          (gs->active_player_index + 1) % MAX_PLAYERS_PER_MATCH;
+
+      if (defender_can_respond(world, gs, defender_index)) {
+        gs->phase = PHASE_RESPONSE_WINDOW;
+        gs->active_player_index = defender_index;
+        ecs_singleton_modified(world, GameState);
+        cli_render_logf("[PhaseGate] When attacking effects resolved - "
+                        "defender has response options");
+        set_pipeline_for_phase(world, PHASE_RESPONSE_WINDOW);
+        return;
+      } else {
+        gs->phase = PHASE_COMBAT_RESOLVE;
+        ecs_singleton_modified(world, GameState);
+        cli_render_logf(
+            "[PhaseGate] When attacking effects resolved - proceeding to combat");
+        set_pipeline_for_phase(world, PHASE_COMBAT_RESOLVE);
+        return;
+      }
     }
   }
 

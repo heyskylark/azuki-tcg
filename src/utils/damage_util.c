@@ -1,8 +1,11 @@
 #include "utils/damage_util.h"
 
 #include "components/abilities.h"
+#include "components/components.h"
 #include "generated/card_defs.h"
+#include "utils/card_utils.h"
 #include "utils/cli_rendering_util.h"
+#include "utils/player_util.h"
 #include "utils/status_util.h"
 
 bool deal_effect_damage(ecs_world_t *world, ecs_entity_t target,
@@ -25,5 +28,31 @@ bool deal_effect_damage(ecs_world_t *world, ecs_entity_t target,
 
   cli_render_logf("[Damage] Dealt %d effect damage (HP: %d)", damage,
                   cur_stats->cur_hp);
+
+  // Check for death (HP <= 0)
+  if (cur_stats->cur_hp <= 0) {
+    if (ecs_has(world, target, TLeader)) {
+      // Leader defeated - determine winner based on target's owner
+      GameState *gs = ecs_singleton_get_mut(world, GameState);
+      ecs_entity_t target_parent = ecs_get_target(world, target, EcsChildOf, 0);
+
+      // Find which player owns this leader
+      for (int i = 0; i < MAX_PLAYERS_PER_MATCH; i++) {
+        if (target_parent == gs->zones[i].leader) {
+          // Owner of defeated leader loses, opponent wins
+          gs->winner = (i + 1) % MAX_PLAYERS_PER_MATCH;
+          ecs_singleton_modified(world, GameState);
+          cli_render_logf("[Damage] Leader defeated - player %d wins",
+                          gs->winner);
+          break;
+        }
+      }
+    } else {
+      // Non-leader entity - discard it
+      discard_card(world, target);
+      cli_render_logf("[Damage] Entity defeated by effect damage - discarded");
+    }
+  }
+
   return true;
 }

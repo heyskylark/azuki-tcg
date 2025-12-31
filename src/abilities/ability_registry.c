@@ -4,6 +4,7 @@
 #include "abilities/cards/stt01_003.h"
 #include "abilities/cards/stt01_004.h"
 #include "abilities/cards/stt01_005.h"
+#include "abilities/cards/stt01_006.h"
 #include "abilities/cards/stt01_013.h"
 #include "abilities/cards/stt02_001.h"
 #include "abilities/cards/stt02_003.h"
@@ -40,6 +41,14 @@ bool azk_has_ability(CardDefId id) {
     return false;
   }
   return kAbilityRegistry[id].has_ability;
+}
+
+bool azk_has_ability_with_timing(CardDefId id, ecs_id_t timing_tag) {
+  if ((size_t)id >= CARD_DEF_COUNT) {
+    return false;
+  }
+  const AbilityDef *def = &kAbilityRegistry[id];
+  return def->has_ability && def->timing_tag == timing_tag;
 }
 
 void azk_init_ability_registry(ecs_world_t *world) {
@@ -339,6 +348,24 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .validate_effect_target = NULL,
       .apply_costs = NULL,
       .apply_effects = stt02_002_apply_effects,
+  };
+
+  // STT01-006 "Silver Current, Haruhi": [Once/Turn][When Attacking] Deal 1
+  // damage to a leader or entity in your opponent's garden.
+  kAbilityRegistry[CARD_DEF_STT01_006] = (AbilityDef){
+      .has_ability = true,
+      .is_optional = false,
+      .is_once_per_turn = true,
+      .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .effect_req = {.type = ABILITY_TARGET_ENEMY_LEADER_OR_GARDEN_ENTITY,
+                     .min = 1,
+                     .max = 1},
+      .timing_tag = ecs_id(AWhenAttacking),
+      .validate = stt01_006_validate,
+      .validate_cost_target = NULL,
+      .validate_effect_target = stt01_006_validate_effect_target,
+      .apply_costs = NULL,
+      .apply_effects = stt01_006_apply_effects,
   };
 
   // STT02-017 "Shao's Perseverance": [Main] If your leader's Shao, return all

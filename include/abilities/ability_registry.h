@@ -40,6 +40,9 @@ const AbilityDef *azk_get_ability_def(CardDefId id);
 // Check if card has an ability
 bool azk_has_ability(CardDefId id);
 
+// Check if card has an ability with a specific timing tag
+bool azk_has_ability_with_timing(CardDefId id, ecs_id_t timing_tag);
+
 // Initialize ability registry (call after ability tags are registered)
 void azk_init_ability_registry(ecs_world_t *world);
 
