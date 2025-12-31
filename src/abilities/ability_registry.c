@@ -1,6 +1,7 @@
 #include "abilities/ability_registry.h"
 
 #include "abilities/cards/st01_007.h"
+#include "abilities/cards/stt01_001.h"
 #include "abilities/cards/stt01_003.h"
 #include "abilities/cards/stt01_004.h"
 #include "abilities/cards/stt01_005.h"
@@ -60,6 +61,23 @@ void azk_init_ability_registry(ecs_world_t *world) {
   if (kRegistryInitialized) {
     return;
   }
+
+  // STT01-001: [Main] [Once/Turn] Pay 1 IKZ: Give a friendly garden entity
+  // equipped with a weapon Charge.
+  kAbilityRegistry[CARD_DEF_STT01_001] = (AbilityDef){
+      .has_ability = true,
+      .is_optional = false,
+      .is_once_per_turn = true,
+      .ikz_cost = 1,
+      .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .effect_req = {.type = ABILITY_TARGET_FRIENDLY_GARDEN_ENTITY,
+                     .min = 1,
+                     .max = 1},
+      .timing_tag = ecs_id(AMain),
+      .validate = stt01_001_validate,
+      .validate_effect_target = stt01_001_validate_effect_target,
+      .apply_effects = stt01_001_apply_effects,
+  };
 
   // STT02-001 "Shao": [Response] [Once/Turn] Pay 1 IKZ: Reduce a leader's or
   // entity's attack by 1 until the end of the turn.

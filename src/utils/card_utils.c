@@ -1,6 +1,7 @@
 #include "utils/card_utils.h"
 
 #include "abilities/ability_system.h"
+#include "components/abilities.h"
 #include "components/components.h"
 #include "generated/card_defs.h"
 #include "utils/cli_rendering_util.h"
@@ -33,6 +34,11 @@ void discard_card(ecs_world_t *world, ecs_entity_t card) {
   if (base && ecs_has(world, card, CurStats)) {
     ecs_set(world, card, CurStats,
             {.cur_atk = base->attack, .cur_hp = base->health});
+  }
+  // Remove non-innate Charge tag (check if prefab has Charge)
+  ecs_entity_t prefab = ecs_get_target(world, card, EcsIsA, 0);
+  if (prefab != 0 && !ecs_has(world, prefab, Charge)) {
+    ecs_remove(world, card, Charge);
   }
   ecs_add_pair(world, card, EcsChildOf, discard_zone);
 }
@@ -73,6 +79,11 @@ void return_card_to_hand(ecs_world_t *world, ecs_entity_t card) {
   if (base) {
     ecs_set(world, card, CurStats,
             {.cur_atk = base->attack, .cur_hp = base->health});
+  }
+  // Remove non-innate Charge tag (check if prefab has Charge)
+  ecs_entity_t prefab = ecs_get_target(world, card, EcsIsA, 0);
+  if (prefab != 0 && !ecs_has(world, prefab, Charge)) {
+    ecs_remove(world, card, Charge);
   }
   // Move to hand
   ecs_add_pair(world, card, EcsChildOf, hand_zone);
@@ -176,4 +187,16 @@ int count_subtype_in_zone(ecs_world_t *world, ecs_entity_t zone,
     }
   }
   return count;
+}
+
+bool has_equipped_weapon(ecs_world_t *world, ecs_entity_t entity) {
+  ecs_iter_t it = ecs_children(world, entity);
+  while (ecs_children_next(&it)) {
+    for (int i = 0; i < it.count; i++) {
+      if (ecs_has_id(world, it.entities[i], TWeapon)) {
+        return true;
+      }
+    }
+  }
+  return false;
 }

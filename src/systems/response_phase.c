@@ -55,13 +55,8 @@ static void handle_activate_leader_response_ability(ecs_world_t *world,
     tap_card(world, intent.ikz_cards[i]);
   }
 
-  // Mark once-per-turn as used
-  if (ecs_has(world, intent.card, AOnceTurn)) {
-    ecs_set(world, intent.card, AbilityRepeatContext, {
-      .is_once_per_turn = true,
-      .was_applied = true
-    });
-  }
+  // Note: Once-per-turn marking is now handled in azk_clear_ability_context()
+  // when the ability actually completes (not when it's triggered)
 
   cli_render_logf("[ResponseAction] Activated leader response ability");
 
