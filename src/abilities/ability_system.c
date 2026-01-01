@@ -951,6 +951,38 @@ bool azk_trigger_main_ability(ecs_world_t *world, ecs_entity_t card,
   return ctx->phase != ABILITY_PHASE_NONE;
 }
 
+// Helper to count available effect targets for a given ability
+static uint8_t count_available_effect_targets(ecs_world_t *world,
+                                              const AbilityDef *def,
+                                              ecs_entity_t source_card,
+                                              ecs_entity_t owner) {
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  uint8_t player_num = get_player_number(world, owner);
+  uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
+  uint8_t count = 0;
+
+  switch (def->effect_req.type) {
+  case ABILITY_TARGET_ENEMY_GARDEN_ENTITY: {
+    ecs_entity_t garden = gs->zones[enemy_num].garden;
+    ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
+    for (int i = 0; i < garden_cards.count; i++) {
+      ecs_entity_t target = garden_cards.ids[i];
+      if (def->validate_effect_target &&
+          !def->validate_effect_target(world, source_card, owner, target)) {
+        continue;
+      }
+      count++;
+    }
+    break;
+  }
+  default:
+    // For other target types, use max as default
+    return def->effect_req.max;
+  }
+
+  return count;
+}
+
 bool azk_trigger_spell_ability(ecs_world_t *world, ecs_entity_t spell_card,
                                ecs_entity_t owner) {
   // Get card ID
@@ -980,7 +1012,13 @@ bool azk_trigger_spell_ability(ecs_world_t *world, ecs_entity_t spell_card,
   ctx->cost_expected = def->cost_req.max;
   ctx->cost_filled = 0;
   ctx->effect_min = def->effect_req.min;
-  ctx->effect_expected = def->effect_req.max;
+  // Dynamically calculate effect_expected based on available targets
+  uint8_t available = count_available_effect_targets(world, def, spell_card, owner);
+  ctx->effect_expected = (available < def->effect_req.max) ? available : def->effect_req.max;
+  // Ensure effect_expected is at least effect_min
+  if (ctx->effect_expected < ctx->effect_min) {
+    ctx->effect_expected = ctx->effect_min;
+  }
   ctx->effect_filled = 0;
 
   // Clear target arrays

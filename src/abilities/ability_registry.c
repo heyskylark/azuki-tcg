@@ -6,6 +6,7 @@
 #include "abilities/cards/stt01_005.h"
 #include "abilities/cards/stt01_006.h"
 #include "abilities/cards/stt01_012.h"
+#include "abilities/cards/stt01_017.h"
 #include "abilities/cards/stt01_013.h"
 #include "abilities/cards/stt02_001.h"
 #include "abilities/cards/stt02_003.h"
@@ -397,6 +398,23 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .validate_effect_target = NULL,
       .apply_costs = NULL,
       .apply_effects = stt02_017_apply_effects,
+  };
+
+  // STT01-017 "Lightning Orb": [Response] Deal 1 damage to an entity in your
+  // opponent's garden and 1 damage to another entity in your opponent's garden.
+  kAbilityRegistry[CARD_DEF_STT01_017] = (AbilityDef){
+      .has_ability = true,
+      .is_optional = false, // Spells are not optional once cast
+      .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .effect_req = {.type = ABILITY_TARGET_ENEMY_GARDEN_ENTITY,
+                     .min = 1,
+                     .max = 2},
+      .timing_tag = ecs_id(AResponse),
+      .validate = stt01_017_validate,
+      .validate_cost_target = NULL,
+      .validate_effect_target = stt01_017_validate_effect_target,
+      .apply_costs = NULL,
+      .apply_effects = stt01_017_apply_effects,
   };
 
   kRegistryInitialized = true;
