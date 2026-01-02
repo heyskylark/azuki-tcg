@@ -294,6 +294,13 @@ static void test_init_player_deck_raizen(void) {
   zones.ikz_area = create_zone(world, player, ZIKZAreaTag, "IKZArea");
   zones.discard = create_zone(world, player, ZDiscard, "Discard");
 
+  // Set up GameState singleton (required for passive observer init)
+  ecs_add_id(world, ecs_id(GameState), EcsSingleton);
+  GameState gs = {0};
+  gs.players[0] = player;
+  gs.zones[0] = zones;
+  ecs_singleton_set_ptr(world, GameState, &gs);
+
   static const CardInfo expected_cards[] = {
     { CARD_DEF_STT01_001, 1 },
     { CARD_DEF_STT01_002, 1 },

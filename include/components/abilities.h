@@ -113,6 +113,7 @@ extern ECS_COMPONENT_DECLARE(AttackBuff);
 typedef struct {
   ecs_entity_t observers[MAX_PASSIVE_OBSERVERS];
   uint8_t observer_count;
+  void *ctx; // Optional allocated context (freed in cleanup)
 } PassiveObserverContext;
 
 extern ECS_COMPONENT_DECLARE(PassiveObserverContext);

@@ -189,6 +189,8 @@ ecs_world_t *azk_world_init(uint32_t seed) {
       .response_window = 0,
       .winner = -1,
   };
+  // Set singleton immediately so it's available during deck initialization
+  ecs_singleton_set_ptr(world, GameState, &gs);
 
   ecs_add_id(world, ecs_id(AbilityContext), EcsSingleton);
   AbilityContext ac = {0};
@@ -206,6 +208,12 @@ ecs_world_t *azk_world_init(uint32_t seed) {
 
     init_all_player_zones(world, player, p, &ref);
 
+    // Update GameState singleton with player and zones BEFORE deck init
+    // so passive observers can access them
+    GameState *gs_mut = ecs_singleton_get_mut(world, GameState);
+    gs_mut->players[p] = player;
+    gs_mut->zones[p] = ref.zones[p];
+
     // Player going second always gets the IKZ token
     if (p == 1) {
       grant_player_ikz_token(world, player);
@@ -213,12 +221,7 @@ ecs_world_t *azk_world_init(uint32_t seed) {
 
     DeckType deck_type = random_deck_type(&rng_state);
     init_player_deck(world, player, deck_type, &ref.zones[p]);
-
-    gs.players[p] = player;
-    gs.zones[p] = ref.zones[p];
   }
-
-  ecs_singleton_set_ptr(world, GameState, &gs);
   register_action_context_singleton(world);
 
   for (int p = 0; p < MAX_PLAYERS_PER_MATCH; p++) {
@@ -259,10 +262,6 @@ static void register_card(ecs_world_t *world, ecs_entity_t player,
     ecs_entity_t card = ecs_new_w_pair(world, EcsIsA, prefab);
     ecs_set_name(world, card, entity_name);
 
-    // Attach ability timing tags (AOnPlay, AResponse, etc.) if card has an
-    // ability
-    attach_ability_components(world, card);
-
     const Type *type = ecs_get_id(world, card, ecs_id(Type));
     ecs_assert(type != NULL, ECS_INVALID_PARAMETER,
                "Type component not found for card %d", card);
@@ -272,6 +271,11 @@ static void register_card(ecs_world_t *world, ecs_entity_t player,
                "Card zone not found for type %d", type->value);
     ecs_add_pair(world, card, EcsChildOf, placement.zone);
     ecs_add_pair(world, card, Rel_OwnedBy, player);
+
+    // Attach ability timing tags (AOnPlay, AResponse, etc.) if card has an
+    // ability. Must be after Rel_OwnedBy is set for passive observers that
+    // need to access owner's zones.
+    attach_ability_components(world, card);
 
     // Used for validating the final card distribution sizes
     if (ecs_has_id(world, placement.zone, ZLeader)) {

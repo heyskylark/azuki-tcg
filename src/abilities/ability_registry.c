@@ -7,6 +7,7 @@
 #include "abilities/cards/stt01_005.h"
 #include "abilities/cards/stt01_006.h"
 #include "abilities/cards/stt01_008.h"
+#include "abilities/cards/stt01_009.h"
 #include "abilities/cards/stt01_012.h"
 #include "abilities/cards/stt01_017.h"
 #include "abilities/cards/stt01_013.h"
@@ -118,6 +119,14 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .has_ability = true,
       .init_passive_observers = stt01_008_init_passive_observers,
       .cleanup_passive_observers = stt01_008_cleanup_passive_observers,
+  };
+
+  // STT01-009: If there are 6 or more weapon cards in your discard pile,
+  // this card has +2 attack.
+  kAbilityRegistry[CARD_DEF_STT01_009] = (AbilityDef){
+      .has_ability = true,
+      .init_passive_observers = stt01_009_init_passive_observers,
+      .cleanup_passive_observers = stt01_009_cleanup_passive_observers,
   };
 
   // STT01-003 "Crate Rat Kurobo": On Play; You may put 3 cards from the top of
