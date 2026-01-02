@@ -8,6 +8,7 @@
 #include "abilities/cards/stt01_006.h"
 #include "abilities/cards/stt01_008.h"
 #include "abilities/cards/stt01_009.h"
+#include "abilities/cards/stt01_011.h"
 #include "abilities/cards/stt01_012.h"
 #include "abilities/cards/stt01_017.h"
 #include "abilities/cards/stt01_013.h"
@@ -127,6 +128,14 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .has_ability = true,
       .init_passive_observers = stt01_009_init_passive_observers,
       .cleanup_passive_observers = stt01_009_cleanup_passive_observers,
+  };
+
+  // STT01-011 "Raizan": As long as this card is in play, the card Ikazuchi
+  // (STT01-016 "Raizan's Zanbato") has +5 attack instead of +4.
+  kAbilityRegistry[CARD_DEF_STT01_011] = (AbilityDef){
+      .has_ability = true,
+      .init_passive_observers = stt01_011_init_passive_observers,
+      .cleanup_passive_observers = stt01_011_cleanup_passive_observers,
   };
 
   // STT01-003 "Crate Rat Kurobo": On Play; You may put 3 cards from the top of

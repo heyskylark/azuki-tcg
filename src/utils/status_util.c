@@ -413,10 +413,21 @@ void azk_process_passive_buff_queue(ecs_world_t *world) {
       continue;
     }
 
+    // Track if we actually changed the buff
+    bool buff_changed = false;
+    int8_t actual_modifier = 0;
+
     if (buff->is_removal) {
       // Check if buff exists before trying to remove
       if (ecs_has_pair(world, buff->entity, ecs_id(AttackBuff), buff->source)) {
+        // Get the actual modifier before removal for parent update
+        ecs_id_t pair_id = ecs_pair(ecs_id(AttackBuff), buff->source);
+        const AttackBuff *existing = ecs_get_id(world, buff->entity, pair_id);
+        if (existing) {
+          actual_modifier = existing->modifier;
+        }
         remove_attack_modifier(world, buff->entity, buff->source);
+        buff_changed = true;
         cli_render_logf("[Status] Processed passive buff removal");
       }
     } else {
@@ -424,8 +435,33 @@ void azk_process_passive_buff_queue(ecs_world_t *world) {
       if (!ecs_has_pair(world, buff->entity, ecs_id(AttackBuff), buff->source)) {
         apply_attack_modifier(world, buff->entity, buff->source, buff->modifier,
                               false);
+        actual_modifier = buff->modifier;
+        buff_changed = true;
         cli_render_logf("[Status] Processed passive buff apply (+%d)",
                         buff->modifier);
+      }
+    }
+
+    // If the buffed entity is a weapon and we actually changed it,
+    // propagate the modifier delta to the parent entity's attack.
+    // We can't use recalculate_attack_from_buffs here because ecs_children
+    // may not see deferred children relationships yet.
+    if (buff_changed && ecs_has_id(world, buff->entity, TWeapon)) {
+      ecs_entity_t parent = ecs_get_target(world, buff->entity, EcsChildOf, 0);
+      if (parent && ecs_is_valid(world, parent)) {
+        const CurStats *parent_cur = ecs_get(world, parent, CurStats);
+        if (parent_cur) {
+          // For apply: add modifier. For removal: subtract modifier.
+          int16_t delta = buff->is_removal ? -actual_modifier : actual_modifier;
+          int16_t new_atk = parent_cur->cur_atk + delta;
+          if (new_atk < 0) new_atk = 0;
+          ecs_set(world, parent, CurStats, {
+            .cur_atk = (int8_t)new_atk,
+            .cur_hp = parent_cur->cur_hp,
+          });
+          cli_render_logf("[Status] Propagated weapon buff (%+d) to parent entity attack",
+                          delta);
+        }
       }
     }
   }
