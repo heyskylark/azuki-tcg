@@ -143,6 +143,21 @@ typedef struct {
   uint8_t count;
 } TriggeredEffectQueue;
 
+/* Passive buff queue for deferred passive ability processing */
+typedef struct {
+  ecs_entity_t entity;  // Entity to apply buff to
+  ecs_entity_t source;  // Source of the buff (for pair tracking)
+  int8_t modifier;      // Attack modifier to apply (0 means remove)
+  bool is_removal;      // True if this is a removal request
+} PendingPassiveBuff;
+
+#define MAX_PASSIVE_BUFF_QUEUE 8
+
+typedef struct {
+  PendingPassiveBuff buffs[MAX_PASSIVE_BUFF_QUEUE];
+  uint8_t count;
+} PassiveBuffQueue;
+
 extern ECS_COMPONENT_DECLARE(ActionContext);
 extern ECS_COMPONENT_DECLARE(AbilityContext);
 extern ECS_COMPONENT_DECLARE(GameState);
@@ -151,6 +166,7 @@ extern ECS_COMPONENT_DECLARE(PlayerId);
 extern ECS_COMPONENT_DECLARE(IKZToken);
 extern ECS_COMPONENT_DECLARE(ZoneIndex);
 extern ECS_COMPONENT_DECLARE(TriggeredEffectQueue);
+extern ECS_COMPONENT_DECLARE(PassiveBuffQueue);
 
 /* Relationship Entities */
 extern ECS_ENTITY_DECLARE(Rel_OwnedBy);

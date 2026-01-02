@@ -94,11 +94,28 @@ typedef struct {
   int8_t frozen_duration;
   int8_t shocked_duration;
   int8_t effect_immune_duration;
-  int8_t attack_modifier;           // Negative for debuff, positive for buff (stacks additively)
-  bool attack_modifier_expires_eot; // If true, expires at end of current turn
 } CardConditionCountdown;
 
 extern ECS_COMPONENT_DECLARE(CardConditionCountdown);
+
+/* Attack Buff - used as relationship pair (AttackBuff, source_entity) */
+/* Multiple buffs from different sources can coexist on the same entity */
+typedef struct {
+  int8_t modifier;   // Positive for buff, negative for debuff
+  bool expires_eot;  // If true, removed at end of turn
+} AttackBuff;
+
+extern ECS_COMPONENT_DECLARE(AttackBuff);
+
+/* Passive Observer Context - stores observer IDs for cleanup */
+#define MAX_PASSIVE_OBSERVERS 4
+
+typedef struct {
+  ecs_entity_t observers[MAX_PASSIVE_OBSERVERS];
+  uint8_t observer_count;
+} PassiveObserverContext;
+
+extern ECS_COMPONENT_DECLARE(PassiveObserverContext);
 
 void azk_register_ability_components(ecs_world_t *world);
 void attach_ability_components(ecs_world_t *world, ecs_entity_t card);

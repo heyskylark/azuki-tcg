@@ -3,6 +3,7 @@
 
 #include "systems/phase_gate.h"
 #include "utils/phase_utils.h"
+#include "utils/status_util.h"
 #include "world.h"
 #include "validation/action_enumerator.h"
 
@@ -81,6 +82,13 @@ bool azk_engine_submit_action(AzkEngine *engine, const UserAction *action) {
 void azk_engine_tick(AzkEngine *engine) {
   if (!engine) {
     return;
+  }
+
+  // Process any pending passive buff updates (from observer callbacks)
+  // These are queued because observer writes are deferred and not visible
+  // to subsequent code in the same frame
+  if (azk_has_pending_passive_buffs(engine)) {
+    azk_process_passive_buff_queue(engine);
   }
 
   run_phase_gate_system(engine);

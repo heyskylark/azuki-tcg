@@ -5,6 +5,7 @@
 #include "utils/cli_rendering_util.h"
 #include "utils/observation_util.h"
 #include "utils/phase_utils.h"
+#include "utils/status_util.h"
 
 int main(void) {
   ecs_world_t *world = azk_world_init(42);
@@ -16,6 +17,15 @@ int main(void) {
     ObservationData observation_data =
         create_observation_data(world, gs->active_player_index);
     cli_render_draw(world, &observation_data, gs);
+
+    // Process any pending passive buff updates (from observer callbacks)
+    // These are queued because observer writes are deferred and not visible
+    // to subsequent code in the same frame
+    if (azk_has_pending_passive_buffs(world)) {
+      azk_process_passive_buff_queue(world);
+      // Re-render to show updated stats
+      continue;
+    }
 
     // Check for queued triggered effects to auto-process
     // Only process when no ability is currently active to avoid overwriting

@@ -34,6 +34,8 @@ ECS_TAG_DECLARE(Shocked);
 ECS_TAG_DECLARE(EffectImmune);
 
 ECS_COMPONENT_DECLARE(CardConditionCountdown);
+ECS_COMPONENT_DECLARE(AttackBuff);
+ECS_COMPONENT_DECLARE(PassiveObserverContext);
 
 void azk_register_ability_components(ecs_world_t *world) {
   ECS_COMPONENT_DEFINE(world, AbilityRepeatContext);
@@ -68,6 +70,8 @@ void azk_register_ability_components(ecs_world_t *world) {
   ECS_TAG_DEFINE(world, EffectImmune);
 
   ECS_COMPONENT_DEFINE(world, CardConditionCountdown);
+  ECS_COMPONENT_DEFINE(world, AttackBuff);
+  ECS_COMPONENT_DEFINE(world, PassiveObserverContext);
 
   // Ensure CardConditionCountdown is copied to each instance on instantiation
   // (EcsOverride gives each instance its own mutable copy, unlike EcsInherit)
@@ -97,5 +101,10 @@ void attach_ability_components(ecs_world_t* world, ecs_entity_t card) {
       .is_once_per_turn = true,
       .was_applied = false
     });
+  }
+
+  // Initialize passive observers if defined
+  if (ability_def->init_passive_observers) {
+    ability_def->init_passive_observers(world, card);
   }
 }

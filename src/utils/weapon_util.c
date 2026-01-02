@@ -1,26 +1,45 @@
 #include "utils/weapon_util.h"
-#include "utils/card_utils.h"
 #include "generated/card_defs.h"
+#include "utils/card_utils.h"
+#include "utils/cli_rendering_util.h"
+#include "utils/status_util.h"
 
-int attach_weapon_from_hand(
-  ecs_world_t *world,
-  const AttachWeaponIntent *intent
-) {
+int attach_weapon_from_hand(ecs_world_t *world,
+                            const AttachWeaponIntent *intent) {
   ecs_assert(world != NULL, ECS_INVALID_PARAMETER, "World is null");
-  ecs_assert(intent != NULL, ECS_INVALID_PARAMETER, "AttachWeaponIntent is null");
+  ecs_assert(intent != NULL, ECS_INVALID_PARAMETER,
+             "AttachWeaponIntent is null");
 
-  const BaseStats *weapon_base_stats = ecs_get(world, intent->weapon_card, BaseStats);
-  ecs_assert(weapon_base_stats != NULL, ECS_INVALID_PARAMETER, "BaseStats component not found for card %d", intent->weapon_card);
+  const CurStats *weapon_cur_stats =
+      ecs_get(world, intent->weapon_card, CurStats);
+  ecs_assert(weapon_cur_stats != NULL, ECS_INVALID_PARAMETER,
+             "CurStats component not found for weapon %llu",
+             (unsigned long long)intent->weapon_card);
 
-  const CurStats *entity_cur_stats = ecs_get(world, intent->target_card, CurStats);
-  ecs_assert(entity_cur_stats != NULL, ECS_INVALID_PARAMETER, "CurStats component not found for card %d", intent->target_card);
+  const CurStats *entity_cur_stats =
+      ecs_get(world, intent->target_card, CurStats);
+  ecs_assert(entity_cur_stats != NULL, ECS_INVALID_PARAMETER,
+             "CurStats component not found for card %llu",
+             (unsigned long long)intent->target_card);
 
+  // Attach weapon as child (observers will fire here, queuing passive buffs)
+  // Note: ChildOf relationship is deferred, so weapon won't be visible as child
+  // until next frame. We directly add weapon attack below.
+  ecs_add_pair(world, intent->weapon_card, EcsChildOf, intent->target_card);
+
+  // Directly add weapon attack to target's CurStats
+  // We can't use recalculate_attack_from_buffs because:
+  // 1. ChildOf relationship is deferred (weapon not visible as child yet)
+  // 2. AttackBuff pairs from observers are also deferred
+  int16_t new_atk = entity_cur_stats->cur_atk + weapon_cur_stats->cur_atk;
+  if (new_atk < 0) new_atk = 0;
   ecs_set(world, intent->target_card, CurStats, {
-    .cur_atk = entity_cur_stats->cur_atk + weapon_base_stats->attack,
+    .cur_atk = (int8_t)new_atk,
     .cur_hp = entity_cur_stats->cur_hp,
   });
 
-  ecs_add_pair(world, intent->weapon_card, EcsChildOf, intent->target_card);
+  cli_render_logf("[Weapon] Attached weapon (+%d attack) to entity",
+                  weapon_cur_stats->cur_atk);
 
   for (uint8_t i = 0; i < intent->ikz_card_count; ++i) {
     tap_card(world, intent->ikz_cards[i]);

@@ -72,6 +72,7 @@ void stt02_001_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
   }
 
   // Apply -1 attack modifier that expires at end of turn
-  apply_attack_modifier(world, target, -1, true);
+  // Source is the card applying the debuff (Shao)
+  apply_attack_modifier(world, target, ctx->source_card, -1, true);
   cli_render_logf("[STT02-001] Reduced target's attack by 1 until end of turn");
 }

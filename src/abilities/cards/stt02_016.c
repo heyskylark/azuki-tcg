@@ -101,6 +101,7 @@ void stt02_016_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
   }
 
   // Apply -2 attack modifier that expires at end of turn
-  apply_attack_modifier(world, target, -2, true);
+  // Source is the spell card applying the debuff
+  apply_attack_modifier(world, target, ctx->source_card, -2, true);
   cli_render_logf("[STT02-016] Reduced target's attack by 2 until end of turn");
 }

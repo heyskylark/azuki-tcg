@@ -32,6 +32,10 @@ typedef struct {
   bool (*validate_selection_target)(ecs_world_t *, ecs_entity_t card,
                                     ecs_entity_t owner, ecs_entity_t target);
   void (*on_selection_complete)(ecs_world_t *, AbilityContext *);
+
+  // Observer-based passive abilities (initialized when card is instantiated)
+  void (*init_passive_observers)(ecs_world_t *, ecs_entity_t card);
+  void (*cleanup_passive_observers)(ecs_world_t *, ecs_entity_t card);
 } AbilityDef;
 
 // Get ability definition for a card

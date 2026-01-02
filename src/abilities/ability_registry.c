@@ -6,6 +6,7 @@
 #include "abilities/cards/stt01_004.h"
 #include "abilities/cards/stt01_005.h"
 #include "abilities/cards/stt01_006.h"
+#include "abilities/cards/stt01_008.h"
 #include "abilities/cards/stt01_012.h"
 #include "abilities/cards/stt01_017.h"
 #include "abilities/cards/stt01_013.h"
@@ -109,6 +110,14 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .validate_effect_target = NULL,
       .apply_costs = st01_007_apply_costs,
       .apply_effects = st01_007_apply_effects,
+  };
+
+  // STT01-008: When equipped with a weapon card, this card has +1 attack.
+  // This is a passive observer-based ability - no timing tag needed.
+  kAbilityRegistry[CARD_DEF_STT01_008] = (AbilityDef){
+      .has_ability = true,
+      .init_passive_observers = stt01_008_init_passive_observers,
+      .cleanup_passive_observers = stt01_008_cleanup_passive_observers,
   };
 
   // STT01-003 "Crate Rat Kurobo": On Play; You may put 3 cards from the top of

@@ -65,21 +65,40 @@ bool is_effect_immune(ecs_world_t *world, ecs_entity_t entity);
 void tick_status_effects_for_player(ecs_world_t *world, uint8_t player_index);
 
 /**
- * Apply an attack modifier to an entity (stacks additively with existing modifiers).
+ * Recalculate an entity's attack from base stats, weapons, and all buff pairs.
+ * Call this after adding/removing weapons or AttackBuff pairs.
+ * @param world The ECS world
+ * @param entity The entity to recalculate attack for
+ */
+void recalculate_attack_from_buffs(ecs_world_t *world, ecs_entity_t entity);
+
+/**
+ * Apply an attack modifier to an entity using relationship-based buffs.
+ * Creates an (AttackBuff, source) pair on the target entity.
  * @param world The ECS world
  * @param entity The entity to modify
+ * @param source The source entity applying the buff (e.g., the card causing the effect)
  * @param modifier The attack modifier value (negative for debuff, positive for buff)
  * @param expires_eot If true, the modifier expires at end of current turn
  */
 void apply_attack_modifier(ecs_world_t *world, ecs_entity_t entity,
-                           int8_t modifier, bool expires_eot);
+                           ecs_entity_t source, int8_t modifier, bool expires_eot);
 
 /**
- * Remove all attack modifiers from an entity, restoring its attack to base + weapons.
+ * Remove an attack modifier from a specific source.
  * @param world The ECS world
- * @param entity The entity to restore
+ * @param entity The entity to remove the modifier from
+ * @param source The source entity whose buff should be removed
  */
-void remove_attack_modifier(ecs_world_t *world, ecs_entity_t entity);
+void remove_attack_modifier(ecs_world_t *world, ecs_entity_t entity,
+                            ecs_entity_t source);
+
+/**
+ * Remove all attack modifiers from an entity.
+ * @param world The ECS world
+ * @param entity The entity to remove all modifiers from
+ */
+void remove_all_attack_modifiers(ecs_world_t *world, ecs_entity_t entity);
 
 /**
  * Expire all end-of-turn attack modifiers in a zone.
@@ -88,5 +107,33 @@ void remove_attack_modifier(ecs_world_t *world, ecs_entity_t entity);
  * @param zone The zone entity to process
  */
 void expire_eot_attack_modifiers_in_zone(ecs_world_t *world, ecs_entity_t zone);
+
+/**
+ * Queue a passive buff update for deferred processing.
+ * Use this from observers where writes are deferred and not immediately visible.
+ * The buff will be applied/removed on the next processing cycle.
+ * @param world The ECS world
+ * @param entity The entity to apply/remove buff from
+ * @param source The source entity for the buff pair
+ * @param modifier The attack modifier (ignored if is_removal is true)
+ * @param is_removal True to remove the buff, false to apply it
+ */
+void azk_queue_passive_buff_update(ecs_world_t *world, ecs_entity_t entity,
+                                   ecs_entity_t source, int8_t modifier,
+                                   bool is_removal);
+
+/**
+ * Check if there are pending passive buff updates.
+ * @param world The ECS world
+ * @return true if there are queued updates
+ */
+bool azk_has_pending_passive_buffs(ecs_world_t *world);
+
+/**
+ * Process all pending passive buff updates.
+ * Call this from the game loop after deferred operations are flushed.
+ * @param world The ECS world
+ */
+void azk_process_passive_buff_queue(ecs_world_t *world);
 
 #endif
