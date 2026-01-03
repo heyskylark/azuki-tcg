@@ -320,6 +320,30 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
           add_valid_action(out_mask, &action);
         }
       }
+
+      // If can_select_to_equip and target is a weapon, enumerate garden/leader
+      if (def->can_select_to_equip &&
+          is_card_type(world, target, CARD_TYPE_WEAPON)) {
+        uint8_t pnum = get_player_number(world, ctx->owner);
+        action.type = ACT_SELECT_TO_EQUIP;
+        action.subaction_1 = i; // selection index
+        // Enumerate garden entities (slots 0-4)
+        for (int slot = 0; slot < GARDEN_SIZE; slot++) {
+          ecs_entity_t entity =
+              find_card_in_zone_index(world, gs->zones[pnum].garden, slot);
+          if (entity != 0) {
+            action.subaction_2 = slot;
+            add_valid_action(out_mask, &action);
+          }
+        }
+        // Enumerate leader (slot 5)
+        ecs_entity_t leader =
+            find_leader_card_in_zone(world, gs->zones[pnum].leader);
+        if (leader != 0) {
+          action.subaction_2 = GARDEN_SIZE; // 5 for leader
+          add_valid_action(out_mask, &action);
+        }
+      }
     }
     break;
   }

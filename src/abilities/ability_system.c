@@ -684,6 +684,134 @@ bool azk_process_selection_to_alley(ecs_world_t *world, int selection_index,
   return true;
 }
 
+bool azk_process_selection_to_equip(ecs_world_t *world, int selection_index,
+                                    int entity_index) {
+  AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
+
+  if (ctx->phase != ABILITY_PHASE_SELECTION_PICK) {
+    return false;
+  }
+
+  // Validate selection index is in range
+  if (selection_index < 0 || selection_index >= ctx->selection_count) {
+    cli_render_logf("[Ability] Invalid selection index %d (count=%d)",
+                    selection_index, ctx->selection_count);
+    return false;
+  }
+
+  // Validate entity index (0-4 for garden, 5 for leader)
+  if (entity_index < 0 || entity_index > GARDEN_SIZE) {
+    cli_render_logf("[Ability] Invalid entity index %d", entity_index);
+    return false;
+  }
+
+  ecs_entity_t weapon = ctx->selection_cards[selection_index];
+  if (weapon == 0) {
+    cli_render_logf("[Ability] Selection slot %d is empty", selection_index);
+    return false;
+  }
+
+  const CardId *card_id = ecs_get(world, ctx->source_card, CardId);
+  if (!card_id) {
+    azk_clear_ability_context(world);
+    return false;
+  }
+
+  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  if (!def) {
+    azk_clear_ability_context(world);
+    return false;
+  }
+
+  // Verify the ability allows selecting to equip
+  if (!def->can_select_to_equip) {
+    cli_render_logf("[Ability] This ability does not allow selecting to equip");
+    return false;
+  }
+
+  // Verify the weapon is a weapon card
+  const Type *weapon_type = ecs_get(world, weapon, Type);
+  if (!weapon_type || weapon_type->value != CARD_TYPE_WEAPON) {
+    cli_render_logf("[Ability] Only weapon cards can be selected to equip");
+    return false;
+  }
+
+  // Validate the selection target if validation function exists
+  if (def->validate_selection_target &&
+      !def->validate_selection_target(world, ctx->source_card, ctx->owner,
+                                      weapon)) {
+    cli_render_logf("[Ability] Selection target validation failed");
+    return false;
+  }
+
+  // Get game state and find target entity
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  uint8_t player_num = get_player_number(world, ctx->owner);
+  ecs_entity_t target_entity = 0;
+
+  if (entity_index < GARDEN_SIZE) {
+    target_entity = find_card_in_zone_index(world, gs->zones[player_num].garden,
+                                            entity_index);
+  } else {
+    // entity_index == GARDEN_SIZE means leader
+    target_entity =
+        find_leader_card_in_zone(world, gs->zones[player_num].leader);
+  }
+
+  if (target_entity == 0) {
+    cli_render_logf("[Ability] No entity at slot %d", entity_index);
+    return false;
+  }
+
+  // Get weapon and target stats
+  const CurStats *weapon_stats = ecs_get(world, weapon, CurStats);
+  const CurStats *target_stats = ecs_get(world, target_entity, CurStats);
+  if (!weapon_stats || !target_stats) {
+    cli_render_logf("[Ability] Missing stats for weapon or target");
+    return false;
+  }
+
+  // Attach weapon to target (ChildOf relationship)
+  ecs_add_pair(world, weapon, EcsChildOf, target_entity);
+
+  // Apply weapon attack bonus directly (because ChildOf is deferred)
+  int16_t new_atk = target_stats->cur_atk + weapon_stats->cur_atk;
+  if (new_atk < 0)
+    new_atk = 0;
+  ecs_set(world, target_entity, CurStats,
+          {.cur_atk = (int8_t)new_atk, .cur_hp = target_stats->cur_hp});
+
+  cli_render_logf("[Ability] Equipped weapon (+%d attack) to entity at slot %d",
+                  weapon_stats->cur_atk, entity_index);
+
+  // Trigger weapon abilities (on-play and when-equipped)
+  azk_trigger_on_play_ability(world, weapon, ctx->owner);
+  azk_trigger_when_equipped_ability(world, weapon, ctx->owner);
+
+  // Mark this slot as picked by setting to 0
+  ctx->selection_cards[selection_index] = 0;
+  ctx->selection_picked++;
+
+  // Check if we've picked enough
+  if (ctx->selection_picked >= ctx->selection_pick_max) {
+    // Call on_selection_complete callback
+    if (def->on_selection_complete) {
+      def->on_selection_complete(world, ctx);
+      cli_render_logf("[Ability] Called on_selection_complete callback");
+    }
+
+    // For discard-based selection, no bottom deck phase needed
+    // Just clear the ability context
+    if (ctx->phase != ABILITY_PHASE_NONE) {
+      azk_clear_ability_context(world);
+      return true;
+    }
+  }
+
+  ecs_singleton_modified(world, AbilityContext);
+  return true;
+}
+
 bool azk_process_skip_selection(ecs_world_t *world) {
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
 
@@ -1411,13 +1539,30 @@ void azk_trigger_gate_portal_ability(ecs_world_t *world, ecs_entity_t gate_card,
   ctx->effect_targets[0] = portaled_card; // Store portaled card for effect
   ctx->effect_filled = 1;
 
-  // Apply effect immediately (non-optional, no targets needed)
-  if (def->apply_effects) {
+  // Check if this ability has multi-step processing
+  if (def->on_cost_paid) {
+    // Multi-step ability - call on_cost_paid to set up selection
+    if (def->is_optional) {
+      // Optional multi-step ability requires confirmation first
+      ctx->phase = ABILITY_PHASE_CONFIRMATION;
+      ecs_singleton_modified(world, AbilityContext);
+      cli_render_logf("[Ability] Gate portal triggered optional ability, "
+                      "waiting for confirmation");
+    } else {
+      // Non-optional: call on_cost_paid directly to start selection
+      def->on_cost_paid(world, ctx);
+      ecs_singleton_modified(world, AbilityContext);
+      cli_render_logf("[Ability] Gate portal triggered multi-step ability");
+    }
+  } else if (def->apply_effects) {
+    // Simple immediate effect (like STT02-002)
     def->apply_effects(world, ctx);
+    ctx->phase = ABILITY_PHASE_NONE;
+    ecs_singleton_modified(world, AbilityContext);
+    cli_render_logf("[Ability] Applied gate portal ability for %s",
+                    ecs_get_name(world, gate_card));
+  } else {
+    ctx->phase = ABILITY_PHASE_NONE;
+    ecs_singleton_modified(world, AbilityContext);
   }
-  ctx->phase = ABILITY_PHASE_NONE;
-  ecs_singleton_modified(world, AbilityContext);
-
-  cli_render_logf("[Ability] Applied gate portal ability for %s",
-                  ecs_get_name(world, gate_card));
 }
