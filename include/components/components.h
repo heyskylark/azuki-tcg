@@ -46,7 +46,8 @@ typedef enum {
   ACT_BOTTOM_DECK_CARD = 19,      // Bottom deck a single card from selection
   ACT_BOTTOM_DECK_ALL = 20,       // Bottom deck all remaining cards in order
   ACT_SELECT_TO_ALLEY = 21,       // Select card from selection zone to alley
-  ACT_MULLIGAN_SHUFFLE = 22 // Must always be highest for AZK_ACTION_TYPE_COUNT
+  ACT_SELECT_TO_EQUIP = 22,       // Select weapon from selection to equip to entity
+  ACT_MULLIGAN_SHUFFLE = 23 // Must always be highest for AZK_ACTION_TYPE_COUNT
 } ActionType;
 
 #define AZK_ACTION_TYPE_COUNT (ACT_MULLIGAN_SHUFFLE + 1)

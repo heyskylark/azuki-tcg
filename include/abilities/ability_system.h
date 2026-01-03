@@ -60,6 +60,14 @@ bool azk_process_selection_pick(ecs_world_t *world, int selection_index);
 bool azk_process_selection_to_alley(ecs_world_t *world, int selection_index,
                                     int alley_slot_index);
 
+// Process selection to equip (ACT_SELECT_TO_EQUIP)
+// selection_index is the index into the selection zone
+// entity_index is the target entity (0-4 for garden, 5 for leader)
+// Equips a weapon from selection to the target entity
+// Returns true if successful, false otherwise
+bool azk_process_selection_to_equip(ecs_world_t *world, int selection_index,
+                                    int entity_index);
+
 // Skip selection pick (ACT_NOOP during selection pick when selection_pick_max >
 // 0 allows) For "up to" effects where the player can choose to not select any
 // cards Returns true if skipping is valid, false otherwise

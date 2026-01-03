@@ -154,6 +154,22 @@ void HandleAbilityResolution(ecs_iter_t *it) {
     }
     break;
 
+  case ACT_SELECT_TO_EQUIP:
+    if (ability_phase == ABILITY_PHASE_SELECTION_PICK) {
+      if (!azk_process_selection_to_equip(world, ac->user_action.subaction_1,
+                                          ac->user_action.subaction_2)) {
+        ac->invalid_action = true;
+      } else {
+        check_post_ability_transition(world, gs);
+      }
+    } else {
+      cli_render_logf("[AbilityResolution] ACT_SELECT_TO_EQUIP not valid in "
+                      "ability phase %d",
+                      ability_phase);
+      ac->invalid_action = true;
+    }
+    break;
+
   case ACT_BOTTOM_DECK_CARD:
     if (ability_phase == ABILITY_PHASE_BOTTOM_DECK) {
       if (!azk_process_bottom_deck(world, ac->user_action.subaction_1)) {

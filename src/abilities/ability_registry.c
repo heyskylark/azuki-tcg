@@ -2,6 +2,7 @@
 
 #include "abilities/cards/st01_007.h"
 #include "abilities/cards/stt01_001.h"
+#include "abilities/cards/stt01_002.h"
 #include "abilities/cards/stt01_003.h"
 #include "abilities/cards/stt01_004.h"
 #include "abilities/cards/stt01_005.h"
@@ -398,6 +399,27 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .validate_effect_target = NULL,
       .apply_costs = NULL,
       .apply_effects = stt02_002_apply_effects,
+  };
+
+  // STT01-002 "Surge": On Gate Portal; you may play from your discard pile
+  // a weapon card with cost <= gate points of the portaled entity
+  // Note: is_optional=false skips confirmation; the "may" is handled by
+  // allowing ACT_NOOP during selection pick phase
+  kAbilityRegistry[CARD_DEF_STT01_002] = (AbilityDef){
+      .has_ability = true,
+      .is_optional = false,
+      .can_select_to_equip = true,
+      .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .effect_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .timing_tag = ecs_id(AOnGatePortal),
+      .validate = stt01_002_validate,
+      .validate_cost_target = NULL,
+      .validate_effect_target = NULL,
+      .apply_costs = NULL,
+      .apply_effects = NULL,
+      .on_cost_paid = stt01_002_on_cost_paid,
+      .validate_selection_target = stt01_002_validate_selection_target,
+      .on_selection_complete = stt01_002_on_selection_complete,
   };
 
   // STT01-006 "Silver Current, Haruhi": [Once/Turn][When Attacking] Deal 1
