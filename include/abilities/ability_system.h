@@ -110,6 +110,11 @@ bool azk_trigger_leader_response_ability(ecs_world_t *world, ecs_entity_t card,
 void azk_trigger_return_to_hand_observers(ecs_world_t *world,
                                           ecs_entity_t bounced_card);
 
+// Trigger when-equipped ability for a weapon that was just attached
+// Returns true if ability requires user input, false otherwise
+bool azk_trigger_when_equipped_ability(ecs_world_t *world, ecs_entity_t card,
+                                       ecs_entity_t owner);
+
 // Trigger gate card's portal ability after successfully portaling an entity
 // gate_card: the gate card that was used to portal
 // portaled_card: the entity card that was moved from alley to garden

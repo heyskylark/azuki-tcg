@@ -308,6 +308,9 @@ static void handle_attach_weapon_from_hand(ecs_world_t *world, GameState *gs,
   // Trigger on-play abilities for weapons (like entities)
   azk_trigger_on_play_ability(world, intent.weapon_card, intent.player);
 
+  // Trigger when-equipped abilities for weapons with AWhenEquipped timing
+  azk_trigger_when_equipped_ability(world, intent.weapon_card, intent.player);
+
   cli_render_logf("[MainAction] Attach weapon");
 }
 

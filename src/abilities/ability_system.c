@@ -42,6 +42,31 @@ bool azk_trigger_on_play_ability(ecs_world_t *world, ecs_entity_t card,
   return azk_queue_triggered_effect(world, card, owner, TIMING_TAG_ON_PLAY_FWD);
 }
 
+bool azk_trigger_when_equipped_ability(ecs_world_t *world, ecs_entity_t card,
+                                       ecs_entity_t owner) {
+  const CardId *card_id = ecs_get(world, card, CardId);
+  if (!card_id) {
+    return false;
+  }
+
+  if (!azk_has_ability(card_id->id)) {
+    return false;
+  }
+
+  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  if (!def || !def->has_ability) {
+    return false;
+  }
+
+  // Check if it's an AWhenEquipped ability
+  if (def->timing_tag != ecs_id(AWhenEquipped)) {
+    return false;
+  }
+
+  // Queue for processing after deferred ops (ChildOf) flush
+  return azk_queue_triggered_effect(world, card, owner, TIMING_TAG_WHEN_EQUIPPED);
+}
+
 bool azk_process_ability_confirmation(ecs_world_t *world) {
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
 

@@ -13,6 +13,7 @@
 #include "abilities/cards/stt01_017.h"
 #include "abilities/cards/stt01_013.h"
 #include "abilities/cards/stt01_014.h"
+#include "abilities/cards/stt01_015.h"
 #include "abilities/cards/stt01_016.h"
 #include "abilities/cards/stt02_001.h"
 #include "abilities/cards/stt02_002.h"
@@ -447,6 +448,22 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .apply_costs = NULL,
       .apply_effects = stt01_014_apply_effects,
   };
+
+  // STT01-015 "Tenraku": [When Equipped] If you have 15 or more cards in your
+  // discard pile, this card gives an additional +1 attack.
+  kAbilityRegistry[CARD_DEF_STT01_015] = (AbilityDef){
+      .has_ability = true,
+      .is_optional = false,
+      .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .effect_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .timing_tag = ecs_id(AWhenEquipped),
+      .validate = stt01_015_validate,
+      .validate_cost_target = NULL,
+      .validate_effect_target = NULL,
+      .apply_costs = NULL,
+      .apply_effects = stt01_015_apply_effects,
+  };
+
   // STT01-016 "Raizan's Zanbato": [When Attacking] If equipped to a (Raizan)
   // card, deal 1 damage to all entities in your opponent's garden.
   kAbilityRegistry[CARD_DEF_STT01_016] = (AbilityDef){
