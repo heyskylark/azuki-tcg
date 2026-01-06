@@ -57,11 +57,11 @@ static void stt01_008_weapon_observer(ecs_iter_t *it) {
     if (weapon_count >= 1) {
       // Queue buff add (if not already buffed)
       cli_render_logf("[STT01-008] Weapon equipped, queuing +1 attack buff");
-      azk_queue_passive_buff_update(world, parent, parent, 1, false);
+      azk_queue_passive_buff_update(world, parent, parent, 1, 0, false);
     } else {
       // Queue buff remove
       cli_render_logf("[STT01-008] No weapons equipped, queuing buff removal");
-      azk_queue_passive_buff_update(world, parent, parent, 0, true);
+      azk_queue_passive_buff_update(world, parent, parent, 0, 0, true);
     }
   }
 }

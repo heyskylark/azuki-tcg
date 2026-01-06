@@ -120,11 +120,11 @@ static void update_stt01_016_buffs_for_player(ecs_world_t *world,
             cli_render_logf("[STT01-011] Adding +%d buff to STT01-016 weapon %lu",
                             STT01_011_BUFF_AMOUNT, (unsigned long)weapon);
             azk_queue_passive_buff_update(world, weapon, prefab,
-                                          STT01_011_BUFF_AMOUNT, false);
+                                          STT01_011_BUFF_AMOUNT, 0, false);
           } else if (!should_have_buff && has_buff) {
             cli_render_logf("[STT01-011] Removing buff from STT01-016 weapon %lu",
                             (unsigned long)weapon);
-            azk_queue_passive_buff_update(world, weapon, prefab, 0, true);
+            azk_queue_passive_buff_update(world, weapon, prefab, 0, 0, true);
           }
         }
       }
@@ -226,7 +226,7 @@ static void stt01_011_weapon_attach_observer(ecs_iter_t *it) {
                     "newly equipped STT01-016 weapon %lu",
                     STT01_011_BUFF_AMOUNT, (unsigned long)weapon);
     azk_queue_passive_buff_update(world, weapon, ctx->prefab,
-                                  STT01_011_BUFF_AMOUNT, false);
+                                  STT01_011_BUFF_AMOUNT, 0, false);
   }
 }
 

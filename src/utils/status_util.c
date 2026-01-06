@@ -3,6 +3,7 @@
 #include "components/abilities.h"
 #include "components/components.h"
 #include "generated/card_defs.h"
+#include "utils/card_utils.h"
 #include "utils/cli_rendering_util.h"
 
 void apply_frozen(ecs_world_t *world, ecs_entity_t entity, int8_t duration) {
@@ -369,9 +370,221 @@ void expire_eot_attack_modifiers_in_zone(ecs_world_t *world, ecs_entity_t zone) 
   }
 }
 
+// Helper to iterate HealthBuff pairs on an entity and sum modifiers
+static int16_t sum_health_buff_modifiers(ecs_world_t *world, ecs_entity_t entity) {
+  int16_t total = 0;
+  const ecs_type_t *type = ecs_get_type(world, entity);
+  if (!type) {
+    return 0;
+  }
+
+  for (int i = 0; i < type->count; i++) {
+    ecs_id_t id = type->array[i];
+    if (ECS_IS_PAIR(id)) {
+      ecs_entity_t first = ecs_pair_first(world, id);
+      if (first == ecs_id(HealthBuff)) {
+        const HealthBuff *buff = (const HealthBuff *)ecs_get_id(world, entity, id);
+        if (buff) {
+          total += buff->modifier;
+        }
+      }
+    }
+  }
+  return total;
+}
+
+void recalculate_health_from_buffs(ecs_world_t *world, ecs_entity_t entity) {
+  const BaseStats *base = ecs_get(world, entity, BaseStats);
+  if (!base) {
+    return;
+  }
+
+  int16_t total_health = base->health;
+
+  // Sum all HealthBuff modifiers from relationship pairs
+  total_health += sum_health_buff_modifiers(world, entity);
+
+  // Note: Unlike attack, health can go to 0 (death)
+  // but we don't clamp here - death is handled elsewhere
+
+  // Update CurStats
+  const CurStats *cur_stats = ecs_get(world, entity, CurStats);
+  if (cur_stats) {
+    ecs_set(world, entity, CurStats, {
+      .cur_atk = cur_stats->cur_atk,
+      .cur_hp = (int8_t)total_health,
+    });
+  }
+}
+
+void apply_health_modifier(ecs_world_t *world, ecs_entity_t entity,
+                           ecs_entity_t source, int8_t modifier, bool expires_eot) {
+  const CurStats *cur = ecs_get(world, entity, CurStats);
+  if (!cur) {
+    cli_render_logf("[Status] Warning: Cannot apply health modifier - entity has no CurStats");
+    return;
+  }
+
+  // Calculate new health (no clamping - health buffs can increase above base)
+  int16_t new_hp = cur->cur_hp + modifier;
+
+  // Store the modifier in the pair
+  ecs_set_pair(world, entity, HealthBuff, source, {
+    .modifier = modifier,
+    .expires_eot = expires_eot,
+  });
+
+  // Apply to CurStats
+  ecs_set(world, entity, CurStats, {
+    .cur_atk = cur->cur_atk,
+    .cur_hp = (int8_t)new_hp,
+  });
+
+  cli_render_logf("[Status] Applied health modifier %+d from source (expires_eot=%d)",
+                  modifier, expires_eot);
+}
+
+bool remove_health_modifier(ecs_world_t *world, ecs_entity_t entity,
+                            ecs_entity_t source) {
+  // Get the modifier value before removing so we can adjust CurStats
+  ecs_id_t pair_id = ecs_pair(ecs_id(HealthBuff), source);
+  const HealthBuff *buff = (const HealthBuff *)ecs_get_id(world, entity, pair_id);
+  if (!buff) {
+    return false;
+  }
+  int8_t modifier = buff->modifier;
+
+  // Remove the (HealthBuff, source) pair
+  ecs_remove_pair(world, entity, ecs_id(HealthBuff), source);
+
+  // Directly remove modifier from CurStats
+  const CurStats *cur = ecs_get(world, entity, CurStats);
+  if (cur) {
+    int16_t new_hp = cur->cur_hp - modifier;
+    ecs_set(world, entity, CurStats, {
+      .cur_atk = cur->cur_atk,
+      .cur_hp = (int8_t)new_hp,
+    });
+
+    cli_render_logf("[Status] Removed health modifier %+d from source (new_hp=%d)",
+                    modifier, (int)new_hp);
+
+    // Return true if entity should die
+    return new_hp <= 0;
+  }
+
+  return false;
+}
+
+bool remove_all_health_modifiers(ecs_world_t *world, ecs_entity_t entity) {
+  // Collect all sources and their modifiers first to avoid iterator invalidation
+  ecs_entity_t sources[32];
+  int8_t modifiers[32];
+  int source_count = 0;
+
+  const ecs_type_t *type = ecs_get_type(world, entity);
+  if (type) {
+    for (int i = 0; i < type->count && source_count < 32; i++) {
+      ecs_id_t id = type->array[i];
+      if (ECS_IS_PAIR(id)) {
+        ecs_entity_t first = ecs_pair_first(world, id);
+        if (first == ecs_id(HealthBuff)) {
+          const HealthBuff *buff = (const HealthBuff *)ecs_get_id(world, entity, id);
+          if (buff) {
+            sources[source_count] = ecs_pair_second(world, id);
+            modifiers[source_count] = buff->modifier;
+            source_count++;
+          }
+        }
+      }
+    }
+  }
+
+  if (source_count > 0) {
+    // Calculate total modifier to remove
+    int16_t total_modifier = 0;
+    for (int i = 0; i < source_count; i++) {
+      total_modifier += modifiers[i];
+      ecs_remove_pair(world, entity, ecs_id(HealthBuff), sources[i]);
+    }
+
+    // Directly adjust CurStats
+    const CurStats *cur = ecs_get(world, entity, CurStats);
+    if (cur) {
+      int16_t new_hp = cur->cur_hp - total_modifier;
+      ecs_set(world, entity, CurStats, {
+        .cur_atk = cur->cur_atk,
+        .cur_hp = (int8_t)new_hp,
+      });
+
+      cli_render_logf("[Status] Removed all health modifiers (%d sources, new_hp=%d)",
+                      source_count, (int)new_hp);
+
+      // Return true if entity should die
+      return new_hp <= 0;
+    }
+  }
+
+  return false;
+}
+
+void expire_eot_health_modifiers_in_zone(ecs_world_t *world, ecs_entity_t zone) {
+  ecs_entities_t cards = ecs_get_ordered_children(world, zone);
+
+  for (int32_t i = 0; i < cards.count; i++) {
+    ecs_entity_t card = cards.ids[i];
+
+    // Collect EOT buff sources and modifiers to remove
+    ecs_entity_t sources_to_remove[32];
+    int8_t modifiers_to_remove[32];
+    int remove_count = 0;
+
+    const ecs_type_t *type = ecs_get_type(world, card);
+    if (type) {
+      for (int j = 0; j < type->count && remove_count < 32; j++) {
+        ecs_id_t id = type->array[j];
+        if (ECS_IS_PAIR(id)) {
+          ecs_entity_t first = ecs_pair_first(world, id);
+          if (first == ecs_id(HealthBuff)) {
+            ecs_entity_t source = ecs_pair_second(world, id);
+            const HealthBuff *buff = (const HealthBuff *)ecs_get_id(world, card, id);
+            if (buff && buff->expires_eot) {
+              sources_to_remove[remove_count] = source;
+              modifiers_to_remove[remove_count] = buff->modifier;
+              remove_count++;
+              cli_render_logf("[Status] EOT: Expiring health modifier %+d from entity",
+                              buff->modifier);
+            }
+          }
+        }
+      }
+    }
+
+    if (remove_count > 0) {
+      // Calculate total modifier to remove
+      int16_t total_modifier = 0;
+      for (int j = 0; j < remove_count; j++) {
+        total_modifier += modifiers_to_remove[j];
+        ecs_remove_pair(world, card, ecs_id(HealthBuff), sources_to_remove[j]);
+      }
+
+      // Directly adjust CurStats
+      const CurStats *cur = ecs_get(world, card, CurStats);
+      if (cur) {
+        int16_t new_hp = cur->cur_hp - total_modifier;
+        ecs_set(world, card, CurStats, {
+          .cur_atk = cur->cur_atk,
+          .cur_hp = (int8_t)new_hp,
+        });
+        // Note: death handling for EOT health loss should be handled separately
+      }
+    }
+  }
+}
+
 void azk_queue_passive_buff_update(ecs_world_t *world, ecs_entity_t entity,
-                                   ecs_entity_t source, int8_t modifier,
-                                   bool is_removal) {
+                                   ecs_entity_t source, int8_t atk_modifier,
+                                   int8_t hp_modifier, bool is_removal) {
   PassiveBuffQueue *queue = ecs_singleton_get_mut(world, PassiveBuffQueue);
 
   if (queue->count >= MAX_PASSIVE_BUFF_QUEUE) {
@@ -381,12 +594,13 @@ void azk_queue_passive_buff_update(ecs_world_t *world, ecs_entity_t entity,
 
   queue->buffs[queue->count].entity = entity;
   queue->buffs[queue->count].source = source;
-  queue->buffs[queue->count].modifier = modifier;
+  queue->buffs[queue->count].atk_modifier = atk_modifier;
+  queue->buffs[queue->count].hp_modifier = hp_modifier;
   queue->buffs[queue->count].is_removal = is_removal;
   queue->count++;
 
-  cli_render_logf("[Status] Queued passive buff (removal=%d, count=%d)",
-                  is_removal, queue->count);
+  cli_render_logf("[Status] Queued passive buff (atk=%+d, hp=%+d, removal=%d, count=%d)",
+                  atk_modifier, hp_modifier, is_removal, queue->count);
   ecs_singleton_modified(world, PassiveBuffQueue);
 }
 
@@ -413,46 +627,82 @@ void azk_process_passive_buff_queue(ecs_world_t *world) {
       continue;
     }
 
-    // Track if we actually changed the buff
-    bool buff_changed = false;
-    int8_t actual_modifier = 0;
+    // Track if we actually changed the attack buff (for weapon propagation)
+    bool atk_buff_changed = false;
+    int8_t actual_atk_modifier = 0;
 
     if (buff->is_removal) {
-      // Check if buff exists before trying to remove
+      // Remove attack buff if it exists
       if (ecs_has_pair(world, buff->entity, ecs_id(AttackBuff), buff->source)) {
-        // Get the actual modifier before removal for parent update
         ecs_id_t pair_id = ecs_pair(ecs_id(AttackBuff), buff->source);
         const AttackBuff *existing = ecs_get_id(world, buff->entity, pair_id);
         if (existing) {
-          actual_modifier = existing->modifier;
+          actual_atk_modifier = existing->modifier;
         }
         remove_attack_modifier(world, buff->entity, buff->source);
-        buff_changed = true;
-        cli_render_logf("[Status] Processed passive buff removal");
+        atk_buff_changed = true;
+        cli_render_logf("[Status] Processed passive attack buff removal");
+      }
+
+      // Remove health buff if it exists
+      if (ecs_has_pair(world, buff->entity, ecs_id(HealthBuff), buff->source)) {
+        bool died = remove_health_modifier(world, buff->entity, buff->source);
+        cli_render_logf("[Status] Processed passive health buff removal (died=%d)", died);
+
+        // Handle death if HP dropped to 0 or below
+        if (died && ecs_is_valid(world, buff->entity)) {
+          if (ecs_has(world, buff->entity, TLeader)) {
+            // Leader defeated - determine winner based on entity's owner
+            GameState *gs = ecs_singleton_get_mut(world, GameState);
+            ecs_entity_t parent = ecs_get_target(world, buff->entity, EcsChildOf, 0);
+            for (int p = 0; p < MAX_PLAYERS_PER_MATCH; p++) {
+              if (parent == gs->zones[p].leader) {
+                gs->winner = (p + 1) % MAX_PLAYERS_PER_MATCH;
+                ecs_singleton_modified(world, GameState);
+                cli_render_logf("[Status] Leader defeated by health buff removal - player %d wins", gs->winner);
+                break;
+              }
+            }
+          } else {
+            // Non-leader entity - discard it
+            discard_card(world, buff->entity);
+            cli_render_logf("[Status] Entity defeated by health buff removal - discarded");
+          }
+        }
       }
     } else {
-      // Check if buff already exists (avoid double-applying)
-      if (!ecs_has_pair(world, buff->entity, ecs_id(AttackBuff), buff->source)) {
-        apply_attack_modifier(world, buff->entity, buff->source, buff->modifier,
+      // Apply attack buff if modifier is non-zero and buff doesn't already exist
+      if (buff->atk_modifier != 0 &&
+          !ecs_has_pair(world, buff->entity, ecs_id(AttackBuff), buff->source)) {
+        apply_attack_modifier(world, buff->entity, buff->source, buff->atk_modifier,
                               false);
-        actual_modifier = buff->modifier;
-        buff_changed = true;
-        cli_render_logf("[Status] Processed passive buff apply (+%d)",
-                        buff->modifier);
+        actual_atk_modifier = buff->atk_modifier;
+        atk_buff_changed = true;
+        cli_render_logf("[Status] Processed passive attack buff apply (%+d)",
+                        buff->atk_modifier);
+      }
+
+      // Apply health buff if modifier is non-zero and buff doesn't already exist
+      if (buff->hp_modifier != 0 &&
+          !ecs_has_pair(world, buff->entity, ecs_id(HealthBuff), buff->source)) {
+        apply_health_modifier(world, buff->entity, buff->source, buff->hp_modifier,
+                              false);
+        cli_render_logf("[Status] Processed passive health buff apply (%+d)",
+                        buff->hp_modifier);
       }
     }
 
-    // If the buffed entity is a weapon and we actually changed it,
+    // If the buffed entity is a weapon and we actually changed its attack buff,
     // propagate the modifier delta to the parent entity's attack.
     // We can't use recalculate_attack_from_buffs here because ecs_children
     // may not see deferred children relationships yet.
-    if (buff_changed && ecs_has_id(world, buff->entity, TWeapon)) {
+    if (atk_buff_changed && ecs_has_id(world, buff->entity, TWeapon)) {
       ecs_entity_t parent = ecs_get_target(world, buff->entity, EcsChildOf, 0);
       if (parent && ecs_is_valid(world, parent)) {
         const CurStats *parent_cur = ecs_get(world, parent, CurStats);
         if (parent_cur) {
           // For apply: add modifier. For removal: subtract modifier.
-          int16_t delta = buff->is_removal ? -actual_modifier : actual_modifier;
+          int16_t delta = buff->is_removal ? -actual_atk_modifier : actual_atk_modifier;
           int16_t new_atk = parent_cur->cur_atk + delta;
           if (new_atk < 0) new_atk = 0;
           ecs_set(world, parent, CurStats, {

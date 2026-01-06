@@ -197,6 +197,10 @@ ecs_world_t *azk_world_init(uint32_t seed) {
   ecs_singleton_set_ptr(world, AbilityContext, &ac);
 
   ecs_entity_t players[MAX_PLAYERS_PER_MATCH];
+
+  // First pass: Create all players and zones BEFORE any deck initialization
+  // This is required for passive observers that need to watch opponent's zones
+  // (e.g., stt02_012 watches both player's and opponent's gardens)
   for (int p = 0; p < MAX_PLAYERS_PER_MATCH; p++) {
     ecs_entity_t player = ecs_new(world);
     char pname[16];
@@ -208,8 +212,7 @@ ecs_world_t *azk_world_init(uint32_t seed) {
 
     init_all_player_zones(world, player, p, &ref);
 
-    // Update GameState singleton with player and zones BEFORE deck init
-    // so passive observers can access them
+    // Update GameState singleton with player and zones
     GameState *gs_mut = ecs_singleton_get_mut(world, GameState);
     gs_mut->players[p] = player;
     gs_mut->zones[p] = ref.zones[p];
@@ -218,9 +221,13 @@ ecs_world_t *azk_world_init(uint32_t seed) {
     if (p == 1) {
       grant_player_ikz_token(world, player);
     }
+  }
 
+  // Second pass: Initialize decks after ALL player zones exist
+  // This ensures passive observers can reference opponent zones
+  for (int p = 0; p < MAX_PLAYERS_PER_MATCH; p++) {
     DeckType deck_type = random_deck_type(&rng_state);
-    init_player_deck(world, player, deck_type, &ref.zones[p]);
+    init_player_deck(world, ref.players[p], deck_type, &ref.zones[p]);
   }
   register_action_context_singleton(world);
 

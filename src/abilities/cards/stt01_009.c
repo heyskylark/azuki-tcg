@@ -122,7 +122,7 @@ static void stt01_009_check_and_update_buff(ecs_world_t *world,
     // Not in garden - remove any buff if present
     if (ecs_has_pair(world, card, ecs_id(AttackBuff), card)) {
       cli_render_logf("[STT01-009] Card not in garden, queuing buff removal");
-      azk_queue_passive_buff_update(world, card, card, 0, true);
+      azk_queue_passive_buff_update(world, card, card, 0, 0, true);
     }
     return;
   }
@@ -145,10 +145,10 @@ static void stt01_009_check_and_update_buff(ecs_world_t *world,
     cli_render_logf("[STT01-009] Threshold met, queuing +%d attack buff",
                     STT01_009_BUFF_AMOUNT);
     azk_queue_passive_buff_update(world, card, card, STT01_009_BUFF_AMOUNT,
-                                  false);
+                                  0, false);
   } else {
     cli_render_logf("[STT01-009] Below threshold, queuing buff removal");
-    azk_queue_passive_buff_update(world, card, card, 0, true);
+    azk_queue_passive_buff_update(world, card, card, 0, 0, true);
   }
 }
 

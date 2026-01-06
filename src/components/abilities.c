@@ -35,6 +35,7 @@ ECS_TAG_DECLARE(EffectImmune);
 
 ECS_COMPONENT_DECLARE(CardConditionCountdown);
 ECS_COMPONENT_DECLARE(AttackBuff);
+ECS_COMPONENT_DECLARE(HealthBuff);
 ECS_COMPONENT_DECLARE(PassiveObserverContext);
 
 void azk_register_ability_components(ecs_world_t *world) {
@@ -71,6 +72,7 @@ void azk_register_ability_components(ecs_world_t *world) {
 
   ECS_COMPONENT_DEFINE(world, CardConditionCountdown);
   ECS_COMPONENT_DEFINE(world, AttackBuff);
+  ECS_COMPONENT_DEFINE(world, HealthBuff);
   ECS_COMPONENT_DEFINE(world, PassiveObserverContext);
 
   // Ensure CardConditionCountdown is copied to each instance on instantiation

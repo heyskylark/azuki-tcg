@@ -146,10 +146,11 @@ typedef struct {
 
 /* Passive buff queue for deferred passive ability processing */
 typedef struct {
-  ecs_entity_t entity;  // Entity to apply buff to
-  ecs_entity_t source;  // Source of the buff (for pair tracking)
-  int8_t modifier;      // Attack modifier to apply (0 means remove)
-  bool is_removal;      // True if this is a removal request
+  ecs_entity_t entity;   // Entity to apply buff to
+  ecs_entity_t source;   // Source of the buff (for pair tracking)
+  int8_t atk_modifier;   // Attack modifier to apply (0 if not changing)
+  int8_t hp_modifier;    // Health modifier to apply (0 if not changing)
+  bool is_removal;       // True if this is a removal request
 } PendingPassiveBuff;
 
 #define MAX_PASSIVE_BUFF_QUEUE 8

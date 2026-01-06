@@ -5,16 +5,9 @@
 #include "utils/status_util.h"
 
 void reset_entity_health(ecs_world_t *world, ecs_entity_t entity) {
-  const BaseStats *base_stats = ecs_get(world, entity, BaseStats);
-  ecs_assert(base_stats != NULL, ECS_INVALID_PARAMETER,
-             "BaseStats component not found for entity %d", entity);
-
-  const CurStats *cur_stats = ecs_get(world, entity, CurStats);
-  ecs_assert(cur_stats != NULL, ECS_INVALID_PARAMETER,
-             "CurStats component not found for entity %d", entity);
-
-  ecs_set(world, entity, CurStats,
-          {.cur_atk = cur_stats->cur_atk, .cur_hp = base_stats->health});
+  // Recalculate health from base stats + any active health buffs
+  // This heals damage while preserving passive health buffs (e.g., stt02_012)
+  recalculate_health_from_buffs(world, entity);
 }
 
 static void discard_weapon_card(ecs_world_t *world, ecs_entity_t entity,

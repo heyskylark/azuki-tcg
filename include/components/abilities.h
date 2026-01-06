@@ -107,6 +107,15 @@ typedef struct {
 
 extern ECS_COMPONENT_DECLARE(AttackBuff);
 
+/* Health Buff - used as relationship pair (HealthBuff, source_entity) */
+/* Multiple buffs from different sources can coexist on the same entity */
+typedef struct {
+  int8_t modifier;   // Positive for buff, negative for debuff
+  bool expires_eot;  // If true, removed at end of turn
+} HealthBuff;
+
+extern ECS_COMPONENT_DECLARE(HealthBuff);
+
 /* Passive Observer Context - stores observer IDs for cleanup */
 #define MAX_PASSIVE_OBSERVERS 4
 

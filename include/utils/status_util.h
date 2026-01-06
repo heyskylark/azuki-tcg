@@ -109,18 +109,66 @@ void remove_all_attack_modifiers(ecs_world_t *world, ecs_entity_t entity);
 void expire_eot_attack_modifiers_in_zone(ecs_world_t *world, ecs_entity_t zone);
 
 /**
+ * Recalculate an entity's health from base stats and all HealthBuff pairs.
+ * Call this after adding/removing HealthBuff pairs.
+ * @param world The ECS world
+ * @param entity The entity to recalculate health for
+ */
+void recalculate_health_from_buffs(ecs_world_t *world, ecs_entity_t entity);
+
+/**
+ * Apply a health modifier to an entity using relationship-based buffs.
+ * Creates a (HealthBuff, source) pair on the target entity.
+ * @param world The ECS world
+ * @param entity The entity to modify
+ * @param source The source entity applying the buff
+ * @param modifier The health modifier value (negative for debuff, positive for buff)
+ * @param expires_eot If true, the modifier expires at end of current turn
+ */
+void apply_health_modifier(ecs_world_t *world, ecs_entity_t entity,
+                           ecs_entity_t source, int8_t modifier, bool expires_eot);
+
+/**
+ * Remove a health modifier from a specific source.
+ * WARNING: If this reduces cur_hp to 0 or below, the entity should be killed.
+ * @param world The ECS world
+ * @param entity The entity to remove the modifier from
+ * @param source The source entity whose buff should be removed
+ * @return true if the entity's cur_hp is now <= 0 (death should be triggered)
+ */
+bool remove_health_modifier(ecs_world_t *world, ecs_entity_t entity,
+                            ecs_entity_t source);
+
+/**
+ * Remove all health modifiers from an entity.
+ * @param world The ECS world
+ * @param entity The entity to remove all modifiers from
+ * @return true if the entity's cur_hp is now <= 0 (death should be triggered)
+ */
+bool remove_all_health_modifiers(ecs_world_t *world, ecs_entity_t entity);
+
+/**
+ * Expire all end-of-turn health modifiers in a zone.
+ * Call at end of turn to clean up temporary health modifiers.
+ * @param world The ECS world
+ * @param zone The zone entity to process
+ */
+void expire_eot_health_modifiers_in_zone(ecs_world_t *world, ecs_entity_t zone);
+
+/**
  * Queue a passive buff update for deferred processing.
  * Use this from observers where writes are deferred and not immediately visible.
  * The buff will be applied/removed on the next processing cycle.
  * @param world The ECS world
  * @param entity The entity to apply/remove buff from
  * @param source The source entity for the buff pair
- * @param modifier The attack modifier (ignored if is_removal is true)
+ * @param atk_modifier The attack modifier (0 if not changing)
+ * @param hp_modifier The health modifier (0 if not changing)
  * @param is_removal True to remove the buff, false to apply it
  */
 void azk_queue_passive_buff_update(ecs_world_t *world, ecs_entity_t entity,
-                                   ecs_entity_t source, int8_t modifier,
-                                   bool is_removal);
+                                   ecs_entity_t source, int8_t atk_modifier,
+                                   int8_t hp_modifier, bool is_removal);
 
 /**
  * Check if there are pending passive buff updates.

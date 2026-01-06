@@ -24,6 +24,7 @@
 #include "abilities/cards/stt02_009.h"
 #include "abilities/cards/stt02_010.h"
 #include "abilities/cards/stt02_011.h"
+#include "abilities/cards/stt02_012.h"
 #include "abilities/cards/stt02_013.h"
 #include "abilities/cards/stt02_014.h"
 #include "abilities/cards/stt02_015.h"
@@ -334,6 +335,15 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .validate_effect_target = stt02_011_validate_effect_target,
       .apply_costs = stt02_011_apply_costs,
       .apply_effects = stt02_011_apply_effects,
+  };
+
+  // STT02-012: If the number of entities in your garden is 2 or more than the
+  // number of entities in your opponent's garden, this card has +1/+1.
+  // This is a passive observer-based ability - no timing tag needed.
+  kAbilityRegistry[CARD_DEF_STT02_012] = (AbilityDef){
+      .has_ability = true,
+      .init_passive_observers = stt02_012_init_passive_observers,
+      .cleanup_passive_observers = stt02_012_cleanup_passive_observers,
   };
 
   // STT02-005: On Play; If you played 2 other entities this turn, draw 1
