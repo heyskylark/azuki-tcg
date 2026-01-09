@@ -8,4 +8,7 @@ experiments
 wandb
 renders
 .claude
+dist/
+
+node_modules
 
