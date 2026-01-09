@@ -352,20 +352,24 @@ yarn core build
 **Examples:**
 
 ```typescript
-// In apps/websocket or apps/web
+// In apps/websocket or apps/web - import directly from the file, not barrel exports
 import { UserData } from "@/constants";
 import logger from "@/logger";
-import { WebSocketService } from "@/services";
+import { WebSocketService } from "@/services/WebSocketService";
 import { RoomStatus } from "@tcg/backend-core/types";
 import db from "@tcg/backend-core/database";
 
 // In packages/backend-core
 import { isDefined } from "@/utils";
+import { users } from "@/drizzle/schemas/users";
 ```
 
 **Do NOT use:**
 - Relative imports: `../constants/index.js`
 - Package imports for internal modules: `@tcg/backend-core` (use `@tcg/backend-core/*` instead)
+- Barrel imports (index.ts re-exports): Always import directly from the source file
+
+**Exception:** `packages/backend-core/src/drizzle/schemas/index.ts` is allowed as a barrel export since Drizzle ORM requires it for schema aggregation.
 
 ### Web Service Documentation
 

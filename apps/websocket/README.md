@@ -85,13 +85,13 @@ src/
 Use absolute path aliases (no relative imports):
 
 ```typescript
-// Internal imports use @/
+// Internal imports use @/ - import directly from the file, not barrel exports
 import { UserData } from "@/constants";
 import logger from "@/logger";
-import { WebSocketService } from "@/services";
+import { WebSocketService } from "@/services/WebSocketService";
 
-// Shared package imports use @shared/
-import { RoomStatus } from "@shared/types";
+// Shared package imports use @tcg/backend-core/*
+import { RoomStatus } from "@tcg/backend-core/types";
 ```
 
 ## Dependencies

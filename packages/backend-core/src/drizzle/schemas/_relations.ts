@@ -1,11 +1,11 @@
 import { relations } from "drizzle-orm";
-import { users } from "./users";
-import { cards } from "./cards";
-import { decks } from "./decks";
-import { deckCardJunctions } from "./deck_card_junctions";
-import { rooms } from "./rooms";
-import { matchResults } from "./match_results";
-import { gameLogs } from "./game_logs";
+import { users } from "@/drizzle/schemas/users";
+import { cards } from "@/drizzle/schemas/cards";
+import { decks } from "@/drizzle/schemas/decks";
+import { deckCardJunctions } from "@/drizzle/schemas/deck_card_junctions";
+import { rooms } from "@/drizzle/schemas/rooms";
+import { matchResults } from "@/drizzle/schemas/match_results";
+import { gameLogs } from "@/drizzle/schemas/game_logs";
 
 // User relations
 export const usersRelations = relations(users, ({ many }) => ({

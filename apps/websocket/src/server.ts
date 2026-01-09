@@ -13,7 +13,7 @@ import {
   type UserData,
 } from "@/constants";
 import logger from "@/logger";
-import { WebSocketService } from "@/services";
+import { WebSocketService } from "@/services/WebSocketService";
 
 const uWebSocketApp = UWebsocketApp();
 
