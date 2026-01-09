@@ -1,0 +1,75 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: azuki-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-azuki}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-azuki}
+      POSTGRES_DB: ${POSTGRES_DB:-azuki}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-azuki} -d ${POSTGRES_DB:-azuki}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  migrate:
+    build:
+      context: .
+      dockerfile: docker/migrate.Dockerfile
+      network: host
+    container_name: azuki-migrate
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-azuki}:${POSTGRES_PASSWORD:-azuki}@db:5432/${POSTGRES_DB:-azuki}
+    depends_on:
+      db:
+        condition: service_healthy
+
+  ws:
+    build:
+      context: .
+      dockerfile: docker/ws.Dockerfile
+      network: host
+    container_name: azuki-ws
+    ports:
+      - "3001:3001"
+    environment:
+      PORT: 3001
+      DATABASE_URL: postgres://${POSTGRES_USER:-azuki}:${POSTGRES_PASSWORD:-azuki}@db:5432/${POSTGRES_DB:-azuki}
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    develop:
+      watch:
+        - action: sync+restart
+          path: ./apps/websocket/src
+          target: /app/apps/websocket/src
+        - action: sync+restart
+          path: ./packages/backend-core/src
+          target: /app/packages/backend-core/src
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web.Dockerfile
+      network: host
+    container_name: azuki-web
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-azuki}:${POSTGRES_PASSWORD:-azuki}@db:5432/${POSTGRES_DB:-azuki}
+      NEXT_PUBLIC_WS_URL: ws://localhost:3001
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    develop:
+      watch:
+        - action: sync
+          path: ./apps/web/src
+          target: /app/apps/web/src
+
+volumes:
+  pgdata:

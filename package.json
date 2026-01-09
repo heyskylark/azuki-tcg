@@ -1,0 +1,20 @@
+{
+  "name": "azuki-tcg",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "docker compose up --build",
+    "dev:watch": "docker compose up --build --watch",
+    "dev:down": "docker compose down",
+    "dev:clean": "docker compose down -v",
+    "ws": "yarn workspace @azuki/websocket",
+    "web": "yarn workspace @azuki/web",
+    "core": "yarn workspace @tcg/backend-core"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

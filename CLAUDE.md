@@ -249,6 +249,133 @@ Refer to these for architectural decisions and implementation details.
 - **Response windows**: Agent selection switches to defender during combat; ensure policy handles role correctly
 - **ECS assertions**: Debug builds use `ecs_assert`; enable them when diagnosing engine bugs
 
+## Web Service (Node.js/TypeScript)
+
+The project includes a web service for online play, consisting of a WebSocket server and a Next.js web application.
+
+### Node.js Version
+
+**Requires Node.js 20 LTS** (uWebSockets.js doesn't support Node 24+).
+
+```bash
+# Using nvm (recommended)
+nvm use 20
+
+# Or check .nvmrc file
+cat .nvmrc
+```
+
+### Yarn Workspaces
+
+The web service uses Yarn workspaces for monorepo management:
+
+```bash
+# Install all dependencies from root
+yarn install
+
+# Run commands in specific workspaces
+yarn ws <command>      # @azuki/websocket
+yarn web <command>     # @azuki/web
+yarn core <command>    # @tcg/backend-core
+```
+
+### Running the Web Service
+
+**Docker Compose (Recommended):**
+
+```bash
+# Start all services (db, migrations, ws, web)
+yarn dev
+
+# Start with file watching for hot reload
+yarn dev:watch
+
+# Stop all services
+yarn dev:down
+
+# Stop and reset database
+yarn dev:clean
+```
+
+This starts:
+- PostgreSQL on port 5432
+- Migrations (runs once, then exits)
+- WebSocket server on port 3001
+- Next.js web app on port 3000
+
+**Manual (without Docker):**
+
+```bash
+# Start database only
+docker compose up db -d
+
+# Run migrations
+yarn core db:migrate
+
+# WebSocket server (port 3001)
+yarn ws dev
+
+# Next.js web app (port 3000)
+yarn web dev
+
+# Build backend-core package (required before other builds)
+yarn core build
+```
+
+### Web Service Architecture
+
+- **WebSocket Server** (`apps/websocket`): uWebSockets.js server for real-time game communication
+  - Handles WebSocket connections, game actions, room management
+  - IPC communication with C engine (future)
+  - Winston logging
+
+- **Web App** (`apps/web`): Next.js 15 with App Router
+  - API routes for REST endpoints (auth, rooms, decks)
+  - React frontend with Tailwind CSS
+  - React Three Fiber for 3D game rendering (future)
+
+- **Backend Core** (`packages/backend-core`): Shared TypeScript types, constants, utilities, database
+  - Enums matching web-service.md spec (RoomStatus, CardType, etc.)
+  - WebSocket message types
+  - Game constants
+  - Drizzle ORM schemas and database connection
+
+### Import Conventions
+
+**All TypeScript code must use absolute path aliases. No relative imports.**
+
+| Alias | Resolves To | Usage |
+|-------|-------------|-------|
+| `@/*` | `./src/*` | Internal imports within the same package |
+| `@tcg/backend-core/*` | `packages/backend-core/src/*` | Imports from backend-core package (apps only) |
+
+**Examples:**
+
+```typescript
+// In apps/websocket or apps/web
+import { UserData } from "@/constants";
+import logger from "@/logger";
+import { WebSocketService } from "@/services";
+import { RoomStatus } from "@tcg/backend-core/types";
+import db from "@tcg/backend-core/database";
+
+// In packages/backend-core
+import { isDefined } from "@/utils";
+```
+
+**Do NOT use:**
+- Relative imports: `../constants/index.js`
+- Package imports for internal modules: `@tcg/backend-core` (use `@tcg/backend-core/*` instead)
+
+### Web Service Documentation
+
+See `.claude/docs/web-service.md` for comprehensive documentation including:
+- Architecture diagrams
+- WebSocket protocol
+- API endpoints
+- Database schema
+- Game state logging format
+
 ## Project Structure Summary
 
 ```
@@ -259,9 +386,37 @@ azuki-tcg/
 ├── python/
 │   ├── src/          # Python bindings, policy, training
 │   └── config/       # Training config files
+├── apps/
+│   ├── websocket/    # uWebSockets.js server
+│   │   └── src/
+│   │       ├── server.ts
+│   │       ├── services/
+│   │       ├── clients/
+│   │       ├── logger/
+│   │       ├── errors/
+│   │       ├── constants/
+│   │       └── utils/
+│   └── web/          # Next.js web application
+│       └── src/app/
+├── packages/
+│   └── backend-core/ # Backend TypeScript code (types, db, utils)
+│       └── src/
+│           ├── types/
+│           ├── constants/
+│           ├── utils/
+│           ├── database/
+│           └── drizzle/
 ├── scripts/          # Card generation utilities
-├── .codex/docs/      # Design documentation
-└── build/            # CMake build output (gitignored)
+├── docker/           # Dockerfiles for web services
+├── .codex/docs/      # Design documentation (C engine)
+├── .claude/docs/     # Design documentation (web service)
+├── build/            # CMake build output (gitignored)
+├── docker-compose.yml # Web service orchestration
+├── package.json      # Yarn workspaces root
+├── tsconfig.base.json # Shared TypeScript config
+└── .nvmrc            # Node.js version (20)
 ```
 
-When making changes, ensure both C engine tests and Python integration tests pass.
+When making changes:
+- C engine: Ensure C unit tests and Python integration tests pass
+- Web service: Ensure TypeScript compiles without errors, test WebSocket connections
