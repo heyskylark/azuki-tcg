@@ -5,6 +5,7 @@
 #include "generated/card_defs.h"
 #include "utils/card_utils.h"
 #include "utils/cli_rendering_util.h"
+#include "utils/game_log_util.h"
 
 void apply_frozen(ecs_world_t *world, ecs_entity_t entity, int8_t duration) {
   // Add the Frozen tag
@@ -23,6 +24,9 @@ void apply_frozen(ecs_world_t *world, ecs_entity_t entity, int8_t duration) {
     ecs_modified(world, entity, CardConditionCountdown);
   }
 
+  // Log status effect applied
+  azk_log_status_effect_applied(world, entity, GLOG_STATUS_FROZEN, duration);
+
   cli_render_logf("[Status] Applied Frozen (duration=%d) to entity", duration);
 }
 
@@ -35,6 +39,9 @@ void remove_frozen(ecs_world_t *world, ecs_entity_t entity) {
     countdown->frozen_duration = 0;
     ecs_modified(world, entity, CardConditionCountdown);
   }
+
+  // Log status effect expired
+  azk_log_status_effect_expired(world, entity, GLOG_STATUS_FROZEN);
 
   cli_render_logf("[Status] Removed Frozen from entity");
 }
@@ -64,6 +71,10 @@ void apply_effect_immune(ecs_world_t *world, ecs_entity_t entity,
     ecs_modified(world, entity, CardConditionCountdown);
   }
 
+  // Log status effect applied
+  azk_log_status_effect_applied(world, entity, GLOG_STATUS_EFFECT_IMMUNE,
+                                duration);
+
   cli_render_logf("[Status] Applied EffectImmune (duration=%d) to entity",
                   duration);
 }
@@ -77,6 +88,9 @@ void remove_effect_immune(ecs_world_t *world, ecs_entity_t entity) {
     countdown->effect_immune_duration = 0;
     ecs_modified(world, entity, CardConditionCountdown);
   }
+
+  // Log status effect expired
+  azk_log_status_effect_expired(world, entity, GLOG_STATUS_EFFECT_IMMUNE);
 
   cli_render_logf("[Status] Removed EffectImmune from entity");
 }
@@ -104,6 +118,7 @@ static void tick_zone_status_effects(ecs_world_t *world, ecs_entity_t zone) {
       countdown->frozen_duration--;
       if (countdown->frozen_duration == 0) {
         ecs_remove(world, card, Frozen);
+        azk_log_status_effect_expired(world, card, GLOG_STATUS_FROZEN);
         cli_render_logf("[Status] Frozen expired on entity");
       }
     }
@@ -113,6 +128,7 @@ static void tick_zone_status_effects(ecs_world_t *world, ecs_entity_t zone) {
       countdown->shocked_duration--;
       if (countdown->shocked_duration == 0) {
         ecs_remove(world, card, Shocked);
+        azk_log_status_effect_expired(world, card, GLOG_STATUS_SHOCKED);
         cli_render_logf("[Status] Shocked expired on entity");
       }
     }
@@ -122,6 +138,7 @@ static void tick_zone_status_effects(ecs_world_t *world, ecs_entity_t zone) {
       countdown->effect_immune_duration--;
       if (countdown->effect_immune_duration == 0) {
         ecs_remove(world, card, EffectImmune);
+        azk_log_status_effect_expired(world, card, GLOG_STATUS_EFFECT_IMMUNE);
         cli_render_logf("[Status] EffectImmune expired on entity");
       }
     }
@@ -236,6 +253,9 @@ void apply_attack_modifier(ecs_world_t *world, ecs_entity_t entity,
     .cur_hp = cur->cur_hp,
   });
 
+  // Log stat change
+  azk_log_card_stat_change(world, entity, actual_modifier, 0, (int8_t)new_atk, cur->cur_hp);
+
   cli_render_logf("[Status] Applied attack modifier %+d (requested %+d) from source (expires_eot=%d)",
                   actual_modifier, modifier, expires_eot);
 }
@@ -264,6 +284,9 @@ void remove_attack_modifier(ecs_world_t *world, ecs_entity_t entity,
       .cur_atk = (int8_t)new_atk,
       .cur_hp = cur->cur_hp,
     });
+
+    // Log stat change (negative since we're removing)
+    azk_log_card_stat_change(world, entity, -modifier, 0, (int8_t)new_atk, cur->cur_hp);
   }
 
   cli_render_logf("[Status] Removed attack modifier from source");
@@ -440,6 +463,9 @@ void apply_health_modifier(ecs_world_t *world, ecs_entity_t entity,
     .cur_hp = (int8_t)new_hp,
   });
 
+  // Log stat change
+  azk_log_card_stat_change(world, entity, 0, modifier, cur->cur_atk, (int8_t)new_hp);
+
   cli_render_logf("[Status] Applied health modifier %+d from source (expires_eot=%d)",
                   modifier, expires_eot);
 }
@@ -465,6 +491,9 @@ bool remove_health_modifier(ecs_world_t *world, ecs_entity_t entity,
       .cur_atk = cur->cur_atk,
       .cur_hp = (int8_t)new_hp,
     });
+
+    // Log stat change (negative since we're removing)
+    azk_log_card_stat_change(world, entity, 0, -modifier, cur->cur_atk, (int8_t)new_hp);
 
     cli_render_logf("[Status] Removed health modifier %+d from source (new_hp=%d)",
                     modifier, (int)new_hp);

@@ -13,7 +13,9 @@
 #include "abilities/cards/stt01_005.h"
 #include "components/abilities.h"
 #include "components/components.h"
+#include "components/game_log.h"
 #include "utils/deck_utils.h"
+#include "utils/game_log_util.h"
 #include "generated/card_defs.h"
 
 static const CardDef *find_card_def_by_entity_name(const char *entity_name) {
@@ -1483,6 +1485,52 @@ static void test_draw_cards_with_deckout_check_success(void) {
   ecs_fini(world);
 }
 
+// ============================================================================
+// Game Log Tests
+// ============================================================================
+
+static void test_game_log_singleton_initialized(void) {
+  ecs_world_t *world = azk_world_init(42);
+
+  // GameStateLogContext singleton should exist and be initialized
+  const GameStateLogContext *ctx = ecs_singleton_get(world, GameStateLogContext);
+  assert(ctx != NULL);
+  printf("  Initial log count: %d\n", ctx->count);
+
+  // Add a test log
+  azk_log_turn_started(world, 0, 1);
+
+  // Verify log was added
+  uint8_t count = azk_get_game_log_count(world);
+  printf("  After turn_started log count: %d\n", count);
+  assert(count >= 1);  // At least one log (may have others from init)
+
+  // Get logs and verify
+  const GameStateLog *logs = azk_get_game_logs(world, &count);
+  assert(logs != NULL);
+  printf("  Logs pointer: %p, count: %d\n", (void *)logs, count);
+
+  // Find our turn started log
+  bool found_turn_started = false;
+  for (uint8_t i = 0; i < count; i++) {
+    printf("  Log %d: type=%d\n", i, logs[i].type);
+    if (logs[i].type == GLOG_TURN_STARTED) {
+      found_turn_started = true;
+      assert(logs[i].data.turn_started.player == 0);
+      assert(logs[i].data.turn_started.turn_number == 1);
+    }
+  }
+  assert(found_turn_started);
+
+  // Test clear
+  azk_clear_game_logs(world);
+  count = azk_get_game_log_count(world);
+  printf("  After clear log count: %d\n", count);
+  assert(count == 0);
+
+  azk_world_fini(world);
+}
+
 int main(void) {
   test_azk_world_init_sets_game_state();
   test_world_init_creates_player_zones();
@@ -1507,6 +1555,11 @@ int main(void) {
   test_stt01_005_ability_flow_full();
   test_draw_cards_with_deckout_check();
   test_draw_cards_with_deckout_check_success();
+
+  // Game log tests
+  printf("Running game log tests...\n");
+  test_game_log_singleton_initialized();
+  printf("Game log tests passed!\n");
 
   return 0;
 }

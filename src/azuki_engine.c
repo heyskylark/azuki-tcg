@@ -2,6 +2,7 @@
 #include <math.h>
 
 #include "systems/phase_gate.h"
+#include "utils/game_log_util.h"
 #include "utils/phase_utils.h"
 #include "utils/status_util.h"
 #include "world.h"
@@ -83,6 +84,9 @@ void azk_engine_tick(AzkEngine *engine) {
   if (!engine) {
     return;
   }
+
+  // Clear game logs at the start of each action processing
+  azk_clear_game_logs(engine);
 
   // Process any pending passive buff updates (from observer callbacks)
   // These are queued because observer writes are deferred and not visible

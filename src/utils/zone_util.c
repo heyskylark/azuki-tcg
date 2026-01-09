@@ -6,6 +6,7 @@
 #include "generated/card_defs.h"
 #include "utils/card_utils.h"
 #include "utils/cli_rendering_util.h"
+#include "utils/game_log_util.h"
 #include "utils/player_util.h"
 #include <stdio.h>
 
@@ -120,12 +121,23 @@ int summon_card_into_zone_index(ecs_world_t *world,
   ecs_assert(world != NULL, ECS_INVALID_PARAMETER, "World is null");
   ecs_assert(intent != NULL, ECS_INVALID_PARAMETER, "PlayEntityIntent is null");
 
+  // Capture source zone before moving card
+  ecs_entity_t from_zone_entity =
+      ecs_get_target(world, intent->card, EcsChildOf, 0);
+  GameLogZone from_zone = azk_zone_entity_to_log_zone(world, from_zone_entity);
+
   int results = insert_card_into_zone_index(
       world, intent->card, intent->player, intent->target_zone,
       intent->zone_index, intent->displaced_card, intent->placement_type);
   if (results < 0) {
     return results;
   }
+
+  // Log zone movement
+  GameLogZone to_zone = intent->placement_type == ZONE_GARDEN ? GLOG_ZONE_GARDEN
+                                                              : GLOG_ZONE_ALLEY;
+  azk_log_card_zone_moved(world, intent->card, from_zone, -1, to_zone,
+                          (int8_t)intent->zone_index);
 
   for (uint8_t i = 0; i < intent->ikz_card_count; ++i) {
     tap_card(world, intent->ikz_cards[i]);
@@ -138,7 +150,14 @@ void untap_all_cards_in_zone(ecs_world_t *world, ecs_entity_t zone) {
   ecs_entities_t cards = ecs_get_ordered_children(world, zone);
   for (int32_t i = 0; i < cards.count; i++) {
     ecs_entity_t card = cards.ids[i];
-    ecs_set(world, card, TapState, {.tapped = false, .cooldown = false});
+    const TapState *ts = ecs_get(world, card, TapState);
+    // Only log if state actually changes
+    if (ts && (ts->tapped || ts->cooldown)) {
+      ecs_set(world, card, TapState, {.tapped = false, .cooldown = false});
+      azk_log_card_tap_state_changed(world, card, GLOG_TAP_UNTAPPED);
+    } else {
+      ecs_set(world, card, TapState, {.tapped = false, .cooldown = false});
+    }
   }
 }
 
@@ -152,6 +171,7 @@ uint8_t untap_n_ikz_cards(ecs_world_t *world, ecs_entity_t ikz_area,
     if (ts && ts->tapped) {
       ecs_set(world, card, TapState,
               {.tapped = false, .cooldown = ts->cooldown});
+      azk_log_card_tap_state_changed(world, card, GLOG_TAP_UNTAPPED);
       untapped++;
     }
   }
@@ -185,6 +205,10 @@ int gate_card_into_garden(ecs_world_t *world, const GatePortalIntent *intent) {
   ecs_assert(world != NULL, ECS_INVALID_PARAMETER, "World is null");
   ecs_assert(intent != NULL, ECS_INVALID_PARAMETER, "GatePortalIntent is null");
 
+  // Capture source zone index before moving (alley cards have zone index)
+  const ZoneIndex *from_zi = ecs_get(world, intent->alley_card, ZoneIndex);
+  int8_t from_index = from_zi ? (int8_t)from_zi->index : -1;
+
   int results = insert_card_into_zone_index(
       world, intent->alley_card, intent->player, intent->target_zone,
       intent->garden_index, intent->displaced_card, ZONE_GARDEN);
@@ -192,6 +216,10 @@ int gate_card_into_garden(ecs_world_t *world, const GatePortalIntent *intent) {
   if (results < 0) {
     return results;
   }
+
+  // Log alley -> garden movement
+  azk_log_card_zone_moved(world, intent->alley_card, GLOG_ZONE_ALLEY, from_index,
+                          GLOG_ZONE_GARDEN, (int8_t)intent->garden_index);
 
   tap_card(world, intent->gate_card);
 

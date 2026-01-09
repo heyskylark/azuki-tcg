@@ -2,6 +2,7 @@
 #include "components/components.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/entity_util.h"
+#include "utils/game_log_util.h"
 #include "utils/status_util.h"
 #include "utils/zone_util.h"
 
@@ -41,6 +42,9 @@ void HandleEndPhase(ecs_iter_t *it) {
 
   ecs_entity_t leader_card = find_leader_card_in_zone(world, gs->zones[gs->active_player_index].leader);
   discard_equipped_weapon_cards(world, leader_card);
+
+  // Log turn ended before transitioning
+  azk_log_turn_ended(world, gs->active_player_index, gs->turn_number);
 
   gs->phase = PHASE_START_OF_TURN;
   gs->active_player_index = (gs->active_player_index + 1) % MAX_PLAYERS_PER_MATCH;

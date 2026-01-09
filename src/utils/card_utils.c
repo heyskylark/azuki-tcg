@@ -6,6 +6,7 @@
 #include "generated/card_defs.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/entity_util.h"
+#include "utils/game_log_util.h"
 #include "utils/player_util.h"
 #include <stdio.h>
 
@@ -27,6 +28,12 @@ void discard_card(ecs_world_t *world, ecs_entity_t card) {
   const GameState *gs = ecs_singleton_get(world, GameState);
   ecs_entity_t discard_zone = gs->zones[player_number->player_number].discard;
 
+  // Capture source zone info before moving
+  ecs_entity_t from_zone_entity = ecs_get_target(world, card, EcsChildOf, 0);
+  GameLogZone from_zone = azk_zone_entity_to_log_zone(world, from_zone_entity);
+  const ZoneIndex *from_zi = ecs_get(world, card, ZoneIndex);
+  int8_t from_index = from_zi ? (int8_t)from_zi->index : -1;
+
   ecs_remove_id(world, card, ecs_id(ZoneIndex));
   ecs_set(world, card, TapState, {.tapped = false, .cooldown = false});
   // Reset current stats to base stats (consistent with return_card_to_hand)
@@ -41,11 +48,18 @@ void discard_card(ecs_world_t *world, ecs_entity_t card) {
     ecs_remove(world, card, Charge);
   }
   ecs_add_pair(world, card, EcsChildOf, discard_zone);
+
+  // Log zone movement to discard
+  azk_log_card_zone_moved(world, card, from_zone, from_index, GLOG_ZONE_DISCARD,
+                          -1);
 }
 
 void return_card_to_hand(ecs_world_t *world, ecs_entity_t card) {
   // Check source zone BEFORE changing ChildOf
   ecs_entity_t source_parent = ecs_get_target(world, card, EcsChildOf, 0);
+  GameLogZone from_zone = azk_zone_entity_to_log_zone(world, source_parent);
+  const ZoneIndex *from_zi = ecs_get(world, card, ZoneIndex);
+  int8_t from_index = from_zi ? (int8_t)from_zi->index : -1;
 
   ecs_entity_t owner = ecs_get_target(world, card, Rel_OwnedBy, 0);
   ecs_assert(owner != 0, ECS_INVALID_PARAMETER, "Card %d has no owner", card);
@@ -88,6 +102,10 @@ void return_card_to_hand(ecs_world_t *world, ecs_entity_t card) {
   // Move to hand
   ecs_add_pair(world, card, EcsChildOf, hand_zone);
 
+  // Log zone movement to hand
+  azk_log_card_zone_moved(world, card, from_zone, from_index, GLOG_ZONE_HAND,
+                          -1);
+
   cli_render_logf("[CardUtils] Returned card to hand");
 
   // Trigger observers only if card came from play (garden/alley)
@@ -115,6 +133,7 @@ void tap_card(ecs_world_t *world, ecs_entity_t card) {
   ecs_assert(ts != NULL, ECS_INVALID_PARAMETER,
              "TapState component not found for card %d", card);
   ecs_set(world, card, TapState, {.tapped = true, .cooldown = ts->cooldown});
+  azk_log_card_tap_state_changed(world, card, GLOG_TAP_TAPPED);
 }
 
 void set_card_to_cooldown(ecs_world_t *world, ecs_entity_t card) {
@@ -123,6 +142,7 @@ void set_card_to_cooldown(ecs_world_t *world, ecs_entity_t card) {
              "TapState component not found for card %d", card);
   ecs_set(world, card, TapState,
           {.tapped = tap_state->tapped, .cooldown = true});
+  azk_log_card_tap_state_changed(world, card, GLOG_TAP_COOLDOWN);
 }
 
 bool is_card_tapped(ecs_world_t *world, ecs_entity_t card) {

@@ -6,10 +6,12 @@
 #include <string.h>
 
 #include "abilities/ability_system.h"
+#include "components/game_log.h"
+#include "utils/game_log_util.h"
 
 #define MIN_BOARD_HEIGHT 8
 #define MIN_LOG_HEIGHT 4
-#define MIN_INFO_HEIGHT 3
+#define MIN_INFO_HEIGHT 12
 #define MIN_INPUT_HEIGHT 3
 #define CLI_LOG_MAX_LINES 256
 #define CLI_LOG_LINE_LENGTH 256
@@ -1305,12 +1307,219 @@ static int render_board(WINDOW *win, const ObservationData *observation,
   return (left_height > right_height) ? left_height : right_height;
 }
 
+static const char *log_type_short_name(GameLogType type) {
+  switch (type) {
+    case GLOG_CARD_ZONE_MOVED:
+      return "MOVE";
+    case GLOG_CARD_STAT_CHANGE:
+      return "STAT";
+    case GLOG_CARD_TAP_STATE_CHANGED:
+      return "TAP";
+    case GLOG_STATUS_EFFECT_APPLIED:
+      return "+STS";
+    case GLOG_STATUS_EFFECT_EXPIRED:
+      return "-STS";
+    case GLOG_COMBAT_DECLARED:
+      return "ATK";
+    case GLOG_DEFENDER_DECLARED:
+      return "DEF";
+    case GLOG_COMBAT_DAMAGE:
+      return "DMG";
+    case GLOG_ENTITY_DIED:
+      return "DIED";
+    case GLOG_EFFECT_QUEUED:
+      return "QEFF";
+    case GLOG_CARD_EFFECT_ENABLED:
+      return "EFF";
+    case GLOG_DECK_SHUFFLED:
+      return "SHUF";
+    case GLOG_TURN_STARTED:
+      return "TURN";
+    case GLOG_TURN_ENDED:
+      return "END";
+    case GLOG_GAME_ENDED:
+      return "GAME";
+    default:
+      return "???";
+  }
+}
+
+static const char *zone_short_name(GameLogZone zone) {
+  switch (zone) {
+    case GLOG_ZONE_DECK:
+      return "Deck";
+    case GLOG_ZONE_HAND:
+      return "Hand";
+    case GLOG_ZONE_LEADER:
+      return "Leader";
+    case GLOG_ZONE_GATE:
+      return "Gate";
+    case GLOG_ZONE_GARDEN:
+      return "Garden";
+    case GLOG_ZONE_ALLEY:
+      return "Alley";
+    case GLOG_ZONE_IKZ_PILE:
+      return "IKZPile";
+    case GLOG_ZONE_IKZ_AREA:
+      return "IKZ";
+    case GLOG_ZONE_DISCARD:
+      return "Discard";
+    case GLOG_ZONE_SELECTION:
+      return "Select";
+    default:
+      return "?";
+  }
+}
+
+static const char *tap_state_name(GameLogTapState state) {
+  switch (state) {
+    case GLOG_TAP_UNTAPPED:
+      return "untapped";
+    case GLOG_TAP_TAPPED:
+      return "tapped";
+    case GLOG_TAP_COOLDOWN:
+      return "cooldown";
+    default:
+      return "?";
+  }
+}
+
+static const char *status_effect_name(GameLogStatusEffect effect) {
+  switch (effect) {
+    case GLOG_STATUS_FROZEN:
+      return "Frozen";
+    case GLOG_STATUS_SHOCKED:
+      return "Shocked";
+    case GLOG_STATUS_EFFECT_IMMUNE:
+      return "EffImmune";
+    default:
+      return "?";
+  }
+}
+
+static void format_game_log(const GameStateLog *log, char *buf, size_t buf_len) {
+  if (!log || !buf || buf_len == 0) {
+    return;
+  }
+
+  const char *type_str = log_type_short_name(log->type);
+
+  switch (log->type) {
+    case GLOG_CARD_ZONE_MOVED: {
+      const GameLogZoneMoved *zm = &log->data.zone_moved;
+      snprintf(buf, buf_len, "[%s] P%d: %s->%s",
+               type_str, zm->card.player,
+               zone_short_name(zm->from_zone),
+               zone_short_name(zm->to_zone));
+      break;
+    }
+    case GLOG_CARD_STAT_CHANGE: {
+      const GameLogStatChange *sc = &log->data.stat_change;
+      snprintf(buf, buf_len, "[%s] P%d: %+d/%+d -> %d/%d",
+               type_str, sc->card.player,
+               sc->atk_delta, sc->hp_delta,
+               sc->new_atk, sc->new_hp);
+      break;
+    }
+    case GLOG_CARD_TAP_STATE_CHANGED: {
+      const GameLogTapStateChanged *tc = &log->data.tap_changed;
+      snprintf(buf, buf_len, "[%s] P%d: %s",
+               type_str, tc->card.player,
+               tap_state_name(tc->new_state));
+      break;
+    }
+    case GLOG_STATUS_EFFECT_APPLIED: {
+      const GameLogStatusApplied *sa = &log->data.status_applied;
+      snprintf(buf, buf_len, "[%s] P%d: %s (%d)",
+               type_str, sa->card.player,
+               status_effect_name(sa->effect),
+               sa->duration);
+      break;
+    }
+    case GLOG_STATUS_EFFECT_EXPIRED: {
+      const GameLogStatusExpired *se = &log->data.status_expired;
+      snprintf(buf, buf_len, "[%s] P%d: %s",
+               type_str, se->card.player,
+               status_effect_name(se->effect));
+      break;
+    }
+    case GLOG_COMBAT_DECLARED: {
+      const GameLogCombatDeclared *cd = &log->data.combat_declared;
+      snprintf(buf, buf_len, "[%s] P%d -> P%d",
+               type_str, cd->attacker.player, cd->target.player);
+      break;
+    }
+    case GLOG_DEFENDER_DECLARED: {
+      const GameLogDefenderDeclared *dd = &log->data.defender_declared;
+      snprintf(buf, buf_len, "[%s] P%d intercepts",
+               type_str, dd->defender.player);
+      break;
+    }
+    case GLOG_COMBAT_DAMAGE: {
+      const GameLogCombatDamage *cdmg = &log->data.combat_damage;
+      snprintf(buf, buf_len, "[%s] %d dealt / %d taken",
+               type_str, cdmg->attacker_damage_dealt, cdmg->attacker_damage_taken);
+      break;
+    }
+    case GLOG_ENTITY_DIED: {
+      const GameLogEntityDied *ed = &log->data.entity_died;
+      snprintf(buf, buf_len, "[%s] P%d entity",
+               type_str, ed->card.player);
+      break;
+    }
+    case GLOG_EFFECT_QUEUED: {
+      const GameLogEffectQueued *eq = &log->data.effect_queued;
+      snprintf(buf, buf_len, "[%s] P%d ability %d",
+               type_str, eq->card.player, eq->ability_index);
+      break;
+    }
+    case GLOG_CARD_EFFECT_ENABLED: {
+      const GameLogEffectEnabled *ee = &log->data.effect_enabled;
+      snprintf(buf, buf_len, "[%s] P%d ability %d",
+               type_str, ee->card.player, ee->ability_index);
+      break;
+    }
+    case GLOG_DECK_SHUFFLED: {
+      const GameLogDeckShuffled *ds = &log->data.deck_shuffled;
+      snprintf(buf, buf_len, "[%s] P%d deck",
+               type_str, ds->player);
+      break;
+    }
+    case GLOG_TURN_STARTED: {
+      const GameLogTurnStarted *ts = &log->data.turn_started;
+      snprintf(buf, buf_len, "[%s] P%d turn %d",
+               type_str, ts->player, ts->turn_number);
+      break;
+    }
+    case GLOG_TURN_ENDED: {
+      const GameLogTurnEnded *te = &log->data.turn_ended;
+      snprintf(buf, buf_len, "[%s] P%d turn %d",
+               type_str, te->player, te->turn_number);
+      break;
+    }
+    case GLOG_GAME_ENDED: {
+      const GameLogGameEnded *ge = &log->data.game_ended;
+      if (ge->winner >= 0 && ge->winner < 2) {
+        snprintf(buf, buf_len, "[%s] P%d wins", type_str, ge->winner);
+      } else {
+        snprintf(buf, buf_len, "[%s] Draw", type_str);
+      }
+      break;
+    }
+    default:
+      snprintf(buf, buf_len, "[%s]", type_str);
+      break;
+  }
+}
+
 static void render_info(WINDOW *win, ecs_world_t *world, const GameState *gs) {
   if (!win || !gs) {
     return;
   }
   int row = 1;
-  mvwprintw(win, row++, 2, "Phase: %s", phase_to_string(gs->phase));
+  int max_row = getmaxy(win) - 1;
+  int win_height = getmaxy(win);
+  mvwprintw(win, row++, 2, "Phase: %s (win_h=%d, max_r=%d)", phase_to_string(gs->phase), win_height, max_row);
 
   // Display ability sub-phase and queued effects
   AbilityPhase ability_phase = azk_get_ability_phase(world);
@@ -1325,6 +1534,33 @@ static void render_info(WINDOW *win, ecs_world_t *world, const GameState *gs) {
     mvwprintw(win, row++, 2, "Winner: Player %d", gs->winner);
   } else {
     mvwprintw(win, row++, 2, "Winner: (in progress)");
+  }
+
+  // Display recent game events
+  mvwprintw(win, row++, 2, "row=%d max_row=%d world=%p", row-1, max_row, (void*)world);
+  if (row < max_row && world) {
+    uint8_t log_count = 0;
+    const GameStateLog *logs = azk_get_game_logs(world, &log_count);
+    if (row < max_row) {
+      mvwprintw(win, row++, 2, "-- Events (%d) logs=%p --", log_count, (void*)logs);
+    }
+
+    if (logs && log_count > 0) {
+      // Show last N events that fit in the window
+      int max_events = max_row - row;
+      if (max_events > 5) {
+        max_events = 5;
+      }
+      int start_idx = (log_count > max_events) ? log_count - max_events : 0;
+
+      char log_buf[64];
+      for (int i = start_idx; i < log_count && row < max_row; i++) {
+        format_game_log(&logs[i], log_buf, sizeof(log_buf));
+        mvwprintw(win, row++, 2, "%s", log_buf);
+      }
+    } else if (row < max_row) {
+      mvwprintw(win, row++, 2, "(no events)");
+    }
   }
 }
 

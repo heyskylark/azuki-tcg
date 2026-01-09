@@ -3,6 +3,7 @@
 #include "components/components.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/deck_utils.h"
+#include "utils/game_log_util.h"
 #include "utils/status_util.h"
 #include "utils/zone_util.h"
 
@@ -26,7 +27,8 @@ void GrantIKZ(ecs_world_t *world, GameState *gs) {
   ecs_entity_t ikz_pile_zone = gs->zones[gs->active_player_index].ikz_pile;
   ecs_entity_t ikz_area_zone = gs->zones[gs->active_player_index].ikz_area;
 
-  if (!move_cards_to_zone(world, ikz_pile_zone, ikz_area_zone, 1, NULL)) {
+  ecs_entity_t out_card[1] = {0};
+  if (!move_cards_to_zone(world, ikz_pile_zone, ikz_area_zone, 1, out_card)) {
     return;
   }
 
@@ -82,6 +84,12 @@ static void handle_phase_transition(ecs_world_t *world, GameState *gs) {
 void StartPhase(ecs_iter_t *it) {
   ecs_world_t *world = it->world;
   GameState *gs = ecs_field(it, GameState, 0);
+
+  // Increment turn number
+  gs->turn_number++;
+
+  // Log turn started
+  azk_log_turn_started(world, gs->active_player_index, gs->turn_number);
 
   // Tick down status effect durations for BOTH players before untap
   tick_status_effects_for_player(world, 0);

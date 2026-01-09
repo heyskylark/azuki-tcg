@@ -7,6 +7,7 @@
 #include "generated/card_defs.h"
 #include "utils/card_utils.h"
 #include "utils/cli_rendering_util.h"
+#include "utils/game_log_util.h"
 #include "utils/player_util.h"
 #include "utils/zone_util.h"
 #include "validation/action_validation.h"
@@ -29,6 +30,9 @@ static void handle_declare_defender(ecs_world_t *world, GameState *gs,
   // Update combat state with new defender
   gs->combat_state.defender_card = intent.defender_card;
   gs->combat_state.defender_intercepted = true;
+
+  // Log defender declared
+  azk_log_defender_declared(world, intent.defender_card);
 
   cli_render_logf("[ResponseAction] Declared defender at garden index %d",
                   intent.garden_index);

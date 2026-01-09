@@ -8,6 +8,7 @@
 #include "utils/card_utils.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/combat_util.h"
+#include "utils/game_log_util.h"
 #include "utils/player_util.h"
 #include "utils/weapon_util.h"
 #include "utils/zone_util.h"
@@ -139,6 +140,9 @@ static void handle_attack(ecs_world_t *world, GameState *gs,
     ac->invalid_action = true;
     return;
   }
+
+  // Log combat declared
+  azk_log_combat_declared(world, intent.attacking_card, intent.defending_card);
 
   // Check if attacking card has a "when attacking" ability before queueing
   const CardId *card_id = ecs_get(world, intent.attacking_card, CardId);

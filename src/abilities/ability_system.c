@@ -6,6 +6,7 @@
 #include "generated/card_defs.h"
 #include "utils/card_utils.h"
 #include "utils/cli_rendering_util.h"
+#include "utils/game_log_util.h"
 #include "utils/player_util.h"
 #include "utils/zone_util.h"
 
@@ -1298,6 +1299,9 @@ bool azk_queue_triggered_effect(ecs_world_t *world, ecs_entity_t card,
   queue->effects[queue->count].timing_tag = timing_tag;
   queue->count++;
 
+  // Log effect queued (ability_index=0 as default, timing_tag for trigger type)
+  azk_log_effect_queued(world, card, 0, timing_tag);
+
   cli_render_logf("[Ability] Queued triggered effect (tag=%d, count=%d)",
                   timing_tag, queue->count);
   ecs_singleton_modified(world, TriggeredEffectQueue);
@@ -1353,6 +1357,9 @@ bool azk_process_triggered_effect_queue(ecs_world_t *world) {
   }
   queue->count--;
   ecs_singleton_modified(world, TriggeredEffectQueue);
+
+  // Log effect enabled (ability is now being processed)
+  azk_log_effect_enabled(world, effect.source_card, 0);
 
   cli_render_logf("[Ability] Processing queued effect (tag=%d, remaining=%d)",
                   effect.timing_tag, queue->count);

@@ -7,8 +7,8 @@ resources
 experiments
 wandb
 renders
-.claude
 dist/
+qq
 
 node_modules
 

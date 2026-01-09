@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "components/components.h"
+#include "utils/game_log_util.h"
 #include "utils/player_util.h"
 
 static inline uint32_t deck_next_rand(uint32_t *state) {
@@ -52,6 +53,14 @@ void shuffle_deck(ecs_world_t *world, ecs_entity_t deck_zone) {
   ecs_singleton_modified(world, GameState);
 
   ecs_os_free(shuffled);
+
+  // Log deck shuffle (get player from deck zone owner)
+  ecs_entity_t owner = ecs_get_target(world, deck_zone, Rel_OwnedBy, 0);
+  if (owner) {
+    uint8_t player_num = get_player_number(world, owner);
+    // Default to GAME_START reason - caller can override for specific contexts
+    azk_log_deck_shuffled(world, player_num, GLOG_SHUFFLE_GAME_START);
+  }
 }
 
 bool move_cards_to_zone(ecs_world_t *world, ecs_entity_t from_zone,
@@ -69,9 +78,15 @@ bool move_cards_to_zone(ecs_world_t *world, ecs_entity_t from_zone,
     to_draw = count;
   }
 
+  GameLogZone from_log_zone = azk_zone_entity_to_log_zone(world, from_zone);
+  GameLogZone to_log_zone = azk_zone_entity_to_log_zone(world, to_zone);
+
   for (int32_t index = 0; index < to_draw; index++) {
     ecs_entity_t card = cards.ids[count - 1 - index];
     ecs_add_pair(world, card, EcsChildOf, to_zone);
+
+    // Log zone movement for each card
+    azk_log_card_zone_moved(world, card, from_log_zone, -1, to_log_zone, -1);
 
     if (out_cards) {
       out_cards[index] = card;
@@ -105,12 +120,16 @@ bool draw_cards_with_deckout_check(ecs_world_t *world, ecs_entity_t player,
       gs->winner = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
       gs->phase = PHASE_END_MATCH;
       ecs_singleton_modified(world, GameState);
+      azk_log_game_ended(world, gs->winner, GLOG_END_DECK_OUT);
       return false;
     }
 
     // Move the top card (last in ordered list) to hand
     ecs_entity_t card = deck_cards.ids[deck_count - 1 - i];
     ecs_add_pair(world, card, EcsChildOf, hand);
+
+    // Log zone movement
+    azk_log_card_zone_moved(world, card, GLOG_ZONE_DECK, -1, GLOG_ZONE_HAND, -1);
 
     if (out_cards) {
       out_cards[i] = card;
@@ -123,6 +142,7 @@ bool draw_cards_with_deckout_check(ecs_world_t *world, ecs_entity_t player,
       gs->winner = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
       gs->phase = PHASE_END_MATCH;
       ecs_singleton_modified(world, GameState);
+      azk_log_game_ended(world, gs->winner, GLOG_END_DECK_OUT);
       return false; // Player loses due to deck-out
     }
   }
@@ -153,6 +173,9 @@ int look_at_top_n_cards(ecs_world_t *world, ecs_entity_t player, int count,
     ecs_entity_t card = deck_cards.ids[deck_count - 1 - i];
     ecs_add_pair(world, card, EcsChildOf, selection);
     out_cards[i] = card;
+    // Log zone movement
+    azk_log_card_zone_moved(world, card, GLOG_ZONE_DECK, -1, GLOG_ZONE_SELECTION,
+                            (int8_t)i);
   }
 
   // Zero out remaining slots if fewer cards available
@@ -165,6 +188,10 @@ int look_at_top_n_cards(ecs_world_t *world, ecs_entity_t player, int count,
 
 void add_card_to_bottom_of_deck(ecs_world_t *world, ecs_entity_t player,
                                 ecs_entity_t card) {
+  // Capture source zone before moving
+  ecs_entity_t from_zone_entity = ecs_get_target(world, card, EcsChildOf, 0);
+  GameLogZone from_zone = azk_zone_entity_to_log_zone(world, from_zone_entity);
+
   GameState *gs = ecs_singleton_get_mut(world, GameState);
   uint8_t player_num = get_player_number(world, player);
   ecs_entity_t deck = gs->zones[player_num].deck;
@@ -177,6 +204,8 @@ void add_card_to_bottom_of_deck(ecs_world_t *world, ecs_entity_t player,
   int32_t count = deck_cards.count;
 
   if (count <= 1) {
+    // Log zone movement (card is at bottom of deck, index 0)
+    azk_log_card_zone_moved(world, card, from_zone, -1, GLOG_ZONE_DECK, -1);
     return; // Nothing to reorder
   }
 
@@ -213,6 +242,9 @@ void add_card_to_bottom_of_deck(ecs_world_t *world, ecs_entity_t player,
 
   ecs_set_child_order(world, deck, new_order, count);
   ecs_os_free(new_order);
+
+  // Log zone movement
+  azk_log_card_zone_moved(world, card, from_zone, -1, GLOG_ZONE_DECK, -1);
 }
 
 void move_selection_to_hand(ecs_world_t *world, ecs_entity_t card) {
@@ -228,6 +260,10 @@ void move_selection_to_hand(ecs_world_t *world, ecs_entity_t card) {
 
   // Move from selection to hand
   ecs_add_pair(world, card, EcsChildOf, hand_zone);
+
+  // Log zone movement
+  azk_log_card_zone_moved(world, card, GLOG_ZONE_SELECTION, -1, GLOG_ZONE_HAND,
+                          -1);
 }
 
 void move_selection_to_deck_bottom(ecs_world_t *world, ecs_entity_t player,

@@ -1,7 +1,8 @@
 #include "components/components.h"
 #include "abilities/ability_registry.h"
-#include "generated/card_defs.h"
 #include "components/abilities.h"
+#include "components/game_log.h"
+#include "generated/card_defs.h"
 
 ECS_COMPONENT_DECLARE(ActionContext);
 ECS_COMPONENT_DECLARE(AbilityContext);
@@ -91,4 +92,5 @@ void azk_register_components(ecs_world_t *world) {
   azk_register_ability_components(world);
   azk_register_card_def_resources(world);
   azk_init_ability_registry(world);
+  azk_register_game_log_components(world);
 }
