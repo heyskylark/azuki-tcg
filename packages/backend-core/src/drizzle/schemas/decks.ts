@@ -20,12 +20,6 @@ export const decks = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => users.id),
-    leaderCardId: text("leader_card_id")
-      .notNull()
-      .references(() => cards.id),
-    gateCardId: text("gate_card_id")
-      .notNull()
-      .references(() => cards.id),
     status: deckStatusEnum("status").notNull().default(DeckStatus.IN_PROGRESS),
     isSystemDeck: boolean("is_system_deck").notNull().default(false),
     createdAt: createdAtTimestampField(),

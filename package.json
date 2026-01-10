@@ -12,9 +12,14 @@
     "dev:clean": "docker compose down -v",
     "ws": "yarn workspace @azuki/websocket",
     "web": "yarn workspace @azuki/web",
-    "core": "yarn workspace @tcg/backend-core"
+    "core": "yarn workspace @tcg/backend-core",
+    "format": "prettier --write \"apps/**/*.{ts,tsx,js,jsx,json,css,md}\" \"packages/**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "format:check": "prettier --check \"apps/**/*.{ts,tsx,js,jsx,json,css,md}\" \"packages/**/*.{ts,tsx,js,jsx,json,css,md}\""
   },
   "engines": {
     "node": ">=20.0.0"
+  },
+  "devDependencies": {
+    "prettier": "^3.7.4"
   }
 }

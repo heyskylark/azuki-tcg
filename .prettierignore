@@ -1,0 +1,28 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+.next/
+out/
+
+# Generated files
+*.min.js
+*.min.css
+
+# Lock files
+yarn.lock
+package-lock.json
+pnpm-lock.yaml
+
+# C/Python files (not handled by prettier)
+*.c
+*.h
+*.py
+*.pyc
+*.pyx
+
+# Other
+.git/
+coverage/
