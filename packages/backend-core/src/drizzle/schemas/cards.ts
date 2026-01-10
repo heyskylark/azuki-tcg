@@ -35,10 +35,8 @@ export const cards = pgTable(
     updatedAt: updatedAtTimestampField(),
   },
   (table) => [
-    unique("cards_card_code_rarity_unique_idx").on(
-      table.cardCode,
-      table.rarity,
-      table.specialRarity
-    ),
+    unique("cards_card_code_rarity_unique_idx")
+      .on(table.cardCode, table.rarity, table.specialRarity)
+      .nullsNotDistinct(),
   ]
 );

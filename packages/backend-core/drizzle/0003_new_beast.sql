@@ -1,0 +1,2 @@
+ALTER TABLE "cards" DROP CONSTRAINT "cards_card_code_rarity_unique_idx";--> statement-breakpoint
+ALTER TABLE "cards" ADD CONSTRAINT "cards_card_code_rarity_unique_idx" UNIQUE NULLS NOT DISTINCT("card_code","rarity","special_rarity");
