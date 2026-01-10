@@ -340,6 +340,30 @@ yarn core build
   - Game constants
   - Drizzle ORM schemas and database connection
 
+### Database Migrations
+
+Drizzle ORM is used for database schema management. Migrations are stored in `packages/backend-core/drizzle/`.
+
+**Schema Changes (modifying .ts schema files):**
+```bash
+# After modifying any schema file in packages/backend-core/src/drizzle/schemas/
+yarn core db:generate
+```
+This auto-generates a migration SQL file. **Never manually edit generated migration files.**
+
+**Custom Migrations (seed data, manual SQL):**
+```bash
+# Create an empty custom migration file
+cd packages/backend-core
+npx drizzle-kit generate --custom --name=seed-cards
+```
+This creates an empty `.sql` file you can populate with custom SQL (e.g., INSERT statements for seed data).
+
+**Important:**
+- Schema changes go through `db:generate` - don't add them to custom migrations
+- Custom migrations are for non-schema operations: seed data, data transformations, manual indexes
+- Never modify existing migration files that have been committed/run
+
 ### Import Conventions
 
 **All TypeScript code must use absolute path aliases. No relative imports.**

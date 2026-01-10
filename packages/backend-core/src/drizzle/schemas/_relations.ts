@@ -19,8 +19,6 @@ export const usersRelations = relations(users, ({ many }) => ({
 
 // Card relations
 export const cardsRelations = relations(cards, ({ many }) => ({
-  decksAsLeader: many(decks, { relationName: "leader" }),
-  decksAsGate: many(decks, { relationName: "gate" }),
   deckCardJunctions: many(deckCardJunctions),
 }));
 
@@ -29,16 +27,6 @@ export const decksRelations = relations(decks, ({ one, many }) => ({
   user: one(users, {
     fields: [decks.userId],
     references: [users.id],
-  }),
-  leaderCard: one(cards, {
-    fields: [decks.leaderCardId],
-    references: [cards.id],
-    relationName: "leader",
-  }),
-  gateCard: one(cards, {
-    fields: [decks.gateCardId],
-    references: [cards.id],
-    relationName: "gate",
   }),
   deckCardJunctions: many(deckCardJunctions),
   roomsAsPlayer0Deck: many(rooms, { relationName: "player0Deck" }),
