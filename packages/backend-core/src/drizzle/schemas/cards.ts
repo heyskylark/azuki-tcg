@@ -30,7 +30,7 @@ export const cards = pgTable(
     subtypes: text("subtypes").array().notNull().default([]),
     effectText: text("effect_text"),
     flavorText: text("flavor_text"),
-    imageUrl: text("image_url").notNull(),
+    imageKey: text("image_url").notNull(),
     createdAt: createdAtTimestampField(),
     updatedAt: updatedAtTimestampField(),
   },
