@@ -1,4 +1,4 @@
-import { pgTable, text, boolean, pgEnum, check } from "drizzle-orm/pg-core";
+import { pgTable, text, boolean, pgEnum, check, uuid } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import {
   uuidv7PrimaryKeyField,
@@ -7,19 +7,18 @@ import {
   enumToPgEnum,
 } from "@/drizzle/helpers";
 import { DeckStatus } from "@/types";
-import { users } from "@/drizzle/schemas/users";
-import { cards } from "@/drizzle/schemas/cards";
+import { Users } from "@/drizzle/schemas/users";
 
 export const deckStatusEnum = pgEnum("deck_status", enumToPgEnum(DeckStatus));
 
-export const decks = pgTable(
+export const Decks = pgTable(
   "decks",
   {
     id: uuidv7PrimaryKeyField(),
     name: text("name").notNull(),
-    userId: text("user_id")
+    userId: uuid("user_id")
       .notNull()
-      .references(() => users.id),
+      .references(() => Users.id),
     status: deckStatusEnum("status").notNull().default(DeckStatus.IN_PROGRESS),
     isSystemDeck: boolean("is_system_deck").notNull().default(false),
     createdAt: createdAtTimestampField(),

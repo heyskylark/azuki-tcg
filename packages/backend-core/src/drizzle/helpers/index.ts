@@ -1,10 +1,12 @@
 import { sql } from "drizzle-orm";
 import type { PgTimestampConfig } from "drizzle-orm/pg-core";
-import { integer, timestamp, text } from "drizzle-orm/pg-core";
+import { integer, timestamp, text, uuid } from "drizzle-orm/pg-core";
 import { uuidv7 } from "uuidv7";
 
 export const uuidv7PrimaryKeyField = (fieldName = "id") =>
-  text(fieldName).primaryKey().$defaultFn(() => uuidv7());
+  uuid(fieldName)
+    .primaryKey()
+    .$defaultFn(() => uuidv7());
 
 export const timestampField = (fieldName: string, config?: PgTimestampConfig) =>
   timestamp(fieldName, {
@@ -14,15 +16,10 @@ export const timestampField = (fieldName: string, config?: PgTimestampConfig) =>
     ...config,
   });
 
-export const createdAtTimestampField = (
-  fieldName = "created_at",
-  config?: PgTimestampConfig
-) => timestampField(fieldName, config).notNull().defaultNow();
+export const createdAtTimestampField = (fieldName = "created_at", config?: PgTimestampConfig) =>
+  timestampField(fieldName, config).notNull().defaultNow();
 
-export const updatedAtTimestampField = (
-  fieldName = "updated_at",
-  config?: PgTimestampConfig
-) =>
+export const updatedAtTimestampField = (fieldName = "updated_at", config?: PgTimestampConfig) =>
   timestampField(fieldName, config)
     .notNull()
     .defaultNow()

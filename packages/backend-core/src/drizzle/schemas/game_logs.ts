@@ -1,12 +1,12 @@
-import { pgTable, text, integer, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, jsonb, uuid } from "drizzle-orm/pg-core";
 import { uuidv7PrimaryKeyField, createdAtTimestampField } from "@/drizzle/helpers";
-import { rooms } from "@/drizzle/schemas/rooms";
+import { Rooms } from "@/drizzle/schemas/rooms";
 
-export const gameLogs = pgTable("game_logs", {
+export const GameLogs = pgTable("game_logs", {
   id: uuidv7PrimaryKeyField(),
-  roomId: text("room_id")
+  roomId: uuid("room_id")
     .notNull()
-    .references(() => rooms.id),
+    .references(() => Rooms.id),
   batchNumber: integer("batch_number").notNull(),
   sequenceNumber: integer("sequence_number").notNull(),
   logType: text("log_type").notNull(),

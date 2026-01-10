@@ -1,4 +1,4 @@
-import { pgTable, text, integer, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, pgEnum, uuid } from "drizzle-orm/pg-core";
 import {
   uuidv7PrimaryKeyField,
   createdAtTimestampField,
@@ -6,23 +6,23 @@ import {
   enumToPgEnum,
 } from "@/drizzle/helpers";
 import { WinType } from "@/types";
-import { rooms } from "@/drizzle/schemas/rooms";
-import { users } from "@/drizzle/schemas/users";
+import { Rooms } from "@/drizzle/schemas/rooms";
+import { Users } from "@/drizzle/schemas/users";
 
 export const winTypeEnum = pgEnum("win_type", enumToPgEnum(WinType));
 
-export const matchResults = pgTable("match_results", {
+export const MatchResults = pgTable("match_results", {
   id: uuidv7PrimaryKeyField(),
-  roomId: text("room_id")
+  roomId: uuid("room_id")
     .notNull()
-    .references(() => rooms.id),
-  player0Id: text("player0_id")
+    .references(() => Rooms.id),
+  player0Id: uuid("player0_id")
     .notNull()
-    .references(() => users.id),
-  player1Id: text("player1_id")
+    .references(() => Users.id),
+  player1Id: uuid("player1_id")
     .notNull()
-    .references(() => users.id),
-  winnerId: text("winner_id").references(() => users.id),
+    .references(() => Users.id),
+  winnerId: uuid("winner_id").references(() => Users.id),
   winType: winTypeEnum("win_type").notNull(),
   totalTurns: integer("total_turns").notNull(),
   durationSeconds: integer("duration_seconds").notNull(),

@@ -1,22 +1,89 @@
 {
-  "id": "ed05d435-4219-4a1e-b2e2-7eac2c3e0a23",
+  "id": "f6639050-68c2-4cba-8947-124f375db6ce",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "public.emails": {
+      "name": "emails",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "citext",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "emails_user_id_users_id_fk": {
+          "name": "emails_user_id_users_id_fk",
+          "tableFrom": "emails",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "emails_email_unique": {
+          "name": "emails_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.users": {
       "name": "users",
       "schema": "",
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true
         },
         "username": {
           "name": "username",
-          "type": "text",
+          "type": "citext",
           "primaryKey": false,
           "notNull": true
         },
@@ -85,19 +152,13 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": true,
-          "notNull": true
-        },
-        "engine_id": {
-          "name": "engine_id",
-          "type": "integer",
-          "primaryKey": false,
           "notNull": true
         },
         "card_code": {
           "name": "card_code",
-          "type": "text",
+          "type": "citext",
           "primaryKey": false,
           "notNull": true
         },
@@ -113,6 +174,13 @@
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
+        },
+        "special_rarity": {
+          "name": "special_rarity",
+          "type": "special_card_rarity",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
         },
         "element": {
           "name": "element",
@@ -182,7 +250,7 @@
           "name": "image_url",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "created_at": {
           "name": "created_at",
@@ -203,18 +271,13 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "cards_engine_id_unique": {
-          "name": "cards_engine_id_unique",
-          "nullsNotDistinct": false,
+        "cards_card_code_rarity_unique_idx": {
+          "name": "cards_card_code_rarity_unique_idx",
+          "nullsNotDistinct": true,
           "columns": [
-            "engine_id"
-          ]
-        },
-        "cards_card_code_unique": {
-          "name": "cards_card_code_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "card_code"
+            "card_code",
+            "rarity",
+            "special_rarity"
           ]
         }
       },
@@ -228,7 +291,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true
         },
@@ -240,19 +303,7 @@
         },
         "user_id": {
           "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "leader_card_id": {
-          "name": "leader_card_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "gate_card_id": {
-          "name": "gate_card_id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -300,32 +351,6 @@
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
-        },
-        "decks_leader_card_id_cards_id_fk": {
-          "name": "decks_leader_card_id_cards_id_fk",
-          "tableFrom": "decks",
-          "tableTo": "cards",
-          "columnsFrom": [
-            "leader_card_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "decks_gate_card_id_cards_id_fk": {
-          "name": "decks_gate_card_id_cards_id_fk",
-          "tableFrom": "decks",
-          "tableTo": "cards",
-          "columnsFrom": [
-            "gate_card_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -345,19 +370,19 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true
         },
         "deck_id": {
           "name": "deck_id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
         "card_id": {
           "name": "card_id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -424,7 +449,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true
         },
@@ -464,13 +489,13 @@
         },
         "player0_id": {
           "name": "player0_id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
         "player0_deck_id": {
           "name": "player0_deck_id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
@@ -483,13 +508,13 @@
         },
         "player1_id": {
           "name": "player1_id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
         "player1_deck_id": {
           "name": "player1_deck_id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
@@ -588,31 +613,31 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true
         },
         "room_id": {
           "name": "room_id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
         "player0_id": {
           "name": "player0_id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
         "player1_id": {
           "name": "player1_id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
         "winner_id": {
           "name": "winner_id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
@@ -717,13 +742,13 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true
         },
         "room_id": {
           "name": "room_id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -822,12 +847,17 @@
       "schema": "public",
       "values": [
         "L",
+        "L_S",
         "G",
+        "G_S",
         "C",
         "UC",
         "R",
         "SR",
-        "IKZ"
+        "SR_S",
+        "SR_SS",
+        "IKZ",
+        "IKZ_S"
       ]
     },
     "public.card_type": {
@@ -841,6 +871,16 @@
         "SPELL",
         "IKZ",
         "EXTRA_IKZ"
+      ]
+    },
+    "public.special_card_rarity": {
+      "name": "special_card_rarity",
+      "schema": "public",
+      "values": [
+        "INV26_WINNER",
+        "INV26_SECOND",
+        "INV26_TOP8",
+        "TOKEN_AX_WINNER"
       ]
     },
     "public.deck_status": {

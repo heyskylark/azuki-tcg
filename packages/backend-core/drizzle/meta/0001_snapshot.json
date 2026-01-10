@@ -1,22 +1,89 @@
 {
-  "id": "d0d7777d-769c-4796-93de-9d49e6cf47f2",
-  "prevId": "ed05d435-4219-4a1e-b2e2-7eac2c3e0a23",
+  "id": "1a4d012a-ea44-4183-b7f0-be1f7bd2820d",
+  "prevId": "f6639050-68c2-4cba-8947-124f375db6ce",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "public.emails": {
+      "name": "emails",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "citext",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "emails_user_id_users_id_fk": {
+          "name": "emails_user_id_users_id_fk",
+          "tableFrom": "emails",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "tableTo": "users",
+          "columnsTo": [
+            "id"
+          ],
+          "onUpdate": "no action",
+          "onDelete": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "emails_email_unique": {
+          "name": "emails_email_unique",
+          "columns": [
+            "email"
+          ],
+          "nullsNotDistinct": false
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.users": {
       "name": "users",
       "schema": "",
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true
         },
         "username": {
           "name": "username",
-          "type": "text",
+          "type": "citext",
           "primaryKey": false,
           "notNull": true
         },
@@ -69,10 +136,10 @@
       "uniqueConstraints": {
         "users_username_unique": {
           "name": "users_username_unique",
-          "nullsNotDistinct": false,
           "columns": [
             "username"
-          ]
+          ],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -85,13 +152,13 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true
         },
         "card_code": {
           "name": "card_code",
-          "type": "text",
+          "type": "citext",
           "primaryKey": false,
           "notNull": true
         },
@@ -206,12 +273,12 @@
       "uniqueConstraints": {
         "cards_card_code_rarity_unique_idx": {
           "name": "cards_card_code_rarity_unique_idx",
-          "nullsNotDistinct": false,
           "columns": [
             "card_code",
             "rarity",
             "special_rarity"
-          ]
+          ],
+          "nullsNotDistinct": true
         }
       },
       "policies": {},
@@ -224,7 +291,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true
         },
@@ -236,7 +303,7 @@
         },
         "user_id": {
           "name": "user_id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -275,15 +342,15 @@
         "decks_user_id_users_id_fk": {
           "name": "decks_user_id_users_id_fk",
           "tableFrom": "decks",
-          "tableTo": "users",
           "columnsFrom": [
             "user_id"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -303,19 +370,19 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true
         },
         "deck_id": {
           "name": "deck_id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
         "card_id": {
           "name": "card_id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -346,28 +413,28 @@
         "deck_card_junctions_deck_id_decks_id_fk": {
           "name": "deck_card_junctions_deck_id_decks_id_fk",
           "tableFrom": "deck_card_junctions",
-          "tableTo": "decks",
           "columnsFrom": [
             "deck_id"
           ],
+          "tableTo": "decks",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         },
         "deck_card_junctions_card_id_cards_id_fk": {
           "name": "deck_card_junctions_card_id_cards_id_fk",
           "tableFrom": "deck_card_junctions",
-          "tableTo": "cards",
           "columnsFrom": [
             "card_id"
           ],
+          "tableTo": "cards",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -382,7 +449,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true
         },
@@ -422,13 +489,13 @@
         },
         "player0_id": {
           "name": "player0_id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
         "player0_deck_id": {
           "name": "player0_deck_id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
@@ -441,13 +508,13 @@
         },
         "player1_id": {
           "name": "player1_id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
         "player1_deck_id": {
           "name": "player1_deck_id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
@@ -484,54 +551,54 @@
         "rooms_player0_id_users_id_fk": {
           "name": "rooms_player0_id_users_id_fk",
           "tableFrom": "rooms",
-          "tableTo": "users",
           "columnsFrom": [
             "player0_id"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "rooms_player0_deck_id_decks_id_fk": {
           "name": "rooms_player0_deck_id_decks_id_fk",
           "tableFrom": "rooms",
-          "tableTo": "decks",
           "columnsFrom": [
             "player0_deck_id"
           ],
+          "tableTo": "decks",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "rooms_player1_id_users_id_fk": {
           "name": "rooms_player1_id_users_id_fk",
           "tableFrom": "rooms",
-          "tableTo": "users",
           "columnsFrom": [
             "player1_id"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "rooms_player1_deck_id_decks_id_fk": {
           "name": "rooms_player1_deck_id_decks_id_fk",
           "tableFrom": "rooms",
-          "tableTo": "decks",
           "columnsFrom": [
             "player1_deck_id"
           ],
+          "tableTo": "decks",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -546,31 +613,31 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true
         },
         "room_id": {
           "name": "room_id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
         "player0_id": {
           "name": "player0_id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
         "player1_id": {
           "name": "player1_id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
         "winner_id": {
           "name": "winner_id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": false
         },
@@ -613,54 +680,54 @@
         "match_results_room_id_rooms_id_fk": {
           "name": "match_results_room_id_rooms_id_fk",
           "tableFrom": "match_results",
-          "tableTo": "rooms",
           "columnsFrom": [
             "room_id"
           ],
+          "tableTo": "rooms",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "match_results_player0_id_users_id_fk": {
           "name": "match_results_player0_id_users_id_fk",
           "tableFrom": "match_results",
-          "tableTo": "users",
           "columnsFrom": [
             "player0_id"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "match_results_player1_id_users_id_fk": {
           "name": "match_results_player1_id_users_id_fk",
           "tableFrom": "match_results",
-          "tableTo": "users",
           "columnsFrom": [
             "player1_id"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "match_results_winner_id_users_id_fk": {
           "name": "match_results_winner_id_users_id_fk",
           "tableFrom": "match_results",
-          "tableTo": "users",
           "columnsFrom": [
             "winner_id"
           ],
+          "tableTo": "users",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -675,13 +742,13 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": true,
           "notNull": true
         },
         "room_id": {
           "name": "room_id",
-          "type": "text",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
@@ -728,15 +795,15 @@
         "game_logs_room_id_rooms_id_fk": {
           "name": "game_logs_room_id_rooms_id_fk",
           "tableFrom": "game_logs",
-          "tableTo": "rooms",
           "columnsFrom": [
             "room_id"
           ],
+          "tableTo": "rooms",
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -859,10 +926,10 @@
     }
   },
   "schemas": {},
+  "views": {},
   "sequences": {},
   "roles": {},
   "policies": {},
-  "views": {},
   "_meta": {
     "columns": {},
     "schemas": {},
