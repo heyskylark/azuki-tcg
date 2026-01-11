@@ -6,11 +6,13 @@ import { DeckCardJunctions } from "@/drizzle/schemas/deck_card_junctions";
 import { Rooms } from "@/drizzle/schemas/rooms";
 import { MatchResults } from "@/drizzle/schemas/match_results";
 import { GameLogs } from "@/drizzle/schemas/game_logs";
+import { JwtTokens } from "@/drizzle/schemas/jwt_tokens";
 
 // User relations
 export const UsersRelations = relations(Users, ({ many }) => ({
   emails: many(Emails),
   decks: many(Decks),
+  jwtTokens: many(JwtTokens),
   roomsAsPlayer0: many(Rooms, { relationName: "player0" }),
   roomsAsPlayer1: many(Rooms, { relationName: "player1" }),
   matchResultsAsPlayer0: many(MatchResults, { relationName: "player0" }),
@@ -100,5 +102,13 @@ export const gameLogsRelations = relations(GameLogs, ({ one }) => ({
   room: one(Rooms, {
     fields: [GameLogs.roomId],
     references: [Rooms.id],
+  }),
+}));
+
+// JwtToken relations
+export const jwtTokensRelations = relations(JwtTokens, ({ one }) => ({
+  user: one(Users, {
+    fields: [JwtTokens.userId],
+    references: [Users.id],
   }),
 }));

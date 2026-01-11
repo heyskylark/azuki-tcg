@@ -1,12 +1,3 @@
-// Types
-export * from "@/types";
-
-// Constants
-export * from "@/constants";
-
-// Utils
-export * from "@/utils";
-
-// Database
-export * from "@/database";
-export * from "@/drizzle/schemas";
+// This file is intentionally minimal.
+// Import directly from specific files instead of using barrel exports.
+// Example: import { RoomStatus } from "@tcg/backend-core/types/enums"

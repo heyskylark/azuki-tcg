@@ -5,4 +5,5 @@ export * from "./deck_card_junctions";
 export * from "./rooms";
 export * from "./match_results";
 export * from "./game_logs";
+export * from "./jwt_tokens";
 export * from "./_relations";

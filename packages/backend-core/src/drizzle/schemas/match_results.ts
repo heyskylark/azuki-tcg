@@ -18,10 +18,10 @@ export const MatchResults = pgTable("match_results", {
     .references(() => Rooms.id),
   player0Id: uuid("player0_id")
     .notNull()
-    .references(() => Users.id),
+    .references(() => Users.id, { onDelete: "cascade" }),
   player1Id: uuid("player1_id")
     .notNull()
-    .references(() => Users.id),
+    .references(() => Users.id, { onDelete: "cascade" }),
   winnerId: uuid("winner_id").references(() => Users.id),
   winType: winTypeEnum("win_type").notNull(),
   totalTurns: integer("total_turns").notNull(),

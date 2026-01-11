@@ -371,16 +371,16 @@ This creates an empty `.sql` file you can populate with custom SQL (e.g., INSERT
 | Alias | Resolves To | Usage |
 |-------|-------------|-------|
 | `@/*` | `./src/*` | Internal imports within the same package |
-| `@tcg/backend-core/*` | `packages/backend-core/src/*` | Imports from backend-core package (apps only) |
+| `@tcg/backend-core/*` | `packages/backend-core/dist/*` | Imports from backend-core package (apps only, requires `yarn core build` first) |
 
 **Examples:**
 
 ```typescript
-// In apps/websocket or apps/web - import directly from the file, not barrel exports
-import { UserData } from "@/constants";
+// In apps/websocket or apps/web - import directly from the source file
 import logger from "@/logger";
 import { WebSocketService } from "@/services/WebSocketService";
-import { RoomStatus } from "@tcg/backend-core/types";
+import { RoomStatus } from "@tcg/backend-core/types";  // Defined directly in types/index.ts
+import { TokenType } from "@tcg/backend-core/types/auth";  // Defined in types/auth.ts
 import db from "@tcg/backend-core/database";
 
 // In packages/backend-core
@@ -391,9 +391,99 @@ import { users } from "@/drizzle/schemas/users";
 **Do NOT use:**
 - Relative imports: `../constants/index.js`
 - Package imports for internal modules: `@tcg/backend-core` (use `@tcg/backend-core/*` instead)
-- Barrel imports (index.ts re-exports): Always import directly from the source file
 
-**Exception:** `packages/backend-core/src/drizzle/schemas/index.ts` is allowed as a barrel export since Drizzle ORM requires it for schema aggregation.
+### No Barrel Exports
+
+**Do NOT create index.ts files that only re-export from other files.** Import directly from the source file where code is defined.
+
+```typescript
+// BAD - barrel export file (index.ts that only re-exports)
+export { withErrorHandler } from "./withErrorHandler";
+export { withAuth } from "./withAuth";
+export * from "./auth";  // re-exporting everything from another file
+
+// GOOD - import directly from source files
+import { withErrorHandler } from "@/lib/hof/withErrorHandler";
+import { withAuth } from "@/lib/hof/withAuth";
+import { TokenType } from "@tcg/backend-core/types/auth";
+```
+
+**Exceptions:**
+- `packages/backend-core/src/drizzle/schemas/index.ts` - Required by Drizzle ORM for schema aggregation
+- Files that define exports directly (not just re-export) are fine to import from
+
+### Backend Services Convention
+
+**All services use functional programming style (exported functions, not classes).**
+
+```typescript
+// Good - functional service
+export async function findUserByEmail(email: string, database = db) { ... }
+export async function createUser(params: CreateUserParams, database = db) { ... }
+
+// Bad - class-based service
+export class UserService {
+  async findUserByEmail(email: string) { ... }
+}
+```
+
+Services accept an optional `database` parameter for transaction support.
+
+### Input Validation Convention
+
+**All API request bodies must be validated with Zod using `.strict()` mode.**
+
+```typescript
+import { z } from "zod";
+
+// Email uses Zod's built-in .email() validation
+const emailSchema = z
+  .string()
+  .email("Invalid email format")
+  .transform((e) => e.toLowerCase().trim());
+
+// Request schema with .strict() to reject unknown keys
+const requestSchema = z.object({
+  email: emailSchema,
+  password: z.string().min(8).max(128),
+}).strict();
+
+// Usage in route handler
+const data = requestSchema.parse(await request.json());
+```
+
+### API Route Patterns
+
+**Use Higher-Order Functions (HOFs) for consistent error handling and authentication.**
+
+```typescript
+// Public route
+export const POST = withErrorHandler(handler);
+
+// Protected route
+export const GET = withErrorHandler(withAuth(handler));
+```
+
+- `withErrorHandler`: Catches errors, returns appropriate HTTP status codes
+- `withAuth`: Validates JWT, fetches user, passes to handler as `request.user`
+
+### Error Classes Convention
+
+**Custom errors extend `ApiError` base class with HTTP status code.**
+
+Located in `packages/backend-core/src/errors/`.
+
+```typescript
+export class ApiError extends Error {
+  public readonly status: number;
+  constructor(message: string, status: number) { ... }
+}
+
+// Specific errors
+export class ValidationError extends ApiError { ... }  // 400
+export class UnauthorizedError extends ApiError { ... } // 401
+export class EmailAlreadyExistsError extends ApiError { ... } // 409
+```
 
 ### Web Service Documentation
 
@@ -433,7 +523,9 @@ azuki-tcg/
 │           ├── constants/
 │           ├── utils/
 │           ├── database/
-│           └── drizzle/
+│           ├── drizzle/
+│           ├── errors/
+│           └── services/
 ├── scripts/          # Card generation utilities
 ├── docker/           # Dockerfiles for web services
 ├── .codex/docs/      # Design documentation (C engine)

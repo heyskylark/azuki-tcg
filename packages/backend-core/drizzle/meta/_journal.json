@@ -15,6 +15,20 @@
       "when": 1768034078808,
       "tag": "0001_seed-cards",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1768107371212,
+      "tag": "0002_dazzling_dazzler",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1768113773916,
+      "tag": "0003_noisy_lily_hollister",
+      "breakpoints": true
     }
   ]
 }
