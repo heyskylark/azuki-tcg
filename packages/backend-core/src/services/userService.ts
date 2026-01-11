@@ -11,7 +11,7 @@ import type {
   UserWithPassword,
   UserWithEmail,
 } from "@/types/auth";
-import { addStarterDecks } from "@/services/deckService";
+import { addStarterDecks } from "@/services/DeckService";
 
 type Database = IDatabase | ITransaction;
 
