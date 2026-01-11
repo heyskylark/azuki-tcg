@@ -21,7 +21,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@tcg/backend-core/*": ["../../packages/backend-core/src/*"]
+      "@tcg/backend-core/*": ["../../packages/backend-core/dist/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],

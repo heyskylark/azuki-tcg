@@ -17,6 +17,34 @@
     "./schemas": {
       "types": "./dist/drizzle/schemas/index.d.ts",
       "import": "./dist/drizzle/schemas/index.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/types/index.js"
+    },
+    "./types/auth": {
+      "types": "./dist/types/auth.d.ts",
+      "import": "./dist/types/auth.js"
+    },
+    "./constants": {
+      "types": "./dist/constants/index.d.ts",
+      "import": "./dist/constants/index.js"
+    },
+    "./constants/auth": {
+      "types": "./dist/constants/auth.d.ts",
+      "import": "./dist/constants/auth.js"
+    },
+    "./errors": {
+      "types": "./dist/errors/index.d.ts",
+      "import": "./dist/errors/index.js"
+    },
+    "./services/userService": {
+      "types": "./dist/services/userService.d.ts",
+      "import": "./dist/services/userService.js"
+    },
+    "./services/authService": {
+      "types": "./dist/services/authService.d.ts",
+      "import": "./dist/services/authService.js"
     }
   },
   "scripts": {
@@ -28,12 +56,16 @@
     "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
+    "bcrypt": "^6.0.0",
+    "dotenv": "^16.4.5",
     "drizzle-orm": "^0.38.0",
+    "jose": "^6.1.3",
     "pg": "^8.13.0",
     "uuidv7": "^1.0.2",
-    "dotenv": "^16.4.5"
+    "zod": "^4.3.5"
   },
   "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
     "@types/pg": "^8.11.10",
     "drizzle-kit": "^0.30.0",
     "tsc-alias": "^1.8.16",

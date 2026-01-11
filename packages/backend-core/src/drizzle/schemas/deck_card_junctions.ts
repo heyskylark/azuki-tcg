@@ -1,4 +1,4 @@
-import { pgTable, text, integer, uuid } from "drizzle-orm/pg-core";
+import { pgTable, integer, uuid } from "drizzle-orm/pg-core";
 import {
   uuidv7PrimaryKeyField,
   createdAtTimestampField,

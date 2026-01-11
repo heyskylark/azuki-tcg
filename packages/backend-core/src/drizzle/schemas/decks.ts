@@ -18,7 +18,7 @@ export const Decks = pgTable(
     name: text("name").notNull(),
     userId: uuid("user_id")
       .notNull()
-      .references(() => Users.id),
+      .references(() => Users.id, { onDelete: "cascade" }),
     status: deckStatusEnum("status").notNull().default(DeckStatus.IN_PROGRESS),
     isSystemDeck: boolean("is_system_deck").notNull().default(false),
     createdAt: createdAtTimestampField(),

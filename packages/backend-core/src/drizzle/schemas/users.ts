@@ -27,7 +27,9 @@ export const Emails = pgTable("emails", {
   email: citext("email").notNull().unique(),
   userId: uuid("user_id")
     .notNull()
-    .references(() => Users.id),
+    .references(() => Users.id, {
+      onDelete: "cascade",
+    }),
   createdAt: createdAtTimestampField(),
   updatedAt: updatedAtTimestampField(),
 });
