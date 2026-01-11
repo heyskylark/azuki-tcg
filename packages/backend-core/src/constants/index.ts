@@ -15,5 +15,3 @@ export const MAX_CARD_COPIES = 4;
 export const GARDEN_SLOTS = 5;
 export const ALLEY_SLOTS = 5;
 
-// Re-export auth constants
-export * from "@/constants/auth";

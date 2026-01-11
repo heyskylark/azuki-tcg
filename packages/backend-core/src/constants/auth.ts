@@ -17,5 +17,3 @@ export const USERNAME_MIN_LENGTH = 3;
 export const USERNAME_MAX_LENGTH = 32;
 export const USERNAME_REGEX = /^[a-zA-Z0-9_-]+$/;
 
-// Email validation
-export const EMAIL_MAX_LENGTH = 254;

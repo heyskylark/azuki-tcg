@@ -376,11 +376,11 @@ This creates an empty `.sql` file you can populate with custom SQL (e.g., INSERT
 **Examples:**
 
 ```typescript
-// In apps/websocket or apps/web - import directly from the file, not barrel exports
-import { UserData } from "@/constants";
+// In apps/websocket or apps/web - import directly from the source file
 import logger from "@/logger";
 import { WebSocketService } from "@/services/WebSocketService";
-import { RoomStatus } from "@tcg/backend-core/types";
+import { RoomStatus } from "@tcg/backend-core/types";  // Defined directly in types/index.ts
+import { TokenType } from "@tcg/backend-core/types/auth";  // Defined in types/auth.ts
 import db from "@tcg/backend-core/database";
 
 // In packages/backend-core
@@ -391,9 +391,26 @@ import { users } from "@/drizzle/schemas/users";
 **Do NOT use:**
 - Relative imports: `../constants/index.js`
 - Package imports for internal modules: `@tcg/backend-core` (use `@tcg/backend-core/*` instead)
-- Barrel imports (index.ts re-exports): Always import directly from the source file
 
-**Exception:** `packages/backend-core/src/drizzle/schemas/index.ts` is allowed as a barrel export since Drizzle ORM requires it for schema aggregation.
+### No Barrel Exports
+
+**Do NOT create index.ts files that only re-export from other files.** Import directly from the source file where code is defined.
+
+```typescript
+// BAD - barrel export file (index.ts that only re-exports)
+export { withErrorHandler } from "./withErrorHandler";
+export { withAuth } from "./withAuth";
+export * from "./auth";  // re-exporting everything from another file
+
+// GOOD - import directly from source files
+import { withErrorHandler } from "@/lib/hof/withErrorHandler";
+import { withAuth } from "@/lib/hof/withAuth";
+import { TokenType } from "@tcg/backend-core/types/auth";
+```
+
+**Exceptions:**
+- `packages/backend-core/src/drizzle/schemas/index.ts` - Required by Drizzle ORM for schema aggregation
+- Files that define exports directly (not just re-export) are fine to import from
 
 ### Backend Services Convention
 
@@ -423,7 +440,6 @@ import { z } from "zod";
 const emailSchema = z
   .string()
   .email("Invalid email format")
-  .max(254)
   .transform((e) => e.toLowerCase().trim());
 
 // Request schema with .strict() to reject unknown keys
