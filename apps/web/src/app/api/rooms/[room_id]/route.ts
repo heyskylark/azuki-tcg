@@ -1,0 +1,64 @@
+import { NextRequest, NextResponse } from "next/server";
+import { withErrorHandler } from "@/lib/hof/withErrorHandler";
+import { withAuth, type AuthenticatedRequest } from "@/lib/hof/withAuth";
+import { env } from "@/lib/env";
+import { updateRoomSchema } from "@/lib/validation/rooms";
+import { closeRoom, updateRoom } from "@tcg/backend-core/services/roomService";
+import type { AuthConfig } from "@tcg/backend-core/types/auth";
+
+const authConfig: AuthConfig = {
+  jwtSecret: env.JWT_SECRET,
+  jwtIssuer: env.JWT_ISSUER,
+  saltRounds: env.PASSWORD_SALT_ROUNDS,
+};
+
+interface RouteContext {
+  params: Promise<{ room_id: string }>;
+}
+
+type DynamicRouteHandler = (
+  request: NextRequest,
+  context: RouteContext
+) => Promise<NextResponse>;
+
+async function deleteHandler(
+  request: AuthenticatedRequest,
+  context?: RouteContext
+): Promise<NextResponse> {
+  const { room_id: roomId } = await context!.params;
+
+  const room = await closeRoom(roomId, request.user.id);
+
+  return NextResponse.json({
+    room: {
+      id: room.id,
+      status: room.status,
+    },
+  });
+}
+
+async function patchHandler(
+  request: AuthenticatedRequest,
+  context?: RouteContext
+): Promise<NextResponse> {
+  const { room_id: roomId } = await context!.params;
+  const body = await request.json();
+  const updates = updateRoomSchema.parse(body);
+
+  const room = await updateRoom(roomId, request.user.id, updates, authConfig);
+
+  return NextResponse.json({
+    room: {
+      id: room.id,
+      status: room.status,
+      type: room.type,
+      hasPassword: room.passwordHash !== null,
+      player0Id: room.player0Id,
+      player1Id: room.player1Id,
+      updatedAt: room.updatedAt,
+    },
+  });
+}
+
+export const DELETE = withErrorHandler(withAuth(deleteHandler)) as DynamicRouteHandler;
+export const PATCH = withErrorHandler(withAuth(patchHandler)) as DynamicRouteHandler;

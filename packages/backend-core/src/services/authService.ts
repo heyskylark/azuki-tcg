@@ -16,6 +16,7 @@ import {
   type TokenPair,
   type AuthConfig,
   type TokenUser,
+  type JoinTokenPayload,
 } from "@/types/auth";
 import {
   ACCESS_TOKEN_EXPIRY_SECONDS,
@@ -175,6 +176,80 @@ export async function verifyRefreshToken(
   database: Database = db
 ): Promise<JWTPayload> {
   return verifyToken(token, TokenType.REFRESH, config, database);
+}
+
+export async function verifyJoinToken(
+  token: string,
+  config: AuthConfig,
+  database: Database = db
+): Promise<JWTPayload & JoinTokenPayload> {
+  const secretKey = new TextEncoder().encode(config.jwtSecret);
+
+  try {
+    const { payload } = await jwtVerify(token, secretKey, {
+      issuer: config.jwtIssuer,
+      audience: config.jwtIssuer,
+    });
+
+    const jti = payload.jti;
+    if (!jti) {
+      throw new InvalidTokenError();
+    }
+
+    const tokenRecord = await database
+      .select({
+        id: JwtTokens.id,
+        revokedAt: JwtTokens.revokedAt,
+        tokenType: JwtTokens.tokenType,
+      })
+      .from(JwtTokens)
+      .where(
+        and(
+          eq(JwtTokens.jti, jti),
+          eq(JwtTokens.tokenType, TokenType.JOIN),
+          gt(JwtTokens.expiresAt, new Date())
+        )
+      )
+      .limit(1);
+
+    if (tokenRecord.length === 0) {
+      throw new InvalidTokenError();
+    }
+
+    const record = tokenRecord[0]!;
+    if (record.revokedAt !== null) {
+      throw new TokenRevokedError();
+    }
+
+    const roomId = payload["roomId"] as string;
+    const playerSlot = payload["playerSlot"] as 0 | 1;
+
+    if (!roomId || playerSlot === undefined) {
+      throw new InvalidTokenError();
+    }
+
+    return {
+      iss: payload.iss!,
+      sub: payload.sub!,
+      aud: payload.aud as string,
+      exp: payload.exp!,
+      iat: payload.iat!,
+      jti: payload.jti!,
+      roomId,
+      playerSlot,
+    };
+  } catch (error) {
+    if (
+      error instanceof TokenRevokedError ||
+      error instanceof InvalidTokenError
+    ) {
+      throw error;
+    }
+    if ((error as Error).name === "JWTExpired") {
+      throw new TokenExpiredError();
+    }
+    throw new InvalidTokenError();
+  }
 }
 
 export async function revokeToken(
