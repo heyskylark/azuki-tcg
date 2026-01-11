@@ -11,6 +11,7 @@ import type {
   UserWithPassword,
   UserWithEmail,
 } from "@/types/auth";
+import { addStarterDecks } from "@/services/DeckService";
 
 type Database = IDatabase | ITransaction;
 
@@ -70,6 +71,9 @@ export async function createUser(
       email: params.email,
       userId: user.id,
     });
+
+    // Add starter decks for the new user
+    await addStarterDecks(user.id, tx);
 
     return {
       id: user.id,

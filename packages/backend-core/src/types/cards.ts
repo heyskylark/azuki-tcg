@@ -14,6 +14,21 @@ export enum CardRarity {
   IKZ_S = "IKZ_S",
 }
 
+export const RarityOrdering: Record<CardRarity, number> = {
+  [CardRarity.C]: 1,
+  [CardRarity.UC]: 2,
+  [CardRarity.R]: 3,
+  [CardRarity.SR]: 4,
+  [CardRarity.SR_S]: 5,
+  [CardRarity.SR_SS]: 6,
+  [CardRarity.IKZ]: 7,
+  [CardRarity.IKZ_S]: 8,
+  [CardRarity.L]: 9,
+  [CardRarity.L_S]: 10,
+  [CardRarity.G]: 11,
+  [CardRarity.G_S]: 12,
+} as const;
+
 export enum SpecialCardRarity {
   INV26_WINNER = "INV26_WINNER",
   INV26_SECOND = "INV26_SECOND",

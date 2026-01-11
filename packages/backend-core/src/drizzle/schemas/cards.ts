@@ -1,4 +1,4 @@
-import { pgTable, text, integer, pgEnum, unique } from "drizzle-orm/pg-core";
+import { pgTable, text, integer, pgEnum, unique, index } from "drizzle-orm/pg-core";
 import {
   uuidv7PrimaryKeyField,
   createdAtTimestampField,
@@ -39,5 +39,6 @@ export const Cards = pgTable(
     unique("cards_card_code_rarity_unique_idx")
       .on(table.cardCode, table.rarity, table.specialRarity)
       .nullsNotDistinct(),
+    index("cards_card_code_idx").on(table.cardCode),
   ]
 );

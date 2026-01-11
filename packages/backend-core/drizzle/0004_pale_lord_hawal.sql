@@ -1,0 +1,1 @@
+CREATE INDEX "cards_card_code_idx" ON "cards" USING btree ("card_code");

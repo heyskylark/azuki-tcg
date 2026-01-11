@@ -429,6 +429,40 @@ export class UserService {
 
 Services accept an optional `database` parameter for transaction support.
 
+### Service Directory Structure
+
+**For services with constants, configuration data, or multiple helper functions, use a directory structure:**
+
+```
+services/
+├── userService.ts              # Simple service (single file)
+└── DeckService/                # Complex service (directory)
+    ├── index.ts                # Service functions (main exports)
+    └── constants/
+        └── index.ts            # Constants and configuration data
+```
+
+**When to use directory structure:**
+- Service has significant constant data (e.g., starter deck configurations)
+- Service has multiple internal helper functions
+- Constants may be reused elsewhere or need separate maintenance
+
+**When to use single file:**
+- Simple CRUD operations
+- Few or no constants
+- Small, focused service
+
+**Example directory-based service:**
+```typescript
+// services/DeckService/constants/index.ts
+export interface StarterCardInfo { cardCode: string; quantity: number; }
+export const starterDecks: StarterDeckConfig[] = [...];
+
+// services/DeckService/index.ts
+import { starterDecks } from "@/services/DeckService/constants";
+export async function addStarterDecks(userId: string, database = db) { ... }
+```
+
 ### Input Validation Convention
 
 **All API request bodies must be validated with Zod using `.strict()` mode.**
