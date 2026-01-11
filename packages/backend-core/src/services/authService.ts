@@ -2,6 +2,7 @@ import * as bcrypt from "bcrypt";
 import { SignJWT, jwtVerify, type JWTPayload as JoseJWTPayload } from "jose";
 import { eq, and, isNull, gt } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
+import { z } from "zod";
 import db, { type IDatabase, type ITransaction } from "@/database";
 import { JwtTokens } from "@/drizzle/schemas/jwt_tokens";
 import {
@@ -23,6 +24,11 @@ import {
   REFRESH_TOKEN_EXPIRY_SECONDS,
   IDENTITY_TOKEN_EXPIRY_SECONDS,
 } from "@/constants/auth";
+
+const joinTokenPayloadSchema = z.object({
+  roomId: z.string(),
+  playerSlot: z.union([z.literal(0), z.literal(1)]),
+});
 
 type Database = IDatabase | ITransaction;
 
@@ -155,7 +161,7 @@ async function verifyToken(
     ) {
       throw error;
     }
-    if ((error as Error).name === "JWTExpired") {
+    if (error instanceof Error && error.name === "JWTExpired") {
       throw new TokenExpiredError();
     }
     throw new InvalidTokenError();
@@ -216,25 +222,37 @@ export async function verifyJoinToken(
       throw new InvalidTokenError();
     }
 
-    const record = tokenRecord[0]!;
+    const record = tokenRecord[0];
+    if (!record) {
+      throw new InvalidTokenError();
+    }
     if (record.revokedAt !== null) {
       throw new TokenRevokedError();
     }
 
-    const roomId = payload["roomId"] as string;
-    const playerSlot = payload["playerSlot"] as 0 | 1;
+    const joinPayloadResult = joinTokenPayloadSchema.safeParse(payload);
+    if (!joinPayloadResult.success) {
+      throw new InvalidTokenError();
+    }
 
-    if (!roomId || playerSlot === undefined) {
+    const { roomId, playerSlot } = joinPayloadResult.data;
+
+    if (!payload.iss || !payload.sub || !payload.aud || !payload.exp || !payload.iat || !payload.jti) {
+      throw new InvalidTokenError();
+    }
+
+    const aud = Array.isArray(payload.aud) ? payload.aud[0] : payload.aud;
+    if (!aud) {
       throw new InvalidTokenError();
     }
 
     return {
-      iss: payload.iss!,
-      sub: payload.sub!,
-      aud: payload.aud as string,
-      exp: payload.exp!,
-      iat: payload.iat!,
-      jti: payload.jti!,
+      iss: payload.iss,
+      sub: payload.sub,
+      aud,
+      exp: payload.exp,
+      iat: payload.iat,
+      jti: payload.jti,
       roomId,
       playerSlot,
     };
@@ -245,7 +263,7 @@ export async function verifyJoinToken(
     ) {
       throw error;
     }
-    if ((error as Error).name === "JWTExpired") {
+    if (error instanceof Error && error.name === "JWTExpired") {
       throw new TokenExpiredError();
     }
     throw new InvalidTokenError();

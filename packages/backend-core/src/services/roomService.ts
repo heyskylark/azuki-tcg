@@ -18,16 +18,7 @@ import {
 
 type Database = IDatabase | ITransaction;
 
-export interface RoomData {
-  id: string;
-  status: RoomStatus;
-  type: RoomType;
-  passwordHash: string | null;
-  player0Id: string | null;
-  player1Id: string | null;
-  createdAt: Date;
-  updatedAt: Date;
-}
+export type RoomData = typeof Rooms.$inferSelect;
 
 export interface CreateRoomParams {
   creatorId: string;
@@ -49,7 +40,7 @@ export async function createRoom(
     ? await bcrypt.hash(params.password, config.saltRounds)
     : null;
 
-  const [room] = await database
+  const room = await database
     .insert(Rooms)
     .values({
       status: RoomStatus.WAITING_FOR_PLAYERS,
@@ -57,30 +48,36 @@ export async function createRoom(
       passwordHash,
       player0Id: params.creatorId,
     })
-    .returning();
+    .returning()
+    .then((results) => results[0]);
+
+  if (!room) {
+    throw new Error("Failed to create room");
+  }
 
   const joinToken = await createJoinToken(
-    room!.id,
+    room.id,
     params.creatorId,
     0,
     config,
     database
   );
 
-  return { room: room as RoomData, joinToken };
+  return { room, joinToken };
 }
 
 export async function findRoomById(
   roomId: string,
   database: Database = db
 ): Promise<RoomData | null> {
-  const [room] = await database
+  const room = await database
     .select()
     .from(Rooms)
     .where(eq(Rooms.id, roomId))
-    .limit(1);
+    .limit(1)
+    .then((results) => results[0]);
 
-  return (room as RoomData) ?? null;
+  return room ?? null;
 }
 
 export async function closeRoom(
@@ -105,13 +102,18 @@ export async function closeRoom(
     );
   }
 
-  const [updatedRoom] = await database
+  const updatedRoom = await database
     .update(Rooms)
     .set({ status: RoomStatus.CLOSED })
     .where(eq(Rooms.id, roomId))
-    .returning();
+    .returning()
+    .then((results) => results[0]);
 
-  return updatedRoom as RoomData;
+  if (!updatedRoom) {
+    throw new Error("Failed to update room");
+  }
+
+  return updatedRoom;
 }
 
 export interface UpdateRoomParams {
@@ -153,13 +155,18 @@ export async function updateRoom(
     return room;
   }
 
-  const [updatedRoom] = await database
+  const updatedRoom = await database
     .update(Rooms)
     .set(updates)
     .where(eq(Rooms.id, roomId))
-    .returning();
+    .returning()
+    .then((results) => results[0]);
 
-  return updatedRoom as RoomData;
+  if (!updatedRoom) {
+    throw new Error("Failed to update room");
+  }
+
+  return updatedRoom;
 }
 
 export interface JoinRoomResult {

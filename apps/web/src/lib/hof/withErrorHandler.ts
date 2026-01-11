@@ -2,17 +2,26 @@ import { NextRequest, NextResponse } from "next/server";
 import { ZodError } from "zod";
 import { ApiError } from "@tcg/backend-core/errors";
 
-type RouteHandler<T = unknown> = (
-  request: NextRequest,
-  context?: T
+type SimpleRouteHandler = (
+  request: NextRequest
 ) => Promise<NextResponse> | NextResponse;
 
+type DynamicRouteHandler<T> = (
+  request: NextRequest,
+  context: T
+) => Promise<NextResponse> | NextResponse;
+
+export function withErrorHandler(handler: SimpleRouteHandler): SimpleRouteHandler;
+export function withErrorHandler<T>(handler: DynamicRouteHandler<T>): DynamicRouteHandler<T>;
 export function withErrorHandler<T = unknown>(
-  handler: RouteHandler<T>
-): RouteHandler<T> {
+  handler: SimpleRouteHandler | DynamicRouteHandler<T>
+): SimpleRouteHandler | DynamicRouteHandler<T> {
   return async (request: NextRequest, context?: T): Promise<NextResponse> => {
     try {
-      return await handler(request, context);
+      if (context !== undefined) {
+        return await (handler as DynamicRouteHandler<T>)(request, context);
+      }
+      return await (handler as SimpleRouteHandler)(request);
     } catch (error) {
       if (error instanceof ApiError) {
         return NextResponse.json(

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { withErrorHandler } from "@/lib/hof/withErrorHandler";
 import { withAuth, type AuthenticatedRequest } from "@/lib/hof/withAuth";
 import { env } from "@/lib/env";
@@ -18,9 +18,9 @@ interface RouteContext {
 
 async function postHandler(
   request: AuthenticatedRequest,
-  context?: RouteContext
+  context: RouteContext
 ): Promise<NextResponse> {
-  const { room_id: roomId } = await context!.params;
+  const { room_id: roomId } = await context.params;
   const body = await request.json();
   const { password } = joinRoomSchema.parse(body);
 
@@ -33,7 +33,4 @@ async function postHandler(
   });
 }
 
-export const POST = withErrorHandler(withAuth(postHandler)) as (
-  request: NextRequest,
-  context: RouteContext
-) => Promise<NextResponse>;
+export const POST = withErrorHandler(withAuth<RouteContext>(postHandler));

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { withErrorHandler } from "@/lib/hof/withErrorHandler";
 import { withAuth, type AuthenticatedRequest } from "@/lib/hof/withAuth";
 import { env } from "@/lib/env";
@@ -41,6 +41,4 @@ async function postHandler(request: AuthenticatedRequest): Promise<NextResponse>
   );
 }
 
-export const POST = withErrorHandler(withAuth(postHandler)) as (
-  request: NextRequest
-) => Promise<NextResponse>;
+export const POST = withErrorHandler(withAuth(postHandler));

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { withErrorHandler } from "@/lib/hof/withErrorHandler";
 import { withAuth, type AuthenticatedRequest } from "@/lib/hof/withAuth";
 import { env } from "@/lib/env";
@@ -16,16 +16,11 @@ interface RouteContext {
   params: Promise<{ room_id: string }>;
 }
 
-type DynamicRouteHandler = (
-  request: NextRequest,
-  context: RouteContext
-) => Promise<NextResponse>;
-
 async function deleteHandler(
   request: AuthenticatedRequest,
-  context?: RouteContext
+  context: RouteContext
 ): Promise<NextResponse> {
-  const { room_id: roomId } = await context!.params;
+  const { room_id: roomId } = await context.params;
 
   const room = await closeRoom(roomId, request.user.id);
 
@@ -39,9 +34,9 @@ async function deleteHandler(
 
 async function patchHandler(
   request: AuthenticatedRequest,
-  context?: RouteContext
+  context: RouteContext
 ): Promise<NextResponse> {
-  const { room_id: roomId } = await context!.params;
+  const { room_id: roomId } = await context.params;
   const body = await request.json();
   const updates = updateRoomSchema.parse(body);
 
@@ -60,5 +55,5 @@ async function patchHandler(
   });
 }
 
-export const DELETE = withErrorHandler(withAuth(deleteHandler)) as DynamicRouteHandler;
-export const PATCH = withErrorHandler(withAuth(patchHandler)) as DynamicRouteHandler;
+export const DELETE = withErrorHandler(withAuth<RouteContext>(deleteHandler));
+export const PATCH = withErrorHandler(withAuth<RouteContext>(patchHandler));
