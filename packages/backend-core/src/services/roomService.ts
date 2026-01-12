@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, notInArray, or } from "drizzle-orm";
 import { SignJWT } from "jose";
 import { uuidv7 } from "uuidv7";
 import * as bcrypt from "bcrypt";
@@ -14,6 +14,7 @@ import {
   InvalidRoomStatusError,
   RoomFullError,
   InvalidRoomPasswordError,
+  UserAlreadyInRoomError,
 } from "@/errors";
 
 type Database = IDatabase | ITransaction;
@@ -36,6 +37,11 @@ export async function createRoom(
   config: AuthConfig,
   database: Database = db
 ): Promise<CreateRoomResult> {
+  const existingRoom = await findActiveRoomForUser(params.creatorId, database);
+  if (existingRoom) {
+    throw new UserAlreadyInRoomError();
+  }
+
   const passwordHash = params.password
     ? await bcrypt.hash(params.password, config.saltRounds)
     : null;
@@ -74,6 +80,31 @@ export async function findRoomById(
     .select()
     .from(Rooms)
     .where(eq(Rooms.id, roomId))
+    .limit(1)
+    .then((results) => results[0]);
+
+  return room ?? null;
+}
+
+const INACTIVE_ROOM_STATUSES = [
+  RoomStatus.COMPLETED,
+  RoomStatus.ABORTED,
+  RoomStatus.CLOSED,
+];
+
+export async function findActiveRoomForUser(
+  userId: string,
+  database: Database = db
+): Promise<RoomData | null> {
+  const room = await database
+    .select()
+    .from(Rooms)
+    .where(
+      and(
+        or(eq(Rooms.player0Id, userId), eq(Rooms.player1Id, userId)),
+        notInArray(Rooms.status, INACTIVE_ROOM_STATUSES)
+      )
+    )
     .limit(1)
     .then((results) => results[0]);
 
@@ -196,6 +227,12 @@ export async function joinRoom(
   if (room.player1Id === userId) {
     const joinToken = await createJoinToken(roomId, userId, 1, config, database);
     return { joinToken, playerSlot: 1, isNewJoin: false };
+  }
+
+  // User is not already in this room - check if they're in another active room
+  const existingRoom = await findActiveRoomForUser(userId, database);
+  if (existingRoom) {
+    throw new UserAlreadyInRoomError();
   }
 
   if (room.status !== RoomStatus.WAITING_FOR_PLAYERS) {

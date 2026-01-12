@@ -64,6 +64,20 @@
       "when": 1768177957098,
       "tag": "0008_small_human_robot",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1768202239342,
+      "tag": "0009_warm_killraven",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1768202274221,
+      "tag": "0010_add-room-player-active-unique-indexes",
+      "breakpoints": true
     }
   ]
 }

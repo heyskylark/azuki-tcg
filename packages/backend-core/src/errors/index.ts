@@ -137,6 +137,13 @@ export class InvalidRoomPasswordError extends ApiError {
   }
 }
 
+export class UserAlreadyInRoomError extends ApiError {
+  constructor() {
+    super("User is already in an active room", 400);
+    this.name = "UserAlreadyInRoomError";
+  }
+}
+
 // Update errors
 export class UpdateFailedError extends ApiError {
   constructor(message = "Failed to update resource") {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { authenticatedFetch } from "@/lib/api/authenticatedFetch";
 import { Navbar } from "@/components/layout/Navbar";
@@ -17,11 +17,35 @@ import {
 } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
+interface ActiveRoom {
+  id: string;
+  status: string;
+}
+
 export default function CreateRoomPage() {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [activeRoom, setActiveRoom] = useState<ActiveRoom | null>(null);
+  const [isCheckingActiveRoom, setIsCheckingActiveRoom] = useState(true);
+
+  useEffect(() => {
+    async function checkActiveRoom() {
+      try {
+        const response = await authenticatedFetch("/api/users/rooms/active");
+        if (response.ok) {
+          const data = await response.json();
+          setActiveRoom(data.room);
+        }
+      } catch {
+        // Ignore errors - just allow room creation
+      } finally {
+        setIsCheckingActiveRoom(false);
+      }
+    }
+    checkActiveRoom();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,37 +87,64 @@ export default function CreateRoomPage() {
             <CardHeader>
               <CardTitle>Create Room</CardTitle>
               <CardDescription>
-                Start a new game room. Add a password to make it private.
+                {activeRoom
+                  ? "You already have an active room."
+                  : "Start a new game room. Add a password to make it private."}
               </CardDescription>
             </CardHeader>
-            <form onSubmit={handleSubmit}>
-              <CardContent className="space-y-4">
-                {error && (
-                  <Alert variant="destructive">
-                    <AlertDescription>{error}</AlertDescription>
-                  </Alert>
-                )}
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password (optional)</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="Leave empty for public room"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={isLoading}
-                  />
-                  <p className="text-sm text-muted-foreground">
-                    Share this password with your friend to let them join.
-                  </p>
-                </div>
+            {isCheckingActiveRoom ? (
+              <CardContent>
+                <p className="text-sm text-muted-foreground">Loading...</p>
               </CardContent>
-              <CardFooter>
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Creating..." : "Create Room"}
-                </Button>
-              </CardFooter>
-            </form>
+            ) : activeRoom ? (
+              <>
+                <CardContent>
+                  <Alert>
+                    <AlertDescription>
+                      You are already in an active room. You can only be in one
+                      room at a time.
+                    </AlertDescription>
+                  </Alert>
+                </CardContent>
+                <CardFooter>
+                  <Button
+                    className="w-full"
+                    onClick={() => router.push(`/rooms/${activeRoom.id}`)}
+                  >
+                    Go to Room
+                  </Button>
+                </CardFooter>
+              </>
+            ) : (
+              <form onSubmit={handleSubmit}>
+                <CardContent className="space-y-4">
+                  {error && (
+                    <Alert variant="destructive">
+                      <AlertDescription>{error}</AlertDescription>
+                    </Alert>
+                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password (optional)</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="Leave empty for public room"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      disabled={isLoading}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Share this password with your friend to let them join.
+                    </p>
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? "Creating..." : "Create Room"}
+                  </Button>
+                </CardFooter>
+              </form>
+            )}
           </Card>
         </div>
       </main>
