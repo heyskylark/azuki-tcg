@@ -3,6 +3,7 @@ import { UserStatus, UserType } from "@/types";
 export enum TokenType {
   ACCESS = "ACCESS",
   REFRESH = "REFRESH",
+  JOIN = "JOIN",
 }
 
 export interface JWTPayload {
@@ -69,4 +70,9 @@ export interface UserWithEmail {
   email: string;
   status: UserStatus;
   type: UserType;
+}
+
+export interface JoinTokenPayload {
+  roomId: string;
+  playerSlot: 0 | 1;
 }

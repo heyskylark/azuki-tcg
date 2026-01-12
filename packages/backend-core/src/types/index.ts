@@ -27,6 +27,7 @@ export enum RoomStatus {
   IN_MATCH = "IN_MATCH",
   COMPLETED = "COMPLETED",
   ABORTED = "ABORTED",
+  CLOSED = "CLOSED",
 }
 
 // Room type

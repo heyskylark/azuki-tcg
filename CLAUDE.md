@@ -486,6 +486,46 @@ const requestSchema = z.object({
 const data = requestSchema.parse(await request.json());
 ```
 
+### TypeScript Type Safety
+
+**Avoid using `as` type assertions and `!` non-null assertions.** Instead, use runtime checks or Zod validation to verify values.
+
+```typescript
+// BAD - using 'as' to force a type
+const room = result as RoomData;
+const value = payload["key"] as string;
+
+// BAD - using '!' non-null assertion
+const room = results[0]!;
+
+// GOOD - use proper null checks
+const room = results[0];
+if (!room) {
+  throw new Error("Failed to create room");
+}
+
+// GOOD - use .then() to get proper type inference from Drizzle
+const room = await database
+  .select()
+  .from(Rooms)
+  .where(eq(Rooms.id, roomId))
+  .limit(1)
+  .then((results) => results[0]);
+
+// GOOD - use Zod to validate unknown payloads
+const payloadSchema = z.object({
+  roomId: z.string(),
+  playerSlot: z.union([z.literal(0), z.literal(1)]),
+});
+const result = payloadSchema.safeParse(payload);
+if (!result.success) {
+  throw new InvalidTokenError();
+}
+const { roomId, playerSlot } = result.data;
+```
+
+**Why:** Type assertions (`as`) bypass TypeScript's type checking and can hide bugs. Use runtime validation to ensure values match expected types.
+
 ### API Route Patterns
 
 **Use Higher-Order Functions (HOFs) for consistent error handling and authentication.**

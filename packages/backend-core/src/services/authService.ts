@@ -2,6 +2,7 @@ import * as bcrypt from "bcrypt";
 import { SignJWT, jwtVerify, type JWTPayload as JoseJWTPayload } from "jose";
 import { eq, and, isNull, gt } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
+import { z } from "zod";
 import db, { type IDatabase, type ITransaction } from "@/database";
 import { JwtTokens } from "@/drizzle/schemas/jwt_tokens";
 import {
@@ -16,12 +17,18 @@ import {
   type TokenPair,
   type AuthConfig,
   type TokenUser,
+  type JoinTokenPayload,
 } from "@/types/auth";
 import {
   ACCESS_TOKEN_EXPIRY_SECONDS,
   REFRESH_TOKEN_EXPIRY_SECONDS,
   IDENTITY_TOKEN_EXPIRY_SECONDS,
 } from "@/constants/auth";
+
+const joinTokenPayloadSchema = z.object({
+  roomId: z.string(),
+  playerSlot: z.union([z.literal(0), z.literal(1)]),
+});
 
 type Database = IDatabase | ITransaction;
 
@@ -154,7 +161,7 @@ async function verifyToken(
     ) {
       throw error;
     }
-    if ((error as Error).name === "JWTExpired") {
+    if (error instanceof Error && error.name === "JWTExpired") {
       throw new TokenExpiredError();
     }
     throw new InvalidTokenError();
@@ -175,6 +182,92 @@ export async function verifyRefreshToken(
   database: Database = db
 ): Promise<JWTPayload> {
   return verifyToken(token, TokenType.REFRESH, config, database);
+}
+
+export async function verifyJoinToken(
+  token: string,
+  config: AuthConfig,
+  database: Database = db
+): Promise<JWTPayload & JoinTokenPayload> {
+  const secretKey = new TextEncoder().encode(config.jwtSecret);
+
+  try {
+    const { payload } = await jwtVerify(token, secretKey, {
+      issuer: config.jwtIssuer,
+      audience: config.jwtIssuer,
+    });
+
+    const jti = payload.jti;
+    if (!jti) {
+      throw new InvalidTokenError();
+    }
+
+    const tokenRecord = await database
+      .select({
+        id: JwtTokens.id,
+        revokedAt: JwtTokens.revokedAt,
+        tokenType: JwtTokens.tokenType,
+      })
+      .from(JwtTokens)
+      .where(
+        and(
+          eq(JwtTokens.jti, jti),
+          eq(JwtTokens.tokenType, TokenType.JOIN),
+          gt(JwtTokens.expiresAt, new Date())
+        )
+      )
+      .limit(1);
+
+    if (tokenRecord.length === 0) {
+      throw new InvalidTokenError();
+    }
+
+    const record = tokenRecord[0];
+    if (!record) {
+      throw new InvalidTokenError();
+    }
+    if (record.revokedAt !== null) {
+      throw new TokenRevokedError();
+    }
+
+    const joinPayloadResult = joinTokenPayloadSchema.safeParse(payload);
+    if (!joinPayloadResult.success) {
+      throw new InvalidTokenError();
+    }
+
+    const { roomId, playerSlot } = joinPayloadResult.data;
+
+    if (!payload.iss || !payload.sub || !payload.aud || !payload.exp || !payload.iat || !payload.jti) {
+      throw new InvalidTokenError();
+    }
+
+    const aud = Array.isArray(payload.aud) ? payload.aud[0] : payload.aud;
+    if (!aud) {
+      throw new InvalidTokenError();
+    }
+
+    return {
+      iss: payload.iss,
+      sub: payload.sub,
+      aud,
+      exp: payload.exp,
+      iat: payload.iat,
+      jti: payload.jti,
+      roomId,
+      playerSlot,
+    };
+  } catch (error) {
+    if (
+      error instanceof TokenRevokedError ||
+      error instanceof InvalidTokenError
+    ) {
+      throw error;
+    }
+    if (error instanceof Error && error.name === "JWTExpired") {
+      throw new TokenExpiredError();
+    }
+    throw new InvalidTokenError();
+  }
 }
 
 export async function revokeToken(

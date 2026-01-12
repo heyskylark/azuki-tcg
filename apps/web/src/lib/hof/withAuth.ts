@@ -15,15 +15,23 @@ export interface AuthenticatedRequest extends NextRequest {
   user: AuthenticatedUser;
 }
 
-type AuthenticatedRouteHandler<T = unknown> = (
-  request: AuthenticatedRequest,
-  context?: T
+type SimpleAuthenticatedHandler = (
+  request: AuthenticatedRequest
 ) => Promise<NextResponse> | NextResponse;
 
-type RouteHandler<T = unknown> = (
-  request: NextRequest,
-  context?: T
+type DynamicAuthenticatedHandler<T> = (
+  request: AuthenticatedRequest,
+  context: T
 ) => Promise<NextResponse> | NextResponse;
+
+type SimpleRouteHandler = (
+  request: NextRequest
+) => Promise<NextResponse>;
+
+type DynamicRouteHandler<T> = (
+  request: NextRequest,
+  context: T
+) => Promise<NextResponse>;
 
 const authConfig: AuthConfig = {
   jwtSecret: env.JWT_SECRET,
@@ -31,9 +39,11 @@ const authConfig: AuthConfig = {
   saltRounds: env.PASSWORD_SALT_ROUNDS,
 };
 
+export function withAuth(handler: SimpleAuthenticatedHandler): SimpleRouteHandler;
+export function withAuth<T>(handler: DynamicAuthenticatedHandler<T>): DynamicRouteHandler<T>;
 export function withAuth<T = unknown>(
-  handler: AuthenticatedRouteHandler<T>
-): RouteHandler<T> {
+  handler: SimpleAuthenticatedHandler | DynamicAuthenticatedHandler<T>
+): SimpleRouteHandler | DynamicRouteHandler<T> {
   return async (request: NextRequest, context?: T): Promise<NextResponse> => {
     const accessToken = await getAccessToken();
 
@@ -57,15 +67,19 @@ export function withAuth<T = unknown>(
       throw new UserDeletedError();
     }
 
-    const authenticatedRequest = request as AuthenticatedRequest;
-    authenticatedRequest.user = {
-      id: userWithEmail.id,
-      username: userWithEmail.username,
-      email: userWithEmail.email,
-      status: userWithEmail.status,
-      type: userWithEmail.type,
-    };
+    const authenticatedRequest = Object.assign(request, {
+      user: {
+        id: userWithEmail.id,
+        username: userWithEmail.username,
+        email: userWithEmail.email,
+        status: userWithEmail.status,
+        type: userWithEmail.type,
+      },
+    });
 
-    return handler(authenticatedRequest, context);
+    if (context !== undefined) {
+      return (handler as DynamicAuthenticatedHandler<T>)(authenticatedRequest, context);
+    }
+    return (handler as SimpleAuthenticatedHandler)(authenticatedRequest);
   };
 }

@@ -36,6 +36,13 @@
       "when": 1768116333368,
       "tag": "0004_pale_lord_hawal",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1768173896771,
+      "tag": "0005_purple_spirit",
+      "breakpoints": true
     }
   ]
 }

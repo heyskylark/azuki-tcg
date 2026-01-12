@@ -99,3 +99,40 @@ export class UsernameAlreadyExistsError extends ApiError {
     this.name = "UsernameAlreadyExistsError";
   }
 }
+
+// Room errors
+
+export class RoomNotFoundError extends ApiError {
+  constructor() {
+    super("Room not found", 404);
+    this.name = "RoomNotFoundError";
+  }
+}
+
+export class NotRoomOwnerError extends ApiError {
+  constructor() {
+    super("Only the room owner can perform this action", 403);
+    this.name = "NotRoomOwnerError";
+  }
+}
+
+export class RoomFullError extends ApiError {
+  constructor() {
+    super("Room is full", 409);
+    this.name = "RoomFullError";
+  }
+}
+
+export class InvalidRoomStatusError extends ApiError {
+  constructor(message = "Room is not in the correct status for this action") {
+    super(message, 409);
+    this.name = "InvalidRoomStatusError";
+  }
+}
+
+export class InvalidRoomPasswordError extends ApiError {
+  constructor() {
+    super("Invalid room password", 401);
+    this.name = "InvalidRoomPasswordError";
+  }
+}
