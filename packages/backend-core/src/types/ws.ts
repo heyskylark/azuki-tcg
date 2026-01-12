@@ -58,3 +58,19 @@ export interface ErrorMessage extends ServerMessage {
 export interface PongMessage extends ServerMessage {
   type: "PONG";
 }
+
+export interface PlayerInfo {
+  id: string;
+  username: string;
+  deckSelected: boolean;
+  ready: boolean;
+  connected: boolean;
+}
+
+export interface RoomStateMessage extends ServerMessage {
+  type: "ROOM_STATE";
+  status: string;
+  players: [PlayerInfo | null, PlayerInfo | null];
+  deckSelectionDeadline: string | null;
+  readyCountdownEnd: string | null;
+}

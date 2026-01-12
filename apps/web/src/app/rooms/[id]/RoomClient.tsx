@@ -1,22 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { authenticatedFetch } from "@/lib/api/authenticatedFetch";
+import { useState, useCallback } from "react";
+import { useWebSocket } from "@/contexts/WebSocketContext";
+import { useRoomConnection } from "@/hooks/useRoomConnection";
 import { Navbar } from "@/components/layout/Navbar";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { ConnectionIndicator } from "@/app/rooms/[id]/components/ConnectionIndicator";
+import { PasswordPrompt } from "@/app/rooms/[id]/components/PasswordPrompt";
+import { WaitingForPlayers } from "@/app/rooms/[id]/components/WaitingForPlayers";
+import { DeckSelection } from "@/app/rooms/[id]/components/DeckSelection";
+import { ReadyCheck } from "@/app/rooms/[id]/components/ReadyCheck";
 import type { AuthenticatedUser } from "@tcg/backend-core/types/auth";
 
 export interface RoomData {
@@ -36,78 +32,223 @@ interface RoomClientProps {
 }
 
 export function RoomClient({ initialRoom, user }: RoomClientProps) {
-  const router = useRouter();
-  const [room, setRoom] = useState<RoomData>(initialRoom);
-  const [error, setError] = useState<string | null>(null);
-  const [newPassword, setNewPassword] = useState("");
-  const [isUpdating, setIsUpdating] = useState(false);
+  const { status: wsStatus, send } = useWebSocket();
 
-  const isOwner = room.player0Id === user.id;
+  const isInRoom =
+    initialRoom.player0Id === user.id || initialRoom.player1Id === user.id;
+  const isOwner = initialRoom.player0Id === user.id;
 
-  const fetchRoom = async () => {
-    try {
-      const response = await authenticatedFetch(`/api/rooms/${room.id}`);
-      if (!response.ok) {
-        throw new Error("Failed to fetch room");
-      }
-      const data = await response.json();
-      setRoom(data.room);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load room");
+  const {
+    connectionState,
+    error,
+    playerSlot,
+    roomState,
+    needsPassword,
+    join,
+    clearError,
+  } = useRoomConnection({
+    roomId: initialRoom.id,
+    userId: user.id,
+    isInRoom,
+    hasPassword: initialRoom.hasPassword,
+  });
+
+  // Track locally selected deck (before server confirmation)
+  const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
+
+  const handleSelectDeck = useCallback(
+    (deckId: string) => {
+      setSelectedDeckId(deckId);
+      send({ type: "SELECT_DECK", deckId });
+    },
+    [send]
+  );
+
+  const handleReady = useCallback(
+    (ready: boolean) => {
+      send({ type: "READY", ready });
+    },
+    [send]
+  );
+
+  const handleJoinWithPassword = useCallback(
+    async (password: string) => {
+      await join(password);
+    },
+    [join]
+  );
+
+  // Determine current display status
+  const displayStatus = roomState?.status ?? initialRoom.status;
+
+  // Render password prompt if needed
+  if (needsPassword) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="container mx-auto px-4 py-8">
+          <PasswordPrompt
+            roomId={initialRoom.id}
+            onSubmit={handleJoinWithPassword}
+            isLoading={connectionState === "joining"}
+            error={error}
+          />
+        </main>
+      </div>
+    );
+  }
+
+  // Render loading state while joining/connecting
+  if (connectionState === "joining" || connectionState === "connecting") {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="container mx-auto px-4 py-8">
+          <Card className="max-w-2xl mx-auto">
+            <CardHeader>
+              <CardTitle>Connecting to Room...</CardTitle>
+              <CardDescription>Please wait while we connect you to the game.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex justify-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  // Render error state
+  if (connectionState === "error" && !roomState) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="container mx-auto px-4 py-8">
+          <Card className="max-w-2xl mx-auto">
+            <CardHeader>
+              <CardTitle>Connection Error</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Alert variant="destructive">
+                <AlertDescription>{error || "Failed to connect to room"}</AlertDescription>
+              </Alert>
+              <Button onClick={() => join()}>Try Again</Button>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  // Render phase-specific content
+  const renderContent = () => {
+    // Show error if present (but still connected)
+    const errorAlert = error && (
+      <Alert variant="destructive" className="mb-4">
+        <AlertDescription className="flex items-center justify-between">
+          {error}
+          <Button variant="ghost" size="sm" onClick={clearError}>
+            Dismiss
+          </Button>
+        </AlertDescription>
+      </Alert>
+    );
+
+    // If we don't have room state yet, show loading
+    if (!roomState) {
+      return (
+        <div className="flex justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        </div>
+      );
     }
-  };
 
-  const handleUpdatePassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsUpdating(true);
-    setError(null);
+    switch (displayStatus) {
+      case "WAITING_FOR_PLAYERS":
+        return (
+          <>
+            {errorAlert}
+            <WaitingForPlayers
+              roomId={initialRoom.id}
+              roomState={roomState}
+              userId={user.id}
+              isOwner={isOwner}
+              hasPassword={initialRoom.hasPassword}
+            />
+          </>
+        );
 
-    try {
-      const response = await authenticatedFetch(`/api/rooms/${room.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          password: newPassword.trim() || null,
-        }),
-      });
+      case "DECK_SELECTION":
+        if (playerSlot === null) {
+          return <div>Loading player info...</div>;
+        }
+        return (
+          <>
+            {errorAlert}
+            <DeckSelection
+              roomState={roomState}
+              userId={user.id}
+              playerSlot={playerSlot}
+              selectedDeckId={selectedDeckId}
+              onSelectDeck={handleSelectDeck}
+              onReady={handleReady}
+            />
+          </>
+        );
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || "Failed to update room");
-      }
+      case "READY_CHECK":
+        if (playerSlot === null) {
+          return <div>Loading player info...</div>;
+        }
+        return (
+          <>
+            {errorAlert}
+            <ReadyCheck
+              roomState={roomState}
+              userId={user.id}
+              playerSlot={playerSlot}
+              onUnready={() => handleReady(false)}
+            />
+          </>
+        );
 
-      await fetchRoom();
-      setNewPassword("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to update room");
-    } finally {
-      setIsUpdating(false);
-    }
-  };
+      case "STARTING":
+        return (
+          <div className="text-center py-8">
+            <div className="text-4xl font-bold text-primary mb-4">Game Starting!</div>
+            <p className="text-muted-foreground">Initializing game world...</p>
+          </div>
+        );
 
-  const handleCloseRoom = async () => {
-    if (!confirm("Are you sure you want to close this room?")) {
-      return;
-    }
+      case "IN_MATCH":
+        return (
+          <div className="text-center py-8">
+            <div className="text-2xl font-bold mb-4">Game in Progress</div>
+            <p className="text-muted-foreground">Game UI coming soon...</p>
+          </div>
+        );
 
-    setIsUpdating(true);
-    setError(null);
+      case "COMPLETED":
+      case "ABORTED":
+      case "CLOSED":
+        return (
+          <div className="text-center py-8">
+            <div className="text-2xl font-bold mb-4">Room Ended</div>
+            <p className="text-muted-foreground">
+              This room is no longer active ({displayStatus.toLowerCase()}).
+            </p>
+            <Button className="mt-4" onClick={() => window.location.href = "/dashboard"}>
+              Back to Dashboard
+            </Button>
+          </div>
+        );
 
-    try {
-      const response = await authenticatedFetch(`/api/rooms/${room.id}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || "Failed to close room");
-      }
-
-      router.push("/dashboard");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to close room");
-      setIsUpdating(false);
+      default:
+        return (
+          <div className="text-center py-8">
+            <p className="text-muted-foreground">Unknown room state: {displayStatus}</p>
+          </div>
+        );
     }
   };
 
@@ -115,98 +256,33 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="container mx-auto px-4 py-8">
-        <Card className="max-w-2xl mx-auto">
+        <Card className="max-w-4xl mx-auto">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Room</CardTitle>
-              <div className="flex gap-2">
-                <Badge variant={room.status === "WAITING_FOR_PLAYERS" ? "default" : "secondary"}>
-                  {room.status.replace(/_/g, " ")}
-                </Badge>
-                {room.hasPassword && <Badge variant="outline">Private</Badge>}
+              <div>
+                <CardTitle>Room</CardTitle>
+                <CardDescription>Room ID: {initialRoom.id}</CardDescription>
               </div>
-            </div>
-            <CardDescription>Room ID: {room.id}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {error && (
-              <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            <div className="space-y-4">
-              <h3 className="font-semibold">Players</h3>
-              <div className="grid gap-4 md:grid-cols-2">
-                <Card>
-                  <CardContent className="pt-4">
-                    <p className="text-sm text-muted-foreground">Player 1 (Host)</p>
-                    <p className="font-medium">
-                      {room.player0Id === user.id ? "You" : room.player0Id}
-                    </p>
-                  </CardContent>
-                </Card>
-                <Card>
-                  <CardContent className="pt-4">
-                    <p className="text-sm text-muted-foreground">Player 2</p>
-                    <p className="font-medium">
-                      {room.player1Id
-                        ? room.player1Id === user.id
-                          ? "You"
-                          : room.player1Id
-                        : "Waiting..."}
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-
-            {isOwner && room.status === "WAITING_FOR_PLAYERS" && (
-              <>
-                <Separator />
-                <div className="space-y-4">
-                  <h3 className="font-semibold">Room Settings</h3>
-                  <form onSubmit={handleUpdatePassword} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="newPassword">
-                        {room.hasPassword ? "Change Password" : "Set Password"}
-                      </Label>
-                      <div className="flex gap-2">
-                        <Input
-                          id="newPassword"
-                          type="password"
-                          placeholder={room.hasPassword ? "New password or leave empty to remove" : "Set a password"}
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                          disabled={isUpdating}
-                        />
-                        <Button type="submit" disabled={isUpdating}>
-                          {isUpdating ? "Updating..." : "Update"}
-                        </Button>
-                      </div>
-                    </div>
-                  </form>
-                  <Button
-                    variant="destructive"
-                    onClick={handleCloseRoom}
-                    disabled={isUpdating}
+              <div className="flex items-center gap-4">
+                <ConnectionIndicator status={wsStatus} />
+                <div className="flex gap-2">
+                  <Badge
+                    variant={
+                      displayStatus === "WAITING_FOR_PLAYERS"
+                        ? "default"
+                        : displayStatus === "DECK_SELECTION" || displayStatus === "READY_CHECK"
+                        ? "secondary"
+                        : "outline"
+                    }
                   >
-                    Close Room
-                  </Button>
+                    {displayStatus.replace(/_/g, " ")}
+                  </Badge>
+                  {initialRoom.hasPassword && <Badge variant="outline">Private</Badge>}
                 </div>
-              </>
-            )}
-
-            <Separator />
-            <div className="flex justify-between items-center">
-              <p className="text-sm text-muted-foreground">
-                No live updates yet. Use the button to refresh.
-              </p>
-              <Button variant="outline" onClick={fetchRoom}>
-                Refresh
-              </Button>
+              </div>
             </div>
-          </CardContent>
+          </CardHeader>
+          <CardContent>{renderContent()}</CardContent>
         </Card>
       </main>
     </div>
