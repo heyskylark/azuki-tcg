@@ -45,6 +45,10 @@
     "./services/authService": {
       "types": "./dist/services/authService.d.ts",
       "import": "./dist/services/authService.js"
+    },
+    "./services/roomService": {
+      "types": "./dist/services/roomService.d.ts",
+      "import": "./dist/services/roomService.js"
     }
   },
   "scripts": {
