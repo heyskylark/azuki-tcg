@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { authenticatedFetch } from "@/lib/api/authenticatedFetch";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,7 +34,7 @@ export default function CreateRoomPage() {
         body.password = password;
       }
 
-      const response = await fetch("/api/rooms", {
+      const response = await authenticatedFetch("/api/rooms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),

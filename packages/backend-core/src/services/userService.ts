@@ -4,6 +4,7 @@ import { Users, Emails } from "@/drizzle/schemas";
 import {
   EmailAlreadyExistsError,
   UsernameAlreadyExistsError,
+  UpdateFailedError,
 } from "@/errors";
 import { UserStatus, UserType } from "@/types";
 import type {
@@ -155,7 +156,7 @@ export async function updateUserDisplayName(
   userId: string,
   displayName: string,
   database: Database = db
-): Promise<{ id: string; displayName: string } | null> {
+): Promise<{ id: string; displayName: string }> {
   const result = await database
     .update(Users)
     .set({ displayName })
@@ -165,5 +166,10 @@ export async function updateUserDisplayName(
       displayName: Users.displayName,
     });
 
-  return result[0] ?? null;
+  const updated = result[0];
+  if (!updated) {
+    throw new UpdateFailedError("Failed to update display name");
+  }
+
+  return updated;
 }

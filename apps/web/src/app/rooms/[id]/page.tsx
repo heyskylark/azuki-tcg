@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { authenticatedFetch } from "@/lib/api/authenticatedFetch";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,7 +45,7 @@ export default function RoomPage() {
 
   const fetchRoom = useCallback(async () => {
     try {
-      const response = await fetch(`/api/rooms/${roomId}`);
+      const response = await authenticatedFetch(`/api/rooms/${roomId}`);
       if (!response.ok) {
         throw new Error("Failed to fetch room");
       }
@@ -69,7 +70,7 @@ export default function RoomPage() {
     setError(null);
 
     try {
-      const response = await fetch(`/api/rooms/${roomId}`, {
+      const response = await authenticatedFetch(`/api/rooms/${roomId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -100,7 +101,7 @@ export default function RoomPage() {
     setError(null);
 
     try {
-      const response = await fetch(`/api/rooms/${roomId}`, {
+      const response = await authenticatedFetch(`/api/rooms/${roomId}`, {
         method: "DELETE",
       });
 

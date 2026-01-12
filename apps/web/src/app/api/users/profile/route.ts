@@ -12,13 +12,6 @@ async function patchHandler(
 
   const result = await updateUserDisplayName(request.user.id, displayName);
 
-  if (!result) {
-    return NextResponse.json(
-      { error: "UpdateFailed", message: "Failed to update profile" },
-      { status: 500 }
-    );
-  }
-
   return NextResponse.json({
     user: {
       id: request.user.id,

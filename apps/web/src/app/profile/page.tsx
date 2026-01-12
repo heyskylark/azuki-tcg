@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { authenticatedFetch } from "@/lib/api/authenticatedFetch";
 import { Navbar } from "@/components/layout/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +18,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 
 export default function ProfilePage() {
-  const { user, checkAuth } = useAuth();
+  const { user, refresh } = useAuth();
   const [displayName, setDisplayName] = useState(user?.displayName ?? "");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -30,7 +31,7 @@ export default function ProfilePage() {
     setIsLoading(true);
 
     try {
-      const response = await fetch("/api/users/profile", {
+      const response = await authenticatedFetch("/api/users/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ displayName }),
@@ -42,8 +43,7 @@ export default function ProfilePage() {
       }
 
       // Refresh the auth token to get updated identity
-      await fetch("/api/users/auth/refresh", { method: "POST" });
-      checkAuth();
+      await refresh();
 
       setSuccess("Profile updated successfully!");
     } catch (err) {
