@@ -22,6 +22,7 @@ async function handler(request: NextRequest): Promise<NextResponse> {
 
   const user = await createUser({
     username,
+    displayName: username,
     email,
     passwordHash,
   });
@@ -30,6 +31,7 @@ async function handler(request: NextRequest): Promise<NextResponse> {
     {
       id: user.id,
       username: user.username,
+      displayName: user.displayName,
       email: user.email,
       status: UserStatus.ACTIVE,
     },
@@ -43,6 +45,7 @@ async function handler(request: NextRequest): Promise<NextResponse> {
       user: {
         id: user.id,
         username: user.username,
+        displayName: user.displayName,
         email: user.email,
       },
     },

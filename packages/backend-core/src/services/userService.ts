@@ -42,7 +42,7 @@ export async function usernameExists(
 export async function createUser(
   params: CreateUserParams,
   database: Database = db
-): Promise<{ id: string; username: string; email: string }> {
+): Promise<{ id: string; username: string; displayName: string; email: string }> {
   if (await emailExists(params.email, database)) {
     throw new EmailAlreadyExistsError();
   }
@@ -56,6 +56,7 @@ export async function createUser(
       .insert(Users)
       .values({
         username: params.username,
+        displayName: params.displayName,
         passwordHash: params.passwordHash,
         type: UserType.HUMAN,
         status: UserStatus.ACTIVE,
@@ -63,9 +64,13 @@ export async function createUser(
       .returning({
         id: Users.id,
         username: Users.username,
+        displayName: Users.displayName,
       });
 
-    const user = result[0]!;
+    const user = result[0];
+    if (!user) {
+      throw new Error("Failed to create user");
+    }
 
     await tx.insert(Emails).values({
       email: params.email,
@@ -78,6 +83,7 @@ export async function createUser(
     return {
       id: user.id,
       username: user.username,
+      displayName: user.displayName,
       email: params.email,
     };
   });
@@ -91,6 +97,7 @@ export async function findUserByEmail(
     .select({
       id: Users.id,
       username: Users.username,
+      displayName: Users.displayName,
       email: Emails.email,
       passwordHash: Users.passwordHash,
       status: Users.status,
@@ -107,11 +114,12 @@ export async function findUserByEmail(
 export async function findUserById(
   userId: string,
   database: Database = db
-): Promise<{ id: string; username: string; status: UserStatus; type: UserType } | null> {
+): Promise<{ id: string; username: string; displayName: string; status: UserStatus; type: UserType } | null> {
   const result = await database
     .select({
       id: Users.id,
       username: Users.username,
+      displayName: Users.displayName,
       status: Users.status,
       type: Users.type,
     })
@@ -130,6 +138,7 @@ export async function getUserWithEmail(
     .select({
       id: Users.id,
       username: Users.username,
+      displayName: Users.displayName,
       email: Emails.email,
       status: Users.status,
       type: Users.type,
@@ -138,6 +147,23 @@ export async function getUserWithEmail(
     .innerJoin(Emails, eq(Users.id, Emails.userId))
     .where(eq(Users.id, userId))
     .limit(1);
+
+  return result[0] ?? null;
+}
+
+export async function updateUserDisplayName(
+  userId: string,
+  displayName: string,
+  database: Database = db
+): Promise<{ id: string; displayName: string } | null> {
+  const result = await database
+    .update(Users)
+    .set({ displayName })
+    .where(eq(Users.id, userId))
+    .returning({
+      id: Users.id,
+      displayName: Users.displayName,
+    });
 
   return result[0] ?? null;
 }
