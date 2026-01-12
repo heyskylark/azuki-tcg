@@ -14,6 +14,7 @@ export const userTypeEnum = pgEnum("user_type", enumToPgEnum(UserType));
 export const Users = pgTable("users", {
   id: uuidv7PrimaryKeyField(),
   username: citext("username").notNull().unique(),
+  displayName: text("display_name").notNull(),
   passwordHash: text("password_hash").notNull(),
   type: userTypeEnum("type").notNull().default(UserType.HUMAN),
   status: userStatusEnum("status").notNull().default(UserStatus.ACTIVE),

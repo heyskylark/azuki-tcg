@@ -71,6 +71,7 @@ export function withAuth<T = unknown>(
       user: {
         id: userWithEmail.id,
         username: userWithEmail.username,
+        displayName: userWithEmail.displayName,
         email: userWithEmail.email,
         status: userWithEmail.status,
         type: userWithEmail.type,

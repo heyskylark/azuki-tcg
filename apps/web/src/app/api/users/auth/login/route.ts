@@ -44,6 +44,7 @@ async function handler(request: NextRequest): Promise<NextResponse> {
     {
       id: user.id,
       username: user.username,
+      displayName: user.displayName,
       email: user.email,
       status: user.status,
     },
@@ -56,6 +57,7 @@ async function handler(request: NextRequest): Promise<NextResponse> {
     user: {
       id: user.id,
       username: user.username,
+      displayName: user.displayName,
       email: user.email,
     },
   });

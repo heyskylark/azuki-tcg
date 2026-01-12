@@ -1,8 +1,9 @@
-import { and, inArray, isNull } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 import db, { type IDatabase, type ITransaction } from "@/database";
 import { Cards, Decks, DeckCardJunctions } from "@/drizzle/schemas";
 import { DeckStatus } from "@/types";
 import { CardRarity, RarityOrdering } from "@/types/cards";
+import type { DeckSummary } from "@/types/deck";
 import { starterDecks } from "@/services/DeckService/constants";
 
 type Database = IDatabase | ITransaction;
@@ -105,4 +106,31 @@ export async function addStarterDecks(
     // Insert all card entries for this deck
     await database.insert(DeckCardJunctions).values(junctionEntries);
   }
+}
+
+export async function getUserDecks(
+  userId: string,
+  database: Database = db
+): Promise<DeckSummary[]> {
+  const result = await database
+    .select({
+      id: Decks.id,
+      name: Decks.name,
+      isSystemDeck: Decks.isSystemDeck,
+      cardCount: sql<number>`COALESCE(SUM(${DeckCardJunctions.quantity}), 0)`.as(
+        "card_count"
+      ),
+    })
+    .from(Decks)
+    .leftJoin(DeckCardJunctions, eq(Decks.id, DeckCardJunctions.deckId))
+    .where(and(eq(Decks.userId, userId), ne(Decks.status, DeckStatus.DELETED)))
+    .groupBy(Decks.id, Decks.name, Decks.isSystemDeck)
+    .orderBy(Decks.createdAt);
+
+  return result.map((row) => ({
+    id: row.id,
+    name: row.name,
+    isSystemDeck: row.isSystemDeck,
+    cardCount: Number(row.cardCount),
+  }));
 }

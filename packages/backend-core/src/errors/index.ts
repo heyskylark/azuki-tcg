@@ -136,3 +136,11 @@ export class InvalidRoomPasswordError extends ApiError {
     this.name = "InvalidRoomPasswordError";
   }
 }
+
+// Update errors
+export class UpdateFailedError extends ApiError {
+  constructor(message = "Failed to update resource") {
+    super(message, 500);
+    this.name = "UpdateFailedError";
+  }
+}

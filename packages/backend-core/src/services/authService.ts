@@ -73,6 +73,7 @@ export async function createTokens(
   const identityPayload: IdentityTokenPayload = {
     userId: user.id,
     username: user.username,
+    displayName: user.displayName,
     email: user.email,
     status: user.status,
   };
