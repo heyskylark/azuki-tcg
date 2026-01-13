@@ -9,13 +9,16 @@ import type {
   ErrorMessage,
 } from "@tcg/backend-core/types/ws";
 
-type ConnectionState = "idle" | "joining" | "connecting" | "connected" | "error";
+type ConnectionState = "idle" | "joining" | "connecting" | "connected" | "error" | "inactive";
+
+const INACTIVE_ROOM_STATUSES = ["COMPLETED", "CLOSED", "ABORTED"];
 
 interface UseRoomConnectionOptions {
   roomId: string;
   userId: string;
   isInRoom: boolean;
   hasPassword: boolean;
+  roomStatus: string;
 }
 
 interface UseRoomConnectionReturn {
@@ -39,10 +42,14 @@ export function useRoomConnection({
   userId,
   isInRoom,
   hasPassword,
+  roomStatus,
 }: UseRoomConnectionOptions): UseRoomConnectionReturn {
   const { status, connect, lastMessage } = useWebSocket();
 
-  const [connectionState, setConnectionState] = useState<ConnectionState>("idle");
+  const isRoomInactive = INACTIVE_ROOM_STATUSES.includes(roomStatus);
+  const [connectionState, setConnectionState] = useState<ConnectionState>(
+    isRoomInactive ? "inactive" : "idle"
+  );
   const [error, setError] = useState<string | null>(null);
   const [playerSlot, setPlayerSlot] = useState<0 | 1 | null>(null);
   const [roomState, setRoomState] = useState<RoomStateMessage | null>(null);
@@ -109,6 +116,17 @@ export function useRoomConnection({
       return;
     }
 
+    // Don't auto-join if we're already joining/connecting/connected
+    // This prevents the effect from resetting state after a manual password join
+    if (connectionState !== "idle") {
+      return;
+    }
+
+    // Don't join inactive rooms
+    if (isRoomInactive) {
+      return;
+    }
+
     if (isInRoom) {
       // User is already in the room, auto-join without password
       hasAttemptedJoin.current = true;
@@ -121,7 +139,7 @@ export function useRoomConnection({
       // Room requires password and user is not in room
       setNeedsPassword(true);
     }
-  }, [isInRoom, hasPassword, join]);
+  }, [isInRoom, hasPassword, join, connectionState, isRoomInactive]);
 
   // Update connection state based on WebSocket status
   useEffect(() => {

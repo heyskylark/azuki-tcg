@@ -51,6 +51,7 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
     userId: user.id,
     isInRoom,
     hasPassword: initialRoom.hasPassword,
+    roomStatus: initialRoom.status,
   });
 
   // Track locally selected deck (before server confirmation)
@@ -133,6 +134,41 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
                 <AlertDescription>{error || "Failed to connect to room"}</AlertDescription>
               </Alert>
               <Button onClick={() => join()}>Try Again</Button>
+            </CardContent>
+          </Card>
+        </main>
+      </div>
+    );
+  }
+
+  // Render inactive room state (no WebSocket connection needed)
+  if (connectionState === "inactive") {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main className="container mx-auto px-4 py-8">
+          <Card className="max-w-4xl mx-auto">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Room</CardTitle>
+                  <CardDescription>Room ID: {initialRoom.id}</CardDescription>
+                </div>
+                <Badge variant="outline">
+                  {initialRoom.status.replace(/_/g, " ")}
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8">
+                <div className="text-2xl font-bold mb-4">Room Ended</div>
+                <p className="text-muted-foreground">
+                  This room is no longer active ({initialRoom.status.toLowerCase()}).
+                </p>
+                <Button className="mt-4" onClick={() => window.location.href = "/dashboard"}>
+                  Back to Dashboard
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </main>

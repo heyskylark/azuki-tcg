@@ -187,12 +187,23 @@ export class WebSocketService {
       player1User?.username ?? null
     );
 
-    const player = channel.players[playerSlot];
-    if (player) {
-      player.ws = ws;
-      player.connected = true;
-      player.disconnectedAt = null;
-      player.username = user.username;
+    const existingPlayer = channel.players[playerSlot];
+    if (existingPlayer) {
+      existingPlayer.ws = ws;
+      existingPlayer.connected = true;
+      existingPlayer.disconnectedAt = null;
+      existingPlayer.username = user.username;
+    } else {
+      // Player slot was null (e.g., player1 joined after channel was created)
+      // Create a new player connection entry
+      channel.players[playerSlot] = {
+        ws,
+        userId,
+        username: user.username,
+        playerSlot,
+        connected: true,
+        disconnectedAt: null,
+      };
     }
 
     registerConnection(ws, {

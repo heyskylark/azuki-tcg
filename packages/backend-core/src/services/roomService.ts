@@ -16,6 +16,7 @@ import {
   RoomFullError,
   InvalidRoomPasswordError,
   UserAlreadyInRoomError,
+  RoomClosedError,
 } from "@/errors";
 
 type Database = IDatabase | ITransaction;
@@ -78,11 +79,7 @@ export async function findRoomById(
   return room ?? null;
 }
 
-const INACTIVE_ROOM_STATUSES = [
-  RoomStatus.COMPLETED,
-  RoomStatus.ABORTED,
-  RoomStatus.CLOSED,
-];
+const INACTIVE_ROOM_STATUSES = [RoomStatus.COMPLETED, RoomStatus.ABORTED, RoomStatus.CLOSED];
 
 export async function findActiveRoomForUser(
   userId: string,
@@ -161,9 +158,7 @@ export async function updateRoom(
   }
 
   if (room.status !== RoomStatus.WAITING_FOR_PLAYERS) {
-    throw new InvalidRoomStatusError(
-      "Room can only be updated in WAITING_FOR_PLAYERS status"
-    );
+    throw new InvalidRoomStatusError("Room can only be updated in WAITING_FOR_PLAYERS status");
   }
 
   const updates: Partial<typeof Rooms.$inferInsert> = {};
@@ -209,6 +204,8 @@ export async function joinRoom(
 
   if (!room) {
     throw new RoomNotFoundError();
+  } else if (INACTIVE_ROOM_STATUSES.includes(room.status)) {
+    throw new RoomClosedError();
   }
 
   if (room.player0Id === userId) {
@@ -245,10 +242,7 @@ export async function joinRoom(
     throw new RoomFullError();
   }
 
-  await database
-    .update(Rooms)
-    .set({ player1Id: userId })
-    .where(eq(Rooms.id, roomId));
+  await database.update(Rooms).set({ player1Id: userId }).where(eq(Rooms.id, roomId));
 
   const joinToken = await createJoinToken(roomId, userId, 1, config, database);
 
@@ -286,10 +280,7 @@ export async function updatePlayerDeck(
   deckId: string,
   database: Database = db
 ): Promise<RoomData> {
-  const updates =
-    playerSlot === 0
-      ? { player0DeckId: deckId }
-      : { player1DeckId: deckId };
+  const updates = playerSlot === 0 ? { player0DeckId: deckId } : { player1DeckId: deckId };
 
   const updatedRoom = await database
     .update(Rooms)
@@ -311,10 +302,7 @@ export async function updatePlayerReady(
   ready: boolean,
   database: Database = db
 ): Promise<RoomData> {
-  const updates =
-    playerSlot === 0
-      ? { player0Ready: ready }
-      : { player1Ready: ready };
+  const updates = playerSlot === 0 ? { player0Ready: ready } : { player1Ready: ready };
 
   const updatedRoom = await database
     .update(Rooms)
