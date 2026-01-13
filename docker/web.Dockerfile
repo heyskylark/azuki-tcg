@@ -13,9 +13,6 @@ COPY tsconfig.base.json ./
 COPY packages/backend-core ./packages/backend-core
 COPY apps/web ./apps/web
 
-# Build backend-core
-RUN yarn core build
-
 EXPOSE 3000
 
 # Run Next.js in development mode for hot reloading

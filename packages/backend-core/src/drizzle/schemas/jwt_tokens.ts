@@ -4,9 +4,9 @@ import {
   createdAtTimestampField,
   timestampField,
   enumToPgEnum,
-} from "@/drizzle/helpers";
-import { TokenType } from "@/types/auth";
-import { Users } from "@/drizzle/schemas/users";
+} from "@core/drizzle/helpers";
+import { TokenType } from "@core/types/auth";
+import { Users } from "@core/drizzle/schemas/users";
 
 export const tokenTypeEnum = pgEnum("token_type", enumToPgEnum(TokenType));
 

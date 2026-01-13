@@ -3,13 +3,13 @@ import { SignJWT, jwtVerify, type JWTPayload as JoseJWTPayload } from "jose";
 import { eq, and, isNull, gt } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";
 import { z } from "zod";
-import db, { type IDatabase, type ITransaction } from "@/database";
-import { JwtTokens } from "@/drizzle/schemas/jwt_tokens";
+import db, { type IDatabase, type ITransaction } from "@core/database";
+import { JwtTokens } from "@core/drizzle/schemas/jwt_tokens";
 import {
   TokenExpiredError,
   TokenRevokedError,
   InvalidTokenError,
-} from "@/errors";
+} from "@core/errors";
 import {
   TokenType,
   type JWTPayload,
@@ -18,12 +18,12 @@ import {
   type AuthConfig,
   type TokenUser,
   type JoinTokenPayload,
-} from "@/types/auth";
+} from "@core/types/auth";
 import {
   ACCESS_TOKEN_EXPIRY_SECONDS,
   REFRESH_TOKEN_EXPIRY_SECONDS,
   IDENTITY_TOKEN_EXPIRY_SECONDS,
-} from "@/constants/auth";
+} from "@core/constants/auth";
 
 const joinTokenPayloadSchema = z.object({
   roomId: z.string(),

@@ -4,9 +4,9 @@ import {
   createdAtTimestampField,
   updatedAtTimestampField,
   enumToPgEnum,
-} from "@/drizzle/helpers";
-import { UserStatus, UserType } from "@/types";
-import { citext } from "@/drizzle/customTypes";
+} from "@core/drizzle/helpers";
+import { UserStatus, UserType } from "@core/types";
+import { citext } from "@core/drizzle/customTypes";
 
 export const userStatusEnum = pgEnum("user_status", enumToPgEnum(UserStatus));
 export const userTypeEnum = pgEnum("user_type", enumToPgEnum(UserType));

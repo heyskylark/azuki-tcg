@@ -2,7 +2,7 @@ import * as dotenv from "dotenv";
 
 dotenv.config({ path: [".env.local", ".env"] });
 
-import * as schemas from "@/drizzle/schemas";
+import * as schemas from "@core/drizzle/schemas";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool, PoolConfig } from "pg";
 

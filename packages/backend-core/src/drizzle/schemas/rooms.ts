@@ -4,10 +4,10 @@ import {
   createdAtTimestampField,
   updatedAtTimestampField,
   enumToPgEnum,
-} from "@/drizzle/helpers";
-import { RoomStatus, RoomType } from "@/types";
-import { Users } from "@/drizzle/schemas/users";
-import { Decks } from "@/drizzle/schemas/decks";
+} from "@core/drizzle/helpers";
+import { RoomStatus, RoomType } from "@core/types";
+import { Users } from "@core/drizzle/schemas/users";
+import { Decks } from "@core/drizzle/schemas/decks";
 
 export const roomStatusEnum = pgEnum("room_status", enumToPgEnum(RoomStatus));
 export const roomTypeEnum = pgEnum("room_type", enumToPgEnum(RoomType));

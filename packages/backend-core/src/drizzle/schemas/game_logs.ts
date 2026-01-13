@@ -1,6 +1,6 @@
 import { pgTable, text, integer, jsonb, uuid } from "drizzle-orm/pg-core";
-import { uuidv7PrimaryKeyField, createdAtTimestampField } from "@/drizzle/helpers";
-import { Rooms } from "@/drizzle/schemas/rooms";
+import { uuidv7PrimaryKeyField, createdAtTimestampField } from "@core/drizzle/helpers";
+import { Rooms } from "@core/drizzle/schemas/rooms";
 
 export const GameLogs = pgTable("game_logs", {
   id: uuidv7PrimaryKeyField(),

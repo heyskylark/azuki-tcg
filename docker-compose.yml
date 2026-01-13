@@ -71,11 +71,9 @@ services:
     depends_on:
       migrate:
         condition: service_completed_successfully
-    develop:
-      watch:
-        - action: sync
-          path: ./apps/web/src
-          target: /app/apps/web/src
+    volumes:
+      - ./apps/web/src:/app/apps/web/src
+      - ./packages/backend-core/src:/app/packages/backend-core/src
 
 volumes:
   pgdata:

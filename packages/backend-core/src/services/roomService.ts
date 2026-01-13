@@ -2,13 +2,13 @@ import { and, eq, notInArray, or } from "drizzle-orm";
 import { SignJWT } from "jose";
 import { uuidv7 } from "uuidv7";
 import * as bcrypt from "bcrypt";
-import db, { type IDatabase, type ITransaction } from "@/database";
-import { Rooms } from "@/drizzle/schemas/rooms";
-import { Decks } from "@/drizzle/schemas/decks";
-import { JwtTokens } from "@/drizzle/schemas/jwt_tokens";
-import { RoomStatus, RoomType } from "@/types";
-import { TokenType, type AuthConfig } from "@/types/auth";
-import { JOIN_TOKEN_EXPIRY_SECONDS } from "@/constants/auth";
+import db, { type IDatabase, type ITransaction } from "@core/database";
+import { Rooms } from "@core/drizzle/schemas/rooms";
+import { Decks } from "@core/drizzle/schemas/decks";
+import { JwtTokens } from "@core/drizzle/schemas/jwt_tokens";
+import { RoomStatus, RoomType } from "@core/types";
+import { TokenType, type AuthConfig } from "@core/types/auth";
+import { JOIN_TOKEN_EXPIRY_SECONDS } from "@core/constants/auth";
 import {
   RoomNotFoundError,
   NotRoomOwnerError,
@@ -17,7 +17,7 @@ import {
   InvalidRoomPasswordError,
   UserAlreadyInRoomError,
   RoomClosedError,
-} from "@/errors";
+} from "@core/errors";
 
 type Database = IDatabase | ITransaction;
 

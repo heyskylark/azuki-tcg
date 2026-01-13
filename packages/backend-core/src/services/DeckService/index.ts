@@ -1,10 +1,10 @@
 import { and, eq, inArray, isNull, ne, sql } from "drizzle-orm";
-import db, { type IDatabase, type ITransaction } from "@/database";
-import { Cards, Decks, DeckCardJunctions } from "@/drizzle/schemas";
-import { DeckStatus } from "@/types";
-import { CardRarity, RarityOrdering } from "@/types/cards";
-import type { DeckSummary } from "@/types/deck";
-import { starterDecks } from "@/services/DeckService/constants";
+import db, { type IDatabase, type ITransaction } from "@core/database";
+import { Cards, Decks, DeckCardJunctions } from "@core/drizzle/schemas";
+import { DeckStatus } from "@core/types";
+import { CardRarity, RarityOrdering } from "@core/types/cards";
+import type { DeckSummary } from "@core/types/deck";
+import { starterDecks } from "@core/services/DeckService/constants";
 
 type Database = IDatabase | ITransaction;
 
