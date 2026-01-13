@@ -8,7 +8,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@tcg/backend-core/*": ["../../packages/backend-core/src/*"]
+      "@tcg/backend-core/*": ["../../packages/backend-core/dist/*"]
     }
   },
   "include": ["src/**/*"],

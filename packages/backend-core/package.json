@@ -26,6 +26,10 @@
       "types": "./dist/types/auth.d.ts",
       "import": "./dist/types/auth.js"
     },
+    "./types/ws": {
+      "types": "./dist/types/ws.d.ts",
+      "import": "./dist/types/ws.js"
+    },
     "./constants": {
       "types": "./dist/constants/index.d.ts",
       "import": "./dist/constants/index.js"
@@ -52,7 +56,7 @@
     }
   },
   "scripts": {
-    "build": "tsc && tsc-alias",
+    "build": "tsc && tsc-alias --resolve-full-paths",
     "dev": "tsc --watch",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/database/migrate.ts",

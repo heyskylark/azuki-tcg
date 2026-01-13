@@ -1,18 +1,18 @@
 import { eq } from "drizzle-orm";
-import db, { type IDatabase, type ITransaction } from "@/database";
-import { Users, Emails } from "@/drizzle/schemas";
+import db, { type IDatabase, type ITransaction } from "@core/database";
+import { Users, Emails } from "@core/drizzle/schemas";
 import {
   EmailAlreadyExistsError,
   UsernameAlreadyExistsError,
   UpdateFailedError,
-} from "@/errors";
-import { UserStatus, UserType } from "@/types";
+} from "@core/errors";
+import { UserStatus, UserType } from "@core/types";
 import type {
   CreateUserParams,
   UserWithPassword,
   UserWithEmail,
-} from "@/types/auth";
-import { addStarterDecks } from "@/services/DeckService";
+} from "@core/types/auth";
+import { addStarterDecks } from "@core/services/DeckService";
 
 type Database = IDatabase | ITransaction;
 

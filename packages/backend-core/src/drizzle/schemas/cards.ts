@@ -4,8 +4,8 @@ import {
   createdAtTimestampField,
   updatedAtTimestampField,
   enumToPgEnum,
-} from "@/drizzle/helpers";
-import { CardRarity, CardElement, CardType, SpecialCardRarity } from "@/types/cards";
+} from "@core/drizzle/helpers";
+import { CardRarity, CardElement, CardType, SpecialCardRarity } from "@core/types/cards";
 import { citext } from "../customTypes";
 
 export const cardRarityEnum = pgEnum("card_rarity", enumToPgEnum(CardRarity));

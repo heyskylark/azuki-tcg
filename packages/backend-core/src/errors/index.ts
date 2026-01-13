@@ -144,6 +144,13 @@ export class UserAlreadyInRoomError extends ApiError {
   }
 }
 
+export class RoomClosedError extends ApiError {
+  constructor() {
+    super("Room is closed", 400);
+    this.name = "RoomClosedError";
+  }
+}
+
 // Update errors
 export class UpdateFailedError extends ApiError {
   constructor(message = "Failed to update resource") {

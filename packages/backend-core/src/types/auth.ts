@@ -1,4 +1,4 @@
-import { UserStatus, UserType } from "@/types";
+import { UserStatus, UserType } from "@core/types";
 
 export enum TokenType {
   ACCESS = "ACCESS",

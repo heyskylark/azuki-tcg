@@ -5,9 +5,9 @@ import {
   createdAtTimestampField,
   updatedAtTimestampField,
   enumToPgEnum,
-} from "@/drizzle/helpers";
-import { DeckStatus } from "@/types";
-import { Users } from "@/drizzle/schemas/users";
+} from "@core/drizzle/helpers";
+import { DeckStatus } from "@core/types";
+import { Users } from "@core/drizzle/schemas/users";
 
 export const deckStatusEnum = pgEnum("deck_status", enumToPgEnum(DeckStatus));
 

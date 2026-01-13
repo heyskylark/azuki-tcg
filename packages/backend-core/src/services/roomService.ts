@@ -2,12 +2,13 @@ import { and, eq, notInArray, or } from "drizzle-orm";
 import { SignJWT } from "jose";
 import { uuidv7 } from "uuidv7";
 import * as bcrypt from "bcrypt";
-import db, { type IDatabase, type ITransaction } from "@/database";
-import { Rooms } from "@/drizzle/schemas/rooms";
-import { JwtTokens } from "@/drizzle/schemas/jwt_tokens";
-import { RoomStatus, RoomType } from "@/types";
-import { TokenType, type AuthConfig } from "@/types/auth";
-import { JOIN_TOKEN_EXPIRY_SECONDS } from "@/constants/auth";
+import db, { type IDatabase, type ITransaction } from "@core/database";
+import { Rooms } from "@core/drizzle/schemas/rooms";
+import { Decks } from "@core/drizzle/schemas/decks";
+import { JwtTokens } from "@core/drizzle/schemas/jwt_tokens";
+import { RoomStatus, RoomType } from "@core/types";
+import { TokenType, type AuthConfig } from "@core/types/auth";
+import { JOIN_TOKEN_EXPIRY_SECONDS } from "@core/constants/auth";
 import {
   RoomNotFoundError,
   NotRoomOwnerError,
@@ -15,7 +16,8 @@ import {
   RoomFullError,
   InvalidRoomPasswordError,
   UserAlreadyInRoomError,
-} from "@/errors";
+  RoomClosedError,
+} from "@core/errors";
 
 type Database = IDatabase | ITransaction;
 
@@ -29,7 +31,6 @@ export interface CreateRoomParams {
 
 export interface CreateRoomResult {
   room: RoomData;
-  joinToken: string;
 }
 
 export async function createRoom(
@@ -61,15 +62,7 @@ export async function createRoom(
     throw new Error("Failed to create room");
   }
 
-  const joinToken = await createJoinToken(
-    room.id,
-    params.creatorId,
-    0,
-    config,
-    database
-  );
-
-  return { room, joinToken };
+  return { room };
 }
 
 export async function findRoomById(
@@ -86,11 +79,7 @@ export async function findRoomById(
   return room ?? null;
 }
 
-const INACTIVE_ROOM_STATUSES = [
-  RoomStatus.COMPLETED,
-  RoomStatus.ABORTED,
-  RoomStatus.CLOSED,
-];
+const INACTIVE_ROOM_STATUSES = [RoomStatus.COMPLETED, RoomStatus.ABORTED, RoomStatus.CLOSED];
 
 export async function findActiveRoomForUser(
   userId: string,
@@ -169,9 +158,7 @@ export async function updateRoom(
   }
 
   if (room.status !== RoomStatus.WAITING_FOR_PLAYERS) {
-    throw new InvalidRoomStatusError(
-      "Room can only be updated in WAITING_FOR_PLAYERS status"
-    );
+    throw new InvalidRoomStatusError("Room can only be updated in WAITING_FOR_PLAYERS status");
   }
 
   const updates: Partial<typeof Rooms.$inferInsert> = {};
@@ -217,6 +204,8 @@ export async function joinRoom(
 
   if (!room) {
     throw new RoomNotFoundError();
+  } else if (INACTIVE_ROOM_STATUSES.includes(room.status)) {
+    throw new RoomClosedError();
   }
 
   if (room.player0Id === userId) {
@@ -253,14 +242,99 @@ export async function joinRoom(
     throw new RoomFullError();
   }
 
-  await database
-    .update(Rooms)
-    .set({ player1Id: userId })
-    .where(eq(Rooms.id, roomId));
+  await database.update(Rooms).set({ player1Id: userId }).where(eq(Rooms.id, roomId));
 
   const joinToken = await createJoinToken(roomId, userId, 1, config, database);
 
   return { joinToken, playerSlot: 1, isNewJoin: true };
+}
+
+export async function updateRoomStatus(
+  roomId: string,
+  status: RoomStatus,
+  additionalUpdates?: Partial<typeof Rooms.$inferInsert>,
+  database: Database = db
+): Promise<RoomData> {
+  const updates = {
+    status,
+    ...additionalUpdates,
+  };
+
+  const updatedRoom = await database
+    .update(Rooms)
+    .set(updates)
+    .where(eq(Rooms.id, roomId))
+    .returning()
+    .then((results) => results[0]);
+
+  if (!updatedRoom) {
+    throw new RoomNotFoundError();
+  }
+
+  return updatedRoom;
+}
+
+export async function updatePlayerDeck(
+  roomId: string,
+  playerSlot: 0 | 1,
+  deckId: string,
+  database: Database = db
+): Promise<RoomData> {
+  const updates = playerSlot === 0 ? { player0DeckId: deckId } : { player1DeckId: deckId };
+
+  const updatedRoom = await database
+    .update(Rooms)
+    .set(updates)
+    .where(eq(Rooms.id, roomId))
+    .returning()
+    .then((results) => results[0]);
+
+  if (!updatedRoom) {
+    throw new RoomNotFoundError();
+  }
+
+  return updatedRoom;
+}
+
+export async function updatePlayerReady(
+  roomId: string,
+  playerSlot: 0 | 1,
+  ready: boolean,
+  database: Database = db
+): Promise<RoomData> {
+  const updates = playerSlot === 0 ? { player0Ready: ready } : { player1Ready: ready };
+
+  const updatedRoom = await database
+    .update(Rooms)
+    .set(updates)
+    .where(eq(Rooms.id, roomId))
+    .returning()
+    .then((results) => results[0]);
+
+  if (!updatedRoom) {
+    throw new RoomNotFoundError();
+  }
+
+  return updatedRoom;
+}
+
+export async function verifyDeckOwnership(
+  userId: string,
+  deckId: string,
+  database: Database = db
+): Promise<boolean> {
+  const deck = await database
+    .select({ userId: Decks.userId })
+    .from(Decks)
+    .where(eq(Decks.id, deckId))
+    .limit(1)
+    .then((results) => results[0]);
+
+  if (!deck) {
+    return false;
+  }
+
+  return deck.userId === userId;
 }
 
 async function createJoinToken(

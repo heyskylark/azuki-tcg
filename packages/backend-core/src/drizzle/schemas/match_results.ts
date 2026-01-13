@@ -4,10 +4,10 @@ import {
   createdAtTimestampField,
   updatedAtTimestampField,
   enumToPgEnum,
-} from "@/drizzle/helpers";
-import { WinType } from "@/types";
-import { Rooms } from "@/drizzle/schemas/rooms";
-import { Users } from "@/drizzle/schemas/users";
+} from "@core/drizzle/helpers";
+import { WinType } from "@core/types";
+import { Rooms } from "@core/drizzle/schemas/rooms";
+import { Users } from "@core/drizzle/schemas/users";
 
 export const winTypeEnum = pgEnum("win_type", enumToPgEnum(WinType));
 

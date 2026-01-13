@@ -1,12 +1,12 @@
 import { relations } from "drizzle-orm";
-import { Emails, Users } from "@/drizzle/schemas/users";
-import { Cards } from "@/drizzle/schemas/cards";
-import { Decks } from "@/drizzle/schemas/decks";
-import { DeckCardJunctions } from "@/drizzle/schemas/deck_card_junctions";
-import { Rooms } from "@/drizzle/schemas/rooms";
-import { MatchResults } from "@/drizzle/schemas/match_results";
-import { GameLogs } from "@/drizzle/schemas/game_logs";
-import { JwtTokens } from "@/drizzle/schemas/jwt_tokens";
+import { Emails, Users } from "@core/drizzle/schemas/users";
+import { Cards } from "@core/drizzle/schemas/cards";
+import { Decks } from "@core/drizzle/schemas/decks";
+import { DeckCardJunctions } from "@core/drizzle/schemas/deck_card_junctions";
+import { Rooms } from "@core/drizzle/schemas/rooms";
+import { MatchResults } from "@core/drizzle/schemas/match_results";
+import { GameLogs } from "@core/drizzle/schemas/game_logs";
+import { JwtTokens } from "@core/drizzle/schemas/jwt_tokens";
 
 // User relations
 export const UsersRelations = relations(Users, ({ many }) => ({

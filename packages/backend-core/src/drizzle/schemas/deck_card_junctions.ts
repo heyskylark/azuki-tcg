@@ -3,9 +3,9 @@ import {
   uuidv7PrimaryKeyField,
   createdAtTimestampField,
   updatedAtTimestampField,
-} from "@/drizzle/helpers";
-import { Decks } from "@/drizzle/schemas/decks";
-import { Cards } from "@/drizzle/schemas/cards";
+} from "@core/drizzle/helpers";
+import { Decks } from "@core/drizzle/schemas/decks";
+import { Cards } from "@core/drizzle/schemas/cards";
 
 export const DeckCardJunctions = pgTable("deck_card_junctions", {
   id: uuidv7PrimaryKeyField(),

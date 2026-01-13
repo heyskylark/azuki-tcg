@@ -9,6 +9,8 @@ const envSchema = z.object({
     .enum(["error", "warn", "info", "http", "verbose", "debug", "silly"])
     .default("info"),
   DATABASE_URL: z.string().optional(),
+  JWT_SECRET: z.string(),
+  JWT_ISSUER: z.string().default("azuki-tcg"),
 });
 
 export const env = envSchema.parse(process.env);
