@@ -322,11 +322,45 @@ yarn web dev
 yarn core build
 ```
 
+### Native Module (Engine Wrapper)
+
+The WebSocket server uses a **native Node.js addon** to interface with the C game engine. This must be built before running the server.
+
+**Build Order:**
+1. C Engine Library (`libazuki_lib`)
+2. Native Module (`apps/websocket/native/`)
+3. TypeScript code
+
+**Development Build:**
+```bash
+# 1. Build C engine (from repository root)
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug && cmake --build build -j
+
+# 2. Build native module
+yarn ws build:native
+
+# 3. Now you can run the dev server
+yarn ws dev
+```
+
+**Production Build:**
+```bash
+# Build everything for production
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j
+yarn ws build:all
+yarn ws start
+```
+
+**When to Rebuild:**
+- C engine changes (`src/`, `include/`): Rebuild C engine + native module
+- Native wrapper changes (`apps/websocket/native/`): Rebuild native module only
+- TypeScript changes: Automatic with `yarn ws dev`
+
 ### Web Service Architecture
 
 - **WebSocket Server** (`apps/websocket`): uWebSockets.js server for real-time game communication
   - Handles WebSocket connections, game actions, room management
-  - IPC communication with C engine (future)
+  - **Native module** wraps C engine for in-process game logic
   - Winston logging
 
 - **Web App** (`apps/web`): Next.js 15 with App Router
@@ -580,12 +614,16 @@ azuki-tcg/
 │   └── config/       # Training config files
 ├── apps/
 │   ├── websocket/    # uWebSockets.js server
+│   │   ├── native/   # Native Node.js addon (C++ wrapper for C engine)
+│   │   │   ├── binding.gyp
+│   │   │   └── src/
 │   │   └── src/
 │   │       ├── server.ts
+│   │       ├── engine/       # Engine wrapper (TypeScript)
+│   │       ├── handlers/
 │   │       ├── services/
-│   │       ├── clients/
+│   │       ├── state/
 │   │       ├── logger/
-│   │       ├── errors/
 │   │       ├── constants/
 │   │       └── utils/
 │   └── web/          # Next.js web application
@@ -612,5 +650,7 @@ azuki-tcg/
 ```
 
 When making changes:
-- C engine: Ensure C unit tests and Python integration tests pass
-- Web service: Ensure TypeScript compiles without errors, test WebSocket connections
+- C engine (`src/`, `include/`): Rebuild with cmake, run C unit tests, rebuild native module
+- Native module (`apps/websocket/native/`): Rebuild with `yarn ws build:native`
+- Web service TypeScript: Ensure TypeScript compiles without errors, test WebSocket connections
+- Python bindings: Ensure Python integration tests pass

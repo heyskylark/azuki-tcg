@@ -12,6 +12,17 @@ AzkEngine *azk_engine_create(uint32_t seed) {
   return azk_world_init(seed);
 }
 
+AzkEngine *azk_engine_create_with_decks(
+  uint32_t seed,
+  const CardInfo *player0_deck,
+  size_t player0_deck_count,
+  const CardInfo *player1_deck,
+  size_t player1_deck_count
+) {
+  return azk_world_init_with_decks(seed, player0_deck, player0_deck_count,
+                                   player1_deck, player1_deck_count);
+}
+
 void azk_engine_destroy(AzkEngine *engine) {
   if (!engine) {
     return;

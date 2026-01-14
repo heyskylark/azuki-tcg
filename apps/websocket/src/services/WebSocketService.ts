@@ -10,9 +10,18 @@ import { verifyJoinToken } from "@tcg/backend-core/services/authService";
 import { findRoomById } from "@tcg/backend-core/services/roomService";
 import { findUserById } from "@tcg/backend-core/services/userService";
 import type { AuthConfig } from "@tcg/backend-core/types/auth";
-import type { ConnectionAckMessage, SelectDeckMessage, ReadyMessage } from "@tcg/backend-core/types/ws";
+import type {
+  ConnectionAckMessage,
+  SelectDeckMessage,
+  ReadyMessage,
+  GameActionMessage as WsGameActionMessage,
+  ForfeitMessage,
+} from "@tcg/backend-core/types/ws";
 
 import type { UserData } from "@/constants";
+import { handleGameAction, type GameActionMessage } from "@/engine/gameActionHandler";
+import { handleForfeit } from "@/engine/gameOverHandler";
+import { generateSnapshot } from "@/engine/snapshotGenerator";
 import { env } from "@/env";
 import logger from "@/logger";
 import { parseMessage, sendJson } from "@/utils";
@@ -232,6 +241,15 @@ export class WebSocketService {
     } else {
       broadcastRoomState(channel);
     }
+
+    // If room is IN_MATCH, send game snapshot for reconnection
+    if (room.status === RoomStatus.IN_MATCH) {
+      const snapshot = generateSnapshot(roomId, playerSlot);
+      if (snapshot) {
+        sendJson(ws, snapshot);
+        logger.debug("Sent game snapshot on reconnection", { roomId, playerSlot });
+      }
+    }
   }
 
   public async handleMessage(
@@ -276,6 +294,22 @@ export class WebSocketService {
           return;
         }
         await handleReady(ws, parsed as ReadyMessage, connectionInfo);
+        break;
+
+      case "GAME_ACTION":
+        if (!connectionInfo) {
+          sendJson(ws, { type: "ERROR", code: "NOT_AUTHENTICATED", message: "Not authenticated" });
+          return;
+        }
+        await handleGameAction(ws, parsed as GameActionMessage, connectionInfo);
+        break;
+
+      case "FORFEIT":
+        if (!connectionInfo) {
+          sendJson(ws, { type: "ERROR", code: "NOT_AUTHENTICATED", message: "Not authenticated" });
+          return;
+        }
+        await handleForfeit(connectionInfo.roomId, connectionInfo.playerSlot);
         break;
 
       default:

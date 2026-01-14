@@ -8,6 +8,7 @@
 #include "utils/actions_util.h"
 #include "utils/observation_util.h"
 #include "validation/action_enumerator.h"
+#include "world.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -18,8 +19,22 @@ typedef struct ecs_world_t AzkEngine;
 
 /**
  * Create a fresh Azuki game world seeded with the provided value.
+ * Uses randomly selected decks for both players.
  */
 AzkEngine *azk_engine_create(uint32_t seed);
+
+/**
+ * Create a fresh Azuki game world with custom decks.
+ * Each deck is an array of CardInfo structs specifying card_id and count.
+ * Requires including world.h for CardInfo type definition.
+ */
+AzkEngine *azk_engine_create_with_decks(
+  uint32_t seed,
+  const CardInfo *player0_deck,
+  size_t player0_deck_count,
+  const CardInfo *player1_deck,
+  size_t player1_deck_count
+);
 
 /**
  * Destroy a previously created Azuki engine instance.

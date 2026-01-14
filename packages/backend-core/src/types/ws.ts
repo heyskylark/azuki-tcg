@@ -74,3 +74,102 @@ export interface RoomStateMessage extends ServerMessage {
   deckSelectionDeadline: string | null;
   readyCountdownEnd: string | null;
 }
+
+export interface GameOverMessage extends ServerMessage {
+  type: "GAME_OVER";
+  winnerId: string | null;
+  winnerSlot: 0 | 1 | null;
+  winType: string;
+  reason: string;
+}
+
+// Game snapshot types for connect/reconnect
+export interface SnapshotStateContext {
+  phase: string;
+  abilitySubphase: string;
+  activePlayer: 0 | 1;
+  turnNumber: number;
+}
+
+export interface SnapshotLeader {
+  cardId: string | null;
+  cardDefId: number;
+  zoneIndex: number;
+  curHp: number;
+  curAtk: number;
+  tapped: boolean;
+  cooldown: boolean;
+}
+
+export interface SnapshotGate {
+  cardId: string | null;
+  cardDefId: number;
+  zoneIndex: number;
+  tapped: boolean;
+  cooldown: boolean;
+}
+
+export interface SnapshotCard {
+  cardId: string | null;
+  cardDefId: number;
+  zoneIndex: number;
+  curAtk: number | null;
+  curHp: number | null;
+  tapped: boolean;
+  cooldown: boolean;
+  isFrozen: boolean;
+  isShocked: boolean;
+  isEffectImmune: boolean;
+}
+
+export interface SnapshotIkz {
+  cardId: string | null;
+  cardDefId: number;
+  tapped: boolean;
+  cooldown: boolean;
+}
+
+export interface SnapshotPlayerBoard {
+  leader: SnapshotLeader;
+  gate: SnapshotGate;
+  garden: (SnapshotCard | null)[];
+  alley: (SnapshotCard | null)[];
+  ikzArea: SnapshotIkz[];
+  handCount: number;
+  deckCount: number;
+  discardCount: number;
+  ikzPileCount: number;
+  hasIkzToken: boolean;
+}
+
+export interface SnapshotHandCard {
+  cardId: string | null;
+  cardDefId: number;
+  type: string;
+  ikzCost: number;
+}
+
+export interface SnapshotActionMask {
+  primaryActionMask: boolean[];
+  legalActionCount: number;
+  legalPrimary: number[];
+  legalSub1: number[];
+  legalSub2: number[];
+  legalSub3: number[];
+}
+
+export interface GameSnapshotMessage extends ServerMessage {
+  type: "GAME_SNAPSHOT";
+  stateContext: SnapshotStateContext;
+  players: [SnapshotPlayerBoard, SnapshotPlayerBoard];
+  yourHand: SnapshotHandCard[];
+  combatStack: unknown[];
+  actionMask: SnapshotActionMask | null;
+}
+
+export interface GameLogBatchMessage extends ServerMessage {
+  type: "GAME_LOG_BATCH";
+  batchNumber: number;
+  logs: unknown[];
+  stateContext: SnapshotStateContext;
+}

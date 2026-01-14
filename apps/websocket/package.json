@@ -7,6 +7,8 @@
   "scripts": {
     "dev": "tsx watch --tsconfig tsconfig.json src/server.ts",
     "build": "tsc && tsc-alias --resolve-full-paths",
+    "build:native": "cd native && node-gyp rebuild",
+    "build:all": "yarn build:native && yarn build",
     "start": "node dist/server.js"
   },
   "dependencies": {
@@ -17,6 +19,7 @@
   },
   "devDependencies": {
     "@types/node": "^25.0.3",
+    "node-gyp": "^10.0.0",
     "tsc-alias": "^1.8.16",
     "tsconfig-paths": "^4.2.0",
     "tsx": "^4.21.0",

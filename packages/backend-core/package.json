@@ -53,6 +53,18 @@
     "./services/roomService": {
       "types": "./dist/services/roomService.d.ts",
       "import": "./dist/services/roomService.js"
+    },
+    "./services/cardMapperService": {
+      "types": "./dist/services/cardMapperService.d.ts",
+      "import": "./dist/services/cardMapperService.js"
+    },
+    "./drizzle/schemas/match_results": {
+      "types": "./dist/drizzle/schemas/match_results.d.ts",
+      "import": "./dist/drizzle/schemas/match_results.js"
+    },
+    "./drizzle/schemas/game_logs": {
+      "types": "./dist/drizzle/schemas/game_logs.d.ts",
+      "import": "./dist/drizzle/schemas/game_logs.js"
     }
   },
   "scripts": {

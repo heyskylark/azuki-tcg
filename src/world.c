@@ -344,3 +344,103 @@ void init_player_deck(ecs_world_t *world, ecs_entity_t player,
     exit(EXIT_FAILURE);
   }
 }
+
+void init_player_deck_custom(ecs_world_t *world, ecs_entity_t player,
+                             const CardInfo *cards, size_t card_count,
+                             PlayerZones *zones) {
+  TotalZoneCounts total_counts = {0};
+
+  for (size_t index = 0; index < card_count; index++) {
+    register_card(world, player, cards[index].card_id,
+                  (uint8_t)cards[index].card_count, zones, &total_counts);
+  }
+
+  // Validate the final card distribution sizes
+  if (total_counts.deck_size < REQUIRED_DECK_SIZE) {
+    cli_render_logf("Error: Deck size is less than required (%d < %d)",
+                    total_counts.deck_size, REQUIRED_DECK_SIZE);
+    exit(EXIT_FAILURE);
+  }
+  if (total_counts.leader_size < REQUIRED_LEADER_SIZE) {
+    cli_render_logf("Error: Leader size is less than required (%d < %d)",
+                    total_counts.leader_size, REQUIRED_LEADER_SIZE);
+    exit(EXIT_FAILURE);
+  }
+  if (total_counts.gate_size < REQUIRED_GATE_SIZE) {
+    cli_render_logf("Error: Gate size is less than required (%d < %d)",
+                    total_counts.gate_size, REQUIRED_GATE_SIZE);
+    exit(EXIT_FAILURE);
+  }
+  if (total_counts.ikz_pile_size < REQUIRED_IKZ_PILE_SIZE) {
+    cli_render_logf("Error: IKZ pile size is less than required (%d < %d)",
+                    total_counts.ikz_pile_size, REQUIRED_IKZ_PILE_SIZE);
+    exit(EXIT_FAILURE);
+  }
+}
+
+ecs_world_t *azk_world_init_with_decks(uint32_t seed,
+                                        const CardInfo *player0_deck,
+                                        size_t player0_deck_count,
+                                        const CardInfo *player1_deck,
+                                        size_t player1_deck_count) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+  WorldRef ref = {0};
+
+  ecs_add_id(world, ecs_id(GameState), EcsSingleton);
+  GameState gs = {
+      .seed = seed,
+      .rng_state = seed,
+      .active_player_index = 0,
+      .phase = PHASE_PREGAME_MULLIGAN,
+      .response_window = 0,
+      .winner = -1,
+  };
+  ecs_singleton_set_ptr(world, GameState, &gs);
+
+  ecs_add_id(world, ecs_id(AbilityContext), EcsSingleton);
+  AbilityContext ac = {0};
+  ecs_singleton_set_ptr(world, AbilityContext, &ac);
+
+  // First pass: Create all players and zones
+  for (int p = 0; p < MAX_PLAYERS_PER_MATCH; p++) {
+    ecs_entity_t player = ecs_new(world);
+    char pname[16];
+    snprintf(pname, sizeof(pname), "Player%d", p);
+    ecs_set_name(world, player, pname);
+    ecs_set(world, player, PlayerNumber, {(uint8_t)p});
+    ecs_set(world, player, PlayerId, {(uint8_t)p});
+    ref.players[p] = player;
+
+    init_all_player_zones(world, player, p, &ref);
+
+    GameState *gs_mut = ecs_singleton_get_mut(world, GameState);
+    gs_mut->players[p] = player;
+    gs_mut->zones[p] = ref.zones[p];
+
+    if (p == 1) {
+      grant_player_ikz_token(world, player);
+    }
+  }
+
+  // Second pass: Initialize decks with custom card arrays
+  const CardInfo *decks[2] = {player0_deck, player1_deck};
+  size_t deck_counts[2] = {player0_deck_count, player1_deck_count};
+
+  for (int p = 0; p < MAX_PLAYERS_PER_MATCH; p++) {
+    init_player_deck_custom(world, ref.players[p], decks[p], deck_counts[p],
+                            &ref.zones[p]);
+  }
+  register_action_context_singleton(world);
+
+  for (int p = 0; p < MAX_PLAYERS_PER_MATCH; p++) {
+    shuffle_deck(world, ref.zones[p].deck);
+    move_cards_to_zone(world, ref.zones[p].deck, ref.zones[p].hand,
+                       INITIAL_DRAW_COUNT, NULL);
+  }
+
+  init_all_queries(world);
+  init_all_system(world);
+
+  return world;
+}
