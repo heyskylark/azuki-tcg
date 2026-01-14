@@ -3,16 +3,15 @@
 import { useState, useCallback } from "react";
 import { useWebSocket } from "@/contexts/WebSocketContext";
 import { useRoomConnection } from "@/hooks/useRoomConnection";
-import { Navbar } from "@/components/layout/Navbar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { ConnectionIndicator } from "@/app/rooms/[id]/components/ConnectionIndicator";
-import { PasswordPrompt } from "@/app/rooms/[id]/components/PasswordPrompt";
-import { WaitingForPlayers } from "@/app/rooms/[id]/components/WaitingForPlayers";
-import { DeckSelection } from "@/app/rooms/[id]/components/DeckSelection";
-import { ReadyCheck } from "@/app/rooms/[id]/components/ReadyCheck";
+import { ConnectionIndicator } from "@/app/(main)/rooms/[id]/components/ConnectionIndicator";
+import { PasswordPrompt } from "@/app/(main)/rooms/[id]/components/PasswordPrompt";
+import { WaitingForPlayers } from "@/app/(main)/rooms/[id]/components/WaitingForPlayers";
+import { DeckSelection } from "@/app/(main)/rooms/[id]/components/DeckSelection";
+import { ReadyCheck } from "@/app/(main)/rooms/[id]/components/ReadyCheck";
 import type { AuthenticatedUser } from "@tcg/backend-core/types/auth";
 
 export interface RoomData {
@@ -85,94 +84,74 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
   // Render password prompt if needed
   if (needsPassword) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <main className="container mx-auto px-4 py-8">
-          <PasswordPrompt
-            roomId={initialRoom.id}
-            onSubmit={handleJoinWithPassword}
-            isLoading={connectionState === "joining"}
-            error={error}
-          />
-        </main>
-      </div>
+      <PasswordPrompt
+        roomId={initialRoom.id}
+        onSubmit={handleJoinWithPassword}
+        isLoading={connectionState === "joining"}
+        error={error}
+      />
     );
   }
 
   // Render loading state while joining/connecting
   if (connectionState === "joining" || connectionState === "connecting") {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <main className="container mx-auto px-4 py-8">
-          <Card className="max-w-2xl mx-auto">
-            <CardHeader>
-              <CardTitle>Connecting to Room...</CardTitle>
-              <CardDescription>Please wait while we connect you to the game.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-            </CardContent>
-          </Card>
-        </main>
-      </div>
+      <Card className="max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle>Connecting to Room...</CardTitle>
+          <CardDescription>Please wait while we connect you to the game.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+        </CardContent>
+      </Card>
     );
   }
 
   // Render error state
   if (connectionState === "error" && !roomState) {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <main className="container mx-auto px-4 py-8">
-          <Card className="max-w-2xl mx-auto">
-            <CardHeader>
-              <CardTitle>Connection Error</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Alert variant="destructive">
-                <AlertDescription>{error || "Failed to connect to room"}</AlertDescription>
-              </Alert>
-              <Button onClick={() => join()}>Try Again</Button>
-            </CardContent>
-          </Card>
-        </main>
-      </div>
+      <Card className="max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle>Connection Error</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert variant="destructive">
+            <AlertDescription>{error || "Failed to connect to room"}</AlertDescription>
+          </Alert>
+          <Button onClick={() => join()}>Try Again</Button>
+        </CardContent>
+      </Card>
     );
   }
 
   // Render inactive room state (no WebSocket connection needed)
   if (connectionState === "inactive") {
     return (
-      <div className="min-h-screen bg-background">
-        <Navbar />
-        <main className="container mx-auto px-4 py-8">
-          <Card className="max-w-4xl mx-auto">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Room</CardTitle>
-                  <CardDescription>Room ID: {initialRoom.id}</CardDescription>
-                </div>
-                <Badge variant="outline">
-                  {initialRoom.status.replace(/_/g, " ")}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <div className="text-2xl font-bold mb-4">Room Ended</div>
-                <p className="text-muted-foreground">
-                  This room is no longer active ({initialRoom.status.toLowerCase()}).
-                </p>
-                <Button className="mt-4" onClick={() => window.location.href = "/dashboard"}>
-                  Back to Dashboard
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </main>
-      </div>
+      <Card className="max-w-4xl mx-auto">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Room</CardTitle>
+              <CardDescription>Room ID: {initialRoom.id}</CardDescription>
+            </div>
+            <Badge variant="outline">
+              {initialRoom.status.replace(/_/g, " ")}
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <div className="text-2xl font-bold mb-4">Room Ended</div>
+            <p className="text-muted-foreground">
+              This room is no longer active ({initialRoom.status.toLowerCase()}).
+            </p>
+            <Button className="mt-4" onClick={() => window.location.href = "/dashboard"}>
+              Back to Dashboard
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -289,38 +268,33 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <main className="container mx-auto px-4 py-8">
-        <Card className="max-w-4xl mx-auto">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Room</CardTitle>
-                <CardDescription>Room ID: {initialRoom.id}</CardDescription>
-              </div>
-              <div className="flex items-center gap-4">
-                <ConnectionIndicator status={wsStatus} />
-                <div className="flex gap-2">
-                  <Badge
-                    variant={
-                      displayStatus === "WAITING_FOR_PLAYERS"
-                        ? "default"
-                        : displayStatus === "DECK_SELECTION" || displayStatus === "READY_CHECK"
-                        ? "secondary"
-                        : "outline"
-                    }
-                  >
-                    {displayStatus.replace(/_/g, " ")}
-                  </Badge>
-                  {initialRoom.hasPassword && <Badge variant="outline">Private</Badge>}
-                </div>
-              </div>
+    <Card className="max-w-4xl mx-auto">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div>
+            <CardTitle>Room</CardTitle>
+            <CardDescription>Room ID: {initialRoom.id}</CardDescription>
+          </div>
+          <div className="flex items-center gap-4">
+            <ConnectionIndicator status={wsStatus} />
+            <div className="flex gap-2">
+              <Badge
+                variant={
+                  displayStatus === "WAITING_FOR_PLAYERS"
+                    ? "default"
+                    : displayStatus === "DECK_SELECTION" || displayStatus === "READY_CHECK"
+                    ? "secondary"
+                    : "outline"
+                }
+              >
+                {displayStatus.replace(/_/g, " ")}
+              </Badge>
+              {initialRoom.hasPassword && <Badge variant="outline">Private</Badge>}
             </div>
-          </CardHeader>
-          <CardContent>{renderContent()}</CardContent>
-        </Card>
-      </main>
-    </div>
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>{renderContent()}</CardContent>
+    </Card>
   );
 }

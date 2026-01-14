@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { Navbar } from "@/components/layout/Navbar";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DeckList } from "@/components/decks/DeckList";
 import { getServerUser } from "@/lib/auth/getServerUser";
@@ -24,24 +23,21 @@ export default async function DecksPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <main className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold">My Decks</h1>
-          <p className="text-muted-foreground mt-2">
-            View and manage your card decks
-          </p>
-        </div>
+    <>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold">My Decks</h1>
+        <p className="text-muted-foreground mt-2">
+          View and manage your card decks
+        </p>
+      </div>
 
-        {error && (
-          <Alert variant="destructive" className="mb-6">
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
+      {error && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
 
-        <DeckList decks={decks} />
-      </main>
-    </div>
+      <DeckList decks={decks} />
+    </>
   );
 }
