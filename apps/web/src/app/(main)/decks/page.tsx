@@ -1,11 +1,29 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { DeckList } from "@/components/decks/DeckList";
+import { DeckListSkeleton } from "@/components/decks/DeckListSkeleton";
 import { getServerUser } from "@/lib/auth/getServerUser";
 import { getUserDecks } from "@tcg/backend-core/services/DeckService";
 import type { DeckSummary } from "@tcg/backend-core/types/deck";
 
-export default async function DecksPage() {
+export default function DecksPage() {
+  return (
+    <>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold">My Decks</h1>
+        <p className="text-muted-foreground mt-2">
+          View and manage your card decks
+        </p>
+      </div>
+      <Suspense fallback={<DeckListSkeleton />}>
+        <DeckListTable />
+      </Suspense>
+    </>
+  );
+}
+
+async function DeckListTable() {
   const user = await getServerUser();
 
   if (!user) {
@@ -24,19 +42,11 @@ export default async function DecksPage() {
 
   return (
     <>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">My Decks</h1>
-        <p className="text-muted-foreground mt-2">
-          View and manage your card decks
-        </p>
-      </div>
-
       {error && (
         <Alert variant="destructive" className="mb-6">
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-
       <DeckList decks={decks} />
     </>
   );
