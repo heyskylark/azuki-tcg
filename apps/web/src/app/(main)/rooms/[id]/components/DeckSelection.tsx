@@ -1,12 +1,14 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { useDecks } from "@/hooks/useDecks";
 import { useCountdown } from "@/hooks/useCountdown";
+import { useRoom } from "@/contexts/RoomContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { PlayerCard } from "@/app/rooms/[id]/components/PlayerCard";
+import { PlayerCard } from "@/app/(main)/rooms/[id]/components/PlayerCard";
 import type { RoomStateMessage } from "@tcg/backend-core/types/ws";
 
 interface DeckSelectionProps {
@@ -26,8 +28,18 @@ export function DeckSelection({
   onSelectDeck,
   onReady,
 }: DeckSelectionProps) {
+  const router = useRouter();
+  const { leave } = useRoom();
   const { decks, isLoading: isLoadingDecks, error: decksError } = useDecks();
   const { secondsRemaining } = useCountdown(roomState.deckSelectionDeadline);
+
+  const handleLeaveRoom = () => {
+    if (!confirm("Are you sure you want to leave? The game will be aborted.")) {
+      return;
+    }
+    leave();
+    router.push("/dashboard");
+  };
 
   const currentPlayer = roomState.players[playerSlot];
   const opponentSlot = playerSlot === 0 ? 1 : 0;
@@ -139,8 +151,8 @@ export function DeckSelection({
         )}
       </div>
 
-      {/* Ready button */}
-      <div className="flex justify-center">
+      {/* Ready and Leave buttons */}
+      <div className="flex justify-center gap-4">
         <Button
           size="lg"
           onClick={handleReadyClick}
@@ -148,6 +160,13 @@ export function DeckSelection({
           variant={isReady ? "secondary" : "default"}
         >
           {isReady ? "Cancel Ready" : "Ready"}
+        </Button>
+        <Button
+          size="lg"
+          variant="outline"
+          onClick={handleLeaveRoom}
+        >
+          Leave Room
         </Button>
       </div>
     </div>

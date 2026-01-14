@@ -4,6 +4,7 @@ import {
   updatePlayerDeck,
   updatePlayerReady,
   verifyDeckOwnership,
+  removePlayer1FromRoom,
 } from "@tcg/backend-core/services/roomService";
 import type { SelectDeckMessage, ReadyMessage } from "@tcg/backend-core/types/ws";
 
@@ -12,10 +13,13 @@ import type { ConnectionInfo } from "@/state/types";
 import { getRoomChannel, updateRoomChannelStatus } from "@/state/RoomRegistry";
 import { cancelReadyCountdown } from "@/state/TimerManager";
 import { sendJson } from "@/utils";
-import { broadcastRoomState } from "@/utils/broadcast";
+import { broadcastRoomState, getConnectedWebSockets } from "@/utils/broadcast";
 import {
   checkAndTransitionToReadyCheck,
   revertToDeckSelection,
+  transitionToDeckSelection,
+  transitionToAborted,
+  transitionToClosed,
 } from "@/handlers/stateTransitionHandler";
 import logger from "@/logger";
 
@@ -144,4 +148,132 @@ export async function handleReady(
       broadcastRoomState(channel);
     }
   }
+}
+
+export async function handleLeaveRoom(
+  ws: WebSocket<UserData>,
+  connectionInfo: ConnectionInfo
+): Promise<void> {
+  const { roomId, playerSlot } = connectionInfo;
+
+  const channel = getRoomChannel(roomId);
+  if (!channel) {
+    sendJson(ws, { type: "ERROR", code: "ROOM_NOT_FOUND", message: "Room channel not found" });
+    return;
+  }
+
+  // If player 1 leaves during WAITING_FOR_PLAYERS, just remove them from the room
+  if (channel.status === RoomStatus.WAITING_FOR_PLAYERS && playerSlot === 1) {
+    logger.info("Player 1 leaving room during WAITING_FOR_PLAYERS", { roomId });
+
+    // Remove player 1 from database
+    await removePlayer1FromRoom(roomId);
+
+    // Remove from channel
+    channel.players[1] = null;
+
+    // Broadcast updated state to remaining player
+    broadcastRoomState(channel);
+
+    // Close the leaving player's WebSocket
+    ws.close();
+
+    logger.info("Player 1 left room", { roomId });
+    return;
+  }
+
+  // For all other cases (owner leaving, or leaving during active phases), abort the room
+  logger.info("Player leaving room, aborting", { roomId, playerSlot });
+  await transitionToAborted(roomId, `Player ${playerSlot} left the room`);
+
+  // Close all WebSockets
+  const sockets = getConnectedWebSockets(channel);
+  for (const socket of sockets) {
+    socket.close();
+  }
+}
+
+export async function handleCloseRoom(
+  ws: WebSocket<UserData>,
+  connectionInfo: ConnectionInfo
+): Promise<void> {
+  const { roomId, playerSlot } = connectionInfo;
+
+  // Only owner (slot 0) can close the room
+  if (playerSlot !== 0) {
+    sendJson(ws, {
+      type: "ERROR",
+      code: "NOT_OWNER",
+      message: "Only the room owner can close the room",
+    });
+    return;
+  }
+
+  const channel = getRoomChannel(roomId);
+  if (!channel) {
+    sendJson(ws, { type: "ERROR", code: "ROOM_NOT_FOUND", message: "Room channel not found" });
+    return;
+  }
+
+  logger.info("Owner closing room", { roomId });
+
+  // Transition to CLOSED - this broadcasts ROOM_CLOSED to all players
+  await transitionToClosed(roomId, "Room closed by owner");
+
+  // Close all WebSockets
+  const sockets = getConnectedWebSockets(channel);
+  for (const socket of sockets) {
+    socket.close();
+  }
+}
+
+export async function handleStartGame(
+  ws: WebSocket<UserData>,
+  connectionInfo: ConnectionInfo
+): Promise<void> {
+  const { roomId, playerSlot } = connectionInfo;
+
+  // Only owner (slot 0) can start the game
+  if (playerSlot !== 0) {
+    sendJson(ws, {
+      type: "ERROR",
+      code: "NOT_OWNER",
+      message: "Only the room owner can start the game",
+    });
+    return;
+  }
+
+  const channel = getRoomChannel(roomId);
+  if (!channel) {
+    sendJson(ws, { type: "ERROR", code: "ROOM_NOT_FOUND", message: "Room channel not found" });
+    return;
+  }
+
+  // Only valid in WAITING_FOR_PLAYERS status
+  if (channel.status !== RoomStatus.WAITING_FOR_PLAYERS) {
+    sendJson(ws, {
+      type: "ERROR",
+      code: "INVALID_STATE",
+      message: "Game can only be started in WAITING_FOR_PLAYERS state",
+    });
+    return;
+  }
+
+  // Both players must be connected
+  const player0 = channel.players[0];
+  const player1 = channel.players[1];
+
+  if (!player0?.connected || !player1?.connected) {
+    sendJson(ws, {
+      type: "ERROR",
+      code: "PLAYERS_NOT_READY",
+      message: "Both players must be connected to start the game",
+    });
+    return;
+  }
+
+  logger.info("Owner starting game", { roomId });
+
+  // Transition to DECK_SELECTION
+  await transitionToDeckSelection(roomId);
 }

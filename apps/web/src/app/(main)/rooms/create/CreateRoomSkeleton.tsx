@@ -11,17 +11,23 @@ export function CreateRoomSkeleton() {
     <div className="max-w-md mx-auto">
       <Card>
         <CardHeader>
-          <Skeleton className="h-6 w-32" />
-          <Skeleton className="h-4 w-64 mt-2" />
+          {/* CardTitle: leading-none font-semibold = ~24px */}
+          <Skeleton className="h-6 w-28" />
+          {/* CardDescription: text-sm = 20px line height */}
+          <Skeleton className="h-5 w-80 max-w-full" />
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Skeleton className="h-4 w-36" />
+            {/* Label: text-sm font-medium = 20px */}
+            <Skeleton className="h-5 w-36" />
+            {/* Input: h-10 */}
             <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-4 w-72" />
+            {/* Helper text: text-sm = 20px */}
+            <Skeleton className="h-5 w-72 max-w-full" />
           </div>
         </CardContent>
         <CardFooter>
+          {/* Button: h-10 */}
           <Skeleton className="h-10 w-full" />
         </CardFooter>
       </Card>

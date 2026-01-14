@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { authenticatedFetch } from "@/lib/api/authenticatedFetch";
+import { useRoom } from "@/contexts/RoomContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { PlayerCard } from "@/app/rooms/[id]/components/PlayerCard";
+import { PlayerCard } from "@/app/(main)/rooms/[id]/components/PlayerCard";
 import type { RoomStateMessage } from "@tcg/backend-core/types/ws";
 
 interface WaitingForPlayersProps {
@@ -27,9 +28,12 @@ export function WaitingForPlayers({
   hasPassword,
 }: WaitingForPlayersProps) {
   const router = useRouter();
+  const { leave, close, startGame } = useRoom();
   const [newPassword, setNewPassword] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const player1Connected = roomState.players[1]?.connected ?? false;
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -58,29 +62,24 @@ export function WaitingForPlayers({
     }
   };
 
-  const handleCloseRoom = async () => {
+  const handleCloseRoom = () => {
     if (!confirm("Are you sure you want to close this room?")) {
       return;
     }
+    close();
+    router.push("/dashboard");
+  };
 
-    setIsUpdating(true);
-    setError(null);
-
-    try {
-      const response = await authenticatedFetch(`/api/rooms/${roomId}`, {
-        method: "DELETE",
-      });
-
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || "Failed to close room");
-      }
-
-      router.push("/dashboard");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to close room");
-      setIsUpdating(false);
+  const handleLeaveRoom = () => {
+    if (!confirm("Are you sure you want to leave this room?")) {
+      return;
     }
+    leave();
+    router.push("/dashboard");
+  };
+
+  const handleStartGame = () => {
+    startGame();
   };
 
   return (
@@ -133,7 +132,7 @@ export function WaitingForPlayers({
         />
       </div>
 
-      {isOwner && (
+      {isOwner ? (
         <>
           <Separator />
           <div className="space-y-4">
@@ -148,9 +147,7 @@ export function WaitingForPlayers({
                     id="newPassword"
                     type="password"
                     placeholder={
-                      hasPassword
-                        ? "New password or leave empty to remove"
-                        : "Set a password"
+                      hasPassword ? "New password or leave empty to remove" : "Set a password"
                     }
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
@@ -162,12 +159,26 @@ export function WaitingForPlayers({
                 </div>
               </div>
             </form>
-            <Button
-              variant="destructive"
-              onClick={handleCloseRoom}
-              disabled={isUpdating}
-            >
-              Close Room
+            <div className="flex gap-2">
+              <Button
+                onClick={handleStartGame}
+                disabled={!player1Connected}
+                className="flex-1"
+              >
+                {player1Connected ? "Start Game" : "Waiting for Player 2..."}
+              </Button>
+              <Button variant="destructive" onClick={handleCloseRoom} disabled={isUpdating}>
+                Close Room
+              </Button>
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          <Separator />
+          <div className="flex justify-end">
+            <Button variant="outline" onClick={handleLeaveRoom}>
+              Leave Room
             </Button>
           </div>
         </>

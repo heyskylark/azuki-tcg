@@ -1,7 +1,5 @@
-"use client";
-
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -17,8 +15,6 @@ interface ActiveRoomCardProps {
 }
 
 export function ActiveRoomCard({ roomId }: ActiveRoomCardProps) {
-  const router = useRouter();
-
   return (
     <div className="max-w-md mx-auto">
       <Card>
@@ -35,9 +31,9 @@ export function ActiveRoomCard({ roomId }: ActiveRoomCardProps) {
           </Alert>
         </CardContent>
         <CardFooter>
-          <Button className="w-full" onClick={() => router.push(`/rooms/${roomId}`)}>
+          <Link href={`/rooms/${roomId}`} className={buttonVariants({ className: "w-full" })}>
             Go to Room
-          </Button>
+          </Link>
         </CardFooter>
       </Card>
     </div>

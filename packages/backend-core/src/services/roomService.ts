@@ -318,6 +318,24 @@ export async function updatePlayerReady(
   return updatedRoom;
 }
 
+export async function removePlayer1FromRoom(
+  roomId: string,
+  database: Database = db
+): Promise<RoomData> {
+  const updatedRoom = await database
+    .update(Rooms)
+    .set({ player1Id: null })
+    .where(eq(Rooms.id, roomId))
+    .returning()
+    .then((results) => results[0]);
+
+  if (!updatedRoom) {
+    throw new RoomNotFoundError();
+  }
+
+  return updatedRoom;
+}
+
 export async function verifyDeckOwnership(
   userId: string,
   deckId: string,

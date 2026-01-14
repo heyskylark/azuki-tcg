@@ -62,7 +62,7 @@ export function CreateRoomForm() {
             Start a new game room. Add a password to make it private.
           </CardDescription>
         </CardHeader>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="space-y-6">
           <CardContent className="space-y-4">
             {error && (
               <Alert variant="destructive">

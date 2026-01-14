@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { useWebSocket } from "@/contexts/WebSocketContext";
-import { useRoomConnection } from "@/hooks/useRoomConnection";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { useRoom } from "@/contexts/RoomContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -30,28 +29,85 @@ interface RoomClientProps {
   user: AuthenticatedUser;
 }
 
+const INACTIVE_ROOM_STATUSES = ["COMPLETED", "CLOSED", "ABORTED"];
+
 export function RoomClient({ initialRoom, user }: RoomClientProps) {
-  const { status: wsStatus, send } = useWebSocket();
+  const {
+    activeRoom,
+    roomState,
+    connectionStatus,
+    error,
+    join,
+    send,
+    clearError,
+  } = useRoom();
 
   const isInRoom =
     initialRoom.player0Id === user.id || initialRoom.player1Id === user.id;
   const isOwner = initialRoom.player0Id === user.id;
+  const isRoomInactive = INACTIVE_ROOM_STATUSES.includes(initialRoom.status);
+  const playerSlot = activeRoom?.playerSlot ?? null;
 
-  const {
-    connectionState,
-    error,
-    playerSlot,
-    roomState,
-    needsPassword,
-    join,
-    clearError,
-  } = useRoomConnection({
-    roomId: initialRoom.id,
-    userId: user.id,
-    isInRoom,
-    hasPassword: initialRoom.hasPassword,
-    roomStatus: initialRoom.status,
-  });
+  const [needsPassword, setNeedsPassword] = useState(false);
+  const [isJoining, setIsJoining] = useState(false);
+  const hasAttemptedJoin = useRef(false);
+
+  // Auto-join on mount if conditions are right
+  useEffect(() => {
+    if (hasAttemptedJoin.current) {
+      return;
+    }
+
+    // Don't join inactive rooms
+    if (isRoomInactive) {
+      return;
+    }
+
+    // If already connected to this room, don't rejoin
+    if (activeRoom?.id === initialRoom.id && connectionStatus === "connected") {
+      return;
+    }
+
+    // If already connecting or joining, wait
+    if (connectionStatus === "connecting" || isJoining) {
+      return;
+    }
+
+    const doJoin = async () => {
+      if (isInRoom) {
+        // User is already in the room, auto-join without password
+        hasAttemptedJoin.current = true;
+        setIsJoining(true);
+        await join(initialRoom.id);
+        setIsJoining(false);
+      } else if (!initialRoom.hasPassword) {
+        // Room doesn't require password, auto-join
+        hasAttemptedJoin.current = true;
+        setIsJoining(true);
+        await join(initialRoom.id);
+        setIsJoining(false);
+      } else {
+        // Room requires password and user is not in room
+        setNeedsPassword(true);
+      }
+    };
+
+    doJoin();
+  }, [isInRoom, initialRoom.hasPassword, initialRoom.id, join, connectionStatus, activeRoom?.id, isRoomInactive, isJoining]);
+
+  // Derive connection state for UI
+  type ConnectionState = "idle" | "joining" | "connecting" | "connected" | "error" | "inactive";
+  const connectionState: ConnectionState = isRoomInactive
+    ? "inactive"
+    : isJoining
+      ? "joining"
+      : connectionStatus === "connecting"
+        ? "connecting"
+        : connectionStatus === "connected" && activeRoom?.id === initialRoom.id
+          ? "connected"
+          : connectionStatus === "error" || error
+            ? "error"
+            : "idle";
 
   // Track locally selected deck (before server confirmation)
   const [selectedDeckId, setSelectedDeckId] = useState<string | null>(null);
@@ -73,9 +129,14 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
 
   const handleJoinWithPassword = useCallback(
     async (password: string) => {
-      await join(password);
+      setIsJoining(true);
+      const success = await join(initialRoom.id, password);
+      setIsJoining(false);
+      if (success) {
+        setNeedsPassword(false);
+      }
     },
-    [join]
+    [join, initialRoom.id]
   );
 
   // Determine current display status
@@ -119,7 +180,7 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
           <Alert variant="destructive">
             <AlertDescription>{error || "Failed to connect to room"}</AlertDescription>
           </Alert>
-          <Button onClick={() => join()}>Try Again</Button>
+          <Button onClick={() => join(initialRoom.id)}>Try Again</Button>
         </CardContent>
       </Card>
     );
@@ -276,7 +337,7 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
             <CardDescription>Room ID: {initialRoom.id}</CardDescription>
           </div>
           <div className="flex items-center gap-4">
-            <ConnectionIndicator status={wsStatus} />
+            <ConnectionIndicator status={connectionStatus} />
             <div className="flex gap-2">
               <Badge
                 variant={

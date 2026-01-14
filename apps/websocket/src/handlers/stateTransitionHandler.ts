@@ -170,6 +170,32 @@ export async function transitionToInMatch(roomId: string, rngSeed: number): Prom
   }
 }
 
+export async function transitionToClosed(roomId: string, reason: string): Promise<void> {
+  const channel = getRoomChannel(roomId);
+  if (!channel) {
+    logger.warn("Cannot transition to CLOSED: channel not found", { roomId });
+    return;
+  }
+
+  clearAllTimersForRoom(roomId);
+
+  await updateRoomStatus(roomId, RoomStatus.CLOSED);
+
+  updateRoomChannelStatus(roomId, {
+    status: RoomStatus.CLOSED,
+  });
+
+  // Send ROOM_CLOSED message to all connected players
+  broadcastToRoom(channel, {
+    type: "ROOM_CLOSED",
+    reason,
+  });
+
+  removeRoomChannel(roomId);
+
+  logger.info("Room transitioned to CLOSED", { roomId, reason });
+}
+
 export async function transitionToAborted(roomId: string, reason: string): Promise<void> {
   const channel = getRoomChannel(roomId);
   if (!channel) {

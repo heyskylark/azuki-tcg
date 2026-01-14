@@ -5,7 +5,10 @@ export interface ClientMessage {
     | "READY"
     | "GAME_ACTION"
     | "FORFEIT"
-    | "PING";
+    | "PING"
+    | "LEAVE_ROOM"
+    | "CLOSE_ROOM"
+    | "START_GAME";
 }
 
 export interface SelectDeckMessage extends ClientMessage {
@@ -31,11 +34,24 @@ export interface PingMessage extends ClientMessage {
   type: "PING";
 }
 
+export interface LeaveRoomMessage extends ClientMessage {
+  type: "LEAVE_ROOM";
+}
+
+export interface CloseRoomMessage extends ClientMessage {
+  type: "CLOSE_ROOM";
+}
+
+export interface StartGameMessage extends ClientMessage {
+  type: "START_GAME";
+}
+
 // WebSocket message types - Server to Client
 export interface ServerMessage {
   type:
     | "CONNECTION_ACK"
     | "ROOM_STATE"
+    | "ROOM_CLOSED"
     | "GAME_SNAPSHOT"
     | "GAME_LOG_BATCH"
     | "GAME_OVER"
@@ -57,6 +73,11 @@ export interface ErrorMessage extends ServerMessage {
 
 export interface PongMessage extends ServerMessage {
   type: "PONG";
+}
+
+export interface RoomClosedMessage extends ServerMessage {
+  type: "ROOM_CLOSED";
+  reason: string;
 }
 
 export interface PlayerInfo {

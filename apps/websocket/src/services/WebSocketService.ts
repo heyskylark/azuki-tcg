@@ -41,7 +41,13 @@ import {
 } from "@/state/TimerManager";
 import { broadcastRoomState } from "@/utils/broadcast";
 import { transitionToDeckSelection, transitionToAborted } from "@/handlers/stateTransitionHandler";
-import { handleSelectDeck, handleReady } from "@/handlers/roomMessageHandler";
+import {
+  handleSelectDeck,
+  handleReady,
+  handleLeaveRoom,
+  handleCloseRoom,
+  handleStartGame,
+} from "@/handlers/roomMessageHandler";
 
 const INACTIVE_ROOM_STATUSES = [
   RoomStatus.COMPLETED,
@@ -86,7 +92,9 @@ export class WebSocketService {
       return;
     }
 
+    let isAborted = false;
     res.onAborted(() => {
+      isAborted = true;
       logger.debug("WebSocket upgrade aborted");
     });
 
@@ -95,6 +103,7 @@ export class WebSocketService {
         const { roomId, playerSlot, sub: userId } = payload;
 
         const room = await findRoomById(roomId);
+        if (isAborted) return;
         if (!room) {
           logger.warn("WebSocket upgrade rejected: room not found", { roomId });
           res.cork(() => {
@@ -126,6 +135,7 @@ export class WebSocketService {
         }
 
         const user = await findUserById(userId);
+        if (isAborted) return;
         if (!user) {
           logger.warn("WebSocket upgrade rejected: user not found", { userId });
           res.cork(() => {
@@ -152,6 +162,7 @@ export class WebSocketService {
         logger.debug("WebSocket upgrade completed", { url, userId, roomId, playerSlot });
       })
       .catch((error) => {
+        if (isAborted) return;
         logger.warn("WebSocket upgrade rejected: token validation failed", { error: String(error) });
         res.cork(() => {
           res.writeStatus("401 Unauthorized").end("Invalid or expired token");
@@ -231,16 +242,9 @@ export class WebSocketService {
     };
     sendJson(ws, ackMessage);
 
-    const shouldTransitionToDeckSelection =
-      room.status === RoomStatus.WAITING_FOR_PLAYERS &&
-      playerSlot === 1 &&
-      channel.players[0]?.connected;
-
-    if (shouldTransitionToDeckSelection) {
-      await transitionToDeckSelection(roomId);
-    } else {
-      broadcastRoomState(channel);
-    }
+    // Broadcast room state to all connected players
+    // Note: Transition to DECK_SELECTION is now triggered by owner via START_GAME message
+    broadcastRoomState(channel);
 
     // If room is IN_MATCH, send game snapshot for reconnection
     if (room.status === RoomStatus.IN_MATCH) {
@@ -312,6 +316,30 @@ export class WebSocketService {
         await handleForfeit(connectionInfo.roomId, connectionInfo.playerSlot);
         break;
 
+      case "LEAVE_ROOM":
+        if (!connectionInfo) {
+          sendJson(ws, { type: "ERROR", code: "NOT_AUTHENTICATED", message: "Not authenticated" });
+          return;
+        }
+        await handleLeaveRoom(ws, connectionInfo);
+        break;
+
+      case "CLOSE_ROOM":
+        if (!connectionInfo) {
+          sendJson(ws, { type: "ERROR", code: "NOT_AUTHENTICATED", message: "Not authenticated" });
+          return;
+        }
+        await handleCloseRoom(ws, connectionInfo);
+        break;
+
+      case "START_GAME":
+        if (!connectionInfo) {
+          sendJson(ws, { type: "ERROR", code: "NOT_AUTHENTICATED", message: "Not authenticated" });
+          return;
+        }
+        await handleStartGame(ws, connectionInfo);
+        break;
+
       default:
         logger.warn("Unknown message type", { type: parsed.type });
         sendJson(ws, {
@@ -366,7 +394,8 @@ export class WebSocketService {
 
     const otherSlot = playerSlot === 0 ? 1 : 0;
     const otherPlayer = channel.players[otherSlot];
-    const bothDisconnected = !otherPlayer?.connected;
+    // Only consider "both disconnected" if the other player slot was actually filled
+    const bothDisconnected = otherPlayer !== null && !otherPlayer.connected;
 
     if (bothDisconnected) {
       logger.info("Both players disconnected, aborting room", { roomId });
