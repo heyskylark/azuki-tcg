@@ -58,6 +58,11 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
       return;
     }
 
+    // Don't re-process if already showing password prompt
+    if (needsPassword) {
+      return;
+    }
+
     // Don't join inactive rooms
     if (isRoomInactive) {
       return;
@@ -74,15 +79,15 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
     }
 
     const doJoin = async () => {
+      hasAttemptedJoin.current = true;
+
       if (isInRoom) {
         // User is already in the room, auto-join without password
-        hasAttemptedJoin.current = true;
         setIsJoining(true);
         await join(initialRoom.id);
         setIsJoining(false);
       } else if (!initialRoom.hasPassword) {
         // Room doesn't require password, auto-join
-        hasAttemptedJoin.current = true;
         setIsJoining(true);
         await join(initialRoom.id);
         setIsJoining(false);
@@ -93,7 +98,7 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
     };
 
     doJoin();
-  }, [isInRoom, initialRoom.hasPassword, initialRoom.id, join, connectionStatus, activeRoom?.id, isRoomInactive, isJoining]);
+  }, [isInRoom, initialRoom.hasPassword, initialRoom.id, join, connectionStatus, activeRoom?.id, isRoomInactive, isJoining, needsPassword]);
 
   // Derive connection state for UI
   type ConnectionState = "idle" | "joining" | "connecting" | "connected" | "error" | "inactive";

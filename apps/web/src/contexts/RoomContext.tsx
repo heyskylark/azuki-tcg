@@ -57,11 +57,15 @@ interface JoinResponse {
   isNewJoin: boolean;
 }
 
-interface ActiveRoomResponse {
+interface ActiveRoomData {
   id: string;
   status: string;
   player0Id: string | null;
   player1Id: string | null;
+}
+
+interface ActiveRoomResponse {
+  room: ActiveRoomData | null;
 }
 
 const INACTIVE_ROOM_STATUSES = ["COMPLETED", "CLOSED", "ABORTED"];
@@ -93,10 +97,11 @@ export function RoomProvider({ children }: RoomProviderProps) {
         const response = await authenticatedFetch("/api/users/rooms/active");
         if (response.ok) {
           const data: ActiveRoomResponse = await response.json();
-          if (data && !INACTIVE_ROOM_STATUSES.includes(data.status)) {
+          const room = data.room;
+          if (room && !INACTIVE_ROOM_STATUSES.includes(room.status)) {
             // User has an active room, determine their slot and auto-reconnect
-            const playerSlot = data.player0Id === user.id ? 0 : 1;
-            await joinInternal(data.id, playerSlot);
+            const playerSlot = room.player0Id === user.id ? 0 : 1;
+            await joinInternal(room.id, playerSlot);
           }
         }
       } catch {
