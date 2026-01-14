@@ -1,4 +1,4 @@
-import { pgTable, text, boolean, pgEnum, check, uuid } from "drizzle-orm/pg-core";
+import { pgTable, text, boolean, pgEnum, check, uuid, index } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import {
   uuidv7PrimaryKeyField,
@@ -25,6 +25,7 @@ export const Decks = pgTable(
     updatedAt: updatedAtTimestampField(),
   },
   (table) => [
+    index("idx_decks_user_id").on(table.userId),
     check(
       "system_deck_not_deleted",
       sql`NOT (${table.isSystemDeck} = true AND ${table.status} = 'DELETED')`

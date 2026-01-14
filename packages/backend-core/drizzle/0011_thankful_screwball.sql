@@ -1,0 +1,1 @@
+CREATE INDEX "idx_decks_user_id" ON "decks" USING btree ("user_id");
