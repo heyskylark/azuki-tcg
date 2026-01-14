@@ -50,9 +50,10 @@ export async function authenticatedFetch(
       return fetch(input, init);
     }
 
-    // Refresh failed, redirect to login
+    // Refresh failed, redirect to login with current path
     if (typeof window !== "undefined") {
-      window.location.href = "/login";
+      const currentPath = window.location.pathname;
+      window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
     }
   }
 

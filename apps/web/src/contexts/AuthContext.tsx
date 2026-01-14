@@ -25,11 +25,12 @@ interface AuthContextValue {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, redirectTo?: string) => Promise<void>;
   signup: (
     username: string,
     email: string,
-    password: string
+    password: string,
+    redirectTo?: string
   ) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -69,7 +70,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setIsLoading(false);
   }, [checkAuth]);
 
-  const login = async (email: string, password: string): Promise<void> => {
+  const login = async (
+    email: string,
+    password: string,
+    redirectTo = "/dashboard"
+  ): Promise<void> => {
     const response = await fetch("/api/users/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -89,13 +94,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
       email: data.user.email,
     });
 
-    router.push("/dashboard");
+    router.push(redirectTo);
   };
 
   const signup = async (
     username: string,
     email: string,
-    password: string
+    password: string,
+    redirectTo = "/dashboard"
   ): Promise<void> => {
     const response = await fetch("/api/users/auth/sign-up", {
       method: "POST",
@@ -116,7 +122,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       email: data.user.email,
     });
 
-    router.push("/dashboard");
+    router.push(redirectTo);
   };
 
   const logout = async (): Promise<void> => {
