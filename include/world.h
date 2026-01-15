@@ -24,7 +24,17 @@ ecs_world_t* azk_world_init_with_decks(
   size_t player1_deck_count
 );
 void azk_world_fini(ecs_world_t *world);
-void init_player_deck(ecs_world_t *world, ecs_entity_t player, DeckType deck_type, PlayerZones *zones);
-void init_player_deck_custom(ecs_world_t *world, ecs_entity_t player, const CardInfo *cards, size_t card_count, PlayerZones *zones);
+
+/**
+ * Initialize a player's deck with a predefined deck type.
+ * @return true on success, false on critical validation failure (missing leader/gate/etc)
+ */
+bool init_player_deck(ecs_world_t *world, ecs_entity_t player, DeckType deck_type, PlayerZones *zones);
+
+/**
+ * Initialize a player's deck with custom card data.
+ * @return true on success, false on critical validation failure (missing leader/gate/etc)
+ */
+bool init_player_deck_custom(ecs_world_t *world, ecs_entity_t player, const CardInfo *cards, size_t card_count, PlayerZones *zones);
 
 #endif

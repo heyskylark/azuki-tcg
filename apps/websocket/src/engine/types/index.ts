@@ -289,6 +289,7 @@ export interface GameLog {
 export interface CreateWorldResult {
   worldId: string;
   success: boolean;
+  error?: string;
 }
 
 export interface ActionResult {

@@ -50,13 +50,14 @@ export function loadNativeBinding(): NativeBinding {
 
   try {
     // Try to load the native module from the build output directory
-    const binding: NativeBinding = require("../native/build/Release/azuki_engine.node");
+    // Path is relative to compiled location (dist/engine/) not source (src/engine/)
+    const binding: NativeBinding = require("../../native/build/Release/azuki_engine.node");
     nativeBinding = binding;
     return binding;
   } catch (error) {
     // If Release build not found, try Debug
     try {
-      const binding: NativeBinding = require("../native/build/Debug/azuki_engine.node");
+      const binding: NativeBinding = require("../../native/build/Debug/azuki_engine.node");
       nativeBinding = binding;
       return binding;
     } catch {

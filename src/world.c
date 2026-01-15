@@ -8,6 +8,29 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
+
+// Global error buffer for reporting failures to callers
+#define AZK_ERROR_BUFFER_SIZE 256
+static char g_last_error[AZK_ERROR_BUFFER_SIZE] = {0};
+
+static void set_last_error(const char *fmt, ...) {
+  va_list args;
+  va_start(args, fmt);
+  vsnprintf(g_last_error, AZK_ERROR_BUFFER_SIZE, fmt, args);
+  va_end(args);
+}
+
+const char *azk_engine_get_last_error(void) {
+  if (g_last_error[0] == '\0') {
+    return NULL;
+  }
+  return g_last_error;
+}
+
+void azk_engine_clear_last_error(void) {
+  g_last_error[0] = '\0';
+}
 
 static const CardInfo shaoDeckCardInfo[18] = {
     {.card_id = CARD_DEF_STT02_001, .card_count = 1},
@@ -227,7 +250,11 @@ ecs_world_t *azk_world_init(uint32_t seed) {
   // This ensures passive observers can reference opponent zones
   for (int p = 0; p < MAX_PLAYERS_PER_MATCH; p++) {
     DeckType deck_type = random_deck_type(&rng_state);
-    init_player_deck(world, ref.players[p], deck_type, &ref.zones[p]);
+    if (!init_player_deck(world, ref.players[p], deck_type, &ref.zones[p])) {
+      cli_render_logf("Error: Failed to initialize deck for player %d", p);
+      ecs_fini(world);
+      return NULL;
+    }
   }
   register_action_context_singleton(world);
 
@@ -297,7 +324,7 @@ static void register_card(ecs_world_t *world, ecs_entity_t player,
   }
 }
 
-void init_player_deck(ecs_world_t *world, ecs_entity_t player,
+bool init_player_deck(ecs_world_t *world, ecs_entity_t player,
                       DeckType deck_type, PlayerZones *zones) {
   TotalZoneCounts total_counts = {0};
 
@@ -324,28 +351,34 @@ void init_player_deck(ecs_world_t *world, ecs_entity_t player,
 
   // Validate the final card distribution sizes
   if (total_counts.deck_size < REQUIRED_DECK_SIZE) {
-    cli_render_logf("Error: Deck size is less than required (%d < %d)",
-                    total_counts.deck_size, REQUIRED_DECK_SIZE);
-    exit(EXIT_FAILURE);
+    set_last_error("Deck size is less than required (%d < %d)",
+                   total_counts.deck_size, REQUIRED_DECK_SIZE);
+    cli_render_logf("Error: %s", g_last_error);
+    return false;
   }
   if (total_counts.leader_size < REQUIRED_LEADER_SIZE) {
-    cli_render_logf("Error: Leader size is less than required (%d < %d)",
-                    total_counts.leader_size, REQUIRED_LEADER_SIZE);
-    exit(EXIT_FAILURE);
+    set_last_error("Leader count is less than required (%d < %d)",
+                   total_counts.leader_size, REQUIRED_LEADER_SIZE);
+    cli_render_logf("Error: %s", g_last_error);
+    return false;
   }
   if (total_counts.gate_size < REQUIRED_GATE_SIZE) {
-    cli_render_logf("Error: Gate size is less than required (%d < %d)",
-                    total_counts.gate_size, REQUIRED_GATE_SIZE);
-    exit(EXIT_FAILURE);
+    set_last_error("Gate count is less than required (%d < %d)",
+                   total_counts.gate_size, REQUIRED_GATE_SIZE);
+    cli_render_logf("Error: %s", g_last_error);
+    return false;
   }
   if (total_counts.ikz_pile_size < REQUIRED_IKZ_PILE_SIZE) {
-    cli_render_logf("Error: IKZ pile size is less than required (%d < %d)",
-                    total_counts.ikz_pile_size, REQUIRED_IKZ_PILE_SIZE);
-    exit(EXIT_FAILURE);
+    set_last_error("IKZ pile size is less than required (%d < %d)",
+                   total_counts.ikz_pile_size, REQUIRED_IKZ_PILE_SIZE);
+    cli_render_logf("Error: %s", g_last_error);
+    return false;
   }
+
+  return true;
 }
 
-void init_player_deck_custom(ecs_world_t *world, ecs_entity_t player,
+bool init_player_deck_custom(ecs_world_t *world, ecs_entity_t player,
                              const CardInfo *cards, size_t card_count,
                              PlayerZones *zones) {
   TotalZoneCounts total_counts = {0};
@@ -357,25 +390,31 @@ void init_player_deck_custom(ecs_world_t *world, ecs_entity_t player,
 
   // Validate the final card distribution sizes
   if (total_counts.deck_size < REQUIRED_DECK_SIZE) {
-    cli_render_logf("Error: Deck size is less than required (%d < %d)",
-                    total_counts.deck_size, REQUIRED_DECK_SIZE);
-    exit(EXIT_FAILURE);
+    set_last_error("Deck size is less than required (%d < %d)",
+                   total_counts.deck_size, REQUIRED_DECK_SIZE);
+    cli_render_logf("Error: %s", g_last_error);
+    return false;
   }
   if (total_counts.leader_size < REQUIRED_LEADER_SIZE) {
-    cli_render_logf("Error: Leader size is less than required (%d < %d)",
-                    total_counts.leader_size, REQUIRED_LEADER_SIZE);
-    exit(EXIT_FAILURE);
+    set_last_error("Leader count is less than required (%d < %d)",
+                   total_counts.leader_size, REQUIRED_LEADER_SIZE);
+    cli_render_logf("Error: %s", g_last_error);
+    return false;
   }
   if (total_counts.gate_size < REQUIRED_GATE_SIZE) {
-    cli_render_logf("Error: Gate size is less than required (%d < %d)",
-                    total_counts.gate_size, REQUIRED_GATE_SIZE);
-    exit(EXIT_FAILURE);
+    set_last_error("Gate count is less than required (%d < %d)",
+                   total_counts.gate_size, REQUIRED_GATE_SIZE);
+    cli_render_logf("Error: %s", g_last_error);
+    return false;
   }
   if (total_counts.ikz_pile_size < REQUIRED_IKZ_PILE_SIZE) {
-    cli_render_logf("Error: IKZ pile size is less than required (%d < %d)",
-                    total_counts.ikz_pile_size, REQUIRED_IKZ_PILE_SIZE);
-    exit(EXIT_FAILURE);
+    set_last_error("IKZ pile size is less than required (%d < %d)",
+                   total_counts.ikz_pile_size, REQUIRED_IKZ_PILE_SIZE);
+    cli_render_logf("Error: %s", g_last_error);
+    return false;
   }
+
+  return true;
 }
 
 ecs_world_t *azk_world_init_with_decks(uint32_t seed,
@@ -428,8 +467,12 @@ ecs_world_t *azk_world_init_with_decks(uint32_t seed,
   size_t deck_counts[2] = {player0_deck_count, player1_deck_count};
 
   for (int p = 0; p < MAX_PLAYERS_PER_MATCH; p++) {
-    init_player_deck_custom(world, ref.players[p], decks[p], deck_counts[p],
-                            &ref.zones[p]);
+    if (!init_player_deck_custom(world, ref.players[p], decks[p], deck_counts[p],
+                                 &ref.zones[p])) {
+      cli_render_logf("Error: Failed to initialize custom deck for player %d", p);
+      ecs_fini(world);
+      return NULL;
+    }
   }
   register_action_context_singleton(world);
 

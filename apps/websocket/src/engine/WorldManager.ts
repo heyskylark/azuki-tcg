@@ -41,7 +41,9 @@ export function createGameWorld(
   const result = binding.createWorldWithDecks(seed, player0Deck, player1Deck);
 
   if (!result.success) {
-    throw new Error(`Failed to create world for room ${roomId}`);
+    const errorMsg = result.error ?? "Unknown error";
+    logger.error("Engine failed to create world", { roomId, error: errorMsg });
+    throw new Error(`Failed to create world for room ${roomId}: ${errorMsg}`);
   }
 
   const world: ActiveWorld = {

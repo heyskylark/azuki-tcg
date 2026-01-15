@@ -9,7 +9,8 @@
     "build": "tsc && tsc-alias --resolve-full-paths",
     "build:native": "cd native && node-gyp rebuild",
     "build:all": "yarn build:native && yarn build",
-    "start": "node dist/server.js"
+    "start": "node dist/server.js",
+    "test:engine": "tsx scripts/test-engine.ts"
   },
   "dependencies": {
     "@tcg/backend-core": "*",
