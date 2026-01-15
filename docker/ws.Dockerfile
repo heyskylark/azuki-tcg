@@ -1,4 +1,4 @@
-FROM node:20-slim AS builder
+FROM node:22-slim AS builder
 
 # Install build dependencies for C engine and native module
 RUN apt-get update && apt-get install -y \
@@ -41,7 +41,7 @@ RUN cd apps/websocket && yarn build:native
 RUN yarn core build && yarn ws build
 
 # Production image
-FROM node:20-slim
+FROM node:22-slim
 
 # Install runtime dependencies (ncurses for the engine)
 RUN apt-get update && apt-get install -y \

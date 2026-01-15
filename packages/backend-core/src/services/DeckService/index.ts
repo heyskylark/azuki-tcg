@@ -134,3 +134,69 @@ export async function getUserDecks(
     cardCount: Number(row.cardCount),
   }));
 }
+
+export interface DeckCardDetail {
+  cardCode: string;
+  name: string;
+  imageKey: string;
+  cardType: string;
+  attack: number | null;
+  health: number | null;
+  ikzCost: number | null;
+  quantity: number;
+}
+
+export interface DeckWithCards {
+  id: string;
+  name: string;
+  isSystemDeck: boolean;
+  cards: DeckCardDetail[];
+}
+
+/**
+ * Get a deck with all its cards and card details.
+ * Returns null if deck not found or deleted.
+ */
+export async function getDeckWithCards(
+  deckId: string,
+  database: Database = db
+): Promise<DeckWithCards | null> {
+  // First get the deck
+  const deck = await database
+    .select({
+      id: Decks.id,
+      name: Decks.name,
+      isSystemDeck: Decks.isSystemDeck,
+    })
+    .from(Decks)
+    .where(and(eq(Decks.id, deckId), ne(Decks.status, DeckStatus.DELETED)))
+    .limit(1)
+    .then((results) => results[0]);
+
+  if (!deck) {
+    return null;
+  }
+
+  // Get all cards in the deck with their details
+  const cards = await database
+    .select({
+      cardCode: Cards.cardCode,
+      name: Cards.name,
+      imageKey: Cards.imageKey,
+      cardType: Cards.cardType,
+      attack: Cards.attack,
+      health: Cards.health,
+      ikzCost: Cards.ikzCost,
+      quantity: DeckCardJunctions.quantity,
+    })
+    .from(DeckCardJunctions)
+    .innerJoin(Cards, eq(DeckCardJunctions.cardId, Cards.id))
+    .where(eq(DeckCardJunctions.deckId, deckId));
+
+  return {
+    id: deck.id,
+    name: deck.name,
+    isSystemDeck: deck.isSystemDeck,
+    cards,
+  };
+}

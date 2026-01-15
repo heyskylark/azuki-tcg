@@ -12,7 +12,7 @@ import type { SnapshotActionMask } from "@tcg/backend-core/types/ws";
 export interface ResolvedCard {
   cardCode: string; // From snapshot cardId field (e.g., "STT01-001")
   cardDefId: number;
-  imageUrl: string; // Full URL: https://static-content.azuki.com/tcg/card_art/{imageKey}
+  imageUrl: string; // Full URL: https://azuki-tcg.s3.us-east-1.amazonaws.com/{imageKey}
   name: string;
   curAtk: number | null;
   curHp: number | null;
@@ -174,7 +174,7 @@ export interface AssetLoadingState {
 // Constants
 // ============================================
 
-export const STATIC_CDN_BASE = "https://static-content.azuki.com/tcg/card_art";
+export const STATIC_CDN_BASE = "https://azuki-tcg.s3.us-east-1.amazonaws.com";
 
 /**
  * Build full image URL from imageKey.

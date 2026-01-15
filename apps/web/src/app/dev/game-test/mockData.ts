@@ -1,607 +1,291 @@
 /**
- * Mock game state data for testing the 3D game renderer.
- * These represent different game scenarios that can be tested in isolation.
+ * Mock game state generator for testing the 3D game renderer.
+ * Uses real deck card data to create test scenarios.
  */
 
-import type { GameState, DeckCard } from "@/types/game";
+import type { GameState, DeckCard, ResolvedCard, ResolvedLeader, ResolvedGate, ResolvedIkz, ResolvedHandCard, ResolvedPlayerBoard } from "@/types/game";
 import { buildImageUrl } from "@/types/game";
 
 // ============================================
-// Mock Deck Cards (for asset loading)
+// Helper functions to create resolved cards
 // ============================================
 
-export const mockDeckCards: DeckCard[] = [
-  // Leaders
-  {
-    cardCode: "STT01-001",
-    imageKey: "stt01_001.png",
-    name: "Bobu Leader",
-    cardType: "LEADER",
-    attack: 3,
-    health: 25,
-    ikzCost: null,
-    quantity: 1,
-  },
-  {
-    cardCode: "STT02-001",
-    imageKey: "stt02_001.png",
-    name: "Beanz Leader",
-    cardType: "LEADER",
-    attack: 2,
-    health: 27,
-    ikzCost: null,
-    quantity: 1,
-  },
-  // Gates
-  {
-    cardCode: "STT01-002",
-    imageKey: "stt01_002.png",
-    name: "Bobu Gate",
-    cardType: "GATE",
-    attack: null,
-    health: null,
-    ikzCost: null,
-    quantity: 1,
-  },
-  {
-    cardCode: "STT02-002",
-    imageKey: "stt02_002.png",
-    name: "Beanz Gate",
-    cardType: "GATE",
-    attack: null,
-    health: null,
-    ikzCost: null,
-    quantity: 1,
-  },
-  // Entities
-  {
-    cardCode: "STT01-003",
-    imageKey: "stt01_003.png",
-    name: "Red Bean Warrior",
-    cardType: "ENTITY",
-    attack: 3,
-    health: 2,
-    ikzCost: 2,
-    quantity: 4,
-  },
-  {
-    cardCode: "STT01-004",
-    imageKey: "stt01_004.png",
-    name: "Spirit Guardian",
-    cardType: "ENTITY",
-    attack: 2,
-    health: 4,
-    ikzCost: 3,
-    quantity: 3,
-  },
-  {
-    cardCode: "STT01-005",
-    imageKey: "stt01_005.png",
-    name: "Fire Elemental",
-    cardType: "ENTITY",
-    attack: 4,
-    health: 3,
-    ikzCost: 4,
-    quantity: 2,
-  },
-  {
-    cardCode: "STT02-003",
-    imageKey: "stt02_003.png",
-    name: "Beanz Scout",
-    cardType: "ENTITY",
-    attack: 2,
-    health: 2,
-    ikzCost: 1,
-    quantity: 4,
-  },
-  {
-    cardCode: "STT02-004",
-    imageKey: "stt02_004.png",
-    name: "Forest Protector",
-    cardType: "ENTITY",
-    attack: 1,
-    health: 5,
-    ikzCost: 2,
-    quantity: 3,
-  },
-  // IKZ
-  {
-    cardCode: "IKZ-001",
-    imageKey: "ikz_001.png",
-    name: "Basic IKZ",
-    cardType: "IKZ",
-    attack: null,
-    health: null,
-    ikzCost: null,
-    quantity: 5,
-  },
-  {
-    cardCode: "IKZ-002",
-    imageKey: "ikz_002.png",
-    name: "Enhanced IKZ",
-    cardType: "EXTRA_IKZ",
-    attack: null,
-    health: null,
-    ikzCost: null,
-    quantity: 3,
-  },
-  // Spells
-  {
-    cardCode: "STT01-010",
-    imageKey: "stt01_010.png",
-    name: "Flame Burst",
-    cardType: "SPELL",
-    attack: null,
-    health: null,
-    ikzCost: 2,
-    quantity: 3,
-  },
-  {
-    cardCode: "STT02-010",
-    imageKey: "stt02_010.png",
-    name: "Nature's Blessing",
-    cardType: "SPELL",
-    attack: null,
-    health: null,
-    ikzCost: 1,
-    quantity: 3,
-  },
-];
+function findCardByType(cards: DeckCard[], cardType: string): DeckCard | undefined {
+  return cards.find((c) => c.cardType === cardType);
+}
 
-/**
- * Build a CardMapping from DeckCard for use in GameStateContext.
- */
-export function buildMockCardMappings(): Map<
-  string,
-  {
-    cardCode: string;
-    imageKey: string;
-    imageUrl: string;
-    name: string;
-    cardType: string;
-    attack: number | null;
-    health: number | null;
-    ikzCost: number | null;
-  }
-> {
-  const mappings = new Map();
-  for (const card of mockDeckCards) {
-    mappings.set(card.cardCode, {
-      cardCode: card.cardCode,
-      imageKey: card.imageKey,
-      imageUrl: buildImageUrl(card.imageKey),
-      name: card.name,
-      cardType: card.cardType,
-      attack: card.attack,
-      health: card.health,
-      ikzCost: card.ikzCost,
-    });
-  }
-  return mappings;
+function findCardsByType(cards: DeckCard[], cardType: string): DeckCard[] {
+  return cards.filter((c) => c.cardType === cardType);
+}
+
+function createResolvedCard(
+  card: DeckCard,
+  zoneIndex: number,
+  overrides: Partial<ResolvedCard> = {}
+): ResolvedCard {
+  return {
+    cardCode: card.cardCode,
+    cardDefId: zoneIndex + 1,
+    imageUrl: buildImageUrl(card.imageKey),
+    name: card.name,
+    curAtk: card.attack,
+    curHp: card.health,
+    tapped: false,
+    cooldown: false,
+    isFrozen: false,
+    isShocked: false,
+    isEffectImmune: false,
+    zoneIndex,
+    ...overrides,
+  };
+}
+
+function createResolvedLeader(card: DeckCard, hpOverride?: number): ResolvedLeader {
+  return {
+    cardCode: card.cardCode,
+    cardDefId: 1,
+    imageUrl: buildImageUrl(card.imageKey),
+    name: card.name,
+    curAtk: card.attack ?? 0,
+    curHp: hpOverride ?? card.health ?? 25,
+    tapped: false,
+    cooldown: false,
+  };
+}
+
+function createResolvedGate(card: DeckCard): ResolvedGate {
+  return {
+    cardCode: card.cardCode,
+    cardDefId: 2,
+    imageUrl: buildImageUrl(card.imageKey),
+    name: card.name,
+    tapped: false,
+    cooldown: false,
+  };
+}
+
+function createResolvedIkz(card: DeckCard, tapped = false): ResolvedIkz {
+  return {
+    cardCode: card.cardCode,
+    cardDefId: 0,
+    imageUrl: buildImageUrl(card.imageKey),
+    name: card.name,
+    tapped,
+    cooldown: false,
+  };
+}
+
+function createResolvedHandCard(card: DeckCard): ResolvedHandCard {
+  return {
+    cardCode: card.cardCode,
+    cardDefId: 0,
+    imageUrl: buildImageUrl(card.imageKey),
+    name: card.name,
+    type: card.cardType,
+    ikzCost: card.ikzCost ?? 0,
+  };
 }
 
 // ============================================
-// Mock Game States
+// Create board from deck cards
 // ============================================
 
-/**
- * Early game state - turn 3, some entities on board, both players have resources.
- */
-export const mockEarlyGameState: GameState = {
-  phase: "MAIN",
-  abilitySubphase: "",
-  activePlayer: 0,
-  turnNumber: 3,
+function createPlayerBoard(
+  deckCards: DeckCard[],
+  gardenCards: (ResolvedCard | null)[],
+  alleyCards: (ResolvedCard | null)[],
+  ikzCount: number,
+  tappedIkzCount: number,
+  leaderHp: number
+): ResolvedPlayerBoard {
+  const leader = findCardByType(deckCards, "LEADER");
+  const gate = findCardByType(deckCards, "GATE");
+  const ikzCard = findCardByType(deckCards, "IKZ") ?? findCardByType(deckCards, "EXTRA_IKZ");
 
-  myBoard: {
-    leader: {
-      cardCode: "STT01-001",
-      cardDefId: 2,
-      imageUrl: buildImageUrl("stt01_001.png"),
-      name: "Bobu Leader",
-      curAtk: 3,
-      curHp: 23,
-      tapped: false,
-      cooldown: false,
-    },
-    gate: {
-      cardCode: "STT01-002",
-      cardDefId: 3,
-      imageUrl: buildImageUrl("stt01_002.png"),
-      name: "Bobu Gate",
-      tapped: false,
-      cooldown: false,
-    },
-    garden: [
-      {
-        cardCode: "STT01-003",
-        cardDefId: 4,
-        imageUrl: buildImageUrl("stt01_003.png"),
-        name: "Red Bean Warrior",
-        curAtk: 3,
-        curHp: 2,
-        tapped: false,
-        cooldown: false,
-        isFrozen: false,
-        isShocked: false,
-        isEffectImmune: false,
-        zoneIndex: 0,
-      },
-      null,
-      {
-        cardCode: "STT01-004",
-        cardDefId: 5,
-        imageUrl: buildImageUrl("stt01_004.png"),
-        name: "Spirit Guardian",
-        curAtk: 2,
-        curHp: 4,
-        tapped: true, // Already attacked
-        cooldown: false,
-        isFrozen: false,
-        isShocked: false,
-        isEffectImmune: false,
-        zoneIndex: 2,
-      },
-      null,
-      null,
-    ],
-    alley: [null, null, null, null, null],
-    ikzArea: [
-      {
-        cardCode: "IKZ-001",
-        cardDefId: 0,
-        imageUrl: buildImageUrl("ikz_001.png"),
-        name: "Basic IKZ",
-        tapped: true,
-        cooldown: false,
-      },
-      {
-        cardCode: "IKZ-001",
-        cardDefId: 0,
-        imageUrl: buildImageUrl("ikz_001.png"),
-        name: "Basic IKZ",
-        tapped: false,
-        cooldown: false,
-      },
-      {
-        cardCode: "IKZ-001",
-        cardDefId: 0,
-        imageUrl: buildImageUrl("ikz_001.png"),
-        name: "Basic IKZ",
-        tapped: false,
-        cooldown: false,
-      },
-    ],
-    handCount: 4,
-    deckCount: 18,
-    discardCount: 2,
-    ikzPileCount: 2,
-    hasIkzToken: true,
-  },
+  // Create IKZ area
+  const ikzArea: ResolvedIkz[] = [];
+  for (let i = 0; i < ikzCount; i++) {
+    if (ikzCard) {
+      ikzArea.push(createResolvedIkz(ikzCard, i < tappedIkzCount));
+    }
+  }
 
-  opponentBoard: {
-    leader: {
-      cardCode: "STT02-001",
-      cardDefId: 19,
-      imageUrl: buildImageUrl("stt02_001.png"),
-      name: "Beanz Leader",
-      curAtk: 2,
-      curHp: 25,
-      tapped: false,
-      cooldown: false,
-    },
-    gate: {
-      cardCode: "STT02-002",
-      cardDefId: 20,
-      imageUrl: buildImageUrl("stt02_002.png"),
-      name: "Beanz Gate",
-      tapped: false,
-      cooldown: false,
-    },
-    garden: [
-      null,
-      {
-        cardCode: "STT02-003",
-        cardDefId: 21,
-        imageUrl: buildImageUrl("stt02_003.png"),
-        name: "Beanz Scout",
-        curAtk: 2,
-        curHp: 2,
-        tapped: false,
-        cooldown: false,
-        isFrozen: false,
-        isShocked: false,
-        isEffectImmune: false,
-        zoneIndex: 1,
-      },
-      null,
-      {
-        cardCode: "STT02-004",
-        cardDefId: 22,
-        imageUrl: buildImageUrl("stt02_004.png"),
-        name: "Forest Protector",
-        curAtk: 1,
-        curHp: 5,
-        tapped: false,
-        cooldown: false,
-        isFrozen: false,
-        isShocked: false,
-        isEffectImmune: false,
-        zoneIndex: 3,
-      },
-      null,
-    ],
-    alley: [null, null, null, null, null],
-    ikzArea: [
-      {
-        cardCode: "IKZ-001",
-        cardDefId: 0,
-        imageUrl: buildImageUrl("ikz_001.png"),
-        name: "Basic IKZ",
-        tapped: false,
-        cooldown: false,
-      },
-      {
-        cardCode: "IKZ-001",
-        cardDefId: 0,
-        imageUrl: buildImageUrl("ikz_001.png"),
-        name: "Basic IKZ",
-        tapped: false,
-        cooldown: false,
-      },
-    ],
+  return {
+    leader: leader ? createResolvedLeader(leader, leaderHp) : createResolvedLeader({
+      cardCode: "UNKNOWN",
+      imageKey: "unknown.png",
+      name: "Unknown Leader",
+      cardType: "LEADER",
+      attack: 2,
+      health: 25,
+      ikzCost: null,
+      quantity: 1,
+    }, leaderHp),
+    gate: gate ? createResolvedGate(gate) : createResolvedGate({
+      cardCode: "UNKNOWN",
+      imageKey: "unknown.png",
+      name: "Unknown Gate",
+      cardType: "GATE",
+      attack: null,
+      health: null,
+      ikzCost: null,
+      quantity: 1,
+    }),
+    garden: gardenCards,
+    alley: alleyCards,
+    ikzArea,
     handCount: 5,
-    deckCount: 17,
-    discardCount: 1,
-    ikzPileCount: 3,
+    deckCount: 20,
+    discardCount: 0,
+    ikzPileCount: 5,
     hasIkzToken: true,
-  },
+  };
+}
 
-  myHand: [
-    {
-      cardCode: "STT01-005",
-      cardDefId: 6,
-      imageUrl: buildImageUrl("stt01_005.png"),
-      name: "Fire Elemental",
-      type: "ENTITY",
-      ikzCost: 4,
-    },
-    {
-      cardCode: "STT01-010",
-      cardDefId: 11,
-      imageUrl: buildImageUrl("stt01_010.png"),
-      name: "Flame Burst",
-      type: "SPELL",
-      ikzCost: 2,
-    },
-    {
-      cardCode: "STT01-003",
-      cardDefId: 4,
-      imageUrl: buildImageUrl("stt01_003.png"),
-      name: "Red Bean Warrior",
-      type: "ENTITY",
-      ikzCost: 2,
-    },
-    {
-      cardCode: "IKZ-001",
-      cardDefId: 0,
-      imageUrl: buildImageUrl("ikz_001.png"),
-      name: "Basic IKZ",
-      type: "IKZ",
-      ikzCost: 0,
-    },
-  ],
+// ============================================
+// Scenario generators
+// ============================================
 
-  actionMask: null,
-  combatStack: [],
-};
+function generateEarlyGameState(deckCards: DeckCard[]): GameState {
+  const entities = findCardsByType(deckCards, "ENTITY");
+  const spells = findCardsByType(deckCards, "SPELL");
 
-/**
- * Combat phase state - entities are attacking.
- */
-export const mockCombatState: GameState = {
-  ...mockEarlyGameState,
-  phase: "COMBAT_DECLARED",
-  turnNumber: 5,
-};
+  // My garden: 2 entities
+  const myGarden: (ResolvedCard | null)[] = [
+    entities[0] ? createResolvedCard(entities[0], 0) : null,
+    null,
+    entities[1] ? createResolvedCard(entities[1], 2, { tapped: true }) : null,
+    null,
+    null,
+  ];
 
-/**
- * State with status effects - frozen and shocked entities.
- */
-export const mockStatusEffectsState: GameState = {
-  ...mockEarlyGameState,
-  phase: "MAIN",
-  turnNumber: 7,
-  myBoard: {
-    ...mockEarlyGameState.myBoard,
-    garden: [
-      {
-        cardCode: "STT01-003",
-        cardDefId: 4,
-        imageUrl: buildImageUrl("stt01_003.png"),
-        name: "Red Bean Warrior",
-        curAtk: 3,
-        curHp: 2,
-        tapped: false,
-        cooldown: false,
-        isFrozen: true, // Frozen!
-        isShocked: false,
-        isEffectImmune: false,
-        zoneIndex: 0,
-      },
-      {
-        cardCode: "STT01-004",
-        cardDefId: 5,
-        imageUrl: buildImageUrl("stt01_004.png"),
-        name: "Spirit Guardian",
-        curAtk: 2,
-        curHp: 3,
-        tapped: false,
-        cooldown: true, // On cooldown
-        isFrozen: false,
-        isShocked: true, // Shocked!
-        isEffectImmune: false,
-        zoneIndex: 1,
-      },
-      null,
-      null,
-      null,
-    ],
-  },
-};
+  // Opponent garden: 2 entities
+  const oppGarden: (ResolvedCard | null)[] = [
+    null,
+    entities[2] ? createResolvedCard(entities[2], 1) : null,
+    null,
+    entities[3] ? createResolvedCard(entities[3], 3) : null,
+    null,
+  ];
 
-/**
- * Full board state - both gardens have multiple entities.
- */
-export const mockFullBoardState: GameState = {
-  ...mockEarlyGameState,
-  phase: "MAIN",
-  turnNumber: 10,
-  myBoard: {
-    ...mockEarlyGameState.myBoard,
-    garden: [
-      {
-        cardCode: "STT01-003",
-        cardDefId: 4,
-        imageUrl: buildImageUrl("stt01_003.png"),
-        name: "Red Bean Warrior",
-        curAtk: 3,
-        curHp: 2,
-        tapped: false,
-        cooldown: false,
-        isFrozen: false,
-        isShocked: false,
-        isEffectImmune: false,
-        zoneIndex: 0,
-      },
-      {
-        cardCode: "STT01-004",
-        cardDefId: 5,
-        imageUrl: buildImageUrl("stt01_004.png"),
-        name: "Spirit Guardian",
-        curAtk: 2,
-        curHp: 4,
-        tapped: false,
-        cooldown: false,
-        isFrozen: false,
-        isShocked: false,
-        isEffectImmune: false,
-        zoneIndex: 1,
-      },
-      {
-        cardCode: "STT01-005",
-        cardDefId: 6,
-        imageUrl: buildImageUrl("stt01_005.png"),
-        name: "Fire Elemental",
-        curAtk: 4,
-        curHp: 3,
-        tapped: true,
-        cooldown: false,
-        isFrozen: false,
-        isShocked: false,
-        isEffectImmune: false,
-        zoneIndex: 2,
-      },
-      {
-        cardCode: "STT01-003",
-        cardDefId: 4,
-        imageUrl: buildImageUrl("stt01_003.png"),
-        name: "Red Bean Warrior",
-        curAtk: 3,
-        curHp: 1,
-        tapped: false,
-        cooldown: false,
-        isFrozen: false,
-        isShocked: false,
-        isEffectImmune: false,
-        zoneIndex: 3,
-      },
-      null,
-    ],
-    alley: [
-      {
-        cardCode: "STT01-004",
-        cardDefId: 5,
-        imageUrl: buildImageUrl("stt01_004.png"),
-        name: "Spirit Guardian",
-        curAtk: 2,
-        curHp: 4,
-        tapped: false,
-        cooldown: false,
-        isFrozen: false,
-        isShocked: false,
-        isEffectImmune: false,
-        zoneIndex: 0,
-      },
-      null,
-      null,
-      null,
-      null,
-    ],
-  },
-  opponentBoard: {
-    ...mockEarlyGameState.opponentBoard,
-    garden: [
-      {
-        cardCode: "STT02-003",
-        cardDefId: 21,
-        imageUrl: buildImageUrl("stt02_003.png"),
-        name: "Beanz Scout",
-        curAtk: 2,
-        curHp: 2,
-        tapped: false,
-        cooldown: false,
-        isFrozen: false,
-        isShocked: false,
-        isEffectImmune: false,
-        zoneIndex: 0,
-      },
-      {
-        cardCode: "STT02-004",
-        cardDefId: 22,
-        imageUrl: buildImageUrl("stt02_004.png"),
-        name: "Forest Protector",
-        curAtk: 1,
-        curHp: 5,
-        tapped: false,
-        cooldown: false,
-        isFrozen: false,
-        isShocked: false,
-        isEffectImmune: false,
-        zoneIndex: 1,
-      },
-      {
-        cardCode: "STT02-003",
-        cardDefId: 21,
-        imageUrl: buildImageUrl("stt02_003.png"),
-        name: "Beanz Scout",
-        curAtk: 2,
-        curHp: 2,
-        tapped: true,
-        cooldown: false,
-        isFrozen: false,
-        isShocked: false,
-        isEffectImmune: false,
-        zoneIndex: 2,
-      },
-      null,
-      {
-        cardCode: "STT02-004",
-        cardDefId: 22,
-        imageUrl: buildImageUrl("stt02_004.png"),
-        name: "Forest Protector",
-        curAtk: 1,
-        curHp: 3,
-        tapped: false,
-        cooldown: false,
-        isFrozen: false,
-        isShocked: false,
-        isEffectImmune: false,
-        zoneIndex: 4,
-      },
-    ],
-  },
-};
+  // My hand (entities and spells only, no IKZ cards)
+  const handCards: ResolvedHandCard[] = [];
+  if (entities[4]) handCards.push(createResolvedHandCard(entities[4]));
+  if (spells[0]) handCards.push(createResolvedHandCard(spells[0]));
+  if (entities[0]) handCards.push(createResolvedHandCard(entities[0]));
+
+  return {
+    phase: "MAIN",
+    abilitySubphase: "",
+    activePlayer: 0,
+    turnNumber: 3,
+    myBoard: createPlayerBoard(deckCards, myGarden, [null, null, null, null, null], 3, 1, 23),
+    opponentBoard: createPlayerBoard(deckCards, oppGarden, [null, null, null, null, null], 2, 0, 25),
+    myHand: handCards,
+    actionMask: null,
+    combatStack: [],
+  };
+}
+
+function generateCombatState(deckCards: DeckCard[]): GameState {
+  const baseState = generateEarlyGameState(deckCards);
+  return {
+    ...baseState,
+    phase: "COMBAT_DECLARED",
+    turnNumber: 5,
+  };
+}
+
+function generateStatusEffectsState(deckCards: DeckCard[]): GameState {
+  const entities = findCardsByType(deckCards, "ENTITY");
+  const spells = findCardsByType(deckCards, "SPELL");
+
+  // My garden: entities with status effects
+  const myGarden: (ResolvedCard | null)[] = [
+    entities[0] ? createResolvedCard(entities[0], 0, { isFrozen: true }) : null,
+    entities[1] ? createResolvedCard(entities[1], 1, { isShocked: true, cooldown: true }) : null,
+    null,
+    null,
+    null,
+  ];
+
+  // Opponent garden
+  const oppGarden: (ResolvedCard | null)[] = [
+    null,
+    entities[2] ? createResolvedCard(entities[2], 1) : null,
+    null,
+    entities[3] ? createResolvedCard(entities[3], 3) : null,
+    null,
+  ];
+
+  // My hand (entities and spells only, no IKZ cards)
+  const handCards: ResolvedHandCard[] = [];
+  if (entities[4]) handCards.push(createResolvedHandCard(entities[4]));
+  if (spells[0]) handCards.push(createResolvedHandCard(spells[0]));
+  if (entities[0]) handCards.push(createResolvedHandCard(entities[0]));
+
+  return {
+    phase: "MAIN",
+    abilitySubphase: "",
+    activePlayer: 0,
+    turnNumber: 7,
+    myBoard: createPlayerBoard(deckCards, myGarden, [null, null, null, null, null], 3, 1, 23),
+    opponentBoard: createPlayerBoard(deckCards, oppGarden, [null, null, null, null, null], 2, 0, 25),
+    myHand: handCards,
+    actionMask: null,
+    combatStack: [],
+  };
+}
+
+function generateFullBoardState(deckCards: DeckCard[]): GameState {
+  const entities = findCardsByType(deckCards, "ENTITY");
+  const spells = findCardsByType(deckCards, "SPELL");
+
+  // My garden: 4 entities
+  const myGarden: (ResolvedCard | null)[] = [
+    entities[0] ? createResolvedCard(entities[0], 0) : null,
+    entities[1] ? createResolvedCard(entities[1], 1) : null,
+    entities[2] ? createResolvedCard(entities[2], 2, { tapped: true }) : null,
+    entities[3] ? createResolvedCard(entities[3], 3, { curHp: 1 }) : null,
+    null,
+  ];
+
+  // My alley: 1 entity
+  const myAlley: (ResolvedCard | null)[] = [
+    entities[4] ? createResolvedCard(entities[4], 0) : null,
+    null,
+    null,
+    null,
+    null,
+  ];
+
+  // Opponent garden: 4 entities
+  const oppGarden: (ResolvedCard | null)[] = [
+    entities[0] ? createResolvedCard(entities[0], 0) : null,
+    entities[1] ? createResolvedCard(entities[1], 1) : null,
+    entities[2] ? createResolvedCard(entities[2], 2, { tapped: true }) : null,
+    null,
+    entities[3] ? createResolvedCard(entities[3], 4, { curHp: 3 }) : null,
+  ];
+
+  // My hand (entities and spells only, no IKZ cards)
+  const handCards: ResolvedHandCard[] = [];
+  if (entities[5]) handCards.push(createResolvedHandCard(entities[5]));
+  if (spells[0]) handCards.push(createResolvedHandCard(spells[0]));
+  if (spells[1]) handCards.push(createResolvedHandCard(spells[1]));
+
+  return {
+    phase: "MAIN",
+    abilitySubphase: "",
+    activePlayer: 0,
+    turnNumber: 10,
+    myBoard: createPlayerBoard(deckCards, myGarden, myAlley, 5, 2, 18),
+    opponentBoard: createPlayerBoard(deckCards, oppGarden, [null, null, null, null, null], 4, 1, 20),
+    myHand: handCards,
+    actionMask: null,
+    combatStack: [],
+  };
+}
 
 // ============================================
 // Scenario list for UI selector
@@ -636,17 +320,17 @@ export const mockScenarios: { id: MockScenario; name: string; description: strin
   },
 ];
 
-export function getMockGameState(scenario: MockScenario): GameState {
+export function getMockGameState(scenario: MockScenario, deckCards: DeckCard[]): GameState {
   switch (scenario) {
     case "early":
-      return mockEarlyGameState;
+      return generateEarlyGameState(deckCards);
     case "combat":
-      return mockCombatState;
+      return generateCombatState(deckCards);
     case "statusEffects":
-      return mockStatusEffectsState;
+      return generateStatusEffectsState(deckCards);
     case "fullBoard":
-      return mockFullBoardState;
+      return generateFullBoardState(deckCards);
     default:
-      return mockEarlyGameState;
+      return generateEarlyGameState(deckCards);
   }
 }

@@ -145,7 +145,7 @@ function resolveCard(
   card: SnapshotCard,
   cardMappings: Map<string, CardMapping>
 ): ResolvedCard {
-  const cardCode = card.cardId; // cardId IS the cardCode
+  const cardCode = card.cardId ?? "unknown"; // cardId IS the cardCode, null for hidden cards
   const mapping = cardMappings.get(cardCode);
 
   return {
@@ -168,7 +168,7 @@ function resolveLeader(
   leader: SnapshotLeader,
   cardMappings: Map<string, CardMapping>
 ): ResolvedLeader {
-  const cardCode = leader.cardId;
+  const cardCode = leader.cardId ?? "unknown";
   const mapping = cardMappings.get(cardCode);
 
   return {
@@ -187,7 +187,7 @@ function resolveGate(
   gate: SnapshotGate,
   cardMappings: Map<string, CardMapping>
 ): ResolvedGate {
-  const cardCode = gate.cardId;
+  const cardCode = gate.cardId ?? "unknown";
   const mapping = cardMappings.get(cardCode);
 
   return {
@@ -204,7 +204,7 @@ function resolveIkz(
   ikz: SnapshotIkz,
   cardMappings: Map<string, CardMapping>
 ): ResolvedIkz {
-  const cardCode = ikz.cardId;
+  const cardCode = ikz.cardId ?? "unknown";
   const mapping = cardMappings.get(cardCode);
 
   return {
@@ -221,7 +221,7 @@ function resolveHandCard(
   card: SnapshotHandCard,
   cardMappings: Map<string, CardMapping>
 ): ResolvedHandCard {
-  const cardCode = card.cardId;
+  const cardCode = card.cardId ?? "unknown";
   const mapping = cardMappings.get(cardCode);
 
   return {
