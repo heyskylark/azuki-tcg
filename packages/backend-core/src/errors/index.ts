@@ -100,6 +100,15 @@ export class UsernameAlreadyExistsError extends ApiError {
   }
 }
 
+// Deck errors
+
+export class DeckNotFoundError extends ApiError {
+  constructor() {
+    super("Deck not found", 404);
+    this.name = "DeckNotFoundError";
+  }
+}
+
 // Room errors
 
 export class RoomNotFoundError extends ApiError {

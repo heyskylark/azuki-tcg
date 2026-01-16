@@ -255,11 +255,11 @@ The project includes a web service for online play, consisting of a WebSocket se
 
 ### Node.js Version
 
-**Requires Node.js 20 LTS** (uWebSockets.js doesn't support Node 24+).
+**Requires Node.js 22 LTS** (uWebSockets.js doesn't support Node 24+).
 
 ```bash
 # Using nvm (recommended)
-nvm use 20
+nvm use 22
 
 # Or check .nvmrc file
 cat .nvmrc
@@ -646,7 +646,7 @@ azuki-tcg/
 ├── docker-compose.yml # Web service orchestration
 ├── package.json      # Yarn workspaces root
 ├── tsconfig.base.json # Shared TypeScript config
-└── .nvmrc            # Node.js version (20)
+└── .nvmrc            # Node.js version (22)
 ```
 
 When making changes:

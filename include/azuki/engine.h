@@ -94,6 +94,18 @@ typedef struct {
 
 bool azk_engine_reward_snapshot(AzkEngine *engine, AzkRewardSnapshot *out_snapshot);
 
+/**
+ * Get the last error message from engine operations.
+ * Returns NULL if no error has occurred.
+ * The returned string is valid until the next engine operation.
+ */
+const char *azk_engine_get_last_error(void);
+
+/**
+ * Clear the last error message.
+ */
+void azk_engine_clear_last_error(void);
+
 #ifdef __cplusplus
 }
 #endif

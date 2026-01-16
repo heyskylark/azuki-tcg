@@ -165,8 +165,9 @@ export async function transitionToInMatch(roomId: string, rngSeed: number): Prom
       }
     }
   } catch (error) {
-    logger.error("Failed to create game world", { roomId, error });
-    await transitionToAborted(roomId, "Failed to initialize game");
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    logger.error("Failed to create game world", { roomId, error: errorMsg });
+    await transitionToAborted(roomId, `Failed to initialize game: ${errorMsg}`);
   }
 }
 
