@@ -16,6 +16,8 @@ import type {
   ConnectionAckMessage,
   ErrorMessage,
   RoomClosedMessage,
+  GameSnapshotMessage,
+  GameLogBatchMessage,
 } from "@tcg/backend-core/types/ws";
 
 type ConnectionStatus = "disconnected" | "connecting" | "connected" | "error";
@@ -30,12 +32,15 @@ interface WebSocketMessage {
   [key: string]: unknown;
 }
 
+type GameMessage = GameSnapshotMessage | GameLogBatchMessage;
+
 interface RoomContextValue {
   activeRoom: ActiveRoom | null;
   roomState: RoomStateMessage | null;
   connectionStatus: ConnectionStatus;
   error: string | null;
   lastMessage: WebSocketMessage | null;
+  onGameMessage: (callback: (message: GameMessage) => void) => () => void;
   join: (roomId: string, password?: string) => Promise<boolean>;
   leave: () => void;
   close: () => void;
@@ -83,6 +88,7 @@ export function RoomProvider({ children }: RoomProviderProps) {
   const hasCheckedActiveRoom = useRef(false);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 3;
+  const gameMessageCallbacks = useRef<Set<(message: GameMessage) => void>>(new Set());
 
   // Check for active room on mount (after auth is loaded)
   useEffect(() => {
@@ -193,7 +199,23 @@ export function RoomProvider({ children }: RoomProviderProps) {
         setError(err.message);
         break;
       }
+
+      case "GAME_SNAPSHOT":
+      case "GAME_LOG_BATCH": {
+        const gameMessage = message as unknown as GameMessage;
+        for (const callback of gameMessageCallbacks.current) {
+          callback(gameMessage);
+        }
+        break;
+      }
     }
+  }, []);
+
+  const onGameMessage = useCallback((callback: (message: GameMessage) => void) => {
+    gameMessageCallbacks.current.add(callback);
+    return () => {
+      gameMessageCallbacks.current.delete(callback);
+    };
   }, []);
 
   const joinInternal = useCallback(async (roomId: string, expectedSlot?: 0 | 1, password?: string): Promise<boolean> => {
@@ -280,6 +302,7 @@ export function RoomProvider({ children }: RoomProviderProps) {
         connectionStatus,
         error,
         lastMessage,
+        onGameMessage,
         join,
         leave,
         close,
