@@ -12,12 +12,18 @@ import {
 import * as THREE from "three";
 import type { AssetLoadingState, DeckCard, CardMapping } from "@/types/game";
 import { buildImageUrl } from "@/types/game";
+import type { SnapshotCardMetadata } from "@tcg/backend-core/types/ws";
 
 interface AssetContextValue {
   loadingState: AssetLoadingState;
 
   // Preload card images from deck data
   preloadDeckCards: (cards: DeckCard[]) => Promise<Map<string, CardMapping>>;
+
+  // Preload card images from snapshot metadata
+  preloadCardsByMetadata: (
+    metadata: Record<string, SnapshotCardMetadata>
+  ) => Promise<Map<string, CardMapping>>;
 
   // Get a preloaded texture by cardCode
   getCardTexture: (cardCode: string) => THREE.Texture | null;
@@ -58,36 +64,10 @@ export function AssetProvider({ children }: AssetProviderProps) {
     setCardBackTexture(createCardBackTexture());
   }, []);
 
-  const preloadDeckCards = useCallback(
-    async (cards: DeckCard[]): Promise<Map<string, CardMapping>> => {
-      // Build unique card mappings
-      const cardMappings = new Map<string, CardMapping>();
-      const urlsToLoad: { cardCode: string; url: string }[] = [];
-
-      for (const card of cards) {
-        if (!cardMappings.has(card.cardCode)) {
-          const imageUrl = buildImageUrl(card.imageKey);
-          cardMappings.set(card.cardCode, {
-            cardCode: card.cardCode,
-            imageKey: card.imageKey,
-            imageUrl,
-            name: card.name,
-            cardType: card.cardType,
-            attack: card.attack,
-            health: card.health,
-            ikzCost: card.ikzCost,
-          });
-
-          // Only load if not already cached
-          if (!textureCache.current.has(card.cardCode)) {
-            urlsToLoad.push({ cardCode: card.cardCode, url: imageUrl });
-          }
-        }
-      }
-
+  const loadTextures = useCallback(
+    async (urlsToLoad: { cardCode: string; url: string }[]) => {
       if (urlsToLoad.length === 0) {
-        // All textures already cached
-        return cardMappings;
+        return;
       }
 
       setLoadingState({
@@ -141,10 +121,81 @@ export function AssetProvider({ children }: AssetProviderProps) {
         isLoading: false,
         progress: 100,
       }));
+    },
+    []
+  );
+
+  const preloadDeckCards = useCallback(
+    async (cards: DeckCard[]): Promise<Map<string, CardMapping>> => {
+      // Build unique card mappings
+      const cardMappings = new Map<string, CardMapping>();
+      const urlsToLoad: { cardCode: string; url: string }[] = [];
+
+      for (const card of cards) {
+        if (!cardMappings.has(card.cardCode)) {
+          const imageUrl = buildImageUrl(card.imageKey);
+          cardMappings.set(card.cardCode, {
+            cardCode: card.cardCode,
+            imageKey: card.imageKey,
+            imageUrl,
+            name: card.name,
+            cardType: card.cardType,
+            attack: card.attack,
+            health: card.health,
+            ikzCost: card.ikzCost,
+          });
+
+          // Only load if not already cached
+          if (!textureCache.current.has(card.cardCode)) {
+            urlsToLoad.push({ cardCode: card.cardCode, url: imageUrl });
+          }
+        }
+      }
+
+      if (urlsToLoad.length > 0) {
+        await loadTextures(urlsToLoad);
+      }
 
       return cardMappings;
     },
-    []
+    [loadTextures]
+  );
+
+  const preloadCardsByMetadata = useCallback(
+    async (
+      metadata: Record<string, SnapshotCardMetadata>
+    ): Promise<Map<string, CardMapping>> => {
+      const cardMappings = new Map<string, CardMapping>();
+      const urlsToLoad: { cardCode: string; url: string }[] = [];
+
+      for (const cardMetadata of Object.values(metadata)) {
+        const cardCode = cardMetadata.cardCode;
+        if (!cardMappings.has(cardCode)) {
+          const imageUrl = buildImageUrl(cardMetadata.imageKey);
+          cardMappings.set(cardCode, {
+            cardCode,
+            imageKey: cardMetadata.imageKey,
+            imageUrl,
+            name: cardMetadata.name,
+            cardType: cardMetadata.cardType,
+            attack: cardMetadata.attack,
+            health: cardMetadata.health,
+            ikzCost: cardMetadata.ikzCost,
+          });
+
+          if (!textureCache.current.has(cardCode)) {
+            urlsToLoad.push({ cardCode, url: imageUrl });
+          }
+        }
+      }
+
+      if (urlsToLoad.length > 0) {
+        await loadTextures(urlsToLoad);
+      }
+
+      return cardMappings;
+    },
+    [loadTextures]
   );
 
   const getCardTexture = useCallback((cardCode: string): THREE.Texture | null => {
@@ -174,6 +225,7 @@ export function AssetProvider({ children }: AssetProviderProps) {
       value={{
         loadingState,
         preloadDeckCards,
+        preloadCardsByMetadata,
         getCardTexture,
         cardBackTexture,
         isReady,

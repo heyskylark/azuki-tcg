@@ -13,7 +13,9 @@ import type {
   SnapshotCard,
   SnapshotIkz,
   SnapshotActionMask,
+  SnapshotCardMetadata,
 } from "@tcg/backend-core/types/ws";
+import { getCardMetadataByCardCodes } from "@tcg/backend-core/services/cardMetadataService";
 import {
   getWorldByRoomId,
   getPlayerObservationBySlot,
@@ -29,16 +31,15 @@ import type {
   IKZObservation,
   ActionMask,
 } from "@/engine/types";
-import { defIdToCardCode } from "@tcg/backend-core/services/cardMapperService";
 import logger from "@/logger";
 
 /**
  * Generate a GAME_SNAPSHOT message for a player.
  */
-export function generateSnapshot(
+export async function generateSnapshot(
   roomId: string,
   playerSlot: 0 | 1
-): GameSnapshotMessage | null {
+): Promise<GameSnapshotMessage | null> {
   const world = getWorldByRoomId(roomId);
   if (!world) {
     logger.error("Cannot generate snapshot: world not found", { roomId });
@@ -96,11 +97,25 @@ export function generateSnapshot(
   const actionMask =
     activePlayer === playerSlot ? buildActionMask(myObservation.actionMask) : null;
 
+  const cardCodes = collectSnapshotCardCodes(players, yourHand);
+  let cardMetadata: Record<string, SnapshotCardMetadata> = {};
+  try {
+    const cardMetadataMap = await getCardMetadataByCardCodes([...cardCodes]);
+    cardMetadata = Object.fromEntries(cardMetadataMap.entries());
+  } catch (error) {
+    logger.error("Cannot generate snapshot: failed to load card metadata", {
+      roomId,
+      playerSlot,
+      error: String(error),
+    });
+  }
+
   return {
     type: "GAME_SNAPSHOT",
     stateContext,
     players,
     yourHand,
+    cardMetadata,
     combatStack: [], // TODO: populate combat stack when combat system is ready
     actionMask,
   };
@@ -232,4 +247,37 @@ function buildActionMask(mask: ActionMask): SnapshotActionMask {
     legalSub2: mask.legalSub2,
     legalSub3: mask.legalSub3,
   };
+}
+
+function collectSnapshotCardCodes(
+  players: [SnapshotPlayerBoard, SnapshotPlayerBoard],
+  hand: SnapshotHandCard[]
+): Set<string> {
+  const cardCodes = new Set<string>();
+
+  for (const board of players) {
+    addCardCode(board.leader.cardId, cardCodes);
+    addCardCode(board.gate.cardId, cardCodes);
+    for (const card of board.garden) {
+      addCardCode(card?.cardId ?? null, cardCodes);
+    }
+    for (const card of board.alley) {
+      addCardCode(card?.cardId ?? null, cardCodes);
+    }
+    for (const ikz of board.ikzArea) {
+      addCardCode(ikz.cardId, cardCodes);
+    }
+  }
+
+  for (const card of hand) {
+    addCardCode(card.cardId, cardCodes);
+  }
+
+  return cardCodes;
+}
+
+function addCardCode(cardCode: string | null, cardCodes: Set<string>): void {
+  if (cardCode) {
+    cardCodes.add(cardCode);
+  }
 }

@@ -26,7 +26,11 @@ interface GameStateContextValue {
   setMockState: (state: GameState) => void;
 
   // For production: process WebSocket messages
-  processSnapshot: (snapshot: GameSnapshotMessage) => void;
+  processSnapshot: (
+    snapshot: GameSnapshotMessage,
+    playerSlot: 0 | 1,
+    cardMappingsOverride?: Map<string, CardMapping>
+  ) => void;
   processLogBatch: (batch: GameLogBatchMessage) => void;
 
   // Clear state
@@ -62,12 +66,17 @@ export function GameStateProvider({
   }, []);
 
   const processSnapshot = useCallback(
-    (snapshot: GameSnapshotMessage) => {
+    (
+      snapshot: GameSnapshotMessage,
+      playerSlot: 0 | 1,
+      cardMappingsOverride?: Map<string, CardMapping>
+    ) => {
       try {
         setIsLoading(true);
 
         // Transform snapshot to GameState using card mappings
-        const transformed = transformSnapshot(snapshot, cardMappings);
+        const mappings = cardMappingsOverride ?? cardMappings;
+        const transformed = transformSnapshot(snapshot, mappings, playerSlot);
         setGameState(transformed);
         setError(null);
       } catch (err) {
@@ -258,20 +267,21 @@ function resolvePlayerBoard(
 
 function transformSnapshot(
   snapshot: GameSnapshotMessage,
-  cardMappings: Map<string, CardMapping>
+  cardMappings: Map<string, CardMapping>,
+  playerSlot: 0 | 1
 ): GameState {
   // players[0] is always player 0's board, players[1] is player 1's board
-  // We need to determine which is "my" board based on context
-  // For now, assume the snapshot is already oriented (myBoard first)
-  // This will be adjusted when integrating with WebSocket context
+  // Use playerSlot to orient "my" and "opponent" boards for the viewer
+  const myBoardIndex = playerSlot === 0 ? 0 : 1;
+  const opponentBoardIndex = playerSlot === 0 ? 1 : 0;
 
   return {
     phase: snapshot.stateContext.phase,
     abilitySubphase: snapshot.stateContext.abilitySubphase,
     activePlayer: snapshot.stateContext.activePlayer,
     turnNumber: snapshot.stateContext.turnNumber,
-    myBoard: resolvePlayerBoard(snapshot.players[0], cardMappings),
-    opponentBoard: resolvePlayerBoard(snapshot.players[1], cardMappings),
+    myBoard: resolvePlayerBoard(snapshot.players[myBoardIndex], cardMappings),
+    opponentBoard: resolvePlayerBoard(snapshot.players[opponentBoardIndex], cardMappings),
     myHand: snapshot.yourHand.map((card) => resolveHandCard(card, cardMappings)),
     actionMask: snapshot.actionMask,
     combatStack: snapshot.combatStack,

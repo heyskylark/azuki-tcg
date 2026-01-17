@@ -158,7 +158,7 @@ export async function transitionToInMatch(roomId: string, rngSeed: number): Prom
     for (const slot of [0, 1] as const) {
       const playerConnection = channel.players[slot];
       if (playerConnection?.ws && playerConnection.connected) {
-        const snapshot = generateSnapshot(roomId, slot);
+        const snapshot = await generateSnapshot(roomId, slot);
         if (snapshot) {
           sendToPlayer(channel, slot, snapshot);
         }

@@ -170,6 +170,16 @@ export interface SnapshotHandCard {
   ikzCost: number;
 }
 
+export interface SnapshotCardMetadata {
+  cardCode: string;
+  name: string;
+  imageKey: string;
+  cardType: string;
+  attack: number | null;
+  health: number | null;
+  ikzCost: number | null;
+}
+
 export interface SnapshotActionMask {
   primaryActionMask: boolean[];
   legalActionCount: number;
@@ -184,6 +194,7 @@ export interface GameSnapshotMessage extends ServerMessage {
   stateContext: SnapshotStateContext;
   players: [SnapshotPlayerBoard, SnapshotPlayerBoard];
   yourHand: SnapshotHandCard[];
+  cardMetadata: Record<string, SnapshotCardMetadata>;
   combatStack: unknown[];
   actionMask: SnapshotActionMask | null;
 }
