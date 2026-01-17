@@ -1537,7 +1537,9 @@ static void render_info(WINDOW *win, ecs_world_t *world, const GameState *gs) {
   }
 
   // Display recent game events
-  mvwprintw(win, row++, 2, "row=%d max_row=%d world=%p", row-1, max_row, (void*)world);
+  int info_row = row;
+  mvwprintw(win, row++, 2, "row=%d max_row=%d world=%p", info_row, max_row,
+            (void *)world);
   if (row < max_row && world) {
     uint8_t log_count = 0;
     const GameStateLog *logs = azk_get_game_logs(world, &log_count);

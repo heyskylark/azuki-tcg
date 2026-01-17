@@ -98,7 +98,7 @@ static void handle_play_spell_from_hand(ecs_world_t *world, GameState *gs,
 }
 
 void HandleResponseAction(ecs_iter_t *it) {
-  ecs_world_t *world = ecs_get_world(it->world);
+  ecs_world_t *world = (ecs_world_t *)ecs_get_world(it->world);
   GameState *gs = ecs_field(it, GameState, 0);
   ActionContext *ac = ecs_field(it, ActionContext, 1);
 

@@ -159,6 +159,12 @@ static ecs_entity_t find_zone_for_player(
   return 0;
 }
 
+static ecs_entity_t spawn_test_card(ecs_world_t *world, CardDefId id) {
+  ecs_entity_t card = ecs_new(world);
+  ecs_set(world, card, CardId, {.id = id, .code = NULL});
+  return card;
+}
+
 static void test_azk_world_init_sets_game_state(void) {
   const uint32_t seed = 1234;
   ecs_world_t *world = azk_world_init(seed);
@@ -1531,6 +1537,72 @@ static void test_game_log_singleton_initialized(void) {
   azk_world_fini(world);
 }
 
+// ============================================================================
+// Triggered Effect Queue Tests
+// ============================================================================
+
+static void test_triggered_effect_queue_ring_buffer(void) {
+  ecs_world_t *world = azk_world_init(123);
+  ecs_entity_t player = find_player_by_pid(world, 0);
+  assert(player != 0);
+
+  ecs_entity_t card = spawn_test_card(world, CARD_DEF_STT01_002);
+  assert(card != 0);
+
+  TriggeredEffectQueue *queue =
+      ecs_singleton_get_mut(world, TriggeredEffectQueue);
+  assert(queue != NULL);
+  queue->head = 0;
+  queue->count = 0;
+  ecs_singleton_modified(world, TriggeredEffectQueue);
+
+  for (int i = 0; i < MAX_TRIGGERED_EFFECT_QUEUE; i++) {
+    uint8_t expected_index =
+        (uint8_t)((queue->head + queue->count) % MAX_TRIGGERED_EFFECT_QUEUE);
+    bool queued =
+        azk_queue_triggered_effect(world, card, player, TIMING_TAG_ON_GATE_PORTAL);
+    assert(queued);
+    assert(queue->effects[expected_index].source_card == card);
+    assert(queue->effects[expected_index].owner == player);
+    assert(queue->effects[expected_index].timing_tag == TIMING_TAG_ON_GATE_PORTAL);
+  }
+
+  assert(queue->count == MAX_TRIGGERED_EFFECT_QUEUE);
+  assert(!azk_queue_triggered_effect(world, card, player,
+                                     TIMING_TAG_ON_GATE_PORTAL));
+
+  for (int i = 0; i < 3; i++) {
+    uint8_t prev_head = queue->head;
+    uint8_t prev_count = queue->count;
+    azk_process_triggered_effect_queue(world);
+    assert(queue->count == (uint8_t)(prev_count - 1));
+    assert(queue->head ==
+           (uint8_t)((prev_head + 1) % MAX_TRIGGERED_EFFECT_QUEUE));
+  }
+
+  for (int i = 0; i < 3; i++) {
+    uint8_t expected_index =
+        (uint8_t)((queue->head + queue->count) % MAX_TRIGGERED_EFFECT_QUEUE);
+    bool queued =
+        azk_queue_triggered_effect(world, card, player, TIMING_TAG_ON_GATE_PORTAL);
+    assert(queued);
+    assert(queue->effects[expected_index].source_card == card);
+  }
+
+  assert(queue->count == MAX_TRIGGERED_EFFECT_QUEUE);
+
+  while (queue->count > 0) {
+    uint8_t prev_head = queue->head;
+    uint8_t prev_count = queue->count;
+    azk_process_triggered_effect_queue(world);
+    assert(queue->count == (uint8_t)(prev_count - 1));
+    assert(queue->head ==
+           (uint8_t)((prev_head + 1) % MAX_TRIGGERED_EFFECT_QUEUE));
+  }
+
+  azk_world_fini(world);
+}
+
 int main(void) {
   test_azk_world_init_sets_game_state();
   test_world_init_creates_player_zones();
@@ -1560,6 +1632,10 @@ int main(void) {
   printf("Running game log tests...\n");
   test_game_log_singleton_initialized();
   printf("Game log tests passed!\n");
+
+  printf("Running triggered effect queue tests...\n");
+  test_triggered_effect_queue_ring_buffer();
+  printf("Triggered effect queue tests passed!\n");
 
   return 0;
 }

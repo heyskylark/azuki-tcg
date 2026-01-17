@@ -49,7 +49,7 @@ void azk_register_components(ecs_world_t *world) {
   ECS_COMPONENT_DEFINE(world, PassiveBuffQueue);
 
   // Initialize TriggeredEffectQueue singleton
-  ecs_singleton_set(world, TriggeredEffectQueue, {.count = 0});
+  ecs_singleton_set(world, TriggeredEffectQueue, {.head = 0, .count = 0});
 
   // Initialize PassiveBuffQueue singleton
   ecs_singleton_set(world, PassiveBuffQueue, {.count = 0});

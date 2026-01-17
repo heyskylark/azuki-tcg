@@ -62,6 +62,11 @@ add_executable(world_tests
 target_link_libraries(world_tests PRIVATE azuki_lib)
 add_test(NAME world_tests COMMAND world_tests)
 
+add_executable(queue_profile
+  tools/queue_profile.c
+)
+target_link_libraries(queue_profile PRIVATE azuki_lib)
+
 if(BUILD_PYTHON_BINDINGS)
   add_subdirectory(python/src)
 endif()

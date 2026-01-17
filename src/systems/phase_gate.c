@@ -46,7 +46,7 @@ static void set_pipeline_for_phase(ecs_world_t *world, Phase phase) {
 }
 
 void PhaseGate(ecs_iter_t *it) {
-  ecs_world_t *world = ecs_get_world(it->world);
+  ecs_world_t *world = (ecs_world_t *)ecs_get_world(it->world);
   GameState *gs = ecs_field(it, GameState, 0);
   Phase phase = gs->phase;
 

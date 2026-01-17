@@ -10,8 +10,206 @@
 #include "utils/player_util.h"
 #include "utils/zone_util.h"
 
-// Forward declaration of timing tag constant
-#define TIMING_TAG_ON_PLAY_FWD 0
+static void azk_clear_ability_context_internal(ecs_world_t *world,
+                                               bool mark_once_per_turn);
+
+static void azk_reset_ability_targets(AbilityContext *ctx) {
+  for (int i = 0; i < MAX_ABILITY_SELECTION; i++) {
+    ctx->cost_targets[i] = 0;
+    ctx->effect_targets[i] = 0;
+  }
+}
+
+static void azk_reset_selection_state(AbilityContext *ctx) {
+  ctx->selection_count = 0;
+  ctx->selection_picked = 0;
+  ctx->selection_pick_max = 0;
+  for (int i = 0; i < MAX_SELECTION_ZONE_SIZE; i++) {
+    ctx->selection_cards[i] = 0;
+  }
+}
+
+static void azk_init_ability_context(AbilityContext *ctx, ecs_entity_t card,
+                                     ecs_entity_t owner,
+                                     const AbilityDef *def) {
+  ctx->phase = ABILITY_PHASE_NONE;
+  ctx->source_card = card;
+  ctx->owner = owner;
+  ctx->is_optional = def->is_optional;
+  ctx->cost_min = def->cost_req.min;
+  ctx->cost_expected = def->cost_req.max;
+  ctx->cost_filled = 0;
+  ctx->effect_min = def->effect_req.min;
+  ctx->effect_expected = def->effect_req.max;
+  ctx->effect_filled = 0;
+  azk_reset_ability_targets(ctx);
+  azk_reset_selection_state(ctx);
+}
+
+static bool azk_target_already_selected(const ecs_entity_t *targets,
+                                        uint8_t filled,
+                                        ecs_entity_t target) {
+  for (uint8_t i = 0; i < filled; i++) {
+    if (targets[i] == target) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static int azk_count_remaining_selection(const AbilityContext *ctx) {
+  int remaining = 0;
+  for (int i = 0; i < ctx->selection_count; i++) {
+    if (ctx->selection_cards[i] != 0) {
+      remaining++;
+    }
+  }
+  return remaining;
+}
+
+static bool azk_entity_in_list(ecs_entity_t entity, const ecs_entity_t *list,
+                               int count) {
+  for (int i = 0; i < count; i++) {
+    if (list[i] == entity) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static void azk_place_cards_at_bottom(ecs_world_t *world, ecs_entity_t deck,
+                                      const ecs_entity_t *cards, int count) {
+  if (count <= 0) {
+    return;
+  }
+
+  for (int i = 0; i < count; i++) {
+    ecs_add_pair(world, cards[i], EcsChildOf, deck);
+  }
+
+  ecs_entities_t deck_cards = ecs_get_ordered_children(world, deck);
+  int32_t deck_count = deck_cards.count;
+
+  if (deck_count <= 1) {
+    return;
+  }
+
+  ecs_entity_t *new_order = ecs_os_malloc_n(ecs_entity_t, deck_count);
+  ecs_assert(new_order != NULL, ECS_OUT_OF_MEMORY,
+             "Failed to allocate reorder buffer");
+
+  int dest = 0;
+  for (int i = 0; i < count; i++) {
+    new_order[dest++] = cards[i];
+  }
+
+  for (int32_t i = 0; i < deck_count; i++) {
+    ecs_entity_t card = deck_cards.ids[i];
+    if (azk_entity_in_list(card, cards, count)) {
+      continue;
+    }
+    new_order[dest++] = card;
+  }
+
+  if (dest == deck_count) {
+    ecs_set_child_order(world, deck, new_order, deck_count);
+  }
+
+  ecs_os_free(new_order);
+}
+
+static ecs_entity_t azk_get_child_by_ordered_index(ecs_world_t *world,
+                                                   ecs_entity_t zone,
+                                                   int target_index) {
+  ecs_entities_t zone_cards = ecs_get_ordered_children(world, zone);
+  if (target_index < 0 || target_index >= zone_cards.count) {
+    return 0;
+  }
+  return zone_cards.ids[target_index];
+}
+
+static ecs_entity_t azk_find_card_in_zone_index_safe(ecs_world_t *world,
+                                                     ecs_entity_t zone,
+                                                     int target_index) {
+  ecs_entities_t zone_cards = ecs_get_ordered_children(world, zone);
+  for (int32_t i = 0; i < zone_cards.count; i++) {
+    const ZoneIndex *zi = ecs_get(world, zone_cards.ids[i], ZoneIndex);
+    if (zi && zi->index == target_index) {
+      return zone_cards.ids[i];
+    }
+  }
+  return 0;
+}
+
+static ecs_entity_t azk_get_cost_target(ecs_world_t *world,
+                                        const AbilityDef *def,
+                                        const GameState *gs,
+                                        ecs_entity_t owner,
+                                        int target_index) {
+  uint8_t player_num = get_player_number(world, owner);
+
+  switch (def->cost_req.type) {
+  case ABILITY_TARGET_FRIENDLY_HAND:
+  case ABILITY_TARGET_FRIENDLY_HAND_WEAPON:
+    return azk_get_child_by_ordered_index(world, gs->zones[player_num].hand,
+                                          target_index);
+  case ABILITY_TARGET_FRIENDLY_GARDEN_ENTITY:
+    return azk_find_card_in_zone_index_safe(world,
+                                            gs->zones[player_num].garden,
+                                            target_index);
+  default:
+    return 0;
+  }
+}
+
+static ecs_entity_t azk_get_effect_target(ecs_world_t *world,
+                                          const AbilityDef *def,
+                                          const GameState *gs,
+                                          ecs_entity_t owner,
+                                          int target_index) {
+  uint8_t player_num = get_player_number(world, owner);
+  uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
+
+  switch (def->effect_req.type) {
+  case ABILITY_TARGET_FRIENDLY_HAND:
+    return azk_get_child_by_ordered_index(world, gs->zones[player_num].hand,
+                                          target_index);
+  case ABILITY_TARGET_FRIENDLY_GARDEN_ENTITY:
+    return azk_find_card_in_zone_index_safe(world,
+                                            gs->zones[player_num].garden,
+                                            target_index);
+  case ABILITY_TARGET_ENEMY_GARDEN_ENTITY:
+    return azk_get_child_by_ordered_index(world, gs->zones[enemy_num].garden,
+                                          target_index);
+  case ABILITY_TARGET_ENEMY_LEADER_OR_GARDEN_ENTITY:
+    if (target_index < GARDEN_SIZE) {
+      return azk_find_card_in_zone_index_safe(world,
+                                              gs->zones[enemy_num].garden,
+                                              target_index);
+    }
+    if (target_index == GARDEN_SIZE) {
+      return find_leader_card_in_zone(world, gs->zones[enemy_num].leader);
+    }
+    return 0;
+  case ABILITY_TARGET_ANY_GARDEN_ENTITY:
+    if (target_index < GARDEN_SIZE) {
+      return azk_find_card_in_zone_index_safe(
+          world, gs->zones[player_num].garden, target_index);
+    }
+    return azk_find_card_in_zone_index_safe(
+        world, gs->zones[enemy_num].garden, target_index - GARDEN_SIZE);
+  case ABILITY_TARGET_ANY_LEADER:
+    if (target_index == 0) {
+      return find_leader_card_in_zone(world, gs->zones[player_num].leader);
+    }
+    if (target_index == 1) {
+      return find_leader_card_in_zone(world, gs->zones[enemy_num].leader);
+    }
+    return 0;
+  default:
+    return 0;
+  }
+}
 
 bool azk_trigger_on_play_ability(ecs_world_t *world, ecs_entity_t card,
                                  ecs_entity_t owner) {
@@ -40,7 +238,7 @@ bool azk_trigger_on_play_ability(ecs_world_t *world, ecs_entity_t card,
   // This is necessary because during ecs_progress(), zone changes (ChildOf)
   // are deferred and not visible yet. By queuing, we ensure the card is
   // in the correct zone when validation runs.
-  return azk_queue_triggered_effect(world, card, owner, TIMING_TAG_ON_PLAY_FWD);
+  return azk_queue_triggered_effect(world, card, owner, TIMING_TAG_ON_PLAY);
 }
 
 bool azk_trigger_when_equipped_ability(ecs_world_t *world, ecs_entity_t card,
@@ -77,13 +275,13 @@ bool azk_process_ability_confirmation(ecs_world_t *world) {
 
   const CardId *card_id = ecs_get(world, ctx->source_card, CardId);
   if (!card_id) {
-    azk_clear_ability_context(world);
+    azk_clear_ability_context_internal(world, false);
     return false;
   }
 
   const AbilityDef *def = azk_get_ability_def(card_id->id);
   if (!def) {
-    azk_clear_ability_context(world);
+    azk_clear_ability_context_internal(world, false);
     return false;
   }
 
@@ -146,7 +344,7 @@ bool azk_process_ability_decline(ecs_world_t *world) {
   }
 
   cli_render_logf("[Ability] Declined optional ability");
-  azk_clear_ability_context(world);
+  azk_clear_ability_context_internal(world, false);
   return true;
 }
 
@@ -159,47 +357,28 @@ bool azk_process_cost_selection(ecs_world_t *world, int target_index) {
 
   const CardId *card_id = ecs_get(world, ctx->source_card, CardId);
   if (!card_id) {
+    azk_clear_ability_context_internal(world, false);
     return false;
   }
 
   const AbilityDef *def = azk_get_ability_def(card_id->id);
   if (!def) {
+    azk_clear_ability_context_internal(world, false);
     return false;
   }
 
   // Get the target entity based on cost type
-  ecs_entity_t target = 0;
   const GameState *gs = ecs_singleton_get(world, GameState);
-  uint8_t player_num = get_player_number(world, ctx->owner);
-
-  switch (def->cost_req.type) {
-  case ABILITY_TARGET_FRIENDLY_HAND:
-  case ABILITY_TARGET_FRIENDLY_HAND_WEAPON: {
-    ecs_entity_t hand = gs->zones[player_num].hand;
-    ecs_entities_t hand_cards = ecs_get_ordered_children(world, hand);
-    if (target_index >= 0 && target_index < hand_cards.count) {
-      target = hand_cards.ids[target_index];
-    }
-    break;
-  }
-  case ABILITY_TARGET_FRIENDLY_GARDEN_ENTITY: {
-    ecs_entity_t garden = gs->zones[player_num].garden;
-    ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
-    for (int i = 0; i < garden_cards.count; i++) {
-      const ZoneIndex *zi = ecs_get(world, garden_cards.ids[i], ZoneIndex);
-      if (zi && zi->index == target_index) {
-        target = garden_cards.ids[i];
-        break;
-      }
-    }
-    break;
-  }
-  default:
-    break;
-  }
+  ecs_entity_t target =
+      azk_get_cost_target(world, def, gs, ctx->owner, target_index);
 
   if (target == 0) {
     cli_render_logf("[Ability] Invalid cost target index %d", target_index);
+    return false;
+  }
+
+  if (azk_target_already_selected(ctx->cost_targets, ctx->cost_filled, target)) {
+    cli_render_logf("[Ability] Cost target already selected");
     return false;
   }
 
@@ -272,112 +451,29 @@ bool azk_process_effect_selection(ecs_world_t *world, int target_index) {
 
   const CardId *card_id = ecs_get(world, ctx->source_card, CardId);
   if (!card_id) {
+    azk_clear_ability_context_internal(world, false);
     return false;
   }
 
   const AbilityDef *def = azk_get_ability_def(card_id->id);
   if (!def) {
+    azk_clear_ability_context_internal(world, false);
     return false;
   }
 
   // Get the target entity based on effect type
-  ecs_entity_t target = 0;
   const GameState *gs = ecs_singleton_get(world, GameState);
-  uint8_t player_num = get_player_number(world, ctx->owner);
-
-  switch (def->effect_req.type) {
-  case ABILITY_TARGET_FRIENDLY_HAND: {
-    ecs_entity_t hand = gs->zones[player_num].hand;
-    ecs_entities_t hand_cards = ecs_get_ordered_children(world, hand);
-    if (target_index >= 0 && target_index < hand_cards.count) {
-      target = hand_cards.ids[target_index];
-    }
-    break;
-  }
-  case ABILITY_TARGET_FRIENDLY_GARDEN_ENTITY: {
-    ecs_entity_t garden = gs->zones[player_num].garden;
-    ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
-    for (int i = 0; i < garden_cards.count; i++) {
-      const ZoneIndex *zi = ecs_get(world, garden_cards.ids[i], ZoneIndex);
-      if (zi && zi->index == target_index) {
-        target = garden_cards.ids[i];
-        break;
-      }
-    }
-    break;
-  }
-  case ABILITY_TARGET_ENEMY_GARDEN_ENTITY: {
-    uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
-    ecs_entity_t garden = gs->zones[enemy_num].garden;
-    ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
-    if (target_index >= 0 && target_index < garden_cards.count) {
-      target = garden_cards.ids[target_index];
-    }
-    break;
-  }
-  case ABILITY_TARGET_ENEMY_LEADER_OR_GARDEN_ENTITY: {
-    // Index encoding: 0-4 = opponent garden slots (by ZoneIndex), 5 = opponent
-    // leader
-    uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
-    if (target_index < GARDEN_SIZE) {
-      // Garden entity by zone index
-      ecs_entity_t garden = gs->zones[enemy_num].garden;
-      ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
-      for (int i = 0; i < garden_cards.count; i++) {
-        const ZoneIndex *zi = ecs_get(world, garden_cards.ids[i], ZoneIndex);
-        if (zi && zi->index == target_index) {
-          target = garden_cards.ids[i];
-          break;
-        }
-      }
-    } else if (target_index == GARDEN_SIZE) {
-      // Leader
-      target = find_leader_card_in_zone(world, gs->zones[enemy_num].leader);
-    }
-    break;
-  }
-  case ABILITY_TARGET_ANY_GARDEN_ENTITY: {
-    // Index encoding: 0-4 = self garden, 5-9 = opponent garden
-    uint8_t target_player_num;
-    int garden_index;
-    if (target_index < GARDEN_SIZE) {
-      target_player_num = player_num;
-      garden_index = target_index;
-    } else {
-      target_player_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
-      garden_index = target_index - GARDEN_SIZE;
-    }
-    ecs_entity_t garden = gs->zones[target_player_num].garden;
-    ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
-    // Find card at the specific zone index
-    for (int i = 0; i < garden_cards.count; i++) {
-      const ZoneIndex *zi = ecs_get(world, garden_cards.ids[i], ZoneIndex);
-      if (zi && zi->index == garden_index) {
-        target = garden_cards.ids[i];
-        break;
-      }
-    }
-    break;
-  }
-  case ABILITY_TARGET_ANY_LEADER: {
-    // Index encoding: 0 = friendly leader, 1 = enemy leader
-    uint8_t target_player_num;
-    if (target_index == 0) {
-      target_player_num = player_num;
-    } else if (target_index == 1) {
-      target_player_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
-    } else {
-      break; // Invalid index
-    }
-    target = find_leader_card_in_zone(world, gs->zones[target_player_num].leader);
-    break;
-  }
-  default:
-    break;
-  }
+  ecs_entity_t target =
+      azk_get_effect_target(world, def, gs, ctx->owner, target_index);
 
   if (target == 0) {
     cli_render_logf("[Ability] Invalid effect target index %d", target_index);
+    return false;
+  }
+
+  if (azk_target_already_selected(ctx->effect_targets, ctx->effect_filled,
+                                  target)) {
+    cli_render_logf("[Ability] Effect target already selected");
     return false;
   }
 
@@ -432,13 +528,13 @@ bool azk_process_effect_skip(ecs_world_t *world) {
 
   const CardId *card_id = ecs_get(world, ctx->source_card, CardId);
   if (!card_id) {
-    azk_clear_ability_context(world);
+    azk_clear_ability_context_internal(world, false);
     return false;
   }
 
   const AbilityDef *def = azk_get_ability_def(card_id->id);
   if (!def) {
-    azk_clear_ability_context(world);
+    azk_clear_ability_context_internal(world, false);
     return false;
   }
 
@@ -474,13 +570,13 @@ bool azk_process_selection_pick(ecs_world_t *world, int selection_index) {
 
   const CardId *card_id = ecs_get(world, ctx->source_card, CardId);
   if (!card_id) {
-    azk_clear_ability_context(world);
+    azk_clear_ability_context_internal(world, false);
     return false;
   }
 
   const AbilityDef *def = azk_get_ability_def(card_id->id);
   if (!def) {
-    azk_clear_ability_context(world);
+    azk_clear_ability_context_internal(world, false);
     return false;
   }
 
@@ -516,12 +612,7 @@ bool azk_process_selection_pick(ecs_world_t *world, int selection_index) {
     if (ctx->phase != ABILITY_PHASE_BOTTOM_DECK &&
         ctx->phase != ABILITY_PHASE_NONE) {
       // Move to bottom deck phase if there are remaining cards
-      int remaining = 0;
-      for (int i = 0; i < ctx->selection_count; i++) {
-        if (ctx->selection_cards[i] != 0) {
-          remaining++;
-        }
-      }
+      int remaining = azk_count_remaining_selection(ctx);
       if (remaining > 0) {
         ctx->phase = ABILITY_PHASE_BOTTOM_DECK;
       } else {
@@ -564,13 +655,13 @@ bool azk_process_selection_to_alley(ecs_world_t *world, int selection_index,
 
   const CardId *card_id = ecs_get(world, ctx->source_card, CardId);
   if (!card_id) {
-    azk_clear_ability_context(world);
+    azk_clear_ability_context_internal(world, false);
     return false;
   }
 
   const AbilityDef *def = azk_get_ability_def(card_id->id);
   if (!def) {
-    azk_clear_ability_context(world);
+    azk_clear_ability_context_internal(world, false);
     return false;
   }
 
@@ -666,12 +757,7 @@ bool azk_process_selection_to_alley(ecs_world_t *world, int selection_index,
     if (ctx->phase != ABILITY_PHASE_BOTTOM_DECK &&
         ctx->phase != ABILITY_PHASE_NONE) {
       // Move to bottom deck phase if there are remaining cards
-      int remaining = 0;
-      for (int i = 0; i < ctx->selection_count; i++) {
-        if (ctx->selection_cards[i] != 0) {
-          remaining++;
-        }
-      }
+      int remaining = azk_count_remaining_selection(ctx);
       if (remaining > 0) {
         ctx->phase = ABILITY_PHASE_BOTTOM_DECK;
       } else {
@@ -714,13 +800,13 @@ bool azk_process_selection_to_equip(ecs_world_t *world, int selection_index,
 
   const CardId *card_id = ecs_get(world, ctx->source_card, CardId);
   if (!card_id) {
-    azk_clear_ability_context(world);
+    azk_clear_ability_context_internal(world, false);
     return false;
   }
 
   const AbilityDef *def = azk_get_ability_def(card_id->id);
   if (!def) {
-    azk_clear_ability_context(world);
+    azk_clear_ability_context_internal(world, false);
     return false;
   }
 
@@ -825,13 +911,13 @@ bool azk_process_skip_selection(ecs_world_t *world) {
 
   const CardId *card_id = ecs_get(world, ctx->source_card, CardId);
   if (!card_id) {
-    azk_clear_ability_context(world);
+    azk_clear_ability_context_internal(world, false);
     return false;
   }
 
   const AbilityDef *def = azk_get_ability_def(card_id->id);
   if (!def) {
-    azk_clear_ability_context(world);
+    azk_clear_ability_context_internal(world, false);
     return false;
   }
 
@@ -844,12 +930,7 @@ bool azk_process_skip_selection(ecs_world_t *world) {
   }
 
   // Check if there are remaining cards to bottom deck
-  int remaining = 0;
-  for (int i = 0; i < ctx->selection_count; i++) {
-    if (ctx->selection_cards[i] != 0) {
-      remaining++;
-    }
-  }
+  int remaining = azk_count_remaining_selection(ctx);
 
   if (remaining > 0) {
     ctx->phase = ABILITY_PHASE_BOTTOM_DECK;
@@ -922,12 +1003,7 @@ bool azk_process_bottom_deck(ecs_world_t *world, int selection_index) {
   cli_render_logf("[Ability] Bottom decked card from slot %d", selection_index);
 
   // Check if there are remaining cards
-  int remaining = 0;
-  for (int i = 0; i < ctx->selection_count; i++) {
-    if (ctx->selection_cards[i] != 0) {
-      remaining++;
-    }
-  }
+  int remaining = azk_count_remaining_selection(ctx);
 
   if (remaining == 0) {
     cli_render_logf("[Ability] All cards bottom decked, ability complete");
@@ -950,44 +1026,21 @@ bool azk_process_bottom_deck_all(ecs_world_t *world) {
   uint8_t player_num = get_player_number(world, ctx->owner);
   ecs_entity_t deck = gs->zones[player_num].deck;
 
+  ecs_entity_t bottom_cards[MAX_SELECTION_ZONE_SIZE];
+  int bottom_count = 0;
+
   // Bottom deck all remaining cards in order (0, 1, 2, ...)
   for (int i = 0; i < ctx->selection_count; i++) {
     ecs_entity_t card = ctx->selection_cards[i];
     if (card == 0) {
       continue;
     }
-
-    // Move card to deck
-    ecs_add_pair(world, card, EcsChildOf, deck);
-
-    // Reorder to put at bottom
-    ecs_entities_t deck_cards = ecs_get_ordered_children(world, deck);
-    int32_t count = deck_cards.count;
-
-    if (count > 1) {
-      ecs_entity_t *new_order = ecs_os_malloc_n(ecs_entity_t, count);
-      int card_idx = -1;
-      for (int32_t j = 0; j < count; j++) {
-        if (deck_cards.ids[j] == card) {
-          card_idx = j;
-          break;
-        }
-      }
-
-      if (card_idx >= 0) {
-        new_order[0] = card;
-        int dest = 1;
-        for (int32_t j = 0; j < count; j++) {
-          if (j != card_idx) {
-            new_order[dest++] = deck_cards.ids[j];
-          }
-        }
-        ecs_set_child_order(world, deck, new_order, count);
-      }
-      ecs_os_free(new_order);
-    }
-
+    bottom_cards[bottom_count++] = card;
     ctx->selection_cards[i] = 0;
+  }
+
+  if (bottom_count > 0) {
+    azk_place_cards_at_bottom(world, deck, bottom_cards, bottom_count);
   }
 
   cli_render_logf(
@@ -1006,11 +1059,12 @@ AbilityPhase azk_get_ability_phase(ecs_world_t *world) {
   return ctx ? ctx->phase : ABILITY_PHASE_NONE;
 }
 
-void azk_clear_ability_context(ecs_world_t *world) {
+static void azk_clear_ability_context_internal(ecs_world_t *world,
+                                               bool mark_once_per_turn) {
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
 
-  // Mark once-per-turn abilities as used before clearing context
-  if (ctx->source_card != 0 && ecs_has(world, ctx->source_card, AOnceTurn)) {
+  if (mark_once_per_turn && ctx->source_card != 0 &&
+      ecs_has(world, ctx->source_card, AOnceTurn)) {
     ecs_set(world, ctx->source_card, AbilityRepeatContext,
             {.is_once_per_turn = true, .was_applied = true});
   }
@@ -1026,20 +1080,14 @@ void azk_clear_ability_context(ecs_world_t *world) {
   ctx->effect_expected = 0;
   ctx->effect_filled = 0;
 
-  for (int i = 0; i < MAX_ABILITY_SELECTION; i++) {
-    ctx->cost_targets[i] = 0;
-    ctx->effect_targets[i] = 0;
-  }
-
-  // Clear selection zone tracking
-  ctx->selection_count = 0;
-  ctx->selection_picked = 0;
-  ctx->selection_pick_max = 0;
-  for (int i = 0; i < MAX_SELECTION_ZONE_SIZE; i++) {
-    ctx->selection_cards[i] = 0;
-  }
+  azk_reset_ability_targets(ctx);
+  azk_reset_selection_state(ctx);
 
   ecs_singleton_modified(world, AbilityContext);
+}
+
+void azk_clear_ability_context(ecs_world_t *world) {
+  azk_clear_ability_context_internal(world, true);
 }
 
 bool azk_trigger_main_ability(ecs_world_t *world, ecs_entity_t card,
@@ -1081,21 +1129,7 @@ bool azk_trigger_main_ability(ecs_world_t *world, ecs_entity_t card,
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
 
   // Set up the ability context
-  ctx->source_card = card;
-  ctx->owner = owner;
-  ctx->is_optional = def->is_optional;
-  ctx->cost_min = def->cost_req.min;
-  ctx->cost_expected = def->cost_req.max;
-  ctx->cost_filled = 0;
-  ctx->effect_min = def->effect_req.min;
-  ctx->effect_expected = def->effect_req.max;
-  ctx->effect_filled = 0;
-
-  // Clear target arrays
-  for (int i = 0; i < MAX_ABILITY_SELECTION; i++) {
-    ctx->cost_targets[i] = 0;
-    ctx->effect_targets[i] = 0;
-  }
+  azk_init_ability_context(ctx, card, owner, def);
 
   // Main abilities are triggered by player action, so skip confirmation phase
   // (player already opted in by taking the action)
@@ -1179,26 +1213,15 @@ bool azk_trigger_spell_ability(ecs_world_t *world, ecs_entity_t spell_card,
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
 
   // Set up the ability context
-  ctx->source_card = spell_card;
-  ctx->owner = owner;
-  ctx->is_optional = false; // Spells are already cast, not optional
-  ctx->cost_min = def->cost_req.min;
-  ctx->cost_expected = def->cost_req.max;
-  ctx->cost_filled = 0;
-  ctx->effect_min = def->effect_req.min;
+  azk_init_ability_context(ctx, spell_card, owner, def);
   // Dynamically calculate effect_expected based on available targets
-  uint8_t available = count_available_effect_targets(world, def, spell_card, owner);
-  ctx->effect_expected = (available < def->effect_req.max) ? available : def->effect_req.max;
+  uint8_t available =
+      count_available_effect_targets(world, def, spell_card, owner);
+  ctx->effect_expected =
+      (available < ctx->effect_expected) ? available : ctx->effect_expected;
   // Ensure effect_expected is at least effect_min
   if (ctx->effect_expected < ctx->effect_min) {
     ctx->effect_expected = ctx->effect_min;
-  }
-  ctx->effect_filled = 0;
-
-  // Clear target arrays
-  for (int i = 0; i < MAX_ABILITY_SELECTION; i++) {
-    ctx->cost_targets[i] = 0;
-    ctx->effect_targets[i] = 0;
   }
 
   // Spells skip confirmation phase - go straight to cost or effect selection
@@ -1206,6 +1229,10 @@ bool azk_trigger_spell_ability(ecs_world_t *world, ecs_entity_t spell_card,
     ctx->phase = ABILITY_PHASE_COST_SELECTION;
     cli_render_logf("[Ability] Spell triggered, selecting cost targets");
   } else if (def->effect_req.min > 0) {
+    if (def->apply_costs) {
+      def->apply_costs(world, ctx);
+      cli_render_logf("[Ability] Applied costs (no cost targets needed)");
+    }
     ctx->phase = ABILITY_PHASE_EFFECT_SELECTION;
     cli_render_logf("[Ability] Spell triggered, selecting effect targets");
   } else {
@@ -1244,21 +1271,7 @@ bool azk_trigger_leader_response_ability(ecs_world_t *world, ecs_entity_t card,
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
 
   // Set up the ability context
-  ctx->source_card = card;
-  ctx->owner = owner;
-  ctx->is_optional = false; // Response abilities are already activated
-  ctx->cost_min = def->cost_req.min;
-  ctx->cost_expected = def->cost_req.max;
-  ctx->cost_filled = 0;
-  ctx->effect_min = def->effect_req.min;
-  ctx->effect_expected = def->effect_req.max;
-  ctx->effect_filled = 0;
-
-  // Clear target arrays
-  for (int i = 0; i < MAX_ABILITY_SELECTION; i++) {
-    ctx->cost_targets[i] = 0;
-    ctx->effect_targets[i] = 0;
-  }
+  azk_init_ability_context(ctx, card, owner, def);
 
   // Leader response abilities skip confirmation (already activated)
   // Go straight to cost or effect selection
@@ -1294,9 +1307,11 @@ bool azk_queue_triggered_effect(ecs_world_t *world, ecs_entity_t card,
     return false;
   }
 
-  queue->effects[queue->count].source_card = card;
-  queue->effects[queue->count].owner = owner;
-  queue->effects[queue->count].timing_tag = timing_tag;
+  uint8_t insert_index =
+      (uint8_t)((queue->head + queue->count) % MAX_TRIGGERED_EFFECT_QUEUE);
+  queue->effects[insert_index].source_card = card;
+  queue->effects[insert_index].owner = owner;
+  queue->effects[insert_index].timing_tag = timing_tag;
   queue->count++;
 
   // Log effect queued (ability_index=0 as default, timing_tag for trigger type)
@@ -1349,12 +1364,9 @@ bool azk_process_triggered_effect_queue(ecs_world_t *world) {
   }
 
   // Pop first effect (FIFO)
-  PendingTriggeredEffect effect = queue->effects[0];
-
-  // Shift remaining effects
-  for (uint8_t i = 0; i < queue->count - 1; i++) {
-    queue->effects[i] = queue->effects[i + 1];
-  }
+  PendingTriggeredEffect effect = queue->effects[queue->head];
+  queue->head =
+      (uint8_t)((queue->head + 1) % MAX_TRIGGERED_EFFECT_QUEUE);
   queue->count--;
   ecs_singleton_modified(world, TriggeredEffectQueue);
 
@@ -1368,18 +1380,6 @@ bool azk_process_triggered_effect_queue(ecs_world_t *world) {
   // flushed
   ecs_entity_t card = effect.source_card;
   ecs_entity_t owner = effect.owner;
-
-  // Switch active player to ability owner if different
-  // This ensures the correct player has control to confirm/decline
-  GameState *gs = ecs_singleton_get_mut(world, GameState);
-  uint8_t owner_player_num = get_player_number(world, owner);
-  if (gs->active_player_index != owner_player_num) {
-    cli_render_logf(
-        "[Ability] Switching control to player %d for triggered ability",
-        owner_player_num);
-    gs->active_player_index = owner_player_num;
-    ecs_singleton_modified(world, GameState);
-  }
 
   // Get card ID
   const CardId *card_id = ecs_get(world, card, CardId);
@@ -1413,25 +1413,23 @@ bool azk_process_triggered_effect_queue(ecs_world_t *world) {
     return false;
   }
 
+  // Switch active player to ability owner if different
+  // This ensures the correct player has control to confirm/decline
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  uint8_t owner_player_num = get_player_number(world, owner);
+  if (gs->active_player_index != owner_player_num) {
+    cli_render_logf(
+        "[Ability] Switching control to player %d for triggered ability",
+        owner_player_num);
+    gs->active_player_index = owner_player_num;
+    ecs_singleton_modified(world, GameState);
+  }
+
   // Get ability context singleton
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
 
   // Set up the ability context
-  ctx->source_card = card;
-  ctx->owner = owner;
-  ctx->is_optional = def->is_optional;
-  ctx->cost_min = def->cost_req.min;
-  ctx->cost_expected = def->cost_req.max;
-  ctx->cost_filled = 0;
-  ctx->effect_min = def->effect_req.min;
-  ctx->effect_expected = def->effect_req.max;
-  ctx->effect_filled = 0;
-
-  // Clear target arrays
-  for (int i = 0; i < MAX_ABILITY_SELECTION; i++) {
-    ctx->cost_targets[i] = 0;
-    ctx->effect_targets[i] = 0;
-  }
+  azk_init_ability_context(ctx, card, owner, def);
 
   if (def->is_optional) {
     // Optional ability - enter confirmation phase
@@ -1540,9 +1538,7 @@ void azk_trigger_gate_portal_ability(ecs_world_t *world, ecs_entity_t gate_card,
 
   // Set up context with portaled card info
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
-  ctx->source_card = gate_card;
-  ctx->owner = owner;
-  ctx->is_optional = def->is_optional;
+  azk_init_ability_context(ctx, gate_card, owner, def);
   ctx->effect_targets[0] = portaled_card; // Store portaled card for effect
   ctx->effect_filled = 1;
 

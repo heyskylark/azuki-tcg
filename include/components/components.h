@@ -142,6 +142,7 @@ typedef struct {
 
 typedef struct {
   PendingTriggeredEffect effects[MAX_TRIGGERED_EFFECT_QUEUE];
+  uint8_t head;
   uint8_t count;
 } TriggeredEffectQueue;
 
