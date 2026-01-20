@@ -113,6 +113,7 @@ function createPlayerBoard(
   return {
     leader: leader ? createResolvedLeader(leader, leaderHp) : createResolvedLeader({
       cardCode: "UNKNOWN",
+      cardDefId: 0,
       imageKey: "unknown.png",
       name: "Unknown Leader",
       cardType: "LEADER",
@@ -123,6 +124,7 @@ function createPlayerBoard(
     }, leaderHp),
     gate: gate ? createResolvedGate(gate) : createResolvedGate({
       cardCode: "UNKNOWN",
+      cardDefId: 0,
       imageKey: "unknown.png",
       name: "Unknown Gate",
       cardType: "GATE",

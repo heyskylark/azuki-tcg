@@ -1,11 +1,13 @@
 #include "validation/action_enumerator.h"
 
+#include <stdio.h>
 #include <string.h>
 
 #include "abilities/ability_registry.h"
 #include "abilities/ability_system.h"
 #include "generated/card_defs.h"
 #include "utils/card_utils.h"
+#include "utils/cli_rendering_util.h"
 #include "utils/phase_utils.h"
 #include "utils/player_util.h"
 #include "utils/zone_util.h"
@@ -375,39 +377,55 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
 static bool validate_action_for_mask(ecs_world_t *world, const GameState *gs,
                                      ecs_entity_t player,
                                      const UserAction *action) {
+  bool result = false;
   switch (action->type) {
   case ACT_PLAY_ENTITY_TO_GARDEN:
-    return azk_validate_play_entity_action(world, gs, player, ZONE_GARDEN,
+    result = azk_validate_play_entity_action(world, gs, player, ZONE_GARDEN,
                                            action, false, NULL);
+    break;
   case ACT_PLAY_ENTITY_TO_ALLEY:
-    return azk_validate_play_entity_action(world, gs, player, ZONE_ALLEY,
+    result = azk_validate_play_entity_action(world, gs, player, ZONE_ALLEY,
                                            action, false, NULL);
+    break;
   case ACT_GATE_PORTAL:
-    return azk_validate_gate_portal_action(world, gs, player, action, false,
+    result = azk_validate_gate_portal_action(world, gs, player, action, false,
                                            NULL);
+    break;
   case ACT_ATTACK:
-    return azk_validate_attack_action(world, gs, player, action, false, NULL);
+    result = azk_validate_attack_action(world, gs, player, action, false, NULL);
+    break;
   case ACT_ATTACH_WEAPON_FROM_HAND:
-    return azk_validate_attach_weapon_action(world, gs, player, action, false,
+    result = azk_validate_attach_weapon_action(world, gs, player, action, false,
                                              NULL);
+    break;
   case ACT_PLAY_SPELL_FROM_HAND:
-    return azk_validate_play_spell_action(world, gs, player, action, false,
+    result = azk_validate_play_spell_action(world, gs, player, action, false,
                                           NULL);
+    break;
   case ACT_ACTIVATE_ALLEY_ABILITY:
-    return azk_validate_activate_alley_ability_action(world, gs, player, action,
+    result = azk_validate_activate_alley_ability_action(world, gs, player, action,
                                                       false, NULL);
+    break;
   case ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY:
-    return azk_validate_activate_garden_or_leader_ability_action(
+    result = azk_validate_activate_garden_or_leader_ability_action(
         world, gs, player, action, false, NULL);
+    break;
   case ACT_DECLARE_DEFENDER:
-    return azk_validate_declare_defender_action(world, gs, player, action, false,
+    result = azk_validate_declare_defender_action(world, gs, player, action, false,
                                                 NULL);
+    break;
   case ACT_NOOP:
   case ACT_MULLIGAN_SHUFFLE:
-    return azk_validate_simple_action(world, gs, player, action->type, false);
+    result = azk_validate_simple_action(world, gs, player, action->type, false);
+    printf("[ActionMask] validate_action_for_mask: type=%d, result=%d\n", action->type, result);
+    fflush(stdout);
+    break;
   default:
-    return false;
+    printf("[ActionMask] validate_action_for_mask: unknown type=%d\n", action->type);
+    fflush(stdout);
+    result = false;
   }
+  return result;
 }
 
 static void enumerate_parameters(ecs_world_t *world, const GameState *gs,
@@ -465,14 +483,25 @@ bool azk_build_action_mask_for_player(ecs_world_t *world, const GameState *gs,
   memset(out_mask, 0, sizeof(*out_mask));
 
   if (player_index < 0 || player_index >= MAX_PLAYERS_PER_MATCH) {
+    printf("[ActionMask] player_index %d out of bounds\n", player_index);
+    fflush(stdout);
     return false;
   }
 
-  if (gs->winner != -1 || !phase_requires_user_action(world, gs->phase)) {
+  bool phase_requires_action = phase_requires_user_action(world, gs->phase);
+  printf("[ActionMask] phase=%d, winner=%d, phase_requires_action=%d, active_player=%d, player_index=%d\n",
+                  gs->phase, gs->winner, phase_requires_action, gs->active_player_index, player_index);
+  fflush(stdout);
+
+  if (gs->winner != -1 || !phase_requires_action) {
+    printf("[ActionMask] Early return: game over or phase doesn't require action\n");
+    fflush(stdout);
     return true;
   }
 
   if (player_index != gs->active_player_index) {
+    printf("[ActionMask] Early return: player %d is not active player %d\n", player_index, gs->active_player_index);
+    fflush(stdout);
     return true;
   }
 
@@ -480,6 +509,8 @@ bool azk_build_action_mask_for_player(ecs_world_t *world, const GameState *gs,
 
   // Check if we're in an ability sub-phase
   if (azk_is_in_ability_phase(world)) {
+    printf("[ActionMask] In ability phase, enumerating ability actions\n");
+    fflush(stdout);
     enumerate_ability_actions(world, gs, player, out_mask);
     return true;
   }
@@ -488,11 +519,17 @@ bool azk_build_action_mask_for_player(ecs_world_t *world, const GameState *gs,
   size_t spec_count = 0;
   const AzkActionSpec *specs = azk_get_action_specs(&spec_count);
 
+  printf("[ActionMask] Enumerating %zu action specs for phase %d\n", spec_count, gs->phase);
+  fflush(stdout);
+
   for (size_t i = 0; i < spec_count; ++i) {
     const AzkActionSpec *spec = &specs[i];
     if ((spec->phase_mask & AZK_PHASE_MASK(gs->phase)) == 0) {
       continue;
     }
+
+    printf("[ActionMask] Spec %zu (type=%d) matches phase mask\n", i, spec->type);
+    fflush(stdout);
 
     UserAction action = {.player = player,
                          .type = spec->type,
@@ -502,6 +539,10 @@ bool azk_build_action_mask_for_player(ecs_world_t *world, const GameState *gs,
 
     enumerate_parameters(world, gs, player, spec, 0, &action, out_mask);
   }
+
+  printf("[ActionMask] Final mask: legal_action_count=%d, head0_mask[0]=%d, head0_mask[23]=%d\n",
+                  out_mask->legal_action_count, out_mask->head0_mask[0], out_mask->head0_mask[23]);
+  fflush(stdout);
 
   return true;
 }

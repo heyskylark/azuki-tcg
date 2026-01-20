@@ -43,10 +43,33 @@ static CardDefId get_card_def_id(ecs_world_t *world, ecs_entity_t card) {
   return card_id ? card_id->id : CARD_DEF_IKZ_001;
 }
 
-/* Get zone index from card entity */
+/* Get zone index from card entity (uses ZoneIndex component only) */
 static int8_t get_card_zone_index(ecs_world_t *world, ecs_entity_t card) {
   const ZoneIndex *zi = ecs_get(world, card, ZoneIndex);
   return zi ? (int8_t)zi->index : -1;
+}
+
+int8_t azk_get_card_index_in_zone(ecs_world_t *world, ecs_entity_t card,
+                                  ecs_entity_t zone) {
+  if (card == 0 || zone == 0) {
+    return -1;
+  }
+
+  // Fast path: check for ZoneIndex component (garden/alley cards)
+  const ZoneIndex *zi = ecs_get(world, card, ZoneIndex);
+  if (zi) {
+    return (int8_t)zi->index;
+  }
+
+  // Slow path: search ordered children (hand/deck/other zones)
+  ecs_entities_t cards = ecs_get_ordered_children(world, zone);
+  for (int32_t i = 0; i < cards.count; i++) {
+    if (cards.ids[i] == card) {
+      return (int8_t)i;
+    }
+  }
+
+  return -1;
 }
 
 void azk_clear_game_logs(ecs_world_t *world) {

@@ -43,7 +43,7 @@ export function GameBridge({ playerSlot, children }: GameBridgeProps) {
       }
 
       if (message.type === "GAME_LOG_BATCH") {
-        processLogBatch(message as GameLogBatchMessage);
+        processLogBatch(message as GameLogBatchMessage, playerSlot);
       }
     });
 

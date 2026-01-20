@@ -12,6 +12,7 @@
 #include "components/game_log.h"
 #include "constants/game.h"
 #include "utils/observation_util.h"
+#include "utils/game_log_util.h"
 
 // Maximum number of concurrent game worlds
 #define MAX_WORLDS 256
@@ -305,6 +306,303 @@ static napi_value GetActivePlayer(napi_env env, napi_callback_info info) {
   return result;
 }
 
+// ============================================================================
+// Game log serialization helpers
+// ============================================================================
+
+// Serialize GameLogCardRef to JS object
+static napi_value serialize_card_ref(napi_env env, const GameLogCardRef *ref) {
+  napi_value obj;
+  napi_create_object(env, &obj);
+
+  napi_value player_val, card_def_id_val, zone_val, zone_index_val;
+  napi_create_int32(env, ref->player, &player_val);
+  napi_create_int32(env, ref->card_def_id, &card_def_id_val);
+  napi_create_string_utf8(env, azk_log_zone_to_string(ref->zone), NAPI_AUTO_LENGTH, &zone_val);
+  napi_create_int32(env, ref->zone_index, &zone_index_val);
+
+  napi_set_named_property(env, obj, "player", player_val);
+  napi_set_named_property(env, obj, "cardDefId", card_def_id_val);
+  napi_set_named_property(env, obj, "zone", zone_val);
+  napi_set_named_property(env, obj, "zoneIndex", zone_index_val);
+
+  return obj;
+}
+
+// Serialize GameLogCardMetadata to JS object
+static napi_value serialize_card_metadata(napi_env env, const GameLogCardMetadata *meta) {
+  napi_value obj;
+  napi_create_object(env, &obj);
+
+  napi_value cur_atk, cur_hp, tapped, cooldown;
+  napi_value has_charge, has_defender, has_infiltrate;
+  napi_value is_frozen, is_effect_immune;
+
+  napi_create_int32(env, meta->cur_atk, &cur_atk);
+  napi_create_int32(env, meta->cur_hp, &cur_hp);
+  napi_get_boolean(env, meta->tapped, &tapped);
+  napi_get_boolean(env, meta->cooldown, &cooldown);
+  napi_get_boolean(env, meta->has_charge, &has_charge);
+  napi_get_boolean(env, meta->has_defender, &has_defender);
+  napi_get_boolean(env, meta->has_infiltrate, &has_infiltrate);
+  napi_get_boolean(env, meta->is_frozen, &is_frozen);
+  napi_get_boolean(env, meta->is_effect_immune, &is_effect_immune);
+
+  napi_set_named_property(env, obj, "curAtk", cur_atk);
+  napi_set_named_property(env, obj, "curHp", cur_hp);
+  napi_set_named_property(env, obj, "tapped", tapped);
+  napi_set_named_property(env, obj, "cooldown", cooldown);
+  napi_set_named_property(env, obj, "hasCharge", has_charge);
+  napi_set_named_property(env, obj, "hasDefender", has_defender);
+  napi_set_named_property(env, obj, "hasInfiltrate", has_infiltrate);
+  napi_set_named_property(env, obj, "isFrozen", is_frozen);
+  napi_set_named_property(env, obj, "isEffectImmune", is_effect_immune);
+
+  return obj;
+}
+
+// Serialize a single GameStateLog to JS object
+static napi_value serialize_game_log(napi_env env, const GameStateLog *log) {
+  napi_value obj, type_val, data_val;
+  napi_create_object(env, &obj);
+
+  // Get type string
+  const char *type_str = azk_log_type_to_string(log->type);
+  napi_create_string_utf8(env, type_str, NAPI_AUTO_LENGTH, &type_val);
+  napi_set_named_property(env, obj, "type", type_val);
+
+  // Serialize data based on log type
+  napi_create_object(env, &data_val);
+
+  switch (log->type) {
+    case GLOG_CARD_ZONE_MOVED: {
+      const GameLogZoneMoved *d = &log->data.zone_moved;
+      napi_value card, from_zone, from_idx, to_zone, to_idx, metadata;
+
+      card = serialize_card_ref(env, &d->card);
+      napi_create_string_utf8(env, azk_log_zone_to_string(d->from_zone), NAPI_AUTO_LENGTH, &from_zone);
+      napi_create_int32(env, d->from_index, &from_idx);
+      napi_create_string_utf8(env, azk_log_zone_to_string(d->to_zone), NAPI_AUTO_LENGTH, &to_zone);
+      napi_create_int32(env, d->to_index, &to_idx);
+      metadata = serialize_card_metadata(env, &d->metadata);
+
+      napi_set_named_property(env, data_val, "card", card);
+      napi_set_named_property(env, data_val, "fromZone", from_zone);
+      napi_set_named_property(env, data_val, "fromIndex", from_idx);
+      napi_set_named_property(env, data_val, "toZone", to_zone);
+      napi_set_named_property(env, data_val, "toIndex", to_idx);
+      napi_set_named_property(env, data_val, "metadata", metadata);
+      break;
+    }
+
+    case GLOG_CARD_TAP_STATE_CHANGED: {
+      const GameLogTapStateChanged *d = &log->data.tap_changed;
+      napi_value card, new_state;
+
+      card = serialize_card_ref(env, &d->card);
+      const char *state_str = "UNTAPPED";
+      if (d->new_state == GLOG_TAP_TAPPED) state_str = "TAPPED";
+      else if (d->new_state == GLOG_TAP_COOLDOWN) state_str = "COOLDOWN";
+      napi_create_string_utf8(env, state_str, NAPI_AUTO_LENGTH, &new_state);
+
+      napi_set_named_property(env, data_val, "card", card);
+      napi_set_named_property(env, data_val, "newState", new_state);
+      break;
+    }
+
+    case GLOG_CARD_STAT_CHANGE: {
+      const GameLogStatChange *d = &log->data.stat_change;
+      napi_value card, atk_delta, hp_delta, new_atk, new_hp;
+
+      card = serialize_card_ref(env, &d->card);
+      napi_create_int32(env, d->atk_delta, &atk_delta);
+      napi_create_int32(env, d->hp_delta, &hp_delta);
+      napi_create_int32(env, d->new_atk, &new_atk);
+      napi_create_int32(env, d->new_hp, &new_hp);
+
+      napi_set_named_property(env, data_val, "card", card);
+      napi_set_named_property(env, data_val, "atkDelta", atk_delta);
+      napi_set_named_property(env, data_val, "hpDelta", hp_delta);
+      napi_set_named_property(env, data_val, "newAtk", new_atk);
+      napi_set_named_property(env, data_val, "newHp", new_hp);
+      break;
+    }
+
+    case GLOG_TURN_STARTED: {
+      const GameLogTurnStarted *d = &log->data.turn_started;
+      napi_value player, turn;
+
+      napi_create_int32(env, d->player, &player);
+      napi_create_int32(env, d->turn_number, &turn);
+
+      napi_set_named_property(env, data_val, "player", player);
+      napi_set_named_property(env, data_val, "turnNumber", turn);
+      break;
+    }
+
+    case GLOG_TURN_ENDED: {
+      const GameLogTurnEnded *d = &log->data.turn_ended;
+      napi_value player, turn;
+
+      napi_create_int32(env, d->player, &player);
+      napi_create_int32(env, d->turn_number, &turn);
+
+      napi_set_named_property(env, data_val, "player", player);
+      napi_set_named_property(env, data_val, "turnNumber", turn);
+      break;
+    }
+
+    case GLOG_DECK_SHUFFLED: {
+      const GameLogDeckShuffled *d = &log->data.deck_shuffled;
+      napi_value player, reason;
+
+      napi_create_int32(env, d->player, &player);
+      const char *reason_str = "GAME_START";
+      if (d->reason == GLOG_SHUFFLE_MULLIGAN) reason_str = "MULLIGAN";
+      else if (d->reason == GLOG_SHUFFLE_EFFECT) reason_str = "EFFECT";
+      napi_create_string_utf8(env, reason_str, NAPI_AUTO_LENGTH, &reason);
+
+      napi_set_named_property(env, data_val, "player", player);
+      napi_set_named_property(env, data_val, "reason", reason);
+      break;
+    }
+
+    case GLOG_GAME_ENDED: {
+      const GameLogGameEnded *d = &log->data.game_ended;
+      napi_value winner, reason;
+
+      napi_create_int32(env, d->winner, &winner);
+      const char *reason_str = "LEADER_DEFEATED";
+      if (d->reason == GLOG_END_DECK_OUT) reason_str = "DECK_OUT";
+      else if (d->reason == GLOG_END_CONCEDE) reason_str = "CONCEDE";
+      napi_create_string_utf8(env, reason_str, NAPI_AUTO_LENGTH, &reason);
+
+      napi_set_named_property(env, data_val, "winner", winner);
+      napi_set_named_property(env, data_val, "reason", reason);
+      break;
+    }
+
+    case GLOG_COMBAT_DECLARED: {
+      const GameLogCombatDeclared *d = &log->data.combat_declared;
+      napi_value attacker, target;
+
+      attacker = serialize_card_ref(env, &d->attacker);
+      target = serialize_card_ref(env, &d->target);
+
+      napi_set_named_property(env, data_val, "attacker", attacker);
+      napi_set_named_property(env, data_val, "target", target);
+      break;
+    }
+
+    case GLOG_DEFENDER_DECLARED: {
+      const GameLogDefenderDeclared *d = &log->data.defender_declared;
+      napi_value defender = serialize_card_ref(env, &d->defender);
+      napi_set_named_property(env, data_val, "defender", defender);
+      break;
+    }
+
+    case GLOG_COMBAT_DAMAGE: {
+      const GameLogCombatDamage *d = &log->data.combat_damage;
+      napi_value attacker, defender, atk_dmg_dealt, atk_dmg_taken, def_dmg_dealt, def_dmg_taken;
+
+      attacker = serialize_card_ref(env, &d->attacker);
+      defender = serialize_card_ref(env, &d->defender);
+      napi_create_int32(env, d->attacker_damage_dealt, &atk_dmg_dealt);
+      napi_create_int32(env, d->attacker_damage_taken, &atk_dmg_taken);
+      napi_create_int32(env, d->defender_damage_dealt, &def_dmg_dealt);
+      napi_create_int32(env, d->defender_damage_taken, &def_dmg_taken);
+
+      napi_set_named_property(env, data_val, "attacker", attacker);
+      napi_set_named_property(env, data_val, "defender", defender);
+      napi_set_named_property(env, data_val, "attackerDamageDealt", atk_dmg_dealt);
+      napi_set_named_property(env, data_val, "attackerDamageTaken", atk_dmg_taken);
+      napi_set_named_property(env, data_val, "defenderDamageDealt", def_dmg_dealt);
+      napi_set_named_property(env, data_val, "defenderDamageTaken", def_dmg_taken);
+      break;
+    }
+
+    case GLOG_ENTITY_DIED: {
+      const GameLogEntityDied *d = &log->data.entity_died;
+      napi_value card, cause;
+
+      card = serialize_card_ref(env, &d->card);
+      const char *cause_str = "COMBAT";
+      if (d->cause == GLOG_DEATH_ABILITY) cause_str = "ABILITY";
+      else if (d->cause == GLOG_DEATH_EFFECT) cause_str = "EFFECT";
+      napi_create_string_utf8(env, cause_str, NAPI_AUTO_LENGTH, &cause);
+
+      napi_set_named_property(env, data_val, "card", card);
+      napi_set_named_property(env, data_val, "cause", cause);
+      break;
+    }
+
+    case GLOG_EFFECT_QUEUED: {
+      const GameLogEffectQueued *d = &log->data.effect_queued;
+      napi_value card, ability_idx, trigger;
+
+      card = serialize_card_ref(env, &d->card);
+      napi_create_int32(env, d->ability_index, &ability_idx);
+      napi_create_int32(env, d->trigger_tag, &trigger);
+
+      napi_set_named_property(env, data_val, "card", card);
+      napi_set_named_property(env, data_val, "abilityIndex", ability_idx);
+      napi_set_named_property(env, data_val, "triggerTag", trigger);
+      break;
+    }
+
+    case GLOG_CARD_EFFECT_ENABLED: {
+      const GameLogEffectEnabled *d = &log->data.effect_enabled;
+      napi_value card, ability_idx;
+
+      card = serialize_card_ref(env, &d->card);
+      napi_create_int32(env, d->ability_index, &ability_idx);
+
+      napi_set_named_property(env, data_val, "card", card);
+      napi_set_named_property(env, data_val, "abilityIndex", ability_idx);
+      break;
+    }
+
+    case GLOG_STATUS_EFFECT_APPLIED: {
+      const GameLogStatusApplied *d = &log->data.status_applied;
+      napi_value card, effect, duration;
+
+      card = serialize_card_ref(env, &d->card);
+      const char *eff_str = "FROZEN";
+      if (d->effect == GLOG_STATUS_SHOCKED) eff_str = "SHOCKED";
+      else if (d->effect == GLOG_STATUS_EFFECT_IMMUNE) eff_str = "EFFECT_IMMUNE";
+      napi_create_string_utf8(env, eff_str, NAPI_AUTO_LENGTH, &effect);
+      napi_create_int32(env, d->duration, &duration);
+
+      napi_set_named_property(env, data_val, "card", card);
+      napi_set_named_property(env, data_val, "effect", effect);
+      napi_set_named_property(env, data_val, "duration", duration);
+      break;
+    }
+
+    case GLOG_STATUS_EFFECT_EXPIRED: {
+      const GameLogStatusExpired *d = &log->data.status_expired;
+      napi_value card, effect;
+
+      card = serialize_card_ref(env, &d->card);
+      const char *eff_str = "FROZEN";
+      if (d->effect == GLOG_STATUS_SHOCKED) eff_str = "SHOCKED";
+      else if (d->effect == GLOG_STATUS_EFFECT_IMMUNE) eff_str = "EFFECT_IMMUNE";
+      napi_create_string_utf8(env, eff_str, NAPI_AUTO_LENGTH, &effect);
+
+      napi_set_named_property(env, data_val, "card", card);
+      napi_set_named_property(env, data_val, "effect", effect);
+      break;
+    }
+
+    default:
+      // Unknown log type - leave data empty
+      break;
+  }
+
+  napi_set_named_property(env, obj, "data", data_val);
+  return obj;
+}
+
 // submitAction(worldId: string, playerIndex: number, action: [number, number, number, number])
 static napi_value SubmitAction(napi_env env, napi_callback_info info) {
   size_t argc = 3;
@@ -367,7 +665,13 @@ static napi_value SubmitAction(napi_env env, napi_callback_info info) {
     return result;
   }
 
-  // Tick the engine until it needs input or game is over
+  // Clear logs before ticking (so we only capture logs from this action)
+  azk_clear_game_logs(engine);
+
+  // Process the submitted action (always tick once)
+  azk_engine_tick(engine);
+
+  // Continue ticking through phases that don't require user input
   while (!azk_engine_requires_action(engine) && !azk_engine_is_game_over(engine)) {
     azk_engine_tick(engine);
   }
@@ -414,8 +718,14 @@ static napi_value SubmitAction(napi_env env, napi_callback_info info) {
   napi_set_named_property(env, state_context, "activePlayer", active_player_val);
   napi_set_named_property(env, state_context, "turnNumber", turn_val);
 
-  // Empty logs array for now (TODO: implement log extraction)
-  napi_create_array(env, &logs_arr);
+  // Extract game logs
+  uint8_t log_count = 0;
+  const GameStateLog *logs = azk_get_game_logs(engine, &log_count);
+  napi_create_array_with_length(env, log_count, &logs_arr);
+  for (uint8_t i = 0; i < log_count; i++) {
+    napi_value log_obj = serialize_game_log(env, &logs[i]);
+    napi_set_element(env, logs_arr, i, log_obj);
+  }
 
   napi_set_named_property(env, result, "success", success_val);
   napi_set_named_property(env, result, "invalid", invalid_val);

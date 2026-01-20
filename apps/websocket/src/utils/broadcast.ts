@@ -18,6 +18,7 @@ export function buildPlayerInfo(channel: RoomChannelState, playerSlot: 0 | 1): P
     id: player.userId,
     username: player.username,
     deckSelected: deckId !== null,
+    deckId,
     ready,
     connected: player.connected,
   };

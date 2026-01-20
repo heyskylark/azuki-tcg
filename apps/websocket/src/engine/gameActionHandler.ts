@@ -11,6 +11,7 @@ import {
   getWorldByRoomId,
   submitPlayerAction,
   incrementBatchNumber,
+  getPlayerObservationBySlot,
   type SubmitActionResult,
 } from "@/engine/WorldManager";
 import { processLogsForPlayer } from "@/engine/logProcessor";
@@ -78,7 +79,25 @@ export async function handleGameAction(
   }
 
   // Submit action to engine
+  logger.info("Submitting player action", {
+    roomId,
+    userId,
+    playerSlot,
+    action,
+  });
   const result = submitPlayerAction(roomId, userId, action as ActionTuple);
+  logger.info("Action result", {
+    roomId,
+    playerSlot,
+    action,
+    isActionResult: isActionResult(result),
+    result: isActionResult(result) ? {
+      success: result.success,
+      gameOver: result.gameOver,
+      phase: result.stateContext?.phase,
+      activePlayer: result.stateContext?.activePlayer,
+    } : result,
+  });
 
   // Handle error responses
   if (!isActionResult(result)) {
@@ -116,8 +135,6 @@ export async function handleGameAction(
 
   // Process and send logs to each player with appropriate redaction
   for (const slot of [0, 1] as const) {
-    const playerUserId =
-      slot === 0 ? world.player0UserId : world.player1UserId;
     const playerConnection = channel.players[slot];
 
     if (playerConnection?.ws && playerConnection.connected) {
@@ -134,8 +151,10 @@ export async function handleGameAction(
         !result.gameOver &&
         result.stateContext.activePlayer === slot
       ) {
-        // The player will get their action mask from the log batch
-        // If we need to include it, we'd need to get the observation
+        const observation = getPlayerObservationBySlot(roomId, slot);
+        if (observation?.actionMask) {
+          logBatch.actionMask = observation.actionMask;
+        }
       }
 
       sendToPlayer(channel, slot, logBatch);

@@ -81,12 +81,18 @@ bool move_cards_to_zone(ecs_world_t *world, ecs_entity_t from_zone,
   GameLogZone from_log_zone = azk_zone_entity_to_log_zone(world, from_zone);
   GameLogZone to_log_zone = azk_zone_entity_to_log_zone(world, to_zone);
 
+  // Get initial to_zone count for computing to_index (cards appended at end)
+  int32_t to_zone_count = ecs_get_ordered_children(world, to_zone).count;
+
   for (int32_t index = 0; index < to_draw; index++) {
-    ecs_entity_t card = cards.ids[count - 1 - index];
+    // Cards are moved from end of source zone, so from_index = count - 1 - index
+    int8_t from_index = (int8_t)(count - 1 - index);
+    ecs_entity_t card = cards.ids[from_index];
     ecs_add_pair(world, card, EcsChildOf, to_zone);
 
-    // Log zone movement for each card
-    azk_log_card_zone_moved(world, card, from_log_zone, -1, to_log_zone, -1);
+    // Log zone movement (to_index = original count + cards already moved)
+    azk_log_card_zone_moved(world, card, from_log_zone, from_index, to_log_zone,
+                            (int8_t)(to_zone_count + index));
 
     if (out_cards) {
       out_cards[index] = card;
@@ -114,6 +120,9 @@ bool draw_cards_with_deckout_check(ecs_world_t *world, ecs_entity_t player,
   ecs_entities_t deck_cards = ecs_get_ordered_children(world, deck);
   int32_t deck_count = deck_cards.count;
 
+  // Get initial hand count for computing indices (cards are appended to end)
+  int32_t hand_index = ecs_get_ordered_children(world, hand).count;
+
   for (int i = 0; i < draw_count; i++) {
     if (deck_count == 0) {
       // Couldn't draw (deck was already empty)
@@ -128,8 +137,9 @@ bool draw_cards_with_deckout_check(ecs_world_t *world, ecs_entity_t player,
     ecs_entity_t card = deck_cards.ids[deck_count - 1 - i];
     ecs_add_pair(world, card, EcsChildOf, hand);
 
-    // Log zone movement
-    azk_log_card_zone_moved(world, card, GLOG_ZONE_DECK, -1, GLOG_ZONE_HAND, -1);
+    // Log zone movement (hand_index + i = position of this card in hand)
+    azk_log_card_zone_moved(world, card, GLOG_ZONE_DECK, -1, GLOG_ZONE_HAND,
+                            (int8_t)(hand_index + i));
 
     if (out_cards) {
       out_cards[i] = card;
@@ -188,9 +198,11 @@ int look_at_top_n_cards(ecs_world_t *world, ecs_entity_t player, int count,
 
 void add_card_to_bottom_of_deck(ecs_world_t *world, ecs_entity_t player,
                                 ecs_entity_t card) {
-  // Capture source zone before moving
+  // Capture source zone and index before moving
   ecs_entity_t from_zone_entity = ecs_get_target(world, card, EcsChildOf, 0);
   GameLogZone from_zone = azk_zone_entity_to_log_zone(world, from_zone_entity);
+  int8_t from_index =
+      azk_get_card_index_in_zone(world, card, from_zone_entity);
 
   GameState *gs = ecs_singleton_get_mut(world, GameState);
   uint8_t player_num = get_player_number(world, player);
@@ -205,7 +217,8 @@ void add_card_to_bottom_of_deck(ecs_world_t *world, ecs_entity_t player,
 
   if (count <= 1) {
     // Log zone movement (card is at bottom of deck, index 0)
-    azk_log_card_zone_moved(world, card, from_zone, -1, GLOG_ZONE_DECK, -1);
+    azk_log_card_zone_moved(world, card, from_zone, from_index, GLOG_ZONE_DECK,
+                            0);
     return; // Nothing to reorder
   }
 
@@ -243,8 +256,9 @@ void add_card_to_bottom_of_deck(ecs_world_t *world, ecs_entity_t player,
   ecs_set_child_order(world, deck, new_order, count);
   ecs_os_free(new_order);
 
-  // Log zone movement
-  azk_log_card_zone_moved(world, card, from_zone, -1, GLOG_ZONE_DECK, -1);
+  // Log zone movement (card ends up at index 0 = bottom of deck)
+  azk_log_card_zone_moved(world, card, from_zone, from_index, GLOG_ZONE_DECK,
+                          0);
 }
 
 void move_selection_to_hand(ecs_world_t *world, ecs_entity_t card) {
@@ -258,12 +272,15 @@ void move_selection_to_hand(ecs_world_t *world, ecs_entity_t card) {
   const GameState *gs = ecs_singleton_get(world, GameState);
   ecs_entity_t hand_zone = gs->zones[player_number->player_number].hand;
 
+  // Get hand count before adding (card will be appended at this index)
+  int32_t hand_index = ecs_get_ordered_children(world, hand_zone).count;
+
   // Move from selection to hand
   ecs_add_pair(world, card, EcsChildOf, hand_zone);
 
   // Log zone movement
   azk_log_card_zone_moved(world, card, GLOG_ZONE_SELECTION, -1, GLOG_ZONE_HAND,
-                          -1);
+                          (int8_t)hand_index);
 }
 
 void move_selection_to_deck_bottom(ecs_world_t *world, ecs_entity_t player,

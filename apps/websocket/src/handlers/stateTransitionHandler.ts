@@ -132,6 +132,8 @@ export async function transitionToInMatch(roomId: string, rngSeed: number): Prom
     const player0DeckEntries = deckAsDefIdsToDeckEntries(player0Deck);
     const player1DeckEntries = deckAsDefIdsToDeckEntries(player1Deck);
 
+    logger.info("Loaded player0 and player 1 decks and deck entries");
+
     // Create the game world
     const world = createGameWorld(
       roomId,
@@ -142,12 +144,16 @@ export async function transitionToInMatch(roomId: string, rngSeed: number): Prom
       player1DeckEntries
     );
 
+    logger.info("Created game world", { roomId, worldId: world.worldId });
+
     // Update room status to IN_MATCH
     await updateRoomStatus(roomId, RoomStatus.IN_MATCH);
 
     updateRoomChannelStatus(roomId, {
       status: RoomStatus.IN_MATCH,
     });
+
+    broadcastRoomState(channel);
 
     logger.info("Room transitioned to IN_MATCH", {
       roomId,

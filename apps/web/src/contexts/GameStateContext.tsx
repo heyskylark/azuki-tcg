@@ -12,6 +12,8 @@ import type {
   GameLogBatchMessage,
 } from "@tcg/backend-core/types/ws";
 import type { GameState, CardMapping } from "@/types/game";
+import type { ProcessedGameLog } from "@/types/gameLogs";
+import { applyLogBatch } from "@/lib/game/logProcessor";
 
 interface GameStateContextValue {
   gameState: GameState | null;
@@ -22,6 +24,10 @@ interface GameStateContextValue {
   cardMappings: Map<string, CardMapping>;
   setCardMappings: (mappings: Map<string, CardMapping>) => void;
 
+  // Reverse lookup: cardDefId -> CardMapping (built from deck data or snapshot)
+  cardDefIdMap: Map<number, CardMapping>;
+  setCardDefIdMap: (map: Map<number, CardMapping>) => void;
+
   // For dev/testing: directly set mock state
   setMockState: (state: GameState) => void;
 
@@ -31,7 +37,7 @@ interface GameStateContextValue {
     playerSlot: 0 | 1,
     cardMappingsOverride?: Map<string, CardMapping>
   ) => void;
-  processLogBatch: (batch: GameLogBatchMessage) => void;
+  processLogBatch: (batch: GameLogBatchMessage, playerSlot: 0 | 1) => void;
 
   // Clear state
   clearGameState: () => void;
@@ -54,9 +60,16 @@ export function GameStateProvider({
   const [cardMappings, setCardMappingsState] = useState<Map<string, CardMapping>>(
     new Map()
   );
+  const [cardDefIdMap, setCardDefIdMap] = useState<Map<number, CardMapping>>(
+    new Map()
+  );
 
   const setCardMappings = useCallback((mappings: Map<string, CardMapping>) => {
     setCardMappingsState(mappings);
+  }, []);
+
+  const setCardDefIdMapCallback = useCallback((map: Map<number, CardMapping>) => {
+    setCardDefIdMap(map);
   }, []);
 
   const setMockState = useCallback((state: GameState) => {
@@ -77,6 +90,18 @@ export function GameStateProvider({
         // Transform snapshot to GameState using card mappings
         const mappings = cardMappingsOverride ?? cardMappings;
         const transformed = transformSnapshot(snapshot, mappings, playerSlot);
+
+        // Only build cardDefIdMap from snapshot if it's not already populated
+        // (e.g., when pre-built from deck data during loading)
+        setCardDefIdMap((currentMap) => {
+          if (currentMap.size > 0) {
+            // Map already populated from deck data, skip snapshot-based building
+            return currentMap;
+          }
+          // Build from snapshot as fallback
+          return buildCardDefIdMap(snapshot, mappings);
+        });
+
         setGameState(transformed);
         setError(null);
       } catch (err) {
@@ -90,10 +115,37 @@ export function GameStateProvider({
     [cardMappings]
   );
 
-  const processLogBatch = useCallback((_batch: GameLogBatchMessage) => {
-    // TODO: Implement incremental state updates from game log
-    // For now, we rely on full snapshots
-  }, []);
+  const processLogBatch = useCallback(
+    (batch: GameLogBatchMessage, playerSlot: 0 | 1) => {
+      setGameState((prevState) => {
+        if (!prevState) {
+          return null;
+        }
+
+        // Apply log entries to update game state
+        const logs = batch.logs as ProcessedGameLog[];
+        const updatedState = applyLogBatch(
+          prevState,
+          logs,
+          playerSlot,
+          cardMappings,
+          cardDefIdMap
+        );
+
+        // Also update state context and action mask from the batch
+        return {
+          ...updatedState,
+          phase: batch.stateContext.phase,
+          abilitySubphase: batch.stateContext.abilitySubphase,
+          activePlayer: batch.stateContext.activePlayer,
+          turnNumber: batch.stateContext.turnNumber,
+          // Use action mask from batch if present (for active player), otherwise clear it
+          actionMask: batch.actionMask ?? null,
+        };
+      });
+    },
+    [cardMappings, cardDefIdMap]
+  );
 
   const clearGameState = useCallback(() => {
     setGameState(null);
@@ -109,6 +161,8 @@ export function GameStateProvider({
         error,
         cardMappings,
         setCardMappings,
+        cardDefIdMap,
+        setCardDefIdMap: setCardDefIdMapCallback,
         setMockState,
         processSnapshot,
         processLogBatch,
@@ -286,4 +340,61 @@ function transformSnapshot(
     actionMask: snapshot.actionMask,
     combatStack: snapshot.combatStack,
   };
+}
+
+/**
+ * Build a reverse lookup map from cardDefId to CardMapping.
+ * Scans all visible cards in the snapshot to extract cardDefId -> cardCode mappings,
+ * then resolves to the full CardMapping.
+ */
+function buildCardDefIdMap(
+  snapshot: GameSnapshotMessage,
+  cardMappings: Map<string, CardMapping>
+): Map<number, CardMapping> {
+  const defIdMap = new Map<number, CardMapping>();
+
+  // Helper to add a card if it has both cardDefId and cardId
+  const addCard = (cardDefId: number, cardId: string | null) => {
+    if (cardId && !defIdMap.has(cardDefId)) {
+      const mapping = cardMappings.get(cardId);
+      if (mapping) {
+        defIdMap.set(cardDefId, mapping);
+      }
+    }
+  };
+
+  // Scan both player boards
+  for (const board of snapshot.players) {
+    // Leader
+    addCard(board.leader.cardDefId, board.leader.cardId);
+
+    // Gate
+    addCard(board.gate.cardDefId, board.gate.cardId);
+
+    // Garden
+    for (const card of board.garden) {
+      if (card) {
+        addCard(card.cardDefId, card.cardId);
+      }
+    }
+
+    // Alley
+    for (const card of board.alley) {
+      if (card) {
+        addCard(card.cardDefId, card.cardId);
+      }
+    }
+
+    // IKZ Area
+    for (const ikz of board.ikzArea) {
+      addCard(ikz.cardDefId, ikz.cardId);
+    }
+  }
+
+  // Scan hand cards
+  for (const card of snapshot.yourHand) {
+    addCard(card.cardDefId, card.cardId);
+  }
+
+  return defIdMap;
 }

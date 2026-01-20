@@ -15,6 +15,7 @@ export interface GameLogBatchMessage {
   batchNumber: number;
   logs: ProcessedGameLog[];
   stateContext: StateContext;
+  actionMask?: unknown; // Included for the active player
 }
 
 export interface ProcessedGameLog {

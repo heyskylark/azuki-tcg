@@ -41,6 +41,15 @@ GameLogZone azk_zone_entity_to_log_zone(ecs_world_t *world,
 GameLogCardMetadata azk_make_card_metadata(ecs_world_t *world,
                                            ecs_entity_t card);
 
+/**
+ * Get a card's index in its current zone.
+ * For garden/alley cards, uses ZoneIndex component.
+ * For hand/deck/other zones, searches ordered children.
+ * Returns -1 if card not found in zone.
+ */
+int8_t azk_get_card_index_in_zone(ecs_world_t *world, ecs_entity_t card,
+                                  ecs_entity_t zone);
+
 /* ========== Zone Movement Logs ========== */
 
 /**

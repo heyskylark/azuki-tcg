@@ -84,6 +84,7 @@ export interface PlayerInfo {
   id: string;
   username: string;
   deckSelected: boolean;
+  deckId: string | null;
   ready: boolean;
   connected: boolean;
 }
@@ -204,4 +205,5 @@ export interface GameLogBatchMessage extends ServerMessage {
   batchNumber: number;
   logs: unknown[];
   stateContext: SnapshotStateContext;
+  actionMask?: SnapshotActionMask | null; // Included for the active player
 }

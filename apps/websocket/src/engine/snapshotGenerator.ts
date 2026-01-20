@@ -53,22 +53,13 @@ export async function generateSnapshot(
     return null;
   }
 
-  // Get observations for both players
+  // Get observation for the requesting player
+  // myObservation contains both the player's own board view and their view of the opponent
   const myObservation = getPlayerObservationBySlot(roomId, playerSlot);
   if (!myObservation) {
     logger.error("Cannot generate snapshot: observation not found", {
       roomId,
       playerSlot,
-    });
-    return null;
-  }
-
-  const opponentSlot = playerSlot === 0 ? 1 : 0;
-  const opponentObservation = getPlayerObservationBySlot(roomId, opponentSlot);
-  if (!opponentObservation) {
-    logger.error("Cannot generate snapshot: opponent observation not found", {
-      roomId,
-      opponentSlot,
     });
     return null;
   }
@@ -82,8 +73,11 @@ export async function generateSnapshot(
   };
 
   // Build player boards
+  // Use myObservation for both boards - it contains:
+  // - myObservationData: player's own view of their board (with full hand details)
+  // - opponentObservationData: player's view of opponent (sanitized, handCount only)
   const myBoard = buildPlayerBoard(myObservation, true);
-  const opponentBoard = buildPlayerBoard(opponentObservation, false);
+  const opponentBoard = buildPlayerBoard(myObservation, false);
 
   // Order boards by player slot (0 first, then 1)
   const players: [SnapshotPlayerBoard, SnapshotPlayerBoard] =
@@ -94,6 +88,17 @@ export async function generateSnapshot(
 
   // Get action mask if it's this player's turn
   const activePlayer = getActivePlayer(roomId);
+  logger.info("Snapshot generation - action mask check", {
+    roomId,
+    playerSlot,
+    activePlayer,
+    phase: gameState.phase,
+    rawActionMask: myObservation.actionMask ? {
+      legalActionCount: myObservation.actionMask.legalActionCount,
+      legalPrimary: myObservation.actionMask.legalPrimary,
+      primaryActionMask: myObservation.actionMask.primaryActionMask?.slice(0, 24), // First 24 action types
+    } : null,
+  });
   const actionMask =
     activePlayer === playerSlot ? buildActionMask(myObservation.actionMask) : null;
 

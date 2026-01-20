@@ -306,21 +306,8 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
         );
 
       case "IN_MATCH":
-        if (playerSlot === null) {
-          return <div>Loading player info...</div>;
-        }
-        return (
-          <>
-            {errorAlert}
-            <AssetProvider>
-              <GameStateProvider>
-                <GameBridge playerSlot={playerSlot}>
-                  <InMatchView />
-                </GameBridge>
-              </GameStateProvider>
-            </AssetProvider>
-          </>
-        );
+        // Handled separately - returns full-screen view
+        return null;
 
       case "COMPLETED":
       case "ABORTED":
@@ -345,6 +332,22 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
         );
     }
   };
+
+  // For IN_MATCH status, render full-screen view without Card wrapper
+  if (displayStatus === "IN_MATCH" && roomState) {
+    if (playerSlot === null) {
+      return <div>Loading player info...</div>;
+    }
+    return (
+      <AssetProvider>
+        <GameStateProvider>
+          <GameBridge playerSlot={playerSlot}>
+            <InMatchView />
+          </GameBridge>
+        </GameStateProvider>
+      </AssetProvider>
+    );
+  }
 
   return (
     <Card className="max-w-4xl mx-auto">
