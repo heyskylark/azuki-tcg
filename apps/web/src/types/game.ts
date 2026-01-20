@@ -91,6 +91,21 @@ export interface ResolvedHandCard {
 }
 
 /**
+ * A card in the selection zone with resolved image data.
+ * Used during SELECTION_PICK and BOTTOM_DECK ability phases.
+ */
+export interface ResolvedSelectionCard {
+  cardCode: string;
+  cardDefId: number;
+  imageUrl: string;
+  name: string;
+  type: string;
+  ikzCost: number;
+  curAtk: number | null;
+  curHp: number | null;
+}
+
+/**
  * Complete game state for rendering.
  */
 export interface GameState {
@@ -105,6 +120,9 @@ export interface GameState {
 
   // Only the viewing player's hand is visible
   myHand: ResolvedHandCard[];
+
+  // Selection zone cards (for SELECTION_PICK and BOTTOM_DECK ability phases)
+  selectionCards?: ResolvedSelectionCard[];
 
   // Action mask for legal moves (only when it's your turn)
   actionMask: SnapshotActionMask | null;

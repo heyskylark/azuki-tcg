@@ -14,6 +14,7 @@ import type {
   SnapshotIkz,
   SnapshotActionMask,
   SnapshotCardMetadata,
+  SnapshotSelectionCard,
 } from "@tcg/backend-core/types/ws";
 import { getCardMetadataByCardCodes } from "@tcg/backend-core/services/cardMetadataService";
 import {
@@ -68,10 +69,18 @@ export async function generateSnapshot(
   // Build state context
   const stateContext: SnapshotStateContext = {
     phase: gameState.phase,
-    abilitySubphase: "", // Not currently tracked
+    abilitySubphase: gameState.abilityPhase,
     activePlayer: gameState.activePlayer,
     turnNumber: gameState.turnNumber,
   };
+
+  // Include selection cards when in SELECTION_PICK or BOTTOM_DECK ability phase
+  if (
+    gameState.abilityPhase === "SELECTION_PICK" ||
+    gameState.abilityPhase === "BOTTOM_DECK"
+  ) {
+    stateContext.selectionCards = buildSelectionCards(myObservation);
+  }
 
   // Build player boards
   // Use myObservation for both boards - it contains:
@@ -248,6 +257,21 @@ function buildHandCards(observation: ObservationData): SnapshotHandCard[] {
     cardDefId: card.cardDefId,
     type: card.type,
     ikzCost: card.ikzCost,
+  }));
+}
+
+/**
+ * Build selection zone cards from observation.
+ * Used during SELECTION_PICK and BOTTOM_DECK ability phases.
+ */
+function buildSelectionCards(observation: ObservationData): SnapshotSelectionCard[] {
+  return observation.myObservationData.selection.map((card) => ({
+    cardId: card.cardCode,
+    cardDefId: card.cardDefId,
+    type: card.type,
+    ikzCost: card.ikzCost,
+    curAtk: card.curAtk,
+    curHp: card.curHp,
   }));
 }
 

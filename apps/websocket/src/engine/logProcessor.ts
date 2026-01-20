@@ -5,16 +5,27 @@
 
 import type {
   GameLog,
+  GameLogTapChange,
   GameLogZoneMoved,
   StateContext,
   ZoneType,
 } from "@/engine/types";
 
+import type { SnapshotSelectionCard } from "@tcg/backend-core/types/ws";
+
+// Extended state context for log batches that can include selection cards
+export interface LogBatchStateContext extends StateContext {
+  // Use abilitySubphase for client compatibility (same as abilityPhase)
+  abilitySubphase?: string;
+  // Selection cards for SELECTION_PICK and BOTTOM_DECK phases
+  selectionCards?: SnapshotSelectionCard[];
+}
+
 export interface GameLogBatchMessage {
   type: "GAME_LOG_BATCH";
   batchNumber: number;
   logs: ProcessedGameLog[];
-  stateContext: StateContext;
+  stateContext: LogBatchStateContext;
   actionMask?: unknown; // Included for the active player
 }
 
@@ -92,6 +103,26 @@ function redactZoneMoved(
 }
 
 /**
+ * Process a CARD_TAP_STATE_CHANGED log.
+ * Handles cards being tapped, untapped, or put into cooldown.
+ * Tap state changes are always visible to both players.
+ */
+function processTapStateChanged(log: GameLogTapChange): ProcessedGameLog {
+  return {
+    type: "CARD_TAP_STATE_CHANGED",
+    data: {
+      card: {
+        player: log.card.player,
+        cardDefId: log.card.cardDefId,
+        zone: log.card.zone,
+        zoneIndex: log.card.zoneIndex,
+      },
+      newState: log.newState,
+    },
+  };
+}
+
+/**
  * Process a single game log for a specific player.
  * Applies visibility redaction based on log type and ownership.
  */
@@ -107,8 +138,10 @@ function processLogForPlayer(
       // Shuffle events are public but don't reveal card order
       return { type: log.type, data: log.data };
 
-    case "CARD_STAT_CHANGE":
     case "CARD_TAP_STATE_CHANGED":
+      return processTapStateChanged(log.data as GameLogTapChange);
+
+    case "CARD_STAT_CHANGE":
     case "STATUS_EFFECT_APPLIED":
     case "STATUS_EFFECT_EXPIRED":
     case "COMBAT_DECLARED":
@@ -143,11 +176,17 @@ export function processLogsForPlayer(
     processLogForPlayer(log, viewingPlayer)
   );
 
+  // Create extended state context with abilitySubphase for client compatibility
+  const extendedStateContext: LogBatchStateContext = {
+    ...stateContext,
+    abilitySubphase: stateContext.abilityPhase,
+  };
+
   return {
     type: "GAME_LOG_BATCH",
     batchNumber,
     logs: processedLogs,
-    stateContext,
+    stateContext: extendedStateContext,
   };
 }
 

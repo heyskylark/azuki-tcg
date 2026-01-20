@@ -1,9 +1,18 @@
 "use client";
 
+import { useCallback } from "react";
 import { Text } from "@react-three/drei";
 import { useGameState } from "@/contexts/GameStateContext";
+import { useRoom } from "@/contexts/RoomContext";
 import { Card3D, EmptyCardSlot, CARD_WIDTH, CARD_HEIGHT } from "@/components/game/cards/Card3D";
 import { LeaderHealthDisplay } from "@/components/game/cards/CardStats";
+import { DraggableHandCard } from "@/components/game/cards/DraggableHandCard";
+import { useDragStore } from "@/stores/dragStore";
+import {
+  findValidAction,
+  getValidEffectTargets,
+  buildEffectTargetAction,
+} from "@/lib/game/actionValidation";
 import type {
   ResolvedPlayerBoard,
   ResolvedCard,
@@ -12,6 +21,7 @@ import type {
   ResolvedHandCard,
   ResolvedIkz,
 } from "@/types/game";
+import type { SnapshotActionMask } from "@tcg/backend-core/types/ws";
 
 // Board layout constants
 const SLOT_SPACING = 1.8;
@@ -50,23 +60,49 @@ function BoardSurface() {
 
 /**
  * Render a row of garden/alley slots with cards or empty slots.
+ * Supports drag-and-drop for empty slots when not opponent's row.
+ * Supports ability target highlighting during EFFECT_SELECTION phase.
  */
 function CardRow({
   cards,
   basePosition,
+  zone,
   isOpponent = false,
+  actionMask,
+  onDropToSlot,
+  validEffectTargets,
+  onEffectTargetClick,
+  targetIndexOffset,
 }: {
   cards: (ResolvedCard | null)[];
   basePosition: [number, number, number];
+  zone: "garden" | "alley";
   isOpponent?: boolean;
+  actionMask?: SnapshotActionMask | null;
+  onDropToSlot?: (zone: "garden" | "alley", slotIndex: number) => void;
+  validEffectTargets?: Set<number>;
+  onEffectTargetClick?: (targetIndex: number) => void;
+  targetIndexOffset?: number;
 }) {
   const [baseX, baseY, baseZ] = basePosition;
+
+  // Get valid drop slots from drag store
+  const validGardenSlots = useDragStore((state) => state.validGardenSlots);
+  const validAlleySlots = useDragStore((state) => state.validAlleySlots);
+  const dragPhase = useDragStore((state) => state.dragPhase);
+
+  const isDragging = dragPhase === "pickup" || dragPhase === "dragging";
+  const validSlots = zone === "garden" ? validGardenSlots : validAlleySlots;
 
   return (
     <group>
       {cards.map((card, index) => {
         const x = (index - Math.floor(GARDEN_SLOTS / 2)) * SLOT_SPACING + baseX;
         const position: [number, number, number] = [x, baseY, baseZ];
+
+        // Calculate target index for ability targeting
+        const targetIndex = (targetIndexOffset ?? 0) + index;
+        const isAbilityTarget = validEffectTargets?.has(targetIndex) ?? false;
 
         if (card) {
           return (
@@ -83,15 +119,32 @@ function CardRow({
               isFrozen={card.isFrozen}
               isShocked={card.isShocked}
               showStats={true}
+              isAbilityTarget={isAbilityTarget}
+              onAbilityTargetClick={
+                isAbilityTarget && onEffectTargetClick
+                  ? () => onEffectTargetClick(targetIndex)
+                  : undefined
+              }
             />
           );
         }
+
+        // Only show drop targets for player's slots (not opponent)
+        const isValidDropTarget = !isOpponent && isDragging && validSlots.has(index);
 
         return (
           <EmptyCardSlot
             key={`empty-${index}`}
             position={position}
             label={`${isOpponent ? "O" : "G"}${index}`}
+            slotIndex={index}
+            zone={zone}
+            isValidDropTarget={isValidDropTarget}
+            onDrop={
+              isValidDropTarget && onDropToSlot
+                ? () => onDropToSlot(zone, index)
+                : undefined
+            }
           />
         );
       })}
@@ -295,15 +348,20 @@ function IkzPileStack({
 
 /**
  * Player's hand display - fan layout at bottom of screen.
+ * Uses DraggableHandCard for drag-and-drop card playing.
  */
 function HandDisplay({
   cards,
   position,
+  actionMask,
 }: {
   cards: ResolvedHandCard[];
   position: [number, number, number];
+  actionMask: SnapshotActionMask | null;
 }) {
   const cardCount = cards.length;
+  const draggedCardIndex = useDragStore((state) => state.draggedCardIndex);
+  const dragPhase = useDragStore((state) => state.dragPhase);
 
   return (
     <group position={position}>
@@ -317,39 +375,21 @@ function HandDisplay({
         const z = Math.abs(normalizedIndex) * 0.1; // Slight arc
         const rotationY = normalizedIndex * -0.05; // Fan angle
 
+        // Hide the card in hand if it's being dragged
+        const isBeingDragged = draggedCardIndex === index && dragPhase !== "idle";
+        if (isBeingDragged) {
+          return null;
+        }
+
         return (
-          <group
+          <DraggableHandCard
             key={`hand-${index}-${card.cardCode}`}
+            card={card}
+            handIndex={index}
             position={[x, y, z]}
             rotation={[0, rotationY, 0]}
-          >
-            <Card3D
-              cardCode={card.cardCode}
-              imageUrl={card.imageUrl}
-              name={card.name}
-              position={[0, 0, 0]}
-              showStats={false}
-            >
-              {/* IKZ cost badge */}
-              <group position={[CARD_WIDTH * 0.35, 0.1, -0.8]}>
-                <mesh rotation={[-Math.PI / 2, 0, 0]}>
-                  <circleGeometry args={[0.15, 16]} />
-                  <meshBasicMaterial color="#4a4a8e" />
-                </mesh>
-                <Text
-                  position={[0, 0.02, 0]}
-                  rotation={[-Math.PI / 2, 0, 0]}
-                  fontSize={0.15}
-                  color="#88ff88"
-                  anchorX="center"
-                  anchorY="middle"
-                  fontWeight="bold"
-                >
-                  {card.ikzCost}
-                </Text>
-              </group>
-            </Card3D>
-          </group>
+            actionMask={actionMask}
+          />
         );
       })}
     </group>
@@ -363,10 +403,22 @@ function PlayerArea({
   board,
   hand,
   isOpponent,
+  actionMask,
+  onDropToSlot,
+  validEffectTargets,
+  onEffectTargetClick,
+  gardenTargetOffset,
+  alleyTargetOffset,
 }: {
   board: ResolvedPlayerBoard;
   hand?: ResolvedHandCard[];
   isOpponent: boolean;
+  actionMask?: SnapshotActionMask | null;
+  onDropToSlot?: (zone: "garden" | "alley", slotIndex: number) => void;
+  validEffectTargets?: Set<number>;
+  onEffectTargetClick?: (targetIndex: number) => void;
+  gardenTargetOffset?: number;
+  alleyTargetOffset?: number;
 }) {
   const gardenZ = isOpponent ? OPP_GARDEN_Z : MY_GARDEN_Z;
   const alleyZ = isOpponent ? OPP_ALLEY_Z : MY_ALLEY_Z;
@@ -381,10 +433,30 @@ function PlayerArea({
       <GateCard gate={board.gate} position={[RIGHT_SIDE_X, 0, alleyZ]} />
 
       {/* Garden (front row) */}
-      <CardRow cards={board.garden} basePosition={[0, 0, gardenZ]} isOpponent={isOpponent} />
+      <CardRow
+        cards={board.garden}
+        basePosition={[0, 0, gardenZ]}
+        zone="garden"
+        isOpponent={isOpponent}
+        actionMask={actionMask}
+        onDropToSlot={onDropToSlot}
+        validEffectTargets={validEffectTargets}
+        onEffectTargetClick={onEffectTargetClick}
+        targetIndexOffset={gardenTargetOffset}
+      />
 
       {/* Alley (back row) */}
-      <CardRow cards={board.alley} basePosition={[0, 0, alleyZ]} isOpponent={isOpponent} />
+      <CardRow
+        cards={board.alley}
+        basePosition={[0, 0, alleyZ]}
+        zone="alley"
+        isOpponent={isOpponent}
+        actionMask={actionMask}
+        onDropToSlot={onDropToSlot}
+        validEffectTargets={validEffectTargets}
+        onEffectTargetClick={onEffectTargetClick}
+        targetIndexOffset={alleyTargetOffset}
+      />
 
       {/* Deck - below the gate */}
       <DeckStack
@@ -413,18 +485,84 @@ function PlayerArea({
 
       {/* Hand (only for player, not opponent) - slightly elevated to overlap IKZ */}
       {!isOpponent && hand && hand.length > 0 && (
-        <HandDisplay cards={hand} position={[0, 0.05, MY_HAND_Z]} />
+        <HandDisplay
+          cards={hand}
+          position={[0, 0.05, MY_HAND_Z]}
+          actionMask={actionMask ?? null}
+        />
       )}
     </group>
   );
 }
 
+// Target index offsets for ability targeting
+// These map slot indices to the target index used by the C engine
+// My Garden: 0-4, Opponent Garden: 5-9, My Alley: 10-14, Opponent Alley: 15-19
+const MY_GARDEN_TARGET_OFFSET = 0;
+const OPP_GARDEN_TARGET_OFFSET = 5;
+const MY_ALLEY_TARGET_OFFSET = 10;
+const OPP_ALLEY_TARGET_OFFSET = 15;
+
 /**
  * Main game board component.
  * Renders the complete game state with both players' boards.
+ * Handles drag-and-drop card playing via WebSocket.
  */
 export function Board() {
   const { gameState } = useGameState();
+  const { send } = useRoom();
+
+  // Drag store actions
+  const draggedCardIndex = useDragStore((state) => state.draggedCardIndex);
+  const drop = useDragStore((state) => state.drop);
+
+  // Handle dropping a card on a slot
+  const handleDropToSlot = useCallback(
+    (zone: "garden" | "alley", slotIndex: number) => {
+      if (draggedCardIndex === null || !gameState?.actionMask) {
+        return;
+      }
+
+      // Find the valid action tuple for this drop
+      const action = findValidAction(
+        gameState.actionMask,
+        draggedCardIndex,
+        zone,
+        slotIndex
+      );
+
+      if (action) {
+        // Send the game action via WebSocket
+        send({
+          type: "GAME_ACTION",
+          action,
+        });
+
+        // Complete the drop - clear drag state
+        drop();
+      }
+    },
+    [draggedCardIndex, gameState?.actionMask, send, drop]
+  );
+
+  // Check if we're in effect selection phase and compute valid targets
+  const isInEffectSelection = gameState?.abilitySubphase === "EFFECT_SELECTION";
+  const validEffectTargetsArray = isInEffectSelection
+    ? getValidEffectTargets(gameState?.actionMask ?? null)
+    : [];
+  const validEffectTargets = new Set(validEffectTargetsArray);
+
+  // Handle clicking an effect target
+  const handleEffectTargetClick = useCallback(
+    (targetIndex: number) => {
+      if (!isInEffectSelection) return;
+      send({
+        type: "GAME_ACTION",
+        action: buildEffectTargetAction(targetIndex),
+      });
+    },
+    [isInEffectSelection, send]
+  );
 
   if (!gameState) {
     return (
@@ -453,10 +591,23 @@ export function Board() {
         board={gameState.myBoard}
         hand={gameState.myHand}
         isOpponent={false}
+        actionMask={gameState.actionMask}
+        onDropToSlot={handleDropToSlot}
+        validEffectTargets={isInEffectSelection ? validEffectTargets : undefined}
+        onEffectTargetClick={isInEffectSelection ? handleEffectTargetClick : undefined}
+        gardenTargetOffset={MY_GARDEN_TARGET_OFFSET}
+        alleyTargetOffset={MY_ALLEY_TARGET_OFFSET}
       />
 
       {/* Opponent area (top) */}
-      <PlayerArea board={gameState.opponentBoard} isOpponent={true} />
+      <PlayerArea
+        board={gameState.opponentBoard}
+        isOpponent={true}
+        validEffectTargets={isInEffectSelection ? validEffectTargets : undefined}
+        onEffectTargetClick={isInEffectSelection ? handleEffectTargetClick : undefined}
+        gardenTargetOffset={OPP_GARDEN_TARGET_OFFSET}
+        alleyTargetOffset={OPP_ALLEY_TARGET_OFFSET}
+      />
     </group>
   );
 }

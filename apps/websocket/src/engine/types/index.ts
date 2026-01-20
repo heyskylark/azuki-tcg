@@ -44,6 +44,14 @@ export type ShuffleReason = "MULLIGAN" | "EFFECT" | "GAME_START";
 
 export type GameEndReason = "LEADER_DEFEATED" | "DECK_OUT" | "CONCEDE";
 
+export type AbilityPhase =
+  | "NONE"
+  | "CONFIRMATION"
+  | "COST_SELECTION"
+  | "EFFECT_SELECTION"
+  | "SELECTION_PICK"
+  | "BOTTOM_DECK";
+
 export interface CardObservation {
   cardCode: string | null;
   cardDefId: number;
@@ -139,6 +147,9 @@ export interface ObservationData {
 
 export interface StateContext {
   phase: Phase;
+  abilityPhase: AbilityPhase;
+  /** @deprecated Use abilityPhase - this is for client compatibility */
+  abilitySubphase?: string;
   activePlayer: 0 | 1;
   turnNumber: number;
   responseWindow: number;

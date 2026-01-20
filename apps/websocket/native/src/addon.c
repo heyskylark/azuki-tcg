@@ -76,6 +76,19 @@ static bool remove_world(const char *id) {
   return false;
 }
 
+// Convert AbilityPhase to string
+static const char *ability_phase_to_string(AbilityPhase phase) {
+  switch (phase) {
+    case ABILITY_PHASE_NONE: return "NONE";
+    case ABILITY_PHASE_CONFIRMATION: return "CONFIRMATION";
+    case ABILITY_PHASE_COST_SELECTION: return "COST_SELECTION";
+    case ABILITY_PHASE_EFFECT_SELECTION: return "EFFECT_SELECTION";
+    case ABILITY_PHASE_SELECTION_PICK: return "SELECTION_PICK";
+    case ABILITY_PHASE_BOTTOM_DECK: return "BOTTOM_DECK";
+    default: return "NONE";
+  }
+}
+
 // createWorld(seed: number) -> { worldId: string, success: boolean }
 static napi_value CreateWorld(napi_env env, napi_callback_info info) {
   size_t argc = 1;
@@ -698,7 +711,7 @@ static napi_value SubmitAction(napi_env env, napi_callback_info info) {
 
   // Build state context
   napi_create_object(env, &state_context);
-  napi_value phase_val, active_player_val, turn_val;
+  napi_value phase_val, active_player_val, turn_val, ability_phase_val;
 
   const char *phase_str = "UNKNOWN";
   switch (state->phase) {
@@ -716,9 +729,17 @@ static napi_value SubmitAction(napi_env env, napi_callback_info info) {
   napi_create_int32(env, state->active_player_index, &active_player_val);
   napi_create_int32(env, state->turn_number, &turn_val);
 
+  // Get ability phase
+  AbilityPhase ability_phase = azk_engine_get_ability_phase(engine);
+  const char *ability_phase_str = ability_phase_to_string(ability_phase);
+  napi_create_string_utf8(env, ability_phase_str, NAPI_AUTO_LENGTH, &ability_phase_val);
+
   napi_set_named_property(env, state_context, "phase", phase_val);
   napi_set_named_property(env, state_context, "activePlayer", active_player_val);
   napi_set_named_property(env, state_context, "turnNumber", turn_val);
+  napi_set_named_property(env, state_context, "abilityPhase", ability_phase_val);
+  // Also set abilitySubphase for client compatibility
+  napi_set_named_property(env, state_context, "abilitySubphase", ability_phase_val);
 
   // Extract game logs
   uint8_t log_count = 0;
@@ -758,7 +779,7 @@ static napi_value GetGameState(napi_env env, napi_callback_info info) {
 
   const GameState *state = azk_engine_game_state(engine);
 
-  napi_value result, phase_val, active_player_val, turn_val, winner_val;
+  napi_value result, phase_val, active_player_val, turn_val, winner_val, ability_phase_val;
   napi_create_object(env, &result);
 
   const char *phase_str = "UNKNOWN";
@@ -778,6 +799,11 @@ static napi_value GetGameState(napi_env env, napi_callback_info info) {
   napi_create_int32(env, state->active_player_index, &active_player_val);
   napi_create_int32(env, state->turn_number, &turn_val);
 
+  // Get ability phase
+  AbilityPhase ability_phase = azk_engine_get_ability_phase(engine);
+  const char *ability_phase_str = ability_phase_to_string(ability_phase);
+  napi_create_string_utf8(env, ability_phase_str, NAPI_AUTO_LENGTH, &ability_phase_val);
+
   if (state->winner >= 0) {
     napi_create_int32(env, state->winner, &winner_val);
   } else {
@@ -787,6 +813,9 @@ static napi_value GetGameState(napi_env env, napi_callback_info info) {
   napi_set_named_property(env, result, "phase", phase_val);
   napi_set_named_property(env, result, "activePlayer", active_player_val);
   napi_set_named_property(env, result, "turnNumber", turn_val);
+  napi_set_named_property(env, result, "abilityPhase", ability_phase_val);
+  // Also set abilitySubphase for client compatibility
+  napi_set_named_property(env, result, "abilitySubphase", ability_phase_val);
   napi_set_named_property(env, result, "winner", winner_val);
 
   return result;

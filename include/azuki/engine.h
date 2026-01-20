@@ -106,6 +106,12 @@ const char *azk_engine_get_last_error(void);
  */
 void azk_engine_clear_last_error(void);
 
+/**
+ * Get the current ability sub-phase.
+ * Returns ABILITY_PHASE_NONE when not in an ability resolution flow.
+ */
+AbilityPhase azk_engine_get_ability_phase(const AzkEngine *engine);
+
 #ifdef __cplusplus
 }
 #endif

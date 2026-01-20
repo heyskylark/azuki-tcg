@@ -111,6 +111,19 @@ export interface SnapshotStateContext {
   abilitySubphase: string;
   activePlayer: 0 | 1;
   turnNumber: number;
+  // Selection zone cards (for SELECTION_PICK and BOTTOM_DECK ability phases)
+  selectionCards?: SnapshotSelectionCard[];
+  // Card that triggered the current ability (for UI context)
+  abilitySourceCardDefId?: number;
+}
+
+export interface SnapshotSelectionCard {
+  cardId: string | null;
+  cardDefId: number;
+  type: string;
+  ikzCost: number;
+  curAtk: number | null;
+  curHp: number | null;
 }
 
 export interface SnapshotLeader {

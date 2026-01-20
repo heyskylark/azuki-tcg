@@ -120,11 +120,14 @@ export async function handleGameAction(
   }
 
   // Action was accepted
-  logger.debug("Action submitted successfully", {
+  logger.info("Action submitted successfully", {
     roomId,
     playerSlot,
     action,
     gameOver: result.gameOver,
+    phase: result.stateContext.phase,
+    abilityPhase: result.stateContext.abilityPhase,
+    logsCount: result.logs.length,
   });
 
   // Increment batch number for log storage
@@ -139,37 +142,94 @@ export async function handleGameAction(
   for (const slot of [0, 1] as const) {
     const playerConnection = channel.players[slot];
 
+    logger.info("Processing log batch for player", {
+      roomId,
+      slot,
+      hasConnection: !!playerConnection,
+      hasWs: !!playerConnection?.ws,
+      connected: playerConnection?.connected,
+    });
+
     if (playerConnection?.ws && playerConnection.connected) {
-      // Process logs with visibility redaction for this player
-      const logBatch = processLogsForPlayer(
-        result.logs,
-        slot,
-        result.stateContext,
-        batchNumber
-      );
+      try {
+        // Process logs with visibility redaction for this player
+        const logBatch = processLogsForPlayer(
+          result.logs,
+          slot,
+          result.stateContext,
+          batchNumber
+        );
 
-      // Add action mask if it's this player's turn
-      if (
-        !result.gameOver &&
-        result.stateContext.activePlayer === slot
-      ) {
-        const observation = getPlayerObservationBySlot(roomId, slot);
-        if (observation?.actionMask) {
-          logger.info("Action handler - action mask for next player", {
-            roomId,
-            slot,
-            phase: result.stateContext.phase,
-            legalActionCount: observation.actionMask.legalActionCount,
-            legalPrimary: observation.actionMask.legalPrimary?.slice(0, Math.min(10, observation.actionMask.legalActionCount)),
-            primaryActionMaskTrue: observation.actionMask.primaryActionMask
-              ?.map((v, i) => v ? i : -1)
-              .filter(i => i >= 0),
-          });
-          logBatch.actionMask = observation.actionMask;
+        logger.info("Log batch created", {
+          roomId,
+          slot,
+          batchNumber,
+          logsCount: logBatch.logs.length,
+          phase: logBatch.stateContext.phase,
+          abilitySubphase: logBatch.stateContext.abilitySubphase,
+        });
+
+        // Add action mask and selection cards if it's this player's turn
+        if (
+          !result.gameOver &&
+          result.stateContext.activePlayer === slot
+        ) {
+          const observation = getPlayerObservationBySlot(roomId, slot);
+          if (observation?.actionMask) {
+            logger.info("Action handler - action mask for next player", {
+              roomId,
+              slot,
+              phase: result.stateContext.phase,
+              abilityPhase: result.stateContext.abilityPhase,
+              legalActionCount: observation.actionMask.legalActionCount,
+              legalPrimary: observation.actionMask.legalPrimary?.slice(0, Math.min(10, observation.actionMask.legalActionCount)),
+              primaryActionMaskTrue: observation.actionMask.primaryActionMask
+                ?.map((v, i) => v ? i : -1)
+                .filter(i => i >= 0),
+            });
+            logBatch.actionMask = observation.actionMask;
+          } else {
+            logger.warn("No action mask available", {
+              roomId,
+              slot,
+              hasObservation: !!observation,
+            });
+          }
+
+          // Add selection cards if in SELECTION_PICK or BOTTOM_DECK ability phase
+          const abilityPhase = result.stateContext.abilityPhase;
+          if (
+            observation &&
+            (abilityPhase === "SELECTION_PICK" || abilityPhase === "BOTTOM_DECK")
+          ) {
+            logBatch.stateContext.selectionCards =
+              observation.myObservationData.selection.map((card) => ({
+                cardId: card.cardCode,
+                cardDefId: card.cardDefId,
+                type: card.type,
+                ikzCost: card.ikzCost,
+                curAtk: card.curAtk,
+                curHp: card.curHp,
+              }));
+          }
         }
-      }
 
-      sendToPlayer(channel, slot, logBatch);
+        logger.info("Sending log batch to player", { roomId, slot, batchNumber });
+        sendToPlayer(channel, slot, logBatch);
+        logger.info("Log batch sent successfully", { roomId, slot, batchNumber });
+      } catch (error) {
+        logger.error("Error processing/sending log batch", {
+          roomId,
+          slot,
+          error: String(error),
+          stack: error instanceof Error ? error.stack : undefined,
+        });
+      }
+    } else {
+      logger.warn("Player not connected, skipping log batch", {
+        roomId,
+        slot,
+      });
     }
   }
 

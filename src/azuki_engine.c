@@ -1,6 +1,7 @@
 #include "azuki/engine.h"
 #include <math.h>
 
+#include "abilities/ability_system.h"
 #include "systems/phase_gate.h"
 #include "utils/game_log_util.h"
 #include "utils/phase_utils.h"
@@ -96,14 +97,21 @@ void azk_engine_tick(AzkEngine *engine) {
     return;
   }
 
-  // Clear game logs at the start of each action processing
-  azk_clear_game_logs(engine);
-
   // Process any pending passive buff updates (from observer callbacks)
   // These are queued because observer writes are deferred and not visible
   // to subsequent code in the same frame
   if (azk_has_pending_passive_buffs(engine)) {
     azk_process_passive_buff_queue(engine);
+  }
+
+  // Check for queued triggered effects to auto-process
+  // Only process when no ability is currently active to avoid overwriting
+  // AbilityContext mid-ability (e.g., during BOTTOM_DECK phase)
+  if (azk_has_queued_triggered_effects(engine) &&
+      !azk_is_in_ability_phase(engine)) {
+    // Auto-process the queued effect (validates and sets up AbilityContext)
+    azk_process_triggered_effect_queue(engine);
+    return;
   }
 
   run_phase_gate_system(engine);
@@ -212,4 +220,12 @@ bool azk_engine_reward_snapshot(AzkEngine *engine, AzkRewardSnapshot *out_snapsh
   }
 
   return true;
+}
+
+AbilityPhase azk_engine_get_ability_phase(const AzkEngine *engine) {
+  if (!engine) {
+    return ABILITY_PHASE_NONE;
+  }
+
+  return azk_get_ability_phase((ecs_world_t *)engine);
 }

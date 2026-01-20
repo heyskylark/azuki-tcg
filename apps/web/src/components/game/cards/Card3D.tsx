@@ -1,11 +1,11 @@
 "use client";
 
 import { useRef, useState, type ReactNode } from "react";
-import { useFrame, type ThreeElements } from "@react-three/fiber";
-import { useTexture } from "@react-three/drei";
+import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 import { useAssets } from "@/contexts/AssetContext";
 import { CardStats } from "@/components/game/cards/CardStats";
+import { useDragStore } from "@/stores/dragStore";
 
 // Card dimensions in Three.js units
 export const CARD_WIDTH = 1.4;
@@ -26,6 +26,9 @@ interface Card3DProps {
   onClick?: () => void;
   showStats?: boolean;
   children?: ReactNode;
+  // Ability targeting props
+  isAbilityTarget?: boolean;
+  onAbilityTargetClick?: () => void;
 }
 
 /**
@@ -45,6 +48,8 @@ export function Card3D({
   onClick,
   showStats = true,
   children,
+  isAbilityTarget = false,
+  onAbilityTargetClick,
 }: Card3DProps) {
   const groupRef = useRef<THREE.Group>(null!);
   const [hovered, setHover] = useState(false);
@@ -93,12 +98,17 @@ export function Card3D({
         <mesh
           onClick={(e) => {
             e.stopPropagation();
-            onClick?.();
+            // If this is an ability target and we have a target click handler, use it
+            if (isAbilityTarget && onAbilityTargetClick) {
+              onAbilityTargetClick();
+            } else {
+              onClick?.();
+            }
           }}
           onPointerOver={(e) => {
             e.stopPropagation();
             setHover(true);
-            document.body.style.cursor = "pointer";
+            document.body.style.cursor = isAbilityTarget ? "crosshair" : "pointer";
           }}
           onPointerOut={() => {
             setHover(false);
@@ -139,6 +149,9 @@ export function Card3D({
         {isFrozen && <FrozenOverlay />}
         {isShocked && <ShockedOverlay />}
         {cooldown && <CooldownOverlay />}
+
+        {/* Ability target highlight */}
+        {isAbilityTarget && <AbilityTargetOverlay />}
 
         {/* Stats display */}
         {showStats && attack !== null && attack !== undefined && health !== null && health !== undefined && (
@@ -223,28 +236,120 @@ function CooldownOverlay() {
 }
 
 /**
+ * Ability target overlay - pulsing golden highlight for valid targets.
+ */
+function AbilityTargetOverlay() {
+  const meshRef = useRef<THREE.Mesh>(null!);
+
+  useFrame((state) => {
+    if (meshRef.current) {
+      // Pulsing effect for ability targets
+      const pulse = Math.sin(state.clock.elapsedTime * 4) * 0.15 + 0.35;
+      (meshRef.current.material as THREE.MeshBasicMaterial).opacity = pulse;
+    }
+  });
+
+  return (
+    <mesh
+      ref={meshRef}
+      rotation={[-Math.PI / 2, 0, 0]}
+      position={[0, CARD_DEPTH + 0.03, 0]}
+    >
+      <planeGeometry args={[CARD_WIDTH + 0.2, CARD_HEIGHT + 0.2]} />
+      <meshBasicMaterial
+        color="#ffaa00"
+        transparent
+        opacity={0.35}
+        side={THREE.DoubleSide}
+      />
+    </mesh>
+  );
+}
+
+interface EmptyCardSlotProps {
+  position: [number, number, number];
+  label?: string;
+  slotIndex?: number;
+  zone?: "garden" | "alley";
+  isValidDropTarget?: boolean;
+  onDrop?: () => void;
+}
+
+/**
  * Placeholder card for empty slots.
+ * Highlights green when it's a valid drop target during drag.
  */
 export function EmptyCardSlot({
   position,
   label,
-}: {
-  position: [number, number, number];
-  label?: string;
-}) {
-  const [hovered, setHover] = useState(false);
+  slotIndex,
+  zone,
+  isValidDropTarget = false,
+  onDrop,
+}: EmptyCardSlotProps) {
+  const [hovered, setHovered] = useState(false);
+  const meshRef = useRef<THREE.Mesh>(null!);
+
+  const dragPhase = useDragStore((state) => state.dragPhase);
+  const setHoveredSlot = useDragStore((state) => state.setHoveredSlot);
+
+  const isDragging = dragPhase === "dragging" || dragPhase === "pickup";
+  const showValidHighlight = isDragging && isValidDropTarget;
+  const isHoveredValidTarget = showValidHighlight && hovered;
+
+  // Animate glow effect for valid drop targets
+  useFrame((state) => {
+    if (meshRef.current && showValidHighlight) {
+      const pulse = Math.sin(state.clock.elapsedTime * 4) * 0.15 + 0.85;
+      const material = meshRef.current.material as THREE.MeshStandardMaterial;
+      material.emissiveIntensity = isHoveredValidTarget ? 0.8 : pulse * 0.4;
+    }
+  });
+
+  // Determine color based on state
+  const getColor = () => {
+    if (isHoveredValidTarget) return "#44ff44"; // Bright green when hovering valid target
+    if (showValidHighlight) return "#228822"; // Green pulse for valid targets
+    if (hovered) return "#3a3a5e";
+    return "#1a1a2e";
+  };
+
+  const handlePointerOver = () => {
+    setHovered(true);
+    if (isDragging && zone !== undefined && slotIndex !== undefined) {
+      setHoveredSlot(zone, slotIndex);
+    }
+  };
+
+  const handlePointerOut = () => {
+    setHovered(false);
+    if (isDragging) {
+      setHoveredSlot(null, null);
+    }
+  };
+
+  const handlePointerUp = (e: ThreeEvent<PointerEvent>) => {
+    e.stopPropagation();
+    if (isDragging && isValidDropTarget && onDrop) {
+      onDrop();
+    }
+  };
 
   return (
     <group position={position}>
       <mesh
-        onPointerOver={() => setHover(true)}
-        onPointerOut={() => setHover(false)}
+        ref={meshRef}
+        onPointerOver={handlePointerOver}
+        onPointerOut={handlePointerOut}
+        onPointerUp={handlePointerUp}
       >
         <boxGeometry args={[CARD_WIDTH, CARD_DEPTH * 0.5, CARD_HEIGHT]} />
         <meshStandardMaterial
-          color={hovered ? "#3a3a5e" : "#1a1a2e"}
+          color={getColor()}
           transparent
-          opacity={0.5}
+          opacity={showValidHighlight ? 0.8 : 0.5}
+          emissive={showValidHighlight ? "#22aa22" : "#000000"}
+          emissiveIntensity={0}
         />
       </mesh>
     </group>

@@ -132,13 +132,45 @@ export function GameStateProvider({
           cardDefIdMap
         );
 
+        // Resolve selection cards if present in the batch
+        const stateContext = batch.stateContext as {
+          phase: string;
+          abilitySubphase: string;
+          activePlayer: 0 | 1;
+          turnNumber: number;
+          selectionCards?: Array<{
+            cardId: string | null;
+            cardDefId: number;
+            type: string;
+            ikzCost: number;
+            curAtk: number | null;
+            curHp: number | null;
+          }>;
+        };
+
+        const selectionCards = stateContext.selectionCards?.map((card) => {
+          const cardCode = card.cardId ?? "unknown";
+          const mapping = cardMappings.get(cardCode);
+          return {
+            cardCode,
+            cardDefId: card.cardDefId,
+            imageUrl: mapping?.imageUrl ?? "",
+            name: mapping?.name ?? cardCode,
+            type: card.type,
+            ikzCost: card.ikzCost,
+            curAtk: card.curAtk,
+            curHp: card.curHp,
+          };
+        });
+
         // Also update state context and action mask from the batch
         return {
           ...updatedState,
-          phase: batch.stateContext.phase,
-          abilitySubphase: batch.stateContext.abilitySubphase,
-          activePlayer: batch.stateContext.activePlayer,
-          turnNumber: batch.stateContext.turnNumber,
+          phase: stateContext.phase,
+          abilitySubphase: stateContext.abilitySubphase,
+          activePlayer: stateContext.activePlayer,
+          turnNumber: stateContext.turnNumber,
+          selectionCards,
           // Use action mask from batch if present (for active player), otherwise clear it
           actionMask: batch.actionMask ?? null,
         };
@@ -201,8 +233,10 @@ import type {
   ResolvedIkz,
   ResolvedHandCard,
   ResolvedPlayerBoard,
+  ResolvedSelectionCard,
 } from "@/types/game";
 import { buildImageUrl } from "@/types/game";
+import type { SnapshotSelectionCard } from "@tcg/backend-core/types/ws";
 
 function resolveCard(
   card: SnapshotCard,
@@ -297,6 +331,25 @@ function resolveHandCard(
   };
 }
 
+function resolveSelectionCard(
+  card: SnapshotSelectionCard,
+  cardMappings: Map<string, CardMapping>
+): ResolvedSelectionCard {
+  const cardCode = card.cardId ?? "unknown";
+  const mapping = cardMappings.get(cardCode);
+
+  return {
+    cardCode,
+    cardDefId: card.cardDefId,
+    imageUrl: mapping ? buildImageUrl(mapping.imageKey) : "",
+    name: mapping?.name ?? cardCode,
+    type: card.type,
+    ikzCost: card.ikzCost,
+    curAtk: card.curAtk,
+    curHp: card.curHp,
+  };
+}
+
 function resolvePlayerBoard(
   board: SnapshotPlayerBoard,
   cardMappings: Map<string, CardMapping>
@@ -329,6 +382,11 @@ function transformSnapshot(
   const myBoardIndex = playerSlot === 0 ? 0 : 1;
   const opponentBoardIndex = playerSlot === 0 ? 1 : 0;
 
+  // Resolve selection cards if present
+  const selectionCards = snapshot.stateContext.selectionCards?.map((card) =>
+    resolveSelectionCard(card, cardMappings)
+  );
+
   return {
     phase: snapshot.stateContext.phase,
     abilitySubphase: snapshot.stateContext.abilitySubphase,
@@ -337,6 +395,7 @@ function transformSnapshot(
     myBoard: resolvePlayerBoard(snapshot.players[myBoardIndex], cardMappings),
     opponentBoard: resolvePlayerBoard(snapshot.players[opponentBoardIndex], cardMappings),
     myHand: snapshot.yourHand.map((card) => resolveHandCard(card, cardMappings)),
+    selectionCards,
     actionMask: snapshot.actionMask,
     combatStack: snapshot.combatStack,
   };
