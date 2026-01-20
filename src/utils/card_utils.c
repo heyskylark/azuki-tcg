@@ -31,8 +31,8 @@ void discard_card(ecs_world_t *world, ecs_entity_t card) {
   // Capture source zone info before moving
   ecs_entity_t from_zone_entity = ecs_get_target(world, card, EcsChildOf, 0);
   GameLogZone from_zone = azk_zone_entity_to_log_zone(world, from_zone_entity);
-  const ZoneIndex *from_zi = ecs_get(world, card, ZoneIndex);
-  int8_t from_index = from_zi ? (int8_t)from_zi->index : -1;
+  int8_t from_index =
+      azk_get_card_index_in_zone(world, card, from_zone_entity);
 
   ecs_remove_id(world, card, ecs_id(ZoneIndex));
   ecs_set(world, card, TapState, {.tapped = false, .cooldown = false});
@@ -58,8 +58,7 @@ void return_card_to_hand(ecs_world_t *world, ecs_entity_t card) {
   // Check source zone BEFORE changing ChildOf
   ecs_entity_t source_parent = ecs_get_target(world, card, EcsChildOf, 0);
   GameLogZone from_zone = azk_zone_entity_to_log_zone(world, source_parent);
-  const ZoneIndex *from_zi = ecs_get(world, card, ZoneIndex);
-  int8_t from_index = from_zi ? (int8_t)from_zi->index : -1;
+  int8_t from_index = azk_get_card_index_in_zone(world, card, source_parent);
 
   ecs_entity_t owner = ecs_get_target(world, card, Rel_OwnedBy, 0);
   ecs_assert(owner != 0, ECS_INVALID_PARAMETER, "Card %d has no owner", card);
@@ -99,12 +98,16 @@ void return_card_to_hand(ecs_world_t *world, ecs_entity_t card) {
   if (prefab != 0 && !ecs_has(world, prefab, Charge)) {
     ecs_remove(world, card, Charge);
   }
+
+  // Get hand count before adding (card will be appended at this index)
+  int32_t hand_index = ecs_get_ordered_children(world, hand_zone).count;
+
   // Move to hand
   ecs_add_pair(world, card, EcsChildOf, hand_zone);
 
   // Log zone movement to hand
   azk_log_card_zone_moved(world, card, from_zone, from_index, GLOG_ZONE_HAND,
-                          -1);
+                          (int8_t)hand_index);
 
   cli_render_logf("[CardUtils] Returned card to hand");
 

@@ -14,6 +14,11 @@ import type {
   StateContext,
 } from "@/engine/types";
 
+export interface DebugLogEntry {
+  level: "INFO" | "WARN" | "ERROR";
+  message: string;
+}
+
 const require = createRequire(import.meta.url);
 
 interface NativeBinding {
@@ -35,6 +40,9 @@ interface NativeBinding {
   requiresAction(worldId: string): boolean;
   isGameOver(worldId: string): boolean;
   getActivePlayer(worldId: string): number;
+  setDebugLogging(enabled: boolean): void;
+  getDebugLogs(): DebugLogEntry[];
+  clearDebugLogs(): void;
 }
 
 let nativeBinding: NativeBinding | null = null;
@@ -86,7 +94,7 @@ export function isNativeBindingLoaded(): boolean {
   return nativeBinding !== null;
 }
 
-// Re-export types
+// Re-export types from engine/types
 export type {
   ActionResult,
   ActionTuple,

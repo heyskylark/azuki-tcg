@@ -14,6 +14,7 @@ import {
 } from "@/constants";
 import logger from "@/logger";
 import { WebSocketService } from "@/services/WebSocketService";
+import { setEngineDebugLogging } from "@/engine/WorldManager";
 
 const uWebSocketApp = UWebsocketApp();
 
@@ -45,6 +46,10 @@ const webSocketBehavior: WebSocketBehavior<UserData> = {
 
 async function main(): Promise<void> {
   logger.info("Initializing WebSocket server...");
+
+  // Enable C engine debug logging (always on for debugging action mask issues)
+  setEngineDebugLogging(true);
+  logger.info("Engine debug logging enabled");
 
   uWebSocketApp.ws<UserData>("/*", webSocketBehavior);
 

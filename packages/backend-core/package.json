@@ -58,6 +58,10 @@
       "types": "./dist/services/cardMapperService.d.ts",
       "import": "./dist/services/cardMapperService.js"
     },
+    "./services/cardMetadataService": {
+      "types": "./dist/services/cardMetadataService.d.ts",
+      "import": "./dist/services/cardMetadataService.js"
+    },
     "./drizzle/schemas/match_results": {
       "types": "./dist/drizzle/schemas/match_results.d.ts",
       "import": "./dist/drizzle/schemas/match_results.js"

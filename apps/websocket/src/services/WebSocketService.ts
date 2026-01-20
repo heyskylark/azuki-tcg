@@ -248,7 +248,7 @@ export class WebSocketService {
 
     // If room is IN_MATCH, send game snapshot for reconnection
     if (room.status === RoomStatus.IN_MATCH) {
-      const snapshot = generateSnapshot(roomId, playerSlot);
+      const snapshot = await generateSnapshot(roomId, playerSlot);
       if (snapshot) {
         sendJson(ws, snapshot);
         logger.debug("Sent game snapshot on reconnection", { roomId, playerSlot });

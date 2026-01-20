@@ -2,6 +2,9 @@
 
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useRoom } from "@/contexts/RoomContext";
+import { AssetProvider } from "@/contexts/AssetContext";
+import { GameStateProvider } from "@/contexts/GameStateContext";
+import { GameBridge } from "@/components/game/GameBridge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -11,6 +14,7 @@ import { PasswordPrompt } from "@/app/(main)/rooms/[id]/components/PasswordPromp
 import { WaitingForPlayers } from "@/app/(main)/rooms/[id]/components/WaitingForPlayers";
 import { DeckSelection } from "@/app/(main)/rooms/[id]/components/DeckSelection";
 import { ReadyCheck } from "@/app/(main)/rooms/[id]/components/ReadyCheck";
+import { InMatchView } from "@/app/(main)/rooms/[id]/components/InMatchView";
 import type { AuthenticatedUser } from "@tcg/backend-core/types/auth";
 
 export interface RoomData {
@@ -302,12 +306,8 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
         );
 
       case "IN_MATCH":
-        return (
-          <div className="text-center py-8">
-            <div className="text-2xl font-bold mb-4">Game in Progress</div>
-            <p className="text-muted-foreground">Game UI coming soon...</p>
-          </div>
-        );
+        // Handled separately - returns full-screen view
+        return null;
 
       case "COMPLETED":
       case "ABORTED":
@@ -332,6 +332,22 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
         );
     }
   };
+
+  // For IN_MATCH status, render full-screen view without Card wrapper
+  if (displayStatus === "IN_MATCH" && roomState) {
+    if (playerSlot === null) {
+      return <div>Loading player info...</div>;
+    }
+    return (
+      <AssetProvider>
+        <GameStateProvider>
+          <GameBridge playerSlot={playerSlot}>
+            <InMatchView />
+          </GameBridge>
+        </GameStateProvider>
+      </AssetProvider>
+    );
+  }
 
   return (
     <Card className="max-w-4xl mx-auto">

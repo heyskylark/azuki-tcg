@@ -13,12 +13,15 @@ import type {
   SnapshotCard,
   SnapshotIkz,
   SnapshotActionMask,
+  SnapshotCardMetadata,
 } from "@tcg/backend-core/types/ws";
+import { getCardMetadataByCardCodes } from "@tcg/backend-core/services/cardMetadataService";
 import {
   getWorldByRoomId,
   getPlayerObservationBySlot,
   getGameState,
   getActivePlayer,
+  flushEngineDebugLogs,
 } from "@/engine/WorldManager";
 import type {
   ObservationData,
@@ -29,16 +32,15 @@ import type {
   IKZObservation,
   ActionMask,
 } from "@/engine/types";
-import { defIdToCardCode } from "@tcg/backend-core/services/cardMapperService";
 import logger from "@/logger";
 
 /**
  * Generate a GAME_SNAPSHOT message for a player.
  */
-export function generateSnapshot(
+export async function generateSnapshot(
   roomId: string,
   playerSlot: 0 | 1
-): GameSnapshotMessage | null {
+): Promise<GameSnapshotMessage | null> {
   const world = getWorldByRoomId(roomId);
   if (!world) {
     logger.error("Cannot generate snapshot: world not found", { roomId });
@@ -52,22 +54,13 @@ export function generateSnapshot(
     return null;
   }
 
-  // Get observations for both players
+  // Get observation for the requesting player
+  // myObservation contains both the player's own board view and their view of the opponent
   const myObservation = getPlayerObservationBySlot(roomId, playerSlot);
   if (!myObservation) {
     logger.error("Cannot generate snapshot: observation not found", {
       roomId,
       playerSlot,
-    });
-    return null;
-  }
-
-  const opponentSlot = playerSlot === 0 ? 1 : 0;
-  const opponentObservation = getPlayerObservationBySlot(roomId, opponentSlot);
-  if (!opponentObservation) {
-    logger.error("Cannot generate snapshot: opponent observation not found", {
-      roomId,
-      opponentSlot,
     });
     return null;
   }
@@ -81,8 +74,11 @@ export function generateSnapshot(
   };
 
   // Build player boards
+  // Use myObservation for both boards - it contains:
+  // - myObservationData: player's own view of their board (with full hand details)
+  // - opponentObservationData: player's view of opponent (sanitized, handCount only)
   const myBoard = buildPlayerBoard(myObservation, true);
-  const opponentBoard = buildPlayerBoard(opponentObservation, false);
+  const opponentBoard = buildPlayerBoard(myObservation, false);
 
   // Order boards by player slot (0 first, then 1)
   const players: [SnapshotPlayerBoard, SnapshotPlayerBoard] =
@@ -93,14 +89,49 @@ export function generateSnapshot(
 
   // Get action mask if it's this player's turn
   const activePlayer = getActivePlayer(roomId);
+  logger.info("Snapshot generation - action mask check", {
+    roomId,
+    playerSlot,
+    activePlayer,
+    phase: gameState.phase,
+    rawActionMask: myObservation.actionMask ? {
+      legalActionCount: myObservation.actionMask.legalActionCount,
+      legalPrimary: myObservation.actionMask.legalPrimary?.slice(0, Math.min(10, myObservation.actionMask.legalActionCount)),
+      legalSub1: myObservation.actionMask.legalSub1?.slice(0, Math.min(10, myObservation.actionMask.legalActionCount)),
+      primaryActionMaskTrue: myObservation.actionMask.primaryActionMask
+        ?.map((v, i) => v ? i : -1)
+        .filter(i => i >= 0), // Show which action types are enabled
+    } : null,
+  });
+
+  // Flush debug logs immediately after getting observation to see C engine output
+  flushEngineDebugLogs();
+
   const actionMask =
     activePlayer === playerSlot ? buildActionMask(myObservation.actionMask) : null;
+
+  const cardCodes = collectSnapshotCardCodes(players, yourHand);
+  let cardMetadata: Record<string, SnapshotCardMetadata> = {};
+  try {
+    const cardMetadataMap = await getCardMetadataByCardCodes([...cardCodes]);
+    cardMetadata = Object.fromEntries(cardMetadataMap.entries());
+  } catch (error) {
+    logger.error("Cannot generate snapshot: failed to load card metadata", {
+      roomId,
+      playerSlot,
+      error: String(error),
+    });
+  }
+
+  // Flush C engine debug logs to Winston (after all engine operations)
+  flushEngineDebugLogs();
 
   return {
     type: "GAME_SNAPSHOT",
     stateContext,
     players,
     yourHand,
+    cardMetadata,
     combatStack: [], // TODO: populate combat stack when combat system is ready
     actionMask,
   };
@@ -232,4 +263,37 @@ function buildActionMask(mask: ActionMask): SnapshotActionMask {
     legalSub2: mask.legalSub2,
     legalSub3: mask.legalSub3,
   };
+}
+
+function collectSnapshotCardCodes(
+  players: [SnapshotPlayerBoard, SnapshotPlayerBoard],
+  hand: SnapshotHandCard[]
+): Set<string> {
+  const cardCodes = new Set<string>();
+
+  for (const board of players) {
+    addCardCode(board.leader.cardId, cardCodes);
+    addCardCode(board.gate.cardId, cardCodes);
+    for (const card of board.garden) {
+      addCardCode(card?.cardId ?? null, cardCodes);
+    }
+    for (const card of board.alley) {
+      addCardCode(card?.cardId ?? null, cardCodes);
+    }
+    for (const ikz of board.ikzArea) {
+      addCardCode(ikz.cardId, cardCodes);
+    }
+  }
+
+  for (const card of hand) {
+    addCardCode(card.cardId, cardCodes);
+  }
+
+  return cardCodes;
+}
+
+function addCardCode(cardCode: string | null, cardCodes: Set<string>): void {
+  if (cardCode) {
+    cardCodes.add(cardCode);
+  }
 }

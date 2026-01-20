@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
 import { getServerUser } from "@/lib/auth/getServerUser";
@@ -9,6 +10,8 @@ interface PageProps {
   params: Promise<{ id: string }>;
 }
 
+const uuidSchema = z.uuid();
+
 async function RoomContent({ roomId }: { roomId: string }) {
   const user = await getServerUser();
 
@@ -16,7 +19,12 @@ async function RoomContent({ roomId }: { roomId: string }) {
     redirect("/login");
   }
 
-  const room = await findRoomById(roomId);
+  const parsedId = uuidSchema.safeParse(roomId);
+  if (!parsedId.success) {
+    notFound();
+  }
+
+  const room = await findRoomById(parsedId.data);
 
   if (!room || !room.player0Id) {
     notFound();

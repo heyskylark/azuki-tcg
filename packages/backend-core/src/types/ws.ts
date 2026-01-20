@@ -84,6 +84,7 @@ export interface PlayerInfo {
   id: string;
   username: string;
   deckSelected: boolean;
+  deckId: string | null;
   ready: boolean;
   connected: boolean;
 }
@@ -170,6 +171,16 @@ export interface SnapshotHandCard {
   ikzCost: number;
 }
 
+export interface SnapshotCardMetadata {
+  cardCode: string;
+  name: string;
+  imageKey: string;
+  cardType: string;
+  attack: number | null;
+  health: number | null;
+  ikzCost: number | null;
+}
+
 export interface SnapshotActionMask {
   primaryActionMask: boolean[];
   legalActionCount: number;
@@ -184,6 +195,7 @@ export interface GameSnapshotMessage extends ServerMessage {
   stateContext: SnapshotStateContext;
   players: [SnapshotPlayerBoard, SnapshotPlayerBoard];
   yourHand: SnapshotHandCard[];
+  cardMetadata: Record<string, SnapshotCardMetadata>;
   combatStack: unknown[];
   actionMask: SnapshotActionMask | null;
 }
@@ -193,4 +205,5 @@ export interface GameLogBatchMessage extends ServerMessage {
   batchNumber: number;
   logs: unknown[];
   stateContext: SnapshotStateContext;
+  actionMask?: SnapshotActionMask | null; // Included for the active player
 }

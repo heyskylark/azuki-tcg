@@ -5,6 +5,7 @@ import { DeckStatus } from "@core/types";
 import { CardRarity, RarityOrdering } from "@core/types/cards";
 import type { DeckSummary } from "@core/types/deck";
 import { starterDecks } from "@core/services/DeckService/constants";
+import { cardCodeToDefId } from "@core/services/cardMapperService";
 
 type Database = IDatabase | ITransaction;
 
@@ -137,6 +138,7 @@ export async function getUserDecks(
 
 export interface DeckCardDetail {
   cardCode: string;
+  cardDefId: number;
   name: string;
   imageKey: string;
   cardType: string;
@@ -178,7 +180,7 @@ export async function getDeckWithCards(
   }
 
   // Get all cards in the deck with their details
-  const cards = await database
+  const cardRows = await database
     .select({
       cardCode: Cards.cardCode,
       name: Cards.name,
@@ -192,6 +194,25 @@ export async function getDeckWithCards(
     .from(DeckCardJunctions)
     .innerJoin(Cards, eq(DeckCardJunctions.cardId, Cards.id))
     .where(eq(DeckCardJunctions.deckId, deckId));
+
+  // Map cards to include cardDefId
+  const cards: DeckCardDetail[] = cardRows.map((row) => {
+    const defId = cardCodeToDefId(row.cardCode);
+    if (defId === null) {
+      throw new Error(`Unknown cardCode: ${row.cardCode} - not found in CardDefId mapping`);
+    }
+    return {
+      cardCode: row.cardCode,
+      cardDefId: defId,
+      name: row.name,
+      imageKey: row.imageKey,
+      cardType: row.cardType,
+      attack: row.attack,
+      health: row.health,
+      ikzCost: row.ikzCost,
+      quantity: row.quantity,
+    };
+  });
 
   return {
     id: deck.id,

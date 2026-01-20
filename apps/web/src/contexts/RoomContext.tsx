@@ -16,6 +16,8 @@ import type {
   ConnectionAckMessage,
   ErrorMessage,
   RoomClosedMessage,
+  GameSnapshotMessage,
+  GameLogBatchMessage,
 } from "@tcg/backend-core/types/ws";
 
 type ConnectionStatus = "disconnected" | "connecting" | "connected" | "error";
@@ -30,12 +32,15 @@ interface WebSocketMessage {
   [key: string]: unknown;
 }
 
+type GameMessage = GameSnapshotMessage | GameLogBatchMessage;
+
 interface RoomContextValue {
   activeRoom: ActiveRoom | null;
   roomState: RoomStateMessage | null;
   connectionStatus: ConnectionStatus;
   error: string | null;
   lastMessage: WebSocketMessage | null;
+  onGameMessage: (callback: (message: GameMessage) => void) => () => void;
   join: (roomId: string, password?: string) => Promise<boolean>;
   leave: () => void;
   close: () => void;
@@ -83,6 +88,7 @@ export function RoomProvider({ children }: RoomProviderProps) {
   const hasCheckedActiveRoom = useRef(false);
   const reconnectAttempts = useRef(0);
   const maxReconnectAttempts = 3;
+  const gameMessageCallbacks = useRef<Set<(message: GameMessage) => void>>(new Set());
 
   // Check for active room on mount (after auth is loaded)
   useEffect(() => {
@@ -133,12 +139,19 @@ export function RoomProvider({ children }: RoomProviderProps) {
     const ws = new WebSocket(`${wsUrl}?token=${joinToken}`);
 
     ws.onopen = () => {
-      setConnectionStatus("connected");
-      setActiveRoom({ id: roomId, playerSlot });
-      reconnectAttempts.current = 0;
+      // Only update state if this socket is still the current one
+      if (socketRef.current === ws) {
+        setConnectionStatus("connected");
+        setActiveRoom({ id: roomId, playerSlot });
+        reconnectAttempts.current = 0;
+      }
     };
 
     ws.onmessage = (event) => {
+      // Only process messages if this socket is still the current one
+      if (socketRef.current !== ws) {
+        return;
+      }
       try {
         const message = JSON.parse(event.data) as WebSocketMessage;
         setLastMessage(message);
@@ -149,12 +162,19 @@ export function RoomProvider({ children }: RoomProviderProps) {
     };
 
     ws.onerror = () => {
-      setConnectionStatus("error");
+      // Only update state if this socket is still the current one
+      if (socketRef.current === ws) {
+        setConnectionStatus("error");
+      }
     };
 
     ws.onclose = () => {
-      setConnectionStatus("disconnected");
-      socketRef.current = null;
+      // Only update state if this socket is still the current one
+      // This prevents a closing old socket from clearing a newly created socket
+      if (socketRef.current === ws) {
+        setConnectionStatus("disconnected");
+        socketRef.current = null;
+      }
     };
 
     socketRef.current = ws;
@@ -193,7 +213,23 @@ export function RoomProvider({ children }: RoomProviderProps) {
         setError(err.message);
         break;
       }
+
+      case "GAME_SNAPSHOT":
+      case "GAME_LOG_BATCH": {
+        const gameMessage = message as unknown as GameMessage;
+        for (const callback of gameMessageCallbacks.current) {
+          callback(gameMessage);
+        }
+        break;
+      }
     }
+  }, []);
+
+  const onGameMessage = useCallback((callback: (message: GameMessage) => void) => {
+    gameMessageCallbacks.current.add(callback);
+    return () => {
+      gameMessageCallbacks.current.delete(callback);
+    };
   }, []);
 
   const joinInternal = useCallback(async (roomId: string, expectedSlot?: 0 | 1, password?: string): Promise<boolean> => {
@@ -239,9 +275,20 @@ export function RoomProvider({ children }: RoomProviderProps) {
   }, []);
 
   const send = useCallback((message: WebSocketMessage) => {
-    if (socketRef.current && connectionStatus === "connected") {
-      socketRef.current.send(JSON.stringify(message));
+    if (!socketRef.current) {
+      console.error("[RoomContext] Cannot send message: WebSocket not initialized", {
+        messageType: message.type,
+      });
+      return;
     }
+    if (connectionStatus !== "connected") {
+      console.error("[RoomContext] Cannot send message: not connected", {
+        messageType: message.type,
+        connectionStatus,
+      });
+      return;
+    }
+    socketRef.current.send(JSON.stringify(message));
   }, [connectionStatus]);
 
   const leave = useCallback(() => {
@@ -280,6 +327,7 @@ export function RoomProvider({ children }: RoomProviderProps) {
         connectionStatus,
         error,
         lastMessage,
+        onGameMessage,
         join,
         leave,
         close,

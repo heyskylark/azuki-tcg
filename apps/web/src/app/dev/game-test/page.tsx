@@ -58,6 +58,7 @@ export default async function GameTestPage() {
   // Convert to DeckCard format expected by the client
   const deckCards: DeckCard[] = deckWithCards.cards.map((card) => ({
     cardCode: card.cardCode,
+    cardDefId: card.cardDefId,
     imageKey: card.imageKey,
     name: card.name,
     cardType: card.cardType,

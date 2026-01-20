@@ -298,3 +298,27 @@ export function destroyAllWorlds(): void {
   }
   logger.info("Destroyed all game worlds", { count: roomIds.length });
 }
+
+/**
+ * Enable or disable C engine debug logging.
+ */
+export function setEngineDebugLogging(enabled: boolean): void {
+  const binding = getNativeBinding();
+  binding.setDebugLogging(enabled);
+}
+
+/**
+ * Flush C engine debug logs to Winston.
+ * Retrieves all buffered debug logs from the C engine and outputs them via Winston.
+ */
+export function flushEngineDebugLogs(): void {
+  const binding = getNativeBinding();
+  const logs = binding.getDebugLogs();
+
+  for (const log of logs) {
+    const level = log.level.toLowerCase() as "info" | "warn" | "error";
+    logger[level](`[C Engine] ${log.message}`);
+  }
+
+  binding.clearDebugLogs();
+}

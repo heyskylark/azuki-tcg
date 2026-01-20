@@ -121,10 +121,12 @@ int summon_card_into_zone_index(ecs_world_t *world,
   ecs_assert(world != NULL, ECS_INVALID_PARAMETER, "World is null");
   ecs_assert(intent != NULL, ECS_INVALID_PARAMETER, "PlayEntityIntent is null");
 
-  // Capture source zone before moving card
+  // Capture source zone and index BEFORE moving card
   ecs_entity_t from_zone_entity =
       ecs_get_target(world, intent->card, EcsChildOf, 0);
   GameLogZone from_zone = azk_zone_entity_to_log_zone(world, from_zone_entity);
+  int8_t from_index =
+      azk_get_card_index_in_zone(world, intent->card, from_zone_entity);
 
   int results = insert_card_into_zone_index(
       world, intent->card, intent->player, intent->target_zone,
@@ -136,7 +138,7 @@ int summon_card_into_zone_index(ecs_world_t *world,
   // Log zone movement
   GameLogZone to_zone = intent->placement_type == ZONE_GARDEN ? GLOG_ZONE_GARDEN
                                                               : GLOG_ZONE_ALLEY;
-  azk_log_card_zone_moved(world, intent->card, from_zone, -1, to_zone,
+  azk_log_card_zone_moved(world, intent->card, from_zone, from_index, to_zone,
                           (int8_t)intent->zone_index);
 
   for (uint8_t i = 0; i < intent->ikz_card_count; ++i) {

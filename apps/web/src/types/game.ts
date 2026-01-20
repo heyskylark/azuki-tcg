@@ -122,6 +122,7 @@ export interface GameState {
  */
 export interface DeckCard {
   cardCode: string;
+  cardDefId: number;
   imageKey: string;
   name: string;
   cardType: string;
@@ -181,4 +182,32 @@ export const STATIC_CDN_BASE = "https://azuki-tcg.s3.us-east-1.amazonaws.com";
  */
 export function buildImageUrl(imageKey: string): string {
   return `${STATIC_CDN_BASE}/${imageKey}`;
+}
+
+/**
+ * Build a cardDefId -> CardMapping map from deck cards.
+ * Used to pre-populate the map with all cards in both players' decks
+ * so that drawn cards can be resolved correctly.
+ */
+export function buildCardDefIdMapFromDeckCards(
+  cards: DeckCard[]
+): Map<number, CardMapping> {
+  const map = new Map<number, CardMapping>();
+
+  for (const card of cards) {
+    if (!map.has(card.cardDefId)) {
+      map.set(card.cardDefId, {
+        cardCode: card.cardCode,
+        imageKey: card.imageKey,
+        imageUrl: buildImageUrl(card.imageKey),
+        name: card.name,
+        cardType: card.cardType,
+        attack: card.attack,
+        health: card.health,
+        ikzCost: card.ikzCost,
+      });
+    }
+  }
+
+  return map;
 }
