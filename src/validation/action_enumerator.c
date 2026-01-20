@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "abilities/ability_registry.h"
+#include "utils/debug_log.h"
 #include "abilities/ability_system.h"
 #include "generated/card_defs.h"
 #include "utils/card_utils.h"
@@ -417,12 +418,11 @@ static bool validate_action_for_mask(ecs_world_t *world, const GameState *gs,
   case ACT_NOOP:
   case ACT_MULLIGAN_SHUFFLE:
     result = azk_validate_simple_action(world, gs, player, action->type, false);
-    printf("[ActionMask] validate_action_for_mask: type=%d, result=%d\n", action->type, result);
-    fflush(stdout);
+    fprintf(stderr, "[ActionMask] validate_action_for_mask: type=%d, result=%d, phase=%d\n", action->type, result, gs->phase);
+    AZK_DEBUG_INFO("[ActionMask] validate_action_for_mask: type=%d, result=%d", action->type, result);
     break;
   default:
-    printf("[ActionMask] validate_action_for_mask: unknown type=%d\n", action->type);
-    fflush(stdout);
+    AZK_DEBUG_WARN("[ActionMask] validate_action_for_mask: unknown type=%d", action->type);
     result = false;
   }
   return result;
@@ -483,25 +483,26 @@ bool azk_build_action_mask_for_player(ecs_world_t *world, const GameState *gs,
   memset(out_mask, 0, sizeof(*out_mask));
 
   if (player_index < 0 || player_index >= MAX_PLAYERS_PER_MATCH) {
-    printf("[ActionMask] player_index %d out of bounds\n", player_index);
-    fflush(stdout);
+    fprintf(stderr, "[ActionMask] player_index %d out of bounds\n", player_index);
+    AZK_DEBUG_WARN("[ActionMask] player_index %d out of bounds", player_index);
     return false;
   }
 
   bool phase_requires_action = phase_requires_user_action(world, gs->phase);
-  printf("[ActionMask] phase=%d, winner=%d, phase_requires_action=%d, active_player=%d, player_index=%d\n",
+  fprintf(stderr, "[ActionMask] phase=%d, winner=%d, phase_requires_action=%d, active_player=%d, player_index=%d\n",
+          gs->phase, gs->winner, phase_requires_action, gs->active_player_index, player_index);
+  AZK_DEBUG_INFO("[ActionMask] phase=%d, winner=%d, phase_requires_action=%d, active_player=%d, player_index=%d",
                   gs->phase, gs->winner, phase_requires_action, gs->active_player_index, player_index);
-  fflush(stdout);
 
   if (gs->winner != -1 || !phase_requires_action) {
-    printf("[ActionMask] Early return: game over or phase doesn't require action\n");
-    fflush(stdout);
+    fprintf(stderr, "[ActionMask] Early return: game over or phase doesn't require action\n");
+    AZK_DEBUG_INFO("[ActionMask] Early return: game over or phase doesn't require action");
     return true;
   }
 
   if (player_index != gs->active_player_index) {
-    printf("[ActionMask] Early return: player %d is not active player %d\n", player_index, gs->active_player_index);
-    fflush(stdout);
+    fprintf(stderr, "[ActionMask] Early return: player %d is not active player %d\n", player_index, gs->active_player_index);
+    AZK_DEBUG_INFO("[ActionMask] Early return: player %d is not active player %d", player_index, gs->active_player_index);
     return true;
   }
 
@@ -509,8 +510,7 @@ bool azk_build_action_mask_for_player(ecs_world_t *world, const GameState *gs,
 
   // Check if we're in an ability sub-phase
   if (azk_is_in_ability_phase(world)) {
-    printf("[ActionMask] In ability phase, enumerating ability actions\n");
-    fflush(stdout);
+    AZK_DEBUG_INFO("[ActionMask] In ability phase, enumerating ability actions");
     enumerate_ability_actions(world, gs, player, out_mask);
     return true;
   }
@@ -519,8 +519,8 @@ bool azk_build_action_mask_for_player(ecs_world_t *world, const GameState *gs,
   size_t spec_count = 0;
   const AzkActionSpec *specs = azk_get_action_specs(&spec_count);
 
-  printf("[ActionMask] Enumerating %zu action specs for phase %d\n", spec_count, gs->phase);
-  fflush(stdout);
+  fprintf(stderr, "[ActionMask] Enumerating %zu action specs for phase %d\n", spec_count, gs->phase);
+  AZK_DEBUG_INFO("[ActionMask] Enumerating %zu action specs for phase %d", spec_count, gs->phase);
 
   for (size_t i = 0; i < spec_count; ++i) {
     const AzkActionSpec *spec = &specs[i];
@@ -528,8 +528,8 @@ bool azk_build_action_mask_for_player(ecs_world_t *world, const GameState *gs,
       continue;
     }
 
-    printf("[ActionMask] Spec %zu (type=%d) matches phase mask\n", i, spec->type);
-    fflush(stdout);
+    fprintf(stderr, "[ActionMask] Spec %zu (type=%d) matches phase mask\n", i, spec->type);
+    AZK_DEBUG_INFO("[ActionMask] Spec %zu (type=%d) matches phase mask", i, spec->type);
 
     UserAction action = {.player = player,
                          .type = spec->type,
@@ -540,9 +540,10 @@ bool azk_build_action_mask_for_player(ecs_world_t *world, const GameState *gs,
     enumerate_parameters(world, gs, player, spec, 0, &action, out_mask);
   }
 
-  printf("[ActionMask] Final mask: legal_action_count=%d, head0_mask[0]=%d, head0_mask[23]=%d\n",
+  fprintf(stderr, "[ActionMask] Final mask: legal_action_count=%d, head0_mask[0]=%d, head0_mask[23]=%d\n",
+          out_mask->legal_action_count, out_mask->head0_mask[0], out_mask->head0_mask[23]);
+  AZK_DEBUG_INFO("[ActionMask] Final mask: legal_action_count=%d, head0_mask[0]=%d, head0_mask[23]=%d",
                   out_mask->legal_action_count, out_mask->head0_mask[0], out_mask->head0_mask[23]);
-  fflush(stdout);
 
   return true;
 }

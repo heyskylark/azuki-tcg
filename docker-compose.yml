@@ -42,6 +42,8 @@ services:
       # Override DATABASE_URL since hostname differs in Docker (db vs localhost)
       PORT: 3001
       DATABASE_URL: postgres://${POSTGRES_USER:-azuki}:${POSTGRES_PASSWORD:-azuki}@db:5432/${POSTGRES_DB:-azuki}
+      # Enable C engine debug logging (set to false in production)
+      ENGINE_DEBUG: ${ENGINE_DEBUG:-true}
     depends_on:
       migrate:
         condition: service_completed_successfully

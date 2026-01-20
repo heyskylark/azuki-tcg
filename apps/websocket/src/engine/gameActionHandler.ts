@@ -12,6 +12,7 @@ import {
   submitPlayerAction,
   incrementBatchNumber,
   getPlayerObservationBySlot,
+  flushEngineDebugLogs,
   type SubmitActionResult,
 } from "@/engine/WorldManager";
 import { processLogsForPlayer } from "@/engine/logProcessor";
@@ -86,6 +87,7 @@ export async function handleGameAction(
     action,
   });
   const result = submitPlayerAction(roomId, userId, action as ActionTuple);
+
   logger.info("Action result", {
     roomId,
     playerSlot,
@@ -153,6 +155,16 @@ export async function handleGameAction(
       ) {
         const observation = getPlayerObservationBySlot(roomId, slot);
         if (observation?.actionMask) {
+          logger.info("Action handler - action mask for next player", {
+            roomId,
+            slot,
+            phase: result.stateContext.phase,
+            legalActionCount: observation.actionMask.legalActionCount,
+            legalPrimary: observation.actionMask.legalPrimary?.slice(0, Math.min(10, observation.actionMask.legalActionCount)),
+            primaryActionMaskTrue: observation.actionMask.primaryActionMask
+              ?.map((v, i) => v ? i : -1)
+              .filter(i => i >= 0),
+          });
           logBatch.actionMask = observation.actionMask;
         }
       }
@@ -160,6 +172,9 @@ export async function handleGameAction(
       sendToPlayer(channel, slot, logBatch);
     }
   }
+
+  // Flush C engine debug logs to Winston (after all engine operations including observation building)
+  flushEngineDebugLogs();
 
   // Handle game over
   if (result.gameOver) {

@@ -21,6 +21,7 @@ import {
   getPlayerObservationBySlot,
   getGameState,
   getActivePlayer,
+  flushEngineDebugLogs,
 } from "@/engine/WorldManager";
 import type {
   ObservationData,
@@ -95,10 +96,17 @@ export async function generateSnapshot(
     phase: gameState.phase,
     rawActionMask: myObservation.actionMask ? {
       legalActionCount: myObservation.actionMask.legalActionCount,
-      legalPrimary: myObservation.actionMask.legalPrimary,
-      primaryActionMask: myObservation.actionMask.primaryActionMask?.slice(0, 24), // First 24 action types
+      legalPrimary: myObservation.actionMask.legalPrimary?.slice(0, Math.min(10, myObservation.actionMask.legalActionCount)),
+      legalSub1: myObservation.actionMask.legalSub1?.slice(0, Math.min(10, myObservation.actionMask.legalActionCount)),
+      primaryActionMaskTrue: myObservation.actionMask.primaryActionMask
+        ?.map((v, i) => v ? i : -1)
+        .filter(i => i >= 0), // Show which action types are enabled
     } : null,
   });
+
+  // Flush debug logs immediately after getting observation to see C engine output
+  flushEngineDebugLogs();
+
   const actionMask =
     activePlayer === playerSlot ? buildActionMask(myObservation.actionMask) : null;
 
@@ -114,6 +122,9 @@ export async function generateSnapshot(
       error: String(error),
     });
   }
+
+  // Flush C engine debug logs to Winston (after all engine operations)
+  flushEngineDebugLogs();
 
   return {
     type: "GAME_SNAPSHOT",

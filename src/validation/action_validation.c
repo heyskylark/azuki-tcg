@@ -1,5 +1,6 @@
 #include "validation/action_validation.h"
 
+#include <stdio.h>
 #include <string.h>
 
 #include "abilities/ability_registry.h"
@@ -24,6 +25,8 @@ static bool ensure_active_player(
 ) {
   uint8_t player_number = get_player_number(world, player);
   if (player_number != gs->active_player_index) {
+    fprintf(stderr, "[Validation] ensure_active_player FAILED: player_number=%d, active_player_index=%d\n",
+            player_number, gs->active_player_index);
     VALIDATION_LOG(log_errors, "Player %d is not active", player_number);
     return false;
   }

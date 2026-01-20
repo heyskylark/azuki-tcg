@@ -7,12 +7,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <stddef.h>
 
 #include "azuki/engine.h"
 #include "components/game_log.h"
 #include "constants/game.h"
 #include "utils/observation_util.h"
 #include "utils/game_log_util.h"
+#include "utils/debug_log.h"
 
 // Maximum number of concurrent game worlds
 #define MAX_WORLDS 256
@@ -1275,8 +1277,40 @@ static napi_value GetObservation(napi_env env, napi_callback_info info) {
     return result;
   }
 
+  // Debug: Check game state BEFORE calling observe
+  const GameState *gs = azk_engine_game_state(engine);
+  if (gs) {
+    fprintf(stderr, "[addon.c] BEFORE observe: phase=%d, active_player=%d, winner=-1, player_index=%d\n",
+            gs->phase, gs->active_player_index, player_index);
+
+    // DEBUG: Print struct sizes to check for mismatch
+    fprintf(stderr, "[addon.c] STRUCT SIZES: ObservationData=%zu, ActionMaskObs=%zu, MyObservationData=%zu, OpponentObservationData=%zu\n",
+            sizeof(ObservationData), sizeof(ActionMaskObs), sizeof(MyObservationData), sizeof(OpponentObservationData));
+    fprintf(stderr, "[addon.c] ActionMaskObs offsets: primary_action_mask@0, legal_action_count@%zu, legal_primary@%zu\n",
+            offsetof(ActionMaskObs, legal_action_count), offsetof(ActionMaskObs, legal_primary));
+    fprintf(stderr, "[addon.c] ObservationData offsets: my@0, opponent@%zu, phase@%zu, action_mask@%zu\n",
+            offsetof(ObservationData, opponent_observation_data), offsetof(ObservationData, phase), offsetof(ObservationData, action_mask));
+    fflush(stderr);
+  }
+
   ObservationData obs;
   bool success = azk_engine_observe(engine, player_index, &obs);
+
+  // Debug: Print action mask info from C engine
+  fprintf(stderr, "[addon.c] GetObservation: player_index=%d, success=%d\n", player_index, success);
+  fprintf(stderr, "[addon.c] action_mask: legal_action_count=%d, primary_mask[0]=%d, primary_mask[23]=%d\n",
+          obs.action_mask.legal_action_count,
+          obs.action_mask.primary_action_mask[0],
+          obs.action_mask.primary_action_mask[23]);
+  if (obs.action_mask.legal_action_count > 0) {
+    fprintf(stderr, "[addon.c] First legal action: [%d, %d, %d, %d]\n",
+            obs.action_mask.legal_primary[0],
+            obs.action_mask.legal_sub1[0],
+            obs.action_mask.legal_sub2[0],
+            obs.action_mask.legal_sub3[0]);
+  }
+  fflush(stderr);
+
   if (!success) {
     napi_value result;
     napi_get_null(env, &result);
@@ -1320,6 +1354,74 @@ static napi_value GetGameLogs(napi_env env, napi_callback_info info) {
   return result;
 }
 
+// ============================================================================
+// Debug logging functions
+// ============================================================================
+
+// setDebugLogging(enabled: boolean): void
+static napi_value SetDebugLogging(napi_env env, napi_callback_info info) {
+  size_t argc = 1;
+  napi_value args[1];
+  napi_get_cb_info(env, info, &argc, args, NULL, NULL);
+
+  if (argc < 1) {
+    return throw_error(env, "setDebugLogging requires enabled argument");
+  }
+
+  bool enabled;
+  napi_get_value_bool(env, args[0], &enabled);
+
+  azk_debug_log_set_enabled(enabled);
+
+  return NULL;
+}
+
+// getDebugLogs(): { level: string, message: string }[]
+static napi_value GetDebugLogs(napi_env env, napi_callback_info info) {
+  (void)info; // Unused
+
+  uint16_t count = 0;
+  const AzkDebugLogEntry *entries = azk_debug_log_get_entries(&count);
+
+  napi_value result;
+  napi_create_array_with_length(env, count, &result);
+
+  for (uint16_t i = 0; i < count; i++) {
+    const AzkDebugLogEntry *entry = &entries[i];
+
+    napi_value obj, level_val, message_val;
+    napi_create_object(env, &obj);
+
+    // Convert level to string
+    const char *level_str = "INFO";
+    switch (entry->level) {
+      case AZK_DEBUG_LEVEL_INFO: level_str = "INFO"; break;
+      case AZK_DEBUG_LEVEL_WARN: level_str = "WARN"; break;
+      case AZK_DEBUG_LEVEL_ERROR: level_str = "ERROR"; break;
+    }
+
+    napi_create_string_utf8(env, level_str, NAPI_AUTO_LENGTH, &level_val);
+    napi_create_string_utf8(env, entry->message, NAPI_AUTO_LENGTH, &message_val);
+
+    napi_set_named_property(env, obj, "level", level_val);
+    napi_set_named_property(env, obj, "message", message_val);
+
+    napi_set_element(env, result, i, obj);
+  }
+
+  return result;
+}
+
+// clearDebugLogs(): void
+static napi_value ClearDebugLogs(napi_env env, napi_callback_info info) {
+  (void)env; // Unused
+  (void)info; // Unused
+
+  azk_debug_log_clear();
+
+  return NULL;
+}
+
 // Module initialization
 static napi_value Init(napi_env env, napi_value exports) {
   // Initialize world slots
@@ -1359,6 +1461,15 @@ static napi_value Init(napi_env env, napi_value exports) {
 
   status = napi_create_function(env, "getActivePlayer", NAPI_AUTO_LENGTH, GetActivePlayer, NULL, &fn);
   if (status == napi_ok) napi_set_named_property(env, exports, "getActivePlayer", fn);
+
+  status = napi_create_function(env, "setDebugLogging", NAPI_AUTO_LENGTH, SetDebugLogging, NULL, &fn);
+  if (status == napi_ok) napi_set_named_property(env, exports, "setDebugLogging", fn);
+
+  status = napi_create_function(env, "getDebugLogs", NAPI_AUTO_LENGTH, GetDebugLogs, NULL, &fn);
+  if (status == napi_ok) napi_set_named_property(env, exports, "getDebugLogs", fn);
+
+  status = napi_create_function(env, "clearDebugLogs", NAPI_AUTO_LENGTH, ClearDebugLogs, NULL, &fn);
+  if (status == napi_ok) napi_set_named_property(env, exports, "clearDebugLogs", fn);
 
   return exports;
 }
