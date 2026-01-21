@@ -1,0 +1,32 @@
+services:
+  db-test:
+    image: postgres:16-alpine
+    container_name: azuki-db-test
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-azuki}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-azuki}
+      POSTGRES_DB: ${POSTGRES_DB:-azuki_test}
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata-test:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-azuki} -d ${POSTGRES_DB:-azuki_test}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  migrate-test:
+    build:
+      context: .
+      dockerfile: docker/migrate.Dockerfile
+      network: host
+    container_name: azuki-migrate-test
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-azuki}:${POSTGRES_PASSWORD:-azuki}@db-test:5432/${POSTGRES_DB:-azuki_test}
+    depends_on:
+      db-test:
+        condition: service_healthy
+
+volumes:
+  pgdata-test:
