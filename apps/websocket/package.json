@@ -10,6 +10,11 @@
     "build:native": "cd native && node-gyp rebuild",
     "build:all": "yarn build:native && yarn build",
     "start": "node dist/server.js",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:integration": "tsx scripts/run-integration-tests.ts",
+    "test:watch": "vitest --watch",
+    "test:coverage": "vitest --coverage",
     "test:engine": "tsx scripts/test-engine.ts"
   },
   "dependencies": {
@@ -20,10 +25,13 @@
   },
   "devDependencies": {
     "@types/node": "^25.0.3",
+    "@types/ws": "^8.5.13",
     "node-gyp": "^10.0.0",
     "tsc-alias": "^1.8.16",
     "tsconfig-paths": "^4.2.0",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^2.1.8",
+    "ws": "^8.18.0"
   }
 }
