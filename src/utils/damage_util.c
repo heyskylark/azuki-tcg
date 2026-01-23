@@ -5,6 +5,7 @@
 #include "generated/card_defs.h"
 #include "utils/card_utils.h"
 #include "utils/cli_rendering_util.h"
+#include "utils/game_log_util.h"
 #include "utils/player_util.h"
 #include "utils/status_util.h"
 
@@ -25,6 +26,10 @@ bool deal_effect_damage(ecs_world_t *world, ecs_entity_t target,
 
   cur_stats->cur_hp -= damage;
   ecs_modified(world, target, CurStats);
+
+  // Log the HP change for frontend state updates
+  azk_log_card_stat_change(world, target, 0, -damage, cur_stats->cur_atk,
+                           cur_stats->cur_hp);
 
   cli_render_logf("[Damage] Dealt %d effect damage (HP: %d)", damage,
                   cur_stats->cur_hp);

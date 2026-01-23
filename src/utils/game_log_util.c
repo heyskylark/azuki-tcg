@@ -149,7 +149,8 @@ GameLogCardRef azk_make_card_ref(ecs_world_t *world, ecs_entity_t card) {
   // Get zone from parent entity
   ecs_entity_t zone_entity = ecs_get_target(world, card, EcsChildOf, 0);
   ref.zone = azk_zone_entity_to_log_zone(world, zone_entity);
-  ref.zone_index = get_card_zone_index(world, card);
+  // Use azk_get_card_index_in_zone for slow path search (handles IKZ cards)
+  ref.zone_index = azk_get_card_index_in_zone(world, card, zone_entity);
 
   return ref;
 }
@@ -256,6 +257,22 @@ void azk_log_card_tap_state_changed(ecs_world_t *world, ecs_entity_t card,
 
   log->type = GLOG_CARD_TAP_STATE_CHANGED;
   log->data.tap_changed.card = azk_make_card_ref(world, card);
+  log->data.tap_changed.new_state = new_state;
+}
+
+void azk_log_card_tap_state_changed_ex(ecs_world_t *world, ecs_entity_t card,
+                                       GameLogTapState new_state,
+                                       GameLogZone zone, int8_t zone_index) {
+  GameStateLog *log = add_log_entry(world);
+  if (!log) {
+    return;
+  }
+
+  log->type = GLOG_CARD_TAP_STATE_CHANGED;
+  log->data.tap_changed.card = azk_make_card_ref(world, card);
+  // Override zone/index with explicit values (bypasses deferred zone lookup)
+  log->data.tap_changed.card.zone = zone;
+  log->data.tap_changed.card.zone_index = zone_index;
   log->data.tap_changed.new_state = new_state;
 }
 

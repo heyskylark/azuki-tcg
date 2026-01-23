@@ -77,6 +77,14 @@ void azk_log_card_zone_moved_ex(ecs_world_t *world, uint8_t player,
 void azk_log_card_tap_state_changed(ecs_world_t *world, ecs_entity_t card,
                                     GameLogTapState new_state);
 
+/**
+ * Log a card's tap state changing with explicit zone/index.
+ * Use when zone lookup may be deferred (e.g., during ECS system execution).
+ */
+void azk_log_card_tap_state_changed_ex(ecs_world_t *world, ecs_entity_t card,
+                                       GameLogTapState new_state,
+                                       GameLogZone zone, int8_t zone_index);
+
 /* ========== Stat Change Logs ========== */
 
 /**

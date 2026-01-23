@@ -109,7 +109,10 @@ static int insert_card_into_zone_index(ecs_world_t *world, ecs_entity_t card,
 
   if (placement_type == ZONE_GARDEN) {
     if (!ecs_has(world, card, Charge)) {
-      set_card_to_cooldown(world, card);
+      // Set cooldown state (logging handled by caller after ZONE_MOVED)
+      const TapState *tap_state = ecs_get(world, card, TapState);
+      ecs_set(world, card, TapState,
+              {.tapped = tap_state ? tap_state->tapped : false, .cooldown = true});
     }
   }
 
@@ -135,12 +138,21 @@ int summon_card_into_zone_index(ecs_world_t *world,
     return results;
   }
 
-  // Log zone movement
+  // Log zone movement FIRST
   GameLogZone to_zone = intent->placement_type == ZONE_GARDEN ? GLOG_ZONE_GARDEN
                                                               : GLOG_ZONE_ALLEY;
   azk_log_card_zone_moved(world, intent->card, from_zone, from_index, to_zone,
                           (int8_t)intent->zone_index);
 
+  // Log cooldown state change AFTER zone move (if applicable)
+  if (intent->placement_type == ZONE_GARDEN &&
+      !ecs_has(world, intent->card, Charge)) {
+    azk_log_card_tap_state_changed_ex(world, intent->card, GLOG_TAP_COOLDOWN,
+                                      GLOG_ZONE_GARDEN,
+                                      (int8_t)intent->zone_index);
+  }
+
+  // Tap IKZ cards
   for (uint8_t i = 0; i < intent->ikz_card_count; ++i) {
     tap_card(world, intent->ikz_cards[i]);
   }
@@ -219,9 +231,16 @@ int gate_card_into_garden(ecs_world_t *world, const GatePortalIntent *intent) {
     return results;
   }
 
-  // Log alley -> garden movement
+  // Log alley -> garden movement FIRST
   azk_log_card_zone_moved(world, intent->alley_card, GLOG_ZONE_ALLEY, from_index,
                           GLOG_ZONE_GARDEN, (int8_t)intent->garden_index);
+
+  // Log cooldown state change AFTER zone move (if applicable)
+  if (!ecs_has(world, intent->alley_card, Charge)) {
+    azk_log_card_tap_state_changed_ex(world, intent->alley_card, GLOG_TAP_COOLDOWN,
+                                      GLOG_ZONE_GARDEN,
+                                      (int8_t)intent->garden_index);
+  }
 
   tap_card(world, intent->gate_card);
 

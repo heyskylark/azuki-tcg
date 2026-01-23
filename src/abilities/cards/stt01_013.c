@@ -4,6 +4,7 @@
 #include "generated/card_defs.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/damage_util.h"
+#include "utils/game_log_util.h"
 #include "utils/player_util.h"
 #include "utils/zone_util.h"
 
@@ -59,6 +60,10 @@ void stt01_013_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
   weapon_stats->cur_atk += 1;
   ecs_modified(world, ctx->source_card, CurStats);
 
+  // Log weapon attack increase
+  azk_log_card_stat_change(world, ctx->source_card, 1, 0, weapon_stats->cur_atk,
+                           weapon_stats->cur_hp);
+
   // Update target entity's CurStats.cur_atk (+1)
   CurStats *target_stats = ecs_get_mut(world, target, CurStats);
   ecs_assert(target_stats != NULL, ECS_INVALID_PARAMETER,
@@ -66,6 +71,10 @@ void stt01_013_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
 
   target_stats->cur_atk += 1;
   ecs_modified(world, target, CurStats);
+
+  // Log target attack increase
+  azk_log_card_stat_change(world, target, 1, 0, target_stats->cur_atk,
+                           target_stats->cur_hp);
 
   cli_render_logf("[STT01-013] Weapon gained +1 attack (total: %d)",
                   weapon_stats->cur_atk);

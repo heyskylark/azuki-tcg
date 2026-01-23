@@ -366,6 +366,7 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .has_ability = true,
       .is_optional = true,
       .can_select_to_alley = true,
+      .can_select_to_hand = true, // Allows both add to hand AND play to alley
       .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
       .effect_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
       .timing_tag = ecs_id(AOnPlay),
@@ -419,6 +420,7 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .has_ability = true,
       .is_optional = false,
       .can_select_to_equip = true,
+      .can_select_to_hand = false, // Only allow equip, not add to hand
       .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
       .effect_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
       .timing_tag = ecs_id(AOnGatePortal),

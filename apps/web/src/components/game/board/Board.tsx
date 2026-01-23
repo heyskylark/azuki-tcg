@@ -1,16 +1,19 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { Text } from "@react-three/drei";
 import { useGameState } from "@/contexts/GameStateContext";
 import { useRoom } from "@/contexts/RoomContext";
 import { Card3D, EmptyCardSlot, CARD_WIDTH, CARD_HEIGHT } from "@/components/game/cards/Card3D";
 import { LeaderHealthDisplay } from "@/components/game/cards/CardStats";
 import { DraggableHandCard } from "@/components/game/cards/DraggableHandCard";
+import { DraggableAlleyCard } from "@/components/game/cards/DraggableAlleyCard";
 import { useDragStore } from "@/stores/dragStore";
 import {
   findValidAction,
+  findValidGateAction,
   getValidEffectTargets,
+  getValidGateSourceAlleySlots,
   buildEffectTargetAction,
 } from "@/lib/game/actionValidation";
 import type {
@@ -62,6 +65,7 @@ function BoardSurface() {
  * Render a row of garden/alley slots with cards or empty slots.
  * Supports drag-and-drop for empty slots when not opponent's row.
  * Supports ability target highlighting during EFFECT_SELECTION phase.
+ * For player's alley, renders DraggableAlleyCard for cards that can be gated.
  */
 function CardRow({
   cards,
@@ -94,6 +98,12 @@ function CardRow({
   const isDragging = dragPhase === "pickup" || dragPhase === "dragging";
   const validSlots = zone === "garden" ? validGardenSlots : validAlleySlots;
 
+  // For player's alley, compute which cards can be gated
+  const gateableAlleySlots =
+    !isOpponent && zone === "alley"
+      ? getValidGateSourceAlleySlots(actionMask ?? null)
+      : new Set<number>();
+
   return (
     <group>
       {cards.map((card, index) => {
@@ -105,6 +115,19 @@ function CardRow({
         const isAbilityTarget = validEffectTargets?.has(targetIndex) ?? false;
 
         if (card) {
+          // For player's alley cards that can be gated, use DraggableAlleyCard
+          if (!isOpponent && zone === "alley" && gateableAlleySlots.has(index)) {
+            return (
+              <DraggableAlleyCard
+                key={`alley-card-${index}-${card.cardCode}`}
+                card={card}
+                alleyIndex={index}
+                position={position}
+                actionMask={actionMask ?? null}
+              />
+            );
+          }
+
           return (
             <Card3D
               key={`card-${index}-${card.cardCode}`}
@@ -514,9 +537,12 @@ export function Board() {
 
   // Drag store actions
   const draggedCardIndex = useDragStore((state) => state.draggedCardIndex);
+  const dragPhase = useDragStore((state) => state.dragPhase);
+  const dragSourceType = useDragStore((state) => state.dragSourceType);
   const drop = useDragStore((state) => state.drop);
+  const setOnDropCallback = useDragStore((state) => state.setOnDropCallback);
 
-  // Handle dropping a card on a slot
+  // Handle dropping a hand card on a slot
   const handleDropToSlot = useCallback(
     (zone: "garden" | "alley", slotIndex: number) => {
       if (draggedCardIndex === null || !gameState?.actionMask) {
@@ -544,6 +570,68 @@ export function Board() {
     },
     [draggedCardIndex, gameState?.actionMask, send, drop]
   );
+
+  // Handle gate drop - moving an alley card to garden
+  const handleGateDropToGarden = useCallback(
+    (zone: "garden" | "alley", gardenIndex: number) => {
+      console.log("[Board] handleGateDropToGarden called:", { zone, gardenIndex });
+
+      // Gate action only targets garden
+      if (zone !== "garden") {
+        console.log("[Board] Gate drop ignored - zone is not garden");
+        return;
+      }
+
+      const currentSourceAlleyIndex = useDragStore.getState().sourceAlleyIndex;
+      console.log("[Board] sourceAlleyIndex:", currentSourceAlleyIndex);
+
+      if (currentSourceAlleyIndex === null || !gameState?.actionMask) {
+        console.log("[Board] Gate drop failed - missing sourceAlleyIndex or actionMask");
+        return;
+      }
+
+      // Find the valid gate action tuple for this drop
+      const action = findValidGateAction(
+        gameState.actionMask,
+        currentSourceAlleyIndex,
+        gardenIndex
+      );
+
+      console.log("[Board] findValidGateAction result:", action);
+
+      if (action) {
+        // Send the game action via WebSocket
+        console.log("[Board] Sending GAME_ACTION:", action);
+        send({
+          type: "GAME_ACTION",
+          action,
+        });
+
+        // Complete the drop - clear drag state
+        drop();
+      } else {
+        console.log("[Board] No valid gate action found");
+      }
+    },
+    [gameState?.actionMask, send, drop]
+  );
+
+  // Register the appropriate drop callback with the drag store when dragging
+  useEffect(() => {
+    if (dragPhase === "pickup" || dragPhase === "dragging") {
+      // Use gate handler for alley drags, regular handler for hand drags
+      const callback = dragSourceType === "alley" ? handleGateDropToGarden : handleDropToSlot;
+      console.log("[Board] Setting drop callback:", {
+        dragPhase,
+        dragSourceType,
+        isGateHandler: dragSourceType === "alley",
+      });
+      setOnDropCallback(callback);
+    }
+    return () => {
+      // Don't clear callback here - let drop() or reset() handle it
+    };
+  }, [dragPhase, dragSourceType, handleDropToSlot, handleGateDropToGarden, setOnDropCallback]);
 
   // Check if we're in effect selection phase and compute valid targets
   const isInEffectSelection = gameState?.abilitySubphase === "EFFECT_SELECTION";

@@ -3,7 +3,7 @@
 import { useRef, useCallback, useEffect } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
-import { useDragStore, type HoveredZone } from "@/stores/dragStore";
+import { useDragStore, type HoveredZone, type DragSourceType } from "@/stores/dragStore";
 import { useAssets } from "@/contexts/AssetContext";
 import { CARD_WIDTH, CARD_HEIGHT, CARD_DEPTH } from "@/components/game/cards/Card3D";
 
@@ -11,6 +11,13 @@ import { CARD_WIDTH, CARD_HEIGHT, CARD_DEPTH } from "@/components/game/cards/Car
 const HAND_ZONE_Z = 6.5; // MY_HAND_Z = 7.4, threshold below
 const ALLEY_ZONE_Z = 4.5; // MY_ALLEY_Z = 3.6, threshold above
 const GARDEN_ZONE_Z = 2.5; // MY_GARDEN_Z = 1.5, threshold above
+
+// Z threshold for alley-to-garden drag transition (from DraggableAlleyCard)
+const ALLEY_TO_GARDEN_Z_THRESHOLD = 2.5;
+
+// Slot calculation constants (from Board.tsx)
+const SLOT_SPACING = 1.8;
+const NUM_SLOTS = 5;
 
 // Spring constants
 const PICKUP_SPRING = 12; // Faster follow in pickup
@@ -29,6 +36,18 @@ function getZoneFromZ(z: number): HoveredZone {
 }
 
 /**
+ * Calculate slot index from X position.
+ * Returns null if outside valid slot range.
+ */
+function getSlotIndexFromX(x: number): number | null {
+  // Slots are centered at x = (index - 2) * SLOT_SPACING
+  // So index = round(x / SLOT_SPACING) + 2
+  const rawIndex = Math.round(x / SLOT_SPACING) + Math.floor(NUM_SLOTS / 2);
+  if (rawIndex < 0 || rawIndex >= NUM_SLOTS) return null;
+  return rawIndex;
+}
+
+/**
  * The dragged card that follows the cursor with spring physics.
  * Renders only when a drag is in progress.
  */
@@ -42,9 +61,11 @@ export function DraggedCard() {
 
   // Drag store state
   const dragPhase = useDragStore((state) => state.dragPhase);
+  const dragSourceType = useDragStore((state) => state.dragSourceType);
   const draggedCardCode = useDragStore((state) => state.draggedCardCode);
   const targetPosition = useDragStore((state) => state.targetPosition);
   const originalHandPosition = useDragStore((state) => state.originalHandPosition);
+  const originalAlleyPosition = useDragStore((state) => state.originalAlleyPosition);
   const hoveredZone = useDragStore((state) => state.hoveredZone);
   const hoveredSlotIndex = useDragStore((state) => state.hoveredSlotIndex);
   const validGardenSlots = useDragStore((state) => state.validGardenSlots);
@@ -54,18 +75,26 @@ export function DraggedCard() {
   const updateTargetPosition = useDragStore((state) => state.updateTargetPosition);
   const updateCurrentPosition = useDragStore((state) => state.updateCurrentPosition);
   const setHoveredSlot = useDragStore((state) => state.setHoveredSlot);
-  const cancelDrag = useDragStore((state) => state.cancelDrag);
+  const startDragging = useDragStore((state) => state.startDragging);
   const startReturning = useDragStore((state) => state.startReturning);
   const reset = useDragStore((state) => state.reset);
+  const onDropCallback = useDragStore((state) => state.onDropCallback);
 
   // Check if current hover is over a valid drop target
+  // For alley drags (gate), only garden is valid; for hand drags, both garden and alley are valid
   const isOverValidTarget =
-    (hoveredZone === "garden" &&
-      hoveredSlotIndex !== null &&
-      validGardenSlots.has(hoveredSlotIndex)) ||
-    (hoveredZone === "alley" &&
-      hoveredSlotIndex !== null &&
-      validAlleySlots.has(hoveredSlotIndex));
+    dragSourceType === "alley"
+      ? // Alley drag: only garden is valid target
+        hoveredZone === "garden" &&
+        hoveredSlotIndex !== null &&
+        validGardenSlots.has(hoveredSlotIndex)
+      : // Hand drag: both garden and alley are valid
+        (hoveredZone === "garden" &&
+          hoveredSlotIndex !== null &&
+          validGardenSlots.has(hoveredSlotIndex)) ||
+        (hoveredZone === "alley" &&
+          hoveredSlotIndex !== null &&
+          validAlleySlots.has(hoveredSlotIndex));
 
   // Get texture for the dragged card
   const texture = draggedCardCode ? getCardTexture(draggedCardCode) : null;
@@ -99,40 +128,112 @@ export function DraggedCard() {
       const intersection = projectToXZPlane(e.clientX, e.clientY, targetY);
       updateTargetPosition([intersection.x, targetY, intersection.z]);
 
-      // Update zone detection during dragging phase
+      // For alley drags during pickup: check if cursor moved into garden zone
+      // This handles the transition from pickup to dragging for gate actions
+      // (DraggableAlleyCard removes itself from DOM during pickup, so its handler doesn't fire)
+      if (dragPhase === "pickup" && dragSourceType === "alley") {
+        if (intersection.z < ALLEY_TO_GARDEN_Z_THRESHOLD) {
+          const slotIndex = getSlotIndexFromX(intersection.x);
+          console.log("[DraggedCard] Alley pickup entering garden zone:", {
+            slotIndex,
+            intersectionZ: intersection.z,
+          });
+
+          // Update hovered slot to garden zone BEFORE transitioning to dragging
+          if (slotIndex !== null) {
+            setHoveredSlot("garden", slotIndex);
+          }
+
+          startDragging();
+        }
+      }
+
+      // Update zone and slot detection during dragging phase
       if (dragPhase === "dragging") {
         const zone = getZoneFromZ(intersection.z);
-        if (zone !== hoveredZone) {
-          setHoveredSlot(zone, null);
+        const slotIndex = (zone === "garden" || zone === "alley")
+          ? getSlotIndexFromX(intersection.x)
+          : null;
+
+        // Always update if zone or slot changed
+        if (zone !== hoveredZone || slotIndex !== hoveredSlotIndex) {
+          setHoveredSlot(zone, slotIndex);
         }
       }
     },
     [
       dragPhase,
+      dragSourceType,
       projectToXZPlane,
       updateTargetPosition,
       setHoveredSlot,
+      startDragging,
       hoveredZone,
+      hoveredSlotIndex,
     ]
   );
 
   // Handle global pointer up during drag
   const handlePointerUp = useCallback(() => {
-    if (dragPhase === "pickup") {
-      // Released while in pickup - animate back to hand
+    // Read current state directly from store to avoid stale closure values
+    const state = useDragStore.getState();
+    const currentDragPhase = state.dragPhase;
+    const currentDragSourceType = state.dragSourceType;
+    const currentHoveredZone = state.hoveredZone;
+    const currentHoveredSlotIndex = state.hoveredSlotIndex;
+    const currentOnDropCallback = state.onDropCallback;
+    const currentValidGardenSlots = state.validGardenSlots;
+    const currentValidAlleySlots = state.validAlleySlots;
+
+    // Debug logging for gate action drops
+    console.log("[DraggedCard] handlePointerUp:", {
+      dragPhase: currentDragPhase,
+      dragSourceType: currentDragSourceType,
+      hoveredZone: currentHoveredZone,
+      hoveredSlotIndex: currentHoveredSlotIndex,
+      validGardenSlots: [...currentValidGardenSlots],
+      hasCallback: !!currentOnDropCallback,
+      sourceAlleyIndex: state.sourceAlleyIndex,
+    });
+
+    // Check if over valid target with current values
+    // For alley drags, only garden is valid; for hand drags, both garden and alley are valid
+    const currentIsOverValidTarget =
+      currentDragSourceType === "alley"
+        ? currentHoveredZone === "garden" &&
+          currentHoveredSlotIndex !== null &&
+          currentValidGardenSlots.has(currentHoveredSlotIndex)
+        : (currentHoveredZone === "garden" &&
+            currentHoveredSlotIndex !== null &&
+            currentValidGardenSlots.has(currentHoveredSlotIndex)) ||
+          (currentHoveredZone === "alley" &&
+            currentHoveredSlotIndex !== null &&
+            currentValidAlleySlots.has(currentHoveredSlotIndex));
+
+    console.log("[DraggedCard] isOverValidTarget:", currentIsOverValidTarget);
+
+    if (currentDragPhase === "pickup") {
+      // Released while in pickup - animate back to original position
+      console.log("[DraggedCard] Released in pickup phase, returning");
       startReturning();
-    } else if (dragPhase === "dragging") {
+    } else if (currentDragPhase === "dragging") {
       // Released while dragging - check if over valid target
-      // Note: actual drop handling is done in Board.tsx via EmptyCardSlot.onDrop
-      // If we reach here without a drop, start returning animation
-      if (hoveredZone !== "garden" && hoveredZone !== "alley") {
-        startReturning();
-      } else if (!isOverValidTarget) {
+      if (currentIsOverValidTarget && currentHoveredSlotIndex !== null && (currentHoveredZone === "garden" || currentHoveredZone === "alley")) {
+        // Over valid target - call the drop callback directly
+        if (currentOnDropCallback) {
+          console.log("[DraggedCard] Calling drop callback for", currentHoveredZone, currentHoveredSlotIndex);
+          currentOnDropCallback(currentHoveredZone, currentHoveredSlotIndex);
+        } else {
+          console.log("[DraggedCard] No drop callback registered!");
+          startReturning();
+        }
+      } else {
+        // Not over valid target - animate back to original position
+        console.log("[DraggedCard] Not over valid target, returning");
         startReturning();
       }
-      // If over valid target, the EmptyCardSlot.onDrop will handle it
     }
-  }, [dragPhase, hoveredZone, isOverValidTarget, startReturning]);
+  }, [startReturning]);
 
   // Set up global event listeners
   useEffect(() => {
@@ -167,10 +268,12 @@ export function DraggedCard() {
       targetPosition[1],
       targetPosition[2]
     );
+    // Use the correct original position based on drag source type
+    const originalPos = dragSourceType === "alley" ? originalAlleyPosition : originalHandPosition;
     const original = new THREE.Vector3(
-      originalHandPosition[0],
-      originalHandPosition[1],
-      originalHandPosition[2]
+      originalPos[0],
+      originalPos[1],
+      originalPos[2]
     );
 
     // Determine target scale based on phase
@@ -232,8 +335,8 @@ export function DraggedCard() {
 
   return (
     <group ref={groupRef}>
-      {/* Card mesh */}
-      <mesh castShadow>
+      {/* Card mesh - raycast disabled to allow pointer events to pass through to slots */}
+      <mesh castShadow raycast={() => {}}>
         <boxGeometry args={[CARD_WIDTH, CARD_DEPTH, CARD_HEIGHT]} />
         {texture ? (
           <>
@@ -257,9 +360,9 @@ export function DraggedCard() {
         )}
       </mesh>
 
-      {/* Valid drop indicator glow */}
+      {/* Valid drop indicator glow - raycast disabled */}
       {isOverValidTarget && (
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, CARD_DEPTH + 0.02, 0]}>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, CARD_DEPTH + 0.02, 0]} raycast={() => {}}>
           <planeGeometry args={[CARD_WIDTH + 0.2, CARD_HEIGHT + 0.2]} />
           <meshBasicMaterial
             color="#44ff44"

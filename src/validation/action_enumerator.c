@@ -308,11 +308,16 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
         continue;
       }
 
-      // Add ACT_SELECT_FROM_SELECTION (add to hand)
-      action.type = ACT_SELECT_FROM_SELECTION;
-      action.subaction_1 = i;
-      action.subaction_2 = 0;
-      add_valid_action(out_mask, &action);
+      // Add ACT_SELECT_FROM_SELECTION (add to hand) if allowed
+      // If ability has special selection modes (alley/equip), only add if
+      // can_select_to_hand is explicitly true. Otherwise, use default behavior.
+      bool has_special_selection = def->can_select_to_alley || def->can_select_to_equip;
+      if (!has_special_selection || def->can_select_to_hand) {
+        action.type = ACT_SELECT_FROM_SELECTION;
+        action.subaction_1 = i;
+        action.subaction_2 = 0;
+        add_valid_action(out_mask, &action);
+      }
 
       // If can_select_to_alley and target is an entity, enumerate alley slots
       if (def->can_select_to_alley && is_card_type(world, target, CARD_TYPE_ENTITY)) {

@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { GameScene } from "@/components/game/GameScene";
 import { LoadingScreen } from "@/components/game/LoadingScreen";
 import { ActionPanel } from "@/components/game/ActionPanel";
+import { DevDebugOverlay } from "@/components/game/DevDebugOverlay";
 import { useAssets } from "@/contexts/AssetContext";
 import { useGameState } from "@/contexts/GameStateContext";
 import { useRoom } from "@/contexts/RoomContext";
@@ -16,12 +18,15 @@ interface DeckApiResponse {
 }
 
 export function InMatchView() {
+  const searchParams = useSearchParams();
   const { loadingState, preloadDeckCards } = useAssets();
   const { gameState, isLoading, setCardMappings, setCardDefIdMap } = useGameState();
   const { roomState } = useRoom();
 
   const [isDeckLoading, setIsDeckLoading] = useState(true);
   const [deckLoadError, setDeckLoadError] = useState<string | null>(null);
+
+  const isDevMode = searchParams.get("dev") === "true";
 
   // Fetch both decks and preload assets when entering match
   useEffect(() => {
@@ -96,6 +101,7 @@ export function InMatchView() {
         <>
           <GameScene />
           <ActionPanel />
+          {isDevMode && <DevDebugOverlay />}
         </>
       )}
     </div>

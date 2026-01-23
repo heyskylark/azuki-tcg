@@ -7,6 +7,7 @@ export const ACTION_PLAY_ENTITY_TO_ALLEY = 2;
 export const ACTION_PLAY_SPELL = 3;
 export const ACTION_PLAY_WEAPON = 4;
 // ... additional play action types
+export const ACTION_GATE_PORTAL = 10;
 
 // Ability action types
 export const ACTION_SELECT_COST_TARGET = 13;
@@ -196,6 +197,110 @@ export function getValidSelectionTargets(
 }
 
 /**
+ * Detailed info about available selection actions for a specific selection index.
+ */
+export interface SelectionActionInfo {
+  selectionIndex: number;
+  canAddToHand: boolean;
+  canSelectToAlley: boolean;
+  alleySlots: number[]; // Valid alley slots if canSelectToAlley
+  canSelectToEquip: boolean;
+  equipTargetSlots: number[]; // Valid entity slots (0-4=garden, 5=leader) if canSelectToEquip
+}
+
+/**
+ * Get detailed action info for all valid selection targets.
+ * Returns structured info about what actions are available for each selection index.
+ */
+export function getSelectionActionInfo(
+  actionMask: SnapshotActionMask | null
+): SelectionActionInfo[] {
+  if (!actionMask) return [];
+
+  // Group actions by selection index
+  const infoMap = new Map<number, SelectionActionInfo>();
+
+  for (let i = 0; i < actionMask.legalPrimary.length; i++) {
+    const actionType = actionMask.legalPrimary[i];
+    const selectionIndex = actionMask.legalSub1[i];
+    const sub2 = actionMask.legalSub2[i];
+
+    // Skip non-selection actions
+    if (
+      actionType !== ACTION_SELECT_FROM_SELECTION &&
+      actionType !== ACTION_SELECT_TO_ALLEY &&
+      actionType !== ACTION_SELECT_TO_EQUIP
+    ) {
+      continue;
+    }
+
+    // Get or create info for this selection index
+    let info = infoMap.get(selectionIndex);
+    if (!info) {
+      info = {
+        selectionIndex,
+        canAddToHand: false,
+        canSelectToAlley: false,
+        alleySlots: [],
+        canSelectToEquip: false,
+        equipTargetSlots: [],
+      };
+      infoMap.set(selectionIndex, info);
+    }
+
+    // Populate based on action type
+    if (actionType === ACTION_SELECT_FROM_SELECTION) {
+      info.canAddToHand = true;
+    } else if (actionType === ACTION_SELECT_TO_ALLEY) {
+      info.canSelectToAlley = true;
+      if (!info.alleySlots.includes(sub2)) {
+        info.alleySlots.push(sub2);
+      }
+    } else if (actionType === ACTION_SELECT_TO_EQUIP) {
+      info.canSelectToEquip = true;
+      if (!info.equipTargetSlots.includes(sub2)) {
+        info.equipTargetSlots.push(sub2);
+      }
+    }
+  }
+
+  return Array.from(infoMap.values());
+}
+
+/**
+ * Get action info for a specific selection index.
+ */
+export function getSelectionActionInfoByIndex(
+  actionMask: SnapshotActionMask | null,
+  selectionIndex: number
+): SelectionActionInfo | null {
+  const allInfo = getSelectionActionInfo(actionMask);
+  return allInfo.find((info) => info.selectionIndex === selectionIndex) ?? null;
+}
+
+/**
+ * Check if a specific equip action is valid (weapon at selectionIndex to entity at entitySlot).
+ */
+export function isValidEquipAction(
+  actionMask: SnapshotActionMask | null,
+  selectionIndex: number,
+  entitySlot: number
+): boolean {
+  if (!actionMask) return false;
+
+  for (let i = 0; i < actionMask.legalPrimary.length; i++) {
+    if (
+      actionMask.legalPrimary[i] === ACTION_SELECT_TO_EQUIP &&
+      actionMask.legalSub1[i] === selectionIndex &&
+      actionMask.legalSub2[i] === entitySlot
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
  * Get valid bottom deck card indices from the action mask.
  */
 export function getValidBottomDeckTargets(
@@ -269,20 +374,26 @@ export function buildSelectionPickAction(
 
 /**
  * Build a SELECT_TO_ALLEY action tuple.
+ * @param selectionIndex - The index in the selection zone
+ * @param alleySlot - The target alley slot (0-4)
  */
 export function buildSelectToAlleyAction(
-  selectionIndex: number
+  selectionIndex: number,
+  alleySlot: number
 ): [number, number, number, number] {
-  return [ACTION_SELECT_TO_ALLEY, selectionIndex, 0, 0];
+  return [ACTION_SELECT_TO_ALLEY, selectionIndex, alleySlot, 0];
 }
 
 /**
  * Build a SELECT_TO_EQUIP action tuple.
+ * @param selectionIndex - The index in the selection zone
+ * @param entitySlot - The target entity slot (0-4 = garden slots, 5 = leader)
  */
 export function buildSelectToEquipAction(
-  selectionIndex: number
+  selectionIndex: number,
+  entitySlot: number
 ): [number, number, number, number] {
-  return [ACTION_SELECT_TO_EQUIP, selectionIndex, 0, 0];
+  return [ACTION_SELECT_TO_EQUIP, selectionIndex, entitySlot, 0];
 }
 
 /**
@@ -299,4 +410,106 @@ export function buildBottomDeckCardAction(
  */
 export function buildBottomDeckAllAction(): [number, number, number, number] {
   return [ACTION_BOTTOM_DECK_ALL, 0, 0, 0];
+}
+
+// ============================================
+// Gate Portal Action Helpers
+// ============================================
+
+/**
+ * Check if any gate portal actions are available in the action mask.
+ */
+export function hasGatePortalActions(
+  actionMask: SnapshotActionMask | null
+): boolean {
+  if (!actionMask) return false;
+  return actionMask.legalPrimary.some(
+    (action) => action === ACTION_GATE_PORTAL
+  );
+}
+
+/**
+ * Get valid alley indices that can be gated (source cards that can move to garden).
+ * Returns a Set of alley slot indices.
+ */
+export function getValidGateSourceAlleySlots(
+  actionMask: SnapshotActionMask | null
+): Set<number> {
+  const alleySlots = new Set<number>();
+
+  if (!actionMask) return alleySlots;
+
+  const { legalPrimary, legalSub1 } = actionMask;
+
+  for (let i = 0; i < legalPrimary.length; i++) {
+    if (legalPrimary[i] === ACTION_GATE_PORTAL) {
+      // legalSub1 is the alley index (source)
+      alleySlots.add(legalSub1[i]);
+    }
+  }
+
+  return alleySlots;
+}
+
+/**
+ * Get valid garden indices for a specific alley card to gate into.
+ * Returns a Set of garden slot indices.
+ */
+export function getValidGateTargetGardenSlots(
+  actionMask: SnapshotActionMask | null,
+  alleyIndex: number
+): Set<number> {
+  const gardenSlots = new Set<number>();
+
+  if (!actionMask) return gardenSlots;
+
+  const { legalPrimary, legalSub1, legalSub2 } = actionMask;
+
+  for (let i = 0; i < legalPrimary.length; i++) {
+    if (
+      legalPrimary[i] === ACTION_GATE_PORTAL &&
+      legalSub1[i] === alleyIndex
+    ) {
+      // legalSub2 is the garden index (target)
+      gardenSlots.add(legalSub2[i]);
+    }
+  }
+
+  return gardenSlots;
+}
+
+/**
+ * Find the valid gate action tuple for a specific alley to garden move.
+ * Returns [ACTION_GATE_PORTAL, alleyIndex, gardenIndex, 0] or null if invalid.
+ */
+export function findValidGateAction(
+  actionMask: SnapshotActionMask | null,
+  alleyIndex: number,
+  gardenIndex: number
+): [number, number, number, number] | null {
+  if (!actionMask) return null;
+
+  const { legalPrimary, legalSub1, legalSub2, legalSub3 } = actionMask;
+
+  for (let i = 0; i < legalPrimary.length; i++) {
+    if (
+      legalPrimary[i] === ACTION_GATE_PORTAL &&
+      legalSub1[i] === alleyIndex &&
+      legalSub2[i] === gardenIndex
+    ) {
+      return [ACTION_GATE_PORTAL, alleyIndex, gardenIndex, legalSub3[i]];
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Build a GATE_PORTAL action tuple.
+ */
+export function buildGatePortalAction(
+  alleyIndex: number,
+  gardenIndex: number
+): [number, number, number, number] {
+  return [ACTION_GATE_PORTAL, alleyIndex, gardenIndex, 0];
 }

@@ -58,7 +58,7 @@ function applyLog(
     case "CARD_STAT_CHANGE":
       return applyStatChange(state, log.data, playerSlot);
 
-    case "CARD_TAP_STATE_CHANGED":
+    case "TAP_CHANGED":
       return applyTapStateChange(state, log.data, playerSlot);
 
     case "STATUS_EFFECT_APPLIED":
@@ -135,7 +135,7 @@ function removeFromZone(
       if (isMyCard) {
         // Remove from my hand array
         const newHand = state.myHand.filter((_, i) => i !== index);
-        if (newHand.length !== state.myHand.length) {
+        if (newHand.length === state.myHand.length) {
           console.error(`Warning: Attempted to remove card from my hand at invalid index ${index}`);
         }
 
@@ -517,6 +517,8 @@ function applyTapStateChange(
   data: CardTapChangeData,
   playerSlot: 0 | 1
 ): GameState {
+  console.log("Applying tap state change:", data);
+
   const isMyCard = data.card.player === playerSlot;
   const board = isMyCard ? state.myBoard : state.opponentBoard;
 
@@ -540,47 +542,56 @@ function applyTapStateChange(
         return { ...state, opponentBoard: { ...state.opponentBoard, gate: newGate } };
       }
 
-    case "GARDEN":
+    case "GARDEN": {
       const gardenCard = board.garden[data.card.zoneIndex];
-      if (gardenCard) {
-        const newCard = { ...gardenCard, tapped, cooldown };
-        const garden = [...board.garden];
-        garden[data.card.zoneIndex] = newCard;
-        if (isMyCard) {
-          return { ...state, myBoard: { ...state.myBoard, garden } };
-        } else {
-          return { ...state, opponentBoard: { ...state.opponentBoard, garden } };
-        }
+      if (gardenCard == null) {
+        console.error(`Warning: Could not find card in ${isMyCard ? "my" : "opponent"} garden at index ${data.card.zoneIndex} to update tap state`);
+        break;
       }
-      break;
 
-    case "ALLEY":
+      const newCard = { ...gardenCard, tapped, cooldown };
+      const garden = [...board.garden];
+      garden[data.card.zoneIndex] = newCard;
+      if (isMyCard) {
+        return { ...state, myBoard: { ...state.myBoard, garden } };
+      } else {
+        return { ...state, opponentBoard: { ...state.opponentBoard, garden } };
+      }
+    }
+
+    case "ALLEY": {
       const alleyCard = board.alley[data.card.zoneIndex];
-      if (alleyCard) {
-        const newCard = { ...alleyCard, tapped, cooldown };
-        const alley = [...board.alley];
-        alley[data.card.zoneIndex] = newCard;
-        if (isMyCard) {
-          return { ...state, myBoard: { ...state.myBoard, alley } };
-        } else {
-          return { ...state, opponentBoard: { ...state.opponentBoard, alley } };
-        }
+      if (alleyCard == null) {
+        console.error(`Warning: Could not find card in ${isMyCard ? "my" : "opponent"} alley at index ${data.card.zoneIndex} to update tap state`);
+        break;
       }
-      break;
 
-    case "IKZ_AREA":
-      const ikzCard = board.ikzArea[data.card.zoneIndex];
-      if (ikzCard) {
-        const newIkz = { ...ikzCard, tapped, cooldown };
-        const ikzArea = [...board.ikzArea];
-        ikzArea[data.card.zoneIndex] = newIkz;
-        if (isMyCard) {
-          return { ...state, myBoard: { ...state.myBoard, ikzArea } };
-        } else {
-          return { ...state, opponentBoard: { ...state.opponentBoard, ikzArea } };
-        }
+      const newCard = { ...alleyCard, tapped, cooldown };
+      const alley = [...board.alley];
+      alley[data.card.zoneIndex] = newCard;
+      if (isMyCard) {
+        return { ...state, myBoard: { ...state.myBoard, alley } };
+      } else {
+        return { ...state, opponentBoard: { ...state.opponentBoard, alley } };
       }
-      break;
+    }
+
+    case "IKZ_AREA": {
+      const ikzCard = board.ikzArea[data.card.zoneIndex];
+      if (ikzCard == null) {
+        console.error(`Warning: Could not find IKZ in ${isMyCard ? "my" : "opponent"} IKZ area at index ${data.card.zoneIndex} to update tap state`);
+        break;
+      }
+
+      const newIkz = { ...ikzCard, tapped, cooldown };
+      const ikzArea = [...board.ikzArea];
+      ikzArea[data.card.zoneIndex] = newIkz;
+      if (isMyCard) {
+        return { ...state, myBoard: { ...state.myBoard, ikzArea } };
+      } else {
+        return { ...state, opponentBoard: { ...state.opponentBoard, ikzArea } };
+      }
+    }
   }
 
   return state;

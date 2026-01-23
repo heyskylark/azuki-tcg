@@ -154,7 +154,7 @@ export interface GameEndedData {
 export type ProcessedGameLog =
   | { type: "ZONE_MOVED"; data: CardZoneMovedData }
   | { type: "CARD_STAT_CHANGE"; data: CardStatChangeData }
-  | { type: "CARD_TAP_STATE_CHANGED"; data: CardTapChangeData }
+  | { type: "TAP_CHANGED"; data: CardTapChangeData }
   | { type: "STATUS_EFFECT_APPLIED"; data: StatusAppliedData }
   | { type: "STATUS_EFFECT_EXPIRED"; data: StatusExpiredData }
   | { type: "COMBAT_DECLARED"; data: CombatDeclaredData }

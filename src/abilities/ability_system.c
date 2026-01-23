@@ -484,6 +484,14 @@ bool azk_process_selection_pick(ecs_world_t *world, int selection_index) {
     return false;
   }
 
+  // Safety check: verify ability allows adding to hand
+  // If ability has special selection modes but can_select_to_hand is false, reject
+  bool has_special_selection = def->can_select_to_alley || def->can_select_to_equip;
+  if (has_special_selection && !def->can_select_to_hand) {
+    cli_render_logf("[Ability] Selection pick not allowed - must use equip or alley action");
+    return false;
+  }
+
   // Validate the selection target if validation function exists
   if (def->validate_selection_target &&
       !def->validate_selection_target(world, ctx->source_card, ctx->owner,
@@ -781,6 +789,10 @@ bool azk_process_selection_to_equip(ecs_world_t *world, int selection_index,
     new_atk = 0;
   ecs_set(world, target_entity, CurStats,
           {.cur_atk = (int8_t)new_atk, .cur_hp = target_stats->cur_hp});
+
+  // Log the stat change from weapon equip
+  azk_log_card_stat_change(world, target_entity, weapon_stats->cur_atk, 0,
+                           (int8_t)new_atk, target_stats->cur_hp);
 
   cli_render_logf("[Ability] Equipped weapon (+%d attack) to entity at slot %d",
                   weapon_stats->cur_atk, entity_index);

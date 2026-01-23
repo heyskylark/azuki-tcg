@@ -14,6 +14,7 @@ typedef struct {
   bool is_once_per_turn;    // If true, ability can only be used once per turn
   bool can_select_to_alley; // If true, entity cards can be selected to alley
   bool can_select_to_equip; // If true, weapon cards can be selected to equip
+  bool can_select_to_hand;  // If true, cards can be selected to add to hand (default true)
   int8_t ikz_cost;         // IKZ cost for activating ability (0 = no cost)
   AbilityCostRequirements cost_req;
   AbilityEffectRequirements effect_req;
