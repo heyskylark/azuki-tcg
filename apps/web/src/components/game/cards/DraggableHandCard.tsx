@@ -7,7 +7,12 @@ import * as THREE from "three";
 import { Card3D, CARD_WIDTH } from "@/components/game/cards/Card3D";
 import { useDragStore } from "@/stores/dragStore";
 import { useGameState } from "@/contexts/GameStateContext";
-import { getValidSlotsForHandCard, canPlayCard } from "@/lib/game/actionValidation";
+import {
+  getValidSlotsForHandCard,
+  canPlayCard,
+  getValidWeaponAttachTargets,
+  canAttachWeapon,
+} from "@/lib/game/actionValidation";
 import type { SnapshotActionMask } from "@tcg/backend-core/types/ws";
 import type { ResolvedHandCard } from "@/types/game";
 
@@ -40,6 +45,7 @@ export function DraggableHandCard({
   const dragPhase = useDragStore((state) => state.dragPhase);
   const draggedCardIndex = useDragStore((state) => state.draggedCardIndex);
   const startPickup = useDragStore((state) => state.startPickup);
+  const startWeaponPickup = useDragStore((state) => state.startWeaponPickup);
   const startDragging = useDragStore((state) => state.startDragging);
   const updateTargetPosition = useDragStore((state) => state.updateTargetPosition);
   const startReturning = useDragStore((state) => state.startReturning);
@@ -53,6 +59,13 @@ export function DraggableHandCard({
 
   // Check if this card can be played (also disabled during ability phases)
   const isPlayable = !isInAbilityPhase && canPlayCard(actionMask, handIndex);
+
+  // Check if this card is a weapon that can be attached
+  const isWeapon = card.type === "WEAPON";
+  const canAttach = !isInAbilityPhase && canAttachWeapon(actionMask, handIndex);
+
+  // Card is draggable if it can be played OR if it's a weapon that can be attached
+  const isDraggable = isPlayable || canAttach;
 
   // Check if this specific card is being dragged
   const isBeingDragged = draggedCardIndex === handIndex && dragPhase !== "idle";
@@ -83,7 +96,7 @@ export function DraggableHandCard({
 
   const handlePointerDown = useCallback(
     (e: ThreeEvent<PointerEvent>) => {
-      if (!isPlayable || dragPhase !== "idle") return;
+      if (!isDraggable || dragPhase !== "idle") return;
 
       e.stopPropagation();
 
@@ -97,20 +110,29 @@ export function DraggableHandCard({
           worldPos.z,
         ];
 
-        // Get valid slots for this card
-        const { gardenSlots, alleySlots } = getValidSlotsForHandCard(
-          actionMask,
-          handIndex
-        );
-
-        // Start pickup phase
-        startPickup(
-          handIndex,
-          card.cardCode,
-          handPosition,
-          gardenSlots,
-          alleySlots
-        );
+        if (canAttach) {
+          // Weapon attachment drag
+          const weaponTargets = getValidWeaponAttachTargets(actionMask, handIndex);
+          startWeaponPickup(
+            handIndex,
+            card.cardCode,
+            handPosition,
+            weaponTargets
+          );
+        } else {
+          // Normal entity/spell play drag
+          const { gardenSlots, alleySlots } = getValidSlotsForHandCard(
+            actionMask,
+            handIndex
+          );
+          startPickup(
+            handIndex,
+            card.cardCode,
+            handPosition,
+            gardenSlots,
+            alleySlots
+          );
+        }
 
         // Set initial target position based on pointer
         if (e.clientX !== undefined) {
@@ -124,12 +146,14 @@ export function DraggableHandCard({
       }
     },
     [
-      isPlayable,
+      isDraggable,
+      canAttach,
       dragPhase,
       actionMask,
       handIndex,
       card.cardCode,
       startPickup,
+      startWeaponPickup,
       updateTargetPosition,
       projectToXZPlane,
     ]
@@ -205,13 +229,13 @@ export function DraggableHandCard({
         <group position={[CARD_WIDTH * 0.35, 0.1, -0.8]}>
           <mesh rotation={[-Math.PI / 2, 0, 0]}>
             <circleGeometry args={[0.15, 16]} />
-            <meshBasicMaterial color={isPlayable ? "#4a4a8e" : "#2a2a4e"} />
+            <meshBasicMaterial color={isDraggable ? "#4a4a8e" : "#2a2a4e"} />
           </mesh>
           <Text
             position={[0, 0.02, 0]}
             rotation={[-Math.PI / 2, 0, 0]}
             fontSize={0.15}
-            color={isPlayable ? "#88ff88" : "#666666"}
+            color={isDraggable ? (canAttach ? "#ffaa44" : "#88ff88") : "#666666"}
             anchorX="center"
             anchorY="middle"
             fontWeight="bold"
@@ -220,14 +244,27 @@ export function DraggableHandCard({
           </Text>
         </group>
 
-        {/* Playable indicator glow */}
-        {isPlayable && (
+        {/* Playable indicator glow - green for entities/spells */}
+        {isPlayable && !canAttach && (
           <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.06, 0]}>
             <planeGeometry args={[CARD_WIDTH + 0.1, 2.1]} />
             <meshBasicMaterial
               color="#44aa44"
               transparent
               opacity={0.15}
+              side={THREE.DoubleSide}
+            />
+          </mesh>
+        )}
+
+        {/* Weapon attachment indicator glow - orange for weapons */}
+        {canAttach && (
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.06, 0]}>
+            <planeGeometry args={[CARD_WIDTH + 0.1, 2.1]} />
+            <meshBasicMaterial
+              color="#cc8822"
+              transparent
+              opacity={0.2}
               side={THREE.DoubleSide}
             />
           </mesh>

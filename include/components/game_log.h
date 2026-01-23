@@ -47,6 +47,7 @@ typedef enum {
   GLOG_ZONE_IKZ_AREA,
   GLOG_ZONE_DISCARD,
   GLOG_ZONE_SELECTION,
+  GLOG_ZONE_EQUIPPED, // Weapon attached to an entity
 } GameLogZone;
 
 /**

@@ -55,7 +55,7 @@ function applyLog(
     case "ZONE_MOVED":
       return applyZoneMoved(state, log.data, playerSlot, cardMappings, cardDefIdMap);
 
-    case "CARD_STAT_CHANGE":
+    case "STAT_CHANGE":
       return applyStatChange(state, log.data, playerSlot);
 
     case "TAP_CHANGED":
@@ -290,6 +290,11 @@ function removeFromZone(
       }
       break;
 
+    case "EQUIPPED":
+      // No-op: equipped weapons aren't tracked separately in client state
+      // They're attached to entities and tracked via metadata
+      break;
+
     // LEADER, GATE, SELECTION - no removal needed for these zones
     default:
       break;
@@ -440,6 +445,11 @@ function addToZone(
           discardCount: state.opponentBoard.discardCount + 1,
         };
       }
+      break;
+
+    case "EQUIPPED":
+      // No-op: equipped weapons aren't tracked separately in client state
+      // The entity's attached_weapons metadata will reflect this
       break;
 
     // LEADER, GATE, SELECTION - handled specially or not needed

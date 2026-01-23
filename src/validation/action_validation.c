@@ -436,7 +436,8 @@ bool azk_validate_attach_weapon_action(
       .target_card = target_card,
       .target_is_leader = target_is_leader,
       .use_ikz_token = use_ikz_token,
-      .ikz_card_count = ikz_card_count
+      .ikz_card_count = ikz_card_count,
+      .hand_index = (int8_t)hand_index
     };
     memcpy(intent.ikz_cards, ikz_cards, sizeof(ecs_entity_t) * ikz_card_count);
     *out_intent = intent;

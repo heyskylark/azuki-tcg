@@ -29,6 +29,9 @@ interface Card3DProps {
   // Ability targeting props
   isAbilityTarget?: boolean;
   onAbilityTargetClick?: () => void;
+  // Weapon attachment targeting props
+  isWeaponTarget?: boolean;
+  onWeaponTargetClick?: () => void;
 }
 
 /**
@@ -50,6 +53,8 @@ export function Card3D({
   children,
   isAbilityTarget = false,
   onAbilityTargetClick,
+  isWeaponTarget = false,
+  onWeaponTargetClick,
 }: Card3DProps) {
   const groupRef = useRef<THREE.Group>(null!);
   const [hovered, setHover] = useState(false);
@@ -98,8 +103,11 @@ export function Card3D({
         <mesh
           onClick={(e) => {
             e.stopPropagation();
-            // If this is an ability target and we have a target click handler, use it
-            if (isAbilityTarget && onAbilityTargetClick) {
+            // If this is a weapon target and we have a target click handler, use it
+            if (isWeaponTarget && onWeaponTargetClick) {
+              onWeaponTargetClick();
+            } else if (isAbilityTarget && onAbilityTargetClick) {
+              // If this is an ability target and we have a target click handler, use it
               onAbilityTargetClick();
             } else {
               onClick?.();
@@ -108,11 +116,18 @@ export function Card3D({
           onPointerOver={(e) => {
             e.stopPropagation();
             setHover(true);
-            document.body.style.cursor = isAbilityTarget ? "crosshair" : "pointer";
+            document.body.style.cursor = isWeaponTarget || isAbilityTarget ? "crosshair" : "pointer";
           }}
           onPointerOut={() => {
             setHover(false);
             document.body.style.cursor = "default";
+          }}
+          onPointerUp={(e) => {
+            // Handle weapon attachment via drop (pointer up while hovering)
+            if (isWeaponTarget && onWeaponTargetClick) {
+              e.stopPropagation();
+              onWeaponTargetClick();
+            }
           }}
           castShadow
           receiveShadow
@@ -152,6 +167,9 @@ export function Card3D({
 
         {/* Ability target highlight */}
         {isAbilityTarget && <AbilityTargetOverlay />}
+
+        {/* Weapon target highlight */}
+        {isWeaponTarget && <WeaponTargetOverlay />}
 
         {/* Stats display */}
         {showStats && attack !== null && attack !== undefined && health !== null && health !== undefined && (
@@ -260,6 +278,37 @@ function AbilityTargetOverlay() {
         color="#ffaa00"
         transparent
         opacity={0.35}
+        side={THREE.DoubleSide}
+      />
+    </mesh>
+  );
+}
+
+/**
+ * Weapon target overlay - pulsing orange highlight for valid weapon attachment targets.
+ */
+function WeaponTargetOverlay() {
+  const meshRef = useRef<THREE.Mesh>(null!);
+
+  useFrame((state) => {
+    if (meshRef.current) {
+      // Pulsing effect for weapon targets
+      const pulse = Math.sin(state.clock.elapsedTime * 5) * 0.15 + 0.4;
+      (meshRef.current.material as THREE.MeshBasicMaterial).opacity = pulse;
+    }
+  });
+
+  return (
+    <mesh
+      ref={meshRef}
+      rotation={[-Math.PI / 2, 0, 0]}
+      position={[0, CARD_DEPTH + 0.03, 0]}
+    >
+      <planeGeometry args={[CARD_WIDTH + 0.2, CARD_HEIGHT + 0.2]} />
+      <meshBasicMaterial
+        color="#ff6600"
+        transparent
+        opacity={0.4}
         side={THREE.DoubleSide}
       />
     </mesh>

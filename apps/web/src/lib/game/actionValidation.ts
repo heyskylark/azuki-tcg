@@ -7,6 +7,7 @@ export const ACTION_PLAY_ENTITY_TO_ALLEY = 2;
 export const ACTION_PLAY_SPELL = 3;
 export const ACTION_PLAY_WEAPON = 4;
 // ... additional play action types
+export const ACTION_ATTACH_WEAPON_FROM_HAND = 7;
 export const ACTION_GATE_PORTAL = 10;
 
 // Ability action types
@@ -113,6 +114,99 @@ export function isValidDropTarget(
   targetSlot: number
 ): boolean {
   return findValidAction(actionMask, handIndex, targetZone, targetSlot) !== null;
+}
+
+// ============================================
+// Weapon Attachment Action Helpers
+// ============================================
+
+/**
+ * Get valid entity slots (0-4 = garden slots, 5 = leader) for attaching a weapon from hand.
+ * Returns a Set of entity slot indices.
+ */
+export function getValidWeaponAttachTargets(
+  actionMask: SnapshotActionMask | null,
+  handIndex: number
+): Set<number> {
+  const targets = new Set<number>();
+
+  if (!actionMask) return targets;
+
+  const { legalPrimary, legalSub1, legalSub2 } = actionMask;
+
+  for (let i = 0; i < legalPrimary.length; i++) {
+    if (
+      legalPrimary[i] === ACTION_ATTACH_WEAPON_FROM_HAND &&
+      legalSub1[i] === handIndex
+    ) {
+      targets.add(legalSub2[i]);
+    }
+  }
+
+  return targets;
+}
+
+/**
+ * Check if a hand card has any valid weapon attachment actions.
+ */
+export function canAttachWeapon(
+  actionMask: SnapshotActionMask | null,
+  handIndex: number
+): boolean {
+  return getValidWeaponAttachTargets(actionMask, handIndex).size > 0;
+}
+
+/**
+ * Check if any weapon attachment actions are available in the action mask.
+ */
+export function hasWeaponAttachActions(
+  actionMask: SnapshotActionMask | null
+): boolean {
+  if (!actionMask) return false;
+  return actionMask.legalPrimary.some(
+    (action) => action === ACTION_ATTACH_WEAPON_FROM_HAND
+  );
+}
+
+/**
+ * Find the valid weapon attachment action tuple for a specific drop.
+ * Returns [ACTION_ATTACH_WEAPON_FROM_HAND, handIndex, entitySlot, ikzTokenFlag] or null.
+ * entitySlot: 0-4 = garden slots, 5 = leader
+ */
+export function findValidWeaponAttachAction(
+  actionMask: SnapshotActionMask | null,
+  handIndex: number,
+  entitySlot: number
+): [number, number, number, number] | null {
+  if (!actionMask) return null;
+
+  const { legalPrimary, legalSub1, legalSub2, legalSub3 } = actionMask;
+
+  for (let i = 0; i < legalPrimary.length; i++) {
+    if (
+      legalPrimary[i] === ACTION_ATTACH_WEAPON_FROM_HAND &&
+      legalSub1[i] === handIndex &&
+      legalSub2[i] === entitySlot
+    ) {
+      return [ACTION_ATTACH_WEAPON_FROM_HAND, handIndex, entitySlot, legalSub3[i]];
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Build a weapon attachment action tuple.
+ * @param handIndex - The hand index of the weapon
+ * @param entitySlot - The target entity slot (0-4 = garden slots, 5 = leader)
+ * @param ikzTokenFlag - 0 for normal IKZ cost, 1 to use extra IKZ token
+ */
+export function buildWeaponAttachAction(
+  handIndex: number,
+  entitySlot: number,
+  ikzTokenFlag: number = 0
+): [number, number, number, number] {
+  return [ACTION_ATTACH_WEAPON_FROM_HAND, handIndex, entitySlot, ikzTokenFlag];
 }
 
 // ============================================

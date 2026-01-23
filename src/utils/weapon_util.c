@@ -2,6 +2,7 @@
 #include "generated/card_defs.h"
 #include "utils/card_utils.h"
 #include "utils/cli_rendering_util.h"
+#include "utils/game_log_util.h"
 #include "utils/status_util.h"
 
 int attach_weapon_from_hand(ecs_world_t *world,
@@ -21,6 +22,11 @@ int attach_weapon_from_hand(ecs_world_t *world,
   ecs_assert(entity_cur_stats != NULL, ECS_INVALID_PARAMETER,
              "CurStats component not found for card %llu",
              (unsigned long long)intent->target_card);
+
+  // Log zone movement from hand to equipped (before reparenting changes parent)
+  azk_log_card_zone_moved(world, intent->weapon_card,
+                          GLOG_ZONE_HAND, intent->hand_index,
+                          GLOG_ZONE_EQUIPPED, -1);
 
   // Attach weapon as child (observers will fire here, queuing passive buffs)
   // Note: ChildOf relationship is deferred, so weapon won't be visible as child

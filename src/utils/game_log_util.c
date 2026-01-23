@@ -524,6 +524,8 @@ const char *azk_log_zone_to_string(GameLogZone zone) {
     return "DISCARD";
   case GLOG_ZONE_SELECTION:
     return "SELECTION";
+  case GLOG_ZONE_EQUIPPED:
+    return "EQUIPPED";
   default:
     return "UNKNOWN";
   }

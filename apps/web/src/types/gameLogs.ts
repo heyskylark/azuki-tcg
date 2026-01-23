@@ -17,7 +17,8 @@ export type ZoneType =
   | "IKZ_PILE"
   | "IKZ_AREA"
   | "DISCARD"
-  | "SELECTION";
+  | "SELECTION"
+  | "EQUIPPED";
 
 export type TapStateValue = "TAPPED" | "UNTAPPED" | "COOLDOWN";
 
@@ -153,7 +154,7 @@ export interface GameEndedData {
 
 export type ProcessedGameLog =
   | { type: "ZONE_MOVED"; data: CardZoneMovedData }
-  | { type: "CARD_STAT_CHANGE"; data: CardStatChangeData }
+  | { type: "STAT_CHANGE"; data: CardStatChangeData }
   | { type: "TAP_CHANGED"; data: CardTapChangeData }
   | { type: "STATUS_EFFECT_APPLIED"; data: StatusAppliedData }
   | { type: "STATUS_EFFECT_EXPIRED"; data: StatusExpiredData }

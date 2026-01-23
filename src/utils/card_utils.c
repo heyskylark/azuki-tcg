@@ -34,6 +34,11 @@ void discard_card(ecs_world_t *world, ecs_entity_t card) {
   int8_t from_index =
       azk_get_card_index_in_zone(world, card, from_zone_entity);
 
+  // If this is a weapon and parent isn't a zone, it was equipped to an entity
+  if (from_zone == GLOG_ZONE_NONE && ecs_has_id(world, card, TWeapon)) {
+    from_zone = GLOG_ZONE_EQUIPPED;
+  }
+
   ecs_remove_id(world, card, ecs_id(ZoneIndex));
   ecs_set(world, card, TapState, {.tapped = false, .cooldown = false});
   // Reset current stats to base stats (consistent with return_card_to_hand)

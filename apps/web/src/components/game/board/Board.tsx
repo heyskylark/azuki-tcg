@@ -12,6 +12,7 @@ import { useDragStore } from "@/stores/dragStore";
 import {
   findValidAction,
   findValidGateAction,
+  findValidWeaponAttachAction,
   getValidEffectTargets,
   getValidGateSourceAlleySlots,
   buildEffectTargetAction,
@@ -65,6 +66,7 @@ function BoardSurface() {
  * Render a row of garden/alley slots with cards or empty slots.
  * Supports drag-and-drop for empty slots when not opponent's row.
  * Supports ability target highlighting during EFFECT_SELECTION phase.
+ * Supports weapon attachment targeting on entities.
  * For player's alley, renders DraggableAlleyCard for cards that can be gated.
  */
 function CardRow({
@@ -74,6 +76,7 @@ function CardRow({
   isOpponent = false,
   actionMask,
   onDropToSlot,
+  onWeaponAttachToSlot,
   validEffectTargets,
   onEffectTargetClick,
   targetIndexOffset,
@@ -84,6 +87,7 @@ function CardRow({
   isOpponent?: boolean;
   actionMask?: SnapshotActionMask | null;
   onDropToSlot?: (zone: "garden" | "alley", slotIndex: number) => void;
+  onWeaponAttachToSlot?: (zone: "garden" | "alley" | "leader", slotIndex: number) => void;
   validEffectTargets?: Set<number>;
   onEffectTargetClick?: (targetIndex: number) => void;
   targetIndexOffset?: number;
@@ -93,9 +97,12 @@ function CardRow({
   // Get valid drop slots from drag store
   const validGardenSlots = useDragStore((state) => state.validGardenSlots);
   const validAlleySlots = useDragStore((state) => state.validAlleySlots);
+  const validWeaponAttachTargets = useDragStore((state) => state.validWeaponAttachTargets);
   const dragPhase = useDragStore((state) => state.dragPhase);
+  const dragSourceType = useDragStore((state) => state.dragSourceType);
 
   const isDragging = dragPhase === "pickup" || dragPhase === "dragging";
+  const isWeaponDrag = isDragging && dragSourceType === "weapon";
   const validSlots = zone === "garden" ? validGardenSlots : validAlleySlots;
 
   // For player's alley, compute which cards can be gated
@@ -128,6 +135,14 @@ function CardRow({
             );
           }
 
+          // Check if this entity is a valid weapon attachment target
+          // Weapon targets: 0-4 for garden slots (only player's garden, not alley)
+          const isWeaponAttachTarget =
+            !isOpponent &&
+            zone === "garden" &&
+            isWeaponDrag &&
+            validWeaponAttachTargets.has(index);
+
           return (
             <Card3D
               key={`card-${index}-${card.cardCode}`}
@@ -143,9 +158,15 @@ function CardRow({
               isShocked={card.isShocked}
               showStats={true}
               isAbilityTarget={isAbilityTarget}
+              isWeaponTarget={isWeaponAttachTarget}
               onAbilityTargetClick={
                 isAbilityTarget && onEffectTargetClick
                   ? () => onEffectTargetClick(targetIndex)
+                  : undefined
+              }
+              onWeaponTargetClick={
+                isWeaponAttachTarget && onWeaponAttachToSlot
+                  ? () => onWeaponAttachToSlot("garden", index)
                   : undefined
               }
             />
@@ -177,13 +198,18 @@ function CardRow({
 
 /**
  * Leader card with health display.
+ * Supports weapon attachment when leader is slot 5 in weapon targets.
  */
 function LeaderCard({
   leader,
   position,
+  isWeaponTarget = false,
+  onWeaponTargetClick,
 }: {
   leader: ResolvedLeader;
   position: [number, number, number];
+  isWeaponTarget?: boolean;
+  onWeaponTargetClick?: () => void;
 }) {
   return (
     <Card3D
@@ -196,6 +222,8 @@ function LeaderCard({
       tapped={leader.tapped}
       cooldown={leader.cooldown}
       showStats={false}
+      isWeaponTarget={isWeaponTarget}
+      onWeaponTargetClick={onWeaponTargetClick}
     >
       {/* Large health display above leader */}
       <LeaderHealthDisplay
@@ -428,20 +456,24 @@ function PlayerArea({
   isOpponent,
   actionMask,
   onDropToSlot,
+  onWeaponAttachToSlot,
   validEffectTargets,
   onEffectTargetClick,
   gardenTargetOffset,
   alleyTargetOffset,
+  isLeaderWeaponTarget,
 }: {
   board: ResolvedPlayerBoard;
   hand?: ResolvedHandCard[];
   isOpponent: boolean;
   actionMask?: SnapshotActionMask | null;
   onDropToSlot?: (zone: "garden" | "alley", slotIndex: number) => void;
+  onWeaponAttachToSlot?: (zone: "garden" | "alley" | "leader", slotIndex: number) => void;
   validEffectTargets?: Set<number>;
   onEffectTargetClick?: (targetIndex: number) => void;
   gardenTargetOffset?: number;
   alleyTargetOffset?: number;
+  isLeaderWeaponTarget?: boolean;
 }) {
   const gardenZ = isOpponent ? OPP_GARDEN_Z : MY_GARDEN_Z;
   const alleyZ = isOpponent ? OPP_ALLEY_Z : MY_ALLEY_Z;
@@ -450,7 +482,16 @@ function PlayerArea({
   return (
     <group>
       {/* Leader - right side, same row as garden */}
-      <LeaderCard leader={board.leader} position={[RIGHT_SIDE_X, 0, gardenZ]} />
+      <LeaderCard
+        leader={board.leader}
+        position={[RIGHT_SIDE_X, 0, gardenZ]}
+        isWeaponTarget={isLeaderWeaponTarget}
+        onWeaponTargetClick={
+          isLeaderWeaponTarget && onWeaponAttachToSlot
+            ? () => onWeaponAttachToSlot("leader", 5)
+            : undefined
+        }
+      />
 
       {/* Gate - right side, same row as alley */}
       <GateCard gate={board.gate} position={[RIGHT_SIDE_X, 0, alleyZ]} />
@@ -463,6 +504,7 @@ function PlayerArea({
         isOpponent={isOpponent}
         actionMask={actionMask}
         onDropToSlot={onDropToSlot}
+        onWeaponAttachToSlot={onWeaponAttachToSlot}
         validEffectTargets={validEffectTargets}
         onEffectTargetClick={onEffectTargetClick}
         targetIndexOffset={gardenTargetOffset}
@@ -476,6 +518,7 @@ function PlayerArea({
         isOpponent={isOpponent}
         actionMask={actionMask}
         onDropToSlot={onDropToSlot}
+        onWeaponAttachToSlot={onWeaponAttachToSlot}
         validEffectTargets={validEffectTargets}
         onEffectTargetClick={onEffectTargetClick}
         targetIndexOffset={alleyTargetOffset}
@@ -539,12 +582,16 @@ export function Board() {
   const draggedCardIndex = useDragStore((state) => state.draggedCardIndex);
   const dragPhase = useDragStore((state) => state.dragPhase);
   const dragSourceType = useDragStore((state) => state.dragSourceType);
+  const validWeaponAttachTargets = useDragStore((state) => state.validWeaponAttachTargets);
   const drop = useDragStore((state) => state.drop);
   const setOnDropCallback = useDragStore((state) => state.setOnDropCallback);
 
   // Handle dropping a hand card on a slot
   const handleDropToSlot = useCallback(
-    (zone: "garden" | "alley", slotIndex: number) => {
+    (zone: "garden" | "alley" | "leader", slotIndex: number) => {
+      // Leader zone not valid for regular entity drops
+      if (zone === "leader") return;
+
       if (draggedCardIndex === null || !gameState?.actionMask) {
         return;
       }
@@ -573,7 +620,7 @@ export function Board() {
 
   // Handle gate drop - moving an alley card to garden
   const handleGateDropToGarden = useCallback(
-    (zone: "garden" | "alley", gardenIndex: number) => {
+    (zone: "garden" | "alley" | "leader", gardenIndex: number) => {
       console.log("[Board] handleGateDropToGarden called:", { zone, gardenIndex });
 
       // Gate action only targets garden
@@ -616,22 +663,79 @@ export function Board() {
     [gameState?.actionMask, send, drop]
   );
 
+  // Handle weapon attachment drop - attaching a weapon from hand to an entity
+  const handleWeaponAttachDrop = useCallback(
+    (zone: "garden" | "alley" | "leader", entitySlot: number) => {
+      console.log("[Board] handleWeaponAttachDrop called:", { zone, entitySlot });
+
+      // Weapon attach targets are: garden (0-4) or leader (5)
+      // Convert zone + slotIndex to entitySlot
+      let targetSlot: number;
+      if (zone === "leader") {
+        targetSlot = 5; // Leader is slot 5
+      } else if (zone === "garden") {
+        targetSlot = entitySlot; // Garden slots 0-4
+      } else {
+        console.log("[Board] Weapon attach ignored - invalid zone:", zone);
+        return;
+      }
+
+      const currentDraggedCardIndex = useDragStore.getState().draggedCardIndex;
+      console.log("[Board] draggedCardIndex:", currentDraggedCardIndex);
+
+      if (currentDraggedCardIndex === null || !gameState?.actionMask) {
+        console.log("[Board] Weapon attach failed - missing draggedCardIndex or actionMask");
+        return;
+      }
+
+      // Find the valid weapon attach action tuple for this drop
+      const action = findValidWeaponAttachAction(
+        gameState.actionMask,
+        currentDraggedCardIndex,
+        targetSlot
+      );
+
+      console.log("[Board] findValidWeaponAttachAction result:", action);
+
+      if (action) {
+        // Send the game action via WebSocket
+        console.log("[Board] Sending GAME_ACTION:", action);
+        send({
+          type: "GAME_ACTION",
+          action,
+        });
+
+        // Complete the drop - clear drag state
+        drop();
+      } else {
+        console.log("[Board] No valid weapon attach action found");
+      }
+    },
+    [gameState?.actionMask, send, drop]
+  );
+
   // Register the appropriate drop callback with the drag store when dragging
   useEffect(() => {
     if (dragPhase === "pickup" || dragPhase === "dragging") {
-      // Use gate handler for alley drags, regular handler for hand drags
-      const callback = dragSourceType === "alley" ? handleGateDropToGarden : handleDropToSlot;
+      // Use appropriate handler based on drag source type
+      let callback: (zone: "garden" | "alley" | "leader", slotIndex: number) => void;
+      if (dragSourceType === "alley") {
+        callback = handleGateDropToGarden;
+      } else if (dragSourceType === "weapon") {
+        callback = handleWeaponAttachDrop;
+      } else {
+        callback = handleDropToSlot;
+      }
       console.log("[Board] Setting drop callback:", {
         dragPhase,
         dragSourceType,
-        isGateHandler: dragSourceType === "alley",
       });
       setOnDropCallback(callback);
     }
     return () => {
       // Don't clear callback here - let drop() or reset() handle it
     };
-  }, [dragPhase, dragSourceType, handleDropToSlot, handleGateDropToGarden, setOnDropCallback]);
+  }, [dragPhase, dragSourceType, handleDropToSlot, handleGateDropToGarden, handleWeaponAttachDrop, setOnDropCallback]);
 
   // Check if we're in effect selection phase and compute valid targets
   const isInEffectSelection = gameState?.abilitySubphase === "EFFECT_SELECTION";
@@ -651,6 +755,11 @@ export function Board() {
     },
     [isInEffectSelection, send]
   );
+
+  // Check if leader is a valid weapon attachment target
+  // Leader is slot 5 in the weapon targets
+  const isDraggingWeapon = (dragPhase === "pickup" || dragPhase === "dragging") && dragSourceType === "weapon";
+  const isLeaderWeaponTarget = isDraggingWeapon && validWeaponAttachTargets.has(5);
 
   if (!gameState) {
     return (
@@ -681,10 +790,12 @@ export function Board() {
         isOpponent={false}
         actionMask={gameState.actionMask}
         onDropToSlot={handleDropToSlot}
+        onWeaponAttachToSlot={handleWeaponAttachDrop}
         validEffectTargets={isInEffectSelection ? validEffectTargets : undefined}
         onEffectTargetClick={isInEffectSelection ? handleEffectTargetClick : undefined}
         gardenTargetOffset={MY_GARDEN_TARGET_OFFSET}
         alleyTargetOffset={MY_ALLEY_TARGET_OFFSET}
+        isLeaderWeaponTarget={isLeaderWeaponTarget}
       />
 
       {/* Opponent area (top) */}

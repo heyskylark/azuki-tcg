@@ -31,6 +31,7 @@ typedef struct {
   bool use_ikz_token;
   ecs_entity_t ikz_cards[AZK_MAX_IKZ_PAYMENT];
   uint8_t ikz_card_count;
+  int8_t hand_index; // Source index in hand for zone logging
 } AttachWeaponIntent;
 
 typedef struct {
