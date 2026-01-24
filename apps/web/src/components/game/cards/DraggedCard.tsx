@@ -128,6 +128,24 @@ export function DraggedCard() {
       const intersection = projectToXZPlane(e.clientX, e.clientY, targetY);
       updateTargetPosition([intersection.x, targetY, intersection.z]);
 
+      // For hand/weapon drags during pickup: check if cursor left hand zone
+      // (DraggableHandCard removes itself from DOM during pickup, so its handler doesn't fire)
+      if (dragPhase === "pickup" && (dragSourceType === "hand" || dragSourceType === "weapon")) {
+        if (intersection.z < HAND_ZONE_Z) {
+          const zone = getZoneFromZ(intersection.z);
+          const slotIndex = (zone === "garden" || zone === "alley")
+            ? getSlotIndexFromX(intersection.x)
+            : null;
+
+          // Update hovered slot BEFORE transitioning to dragging
+          if (slotIndex !== null) {
+            setHoveredSlot(zone, slotIndex);
+          }
+
+          startDragging();
+        }
+      }
+
       // For alley drags during pickup: check if cursor moved into garden zone
       // This handles the transition from pickup to dragging for gate actions
       // (DraggableAlleyCard removes itself from DOM during pickup, so its handler doesn't fire)
@@ -279,9 +297,9 @@ export function DraggedCard() {
     // Determine target scale based on phase
     let targetScale = 1;
     if (dragPhase === "pickup") {
-      targetScale = 1.5;
+      targetScale = 2.25;
     } else if (dragPhase === "dragging") {
-      targetScale = isOverValidTarget ? 1.1 : 1;
+      targetScale = isOverValidTarget ? 1.15 : 1;
     } else if (dragPhase === "returning") {
       targetScale = 1;
     }
