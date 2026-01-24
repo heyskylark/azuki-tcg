@@ -47,9 +47,8 @@ export function CreateRoomForm() {
       const data = await response.json();
       router.push(`/rooms/${data.room.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create room");
-    } finally {
       setIsLoading(false);
+      setError(err instanceof Error ? err.message : "Failed to create room");
     }
   };
 
