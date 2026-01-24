@@ -269,20 +269,19 @@ static void get_selection_from_ability_context(ecs_world_t *world,
                                                const AbilityContext *ctx,
                                                CardObservationData *observation_data,
                                                uint8_t *out_count) {
-  uint8_t count = 0;
   for (int i = 0; i < ctx->selection_count && i < MAX_SELECTION_ZONE_SIZE; i++) {
     ecs_entity_t card = ctx->selection_cards[i];
     if (card != 0) {
       observation_data[i] = get_card_observation(world, card, (uint8_t)i);
       observation_data[i].zone_index = (uint8_t)i;  // Preserve original index
-      count++;
     } else {
       // Empty slot - leave as zero-initialized (id.code will be NULL)
       observation_data[i] = (CardObservationData){0};
       observation_data[i].zone_index = (uint8_t)i;
     }
   }
-  *out_count = count;
+  // Preserve original selection_count so clients can align action indices
+  *out_count = ctx->selection_count;
 }
 
 static bool player_has_ready_ikz_token(ecs_world_t *world,

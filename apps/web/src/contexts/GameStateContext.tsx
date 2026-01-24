@@ -141,6 +141,7 @@ export function GameStateProvider({
           selectionCards?: Array<{
             cardId: string | null;
             cardDefId: number;
+            zoneIndex: number;
             type: string;
             ikzCost: number;
             curAtk: number | null;
@@ -154,6 +155,7 @@ export function GameStateProvider({
           return {
             cardCode,
             cardDefId: card.cardDefId,
+            zoneIndex: card.zoneIndex,
             imageUrl: mapping?.imageUrl ?? "",
             name: mapping?.name ?? cardCode,
             type: card.type,
@@ -347,6 +349,7 @@ function resolveSelectionCard(
   return {
     cardCode,
     cardDefId: card.cardDefId,
+    zoneIndex: card.zoneIndex,
     imageUrl: mapping ? buildImageUrl(mapping.imageKey) : "",
     name: mapping?.name ?? cardCode,
     type: card.type,

@@ -203,14 +203,20 @@ export async function handleGameAction(
             (abilityPhase === "SELECTION_PICK" || abilityPhase === "BOTTOM_DECK")
           ) {
             logBatch.stateContext.selectionCards =
-              observation.myObservationData.selection.map((card) => ({
-                cardId: card.cardCode,
-                cardDefId: card.cardDefId,
-                type: card.type,
-                ikzCost: card.ikzCost,
-                curAtk: card.curAtk,
-                curHp: card.curHp,
-              }));
+              observation.myObservationData.selection.flatMap((card) => {
+                if (!card) {
+                  return [];
+                }
+                return [{
+                  cardId: card.cardCode,
+                  cardDefId: card.cardDefId,
+                  zoneIndex: card.zoneIndex,
+                  type: card.type,
+                  ikzCost: card.ikzCost,
+                  curAtk: card.curAtk,
+                  curHp: card.curHp,
+                }];
+              });
           }
         }
 

@@ -30,7 +30,9 @@ export function SelectionPickUI() {
   const selectionActionInfo = getSelectionActionInfo(actionMask);
   const validTargets = selectionActionInfo.map((info) => info.selectionIndex);
   const canSkip = hasNoopAction(actionMask);
-  const selectionCards = gameState?.selectionCards ?? [];
+  const selectionCards = (gameState?.selectionCards ?? []).filter(
+    (card) => card.cardCode !== "unknown" && card.cardDefId !== 0
+  );
 
   // State for two-step equip selection
   const [selectedWeaponIndex, setSelectedWeaponIndex] = useState<number | null>(null);
@@ -94,7 +96,9 @@ export function SelectionPickUI() {
 
   // If we're in the equip target selection step
   if (selectedWeaponIndex !== null && selectedWeaponInfo) {
-    const selectedCard = selectionCards[selectedWeaponIndex];
+    const selectedCard = selectionCards.find(
+      (card) => (card.zoneIndex ?? -1) === selectedWeaponIndex
+    );
     const garden = gameState?.myBoard?.garden ?? [];
     const leader = gameState?.myBoard?.leader;
 
@@ -226,7 +230,10 @@ export function SelectionPickUI() {
         <div className="flex gap-3 flex-wrap justify-center mb-4">
           {selectionCards.length > 0 ? (
             selectionCards.map((card, index) => {
-              const info = selectionActionInfo.find((i) => i.selectionIndex === index);
+              const selectionIndex = card.zoneIndex ?? index;
+              const info = selectionActionInfo.find(
+                (i) => i.selectionIndex === selectionIndex
+              );
               const isValid = info !== undefined;
 
               // Show badge for equip-only cards
@@ -234,8 +241,8 @@ export function SelectionPickUI() {
 
               return (
                 <button
-                  key={`selection-${index}-${card.cardCode}`}
-                  onClick={() => handleSelectCard(index)}
+                  key={`selection-${selectionIndex}-${card.cardCode}`}
+                  onClick={() => handleSelectCard(selectionIndex)}
                   disabled={!isValid}
                   className={`
                     relative p-2 rounded-md border-2 transition-all

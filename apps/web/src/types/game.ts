@@ -103,6 +103,7 @@ export interface ResolvedHandCard {
 export interface ResolvedSelectionCard {
   cardCode: string;
   cardDefId: number;
+  zoneIndex: number;
   imageUrl: string;
   name: string;
   type: string;

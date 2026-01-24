@@ -22,7 +22,9 @@ export function BottomDeckUI() {
   const actionMask = gameState?.actionMask ?? null;
   const validTargets = getValidBottomDeckTargets(actionMask);
   const canBottomAll = hasBottomDeckAllAction(actionMask);
-  const selectionCards = gameState?.selectionCards ?? [];
+  const selectionCards = (gameState?.selectionCards ?? []).filter(
+    (card) => card.cardCode !== "unknown" && card.cardDefId !== 0
+  );
 
   const handleSelectCard = useCallback(
     (selectionIndex: number) => {
@@ -62,11 +64,12 @@ export function BottomDeckUI() {
         <div className="flex gap-3 flex-wrap justify-center mb-4">
           {selectionCards.length > 0 ? (
             selectionCards.map((card, index) => {
-              const isValid = validTargets.includes(index);
+              const selectionIndex = card.zoneIndex ?? index;
+              const isValid = validTargets.includes(selectionIndex);
               return (
                 <button
-                  key={`bottom-${index}-${card.cardCode}`}
-                  onClick={() => handleSelectCard(index)}
+                  key={`bottom-${selectionIndex}-${card.cardCode}`}
+                  onClick={() => handleSelectCard(selectionIndex)}
                   disabled={!isValid}
                   className={`
                     relative p-2 rounded-md border-2 transition-all

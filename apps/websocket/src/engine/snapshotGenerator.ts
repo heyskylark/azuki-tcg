@@ -271,14 +271,20 @@ function buildHandCards(observation: ObservationData): SnapshotHandCard[] {
  * Used during SELECTION_PICK and BOTTOM_DECK ability phases.
  */
 function buildSelectionCards(observation: ObservationData): SnapshotSelectionCard[] {
-  return observation.myObservationData.selection.map((card) => ({
-    cardId: card.cardCode,
-    cardDefId: card.cardDefId,
-    type: card.type,
-    ikzCost: card.ikzCost,
-    curAtk: card.curAtk,
-    curHp: card.curHp,
-  }));
+  return observation.myObservationData.selection.flatMap((card) => {
+    if (!card) {
+      return [];
+    }
+    return [{
+      cardId: card.cardCode,
+      cardDefId: card.cardDefId,
+      zoneIndex: card.zoneIndex,
+      type: card.type,
+      ikzCost: card.ikzCost,
+      curAtk: card.curAtk,
+      curHp: card.curHp,
+    }];
+  });
 }
 
 /**

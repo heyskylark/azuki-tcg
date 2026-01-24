@@ -120,6 +120,7 @@ export interface SnapshotStateContext {
 export interface SnapshotSelectionCard {
   cardId: string | null;
   cardDefId: number;
+  zoneIndex: number;
   type: string;
   ikzCost: number;
   curAtk: number | null;

@@ -115,7 +115,7 @@ export interface MyObservation {
   alley: (CardObservation | null)[];
   ikzArea: IKZObservation[];
   discard: CardObservation[];
-  selection: CardObservation[];
+  selection: (CardObservation | null)[];
   deckCount: number;
   ikzPileCount: number;
   selectionCount: number;
