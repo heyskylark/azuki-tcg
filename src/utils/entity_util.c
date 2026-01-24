@@ -2,6 +2,7 @@
 #include "generated/card_defs.h"
 #include "utils/card_utils.h"
 #include "utils/cli_rendering_util.h"
+#include "utils/game_log_util.h"
 #include "utils/status_util.h"
 
 void reset_entity_health(ecs_world_t *world, ecs_entity_t entity) {
@@ -31,6 +32,8 @@ static void discard_weapon_card(ecs_world_t *world, ecs_entity_t entity,
       .cur_atk = (int8_t)new_atk,
       .cur_hp = entity_stats->cur_hp,
     });
+    azk_log_card_stat_change(world, entity, (int8_t)(-weapon_atk), 0,
+                             (int8_t)new_atk, entity_stats->cur_hp);
     cli_render_logf("[Weapon] Detached weapon (-%d attack) from entity",
                     weapon_atk);
   }
