@@ -229,6 +229,9 @@ export function DraggableAlleyCard({
         cooldown={card.cooldown}
         isFrozen={card.isFrozen}
         isShocked={card.isShocked}
+        hasCharge={card.hasCharge}
+        hasDefender={card.hasDefender}
+        hasInfiltrate={card.hasInfiltrate}
         showStats={true}
       >
         {/* Gatable indicator glow - purple to distinguish from playable green */}

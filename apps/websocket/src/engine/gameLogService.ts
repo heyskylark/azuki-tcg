@@ -57,6 +57,7 @@ function extractPlayerFromLog(log: GameLog): number | null {
     // Logs with a card reference containing player
     case "CARD_ZONE_MOVED":
     case "CARD_STAT_CHANGE":
+    case "KEYWORDS_CHANGED":
     case "CARD_TAP_STATE_CHANGED":
     case "STATUS_EFFECT_APPLIED":
     case "STATUS_EFFECT_EXPIRED":

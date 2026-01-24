@@ -24,6 +24,9 @@ typedef struct {
   CardId id;
   CurStats cur_stats;
   TapState tap_state;
+  bool has_charge;
+  bool has_defender;
+  bool has_infiltrate;
   uint8_t weapon_count;
   WeaponObservationData weapons[MAX_ATTACHED_WEAPONS];
 } LeaderCardObservationData;
@@ -46,6 +49,9 @@ typedef struct {
   GatePoints gate_points;
   uint8_t weapon_count;
   WeaponObservationData weapons[MAX_ATTACHED_WEAPONS];
+  bool has_charge;
+  bool has_defender;
+  bool has_infiltrate;
   bool is_frozen;
   bool is_shocked;
   bool is_effect_immune;

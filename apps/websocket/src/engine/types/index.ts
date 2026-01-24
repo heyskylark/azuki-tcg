@@ -66,6 +66,9 @@ export interface CardObservation {
   isFrozen: boolean;
   isShocked: boolean;
   isEffectImmune: boolean;
+  hasCharge: boolean;
+  hasDefender: boolean;
+  hasInfiltrate: boolean;
   weapons: WeaponObservation[];
 }
 
@@ -83,6 +86,9 @@ export interface LeaderObservation {
   cooldown: boolean;
   curAtk: number;
   curHp: number;
+  hasCharge: boolean;
+  hasDefender: boolean;
+  hasInfiltrate: boolean;
 }
 
 export interface GateObservation {
@@ -190,6 +196,13 @@ export interface GameLogStatChange {
   newHp: number;
 }
 
+export interface GameLogKeywordsChanged {
+  card: GameLogCardRef;
+  hasCharge: boolean;
+  hasDefender: boolean;
+  hasInfiltrate: boolean;
+}
+
 export interface GameLogTapChange {
   card: GameLogCardRef;
   newState: TapStateValue;
@@ -263,6 +276,7 @@ export interface GameLogGameEnded {
 export type GameLogType =
   | "CARD_ZONE_MOVED"
   | "CARD_STAT_CHANGE"
+  | "KEYWORDS_CHANGED"
   | "CARD_TAP_STATE_CHANGED"
   | "STATUS_EFFECT_APPLIED"
   | "STATUS_EFFECT_EXPIRED"
@@ -282,6 +296,7 @@ export interface GameLog {
   data:
     | GameLogZoneMoved
     | GameLogStatChange
+    | GameLogKeywordsChanged
     | GameLogTapChange
     | GameLogStatusApplied
     | GameLogStatusExpired

@@ -5,6 +5,7 @@
 #include "generated/card_defs.h"
 #include "utils/card_utils.h"
 #include "utils/cli_rendering_util.h"
+#include "utils/game_log_util.h"
 #include "utils/player_util.h"
 
 // STT01-002 "Surge": On Gate Portal; you may play from your discard pile
@@ -62,7 +63,11 @@ void stt01_002_on_cost_paid(ecs_world_t *world, AbilityContext *ctx) {
     }
 
     // Move to selection zone
+    int8_t from_index = azk_get_card_index_in_zone(world, card, discard);
     ecs_add_pair(world, card, EcsChildOf, selection);
+    azk_log_card_zone_moved(world, card, GLOG_ZONE_DISCARD, from_index,
+                            GLOG_ZONE_SELECTION,
+                            (int8_t)ctx->selection_count);
     ctx->selection_cards[ctx->selection_count] = card;
     ctx->selection_count++;
   }
@@ -111,11 +116,15 @@ void stt01_002_on_selection_complete(ecs_world_t *world, AbilityContext *ctx) {
   const GameState *gs = ecs_singleton_get(world, GameState);
   uint8_t player_num = get_player_number(world, ctx->owner);
   ecs_entity_t discard = gs->zones[player_num].discard;
+  ecs_entity_t selection = gs->zones[player_num].selection;
 
   for (int i = 0; i < ctx->selection_count; i++) {
     ecs_entity_t card = ctx->selection_cards[i];
     if (card != 0) {
+      int8_t from_index = azk_get_card_index_in_zone(world, card, selection);
       ecs_add_pair(world, card, EcsChildOf, discard);
+      azk_log_card_zone_moved(world, card, GLOG_ZONE_SELECTION, from_index,
+                              GLOG_ZONE_DISCARD, -1);
       ctx->selection_cards[i] = 0;
     }
   }

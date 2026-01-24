@@ -5,7 +5,7 @@ import { Text } from "@react-three/drei";
 import { useGameState } from "@/contexts/GameStateContext";
 import { useRoom } from "@/contexts/RoomContext";
 import { Card3D, EmptyCardSlot, CARD_WIDTH, CARD_HEIGHT } from "@/components/game/cards/Card3D";
-import { LeaderHealthDisplay } from "@/components/game/cards/CardStats";
+import { LeaderAttackDisplay, LeaderHealthDisplay } from "@/components/game/cards/CardStats";
 import { DraggableHandCard } from "@/components/game/cards/DraggableHandCard";
 import { DraggableAlleyCard } from "@/components/game/cards/DraggableAlleyCard";
 import { useDragStore } from "@/stores/dragStore";
@@ -156,6 +156,9 @@ function CardRow({
               cooldown={card.cooldown}
               isFrozen={card.isFrozen}
               isShocked={card.isShocked}
+              hasCharge={card.hasCharge}
+              hasDefender={card.hasDefender}
+              hasInfiltrate={card.hasInfiltrate}
               showStats={true}
               isAbilityTarget={isAbilityTarget}
               isWeaponTarget={isWeaponAttachTarget}
@@ -221,6 +224,9 @@ function LeaderCard({
       position={position}
       tapped={leader.tapped}
       cooldown={leader.cooldown}
+      hasCharge={leader.hasCharge}
+      hasDefender={leader.hasDefender}
+      hasInfiltrate={leader.hasInfiltrate}
       showStats={false}
       isWeaponTarget={isWeaponTarget}
       onWeaponTargetClick={onWeaponTargetClick}
@@ -229,6 +235,12 @@ function LeaderCard({
       <LeaderHealthDisplay
         currentHp={leader.curHp}
         position={[0, 0.2, -1.2]}
+      />
+
+      {/* Small attack badge next to health */}
+      <LeaderAttackDisplay
+        currentAtk={leader.curAtk}
+        position={[-0.6, 0.2, -1.2]}
       />
     </Card3D>
   );

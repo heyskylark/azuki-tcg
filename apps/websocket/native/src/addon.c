@@ -443,6 +443,22 @@ static napi_value serialize_game_log(napi_env env, const GameStateLog *log) {
       break;
     }
 
+    case GLOG_CARD_KEYWORDS_CHANGED: {
+      const GameLogKeywordsChanged *d = &log->data.keywords_changed;
+      napi_value card, has_charge, has_defender, has_infiltrate;
+
+      card = serialize_card_ref(env, &d->card);
+      napi_get_boolean(env, d->has_charge, &has_charge);
+      napi_get_boolean(env, d->has_defender, &has_defender);
+      napi_get_boolean(env, d->has_infiltrate, &has_infiltrate);
+
+      napi_set_named_property(env, data_val, "card", card);
+      napi_set_named_property(env, data_val, "hasCharge", has_charge);
+      napi_set_named_property(env, data_val, "hasDefender", has_defender);
+      napi_set_named_property(env, data_val, "hasInfiltrate", has_infiltrate);
+      break;
+    }
+
     case GLOG_TURN_STARTED: {
       const GameLogTurnStarted *d = &log->data.turn_started;
       napi_value player, turn;
@@ -908,6 +924,14 @@ static napi_value serialize_leader(napi_env env, const LeaderCardObservationData
   napi_create_int32(env, leader->cur_stats.cur_hp, &val);
   napi_set_named_property(env, obj, "curHp", val);
 
+  // Keywords
+  napi_get_boolean(env, leader->has_charge, &val);
+  napi_set_named_property(env, obj, "hasCharge", val);
+  napi_get_boolean(env, leader->has_defender, &val);
+  napi_set_named_property(env, obj, "hasDefender", val);
+  napi_get_boolean(env, leader->has_infiltrate, &val);
+  napi_set_named_property(env, obj, "hasInfiltrate", val);
+
   return obj;
 }
 
@@ -1005,6 +1029,14 @@ static napi_value serialize_card(napi_env env, const CardObservationData *card) 
   napi_set_named_property(env, obj, "isShocked", val);
   napi_get_boolean(env, card->is_effect_immune, &val);
   napi_set_named_property(env, obj, "isEffectImmune", val);
+
+  // Keywords
+  napi_get_boolean(env, card->has_charge, &val);
+  napi_set_named_property(env, obj, "hasCharge", val);
+  napi_get_boolean(env, card->has_defender, &val);
+  napi_set_named_property(env, obj, "hasDefender", val);
+  napi_get_boolean(env, card->has_infiltrate, &val);
+  napi_set_named_property(env, obj, "hasInfiltrate", val);
 
   // Weapons array
   napi_value weapons_arr;

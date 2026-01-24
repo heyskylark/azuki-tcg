@@ -49,6 +49,18 @@ static int8_t get_card_zone_index(ecs_world_t *world, ecs_entity_t card) {
   return zi ? (int8_t)zi->index : -1;
 }
 
+static bool is_public_log_zone(GameLogZone zone) {
+  switch (zone) {
+  case GLOG_ZONE_LEADER:
+  case GLOG_ZONE_GATE:
+  case GLOG_ZONE_GARDEN:
+  case GLOG_ZONE_ALLEY:
+    return true;
+  default:
+    return false;
+  }
+}
+
 int8_t azk_get_card_index_in_zone(ecs_world_t *world, ecs_entity_t card,
                                   ecs_entity_t zone) {
   if (card == 0 || zone == 0) {
@@ -294,6 +306,28 @@ void azk_log_card_stat_change(ecs_world_t *world, ecs_entity_t card,
   log->data.stat_change.new_hp = new_hp;
 }
 
+void azk_log_card_keywords_changed(ecs_world_t *world, ecs_entity_t card) {
+  if (card == 0) {
+    return;
+  }
+
+  GameLogCardRef ref = azk_make_card_ref(world, card);
+  if (!is_public_log_zone(ref.zone)) {
+    return;
+  }
+
+  GameStateLog *log = add_log_entry(world);
+  if (!log) {
+    return;
+  }
+
+  log->type = GLOG_CARD_KEYWORDS_CHANGED;
+  log->data.keywords_changed.card = ref;
+  log->data.keywords_changed.has_charge = ecs_has(world, card, Charge);
+  log->data.keywords_changed.has_defender = ecs_has(world, card, Defender);
+  log->data.keywords_changed.has_infiltrate = ecs_has(world, card, Infiltrate);
+}
+
 /* ========== Status Effect Logs ========== */
 
 void azk_log_status_effect_applied(ecs_world_t *world, ecs_entity_t card,
@@ -469,6 +503,8 @@ const char *azk_log_type_to_string(GameLogType type) {
     return "ZONE_MOVED";
   case GLOG_CARD_STAT_CHANGE:
     return "STAT_CHANGE";
+  case GLOG_CARD_KEYWORDS_CHANGED:
+    return "KEYWORDS_CHANGED";
   case GLOG_CARD_TAP_STATE_CHANGED:
     return "TAP_CHANGED";
   case GLOG_STATUS_EFFECT_APPLIED:

@@ -10,6 +10,7 @@ import type {
   CardZoneMovedData,
   CardStatChangeData,
   CardTapChangeData,
+  KeywordsChangedData,
   StatusAppliedData,
   StatusExpiredData,
   ZoneType,
@@ -57,6 +58,9 @@ function applyLog(
 
     case "STAT_CHANGE":
       return applyStatChange(state, log.data, playerSlot);
+
+    case "KEYWORDS_CHANGED":
+      return applyKeywordsChange(state, log.data, playerSlot);
 
     case "TAP_CHANGED":
       return applyTapStateChange(state, log.data, playerSlot);
@@ -519,6 +523,65 @@ function applyStatChange(
 }
 
 // ============================================
+// Keyword change handling
+// ============================================
+
+function applyKeywordsChange(
+  state: GameState,
+  data: KeywordsChangedData,
+  playerSlot: 0 | 1
+): GameState {
+  const isMyCard = data.card.player === playerSlot;
+  const board = isMyCard ? state.myBoard : state.opponentBoard;
+
+  const keywordUpdate = {
+    hasCharge: data.hasCharge,
+    hasDefender: data.hasDefender,
+    hasInfiltrate: data.hasInfiltrate,
+  };
+
+  switch (data.card.zone) {
+    case "LEADER": {
+      const newLeader = { ...board.leader, ...keywordUpdate };
+      if (isMyCard) {
+        return { ...state, myBoard: { ...state.myBoard, leader: newLeader } };
+      }
+      return { ...state, opponentBoard: { ...state.opponentBoard, leader: newLeader } };
+    }
+
+    case "GARDEN": {
+      const gardenCard = board.garden[data.card.zoneIndex];
+      if (gardenCard) {
+        const newCard = { ...gardenCard, ...keywordUpdate };
+        const garden = [...board.garden];
+        garden[data.card.zoneIndex] = newCard;
+        if (isMyCard) {
+          return { ...state, myBoard: { ...state.myBoard, garden } };
+        }
+        return { ...state, opponentBoard: { ...state.opponentBoard, garden } };
+      }
+      break;
+    }
+
+    case "ALLEY": {
+      const alleyCard = board.alley[data.card.zoneIndex];
+      if (alleyCard) {
+        const newCard = { ...alleyCard, ...keywordUpdate };
+        const alley = [...board.alley];
+        alley[data.card.zoneIndex] = newCard;
+        if (isMyCard) {
+          return { ...state, myBoard: { ...state.myBoard, alley } };
+        }
+        return { ...state, opponentBoard: { ...state.opponentBoard, alley } };
+      }
+      break;
+    }
+  }
+
+  return state;
+}
+
+// ============================================
 // Tap state handling
 // ============================================
 
@@ -695,6 +758,9 @@ function resolveCard(
     isFrozen: metadata?.isFrozen ?? false,
     isShocked: false, // Not in metadata
     isEffectImmune: metadata?.isEffectImmune ?? false,
+    hasCharge: metadata?.hasCharge ?? false,
+    hasDefender: metadata?.hasDefender ?? false,
+    hasInfiltrate: metadata?.hasInfiltrate ?? false,
     zoneIndex: cardRef.zoneIndex,
   };
 }

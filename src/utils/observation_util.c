@@ -169,6 +169,11 @@ static CardObservationData get_card_observation(ecs_world_t *world,
   observation_data.weapon_count =
       set_attached_weapon_observations(world, card, observation_data.weapons);
 
+  // Keyword tags
+  observation_data.has_charge = ecs_has(world, card, Charge);
+  observation_data.has_defender = ecs_has(world, card, Defender);
+  observation_data.has_infiltrate = ecs_has(world, card, Infiltrate);
+
   // Check for status effects
   observation_data.is_frozen = ecs_has(world, card, Frozen);
   observation_data.is_shocked = ecs_has(world, card, Shocked);
@@ -208,6 +213,9 @@ get_leader_card_observation(ecs_world_t *world, ecs_entity_t leader_zone) {
   observation_data.id = *ecs_get(world, leader_card, CardId);
   observation_data.cur_stats = *ecs_get(world, leader_card, CurStats);
   observation_data.tap_state = *ecs_get(world, leader_card, TapState);
+  observation_data.has_charge = ecs_has(world, leader_card, Charge);
+  observation_data.has_defender = ecs_has(world, leader_card, Defender);
+  observation_data.has_infiltrate = ecs_has(world, leader_card, Infiltrate);
   observation_data.weapon_count = set_attached_weapon_observations(
       world, leader_card, observation_data.weapons);
   return observation_data;

@@ -78,6 +78,13 @@ export interface CardStatChangeData {
   newHp: number;
 }
 
+export interface KeywordsChangedData {
+  card: LogCardRef;
+  hasCharge: boolean;
+  hasDefender: boolean;
+  hasInfiltrate: boolean;
+}
+
 export interface CardTapChangeData {
   card: LogCardRef;
   newState: TapStateValue;
@@ -155,6 +162,7 @@ export interface GameEndedData {
 export type ProcessedGameLog =
   | { type: "ZONE_MOVED"; data: CardZoneMovedData }
   | { type: "STAT_CHANGE"; data: CardStatChangeData }
+  | { type: "KEYWORDS_CHANGED"; data: KeywordsChangedData }
   | { type: "TAP_CHANGED"; data: CardTapChangeData }
   | { type: "STATUS_EFFECT_APPLIED"; data: StatusAppliedData }
   | { type: "STATUS_EFFECT_EXPIRED"; data: StatusExpiredData }

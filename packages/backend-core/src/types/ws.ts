@@ -134,6 +134,9 @@ export interface SnapshotLeader {
   curAtk: number;
   tapped: boolean;
   cooldown: boolean;
+  hasCharge: boolean;
+  hasDefender: boolean;
+  hasInfiltrate: boolean;
 }
 
 export interface SnapshotGate {
@@ -155,6 +158,9 @@ export interface SnapshotCard {
   isFrozen: boolean;
   isShocked: boolean;
   isEffectImmune: boolean;
+  hasCharge: boolean;
+  hasDefender: boolean;
+  hasInfiltrate: boolean;
 }
 
 export interface SnapshotIkz {

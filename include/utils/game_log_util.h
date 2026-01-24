@@ -94,6 +94,11 @@ void azk_log_card_stat_change(ecs_world_t *world, ecs_entity_t card,
                               int8_t atk_delta, int8_t hp_delta, int8_t new_atk,
                               int8_t new_hp);
 
+/**
+ * Log a card's keyword flags changing (Charge/Defender/Infiltrate).
+ */
+void azk_log_card_keywords_changed(ecs_world_t *world, ecs_entity_t card);
+
 /* ========== Status Effect Logs ========== */
 
 /**

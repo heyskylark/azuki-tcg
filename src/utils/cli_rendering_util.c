@@ -1313,6 +1313,8 @@ static const char *log_type_short_name(GameLogType type) {
       return "MOVE";
     case GLOG_CARD_STAT_CHANGE:
       return "STAT";
+    case GLOG_CARD_KEYWORDS_CHANGED:
+      return "KW";
     case GLOG_CARD_TAP_STATE_CHANGED:
       return "TAP";
     case GLOG_STATUS_EFFECT_APPLIED:
@@ -1419,6 +1421,13 @@ static void format_game_log(const GameStateLog *log, char *buf, size_t buf_len) 
                type_str, sc->card.player,
                sc->atk_delta, sc->hp_delta,
                sc->new_atk, sc->new_hp);
+      break;
+    }
+    case GLOG_CARD_KEYWORDS_CHANGED: {
+      const GameLogKeywordsChanged *kc = &log->data.keywords_changed;
+      snprintf(buf, buf_len, "[%s] P%d: C%d D%d I%d",
+               type_str, kc->card.player,
+               kc->has_charge, kc->has_defender, kc->has_infiltrate);
       break;
     }
     case GLOG_CARD_TAP_STATE_CHANGED: {

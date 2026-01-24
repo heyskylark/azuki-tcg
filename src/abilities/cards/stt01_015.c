@@ -2,6 +2,7 @@
 
 #include "components/components.h"
 #include "utils/cli_rendering_util.h"
+#include "utils/game_log_util.h"
 #include "utils/player_util.h"
 
 // STT01-015 "Tenraku": When Equipped; If you have 15 or more cards in your
@@ -50,6 +51,8 @@ void stt01_015_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
 
   weapon_stats->cur_atk += STT01_015_BONUS_ATTACK;
   ecs_modified(world, ctx->source_card, CurStats);
+  azk_log_card_stat_change(world, ctx->source_card, STT01_015_BONUS_ATTACK, 0,
+                           weapon_stats->cur_atk, weapon_stats->cur_hp);
 
   // Update target entity's CurStats.cur_atk (+1)
   CurStats *target_stats = ecs_get_mut(world, target, CurStats);
@@ -58,6 +61,8 @@ void stt01_015_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
 
   target_stats->cur_atk += STT01_015_BONUS_ATTACK;
   ecs_modified(world, target, CurStats);
+  azk_log_card_stat_change(world, target, STT01_015_BONUS_ATTACK, 0,
+                           target_stats->cur_atk, target_stats->cur_hp);
 
   cli_render_logf(
       "[STT01-015] Discard pile has %d cards, weapon gained +%d attack "

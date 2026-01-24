@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, type ReactNode } from "react";
+import { Text } from "@react-three/drei";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 import { useAssets } from "@/contexts/AssetContext";
@@ -23,6 +24,9 @@ interface Card3DProps {
   cooldown?: boolean;
   isFrozen?: boolean;
   isShocked?: boolean;
+  hasCharge?: boolean;
+  hasDefender?: boolean;
+  hasInfiltrate?: boolean;
   onClick?: () => void;
   showStats?: boolean;
   children?: ReactNode;
@@ -48,6 +52,9 @@ export function Card3D({
   cooldown = false,
   isFrozen = false,
   isShocked = false,
+  hasCharge = false,
+  hasDefender = false,
+  hasInfiltrate = false,
   onClick,
   showStats = true,
   children,
@@ -95,6 +102,12 @@ export function Card3D({
     if (hovered) return "#ffffff";
     return "#dddddd";
   };
+
+  const keywordBadges = [
+    hasCharge ? { label: "CHG", color: "#ffd166" } : null,
+    hasDefender ? { label: "DEF", color: "#4ecdc4" } : null,
+    hasInfiltrate ? { label: "INF", color: "#ff6b6b" } : null,
+  ].filter(Boolean) as Array<{ label: string; color: string }>;
 
   return (
     <group position={position}>
@@ -165,6 +178,9 @@ export function Card3D({
         {isShocked && <ShockedOverlay />}
         {cooldown && <CooldownOverlay />}
 
+        {/* Keyword badges */}
+        {keywordBadges.length > 0 && <KeywordBadges badges={keywordBadges} />}
+
         {/* Ability target highlight */}
         {isAbilityTarget && <AbilityTargetOverlay />}
 
@@ -184,6 +200,42 @@ export function Card3D({
         {/* Additional elements passed as children */}
         {children}
       </group>
+    </group>
+  );
+}
+
+function KeywordBadges({
+  badges,
+}: {
+  badges: Array<{ label: string; color: string }>;
+}) {
+  const startX = -CARD_WIDTH * 0.38;
+  const startZ = CARD_HEIGHT * 0.38;
+  const gap = 0.34;
+
+  return (
+    <group>
+      {badges.map((badge, index) => (
+        <group
+          key={badge.label}
+          position={[startX + index * gap, CARD_DEPTH + 0.012, startZ]}
+          rotation={[-Math.PI / 2, 0, 0]}
+        >
+          <mesh>
+            <planeGeometry args={[0.32, 0.16]} />
+            <meshBasicMaterial color="#0b0b0b" transparent opacity={0.75} />
+          </mesh>
+          <Text
+            position={[0, 0.001, 0]}
+            fontSize={0.12}
+            color={badge.color}
+            anchorX="center"
+            anchorY="middle"
+          >
+            {badge.label}
+          </Text>
+        </group>
+      ))}
     </group>
   );
 }

@@ -202,6 +202,9 @@ function buildLeader(leader: LeaderObservation): SnapshotLeader {
     curAtk: leader.curAtk,
     tapped: leader.tapped,
     cooldown: leader.cooldown,
+    hasCharge: leader.hasCharge,
+    hasDefender: leader.hasDefender,
+    hasInfiltrate: leader.hasInfiltrate,
   };
 }
 
@@ -233,6 +236,9 @@ function buildCard(card: CardObservation): SnapshotCard {
     isFrozen: card.isFrozen,
     isShocked: card.isShocked,
     isEffectImmune: card.isEffectImmune,
+    hasCharge: card.hasCharge,
+    hasDefender: card.hasDefender,
+    hasInfiltrate: card.hasInfiltrate,
   };
 }
 

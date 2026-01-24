@@ -257,6 +257,9 @@ function resolveCard(
     isFrozen: card.isFrozen,
     isShocked: card.isShocked,
     isEffectImmune: card.isEffectImmune,
+    hasCharge: card.hasCharge,
+    hasDefender: card.hasDefender,
+    hasInfiltrate: card.hasInfiltrate,
     zoneIndex: card.zoneIndex,
   };
 }
@@ -277,6 +280,9 @@ function resolveLeader(
     curHp: leader.curHp,
     tapped: leader.tapped,
     cooldown: leader.cooldown,
+    hasCharge: leader.hasCharge,
+    hasDefender: leader.hasDefender,
+    hasInfiltrate: leader.hasInfiltrate,
   };
 }
 

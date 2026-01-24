@@ -35,6 +35,9 @@ function createResolvedCard(
     isFrozen: false,
     isShocked: false,
     isEffectImmune: false,
+    hasCharge: false,
+    hasDefender: false,
+    hasInfiltrate: false,
     zoneIndex,
     ...overrides,
   };
@@ -50,6 +53,9 @@ function createResolvedLeader(card: DeckCard, hpOverride?: number): ResolvedLead
     curHp: hpOverride ?? card.health ?? 25,
     tapped: false,
     cooldown: false,
+    hasCharge: false,
+    hasDefender: false,
+    hasInfiltrate: false,
   };
 }
 

@@ -738,6 +738,8 @@ void azk_process_passive_buff_queue(ecs_world_t *world) {
             .cur_atk = (int8_t)new_atk,
             .cur_hp = parent_cur->cur_hp,
           });
+          azk_log_card_stat_change(world, parent, (int8_t)delta, 0,
+                                   (int8_t)new_atk, parent_cur->cur_hp);
           cli_render_logf("[Status] Propagated weapon buff (%+d) to parent entity attack",
                           delta);
         }

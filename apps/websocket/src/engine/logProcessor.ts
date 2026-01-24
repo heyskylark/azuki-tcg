@@ -142,6 +142,7 @@ function processLogForPlayer(
       return processTapStateChanged(log.data as GameLogTapChange);
 
     case "CARD_STAT_CHANGE":
+    case "KEYWORDS_CHANGED":
     case "STATUS_EFFECT_APPLIED":
     case "STATUS_EFFECT_EXPIRED":
     case "COMBAT_DECLARED":

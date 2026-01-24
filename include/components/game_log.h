@@ -17,6 +17,7 @@ typedef enum {
   GLOG_NONE = 0,
   GLOG_CARD_ZONE_MOVED,        // Card moved between zones
   GLOG_CARD_STAT_CHANGE,       // Attack/health delta
+  GLOG_CARD_KEYWORDS_CHANGED,  // Keyword flags changed
   GLOG_CARD_TAP_STATE_CHANGED, // Tapped, untapped, or cooldown
   GLOG_STATUS_EFFECT_APPLIED,  // Frozen/Shocked/EffectImmune added
   GLOG_STATUS_EFFECT_EXPIRED,  // Status effect removed
@@ -143,6 +144,13 @@ typedef struct {
 
 typedef struct {
   GameLogCardRef card;
+  bool has_charge;
+  bool has_defender;
+  bool has_infiltrate;
+} GameLogKeywordsChanged;
+
+typedef struct {
+  GameLogCardRef card;
   GameLogTapState new_state;
 } GameLogTapStateChanged;
 
@@ -220,6 +228,7 @@ typedef struct {
     GameLogZoneMoved zone_moved;
     GameLogTapStateChanged tap_changed;
     GameLogStatChange stat_change;
+    GameLogKeywordsChanged keywords_changed;
     GameLogStatusApplied status_applied;
     GameLogStatusExpired status_expired;
     GameLogCombatDeclared combat_declared;

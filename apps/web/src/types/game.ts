@@ -21,6 +21,9 @@ export interface ResolvedCard {
   isFrozen: boolean;
   isShocked: boolean;
   isEffectImmune: boolean;
+  hasCharge: boolean;
+  hasDefender: boolean;
+  hasInfiltrate: boolean;
   zoneIndex: number;
 }
 
@@ -36,6 +39,9 @@ export interface ResolvedLeader {
   curHp: number;
   tapped: boolean;
   cooldown: boolean;
+  hasCharge: boolean;
+  hasDefender: boolean;
+  hasInfiltrate: boolean;
 }
 
 /**

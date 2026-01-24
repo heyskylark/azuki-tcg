@@ -123,3 +123,43 @@ export function LeaderHealthDisplay({
     </group>
   );
 }
+
+/**
+ * Leader attack display - compact badge for leader attack value.
+ */
+export function LeaderAttackDisplay({
+  currentAtk,
+  position = [0, 0, 0],
+}: {
+  currentAtk: number;
+  position?: [number, number, number];
+}) {
+  return (
+    <group position={position}>
+      {/* Background */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[0.22, 20]} />
+        <meshBasicMaterial color="#000000" transparent opacity={0.8} />
+      </mesh>
+
+      {/* Attack ring */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.001, 0]}>
+        <ringGeometry args={[0.18, 0.22, 20]} />
+        <meshBasicMaterial color="#ff6b6b" />
+      </mesh>
+
+      {/* ATK text */}
+      <Text
+        position={[0, 0.02, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        fontSize={0.2}
+        color="white"
+        anchorX="center"
+        anchorY="middle"
+        fontWeight="bold"
+      >
+        {currentAtk}
+      </Text>
+    </group>
+  );
+}

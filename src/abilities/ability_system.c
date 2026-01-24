@@ -607,6 +607,10 @@ bool azk_process_selection_to_alley(ecs_world_t *world, int selection_index,
   const GameState *gs = ecs_singleton_get(world, GameState);
   uint8_t player_num = get_player_number(world, ctx->owner);
   ecs_entity_t alley = gs->zones[player_num].alley;
+  ecs_entity_t selection_zone = gs->zones[player_num].selection;
+
+  int8_t from_index =
+      azk_get_card_index_in_zone(world, target, selection_zone);
 
   // Check for displaced card at the target slot
   ecs_entity_t displaced_card = 0;
@@ -637,6 +641,10 @@ bool azk_process_selection_to_alley(ecs_world_t *world, int selection_index,
   // Move the selected card to the alley slot
   ecs_add_pair(world, target, EcsChildOf, alley);
   ecs_set(world, target, ZoneIndex, {.index = (uint8_t)alley_slot_index});
+
+  // Log selection -> alley movement
+  azk_log_card_zone_moved(world, target, GLOG_ZONE_SELECTION, from_index,
+                          GLOG_ZONE_ALLEY, (int8_t)alley_slot_index);
 
   // Reset tap state for newly placed card
   ecs_set(world, target, TapState, {.tapped = false, .cooldown = false});

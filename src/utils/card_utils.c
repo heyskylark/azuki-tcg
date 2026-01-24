@@ -50,7 +50,11 @@ void discard_card(ecs_world_t *world, ecs_entity_t card) {
   // Remove non-innate Charge tag (check if prefab has Charge)
   ecs_entity_t prefab = ecs_get_target(world, card, EcsIsA, 0);
   if (prefab != 0 && !ecs_has(world, prefab, Charge)) {
+    bool had_charge = ecs_has(world, card, Charge);
     ecs_remove(world, card, Charge);
+    if (had_charge) {
+      azk_log_card_keywords_changed(world, card);
+    }
   }
   ecs_add_pair(world, card, EcsChildOf, discard_zone);
 
@@ -101,7 +105,11 @@ void return_card_to_hand(ecs_world_t *world, ecs_entity_t card) {
   // Remove non-innate Charge tag (check if prefab has Charge)
   ecs_entity_t prefab = ecs_get_target(world, card, EcsIsA, 0);
   if (prefab != 0 && !ecs_has(world, prefab, Charge)) {
+    bool had_charge = ecs_has(world, card, Charge);
     ecs_remove(world, card, Charge);
+    if (had_charge) {
+      azk_log_card_keywords_changed(world, card);
+    }
   }
 
   // Get hand count before adding (card will be appended at this index)

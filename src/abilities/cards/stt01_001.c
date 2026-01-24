@@ -5,6 +5,7 @@
 #include "generated/card_defs.h"
 #include "utils/card_utils.h"
 #include "utils/cli_rendering_util.h"
+#include "utils/game_log_util.h"
 #include "utils/player_util.h"
 #include "utils/zone_util.h"
 
@@ -82,6 +83,7 @@ void stt01_001_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
 
   // Add Charge tag
   ecs_add(world, target, Charge);
+  azk_log_card_keywords_changed(world, target);
 
   // Clear cooldown but preserve tapped state
   const TapState *tap = ecs_get(world, target, TapState);
@@ -89,6 +91,9 @@ void stt01_001_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
     .tapped = tap ? tap->tapped : false,
     .cooldown = false
   });
+  azk_log_card_tap_state_changed(
+      world, target,
+      (tap && tap->tapped) ? GLOG_TAP_TAPPED : GLOG_TAP_UNTAPPED);
 
   cli_render_logf("[STT01-001] Granted Charge to target entity");
 }
