@@ -80,7 +80,7 @@ function applyLog(
     case "COMBAT_DAMAGE":
     case "ENTITY_DIED":
     case "EFFECT_QUEUED":
-    case "CARD_EFFECT_ENABLED":
+    case "EFFECT_ENABLED":
     case "GAME_ENDED":
       return state;
 

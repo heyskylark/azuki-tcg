@@ -171,7 +171,7 @@ export type ProcessedGameLog =
   | { type: "COMBAT_DAMAGE"; data: CombatDamageData }
   | { type: "ENTITY_DIED"; data: EntityDiedData }
   | { type: "EFFECT_QUEUED"; data: EffectQueuedData }
-  | { type: "CARD_EFFECT_ENABLED"; data: EffectEnabledData }
+  | { type: "EFFECT_ENABLED"; data: EffectEnabledData }
   | { type: "DECK_SHUFFLED"; data: DeckShuffledData }
   | { type: "TURN_STARTED"; data: TurnStartedData }
   | { type: "TURN_ENDED"; data: TurnEndedData }

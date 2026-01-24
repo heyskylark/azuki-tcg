@@ -23,7 +23,7 @@ const webSocketBehavior: WebSocketBehavior<UserData> = {
   compression: COMPRESSION,
   maxPayloadLength: MAX_PAYLOAD_LENGTH,
   idleTimeout: TIMEOUT_SECONDS,
-  sendPingsAutomatically: false,
+  sendPingsAutomatically: true,
 
   /* Handlers */
   upgrade: (res, req, context) =>
