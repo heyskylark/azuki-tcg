@@ -208,52 +208,32 @@ void add_card_to_bottom_of_deck(ecs_world_t *world, ecs_entity_t player,
   uint8_t player_num = get_player_number(world, player);
   ecs_entity_t deck = gs->zones[player_num].deck;
 
-  // First, move the card to the deck zone
-  ecs_add_pair(world, card, EcsChildOf, deck);
-
-  // Now reorder so the card is at position 0 (bottom)
+  // Snapshot deck order before moving to avoid Flecs deferred-operation issues.
   ecs_entities_t deck_cards = ecs_get_ordered_children(world, deck);
   int32_t count = deck_cards.count;
+  bool already_in_deck = (from_zone_entity == deck);
 
-  if (count <= 1) {
-    // Log zone movement (card is at bottom of deck, index 0)
-    azk_log_card_zone_moved(world, card, from_zone, from_index, GLOG_ZONE_DECK,
-                            0);
-    return; // Nothing to reorder
-  }
+  // Move the card to the deck zone (may be deferred)
+  ecs_add_pair(world, card, EcsChildOf, deck);
 
-  // Allocate new order array
-  ecs_entity_t *new_order = ecs_os_malloc_n(ecs_entity_t, count);
+  // Build new order with the card at index 0 (bottom)
+  int32_t new_count = already_in_deck ? count : (count + 1);
+  ecs_entity_t *new_order = ecs_os_malloc_n(ecs_entity_t, new_count);
   ecs_assert(new_order != NULL, ECS_OUT_OF_MEMORY,
              "Failed to allocate reorder buffer");
 
-  // The card we just added should be at the end of deck_cards (most recent
-  // child) We want it at position 0 (bottom of deck = first to be drawn last)
-  // Shift all existing cards up by 1, put new card at index 0
-  int card_index = -1;
-  for (int32_t i = 0; i < count; i++) {
-    if (deck_cards.ids[i] == card) {
-      card_index = i;
-      break;
-    }
-  }
-
-  if (card_index < 0) {
-    // Card not found (shouldn't happen)
-    ecs_os_free(new_order);
-    return;
-  }
-
-  // Build new order: card at index 0, rest shifted
   new_order[0] = card;
   int dest = 1;
   for (int32_t i = 0; i < count; i++) {
-    if (i != card_index) {
+    if (deck_cards.ids[i] == card) {
+      continue;
+    }
+    if (dest < new_count) {
       new_order[dest++] = deck_cards.ids[i];
     }
   }
 
-  ecs_set_child_order(world, deck, new_order, count);
+  ecs_set_child_order(world, deck, new_order, new_count);
   ecs_os_free(new_order);
 
   // Log zone movement (card ends up at index 0 = bottom of deck)

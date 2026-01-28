@@ -6,7 +6,7 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch --tsconfig tsconfig.json src/server.ts",
-    "build": "tsc && tsc-alias --resolve-full-paths",
+    "build": "tsc && tsc-alias --resolve-full-paths && node scripts/copy-native.js",
     "build:native": "cd native && node-gyp rebuild",
     "build:all": "yarn build:native && yarn build",
     "start": "node dist/server.js",

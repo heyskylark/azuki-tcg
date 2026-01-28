@@ -6,6 +6,7 @@
 #include "generated/card_defs.h"
 #include "utils/card_utils.h"
 #include "utils/cli_rendering_util.h"
+#include "utils/deck_utils.h"
 #include "utils/game_log_util.h"
 #include "utils/player_util.h"
 #include "utils/zone_util.h"
@@ -901,40 +902,8 @@ bool azk_process_bottom_deck(ecs_world_t *world, int selection_index) {
     return false;
   }
 
-  // Get player for deck access
-  const GameState *gs = ecs_singleton_get(world, GameState);
-  uint8_t player_num = get_player_number(world, ctx->owner);
-  ecs_entity_t deck = gs->zones[player_num].deck;
-
-  // Move card from selection zone to bottom of deck
-  ecs_add_pair(world, card, EcsChildOf, deck);
-
-  // Reorder to put at bottom (position 0)
-  ecs_entities_t deck_cards = ecs_get_ordered_children(world, deck);
-  int32_t count = deck_cards.count;
-
-  if (count > 1) {
-    ecs_entity_t *new_order = ecs_os_malloc_n(ecs_entity_t, count);
-    int card_idx = -1;
-    for (int32_t i = 0; i < count; i++) {
-      if (deck_cards.ids[i] == card) {
-        card_idx = i;
-        break;
-      }
-    }
-
-    if (card_idx >= 0) {
-      new_order[0] = card;
-      int dest = 1;
-      for (int32_t i = 0; i < count; i++) {
-        if (i != card_idx) {
-          new_order[dest++] = deck_cards.ids[i];
-        }
-      }
-      ecs_set_child_order(world, deck, new_order, count);
-    }
-    ecs_os_free(new_order);
-  }
+  // Move card from selection zone to bottom of deck (with log emission)
+  move_selection_to_deck_bottom(world, ctx->owner, card);
 
   // Mark slot as empty
   ctx->selection_cards[selection_index] = 0;
@@ -966,10 +935,6 @@ bool azk_process_bottom_deck_all(ecs_world_t *world) {
     return false;
   }
 
-  const GameState *gs = ecs_singleton_get(world, GameState);
-  uint8_t player_num = get_player_number(world, ctx->owner);
-  ecs_entity_t deck = gs->zones[player_num].deck;
-
   // Bottom deck all remaining cards in order (0, 1, 2, ...)
   for (int i = 0; i < ctx->selection_count; i++) {
     ecs_entity_t card = ctx->selection_cards[i];
@@ -977,35 +942,8 @@ bool azk_process_bottom_deck_all(ecs_world_t *world) {
       continue;
     }
 
-    // Move card to deck
-    ecs_add_pair(world, card, EcsChildOf, deck);
-
-    // Reorder to put at bottom
-    ecs_entities_t deck_cards = ecs_get_ordered_children(world, deck);
-    int32_t count = deck_cards.count;
-
-    if (count > 1) {
-      ecs_entity_t *new_order = ecs_os_malloc_n(ecs_entity_t, count);
-      int card_idx = -1;
-      for (int32_t j = 0; j < count; j++) {
-        if (deck_cards.ids[j] == card) {
-          card_idx = j;
-          break;
-        }
-      }
-
-      if (card_idx >= 0) {
-        new_order[0] = card;
-        int dest = 1;
-        for (int32_t j = 0; j < count; j++) {
-          if (j != card_idx) {
-            new_order[dest++] = deck_cards.ids[j];
-          }
-        }
-        ecs_set_child_order(world, deck, new_order, count);
-      }
-      ecs_os_free(new_order);
-    }
+    // Move card to bottom of deck (with log emission)
+    move_selection_to_deck_bottom(world, ctx->owner, card);
 
     ctx->selection_cards[i] = 0;
   }

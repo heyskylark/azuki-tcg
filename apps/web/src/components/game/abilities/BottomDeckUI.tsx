@@ -26,6 +26,18 @@ export function BottomDeckUI() {
     (card) => card.cardCode !== "unknown" && card.cardDefId !== 0
   );
 
+  const selectionCardsWithIndex = selectionCards.map((card, index) => {
+    const zoneIndex = card.zoneIndex ?? null;
+    const resolvedIndex =
+      zoneIndex !== null && validTargets.includes(zoneIndex)
+        ? zoneIndex
+        : validTargets.length === selectionCards.length
+          ? validTargets[index]
+          : zoneIndex ?? index;
+
+    return { card, selectionIndex: resolvedIndex };
+  });
+
   const handleSelectCard = useCallback(
     (selectionIndex: number) => {
       if (!validTargets.includes(selectionIndex)) return;
@@ -62,9 +74,8 @@ export function BottomDeckUI() {
 
         {/* Card grid */}
         <div className="flex gap-3 flex-wrap justify-center mb-4">
-          {selectionCards.length > 0 ? (
-            selectionCards.map((card, index) => {
-              const selectionIndex = card.zoneIndex ?? index;
+          {selectionCardsWithIndex.length > 0 ? (
+            selectionCardsWithIndex.map(({ card, selectionIndex }) => {
               const isValid = validTargets.includes(selectionIndex);
               return (
                 <button
