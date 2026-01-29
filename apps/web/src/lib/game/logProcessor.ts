@@ -10,6 +10,7 @@ import type {
   CardZoneMovedData,
   CardStatChangeData,
   CardTapChangeData,
+  CombatDamageData,
   KeywordsChangedData,
   StatusAppliedData,
   StatusExpiredData,
@@ -71,13 +72,15 @@ function applyLog(
     case "STATUS_EFFECT_EXPIRED":
       return applyStatusEffect(state, log.data as StatusAppliedData, playerSlot, false);
 
+    case "COMBAT_DAMAGE":
+      return applyCombatDamage(state, log.data, playerSlot);
+
     // These logs don't require state updates (handled by stateContext)
     case "TURN_STARTED":
     case "TURN_ENDED":
     case "DECK_SHUFFLED":
     case "COMBAT_DECLARED":
     case "DEFENDER_DECLARED":
-    case "COMBAT_DAMAGE":
     case "ENTITY_DIED":
     case "EFFECT_QUEUED":
     case "EFFECT_ENABLED":
@@ -517,6 +520,110 @@ function applyStatChange(
         }
       }
       break;
+  }
+
+  return state;
+}
+
+// ============================================
+// Combat damage handling
+// ============================================
+
+function applyCombatDamage(
+  state: GameState,
+  data: CombatDamageData,
+  playerSlot: 0 | 1
+): GameState {
+  let nextState = state;
+
+  if (data.attackerDamageTaken !== 0) {
+    nextState = applyHpDelta(
+      nextState,
+      data.attacker,
+      -data.attackerDamageTaken,
+      playerSlot,
+      "attacker"
+    );
+  }
+
+  if (data.defenderDamageTaken !== 0) {
+    nextState = applyHpDelta(
+      nextState,
+      data.defender,
+      -data.defenderDamageTaken,
+      playerSlot,
+      "defender"
+    );
+  }
+
+  return nextState;
+}
+
+function applyHpDelta(
+  state: GameState,
+  card: LogCardRef,
+  hpDelta: number,
+  playerSlot: 0 | 1,
+  label: string
+): GameState {
+  if (hpDelta === 0) {
+    return state;
+  }
+
+  const isMyCard = card.player === playerSlot;
+  const board = isMyCard ? state.myBoard : state.opponentBoard;
+
+  switch (card.zone) {
+    case "LEADER": {
+      const curHp = board.leader.curHp;
+      if (curHp == null) {
+        console.error(`Warning: ${label} leader HP is unknown; cannot apply combat damage`);
+        return state;
+      }
+      const newLeader = { ...board.leader, curHp: curHp + hpDelta };
+      if (isMyCard) {
+        return { ...state, myBoard: { ...state.myBoard, leader: newLeader } };
+      }
+      return { ...state, opponentBoard: { ...state.opponentBoard, leader: newLeader } };
+    }
+
+    case "GARDEN": {
+      const gardenCard = board.garden[card.zoneIndex];
+      if (!gardenCard) {
+        console.error(`Warning: Could not find ${label} in ${isMyCard ? "my" : "opponent"} garden at index ${card.zoneIndex} to apply combat damage`);
+        return state;
+      }
+      if (gardenCard.curHp == null) {
+        console.error(`Warning: ${label} garden card HP is unknown; cannot apply combat damage`);
+        return state;
+      }
+      const newCard = { ...gardenCard, curHp: gardenCard.curHp + hpDelta };
+      const garden = [...board.garden];
+      garden[card.zoneIndex] = newCard;
+      if (isMyCard) {
+        return { ...state, myBoard: { ...state.myBoard, garden } };
+      }
+      return { ...state, opponentBoard: { ...state.opponentBoard, garden } };
+    }
+
+    case "ALLEY": {
+      const alleyCard = board.alley[card.zoneIndex];
+      if (!alleyCard) {
+        console.error(`Warning: Could not find ${label} in ${isMyCard ? "my" : "opponent"} alley at index ${card.zoneIndex} to apply combat damage`);
+        return state;
+      }
+      if (alleyCard.curHp == null) {
+        console.error(`Warning: ${label} alley card HP is unknown; cannot apply combat damage`);
+        return state;
+      }
+      const newCard = { ...alleyCard, curHp: alleyCard.curHp + hpDelta };
+      const alley = [...board.alley];
+      alley[card.zoneIndex] = newCard;
+      if (isMyCard) {
+        return { ...state, myBoard: { ...state.myBoard, alley } };
+      }
+      return { ...state, opponentBoard: { ...state.opponentBoard, alley } };
+    }
   }
 
   return state;

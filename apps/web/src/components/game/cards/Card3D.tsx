@@ -36,6 +36,10 @@ interface Card3DProps {
   // Weapon attachment targeting props
   isWeaponTarget?: boolean;
   onWeaponTargetClick?: () => void;
+  // Attack targeting props
+  isAttackTarget?: boolean;
+  onPointerDown?: (event: ThreeEvent<PointerEvent>) => void;
+  onPointerUp?: (event: ThreeEvent<PointerEvent>) => void;
 }
 
 /**
@@ -62,6 +66,9 @@ export function Card3D({
   onAbilityTargetClick,
   isWeaponTarget = false,
   onWeaponTargetClick,
+  isAttackTarget = false,
+  onPointerDown,
+  onPointerUp,
 }: Card3DProps) {
   const groupRef = useRef<THREE.Group>(null!);
   const [hovered, setHover] = useState(false);
@@ -126,10 +133,13 @@ export function Card3D({
               onClick?.();
             }
           }}
+          onPointerDown={(e) => {
+            onPointerDown?.(e);
+          }}
           onPointerOver={(e) => {
             e.stopPropagation();
             setHover(true);
-            document.body.style.cursor = isWeaponTarget || isAbilityTarget ? "crosshair" : "pointer";
+            document.body.style.cursor = isWeaponTarget || isAbilityTarget || isAttackTarget ? "crosshair" : "pointer";
           }}
           onPointerOut={() => {
             setHover(false);
@@ -141,6 +151,7 @@ export function Card3D({
               e.stopPropagation();
               onWeaponTargetClick();
             }
+            onPointerUp?.(e);
           }}
           castShadow
           receiveShadow
@@ -186,6 +197,9 @@ export function Card3D({
 
         {/* Weapon target highlight */}
         {isWeaponTarget && <WeaponTargetOverlay />}
+
+        {/* Attack target highlight */}
+        {isAttackTarget && <AttackTargetOverlay />}
 
         {/* Stats display */}
         {showStats && attack !== null && attack !== undefined && health !== null && health !== undefined && (
@@ -359,6 +373,36 @@ function WeaponTargetOverlay() {
       <planeGeometry args={[CARD_WIDTH + 0.2, CARD_HEIGHT + 0.2]} />
       <meshBasicMaterial
         color="#ff6600"
+        transparent
+        opacity={0.4}
+        side={THREE.DoubleSide}
+      />
+    </mesh>
+  );
+}
+
+/**
+ * Attack target overlay - pulsing red highlight for valid attack targets.
+ */
+function AttackTargetOverlay() {
+  const meshRef = useRef<THREE.Mesh>(null!);
+
+  useFrame((state) => {
+    if (meshRef.current) {
+      const pulse = Math.sin(state.clock.elapsedTime * 5) * 0.15 + 0.45;
+      (meshRef.current.material as THREE.MeshBasicMaterial).opacity = pulse;
+    }
+  });
+
+  return (
+    <mesh
+      ref={meshRef}
+      rotation={[-Math.PI / 2, 0, 0]}
+      position={[0, CARD_DEPTH + 0.03, 0]}
+    >
+      <planeGeometry args={[CARD_WIDTH + 0.2, CARD_HEIGHT + 0.2]} />
+      <meshBasicMaterial
+        color="#cc3333"
         transparent
         opacity={0.4}
         side={THREE.DoubleSide}

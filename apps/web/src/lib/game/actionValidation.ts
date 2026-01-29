@@ -6,6 +6,7 @@ export const ACTION_PLAY_ENTITY_TO_GARDEN = 1;
 export const ACTION_PLAY_ENTITY_TO_ALLEY = 2;
 export const ACTION_PLAY_SPELL = 3;
 export const ACTION_PLAY_WEAPON = 4;
+export const ACTION_ATTACK = 6;
 // ... additional play action types
 export const ACTION_ATTACH_WEAPON_FROM_HAND = 7;
 export const ACTION_GATE_PORTAL = 10;
@@ -207,6 +208,92 @@ export function buildWeaponAttachAction(
   ikzTokenFlag: number = 0
 ): [number, number, number, number] {
   return [ACTION_ATTACH_WEAPON_FROM_HAND, handIndex, entitySlot, ikzTokenFlag];
+}
+
+// ============================================
+// Attack Action Helpers
+// ============================================
+
+/**
+ * Get valid attacker indices (0-4 = garden slots, 5 = leader).
+ */
+export function getValidAttackers(
+  actionMask: SnapshotActionMask | null
+): Set<number> {
+  const attackers = new Set<number>();
+
+  if (!actionMask) return attackers;
+
+  const { legalPrimary, legalSub1 } = actionMask;
+
+  for (let i = 0; i < legalPrimary.length; i++) {
+    if (legalPrimary[i] === ACTION_ATTACK) {
+      attackers.add(legalSub1[i]);
+    }
+  }
+
+  return attackers;
+}
+
+/**
+ * Get valid target indices (0-4 = enemy garden, 5 = enemy leader) for a specific attacker.
+ */
+export function getValidAttackTargetsForAttacker(
+  actionMask: SnapshotActionMask | null,
+  attackerIndex: number
+): Set<number> {
+  const targets = new Set<number>();
+
+  if (!actionMask) return targets;
+
+  const { legalPrimary, legalSub1, legalSub2 } = actionMask;
+
+  for (let i = 0; i < legalPrimary.length; i++) {
+    if (
+      legalPrimary[i] === ACTION_ATTACK &&
+      legalSub1[i] === attackerIndex
+    ) {
+      targets.add(legalSub2[i]);
+    }
+  }
+
+  return targets;
+}
+
+/**
+ * Find the valid attack action tuple for a specific attacker and target.
+ * Returns [ACTION_ATTACK, attackerIndex, targetIndex, 0] or null if invalid.
+ */
+export function findValidAttackAction(
+  actionMask: SnapshotActionMask | null,
+  attackerIndex: number,
+  targetIndex: number
+): [number, number, number, number] | null {
+  if (!actionMask) return null;
+
+  const { legalPrimary, legalSub1, legalSub2, legalSub3 } = actionMask;
+
+  for (let i = 0; i < legalPrimary.length; i++) {
+    if (
+      legalPrimary[i] === ACTION_ATTACK &&
+      legalSub1[i] === attackerIndex &&
+      legalSub2[i] === targetIndex
+    ) {
+      return [ACTION_ATTACK, attackerIndex, targetIndex, legalSub3[i]];
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Build an ATTACK action tuple.
+ */
+export function buildAttackAction(
+  attackerIndex: number,
+  targetIndex: number
+): [number, number, number, number] {
+  return [ACTION_ATTACK, attackerIndex, targetIndex, 0];
 }
 
 // ============================================

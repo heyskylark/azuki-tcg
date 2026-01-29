@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Text } from "@react-three/drei";
 import { useGameState } from "@/contexts/GameStateContext";
 import { useRoom } from "@/contexts/RoomContext";
@@ -8,11 +8,15 @@ import { Card3D, EmptyCardSlot, CARD_WIDTH, CARD_HEIGHT } from "@/components/gam
 import { LeaderAttackDisplay, LeaderHealthDisplay } from "@/components/game/cards/CardStats";
 import { DraggableHandCard } from "@/components/game/cards/DraggableHandCard";
 import { DraggableAlleyCard } from "@/components/game/cards/DraggableAlleyCard";
+import { AttackDragOverlay } from "@/components/game/attack/AttackDragOverlay";
 import { useDragStore } from "@/stores/dragStore";
 import {
+  findValidAttackAction,
   findValidAction,
   findValidGateAction,
   findValidWeaponAttachAction,
+  getValidAttackers,
+  getValidAttackTargetsForAttacker,
   getValidEffectTargets,
   getValidGateSourceAlleySlots,
   buildEffectTargetAction,
@@ -77,6 +81,9 @@ function CardRow({
   actionMask,
   onDropToSlot,
   onWeaponAttachToSlot,
+  attackableSlots,
+  attackTargets,
+  onAttackStart,
   validEffectTargets,
   onEffectTargetClick,
   targetIndexOffset,
@@ -88,6 +95,9 @@ function CardRow({
   actionMask?: SnapshotActionMask | null;
   onDropToSlot?: (zone: "garden" | "alley", slotIndex: number) => void;
   onWeaponAttachToSlot?: (zone: "garden" | "alley" | "leader", slotIndex: number) => void;
+  attackableSlots?: Set<number>;
+  attackTargets?: Set<number>;
+  onAttackStart?: (attackerIndex: number, position: [number, number, number], pointerPosition: [number, number, number]) => void;
   validEffectTargets?: Set<number>;
   onEffectTargetClick?: (targetIndex: number) => void;
   targetIndexOffset?: number;
@@ -143,6 +153,16 @@ function CardRow({
             isWeaponDrag &&
             validWeaponAttachTargets.has(index);
 
+          const isAttackSource =
+            !isOpponent &&
+            zone === "garden" &&
+            attackableSlots?.has(index);
+
+          const isAttackTarget =
+            isOpponent &&
+            zone === "garden" &&
+            attackTargets?.has(index);
+
           return (
             <Card3D
               key={`card-${index}-${card.cardCode}`}
@@ -162,6 +182,7 @@ function CardRow({
               showStats={true}
               isAbilityTarget={isAbilityTarget}
               isWeaponTarget={isWeaponAttachTarget}
+              isAttackTarget={isAttackTarget}
               onAbilityTargetClick={
                 isAbilityTarget && onEffectTargetClick
                   ? () => onEffectTargetClick(targetIndex)
@@ -170,6 +191,18 @@ function CardRow({
               onWeaponTargetClick={
                 isWeaponAttachTarget && onWeaponAttachToSlot
                   ? () => onWeaponAttachToSlot("garden", index)
+                  : undefined
+              }
+              onPointerDown={
+                isAttackSource && onAttackStart
+                  ? (event) => {
+                      event.stopPropagation();
+                      onAttackStart(
+                        index,
+                        position,
+                        [event.point.x, event.point.y, event.point.z]
+                      );
+                    }
                   : undefined
               }
             />
@@ -208,11 +241,17 @@ function LeaderCard({
   position,
   isWeaponTarget = false,
   onWeaponTargetClick,
+  isAttackSource = false,
+  isAttackTarget = false,
+  onAttackStart,
 }: {
   leader: ResolvedLeader;
   position: [number, number, number];
   isWeaponTarget?: boolean;
   onWeaponTargetClick?: () => void;
+  isAttackSource?: boolean;
+  isAttackTarget?: boolean;
+  onAttackStart?: (pointerPosition: [number, number, number]) => void;
 }) {
   return (
     <Card3D
@@ -230,6 +269,15 @@ function LeaderCard({
       showStats={false}
       isWeaponTarget={isWeaponTarget}
       onWeaponTargetClick={onWeaponTargetClick}
+      isAttackTarget={isAttackTarget}
+      onPointerDown={
+        isAttackSource && onAttackStart
+          ? (event) => {
+              event.stopPropagation();
+              onAttackStart([event.point.x, event.point.y, event.point.z]);
+            }
+          : undefined
+      }
     >
       {/* Large health display above leader */}
       <LeaderHealthDisplay
@@ -469,6 +517,9 @@ function PlayerArea({
   actionMask,
   onDropToSlot,
   onWeaponAttachToSlot,
+  attackableSlots,
+  attackTargets,
+  onAttackStart,
   validEffectTargets,
   onEffectTargetClick,
   gardenTargetOffset,
@@ -481,6 +532,9 @@ function PlayerArea({
   actionMask?: SnapshotActionMask | null;
   onDropToSlot?: (zone: "garden" | "alley", slotIndex: number) => void;
   onWeaponAttachToSlot?: (zone: "garden" | "alley" | "leader", slotIndex: number) => void;
+  attackableSlots?: Set<number>;
+  attackTargets?: Set<number>;
+  onAttackStart?: (attackerIndex: number, position: [number, number, number], pointerPosition: [number, number, number]) => void;
   validEffectTargets?: Set<number>;
   onEffectTargetClick?: (targetIndex: number) => void;
   gardenTargetOffset?: number;
@@ -490,6 +544,9 @@ function PlayerArea({
   const gardenZ = isOpponent ? OPP_GARDEN_Z : MY_GARDEN_Z;
   const alleyZ = isOpponent ? OPP_ALLEY_Z : MY_ALLEY_Z;
   const ikzZ = isOpponent ? OPP_IKZ_Z : MY_IKZ_Z;
+
+  const isLeaderAttackSource = !isOpponent && attackableSlots?.has(5);
+  const isLeaderAttackTarget = isOpponent && attackTargets?.has(5);
 
   return (
     <group>
@@ -501,6 +558,13 @@ function PlayerArea({
         onWeaponTargetClick={
           isLeaderWeaponTarget && onWeaponAttachToSlot
             ? () => onWeaponAttachToSlot("leader", 5)
+            : undefined
+        }
+        isAttackSource={isLeaderAttackSource}
+        isAttackTarget={isLeaderAttackTarget}
+        onAttackStart={
+          isLeaderAttackSource && onAttackStart
+            ? (pointerPosition) => onAttackStart(5, [RIGHT_SIDE_X, 0, gardenZ], pointerPosition)
             : undefined
         }
       />
@@ -517,6 +581,9 @@ function PlayerArea({
         actionMask={actionMask}
         onDropToSlot={onDropToSlot}
         onWeaponAttachToSlot={onWeaponAttachToSlot}
+        attackableSlots={attackableSlots}
+        attackTargets={attackTargets}
+        onAttackStart={onAttackStart}
         validEffectTargets={validEffectTargets}
         onEffectTargetClick={onEffectTargetClick}
         targetIndexOffset={gardenTargetOffset}
@@ -531,6 +598,7 @@ function PlayerArea({
         actionMask={actionMask}
         onDropToSlot={onDropToSlot}
         onWeaponAttachToSlot={onWeaponAttachToSlot}
+        attackTargets={attackTargets}
         validEffectTargets={validEffectTargets}
         onEffectTargetClick={onEffectTargetClick}
         targetIndexOffset={alleyTargetOffset}
@@ -597,6 +665,66 @@ export function Board() {
   const validWeaponAttachTargets = useDragStore((state) => state.validWeaponAttachTargets);
   const drop = useDragStore((state) => state.drop);
   const setOnDropCallback = useDragStore((state) => state.setOnDropCallback);
+
+  const isInAbilityPhase =
+    gameState?.abilitySubphase !== undefined &&
+    gameState.abilitySubphase !== "NONE";
+
+  const validAttackers = useMemo(
+    () => getValidAttackers(gameState?.actionMask ?? null),
+    [gameState?.actionMask]
+  );
+
+  const [attackDrag, setAttackDrag] = useState<{
+    active: boolean;
+    attackerIndex: number | null;
+    attackerPosition: [number, number, number];
+    initialPointerPosition: [number, number, number];
+    validTargets: Set<number>;
+  }>({
+    active: false,
+    attackerIndex: null,
+    attackerPosition: [0, 0, 0],
+    initialPointerPosition: [0, 0, 0],
+    validTargets: new Set<number>(),
+  });
+
+  const cancelAttackDrag = useCallback(() => {
+    setAttackDrag({
+      active: false,
+      attackerIndex: null,
+      attackerPosition: [0, 0, 0],
+      initialPointerPosition: [0, 0, 0],
+      validTargets: new Set<number>(),
+    });
+  }, []);
+
+  const startAttackDrag = useCallback(
+    (
+      attackerIndex: number,
+      attackerPosition: [number, number, number],
+      pointerPosition: [number, number, number]
+    ) => {
+      if (!gameState?.actionMask) return;
+      if (dragPhase !== "idle" || attackDrag.active || isInAbilityPhase) return;
+      if (!validAttackers.has(attackerIndex)) return;
+
+      const validTargets = getValidAttackTargetsForAttacker(
+        gameState.actionMask,
+        attackerIndex
+      );
+      if (validTargets.size === 0) return;
+
+      setAttackDrag({
+        active: true,
+        attackerIndex,
+        attackerPosition,
+        initialPointerPosition: pointerPosition,
+        validTargets,
+      });
+    },
+    [attackDrag.active, dragPhase, gameState?.actionMask, isInAbilityPhase, validAttackers]
+  );
 
   // Handle dropping a hand card on a slot
   const handleDropToSlot = useCallback(
@@ -726,6 +854,37 @@ export function Board() {
     [gameState?.actionMask, send, drop]
   );
 
+  const handleAttackCommit = useCallback(
+    (targetIndex: number) => {
+      if (!gameState?.actionMask) {
+        cancelAttackDrag();
+        return;
+      }
+
+      const attackerIndex = attackDrag.attackerIndex;
+      if (attackerIndex === null) {
+        cancelAttackDrag();
+        return;
+      }
+
+      const action = findValidAttackAction(
+        gameState.actionMask,
+        attackerIndex,
+        targetIndex
+      );
+
+      if (action) {
+        send({
+          type: "GAME_ACTION",
+          action,
+        });
+      }
+
+      cancelAttackDrag();
+    },
+    [attackDrag.attackerIndex, cancelAttackDrag, gameState?.actionMask, send]
+  );
+
   // Register the appropriate drop callback with the drag store when dragging
   useEffect(() => {
     if (dragPhase === "pickup" || dragPhase === "dragging") {
@@ -748,6 +907,18 @@ export function Board() {
       // Don't clear callback here - let drop() or reset() handle it
     };
   }, [dragPhase, dragSourceType, handleDropToSlot, handleGateDropToGarden, handleWeaponAttachDrop, setOnDropCallback]);
+
+  useEffect(() => {
+    if (attackDrag.active && !gameState?.actionMask) {
+      cancelAttackDrag();
+    }
+  }, [attackDrag.active, cancelAttackDrag, gameState?.actionMask]);
+
+  useEffect(() => {
+    if (attackDrag.active && isInAbilityPhase) {
+      cancelAttackDrag();
+    }
+  }, [attackDrag.active, cancelAttackDrag, isInAbilityPhase]);
 
   // Check if we're in effect selection phase and compute valid targets
   const isInEffectSelection = gameState?.abilitySubphase === "EFFECT_SELECTION";
@@ -803,6 +974,8 @@ export function Board() {
         actionMask={gameState.actionMask}
         onDropToSlot={handleDropToSlot}
         onWeaponAttachToSlot={handleWeaponAttachDrop}
+        attackableSlots={validAttackers}
+        onAttackStart={startAttackDrag}
         validEffectTargets={isInEffectSelection ? validEffectTargets : undefined}
         onEffectTargetClick={isInEffectSelection ? handleEffectTargetClick : undefined}
         gardenTargetOffset={MY_GARDEN_TARGET_OFFSET}
@@ -814,10 +987,20 @@ export function Board() {
       <PlayerArea
         board={gameState.opponentBoard}
         isOpponent={true}
+        attackTargets={attackDrag.active ? attackDrag.validTargets : undefined}
         validEffectTargets={isInEffectSelection ? validEffectTargets : undefined}
         onEffectTargetClick={isInEffectSelection ? handleEffectTargetClick : undefined}
         gardenTargetOffset={OPP_GARDEN_TARGET_OFFSET}
         alleyTargetOffset={OPP_ALLEY_TARGET_OFFSET}
+      />
+
+      <AttackDragOverlay
+        isActive={attackDrag.active}
+        attackerPosition={attackDrag.attackerPosition}
+        initialPointerPosition={attackDrag.initialPointerPosition}
+        validTargets={attackDrag.validTargets}
+        onCommit={handleAttackCommit}
+        onCancel={cancelAttackDrag}
       />
     </group>
   );

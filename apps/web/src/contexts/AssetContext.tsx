@@ -28,6 +28,9 @@ interface AssetContextValue {
   // Get a preloaded texture by cardCode
   getCardTexture: (cardCode: string) => THREE.Texture | null;
 
+  // Get a preloaded UI texture by key
+  getUiTexture: (key: string) => THREE.Texture | null;
+
   // Card back texture (always available after mount)
   cardBackTexture: THREE.Texture | null;
 
@@ -44,6 +47,25 @@ interface AssetProviderProps {
   children: ReactNode;
 }
 
+const UI_TEXTURES = [
+  {
+    key: "target",
+    url: "https://azuki-tcg.s3.us-east-1.amazonaws.com/textures/target.png",
+  },
+  {
+    key: "target-pointer",
+    url: "https://azuki-tcg.s3.us-east-1.amazonaws.com/textures/target-pointer.png",
+  },
+];
+
+type TextureCacheKey = "card" | "ui";
+
+interface TextureLoadEntry {
+  key: string;
+  url: string;
+  cache: TextureCacheKey;
+}
+
 export function AssetProvider({ children }: AssetProviderProps) {
   const [loadingState, setLoadingState] = useState<AssetLoadingState>({
     isLoading: false,
@@ -55,6 +77,8 @@ export function AssetProvider({ children }: AssetProviderProps) {
 
   // Texture cache: cardCode -> THREE.Texture
   const textureCache = useRef<Map<string, THREE.Texture>>(new Map());
+  // UI texture cache: key -> THREE.Texture
+  const uiTextureCache = useRef<Map<string, THREE.Texture>>(new Map());
 
   // Card back texture (created on client only)
   const [cardBackTexture, setCardBackTexture] = useState<THREE.Texture | null>(null);
@@ -65,8 +89,8 @@ export function AssetProvider({ children }: AssetProviderProps) {
   }, []);
 
   const loadTextures = useCallback(
-    async (urlsToLoad: { cardCode: string; url: string }[]) => {
-      if (urlsToLoad.length === 0) {
+    async (entries: TextureLoadEntry[]) => {
+      if (entries.length === 0) {
         return;
       }
 
@@ -74,28 +98,31 @@ export function AssetProvider({ children }: AssetProviderProps) {
         isLoading: true,
         progress: 0,
         loadedCount: 0,
-        totalCount: urlsToLoad.length,
+        totalCount: entries.length,
         error: null,
       });
 
       const textureLoader = new THREE.TextureLoader();
       let loadedCount = 0;
 
-      // Load all textures in parallel
-      const loadPromises = urlsToLoad.map(
-        ({ cardCode, url }) =>
+      const loadPromises = entries.map(
+        ({ key, url, cache }) =>
           new Promise<void>((resolve) => {
             textureLoader.load(
               url,
               (texture) => {
                 // Set proper color space for correct colors
                 texture.colorSpace = THREE.SRGBColorSpace;
-                textureCache.current.set(cardCode, texture);
+                if (cache === "card") {
+                  textureCache.current.set(key, texture);
+                } else {
+                  uiTextureCache.current.set(key, texture);
+                }
                 loadedCount++;
                 setLoadingState((prev) => ({
                   ...prev,
                   loadedCount,
-                  progress: Math.round((loadedCount / urlsToLoad.length) * 100),
+                  progress: Math.round((loadedCount / entries.length) * 100),
                 }));
                 resolve();
               },
@@ -106,7 +133,7 @@ export function AssetProvider({ children }: AssetProviderProps) {
                 setLoadingState((prev) => ({
                   ...prev,
                   loadedCount,
-                  progress: Math.round((loadedCount / urlsToLoad.length) * 100),
+                  progress: Math.round((loadedCount / entries.length) * 100),
                 }));
                 resolve();
               }
@@ -125,11 +152,21 @@ export function AssetProvider({ children }: AssetProviderProps) {
     []
   );
 
+  const getUiTextureEntries = useCallback((): TextureLoadEntry[] => {
+    return UI_TEXTURES.filter(
+      (texture) => !uiTextureCache.current.has(texture.key)
+    ).map((texture) => ({
+      key: texture.key,
+      url: texture.url,
+      cache: "ui" as const,
+    }));
+  }, []);
+
   const preloadDeckCards = useCallback(
     async (cards: DeckCard[]): Promise<Map<string, CardMapping>> => {
       // Build unique card mappings
       const cardMappings = new Map<string, CardMapping>();
-      const urlsToLoad: { cardCode: string; url: string }[] = [];
+      const entriesToLoad: TextureLoadEntry[] = [];
 
       for (const card of cards) {
         if (!cardMappings.has(card.cardCode)) {
@@ -147,18 +184,24 @@ export function AssetProvider({ children }: AssetProviderProps) {
 
           // Only load if not already cached
           if (!textureCache.current.has(card.cardCode)) {
-            urlsToLoad.push({ cardCode: card.cardCode, url: imageUrl });
+            entriesToLoad.push({
+              key: card.cardCode,
+              url: imageUrl,
+              cache: "card",
+            });
           }
         }
       }
 
-      if (urlsToLoad.length > 0) {
-        await loadTextures(urlsToLoad);
+      entriesToLoad.push(...getUiTextureEntries());
+
+      if (entriesToLoad.length > 0) {
+        await loadTextures(entriesToLoad);
       }
 
       return cardMappings;
     },
-    [loadTextures]
+    [getUiTextureEntries, loadTextures]
   );
 
   const preloadCardsByMetadata = useCallback(
@@ -166,7 +209,7 @@ export function AssetProvider({ children }: AssetProviderProps) {
       metadata: Record<string, SnapshotCardMetadata>
     ): Promise<Map<string, CardMapping>> => {
       const cardMappings = new Map<string, CardMapping>();
-      const urlsToLoad: { cardCode: string; url: string }[] = [];
+      const entriesToLoad: TextureLoadEntry[] = [];
 
       for (const cardMetadata of Object.values(metadata)) {
         const cardCode = cardMetadata.cardCode;
@@ -184,22 +227,32 @@ export function AssetProvider({ children }: AssetProviderProps) {
           });
 
           if (!textureCache.current.has(cardCode)) {
-            urlsToLoad.push({ cardCode, url: imageUrl });
+            entriesToLoad.push({
+              key: cardCode,
+              url: imageUrl,
+              cache: "card",
+            });
           }
         }
       }
 
-      if (urlsToLoad.length > 0) {
-        await loadTextures(urlsToLoad);
+      entriesToLoad.push(...getUiTextureEntries());
+
+      if (entriesToLoad.length > 0) {
+        await loadTextures(entriesToLoad);
       }
 
       return cardMappings;
     },
-    [loadTextures]
+    [getUiTextureEntries, loadTextures]
   );
 
   const getCardTexture = useCallback((cardCode: string): THREE.Texture | null => {
     return textureCache.current.get(cardCode) ?? null;
+  }, []);
+
+  const getUiTexture = useCallback((key: string): THREE.Texture | null => {
+    return uiTextureCache.current.get(key) ?? null;
   }, []);
 
   const clearAssets = useCallback(() => {
@@ -208,6 +261,10 @@ export function AssetProvider({ children }: AssetProviderProps) {
       texture.dispose();
     }
     textureCache.current.clear();
+    for (const texture of uiTextureCache.current.values()) {
+      texture.dispose();
+    }
+    uiTextureCache.current.clear();
 
     setLoadingState({
       isLoading: false,
@@ -227,6 +284,7 @@ export function AssetProvider({ children }: AssetProviderProps) {
         preloadDeckCards,
         preloadCardsByMetadata,
         getCardTexture,
+        getUiTexture,
         cardBackTexture,
         isReady,
         clearAssets,
