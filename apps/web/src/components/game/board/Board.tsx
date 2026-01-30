@@ -17,10 +17,13 @@ import {
   findValidWeaponAttachAction,
   getValidAttackers,
   getValidAttackTargetsForAttacker,
+  getValidCostTargets,
   getValidEffectTargets,
   getValidGateSourceAlleySlots,
+  buildCostTargetAction,
   buildEffectTargetAction,
 } from "@/lib/game/actionValidation";
+import { buildAbilityTargetMaps } from "@/lib/game/abilityTargeting";
 import type {
   ResolvedPlayerBoard,
   ResolvedCard,
@@ -84,9 +87,8 @@ function CardRow({
   attackableSlots,
   attackTargets,
   onAttackStart,
-  validEffectTargets,
-  onEffectTargetClick,
-  targetIndexOffset,
+  abilityTargets,
+  onAbilityTargetClick,
 }: {
   cards: (ResolvedCard | null)[];
   basePosition: [number, number, number];
@@ -98,9 +100,8 @@ function CardRow({
   attackableSlots?: Set<number>;
   attackTargets?: Set<number>;
   onAttackStart?: (attackerIndex: number, position: [number, number, number], pointerPosition: [number, number, number]) => void;
-  validEffectTargets?: Set<number>;
-  onEffectTargetClick?: (targetIndex: number) => void;
-  targetIndexOffset?: number;
+  abilityTargets?: Map<number, number>;
+  onAbilityTargetClick?: (targetIndex: number) => void;
 }) {
   const [baseX, baseY, baseZ] = basePosition;
 
@@ -127,9 +128,8 @@ function CardRow({
         const x = (index - Math.floor(GARDEN_SLOTS / 2)) * SLOT_SPACING + baseX;
         const position: [number, number, number] = [x, baseY, baseZ];
 
-        // Calculate target index for ability targeting
-        const targetIndex = (targetIndexOffset ?? 0) + index;
-        const isAbilityTarget = validEffectTargets?.has(targetIndex) ?? false;
+        const abilityTargetIndex = abilityTargets?.get(index);
+        const isAbilityTarget = abilityTargetIndex !== undefined;
 
         if (card) {
           // For player's alley cards that can be gated, use DraggableAlleyCard
@@ -184,8 +184,8 @@ function CardRow({
               isWeaponTarget={isWeaponAttachTarget}
               isAttackTarget={isAttackTarget}
               onAbilityTargetClick={
-                isAbilityTarget && onEffectTargetClick
-                  ? () => onEffectTargetClick(targetIndex)
+                isAbilityTarget && onAbilityTargetClick && abilityTargetIndex !== undefined
+                  ? () => onAbilityTargetClick(abilityTargetIndex)
                   : undefined
               }
               onWeaponTargetClick={
@@ -241,6 +241,8 @@ function LeaderCard({
   position,
   isWeaponTarget = false,
   onWeaponTargetClick,
+  isAbilityTarget = false,
+  onAbilityTargetClick,
   isAttackSource = false,
   isAttackTarget = false,
   onAttackStart,
@@ -249,6 +251,8 @@ function LeaderCard({
   position: [number, number, number];
   isWeaponTarget?: boolean;
   onWeaponTargetClick?: () => void;
+  isAbilityTarget?: boolean;
+  onAbilityTargetClick?: () => void;
   isAttackSource?: boolean;
   isAttackTarget?: boolean;
   onAttackStart?: (pointerPosition: [number, number, number]) => void;
@@ -269,6 +273,8 @@ function LeaderCard({
       showStats={false}
       isWeaponTarget={isWeaponTarget}
       onWeaponTargetClick={onWeaponTargetClick}
+      isAbilityTarget={isAbilityTarget}
+      onAbilityTargetClick={onAbilityTargetClick}
       isAttackTarget={isAttackTarget}
       onPointerDown={
         isAttackSource && onAttackStart
@@ -465,10 +471,14 @@ function HandDisplay({
   cards,
   position,
   actionMask,
+  abilityTargets,
+  onAbilityTargetClick,
 }: {
   cards: ResolvedHandCard[];
   position: [number, number, number];
   actionMask: SnapshotActionMask | null;
+  abilityTargets?: Map<number, number>;
+  onAbilityTargetClick?: (targetIndex: number) => void;
 }) {
   const cardCount = cards.length;
   const draggedCardIndex = useDragStore((state) => state.draggedCardIndex);
@@ -492,6 +502,7 @@ function HandDisplay({
           return null;
         }
 
+        const abilityTargetIndex = abilityTargets?.get(index);
         return (
           <DraggableHandCard
             key={`hand-${index}-${card.cardCode}`}
@@ -500,6 +511,8 @@ function HandDisplay({
             position={[x, y, z]}
             rotation={[0, rotationY, 0]}
             actionMask={actionMask}
+            abilityTargetIndex={abilityTargetIndex}
+            onAbilityTargetClick={onAbilityTargetClick}
           />
         );
       })}
@@ -520,11 +533,9 @@ function PlayerArea({
   attackableSlots,
   attackTargets,
   onAttackStart,
-  validEffectTargets,
-  onEffectTargetClick,
-  gardenTargetOffset,
-  alleyTargetOffset,
   isLeaderWeaponTarget,
+  abilityTargets,
+  onAbilityTargetClick,
 }: {
   board: ResolvedPlayerBoard;
   hand?: ResolvedHandCard[];
@@ -535,11 +546,13 @@ function PlayerArea({
   attackableSlots?: Set<number>;
   attackTargets?: Set<number>;
   onAttackStart?: (attackerIndex: number, position: [number, number, number], pointerPosition: [number, number, number]) => void;
-  validEffectTargets?: Set<number>;
-  onEffectTargetClick?: (targetIndex: number) => void;
-  gardenTargetOffset?: number;
-  alleyTargetOffset?: number;
   isLeaderWeaponTarget?: boolean;
+  abilityTargets?: {
+    gardenTargets?: Map<number, number>;
+    handTargets?: Map<number, number>;
+    leaderTargetIndex?: number | null;
+  };
+  onAbilityTargetClick?: (targetIndex: number) => void;
 }) {
   const gardenZ = isOpponent ? OPP_GARDEN_Z : MY_GARDEN_Z;
   const alleyZ = isOpponent ? OPP_ALLEY_Z : MY_ALLEY_Z;
@@ -547,6 +560,9 @@ function PlayerArea({
 
   const isLeaderAttackSource = !isOpponent && attackableSlots?.has(5);
   const isLeaderAttackTarget = isOpponent && attackTargets?.has(5);
+  const leaderTargetIndex = abilityTargets?.leaderTargetIndex;
+  const isLeaderAbilityTarget =
+    leaderTargetIndex !== null && leaderTargetIndex !== undefined;
 
   return (
     <group>
@@ -558,6 +574,12 @@ function PlayerArea({
         onWeaponTargetClick={
           isLeaderWeaponTarget && onWeaponAttachToSlot
             ? () => onWeaponAttachToSlot("leader", 5)
+            : undefined
+        }
+        isAbilityTarget={isLeaderAbilityTarget}
+        onAbilityTargetClick={
+          isLeaderAbilityTarget && onAbilityTargetClick && leaderTargetIndex !== null && leaderTargetIndex !== undefined
+            ? () => onAbilityTargetClick(leaderTargetIndex)
             : undefined
         }
         isAttackSource={isLeaderAttackSource}
@@ -584,9 +606,8 @@ function PlayerArea({
         attackableSlots={attackableSlots}
         attackTargets={attackTargets}
         onAttackStart={onAttackStart}
-        validEffectTargets={validEffectTargets}
-        onEffectTargetClick={onEffectTargetClick}
-        targetIndexOffset={gardenTargetOffset}
+        abilityTargets={abilityTargets?.gardenTargets}
+        onAbilityTargetClick={onAbilityTargetClick}
       />
 
       {/* Alley (back row) */}
@@ -599,9 +620,6 @@ function PlayerArea({
         onDropToSlot={onDropToSlot}
         onWeaponAttachToSlot={onWeaponAttachToSlot}
         attackTargets={attackTargets}
-        validEffectTargets={validEffectTargets}
-        onEffectTargetClick={onEffectTargetClick}
-        targetIndexOffset={alleyTargetOffset}
       />
 
       {/* Deck - below the gate */}
@@ -635,19 +653,13 @@ function PlayerArea({
           cards={hand}
           position={[0, 0.05, MY_HAND_Z]}
           actionMask={actionMask ?? null}
+          abilityTargets={abilityTargets?.handTargets}
+          onAbilityTargetClick={onAbilityTargetClick}
         />
       )}
     </group>
   );
 }
-
-// Target index offsets for ability targeting
-// These map slot indices to the target index used by the C engine
-// My Garden: 0-4, Opponent Garden: 5-9, My Alley: 10-14, Opponent Alley: 15-19
-const MY_GARDEN_TARGET_OFFSET = 0;
-const OPP_GARDEN_TARGET_OFFSET = 5;
-const MY_ALLEY_TARGET_OFFSET = 10;
-const OPP_ALLEY_TARGET_OFFSET = 15;
 
 /**
  * Main game board component.
@@ -920,23 +932,38 @@ export function Board() {
     }
   }, [attackDrag.active, cancelAttackDrag, isInAbilityPhase]);
 
-  // Check if we're in effect selection phase and compute valid targets
+  const isInCostSelection = gameState?.abilitySubphase === "COST_SELECTION";
   const isInEffectSelection = gameState?.abilitySubphase === "EFFECT_SELECTION";
-  const validEffectTargetsArray = isInEffectSelection
-    ? getValidEffectTargets(gameState?.actionMask ?? null)
-    : [];
-  const validEffectTargets = new Set(validEffectTargetsArray);
 
-  // Handle clicking an effect target
-  const handleEffectTargetClick = useCallback(
+  const abilityTargets = useMemo(() => {
+    if (!gameState) return null;
+    if (!isInCostSelection && !isInEffectSelection) return null;
+    const targetType = isInCostSelection
+      ? gameState.abilityCostTargetType
+      : gameState.abilityEffectTargetType;
+    if (targetType === undefined || targetType === null) return null;
+    const targetIndices = isInCostSelection
+      ? getValidCostTargets(gameState.actionMask ?? null)
+      : getValidEffectTargets(gameState.actionMask ?? null);
+    return buildAbilityTargetMaps({
+      targetType,
+      targetIndices,
+      gameState,
+    });
+  }, [gameState, isInCostSelection, isInEffectSelection]);
+
+  const handleAbilityTargetClick = useCallback(
     (targetIndex: number) => {
-      if (!isInEffectSelection) return;
+      if (!isInCostSelection && !isInEffectSelection) return;
+      const action = isInCostSelection
+        ? buildCostTargetAction(targetIndex)
+        : buildEffectTargetAction(targetIndex);
       send({
         type: "GAME_ACTION",
-        action: buildEffectTargetAction(targetIndex),
+        action,
       });
     },
-    [isInEffectSelection, send]
+    [isInCostSelection, isInEffectSelection, send]
   );
 
   // Check if leader is a valid weapon attachment target
@@ -976,11 +1003,17 @@ export function Board() {
         onWeaponAttachToSlot={handleWeaponAttachDrop}
         attackableSlots={validAttackers}
         onAttackStart={startAttackDrag}
-        validEffectTargets={isInEffectSelection ? validEffectTargets : undefined}
-        onEffectTargetClick={isInEffectSelection ? handleEffectTargetClick : undefined}
-        gardenTargetOffset={MY_GARDEN_TARGET_OFFSET}
-        alleyTargetOffset={MY_ALLEY_TARGET_OFFSET}
         isLeaderWeaponTarget={isLeaderWeaponTarget}
+        abilityTargets={
+          abilityTargets
+            ? {
+                gardenTargets: abilityTargets.selfGarden,
+                handTargets: abilityTargets.hand,
+                leaderTargetIndex: abilityTargets.selfLeader,
+              }
+            : undefined
+        }
+        onAbilityTargetClick={abilityTargets ? handleAbilityTargetClick : undefined}
       />
 
       {/* Opponent area (top) */}
@@ -988,10 +1021,15 @@ export function Board() {
         board={gameState.opponentBoard}
         isOpponent={true}
         attackTargets={attackDrag.active ? attackDrag.validTargets : undefined}
-        validEffectTargets={isInEffectSelection ? validEffectTargets : undefined}
-        onEffectTargetClick={isInEffectSelection ? handleEffectTargetClick : undefined}
-        gardenTargetOffset={OPP_GARDEN_TARGET_OFFSET}
-        alleyTargetOffset={OPP_ALLEY_TARGET_OFFSET}
+        abilityTargets={
+          abilityTargets
+            ? {
+                gardenTargets: abilityTargets.opponentGarden,
+                leaderTargetIndex: abilityTargets.opponentLeader,
+              }
+            : undefined
+        }
+        onAbilityTargetClick={abilityTargets ? handleAbilityTargetClick : undefined}
       />
 
       <AttackDragOverlay

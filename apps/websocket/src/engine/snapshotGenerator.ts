@@ -74,6 +74,16 @@ export async function generateSnapshot(
     turnNumber: gameState.turnNumber,
   };
 
+  if (typeof gameState.abilitySourceCardDefId === "number") {
+    stateContext.abilitySourceCardDefId = gameState.abilitySourceCardDefId;
+  }
+  if (typeof gameState.abilityCostTargetType === "number") {
+    stateContext.abilityCostTargetType = gameState.abilityCostTargetType;
+  }
+  if (typeof gameState.abilityEffectTargetType === "number") {
+    stateContext.abilityEffectTargetType = gameState.abilityEffectTargetType;
+  }
+
   // Include selection cards when in SELECTION_PICK or BOTTOM_DECK ability phase
   if (
     gameState.abilityPhase === "SELECTION_PICK" ||

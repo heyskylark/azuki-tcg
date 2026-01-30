@@ -115,6 +115,8 @@ export interface SnapshotStateContext {
   selectionCards?: SnapshotSelectionCard[];
   // Card that triggered the current ability (for UI context)
   abilitySourceCardDefId?: number;
+  abilityCostTargetType?: number;
+  abilityEffectTargetType?: number;
 }
 
 export interface SnapshotSelectionCard {

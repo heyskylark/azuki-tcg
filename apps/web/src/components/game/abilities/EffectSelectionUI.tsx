@@ -9,6 +9,7 @@ import {
   buildEffectTargetAction,
   buildNoopAction,
 } from "@/lib/game/actionValidation";
+import { isHandTargetType } from "@/lib/game/abilityTargeting";
 
 /**
  * UI for selecting effect targets on the board.
@@ -23,6 +24,8 @@ export function EffectSelectionUI() {
   const actionMask = gameState?.actionMask ?? null;
   const validTargets = getValidEffectTargets(actionMask);
   const canSkip = hasNoopAction(actionMask);
+  const effectTargetType = gameState?.abilityEffectTargetType;
+  const isHandTarget = isHandTargetType(effectTargetType);
 
   const handleSkip = useCallback(() => {
     if (!canSkip) return;
@@ -43,7 +46,9 @@ export function EffectSelectionUI() {
           Select a target for the ability
         </p>
         <p className="text-sm text-blue-200">
-          Click a highlighted card on the board ({validTargets.length} valid targets)
+          {isHandTarget
+            ? `Click a highlighted card in your hand (${validTargets.length} valid targets)`
+            : `Click a highlighted card on the board (${validTargets.length} valid targets)`}
         </p>
       </div>
 

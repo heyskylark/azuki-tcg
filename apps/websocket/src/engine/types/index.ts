@@ -156,6 +156,9 @@ export interface StateContext {
   abilityPhase: AbilityPhase;
   /** @deprecated Use abilityPhase - this is for client compatibility */
   abilitySubphase?: string;
+  abilitySourceCardDefId?: number;
+  abilityCostTargetType?: number;
+  abilityEffectTargetType?: number;
   activePlayer: 0 | 1;
   turnNumber: number;
   responseWindow: number;

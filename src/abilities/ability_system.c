@@ -9,6 +9,7 @@
 #include "utils/deck_utils.h"
 #include "utils/game_log_util.h"
 #include "utils/player_util.h"
+#include "utils/weapon_util.h"
 #include "utils/zone_util.h"
 
 // Forward declaration of timing tag constant
@@ -793,15 +794,7 @@ bool azk_process_selection_to_equip(ecs_world_t *world, int selection_index,
   ecs_add_pair(world, weapon, EcsChildOf, target_entity);
 
   // Apply weapon attack bonus directly (because ChildOf is deferred)
-  int16_t new_atk = target_stats->cur_atk + weapon_stats->cur_atk;
-  if (new_atk < 0)
-    new_atk = 0;
-  ecs_set(world, target_entity, CurStats,
-          {.cur_atk = (int8_t)new_atk, .cur_hp = target_stats->cur_hp});
-
-  // Log the stat change from weapon equip
-  azk_log_card_stat_change(world, target_entity, weapon_stats->cur_atk, 0,
-                           (int8_t)new_atk, target_stats->cur_hp);
+  apply_weapon_attack_bonus(world, target_entity, weapon_stats->cur_atk);
 
   cli_render_logf("[Ability] Equipped weapon (+%d attack) to entity at slot %d",
                   weapon_stats->cur_atk, entity_index);

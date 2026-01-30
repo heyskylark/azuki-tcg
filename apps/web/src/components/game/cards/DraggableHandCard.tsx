@@ -26,6 +26,8 @@ interface DraggableHandCardProps {
   position: [number, number, number];
   rotation: [number, number, number];
   actionMask: SnapshotActionMask | null;
+  abilityTargetIndex?: number;
+  onAbilityTargetClick?: (targetIndex: number) => void;
 }
 
 /**
@@ -38,6 +40,8 @@ export function DraggableHandCard({
   position,
   rotation,
   actionMask,
+  abilityTargetIndex,
+  onAbilityTargetClick,
 }: DraggableHandCardProps) {
   const groupRef = useRef<THREE.Group>(null!);
   const { camera } = useThree();
@@ -94,8 +98,16 @@ export function DraggableHandCard({
     [camera]
   );
 
+  const isAbilityTarget =
+    abilityTargetIndex !== undefined && abilityTargetIndex !== null;
+
   const handlePointerDown = useCallback(
     (e: ThreeEvent<PointerEvent>) => {
+      if (isAbilityTarget && onAbilityTargetClick) {
+        e.stopPropagation();
+        onAbilityTargetClick(abilityTargetIndex as number);
+        return;
+      }
       if (!isDraggable || dragPhase !== "idle") return;
 
       e.stopPropagation();
@@ -146,6 +158,9 @@ export function DraggableHandCard({
       }
     },
     [
+      isAbilityTarget,
+      abilityTargetIndex,
+      onAbilityTargetClick,
       isDraggable,
       canAttach,
       dragPhase,
@@ -224,6 +239,7 @@ export function DraggableHandCard({
         name={card.name}
         position={[0, 0, 0]}
         showStats={false}
+        isAbilityTarget={isAbilityTarget}
       >
         {/* IKZ cost badge */}
         <group position={[CARD_WIDTH * 0.35, 0.1, -0.8]}>

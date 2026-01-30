@@ -138,6 +138,9 @@ export function GameStateProvider({
           abilitySubphase: string;
           activePlayer: 0 | 1;
           turnNumber: number;
+          abilitySourceCardDefId?: number;
+          abilityCostTargetType?: number;
+          abilityEffectTargetType?: number;
           selectionCards?: Array<{
             cardId: string | null;
             cardDefId: number;
@@ -172,6 +175,9 @@ export function GameStateProvider({
           abilitySubphase: stateContext.abilitySubphase,
           activePlayer: stateContext.activePlayer,
           turnNumber: stateContext.turnNumber,
+          abilitySourceCardDefId: stateContext.abilitySourceCardDefId,
+          abilityCostTargetType: stateContext.abilityCostTargetType,
+          abilityEffectTargetType: stateContext.abilityEffectTargetType,
           selectionCards,
           // Use action mask from batch if present (for active player), otherwise clear it
           actionMask: batch.actionMask ?? null,
@@ -401,6 +407,9 @@ function transformSnapshot(
     abilitySubphase: snapshot.stateContext.abilitySubphase,
     activePlayer: snapshot.stateContext.activePlayer,
     turnNumber: snapshot.stateContext.turnNumber,
+    abilitySourceCardDefId: snapshot.stateContext.abilitySourceCardDefId,
+    abilityCostTargetType: snapshot.stateContext.abilityCostTargetType,
+    abilityEffectTargetType: snapshot.stateContext.abilityEffectTargetType,
     myBoard: resolvePlayerBoard(snapshot.players[myBoardIndex], cardMappings),
     opponentBoard: resolvePlayerBoard(snapshot.players[opponentBoardIndex], cardMappings),
     myHand: snapshot.yourHand.map((card) => resolveHandCard(card, cardMappings)),

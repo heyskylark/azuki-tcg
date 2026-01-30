@@ -15,6 +15,7 @@
 #include "utils/observation_util.h"
 #include "utils/game_log_util.h"
 #include "utils/debug_log.h"
+#include "abilities/ability_registry.h"
 
 // Maximum number of concurrent game worlds
 #define MAX_WORLDS 256
@@ -87,6 +88,43 @@ static const char *ability_phase_to_string(AbilityPhase phase) {
     case ABILITY_PHASE_BOTTOM_DECK: return "BOTTOM_DECK";
     default: return "NONE";
   }
+}
+
+static void append_ability_context_metadata(napi_env env,
+                                            napi_value state_context,
+                                            AzkEngine *engine) {
+  AbilityPhase ability_phase = azk_engine_get_ability_phase(engine);
+  if (ability_phase == ABILITY_PHASE_NONE) {
+    return;
+  }
+
+  const AbilityContext *ctx = ecs_singleton_get(engine, AbilityContext);
+  if (!ctx || ctx->source_card == 0) {
+    return;
+  }
+
+  const CardId *card_id = ecs_get(engine, ctx->source_card, CardId);
+  if (!card_id) {
+    return;
+  }
+
+  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  if (!def) {
+    return;
+  }
+
+  napi_value source_def_id_val, cost_type_val, effect_type_val;
+  napi_create_int32(env, (int32_t)card_id->id, &source_def_id_val);
+  napi_set_named_property(env, state_context, "abilitySourceCardDefId",
+                          source_def_id_val);
+
+  napi_create_int32(env, (int32_t)def->cost_req.type, &cost_type_val);
+  napi_set_named_property(env, state_context, "abilityCostTargetType",
+                          cost_type_val);
+
+  napi_create_int32(env, (int32_t)def->effect_req.type, &effect_type_val);
+  napi_set_named_property(env, state_context, "abilityEffectTargetType",
+                          effect_type_val);
 }
 
 // createWorld(seed: number) -> { worldId: string, success: boolean }
@@ -756,6 +794,7 @@ static napi_value SubmitAction(napi_env env, napi_callback_info info) {
   napi_set_named_property(env, state_context, "abilityPhase", ability_phase_val);
   // Also set abilitySubphase for client compatibility
   napi_set_named_property(env, state_context, "abilitySubphase", ability_phase_val);
+  append_ability_context_metadata(env, state_context, engine);
 
   // Extract game logs
   uint8_t log_count = 0;
@@ -833,6 +872,7 @@ static napi_value GetGameState(napi_env env, napi_callback_info info) {
   // Also set abilitySubphase for client compatibility
   napi_set_named_property(env, result, "abilitySubphase", ability_phase_val);
   napi_set_named_property(env, result, "winner", winner_val);
+  append_ability_context_metadata(env, result, engine);
 
   return result;
 }

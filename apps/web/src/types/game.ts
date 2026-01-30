@@ -120,6 +120,9 @@ export interface GameState {
   abilitySubphase: string;
   activePlayer: 0 | 1;
   turnNumber: number;
+  abilitySourceCardDefId?: number;
+  abilityCostTargetType?: number;
+  abilityEffectTargetType?: number;
 
   // Player boards - myBoard is always the viewing player
   myBoard: ResolvedPlayerBoard;

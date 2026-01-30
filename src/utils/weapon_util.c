@@ -5,6 +5,29 @@
 #include "utils/game_log_util.h"
 #include "utils/status_util.h"
 
+bool apply_weapon_attack_bonus(ecs_world_t *world, ecs_entity_t target_card,
+                               int8_t weapon_atk) {
+  const CurStats *target_stats = ecs_get(world, target_card, CurStats);
+  if (!target_stats) {
+    cli_render_logf("[Weapon] Missing CurStats for target %llu",
+                    (unsigned long long)target_card);
+    return false;
+  }
+
+  int16_t new_atk = target_stats->cur_atk + weapon_atk;
+  if (new_atk < 0)
+    new_atk = 0;
+  ecs_set(world, target_card, CurStats, {
+    .cur_atk = (int8_t)new_atk,
+    .cur_hp = target_stats->cur_hp,
+  });
+
+  azk_log_card_stat_change(world, target_card, weapon_atk, 0,
+                           (int8_t)new_atk, target_stats->cur_hp);
+
+  return true;
+}
+
 int attach_weapon_from_hand(ecs_world_t *world,
                             const AttachWeaponIntent *intent) {
   ecs_assert(world != NULL, ECS_INVALID_PARAMETER, "World is null");
@@ -37,12 +60,8 @@ int attach_weapon_from_hand(ecs_world_t *world,
   // We can't use recalculate_attack_from_buffs because:
   // 1. ChildOf relationship is deferred (weapon not visible as child yet)
   // 2. AttackBuff pairs from observers are also deferred
-  int16_t new_atk = entity_cur_stats->cur_atk + weapon_cur_stats->cur_atk;
-  if (new_atk < 0) new_atk = 0;
-  ecs_set(world, intent->target_card, CurStats, {
-    .cur_atk = (int8_t)new_atk,
-    .cur_hp = entity_cur_stats->cur_hp,
-  });
+  apply_weapon_attack_bonus(world, intent->target_card,
+                            weapon_cur_stats->cur_atk);
 
   cli_render_logf("[Weapon] Attached weapon (+%d attack) to entity",
                   weapon_cur_stats->cur_atk);
