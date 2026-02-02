@@ -11,6 +11,7 @@ export const ACTION_PLAY_WEAPON = 4;
 export const ACTION_ATTACK = 6;
 // ... additional play action types
 export const ACTION_ATTACH_WEAPON_FROM_HAND = 7;
+export const ACTION_DECLARE_DEFENDER = 9;
 export const ACTION_GATE_PORTAL = 10;
 export const ACTION_ACTIVATE_GARDEN_OR_LEADER_ABILITY = 11;
 export const ACTION_ACTIVATE_ALLEY_ABILITY = 12;
@@ -357,6 +358,64 @@ export function buildAttackAction(
   targetIndex: number
 ): [number, number, number, number] {
   return [ACTION_ATTACK, attackerIndex, targetIndex, 0];
+}
+
+// ============================================
+// Defender Action Helpers
+// ============================================
+
+/**
+ * Get valid defender indices (0-4 = garden slots).
+ */
+export function getValidDefenderSlots(
+  actionMask: SnapshotActionMask | null
+): Set<number> {
+  const defenders = new Set<number>();
+
+  if (!actionMask) return defenders;
+
+  const { legalPrimary, legalSub1 } = actionMask;
+
+  for (let i = 0; i < legalPrimary.length; i++) {
+    if (legalPrimary[i] === ACTION_DECLARE_DEFENDER) {
+      defenders.add(legalSub1[i]);
+    }
+  }
+
+  return defenders;
+}
+
+/**
+ * Find the valid DECLARE_DEFENDER action tuple for a specific garden slot.
+ * Returns [ACTION_DECLARE_DEFENDER, gardenIndex, 0, 0] or null if invalid.
+ */
+export function findValidDeclareDefenderAction(
+  actionMask: SnapshotActionMask | null,
+  gardenIndex: number
+): [number, number, number, number] | null {
+  if (!actionMask) return null;
+
+  const { legalPrimary, legalSub1, legalSub2, legalSub3 } = actionMask;
+
+  for (let i = 0; i < legalPrimary.length; i++) {
+    if (
+      legalPrimary[i] === ACTION_DECLARE_DEFENDER &&
+      legalSub1[i] === gardenIndex
+    ) {
+      return [ACTION_DECLARE_DEFENDER, gardenIndex, legalSub2[i], legalSub3[i]];
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Build a DECLARE_DEFENDER action tuple.
+ */
+export function buildDeclareDefenderAction(
+  gardenIndex: number
+): [number, number, number, number] {
+  return [ACTION_DECLARE_DEFENDER, gardenIndex, 0, 0];
 }
 
 // ============================================

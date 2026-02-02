@@ -42,6 +42,9 @@ interface Card3DProps {
   onWeaponTargetClick?: () => void;
   // Attack targeting props
   isAttackTarget?: boolean;
+  // Defender targeting props
+  isDefenderTarget?: boolean;
+  onDefenderTargetClick?: () => void;
   onPointerDown?: (event: ThreeEvent<PointerEvent>) => void;
   onPointerUp?: (event: ThreeEvent<PointerEvent>) => void;
 }
@@ -74,6 +77,8 @@ export function Card3D({
   isWeaponTarget = false,
   onWeaponTargetClick,
   isAttackTarget = false,
+  isDefenderTarget = false,
+  onDefenderTargetClick,
   onPointerDown,
   onPointerUp,
 }: Card3DProps) {
@@ -137,6 +142,8 @@ export function Card3D({
             } else if (isAbilityTarget && onAbilityTargetClick) {
               // If this is an ability target and we have a target click handler, use it
               onAbilityTargetClick();
+            } else if (isDefenderTarget && onDefenderTargetClick) {
+              onDefenderTargetClick();
             } else if (isAbilityActivatable && onAbilityActivate) {
               onAbilityActivate();
             } else {
@@ -150,7 +157,11 @@ export function Card3D({
             e.stopPropagation();
             setHover(true);
             document.body.style.cursor =
-              isWeaponTarget || isAbilityTarget || isAttackTarget || isAbilityActivatable
+              isWeaponTarget ||
+              isAbilityTarget ||
+              isAttackTarget ||
+              isAbilityActivatable ||
+              isDefenderTarget
                 ? "crosshair"
                 : "pointer";
           }}
@@ -222,6 +233,9 @@ export function Card3D({
 
         {/* Attack target highlight */}
         {isAttackTarget && <AttackTargetOverlay />}
+
+        {/* Defender target highlight */}
+        {isDefenderTarget && <DefenderTargetOverlay />}
 
         {/* Stats display */}
         {showStats && attack !== null && attack !== undefined && health !== null && health !== undefined && (
@@ -549,6 +563,37 @@ function AttackTargetOverlay() {
       <planeGeometry args={[CARD_WIDTH + 0.2, CARD_HEIGHT + 0.2]} />
       <meshBasicMaterial
         color="#cc3333"
+        transparent
+        opacity={0.4}
+        side={THREE.DoubleSide}
+      />
+    </mesh>
+  );
+}
+
+/**
+ * Defender target overlay - pulsing teal highlight for valid defenders.
+ */
+function DefenderTargetOverlay() {
+  const meshRef = useRef<THREE.Mesh>(null!);
+
+  useFrame((state) => {
+    if (meshRef.current) {
+      const pulse = Math.sin(state.clock.elapsedTime * 5) * 0.15 + 0.45;
+      (meshRef.current.material as THREE.MeshBasicMaterial).opacity = pulse;
+    }
+  });
+
+  return (
+    <mesh
+      ref={meshRef}
+      rotation={[-Math.PI / 2, 0, 0]}
+      position={[0, CARD_DEPTH + 0.03, 0]}
+      raycast={() => null}
+    >
+      <planeGeometry args={[CARD_WIDTH + 0.2, CARD_HEIGHT + 0.2]} />
+      <meshBasicMaterial
+        color="#4ecdc4"
         transparent
         opacity={0.4}
         side={THREE.DoubleSide}

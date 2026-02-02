@@ -17,6 +17,7 @@ import {
   findValidAttackAction,
   findValidAction,
   findValidGardenOrLeaderAbilityAction,
+  findValidDeclareDefenderAction,
   findValidGateAction,
   findValidSpellAction,
   findValidWeaponAttachAction,
@@ -25,6 +26,7 @@ import {
   getValidAttackers,
   getValidAttackTargetsForAttacker,
   getValidCostTargets,
+  getValidDefenderSlots,
   getValidEffectTargets,
   getValidGateSourceAlleySlots,
   buildCostTargetAction,
@@ -135,6 +137,8 @@ function CardRow({
   onAbilityTargetClick,
   activatableSlots,
   onActivateAbility,
+  defenderTargets,
+  onDefenderTargetClick,
 }: {
   cards: (ResolvedCard | null)[];
   basePosition: [number, number, number];
@@ -150,6 +154,8 @@ function CardRow({
   onAbilityTargetClick?: (targetIndex: number) => void;
   activatableSlots?: Set<number>;
   onActivateAbility?: (slotIndex: number) => void;
+  defenderTargets?: Set<number>;
+  onDefenderTargetClick?: (gardenIndex: number) => void;
 }) {
   const [baseX, baseY, baseZ] = basePosition;
 
@@ -219,6 +225,11 @@ function CardRow({
             zone === "garden" &&
             attackTargets?.has(index);
 
+          const isDefenderTarget =
+            !isOpponent &&
+            zone === "garden" &&
+            defenderTargets?.has(index);
+
           return (
             <Card3D
               key={`card-${index}-${card.cardCode}`}
@@ -246,6 +257,7 @@ function CardRow({
                   ? () => onActivateAbility(index)
                   : undefined
               }
+              isDefenderTarget={isDefenderTarget}
               onAbilityTargetClick={
                 isAbilityTarget && onAbilityTargetClick && abilityTargetIndex !== undefined
                   ? () => onAbilityTargetClick(abilityTargetIndex)
@@ -254,6 +266,11 @@ function CardRow({
               onWeaponTargetClick={
                 isWeaponAttachTarget && onWeaponAttachToSlot
                   ? () => onWeaponAttachToSlot("garden", index)
+                  : undefined
+              }
+              onDefenderTargetClick={
+                isDefenderTarget && onDefenderTargetClick
+                  ? () => onDefenderTargetClick(index)
                   : undefined
               }
               onPointerDown={
@@ -609,6 +626,8 @@ function PlayerArea({
   canActivateLeaderAbility,
   onActivateGardenOrLeaderAbility,
   onActivateAlleyAbility,
+  defenderTargets,
+  onDefenderTargetClick,
 }: {
   board: ResolvedPlayerBoard;
   hand?: ResolvedHandCard[];
@@ -631,6 +650,8 @@ function PlayerArea({
   canActivateLeaderAbility?: boolean;
   onActivateGardenOrLeaderAbility?: (slotIndex: number) => void;
   onActivateAlleyAbility?: (alleyIndex: number) => void;
+  defenderTargets?: Set<number>;
+  onDefenderTargetClick?: (gardenIndex: number) => void;
 }) {
   const gardenZ = isOpponent ? OPP_GARDEN_Z : MY_GARDEN_Z;
   const alleyZ = isOpponent ? OPP_ALLEY_Z : MY_ALLEY_Z;
@@ -695,6 +716,8 @@ function PlayerArea({
         onAbilityTargetClick={onAbilityTargetClick}
         activatableSlots={!isOpponent ? activatableGardenSlots : undefined}
         onActivateAbility={!isOpponent ? onActivateGardenOrLeaderAbility : undefined}
+        defenderTargets={defenderTargets}
+        onDefenderTargetClick={onDefenderTargetClick}
       />
 
       {/* Alley (back row) */}
@@ -772,6 +795,8 @@ export function Board() {
   const isInAbilityPhase =
     gameState?.abilitySubphase !== undefined &&
     gameState.abilitySubphase !== "NONE";
+
+  const isResponseWindow = gameState?.phase === "RESPONSE_WINDOW";
 
   const validAttackers = useMemo(
     () => getValidAttackers(gameState?.actionMask ?? null),
@@ -1255,6 +1280,12 @@ export function Board() {
     });
   }, [gameState, isInCostSelection, isInEffectSelection]);
 
+  const defenderTargets = useMemo(() => {
+    if (!isResponseWindow || !gameState?.actionMask) return new Set<number>();
+    if (isInAbilityPhase) return new Set<number>();
+    return getValidDefenderSlots(gameState.actionMask);
+  }, [gameState?.actionMask, isInAbilityPhase, isResponseWindow]);
+
   const handleAbilityTargetClick = useCallback(
     (targetIndex: number) => {
       if (!isInCostSelection && !isInEffectSelection) return;
@@ -1267,6 +1298,26 @@ export function Board() {
       });
     },
     [isInCostSelection, isInEffectSelection, send]
+  );
+
+  const handleDeclareDefender = useCallback(
+    (gardenIndex: number) => {
+      if (!isResponseWindow || !gameState?.actionMask) return;
+      if (isInAbilityPhase) return;
+
+      const action = findValidDeclareDefenderAction(
+        gameState.actionMask,
+        gardenIndex
+      );
+
+      if (action) {
+        send({
+          type: "GAME_ACTION",
+          action,
+        });
+      }
+    },
+    [gameState?.actionMask, isInAbilityPhase, isResponseWindow, send]
   );
 
   // Check if leader is a valid weapon attachment target
@@ -1330,6 +1381,8 @@ export function Board() {
             : undefined
         }
         onAbilityTargetClick={abilityTargets ? handleAbilityTargetClick : undefined}
+        defenderTargets={defenderTargets}
+        onDefenderTargetClick={handleDeclareDefender}
       />
 
       {/* Opponent area (top) */}
