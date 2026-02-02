@@ -36,14 +36,14 @@ export function CostSelectionUI() {
   );
 
   return (
-    <div className="absolute inset-0 flex flex-col items-center justify-end pb-32 pointer-events-auto">
+    <div className="absolute inset-0 flex flex-col items-center justify-end pb-32 pointer-events-none">
       {/* Header banner */}
       <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-amber-600/90 text-white px-6 py-2 rounded-lg shadow-lg">
         <p className="text-lg font-semibold">Select a card to pay the cost</p>
       </div>
 
       {/* Hand card selection - overlay style */}
-      <div className="bg-slate-800/90 border border-slate-600 rounded-lg p-4 max-w-3xl w-full mx-4">
+      <div className="bg-slate-800/90 border border-slate-600 rounded-lg p-4 max-w-3xl w-full mx-4 pointer-events-auto">
         {isHandTarget ? (
           <>
             <p className="text-slate-300 text-sm mb-3">

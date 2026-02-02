@@ -259,7 +259,11 @@ function KeywordBadges({
  */
 function FrozenOverlay() {
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, CARD_DEPTH + 0.01, 0]}>
+    <mesh
+      rotation={[-Math.PI / 2, 0, 0]}
+      position={[0, CARD_DEPTH + 0.01, 0]}
+      raycast={() => null}
+    >
       <planeGeometry args={[CARD_WIDTH * 0.9, CARD_HEIGHT * 0.9]} />
       <meshBasicMaterial
         color="#4488ff"
@@ -290,6 +294,7 @@ function ShockedOverlay() {
       ref={meshRef}
       rotation={[-Math.PI / 2, 0, 0]}
       position={[0, CARD_DEPTH + 0.02, 0]}
+      raycast={() => null}
     >
       <planeGeometry args={[CARD_WIDTH * 0.9, CARD_HEIGHT * 0.9]} />
       <meshBasicMaterial
@@ -307,7 +312,11 @@ function ShockedOverlay() {
  */
 function CooldownOverlay() {
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, CARD_DEPTH + 0.01, 0]}>
+    <mesh
+      rotation={[-Math.PI / 2, 0, 0]}
+      position={[0, CARD_DEPTH + 0.01, 0]}
+      raycast={() => null}
+    >
       <planeGeometry args={[CARD_WIDTH * 0.9, CARD_HEIGHT * 0.9]} />
       <meshBasicMaterial
         color="#000000"
@@ -338,6 +347,7 @@ function AbilityTargetOverlay() {
       ref={meshRef}
       rotation={[-Math.PI / 2, 0, 0]}
       position={[0, CARD_DEPTH + 0.03, 0]}
+      raycast={() => null}
     >
       <planeGeometry args={[CARD_WIDTH + 0.2, CARD_HEIGHT + 0.2]} />
       <meshBasicMaterial
@@ -369,6 +379,7 @@ function WeaponTargetOverlay() {
       ref={meshRef}
       rotation={[-Math.PI / 2, 0, 0]}
       position={[0, CARD_DEPTH + 0.03, 0]}
+      raycast={() => null}
     >
       <planeGeometry args={[CARD_WIDTH + 0.2, CARD_HEIGHT + 0.2]} />
       <meshBasicMaterial
@@ -399,6 +410,7 @@ function AttackTargetOverlay() {
       ref={meshRef}
       rotation={[-Math.PI / 2, 0, 0]}
       position={[0, CARD_DEPTH + 0.03, 0]}
+      raycast={() => null}
     >
       <planeGeometry args={[CARD_WIDTH + 0.2, CARD_HEIGHT + 0.2]} />
       <meshBasicMaterial
