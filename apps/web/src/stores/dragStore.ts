@@ -1,8 +1,8 @@
 import { create } from "zustand";
 
 export type DragPhase = "idle" | "pickup" | "dragging" | "returning";
-export type HoveredZone = "garden" | "alley" | "hand" | "leader" | null;
-export type DragSourceType = "hand" | "alley" | "weapon" | null;
+export type HoveredZone = "garden" | "alley" | "hand" | "leader" | "spell" | null;
+export type DragSourceType = "hand" | "alley" | "weapon" | "spell" | null;
 
 interface DragState {
   // Drag phase state
@@ -34,7 +34,7 @@ interface DragState {
   validWeaponAttachTargets: Set<number>; // 0-4 = garden slots, 5 = leader
 
   // Drop callback - called by DraggedCard when dropped on valid target
-  onDropCallback: ((zone: "garden" | "alley" | "leader", slotIndex: number) => void) | null;
+  onDropCallback: ((zone: "garden" | "alley" | "leader" | "spell", slotIndex: number | null) => void) | null;
 
   // Actions
   startPickup: (
@@ -50,6 +50,11 @@ interface DragState {
     handPosition: [number, number, number],
     validWeaponAttachTargets: Set<number>
   ) => void;
+  startSpellPickup: (
+    handIndex: number,
+    cardCode: string,
+    handPosition: [number, number, number]
+  ) => void;
   startAlleyPickup: (
     alleyIndex: number,
     cardCode: string,
@@ -60,7 +65,7 @@ interface DragState {
   updateTargetPosition: (position: [number, number, number]) => void;
   updateCurrentPosition: (position: [number, number, number]) => void;
   setHoveredSlot: (zone: HoveredZone, slotIndex: number | null) => void;
-  setOnDropCallback: (callback: ((zone: "garden" | "alley" | "leader", slotIndex: number) => void) | null) => void;
+  setOnDropCallback: (callback: ((zone: "garden" | "alley" | "leader" | "spell", slotIndex: number | null) => void) | null) => void;
   drop: () => void;
   startReturning: () => void;
   cancelDrag: () => void;
@@ -82,7 +87,7 @@ const initialState = {
   validGardenSlots: new Set<number>(),
   validAlleySlots: new Set<number>(),
   validWeaponAttachTargets: new Set<number>(),
-  onDropCallback: null as ((zone: "garden" | "alley" | "leader", slotIndex: number) => void) | null,
+  onDropCallback: null as ((zone: "garden" | "alley" | "leader" | "spell", slotIndex: number | null) => void) | null,
 };
 
 export const useDragStore = create<DragState>((set) => ({
@@ -118,6 +123,23 @@ export const useDragStore = create<DragState>((set) => ({
       validGardenSlots: new Set<number>(),
       validAlleySlots: new Set<number>(),
       validWeaponAttachTargets,
+      hoveredZone: "hand",
+      hoveredSlotIndex: null,
+    }),
+
+  startSpellPickup: (handIndex, cardCode, handPosition) =>
+    set({
+      dragPhase: "pickup",
+      dragSourceType: "spell",
+      draggedCardIndex: handIndex,
+      draggedCardCode: cardCode,
+      sourceAlleyIndex: null,
+      originalHandPosition: handPosition,
+      currentPosition: [...handPosition],
+      targetPosition: [...handPosition],
+      validGardenSlots: new Set<number>(),
+      validAlleySlots: new Set<number>(),
+      validWeaponAttachTargets: new Set<number>(),
       hoveredZone: "hand",
       hoveredSlotIndex: null,
     }),

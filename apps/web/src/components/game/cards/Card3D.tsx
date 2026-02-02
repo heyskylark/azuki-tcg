@@ -582,6 +582,7 @@ export function EmptyCardSlot({
   const meshRef = useRef<THREE.Mesh>(null!);
 
   const dragPhase = useDragStore((state) => state.dragPhase);
+  const dragSourceType = useDragStore((state) => state.dragSourceType);
   const setHoveredSlot = useDragStore((state) => state.setHoveredSlot);
 
   const isDragging = dragPhase === "dragging" || dragPhase === "pickup";
@@ -607,14 +608,19 @@ export function EmptyCardSlot({
 
   const handlePointerOver = () => {
     setHovered(true);
-    if (isDragging && zone !== undefined && slotIndex !== undefined) {
+    if (
+      isDragging &&
+      dragSourceType !== "spell" &&
+      zone !== undefined &&
+      slotIndex !== undefined
+    ) {
       setHoveredSlot(zone, slotIndex);
     }
   };
 
   const handlePointerOut = () => {
     setHovered(false);
-    if (isDragging) {
+    if (isDragging && dragSourceType !== "spell") {
       setHoveredSlot(null, null);
     }
   };

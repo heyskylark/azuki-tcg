@@ -48,7 +48,7 @@ static const AzkActionSpec ACTION_SPECS[] = {
   },
   {
     .type = ACT_PLAY_SPELL_FROM_HAND,
-    .phase_mask = AZK_PHASE_MASK(PHASE_RESPONSE_WINDOW),
+    .phase_mask = AZK_PHASE_MASK(PHASE_MAIN) | AZK_PHASE_MASK(PHASE_RESPONSE_WINDOW),
     .params = { HAND_INDEX_PARAM, UNUSED_PARAM, BOOL_PARAM }
   },
   {

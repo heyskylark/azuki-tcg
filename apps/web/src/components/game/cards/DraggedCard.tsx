@@ -19,6 +19,11 @@ const ALLEY_TO_GARDEN_Z_THRESHOLD = 2.5;
 const SLOT_SPACING = 1.8;
 const NUM_SLOTS = 5;
 
+// Spell drop zone constants (center of board)
+const SPELL_DROP_CENTER: [number, number] = [0, 0]; // [x, z]
+const SPELL_DROP_WIDTH = CARD_WIDTH;
+const SPELL_DROP_HEIGHT = CARD_HEIGHT;
+
 // Spring constants
 const PICKUP_SPRING = 12; // Faster follow in pickup
 const DRAG_SPRING = 8; // Smooth lag when dragging
@@ -45,6 +50,13 @@ function getSlotIndexFromX(x: number): number | null {
   const rawIndex = Math.round(x / SLOT_SPACING) + Math.floor(NUM_SLOTS / 2);
   if (rawIndex < 0 || rawIndex >= NUM_SLOTS) return null;
   return rawIndex;
+}
+
+function isInSpellDropZone(x: number, z: number): boolean {
+  return (
+    Math.abs(x - SPELL_DROP_CENTER[0]) <= SPELL_DROP_WIDTH / 2 &&
+    Math.abs(z - SPELL_DROP_CENTER[1]) <= SPELL_DROP_HEIGHT / 2
+  );
 }
 
 /**
@@ -83,18 +95,20 @@ export function DraggedCard() {
   // Check if current hover is over a valid drop target
   // For alley drags (gate), only garden is valid; for hand drags, both garden and alley are valid
   const isOverValidTarget =
-    dragSourceType === "alley"
-      ? // Alley drag: only garden is valid target
-        hoveredZone === "garden" &&
-        hoveredSlotIndex !== null &&
-        validGardenSlots.has(hoveredSlotIndex)
-      : // Hand drag: both garden and alley are valid
-        (hoveredZone === "garden" &&
+    dragSourceType === "spell"
+      ? hoveredZone === "spell"
+      : dragSourceType === "alley"
+        ? // Alley drag: only garden is valid target
+          hoveredZone === "garden" &&
           hoveredSlotIndex !== null &&
-          validGardenSlots.has(hoveredSlotIndex)) ||
-        (hoveredZone === "alley" &&
-          hoveredSlotIndex !== null &&
-          validAlleySlots.has(hoveredSlotIndex));
+          validGardenSlots.has(hoveredSlotIndex)
+        : // Hand drag: both garden and alley are valid
+          (hoveredZone === "garden" &&
+            hoveredSlotIndex !== null &&
+            validGardenSlots.has(hoveredSlotIndex)) ||
+          (hoveredZone === "alley" &&
+            hoveredSlotIndex !== null &&
+            validAlleySlots.has(hoveredSlotIndex));
 
   // Get texture for the dragged card
   const texture = draggedCardCode ? getCardTexture(draggedCardCode) : null;
@@ -128,18 +142,26 @@ export function DraggedCard() {
       const intersection = projectToXZPlane(e.clientX, e.clientY, targetY);
       updateTargetPosition([intersection.x, targetY, intersection.z]);
 
-      // For hand/weapon drags during pickup: check if cursor left hand zone
+      // For hand/weapon/spell drags during pickup: check if cursor left hand zone
       // (DraggableHandCard removes itself from DOM during pickup, so its handler doesn't fire)
-      if (dragPhase === "pickup" && (dragSourceType === "hand" || dragSourceType === "weapon")) {
+      if (
+        dragPhase === "pickup" &&
+        (dragSourceType === "hand" || dragSourceType === "weapon" || dragSourceType === "spell")
+      ) {
         if (intersection.z < HAND_ZONE_Z) {
-          const zone = getZoneFromZ(intersection.z);
-          const slotIndex = (zone === "garden" || zone === "alley")
-            ? getSlotIndexFromX(intersection.x)
-            : null;
+          if (dragSourceType === "spell") {
+            const isOverSpellZone = isInSpellDropZone(intersection.x, intersection.z);
+            setHoveredSlot(isOverSpellZone ? "spell" : null, null);
+          } else {
+            const zone = getZoneFromZ(intersection.z);
+            const slotIndex = (zone === "garden" || zone === "alley")
+              ? getSlotIndexFromX(intersection.x)
+              : null;
 
-          // Update hovered slot BEFORE transitioning to dragging
-          if (slotIndex !== null) {
-            setHoveredSlot(zone, slotIndex);
+            // Update hovered slot BEFORE transitioning to dragging
+            if (slotIndex !== null) {
+              setHoveredSlot(zone, slotIndex);
+            }
           }
 
           startDragging();
@@ -168,14 +190,22 @@ export function DraggedCard() {
 
       // Update zone and slot detection during dragging phase
       if (dragPhase === "dragging") {
-        const zone = getZoneFromZ(intersection.z);
-        const slotIndex = (zone === "garden" || zone === "alley")
-          ? getSlotIndexFromX(intersection.x)
-          : null;
+        if (dragSourceType === "spell") {
+          const isOverSpellZone = isInSpellDropZone(intersection.x, intersection.z);
+          const nextZone = isOverSpellZone ? "spell" : null;
+          if (nextZone !== hoveredZone) {
+            setHoveredSlot(nextZone, null);
+          }
+        } else {
+          const zone = getZoneFromZ(intersection.z);
+          const slotIndex = (zone === "garden" || zone === "alley")
+            ? getSlotIndexFromX(intersection.x)
+            : null;
 
-        // Always update if zone or slot changed
-        if (zone !== hoveredZone || slotIndex !== hoveredSlotIndex) {
-          setHoveredSlot(zone, slotIndex);
+          // Always update if zone or slot changed
+          if (zone !== hoveredZone || slotIndex !== hoveredSlotIndex) {
+            setHoveredSlot(zone, slotIndex);
+          }
         }
       }
     },
@@ -217,16 +247,18 @@ export function DraggedCard() {
     // Check if over valid target with current values
     // For alley drags, only garden is valid; for hand drags, both garden and alley are valid
     const currentIsOverValidTarget =
-      currentDragSourceType === "alley"
-        ? currentHoveredZone === "garden" &&
-          currentHoveredSlotIndex !== null &&
-          currentValidGardenSlots.has(currentHoveredSlotIndex)
-        : (currentHoveredZone === "garden" &&
+      currentDragSourceType === "spell"
+        ? currentHoveredZone === "spell"
+        : currentDragSourceType === "alley"
+          ? currentHoveredZone === "garden" &&
             currentHoveredSlotIndex !== null &&
-            currentValidGardenSlots.has(currentHoveredSlotIndex)) ||
-          (currentHoveredZone === "alley" &&
-            currentHoveredSlotIndex !== null &&
-            currentValidAlleySlots.has(currentHoveredSlotIndex));
+            currentValidGardenSlots.has(currentHoveredSlotIndex)
+          : (currentHoveredZone === "garden" &&
+              currentHoveredSlotIndex !== null &&
+              currentValidGardenSlots.has(currentHoveredSlotIndex)) ||
+            (currentHoveredZone === "alley" &&
+              currentHoveredSlotIndex !== null &&
+              currentValidAlleySlots.has(currentHoveredSlotIndex));
 
     console.log("[DraggedCard] isOverValidTarget:", currentIsOverValidTarget);
 
@@ -236,11 +268,20 @@ export function DraggedCard() {
       startReturning();
     } else if (currentDragPhase === "dragging") {
       // Released while dragging - check if over valid target
-      if (currentIsOverValidTarget && currentHoveredSlotIndex !== null && (currentHoveredZone === "garden" || currentHoveredZone === "alley")) {
+      if (currentIsOverValidTarget && currentHoveredZone !== null) {
         // Over valid target - call the drop callback directly
         if (currentOnDropCallback) {
           console.log("[DraggedCard] Calling drop callback for", currentHoveredZone, currentHoveredSlotIndex);
-          currentOnDropCallback(currentHoveredZone, currentHoveredSlotIndex);
+          if (currentHoveredZone === "spell") {
+            currentOnDropCallback("spell", null);
+          } else if (
+            currentHoveredSlotIndex !== null &&
+            (currentHoveredZone === "garden" || currentHoveredZone === "alley")
+          ) {
+            currentOnDropCallback(currentHoveredZone, currentHoveredSlotIndex);
+          } else {
+            startReturning();
+          }
         } else {
           console.log("[DraggedCard] No drop callback registered!");
           startReturning();
