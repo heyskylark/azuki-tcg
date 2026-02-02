@@ -67,9 +67,11 @@ function applyLog(
       return applyTapStateChange(state, log.data, playerSlot);
 
     case "STATUS_EFFECT_APPLIED":
+    case "STATUS_APPLIED":
       return applyStatusEffect(state, log.data, playerSlot, true);
 
     case "STATUS_EFFECT_EXPIRED":
+    case "STATUS_EXPIRED":
       return applyStatusEffect(state, log.data as StatusAppliedData, playerSlot, false);
 
     case "COMBAT_DAMAGE":
@@ -802,6 +804,15 @@ function applyStatusEffect(
   );
 
   switch (data.card.zone) {
+    case "LEADER": {
+      const newLeader = { ...board.leader, ...cleanUpdate };
+      if (isMyCard) {
+        return { ...state, myBoard: { ...state.myBoard, leader: newLeader } };
+      } else {
+        return { ...state, opponentBoard: { ...state.opponentBoard, leader: newLeader } };
+      }
+    }
+
     case "GARDEN":
       const gardenCard = board.garden[data.card.zoneIndex];
       if (gardenCard) {
