@@ -388,6 +388,16 @@ void expire_eot_attack_modifiers_in_zone(ecs_world_t *world, ecs_entity_t zone) 
           .cur_atk = (int8_t)new_atk,
           .cur_hp = cur->cur_hp,
         });
+        // Log stat change so clients update attack after EOT modifier expiry
+        int16_t atk_delta = -total_modifier;
+        int8_t atk_delta8 = (int8_t)atk_delta;
+        if (atk_delta > 127) {
+          atk_delta8 = 127;
+        } else if (atk_delta < -128) {
+          atk_delta8 = -128;
+        }
+        azk_log_card_stat_change(world, card, atk_delta8, 0,
+                                 (int8_t)new_atk, cur->cur_hp);
       }
     }
   }
