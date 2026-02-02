@@ -5,27 +5,30 @@
 #include "constants/game.h"
 #include "utils/cli_rendering_util.h"
 
-static void HandleMulliganShuffleAction(ecs_world_t *world, GameState *gs) {
+static bool HandleMulliganShuffleAction(ecs_world_t *world, GameState *gs) {
   ecs_entity_t deck_zone = gs->zones[gs->active_player_index].deck;
   ecs_entity_t hand_zone = gs->zones[gs->active_player_index].hand;
 
-  ecs_assert(
-    move_cards_to_zone(world, hand_zone, deck_zone, INITIAL_DRAW_COUNT, NULL),
-    ECS_INVALID_OPERATION,
-    "[Mulligan] Failed to move cards from hand to deck"
-  );
-
+  bool moved_to_deck =
+      move_cards_to_zone(world, hand_zone, deck_zone, INITIAL_DRAW_COUNT, NULL);
+  ecs_assert(moved_to_deck, ECS_INVALID_OPERATION,
+             "[Mulligan] Failed to move cards from hand to deck");
+  if (!moved_to_deck) {
+    cli_render_log("[Mulligan] Failed to move cards from hand to deck");
+    return false;
+  }
 
   if (!move_cards_to_zone(world, deck_zone, hand_zone, INITIAL_DRAW_COUNT, NULL)) {
     cli_render_log("[Mulligan] No cards in deck");
 
     gs->winner = (gs->active_player_index + 1) % 2;
 
-    return;
+    return true;
   }
 
   shuffle_deck(world, deck_zone);
   cli_render_log("[Mulligan] Shuffled deck");
+  return true;
 }
 
 static void handle_phase_transition(ecs_world_t *world, GameState *gs) {
@@ -53,7 +56,10 @@ void HandleMulliganAction(ecs_iter_t *it) {
 
   switch (action.type) {
     case ACT_MULLIGAN_SHUFFLE:
-      HandleMulliganShuffleAction(world, gs);
+      if (!HandleMulliganShuffleAction(world, gs)) {
+        ac->invalid_action = true;
+        return;
+      }
       break;
     case ACT_NOOP:
       cli_render_log("[Mulligan] No mulligan performed, end turn");

@@ -6,10 +6,10 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "docker compose up --build",
-    "dev:watch": "docker compose up --build --watch",
-    "dev:down": "docker compose down",
-    "dev:clean": "docker compose down -v",
+    "dev": "COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$(basename \"$PWD\")} docker compose up --build",
+    "dev:watch": "COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$(basename \"$PWD\")} docker compose up --build --watch",
+    "dev:down": "COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$(basename \"$PWD\")} docker compose down",
+    "dev:clean": "COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$(basename \"$PWD\")} docker compose down -v",
     "ws": "yarn workspace @azuki/websocket",
     "web": "yarn workspace @azuki/web",
     "core": "yarn workspace @tcg/backend-core",
