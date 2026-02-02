@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import { Text } from "@react-three/drei";
-import { useThree, type ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
 import { useGameState } from "@/contexts/GameStateContext";
 import { useRoom } from "@/contexts/RoomContext";
@@ -18,6 +18,7 @@ import {
   findValidAction,
   findValidGardenOrLeaderAbilityAction,
   findValidGateAction,
+  findValidSpellAction,
   findValidWeaponAttachAction,
   getActivatableAlleySlots,
   getActivatableGardenOrLeaderSlots,
@@ -72,6 +73,42 @@ function BoardSurface() {
     <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.1, 0]} receiveShadow>
       <planeGeometry args={[22, 20]} />
       <meshStandardMaterial color="#1a472a" />
+    </mesh>
+  );
+}
+
+function SpellDropZone({
+  isActive,
+  isHovered,
+}: {
+  isActive: boolean;
+  isHovered: boolean;
+}) {
+  const meshRef = useRef<THREE.Mesh>(null!);
+
+  useFrame((state) => {
+    if (!meshRef.current) return;
+    const pulse = Math.sin(state.clock.elapsedTime * 4) * 0.15 + 0.45;
+    const material = meshRef.current.material as THREE.MeshBasicMaterial;
+    material.opacity = isHovered ? 0.7 : pulse;
+  });
+
+  if (!isActive) return null;
+
+  return (
+    <mesh
+      ref={meshRef}
+      rotation={[-Math.PI / 2, 0, 0]}
+      position={[0, CARD_DEPTH + 0.02, 0]}
+      raycast={() => null}
+    >
+      <planeGeometry args={[CARD_WIDTH, CARD_HEIGHT]} />
+      <meshBasicMaterial
+        color={isHovered ? "#88ff88" : "#44ddaa"}
+        transparent
+        opacity={0.45}
+        side={THREE.DoubleSide}
+      />
     </mesh>
   );
 }
@@ -728,6 +765,7 @@ export function Board() {
   const dragPhase = useDragStore((state) => state.dragPhase);
   const dragSourceType = useDragStore((state) => state.dragSourceType);
   const validWeaponAttachTargets = useDragStore((state) => state.validWeaponAttachTargets);
+  const hoveredZone = useDragStore((state) => state.hoveredZone);
   const drop = useDragStore((state) => state.drop);
   const setOnDropCallback = useDragStore((state) => state.setOnDropCallback);
 
@@ -917,9 +955,12 @@ export function Board() {
 
   // Handle dropping a hand card on a slot
   const handleDropToSlot = useCallback(
-    (zone: "garden" | "alley" | "leader", slotIndex: number) => {
+    (
+      zone: "garden" | "alley" | "leader" | "spell",
+      slotIndex: number | null
+    ) => {
       // Leader zone not valid for regular entity drops
-      if (zone === "leader") return;
+      if (zone === "leader" || zone === "spell" || slotIndex === null) return;
 
       if (draggedCardIndex === null || !gameState?.actionMask) {
         return;
@@ -949,11 +990,14 @@ export function Board() {
 
   // Handle gate drop - moving an alley card to garden
   const handleGateDropToGarden = useCallback(
-    (zone: "garden" | "alley" | "leader", gardenIndex: number) => {
+    (
+      zone: "garden" | "alley" | "leader" | "spell",
+      gardenIndex: number | null
+    ) => {
       console.log("[Board] handleGateDropToGarden called:", { zone, gardenIndex });
 
       // Gate action only targets garden
-      if (zone !== "garden") {
+      if (zone !== "garden" || gardenIndex === null) {
         console.log("[Board] Gate drop ignored - zone is not garden");
         return;
       }
@@ -994,7 +1038,10 @@ export function Board() {
 
   // Handle weapon attachment drop - attaching a weapon from hand to an entity
   const handleWeaponAttachDrop = useCallback(
-    (zone: "garden" | "alley" | "leader", entitySlot: number) => {
+    (
+      zone: "garden" | "alley" | "leader" | "spell",
+      entitySlot: number | null
+    ) => {
       console.log("[Board] handleWeaponAttachDrop called:", { zone, entitySlot });
 
       // Weapon attach targets are: garden (0-4) or leader (5)
@@ -1002,7 +1049,7 @@ export function Board() {
       let targetSlot: number;
       if (zone === "leader") {
         targetSlot = 5; // Leader is slot 5
-      } else if (zone === "garden") {
+      } else if (zone === "garden" && entitySlot !== null) {
         targetSlot = entitySlot; // Garden slots 0-4
       } else {
         console.log("[Board] Weapon attach ignored - invalid zone:", zone);
@@ -1038,6 +1085,34 @@ export function Board() {
         drop();
       } else {
         console.log("[Board] No valid weapon attach action found");
+      }
+    },
+    [gameState?.actionMask, send, drop]
+  );
+
+  const handleSpellDrop = useCallback(
+    (_zone: "garden" | "alley" | "leader" | "spell", _slotIndex: number | null) => {
+      if (_zone !== "spell") return;
+
+      const currentDraggedCardIndex = useDragStore.getState().draggedCardIndex;
+      if (currentDraggedCardIndex === null || !gameState?.actionMask) {
+        return;
+      }
+
+      const action = findValidSpellAction(
+        gameState.actionMask,
+        currentDraggedCardIndex
+      );
+
+      if (action) {
+        send({
+          type: "GAME_ACTION",
+          action,
+        });
+
+        drop();
+      } else {
+        console.log("[Board] No valid spell action found");
       }
     },
     [gameState?.actionMask, send, drop]
@@ -1116,11 +1191,16 @@ export function Board() {
   useEffect(() => {
     if (dragPhase === "pickup" || dragPhase === "dragging") {
       // Use appropriate handler based on drag source type
-      let callback: (zone: "garden" | "alley" | "leader", slotIndex: number) => void;
+      let callback: (
+        zone: "garden" | "alley" | "leader" | "spell",
+        slotIndex: number | null
+      ) => void;
       if (dragSourceType === "alley") {
         callback = handleGateDropToGarden;
       } else if (dragSourceType === "weapon") {
         callback = handleWeaponAttachDrop;
+      } else if (dragSourceType === "spell") {
+        callback = handleSpellDrop;
       } else {
         callback = handleDropToSlot;
       }
@@ -1133,7 +1213,15 @@ export function Board() {
     return () => {
       // Don't clear callback here - let drop() or reset() handle it
     };
-  }, [dragPhase, dragSourceType, handleDropToSlot, handleGateDropToGarden, handleWeaponAttachDrop, setOnDropCallback]);
+  }, [
+    dragPhase,
+    dragSourceType,
+    handleDropToSlot,
+    handleGateDropToGarden,
+    handleWeaponAttachDrop,
+    handleSpellDrop,
+    setOnDropCallback,
+  ]);
 
   useEffect(() => {
     if (attackDrag.active && !gameState?.actionMask) {
@@ -1183,8 +1271,14 @@ export function Board() {
 
   // Check if leader is a valid weapon attachment target
   // Leader is slot 5 in the weapon targets
-  const isDraggingWeapon = (dragPhase === "pickup" || dragPhase === "dragging") && dragSourceType === "weapon";
+  const isDraggingWeapon =
+    (dragPhase === "pickup" || dragPhase === "dragging") &&
+    dragSourceType === "weapon";
   const isLeaderWeaponTarget = isDraggingWeapon && validWeaponAttachTargets.has(5);
+  const isDraggingSpell =
+    (dragPhase === "pickup" || dragPhase === "dragging") &&
+    dragSourceType === "spell";
+  const isSpellDropHovered = hoveredZone === "spell";
 
   if (!gameState) {
     return (
@@ -1207,6 +1301,8 @@ export function Board() {
     <group>
       {/* Board surface */}
       <BoardSurface />
+
+      <SpellDropZone isActive={isDraggingSpell} isHovered={isSpellDropHovered} />
 
       {/* My area (bottom) */}
       <PlayerArea

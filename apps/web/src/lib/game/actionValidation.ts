@@ -4,7 +4,9 @@ import type { SnapshotActionMask } from "@tcg/backend-core/types/ws";
 export const ACTION_NOOP = 0;
 export const ACTION_PLAY_ENTITY_TO_GARDEN = 1;
 export const ACTION_PLAY_ENTITY_TO_ALLEY = 2;
-export const ACTION_PLAY_SPELL = 3;
+export const ACTION_PLAY_SPELL_FROM_HAND = 8;
+// Legacy alias for older action space naming
+export const ACTION_PLAY_SPELL = ACTION_PLAY_SPELL_FROM_HAND;
 export const ACTION_PLAY_WEAPON = 4;
 export const ACTION_ATTACK = 6;
 // ... additional play action types
@@ -71,6 +73,65 @@ export function canPlayCard(
 ): boolean {
   const { gardenSlots, alleySlots } = getValidSlotsForHandCard(actionMask, handIndex);
   return gardenSlots.size > 0 || alleySlots.size > 0;
+}
+
+// ============================================
+// Spell Action Helpers
+// ============================================
+
+/**
+ * Check if a hand card has a valid spell play action.
+ */
+export function canPlaySpell(
+  actionMask: SnapshotActionMask | null,
+  handIndex: number
+): boolean {
+  if (!actionMask) return false;
+  const { legalPrimary, legalSub1 } = actionMask;
+  for (let i = 0; i < legalPrimary.length; i++) {
+    if (
+      legalPrimary[i] === ACTION_PLAY_SPELL_FROM_HAND &&
+      legalSub1[i] === handIndex
+    ) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Find the valid spell play action tuple for a specific hand card.
+ * Returns [ACTION_PLAY_SPELL_FROM_HAND, handIndex, 0, ikzTokenFlag] or null if invalid.
+ * Prefers non-token actions (ikzTokenFlag = 0) when available.
+ */
+export function findValidSpellAction(
+  actionMask: SnapshotActionMask | null,
+  handIndex: number
+): [number, number, number, number] | null {
+  if (!actionMask) return null;
+
+  const { legalPrimary, legalSub1, legalSub3 } = actionMask;
+  let fallback: [number, number, number, number] | null = null;
+
+  for (let i = 0; i < legalPrimary.length; i++) {
+    if (
+      legalPrimary[i] === ACTION_PLAY_SPELL_FROM_HAND &&
+      legalSub1[i] === handIndex
+    ) {
+      const action: [number, number, number, number] = [
+        ACTION_PLAY_SPELL_FROM_HAND,
+        handIndex,
+        0,
+        legalSub3[i],
+      ];
+      if (legalSub3[i] === 0) {
+        return action;
+      }
+      fallback = action;
+    }
+  }
+
+  return fallback;
 }
 
 /**

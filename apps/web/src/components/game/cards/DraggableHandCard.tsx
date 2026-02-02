@@ -10,6 +10,7 @@ import { useGameState } from "@/contexts/GameStateContext";
 import {
   getValidSlotsForHandCard,
   canPlayCard,
+  canPlaySpell,
   getValidWeaponAttachTargets,
   canAttachWeapon,
 } from "@/lib/game/actionValidation";
@@ -50,6 +51,7 @@ export function DraggableHandCard({
   const draggedCardIndex = useDragStore((state) => state.draggedCardIndex);
   const startPickup = useDragStore((state) => state.startPickup);
   const startWeaponPickup = useDragStore((state) => state.startWeaponPickup);
+  const startSpellPickup = useDragStore((state) => state.startSpellPickup);
   const startDragging = useDragStore((state) => state.startDragging);
   const updateTargetPosition = useDragStore((state) => state.updateTargetPosition);
   const startReturning = useDragStore((state) => state.startReturning);
@@ -61,8 +63,13 @@ export function DraggableHandCard({
     gameState?.abilitySubphase !== undefined &&
     gameState.abilitySubphase !== "NONE";
 
+  const isSpell = card.type === "SPELL";
+
   // Check if this card can be played (also disabled during ability phases)
-  const isPlayable = !isInAbilityPhase && canPlayCard(actionMask, handIndex);
+  const canPlayEntity = !isInAbilityPhase && canPlayCard(actionMask, handIndex);
+  const canPlaySpellCard =
+    !isInAbilityPhase && isSpell && canPlaySpell(actionMask, handIndex);
+  const isPlayable = canPlayEntity || canPlaySpellCard;
 
   // Check if this card is a weapon that can be attached
   const isWeapon = card.type === "WEAPON";
@@ -131,8 +138,11 @@ export function DraggableHandCard({
             handPosition,
             weaponTargets
           );
+        } else if (canPlaySpellCard) {
+          // Spell activation drag
+          startSpellPickup(handIndex, card.cardCode, handPosition);
         } else {
-          // Normal entity/spell play drag
+          // Normal entity play drag
           const { gardenSlots, alleySlots } = getValidSlotsForHandCard(
             actionMask,
             handIndex
@@ -163,12 +173,14 @@ export function DraggableHandCard({
       onAbilityTargetClick,
       isDraggable,
       canAttach,
+      canPlaySpellCard,
       dragPhase,
       actionMask,
       handIndex,
       card.cardCode,
       startPickup,
       startWeaponPickup,
+      startSpellPickup,
       updateTargetPosition,
       projectToXZPlane,
     ]
