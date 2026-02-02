@@ -26,6 +26,8 @@ interface DraggableAlleyCardProps {
   alleyIndex: number;
   position: [number, number, number];
   actionMask: SnapshotActionMask | null;
+  isAbilityActivatable?: boolean;
+  onAbilityActivate?: () => void;
 }
 
 /**
@@ -37,6 +39,8 @@ export function DraggableAlleyCard({
   alleyIndex,
   position,
   actionMask,
+  isAbilityActivatable = false,
+  onAbilityActivate,
 }: DraggableAlleyCardProps) {
   const groupRef = useRef<THREE.Group>(null!);
   const { camera } = useThree();
@@ -233,6 +237,8 @@ export function DraggableAlleyCard({
         hasDefender={card.hasDefender}
         hasInfiltrate={card.hasInfiltrate}
         showStats={true}
+        isAbilityActivatable={isAbilityActivatable}
+        onAbilityActivate={onAbilityActivate}
       >
         {/* Gatable indicator glow - purple to distinguish from playable green */}
         {canGate && (

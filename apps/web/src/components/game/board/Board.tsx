@@ -11,10 +11,14 @@ import { DraggableAlleyCard } from "@/components/game/cards/DraggableAlleyCard";
 import { AttackDragOverlay } from "@/components/game/attack/AttackDragOverlay";
 import { useDragStore } from "@/stores/dragStore";
 import {
+  findValidAlleyAbilityAction,
   findValidAttackAction,
   findValidAction,
+  findValidGardenOrLeaderAbilityAction,
   findValidGateAction,
   findValidWeaponAttachAction,
+  getActivatableAlleySlots,
+  getActivatableGardenOrLeaderSlots,
   getValidAttackers,
   getValidAttackTargetsForAttacker,
   getValidCostTargets,
@@ -89,6 +93,8 @@ function CardRow({
   onAttackStart,
   abilityTargets,
   onAbilityTargetClick,
+  activatableSlots,
+  onActivateAbility,
 }: {
   cards: (ResolvedCard | null)[];
   basePosition: [number, number, number];
@@ -102,6 +108,8 @@ function CardRow({
   onAttackStart?: (attackerIndex: number, position: [number, number, number], pointerPosition: [number, number, number]) => void;
   abilityTargets?: Map<number, number>;
   onAbilityTargetClick?: (targetIndex: number) => void;
+  activatableSlots?: Set<number>;
+  onActivateAbility?: (slotIndex: number) => void;
 }) {
   const [baseX, baseY, baseZ] = basePosition;
 
@@ -130,6 +138,8 @@ function CardRow({
 
         const abilityTargetIndex = abilityTargets?.get(index);
         const isAbilityTarget = abilityTargetIndex !== undefined;
+        const canActivateAbility =
+          !isOpponent && activatableSlots ? activatableSlots.has(index) : false;
 
         if (card) {
           // For player's alley cards that can be gated, use DraggableAlleyCard
@@ -141,6 +151,12 @@ function CardRow({
                 alleyIndex={index}
                 position={position}
                 actionMask={actionMask ?? null}
+                isAbilityActivatable={canActivateAbility}
+                onAbilityActivate={
+                  canActivateAbility && onActivateAbility
+                    ? () => onActivateAbility(index)
+                    : undefined
+                }
               />
             );
           }
@@ -183,6 +199,12 @@ function CardRow({
               isAbilityTarget={isAbilityTarget}
               isWeaponTarget={isWeaponAttachTarget}
               isAttackTarget={isAttackTarget}
+              isAbilityActivatable={canActivateAbility}
+              onAbilityActivate={
+                canActivateAbility && onActivateAbility
+                  ? () => onActivateAbility(index)
+                  : undefined
+              }
               onAbilityTargetClick={
                 isAbilityTarget && onAbilityTargetClick && abilityTargetIndex !== undefined
                   ? () => onAbilityTargetClick(abilityTargetIndex)
@@ -243,6 +265,8 @@ function LeaderCard({
   onWeaponTargetClick,
   isAbilityTarget = false,
   onAbilityTargetClick,
+  isAbilityActivatable = false,
+  onAbilityActivate,
   isAttackSource = false,
   isAttackTarget = false,
   onAttackStart,
@@ -253,6 +277,8 @@ function LeaderCard({
   onWeaponTargetClick?: () => void;
   isAbilityTarget?: boolean;
   onAbilityTargetClick?: () => void;
+  isAbilityActivatable?: boolean;
+  onAbilityActivate?: () => void;
   isAttackSource?: boolean;
   isAttackTarget?: boolean;
   onAttackStart?: (pointerPosition: [number, number, number]) => void;
@@ -275,6 +301,8 @@ function LeaderCard({
       onWeaponTargetClick={onWeaponTargetClick}
       isAbilityTarget={isAbilityTarget}
       onAbilityTargetClick={onAbilityTargetClick}
+      isAbilityActivatable={isAbilityActivatable}
+      onAbilityActivate={onAbilityActivate}
       isAttackTarget={isAttackTarget}
       onPointerDown={
         isAttackSource && onAttackStart
@@ -536,6 +564,11 @@ function PlayerArea({
   isLeaderWeaponTarget,
   abilityTargets,
   onAbilityTargetClick,
+  activatableGardenSlots,
+  activatableAlleySlots,
+  canActivateLeaderAbility,
+  onActivateGardenOrLeaderAbility,
+  onActivateAlleyAbility,
 }: {
   board: ResolvedPlayerBoard;
   hand?: ResolvedHandCard[];
@@ -553,6 +586,11 @@ function PlayerArea({
     leaderTargetIndex?: number | null;
   };
   onAbilityTargetClick?: (targetIndex: number) => void;
+  activatableGardenSlots?: Set<number>;
+  activatableAlleySlots?: Set<number>;
+  canActivateLeaderAbility?: boolean;
+  onActivateGardenOrLeaderAbility?: (slotIndex: number) => void;
+  onActivateAlleyAbility?: (alleyIndex: number) => void;
 }) {
   const gardenZ = isOpponent ? OPP_GARDEN_Z : MY_GARDEN_Z;
   const alleyZ = isOpponent ? OPP_ALLEY_Z : MY_ALLEY_Z;
@@ -563,6 +601,7 @@ function PlayerArea({
   const leaderTargetIndex = abilityTargets?.leaderTargetIndex;
   const isLeaderAbilityTarget =
     leaderTargetIndex !== null && leaderTargetIndex !== undefined;
+  const isLeaderAbilityActivatable = !isOpponent && !!canActivateLeaderAbility;
 
   return (
     <group>
@@ -580,6 +619,12 @@ function PlayerArea({
         onAbilityTargetClick={
           isLeaderAbilityTarget && onAbilityTargetClick && leaderTargetIndex !== null && leaderTargetIndex !== undefined
             ? () => onAbilityTargetClick(leaderTargetIndex)
+            : undefined
+        }
+        isAbilityActivatable={isLeaderAbilityActivatable}
+        onAbilityActivate={
+          isLeaderAbilityActivatable && onActivateGardenOrLeaderAbility
+            ? () => onActivateGardenOrLeaderAbility(5)
             : undefined
         }
         isAttackSource={isLeaderAttackSource}
@@ -608,6 +653,8 @@ function PlayerArea({
         onAttackStart={onAttackStart}
         abilityTargets={abilityTargets?.gardenTargets}
         onAbilityTargetClick={onAbilityTargetClick}
+        activatableSlots={!isOpponent ? activatableGardenSlots : undefined}
+        onActivateAbility={!isOpponent ? onActivateGardenOrLeaderAbility : undefined}
       />
 
       {/* Alley (back row) */}
@@ -620,6 +667,8 @@ function PlayerArea({
         onDropToSlot={onDropToSlot}
         onWeaponAttachToSlot={onWeaponAttachToSlot}
         attackTargets={attackTargets}
+        activatableSlots={!isOpponent ? activatableAlleySlots : undefined}
+        onActivateAbility={!isOpponent ? onActivateAlleyAbility : undefined}
       />
 
       {/* Deck - below the gate */}
@@ -700,6 +749,33 @@ export function Board() {
     initialPointerPosition: [0, 0, 0],
     validTargets: new Set<number>(),
   });
+
+  const abilityActivationEnabled =
+    dragPhase === "idle" && !attackDrag.active && !isInAbilityPhase;
+
+  const abilityActivationSlots = useMemo(() => {
+    if (!abilityActivationEnabled) {
+      return { gardenSlots: new Set<number>(), leaderActive: false };
+    }
+    const slots = getActivatableGardenOrLeaderSlots(gameState?.actionMask ?? null);
+    const gardenSlots = new Set<number>();
+    let leaderActive = false;
+    slots.forEach((slot) => {
+      if (slot === 5) {
+        leaderActive = true;
+      } else if (slot >= 0 && slot < 5) {
+        gardenSlots.add(slot);
+      }
+    });
+    return { gardenSlots, leaderActive };
+  }, [abilityActivationEnabled, gameState?.actionMask]);
+
+  const activatableAlleySlots = useMemo(() => {
+    if (!abilityActivationEnabled) {
+      return new Set<number>();
+    }
+    return getActivatableAlleySlots(gameState?.actionMask ?? null);
+  }, [abilityActivationEnabled, gameState?.actionMask]);
 
   const cancelAttackDrag = useCallback(() => {
     setAttackDrag({
@@ -866,6 +942,44 @@ export function Board() {
     [gameState?.actionMask, send, drop]
   );
 
+  const handleActivateGardenOrLeaderAbility = useCallback(
+    (slotIndex: number) => {
+      if (!abilityActivationEnabled || !gameState?.actionMask) return;
+
+      const action = findValidGardenOrLeaderAbilityAction(
+        gameState.actionMask,
+        slotIndex
+      );
+
+      if (action) {
+        send({
+          type: "GAME_ACTION",
+          action,
+        });
+      }
+    },
+    [abilityActivationEnabled, gameState?.actionMask, send]
+  );
+
+  const handleActivateAlleyAbility = useCallback(
+    (alleyIndex: number) => {
+      if (!abilityActivationEnabled || !gameState?.actionMask) return;
+
+      const action = findValidAlleyAbilityAction(
+        gameState.actionMask,
+        alleyIndex
+      );
+
+      if (action) {
+        send({
+          type: "GAME_ACTION",
+          action,
+        });
+      }
+    },
+    [abilityActivationEnabled, gameState?.actionMask, send]
+  );
+
   const handleAttackCommit = useCallback(
     (targetIndex: number) => {
       if (!gameState?.actionMask) {
@@ -1004,6 +1118,11 @@ export function Board() {
         attackableSlots={validAttackers}
         onAttackStart={startAttackDrag}
         isLeaderWeaponTarget={isLeaderWeaponTarget}
+        activatableGardenSlots={abilityActivationSlots.gardenSlots}
+        activatableAlleySlots={activatableAlleySlots}
+        canActivateLeaderAbility={abilityActivationSlots.leaderActive}
+        onActivateGardenOrLeaderAbility={handleActivateGardenOrLeaderAbility}
+        onActivateAlleyAbility={handleActivateAlleyAbility}
         abilityTargets={
           abilityTargets
             ? {

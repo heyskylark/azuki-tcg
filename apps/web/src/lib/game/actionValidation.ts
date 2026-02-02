@@ -10,6 +10,8 @@ export const ACTION_ATTACK = 6;
 // ... additional play action types
 export const ACTION_ATTACH_WEAPON_FROM_HAND = 7;
 export const ACTION_GATE_PORTAL = 10;
+export const ACTION_ACTIVATE_GARDEN_OR_LEADER_ABILITY = 11;
+export const ACTION_ACTIVATE_ALLEY_ABILITY = 12;
 
 // Ability action types
 export const ACTION_SELECT_COST_TARGET = 13;
@@ -299,6 +301,108 @@ export function buildAttackAction(
 // ============================================
 // Ability Action Helpers
 // ============================================
+
+/**
+ * Get valid garden or leader slots for activating abilities.
+ * Returns a Set of slot indices (0-4 = garden, 5 = leader).
+ */
+export function getActivatableGardenOrLeaderSlots(
+  actionMask: SnapshotActionMask | null
+): Set<number> {
+  const slots = new Set<number>();
+
+  if (!actionMask) return slots;
+
+  const { legalPrimary, legalSub1 } = actionMask;
+
+  for (let i = 0; i < legalPrimary.length; i++) {
+    if (legalPrimary[i] === ACTION_ACTIVATE_GARDEN_OR_LEADER_ABILITY) {
+      slots.add(legalSub1[i]);
+    }
+  }
+
+  return slots;
+}
+
+/**
+ * Get valid alley slots for activating abilities.
+ * Returns a Set of alley slot indices.
+ */
+export function getActivatableAlleySlots(
+  actionMask: SnapshotActionMask | null
+): Set<number> {
+  const slots = new Set<number>();
+
+  if (!actionMask) return slots;
+
+  const { legalPrimary, legalSub2 } = actionMask;
+
+  for (let i = 0; i < legalPrimary.length; i++) {
+    if (legalPrimary[i] === ACTION_ACTIVATE_ALLEY_ABILITY) {
+      slots.add(legalSub2[i]);
+    }
+  }
+
+  return slots;
+}
+
+/**
+ * Find the valid garden/leader ability activation action tuple for a slot.
+ * Returns [ACTION_ACTIVATE_GARDEN_OR_LEADER_ABILITY, slotIndex, sub2, sub3] or null if invalid.
+ */
+export function findValidGardenOrLeaderAbilityAction(
+  actionMask: SnapshotActionMask | null,
+  slotIndex: number
+): [number, number, number, number] | null {
+  if (!actionMask) return null;
+
+  const { legalPrimary, legalSub1, legalSub2, legalSub3 } = actionMask;
+
+  for (let i = 0; i < legalPrimary.length; i++) {
+    if (
+      legalPrimary[i] === ACTION_ACTIVATE_GARDEN_OR_LEADER_ABILITY &&
+      legalSub1[i] === slotIndex
+    ) {
+      return [
+        ACTION_ACTIVATE_GARDEN_OR_LEADER_ABILITY,
+        legalSub1[i],
+        legalSub2[i],
+        legalSub3[i],
+      ];
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Find the valid alley ability activation action tuple for a slot.
+ * Returns [ACTION_ACTIVATE_ALLEY_ABILITY, abilityIndex, alleyIndex, sub3] or null if invalid.
+ */
+export function findValidAlleyAbilityAction(
+  actionMask: SnapshotActionMask | null,
+  alleyIndex: number
+): [number, number, number, number] | null {
+  if (!actionMask) return null;
+
+  const { legalPrimary, legalSub1, legalSub2, legalSub3 } = actionMask;
+
+  for (let i = 0; i < legalPrimary.length; i++) {
+    if (
+      legalPrimary[i] === ACTION_ACTIVATE_ALLEY_ABILITY &&
+      legalSub2[i] === alleyIndex
+    ) {
+      return [
+        ACTION_ACTIVATE_ALLEY_ABILITY,
+        legalSub1[i],
+        legalSub2[i],
+        legalSub3[i],
+      ];
+    }
+  }
+
+  return null;
+}
 
 /**
  * Check if the CONFIRM_ABILITY action is available in the action mask.

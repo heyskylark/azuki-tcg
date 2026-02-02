@@ -33,6 +33,9 @@ interface Card3DProps {
   // Ability targeting props
   isAbilityTarget?: boolean;
   onAbilityTargetClick?: () => void;
+  // Ability activation props
+  isAbilityActivatable?: boolean;
+  onAbilityActivate?: () => void;
   // Weapon attachment targeting props
   isWeaponTarget?: boolean;
   onWeaponTargetClick?: () => void;
@@ -64,6 +67,8 @@ export function Card3D({
   children,
   isAbilityTarget = false,
   onAbilityTargetClick,
+  isAbilityActivatable = false,
+  onAbilityActivate,
   isWeaponTarget = false,
   onWeaponTargetClick,
   isAttackTarget = false,
@@ -192,6 +197,11 @@ export function Card3D({
         {/* Keyword badges */}
         {keywordBadges.length > 0 && <KeywordBadges badges={keywordBadges} />}
 
+        {/* Ability activation badge */}
+        {isAbilityActivatable && onAbilityActivate && (
+          <AbilityActivateBadge onActivate={onAbilityActivate} />
+        )}
+
         {/* Ability target highlight */}
         {isAbilityTarget && <AbilityTargetOverlay />}
 
@@ -250,6 +260,56 @@ function KeywordBadges({
           </Text>
         </group>
       ))}
+    </group>
+  );
+}
+
+function AbilityActivateBadge({ onActivate }: { onActivate: () => void }) {
+  const meshRef = useRef<THREE.Mesh>(null!);
+
+  useFrame((state) => {
+    if (meshRef.current) {
+      const pulse = Math.sin(state.clock.elapsedTime * 6) * 0.12 + 0.7;
+      (meshRef.current.material as THREE.MeshBasicMaterial).opacity = pulse;
+    }
+  });
+
+  return (
+    <group
+      position={[CARD_WIDTH * 0.36, CARD_DEPTH + 0.05, CARD_HEIGHT * 0.36]}
+      rotation={[-Math.PI / 2, 0, 0]}
+    >
+      <mesh
+        ref={meshRef}
+        onPointerDown={(e) => {
+          e.stopPropagation();
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onActivate();
+        }}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          document.body.style.cursor = "pointer";
+        }}
+        onPointerOut={(e) => {
+          e.stopPropagation();
+          document.body.style.cursor = "default";
+        }}
+      >
+        <circleGeometry args={[0.18, 24]} />
+        <meshBasicMaterial color="#33ccff" transparent opacity={0.75} />
+      </mesh>
+      <Text
+        position={[0, 0.001, 0]}
+        fontSize={0.16}
+        color="#061622"
+        anchorX="center"
+        anchorY="middle"
+        raycast={() => null}
+      >
+        A
+      </Text>
     </group>
   );
 }
