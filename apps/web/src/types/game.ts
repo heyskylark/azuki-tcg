@@ -39,6 +39,9 @@ export interface ResolvedLeader {
   curHp: number;
   tapped: boolean;
   cooldown: boolean;
+  isFrozen: boolean;
+  isShocked: boolean;
+  isEffectImmune: boolean;
   hasCharge: boolean;
   hasDefender: boolean;
   hasInfiltrate: boolean;

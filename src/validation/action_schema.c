@@ -58,7 +58,7 @@ static const AzkActionSpec ACTION_SPECS[] = {
   },
   {
     .type = ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY,
-    .phase_mask = AZK_PHASE_MASK(PHASE_MAIN),
+    .phase_mask = AZK_PHASE_MASK(PHASE_MAIN) | AZK_PHASE_MASK(PHASE_RESPONSE_WINDOW),
     .params = { GARDEN_OR_LEADER_PARAM, UNUSED_PARAM, UNUSED_PARAM }  // subaction_1=slot_index (0-4=garden, 5=leader)
   },
   {

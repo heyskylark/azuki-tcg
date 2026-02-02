@@ -26,6 +26,8 @@ interface DraggableAlleyCardProps {
   alleyIndex: number;
   position: [number, number, number];
   actionMask: SnapshotActionMask | null;
+  isAbilityActivatable?: boolean;
+  onAbilityActivate?: () => void;
 }
 
 /**
@@ -37,9 +39,16 @@ export function DraggableAlleyCard({
   alleyIndex,
   position,
   actionMask,
+  isAbilityActivatable = false,
+  onAbilityActivate,
 }: DraggableAlleyCardProps) {
   const groupRef = useRef<THREE.Group>(null!);
   const { camera } = useThree();
+  const pendingDragRef = useRef<{
+    startX: number;
+    startY: number;
+    alleyPosition: [number, number, number];
+  } | null>(null);
 
   const dragPhase = useDragStore((state) => state.dragPhase);
   const sourceAlleyIndex = useDragStore((state) => state.sourceAlleyIndex);
@@ -88,21 +97,54 @@ export function DraggableAlleyCard({
 
   const handlePointerDown = useCallback(
     (e: ThreeEvent<PointerEvent>) => {
-      if (!canGate || dragPhase !== "idle") return;
+      if (dragPhase !== "idle") return;
 
       e.stopPropagation();
 
-      // Calculate world position of this card for return animation
-      if (groupRef.current) {
-        const worldPos = new THREE.Vector3();
-        groupRef.current.getWorldPosition(worldPos);
-        const alleyPosition: [number, number, number] = [
-          worldPos.x,
-          worldPos.y,
-          worldPos.z,
-        ];
+      if (!groupRef.current) return;
 
-        // Get valid garden slots for this alley card
+      const worldPos = new THREE.Vector3();
+      groupRef.current.getWorldPosition(worldPos);
+      const alleyPosition: [number, number, number] = [
+        worldPos.x,
+        worldPos.y,
+        worldPos.z,
+      ];
+
+      if (canGate && e.clientX !== undefined && e.clientY !== undefined) {
+        pendingDragRef.current = {
+          startX: e.clientX,
+          startY: e.clientY,
+          alleyPosition,
+        };
+        return;
+      }
+
+      if (!canGate && isAbilityActivatable && onAbilityActivate) {
+        onAbilityActivate();
+      }
+    },
+    [
+      canGate,
+      dragPhase,
+      isAbilityActivatable,
+      onAbilityActivate,
+    ]
+  );
+
+  const handlePointerMove = useCallback(
+    (e: ThreeEvent<PointerEvent>) => {
+      if (pendingDragRef.current && canGate && dragPhase === "idle") {
+        if (e.clientX === undefined || e.clientY === undefined) return;
+        const dx = e.clientX - pendingDragRef.current.startX;
+        const dy = e.clientY - pendingDragRef.current.startY;
+        if (Math.hypot(dx, dy) < 6) {
+          return;
+        }
+
+        const alleyPosition = pendingDragRef.current.alleyPosition;
+        pendingDragRef.current = null;
+
         const validGardenSlots = getValidGateTargetGardenSlots(
           actionMask,
           alleyIndex
@@ -113,7 +155,6 @@ export function DraggableAlleyCard({
           validGardenSlots: [...validGardenSlots],
         });
 
-        // Start alley pickup phase
         startAlleyPickup(
           alleyIndex,
           card.cardCode,
@@ -121,31 +162,10 @@ export function DraggableAlleyCard({
           validGardenSlots
         );
 
-        // Set initial target position based on pointer
-        if (e.clientX !== undefined) {
-          const intersection = projectToXZPlane(
-            e.clientX,
-            e.clientY,
-            3 // Pickup Y height
-          );
-          updateTargetPosition([intersection.x, 3, intersection.z]);
-        }
+        const intersection = projectToXZPlane(e.clientX, e.clientY, 3);
+        updateTargetPosition([intersection.x, 3, intersection.z]);
       }
-    },
-    [
-      canGate,
-      dragPhase,
-      actionMask,
-      alleyIndex,
-      card.cardCode,
-      startAlleyPickup,
-      updateTargetPosition,
-      projectToXZPlane,
-    ]
-  );
 
-  const handlePointerMove = useCallback(
-    (e: ThreeEvent<PointerEvent>) => {
       if (dragPhase !== "pickup" || sourceAlleyIndex !== alleyIndex) return;
 
       e.stopPropagation();
@@ -183,18 +203,31 @@ export function DraggableAlleyCard({
       }
     },
     [
+      canGate,
       dragPhase,
       sourceAlleyIndex,
       alleyIndex,
+      actionMask,
+      card.cardCode,
       projectToXZPlane,
       updateTargetPosition,
       setHoveredSlot,
       startDragging,
+      startAlleyPickup,
     ]
   );
 
   const handlePointerUp = useCallback(
     (e: ThreeEvent<PointerEvent>) => {
+      if (pendingDragRef.current) {
+        pendingDragRef.current = null;
+        if (isAbilityActivatable && onAbilityActivate) {
+          e.stopPropagation();
+          onAbilityActivate();
+        }
+        return;
+      }
+
       if (dragPhase !== "pickup" || sourceAlleyIndex !== alleyIndex) return;
 
       e.stopPropagation();
@@ -202,7 +235,14 @@ export function DraggableAlleyCard({
       // Released while still in pickup phase - animate back to alley
       startReturning();
     },
-    [dragPhase, sourceAlleyIndex, alleyIndex, startReturning]
+    [
+      dragPhase,
+      sourceAlleyIndex,
+      alleyIndex,
+      startReturning,
+      isAbilityActivatable,
+      onAbilityActivate,
+    ]
   );
 
   // Don't render if this card is being dragged (DraggedCard renders it instead)
@@ -229,10 +269,13 @@ export function DraggableAlleyCard({
         cooldown={card.cooldown}
         isFrozen={card.isFrozen}
         isShocked={card.isShocked}
+        isEffectImmune={card.isEffectImmune}
         hasCharge={card.hasCharge}
         hasDefender={card.hasDefender}
         hasInfiltrate={card.hasInfiltrate}
         showStats={true}
+        isAbilityActivatable={isAbilityActivatable}
+        onAbilityActivate={onAbilityActivate}
       >
         {/* Gatable indicator glow - purple to distinguish from playable green */}
         {canGate && (

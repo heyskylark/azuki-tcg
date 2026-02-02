@@ -1,20 +1,26 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Text } from "@react-three/drei";
+import { useThree, type ThreeEvent } from "@react-three/fiber";
+import * as THREE from "three";
 import { useGameState } from "@/contexts/GameStateContext";
 import { useRoom } from "@/contexts/RoomContext";
-import { Card3D, EmptyCardSlot, CARD_WIDTH, CARD_HEIGHT } from "@/components/game/cards/Card3D";
+import { Card3D, EmptyCardSlot, CARD_WIDTH, CARD_HEIGHT, CARD_DEPTH } from "@/components/game/cards/Card3D";
 import { LeaderAttackDisplay, LeaderHealthDisplay } from "@/components/game/cards/CardStats";
 import { DraggableHandCard } from "@/components/game/cards/DraggableHandCard";
 import { DraggableAlleyCard } from "@/components/game/cards/DraggableAlleyCard";
 import { AttackDragOverlay } from "@/components/game/attack/AttackDragOverlay";
 import { useDragStore } from "@/stores/dragStore";
 import {
+  findValidAlleyAbilityAction,
   findValidAttackAction,
   findValidAction,
+  findValidGardenOrLeaderAbilityAction,
   findValidGateAction,
   findValidWeaponAttachAction,
+  getActivatableAlleySlots,
+  getActivatableGardenOrLeaderSlots,
   getValidAttackers,
   getValidAttackTargetsForAttacker,
   getValidCostTargets,
@@ -56,6 +62,7 @@ const RIGHT_SIDE_X = 6;
 const DECK_X = RIGHT_SIDE_X;
 const DISCARD_X = RIGHT_SIDE_X + 1.8;
 const IKZ_PILE_X = -6;
+const ATTACK_DRAG_THRESHOLD = 6;
 
 /**
  * Board surface - the green felt table.
@@ -86,9 +93,11 @@ function CardRow({
   onWeaponAttachToSlot,
   attackableSlots,
   attackTargets,
-  onAttackStart,
+  onAttackPointerDown,
   abilityTargets,
   onAbilityTargetClick,
+  activatableSlots,
+  onActivateAbility,
 }: {
   cards: (ResolvedCard | null)[];
   basePosition: [number, number, number];
@@ -99,9 +108,11 @@ function CardRow({
   onWeaponAttachToSlot?: (zone: "garden" | "alley" | "leader", slotIndex: number) => void;
   attackableSlots?: Set<number>;
   attackTargets?: Set<number>;
-  onAttackStart?: (attackerIndex: number, position: [number, number, number], pointerPosition: [number, number, number]) => void;
+  onAttackPointerDown?: (attackerIndex: number, position: [number, number, number], event: ThreeEvent<PointerEvent>) => void;
   abilityTargets?: Map<number, number>;
   onAbilityTargetClick?: (targetIndex: number) => void;
+  activatableSlots?: Set<number>;
+  onActivateAbility?: (slotIndex: number) => void;
 }) {
   const [baseX, baseY, baseZ] = basePosition;
 
@@ -130,6 +141,8 @@ function CardRow({
 
         const abilityTargetIndex = abilityTargets?.get(index);
         const isAbilityTarget = abilityTargetIndex !== undefined;
+        const canActivateAbility =
+          !isOpponent && activatableSlots ? activatableSlots.has(index) : false;
 
         if (card) {
           // For player's alley cards that can be gated, use DraggableAlleyCard
@@ -141,6 +154,12 @@ function CardRow({
                 alleyIndex={index}
                 position={position}
                 actionMask={actionMask ?? null}
+                isAbilityActivatable={canActivateAbility}
+                onAbilityActivate={
+                  canActivateAbility && onActivateAbility
+                    ? () => onActivateAbility(index)
+                    : undefined
+                }
               />
             );
           }
@@ -176,6 +195,7 @@ function CardRow({
               cooldown={card.cooldown}
               isFrozen={card.isFrozen}
               isShocked={card.isShocked}
+              isEffectImmune={card.isEffectImmune}
               hasCharge={card.hasCharge}
               hasDefender={card.hasDefender}
               hasInfiltrate={card.hasInfiltrate}
@@ -183,6 +203,12 @@ function CardRow({
               isAbilityTarget={isAbilityTarget}
               isWeaponTarget={isWeaponAttachTarget}
               isAttackTarget={isAttackTarget}
+              isAbilityActivatable={canActivateAbility}
+              onAbilityActivate={
+                canActivateAbility && onActivateAbility
+                  ? () => onActivateAbility(index)
+                  : undefined
+              }
               onAbilityTargetClick={
                 isAbilityTarget && onAbilityTargetClick && abilityTargetIndex !== undefined
                   ? () => onAbilityTargetClick(abilityTargetIndex)
@@ -194,14 +220,10 @@ function CardRow({
                   : undefined
               }
               onPointerDown={
-                isAttackSource && onAttackStart
+                isAttackSource && onAttackPointerDown
                   ? (event) => {
                       event.stopPropagation();
-                      onAttackStart(
-                        index,
-                        position,
-                        [event.point.x, event.point.y, event.point.z]
-                      );
+                      onAttackPointerDown(index, position, event);
                     }
                   : undefined
               }
@@ -243,9 +265,11 @@ function LeaderCard({
   onWeaponTargetClick,
   isAbilityTarget = false,
   onAbilityTargetClick,
+  isAbilityActivatable = false,
+  onAbilityActivate,
   isAttackSource = false,
   isAttackTarget = false,
-  onAttackStart,
+  onAttackPointerDown,
 }: {
   leader: ResolvedLeader;
   position: [number, number, number];
@@ -253,9 +277,11 @@ function LeaderCard({
   onWeaponTargetClick?: () => void;
   isAbilityTarget?: boolean;
   onAbilityTargetClick?: () => void;
+  isAbilityActivatable?: boolean;
+  onAbilityActivate?: () => void;
   isAttackSource?: boolean;
   isAttackTarget?: boolean;
-  onAttackStart?: (pointerPosition: [number, number, number]) => void;
+  onAttackPointerDown?: (event: ThreeEvent<PointerEvent>) => void;
 }) {
   return (
     <Card3D
@@ -267,6 +293,9 @@ function LeaderCard({
       position={position}
       tapped={leader.tapped}
       cooldown={leader.cooldown}
+      isFrozen={leader.isFrozen}
+      isShocked={leader.isShocked}
+      isEffectImmune={leader.isEffectImmune}
       hasCharge={leader.hasCharge}
       hasDefender={leader.hasDefender}
       hasInfiltrate={leader.hasInfiltrate}
@@ -275,12 +304,14 @@ function LeaderCard({
       onWeaponTargetClick={onWeaponTargetClick}
       isAbilityTarget={isAbilityTarget}
       onAbilityTargetClick={onAbilityTargetClick}
+      isAbilityActivatable={isAbilityActivatable}
+      onAbilityActivate={onAbilityActivate}
       isAttackTarget={isAttackTarget}
       onPointerDown={
-        isAttackSource && onAttackStart
+        isAttackSource && onAttackPointerDown
           ? (event) => {
               event.stopPropagation();
-              onAttackStart([event.point.x, event.point.y, event.point.z]);
+              onAttackPointerDown(event);
             }
           : undefined
       }
@@ -532,10 +563,15 @@ function PlayerArea({
   onWeaponAttachToSlot,
   attackableSlots,
   attackTargets,
-  onAttackStart,
+  onAttackPointerDown,
   isLeaderWeaponTarget,
   abilityTargets,
   onAbilityTargetClick,
+  activatableGardenSlots,
+  activatableAlleySlots,
+  canActivateLeaderAbility,
+  onActivateGardenOrLeaderAbility,
+  onActivateAlleyAbility,
 }: {
   board: ResolvedPlayerBoard;
   hand?: ResolvedHandCard[];
@@ -545,7 +581,7 @@ function PlayerArea({
   onWeaponAttachToSlot?: (zone: "garden" | "alley" | "leader", slotIndex: number) => void;
   attackableSlots?: Set<number>;
   attackTargets?: Set<number>;
-  onAttackStart?: (attackerIndex: number, position: [number, number, number], pointerPosition: [number, number, number]) => void;
+  onAttackPointerDown?: (attackerIndex: number, position: [number, number, number], event: ThreeEvent<PointerEvent>) => void;
   isLeaderWeaponTarget?: boolean;
   abilityTargets?: {
     gardenTargets?: Map<number, number>;
@@ -553,6 +589,11 @@ function PlayerArea({
     leaderTargetIndex?: number | null;
   };
   onAbilityTargetClick?: (targetIndex: number) => void;
+  activatableGardenSlots?: Set<number>;
+  activatableAlleySlots?: Set<number>;
+  canActivateLeaderAbility?: boolean;
+  onActivateGardenOrLeaderAbility?: (slotIndex: number) => void;
+  onActivateAlleyAbility?: (alleyIndex: number) => void;
 }) {
   const gardenZ = isOpponent ? OPP_GARDEN_Z : MY_GARDEN_Z;
   const alleyZ = isOpponent ? OPP_ALLEY_Z : MY_ALLEY_Z;
@@ -563,6 +604,7 @@ function PlayerArea({
   const leaderTargetIndex = abilityTargets?.leaderTargetIndex;
   const isLeaderAbilityTarget =
     leaderTargetIndex !== null && leaderTargetIndex !== undefined;
+  const isLeaderAbilityActivatable = !isOpponent && !!canActivateLeaderAbility;
 
   return (
     <group>
@@ -582,11 +624,17 @@ function PlayerArea({
             ? () => onAbilityTargetClick(leaderTargetIndex)
             : undefined
         }
+        isAbilityActivatable={isLeaderAbilityActivatable}
+        onAbilityActivate={
+          isLeaderAbilityActivatable && onActivateGardenOrLeaderAbility
+            ? () => onActivateGardenOrLeaderAbility(5)
+            : undefined
+        }
         isAttackSource={isLeaderAttackSource}
         isAttackTarget={isLeaderAttackTarget}
-        onAttackStart={
-          isLeaderAttackSource && onAttackStart
-            ? (pointerPosition) => onAttackStart(5, [RIGHT_SIDE_X, 0, gardenZ], pointerPosition)
+        onAttackPointerDown={
+          isLeaderAttackSource && onAttackPointerDown
+            ? (event) => onAttackPointerDown(5, [RIGHT_SIDE_X, 0, gardenZ], event)
             : undefined
         }
       />
@@ -605,9 +653,11 @@ function PlayerArea({
         onWeaponAttachToSlot={onWeaponAttachToSlot}
         attackableSlots={attackableSlots}
         attackTargets={attackTargets}
-        onAttackStart={onAttackStart}
+        onAttackPointerDown={onAttackPointerDown}
         abilityTargets={abilityTargets?.gardenTargets}
         onAbilityTargetClick={onAbilityTargetClick}
+        activatableSlots={!isOpponent ? activatableGardenSlots : undefined}
+        onActivateAbility={!isOpponent ? onActivateGardenOrLeaderAbility : undefined}
       />
 
       {/* Alley (back row) */}
@@ -620,6 +670,8 @@ function PlayerArea({
         onDropToSlot={onDropToSlot}
         onWeaponAttachToSlot={onWeaponAttachToSlot}
         attackTargets={attackTargets}
+        activatableSlots={!isOpponent ? activatableAlleySlots : undefined}
+        onActivateAbility={!isOpponent ? onActivateAlleyAbility : undefined}
       />
 
       {/* Deck - below the gate */}
@@ -669,6 +721,7 @@ function PlayerArea({
 export function Board() {
   const { gameState } = useGameState();
   const { send } = useRoom();
+  const { camera, gl } = useThree();
 
   // Drag store actions
   const draggedCardIndex = useDragStore((state) => state.draggedCardIndex);
@@ -700,6 +753,40 @@ export function Board() {
     initialPointerPosition: [0, 0, 0],
     validTargets: new Set<number>(),
   });
+
+  const pendingAttackRef = useRef<{
+    attackerIndex: number;
+    attackerPosition: [number, number, number];
+    startX: number;
+    startY: number;
+  } | null>(null);
+
+  const abilityActivationEnabled =
+    dragPhase === "idle" && !attackDrag.active && !isInAbilityPhase;
+
+  const abilityActivationSlots = useMemo(() => {
+    if (!abilityActivationEnabled) {
+      return { gardenSlots: new Set<number>(), leaderActive: false };
+    }
+    const slots = getActivatableGardenOrLeaderSlots(gameState?.actionMask ?? null);
+    const gardenSlots = new Set<number>();
+    let leaderActive = false;
+    slots.forEach((slot) => {
+      if (slot === 5) {
+        leaderActive = true;
+      } else if (slot >= 0 && slot < 5) {
+        gardenSlots.add(slot);
+      }
+    });
+    return { gardenSlots, leaderActive };
+  }, [abilityActivationEnabled, gameState?.actionMask]);
+
+  const activatableAlleySlots = useMemo(() => {
+    if (!abilityActivationEnabled) {
+      return new Set<number>();
+    }
+    return getActivatableAlleySlots(gameState?.actionMask ?? null);
+  }, [abilityActivationEnabled, gameState?.actionMask]);
 
   const cancelAttackDrag = useCallback(() => {
     setAttackDrag({
@@ -737,6 +824,96 @@ export function Board() {
     },
     [attackDrag.active, dragPhase, gameState?.actionMask, isInAbilityPhase, validAttackers]
   );
+
+  const projectToXZPlane = useCallback(
+    (clientX: number, clientY: number, targetY: number): [number, number, number] => {
+      const rect = gl.domElement.getBoundingClientRect();
+      const ndcX = ((clientX - rect.left) / rect.width) * 2 - 1;
+      const ndcY = -((clientY - rect.top) / rect.height) * 2 + 1;
+
+      const raycaster = new THREE.Raycaster();
+      raycaster.setFromCamera(new THREE.Vector2(ndcX, ndcY), camera);
+
+      const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), -targetY);
+      const intersection = new THREE.Vector3();
+      raycaster.ray.intersectPlane(plane, intersection);
+
+      return [intersection.x, targetY, intersection.z];
+    },
+    [camera, gl]
+  );
+
+  const handleAttackPointerDown = useCallback(
+    (
+      attackerIndex: number,
+      attackerPosition: [number, number, number],
+      event: ThreeEvent<PointerEvent>
+    ) => {
+      if (!gameState?.actionMask) return;
+      if (dragPhase !== "idle" || attackDrag.active || isInAbilityPhase) return;
+      if (!validAttackers.has(attackerIndex)) return;
+
+      const validTargets = getValidAttackTargetsForAttacker(
+        gameState.actionMask,
+        attackerIndex
+      );
+      if (validTargets.size === 0) return;
+
+      if (event.clientX === undefined || event.clientY === undefined) return;
+
+      pendingAttackRef.current = {
+        attackerIndex,
+        attackerPosition,
+        startX: event.clientX,
+        startY: event.clientY,
+      };
+    },
+    [attackDrag.active, dragPhase, gameState?.actionMask, isInAbilityPhase, validAttackers]
+  );
+
+  const handlePendingAttackMove = useCallback(
+    (event: PointerEvent) => {
+      const pending = pendingAttackRef.current;
+      if (!pending) return;
+
+      if (dragPhase !== "idle" || attackDrag.active || isInAbilityPhase) {
+        pendingAttackRef.current = null;
+        return;
+      }
+
+      const dx = event.clientX - pending.startX;
+      const dy = event.clientY - pending.startY;
+      if (Math.hypot(dx, dy) < ATTACK_DRAG_THRESHOLD) {
+        return;
+      }
+
+      const pointerPosition = projectToXZPlane(
+        event.clientX,
+        event.clientY,
+        CARD_DEPTH + 0.08
+      );
+
+      pendingAttackRef.current = null;
+      startAttackDrag(pending.attackerIndex, pending.attackerPosition, pointerPosition);
+    },
+    [attackDrag.active, dragPhase, isInAbilityPhase, projectToXZPlane, startAttackDrag]
+  );
+
+  const handlePendingAttackEnd = useCallback(() => {
+    if (pendingAttackRef.current) {
+      pendingAttackRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener("pointermove", handlePendingAttackMove);
+    window.addEventListener("pointerup", handlePendingAttackEnd);
+
+    return () => {
+      window.removeEventListener("pointermove", handlePendingAttackMove);
+      window.removeEventListener("pointerup", handlePendingAttackEnd);
+    };
+  }, [handlePendingAttackMove, handlePendingAttackEnd]);
 
   // Handle dropping a hand card on a slot
   const handleDropToSlot = useCallback(
@@ -864,6 +1041,44 @@ export function Board() {
       }
     },
     [gameState?.actionMask, send, drop]
+  );
+
+  const handleActivateGardenOrLeaderAbility = useCallback(
+    (slotIndex: number) => {
+      if (!abilityActivationEnabled || !gameState?.actionMask) return;
+
+      const action = findValidGardenOrLeaderAbilityAction(
+        gameState.actionMask,
+        slotIndex
+      );
+
+      if (action) {
+        send({
+          type: "GAME_ACTION",
+          action,
+        });
+      }
+    },
+    [abilityActivationEnabled, gameState?.actionMask, send]
+  );
+
+  const handleActivateAlleyAbility = useCallback(
+    (alleyIndex: number) => {
+      if (!abilityActivationEnabled || !gameState?.actionMask) return;
+
+      const action = findValidAlleyAbilityAction(
+        gameState.actionMask,
+        alleyIndex
+      );
+
+      if (action) {
+        send({
+          type: "GAME_ACTION",
+          action,
+        });
+      }
+    },
+    [abilityActivationEnabled, gameState?.actionMask, send]
   );
 
   const handleAttackCommit = useCallback(
@@ -1002,8 +1217,13 @@ export function Board() {
         onDropToSlot={handleDropToSlot}
         onWeaponAttachToSlot={handleWeaponAttachDrop}
         attackableSlots={validAttackers}
-        onAttackStart={startAttackDrag}
+        onAttackPointerDown={handleAttackPointerDown}
         isLeaderWeaponTarget={isLeaderWeaponTarget}
+        activatableGardenSlots={abilityActivationSlots.gardenSlots}
+        activatableAlleySlots={activatableAlleySlots}
+        canActivateLeaderAbility={abilityActivationSlots.leaderActive}
+        onActivateGardenOrLeaderAbility={handleActivateGardenOrLeaderAbility}
+        onActivateAlleyAbility={handleActivateAlleyAbility}
         abilityTargets={
           abilityTargets
             ? {

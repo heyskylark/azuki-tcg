@@ -165,7 +165,9 @@ export type ProcessedGameLog =
   | { type: "KEYWORDS_CHANGED"; data: KeywordsChangedData }
   | { type: "TAP_CHANGED"; data: CardTapChangeData }
   | { type: "STATUS_EFFECT_APPLIED"; data: StatusAppliedData }
+  | { type: "STATUS_APPLIED"; data: StatusAppliedData }
   | { type: "STATUS_EFFECT_EXPIRED"; data: StatusExpiredData }
+  | { type: "STATUS_EXPIRED"; data: StatusExpiredData }
   | { type: "COMBAT_DECLARED"; data: CombatDeclaredData }
   | { type: "DEFENDER_DECLARED"; data: DefenderDeclaredData }
   | { type: "COMBAT_DAMAGE"; data: CombatDamageData }

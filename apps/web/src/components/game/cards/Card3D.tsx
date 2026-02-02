@@ -24,6 +24,7 @@ interface Card3DProps {
   cooldown?: boolean;
   isFrozen?: boolean;
   isShocked?: boolean;
+  isEffectImmune?: boolean;
   hasCharge?: boolean;
   hasDefender?: boolean;
   hasInfiltrate?: boolean;
@@ -33,6 +34,9 @@ interface Card3DProps {
   // Ability targeting props
   isAbilityTarget?: boolean;
   onAbilityTargetClick?: () => void;
+  // Ability activation props
+  isAbilityActivatable?: boolean;
+  onAbilityActivate?: () => void;
   // Weapon attachment targeting props
   isWeaponTarget?: boolean;
   onWeaponTargetClick?: () => void;
@@ -56,6 +60,7 @@ export function Card3D({
   cooldown = false,
   isFrozen = false,
   isShocked = false,
+  isEffectImmune = false,
   hasCharge = false,
   hasDefender = false,
   hasInfiltrate = false,
@@ -64,6 +69,8 @@ export function Card3D({
   children,
   isAbilityTarget = false,
   onAbilityTargetClick,
+  isAbilityActivatable = false,
+  onAbilityActivate,
   isWeaponTarget = false,
   onWeaponTargetClick,
   isAttackTarget = false,
@@ -105,6 +112,7 @@ export function Card3D({
   const getCardColor = () => {
     if (isFrozen) return "#88ccff";
     if (isShocked) return "#ffff88";
+    if (isEffectImmune) return "#88ffdd";
     if (cooldown) return "#888888";
     if (hovered) return "#ffffff";
     return "#dddddd";
@@ -129,6 +137,8 @@ export function Card3D({
             } else if (isAbilityTarget && onAbilityTargetClick) {
               // If this is an ability target and we have a target click handler, use it
               onAbilityTargetClick();
+            } else if (isAbilityActivatable && onAbilityActivate) {
+              onAbilityActivate();
             } else {
               onClick?.();
             }
@@ -139,7 +149,10 @@ export function Card3D({
           onPointerOver={(e) => {
             e.stopPropagation();
             setHover(true);
-            document.body.style.cursor = isWeaponTarget || isAbilityTarget || isAttackTarget ? "crosshair" : "pointer";
+            document.body.style.cursor =
+              isWeaponTarget || isAbilityTarget || isAttackTarget || isAbilityActivatable
+                ? "crosshair"
+                : "pointer";
           }}
           onPointerOut={() => {
             setHover(false);
@@ -187,10 +200,19 @@ export function Card3D({
         {/* Status effect overlays */}
         {isFrozen && <FrozenOverlay />}
         {isShocked && <ShockedOverlay />}
+        {isEffectImmune && <EffectImmuneOverlay />}
         {cooldown && <CooldownOverlay />}
 
         {/* Keyword badges */}
         {keywordBadges.length > 0 && <KeywordBadges badges={keywordBadges} />}
+
+        {/* Ability activation badge */}
+        {isAbilityActivatable && onAbilityActivate && (
+          <AbilityActivateBadge onActivate={onAbilityActivate} />
+        )}
+
+        {/* Ability activation highlight */}
+        {isAbilityActivatable && <AbilityActivateOverlay />}
 
         {/* Ability target highlight */}
         {isAbilityTarget && <AbilityTargetOverlay />}
@@ -254,6 +276,87 @@ function KeywordBadges({
   );
 }
 
+function AbilityActivateBadge({ onActivate }: { onActivate: () => void }) {
+  const meshRef = useRef<THREE.Mesh>(null!);
+
+  useFrame((state) => {
+    if (meshRef.current) {
+      const pulse = Math.sin(state.clock.elapsedTime * 6) * 0.12 + 0.7;
+      (meshRef.current.material as THREE.MeshBasicMaterial).opacity = pulse;
+    }
+  });
+
+  return (
+    <group
+      position={[CARD_WIDTH * 0.36, CARD_DEPTH + 0.05, CARD_HEIGHT * 0.36]}
+      rotation={[-Math.PI / 2, 0, 0]}
+    >
+      <mesh
+        ref={meshRef}
+        onPointerDown={(e) => {
+          e.stopPropagation();
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          onActivate();
+        }}
+        onPointerOver={(e) => {
+          e.stopPropagation();
+          document.body.style.cursor = "pointer";
+        }}
+        onPointerOut={(e) => {
+          e.stopPropagation();
+          document.body.style.cursor = "default";
+        }}
+      >
+        <circleGeometry args={[0.18, 24]} />
+        <meshBasicMaterial color="#33ccff" transparent opacity={0.75} />
+      </mesh>
+      <Text
+        position={[0, 0.001, 0]}
+        fontSize={0.16}
+        color="#061622"
+        anchorX="center"
+        anchorY="middle"
+        raycast={() => null}
+      >
+        A
+      </Text>
+    </group>
+  );
+}
+
+/**
+ * Ability activation overlay - pulsing cyan highlight for activatable abilities.
+ */
+function AbilityActivateOverlay() {
+  const meshRef = useRef<THREE.Mesh>(null!);
+
+  useFrame((state) => {
+    if (meshRef.current) {
+      const pulse = Math.sin(state.clock.elapsedTime * 5) * 0.12 + 0.25;
+      (meshRef.current.material as THREE.MeshBasicMaterial).opacity = pulse;
+    }
+  });
+
+  return (
+    <mesh
+      ref={meshRef}
+      rotation={[-Math.PI / 2, 0, 0]}
+      position={[0, CARD_DEPTH + 0.02, 0]}
+      raycast={() => null}
+    >
+      <planeGeometry args={[CARD_WIDTH + 0.24, CARD_HEIGHT + 0.24]} />
+      <meshBasicMaterial
+        color="#33ccff"
+        transparent
+        opacity={0.25}
+        side={THREE.DoubleSide}
+      />
+    </mesh>
+  );
+}
+
 /**
  * Frozen effect overlay - blue tint.
  */
@@ -301,6 +404,37 @@ function ShockedOverlay() {
         color="#ffff00"
         transparent
         opacity={0.2}
+        side={THREE.DoubleSide}
+      />
+    </mesh>
+  );
+}
+
+/**
+ * EffectImmune overlay - teal shield tint.
+ */
+function EffectImmuneOverlay() {
+  const meshRef = useRef<THREE.Mesh>(null!);
+
+  useFrame((state) => {
+    if (meshRef.current) {
+      const pulse = Math.sin(state.clock.elapsedTime * 6) * 0.1 + 0.25;
+      (meshRef.current.material as THREE.MeshBasicMaterial).opacity = pulse;
+    }
+  });
+
+  return (
+    <mesh
+      ref={meshRef}
+      rotation={[-Math.PI / 2, 0, 0]}
+      position={[0, CARD_DEPTH + 0.015, 0]}
+      raycast={() => null}
+    >
+      <planeGeometry args={[CARD_WIDTH * 0.92, CARD_HEIGHT * 0.92]} />
+      <meshBasicMaterial
+        color="#33ddb9"
+        transparent
+        opacity={0.25}
         side={THREE.DoubleSide}
       />
     </mesh>
