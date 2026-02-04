@@ -8,7 +8,7 @@ import { useAssets } from "@/contexts/AssetContext";
 import { CARD_WIDTH, CARD_HEIGHT, CARD_DEPTH } from "@/components/game/cards/Card3D";
 
 // Z thresholds for zone detection (based on Board.tsx constants)
-const HAND_ZONE_Z = 6.5; // MY_HAND_Z = 7.4, threshold below
+const HAND_ZONE_Z = 5.5; // Keep pickup zoom until roughly halfway through the IKZ row
 const ALLEY_ZONE_Z = 4.5; // MY_ALLEY_Z = 3.6, threshold above
 const GARDEN_ZONE_Z = 2.5; // MY_GARDEN_Z = 1.5, threshold above
 
@@ -29,6 +29,7 @@ const PICKUP_SPRING = 12; // Faster follow in pickup
 const DRAG_SPRING = 8; // Smooth lag when dragging
 const RETURN_SPRING = 10; // Speed for return animation
 const RETURN_DISTANCE_THRESHOLD = 0.1; // How close to original position to complete return
+const DRAG_ZOOM_LIFT_Y = 0.2; // Extra lift when re-zooming near the hand buttons
 
 /**
  * Determine which zone the cursor is in based on Z position.
@@ -322,9 +323,18 @@ export function DraggedCard() {
   useFrame((_, delta) => {
     if (!groupRef.current || dragPhase === "idle") return;
 
+    const isHandDrag =
+      dragSourceType === "hand" ||
+      dragSourceType === "weapon" ||
+      dragSourceType === "spell";
+    const isInHandZone = targetPosition[2] > HAND_ZONE_Z;
+    const zoomLift =
+      dragPhase === "dragging" && isHandDrag && isInHandZone
+        ? DRAG_ZOOM_LIFT_Y
+        : 0;
     const target = new THREE.Vector3(
       targetPosition[0],
-      targetPosition[1],
+      targetPosition[1] + zoomLift,
       targetPosition[2]
     );
     // Use the correct original position based on drag source type
@@ -340,7 +350,7 @@ export function DraggedCard() {
     if (dragPhase === "pickup") {
       targetScale = 2.25;
     } else if (dragPhase === "dragging") {
-      targetScale = isOverValidTarget ? 1.15 : 1;
+      targetScale = isHandDrag && isInHandZone ? 2.25 : isOverValidTarget ? 1.15 : 1;
     } else if (dragPhase === "returning") {
       targetScale = 1;
     }

@@ -4,7 +4,6 @@ import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { GameScene } from "@/components/game/GameScene";
 import { LoadingScreen } from "@/components/game/LoadingScreen";
-import { ActionPanel } from "@/components/game/ActionPanel";
 import { DevDebugOverlay } from "@/components/game/DevDebugOverlay";
 import { useAssets } from "@/contexts/AssetContext";
 import { useGameState } from "@/contexts/GameStateContext";
@@ -100,7 +99,6 @@ export function InMatchView() {
       ) : (
         <>
           <GameScene />
-          <ActionPanel />
           {isDevMode && <DevDebugOverlay />}
         </>
       )}
