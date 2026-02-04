@@ -13,6 +13,7 @@ ECS_COMPONENT_DECLARE(ZoneIndex);
 ECS_COMPONENT_DECLARE(IKZToken);
 ECS_COMPONENT_DECLARE(TriggeredEffectQueue);
 ECS_COMPONENT_DECLARE(PassiveBuffQueue);
+ECS_COMPONENT_DECLARE(DeckReorderQueue);
 
 ECS_ENTITY_DECLARE(Rel_OwnedBy);
 
@@ -47,12 +48,14 @@ void azk_register_components(ecs_world_t *world) {
   ECS_COMPONENT_DEFINE(world, IKZToken);
   ECS_COMPONENT_DEFINE(world, TriggeredEffectQueue);
   ECS_COMPONENT_DEFINE(world, PassiveBuffQueue);
+  ECS_COMPONENT_DEFINE(world, DeckReorderQueue);
 
   // Initialize TriggeredEffectQueue singleton
   ecs_singleton_set(world, TriggeredEffectQueue, {.count = 0});
 
   // Initialize PassiveBuffQueue singleton
   ecs_singleton_set(world, PassiveBuffQueue, {.count = 0});
+  ecs_singleton_set(world, DeckReorderQueue, {.count = 0});
 
   {
     ecs_entity_desc_t desc = {

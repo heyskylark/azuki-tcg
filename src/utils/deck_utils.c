@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "components/components.h"
+#include "utils/cli_rendering_util.h"
 #include "utils/game_log_util.h"
 #include "utils/player_util.h"
 
@@ -208,33 +209,13 @@ void add_card_to_bottom_of_deck(ecs_world_t *world, ecs_entity_t player,
   uint8_t player_num = get_player_number(world, player);
   ecs_entity_t deck = gs->zones[player_num].deck;
 
-  // Snapshot deck order before moving to avoid Flecs deferred-operation issues.
-  ecs_entities_t deck_cards = ecs_get_ordered_children(world, deck);
-  int32_t count = deck_cards.count;
-  bool already_in_deck = (from_zone_entity == deck);
-
   // Move the card to the deck zone (may be deferred)
   ecs_add_pair(world, card, EcsChildOf, deck);
 
-  // Build new order with the card at index 0 (bottom)
-  int32_t new_count = already_in_deck ? count : (count + 1);
-  ecs_entity_t *new_order = ecs_os_malloc_n(ecs_entity_t, new_count);
-  ecs_assert(new_order != NULL, ECS_OUT_OF_MEMORY,
-             "Failed to allocate reorder buffer");
-
-  new_order[0] = card;
-  int dest = 1;
-  for (int32_t i = 0; i < count; i++) {
-    if (deck_cards.ids[i] == card) {
-      continue;
-    }
-    if (dest < new_count) {
-      new_order[dest++] = deck_cards.ids[i];
-    }
+  // Defer reordering until after deferred ops flush
+  if (!azk_queue_deck_reorder(world, deck, card)) {
+    cli_render_logf("[Deck] Reorder queue full - bottom deck reorder skipped");
   }
-
-  ecs_set_child_order(world, deck, new_order, new_count);
-  ecs_os_free(new_order);
 
   // Log zone movement (card ends up at index 0 = bottom of deck)
   azk_log_card_zone_moved(world, card, from_zone, from_index, GLOG_ZONE_DECK,
@@ -267,4 +248,86 @@ void move_selection_to_deck_bottom(ecs_world_t *world, ecs_entity_t player,
                                    ecs_entity_t card) {
   // Just delegate to add_card_to_bottom_of_deck
   add_card_to_bottom_of_deck(world, player, card);
+}
+
+bool azk_queue_deck_reorder(ecs_world_t *world, ecs_entity_t deck,
+                            ecs_entity_t card) {
+  ecs_assert(world != NULL, ECS_INVALID_PARAMETER, "World pointer is null");
+
+  DeckReorderQueue *queue = ecs_singleton_get_mut(world, DeckReorderQueue);
+  ecs_assert(queue != NULL, ECS_INVALID_PARAMETER,
+             "DeckReorderQueue singleton missing");
+
+  if (queue->count >= MAX_DECK_REORDER_QUEUE) {
+    return false;
+  }
+
+  queue->entries[queue->count++] = (PendingDeckReorder){
+      .deck = deck,
+      .card = card,
+  };
+
+  ecs_singleton_modified(world, DeckReorderQueue);
+  return true;
+}
+
+bool azk_has_pending_deck_reorders(ecs_world_t *world) {
+  const DeckReorderQueue *queue = ecs_singleton_get(world, DeckReorderQueue);
+  return queue && queue->count > 0;
+}
+
+void azk_process_deck_reorder_queue(ecs_world_t *world) {
+  DeckReorderQueue *queue = ecs_singleton_get_mut(world, DeckReorderQueue);
+  if (!queue || queue->count == 0) {
+    return;
+  }
+
+  for (uint8_t i = 0; i < queue->count; i++) {
+    ecs_entity_t deck = queue->entries[i].deck;
+    ecs_entity_t card = queue->entries[i].card;
+
+    if (deck == 0 || card == 0) {
+      continue;
+    }
+
+    ecs_entity_t parent = ecs_get_target(world, card, EcsChildOf, 0);
+    if (parent != deck) {
+      cli_render_logf("[Deck] Reorder skipped - card not in deck");
+      continue;
+    }
+
+    ecs_entities_t deck_cards = ecs_get_ordered_children(world, deck);
+    int32_t count = deck_cards.count;
+    if (count <= 1) {
+      continue;
+    }
+
+    ecs_entity_t *new_order = ecs_os_malloc_n(ecs_entity_t, count);
+    ecs_assert(new_order != NULL, ECS_OUT_OF_MEMORY,
+               "Failed to allocate reorder buffer");
+
+    bool found = false;
+    int32_t dest = 0;
+    new_order[dest++] = card;
+    for (int32_t j = 0; j < count; j++) {
+      if (deck_cards.ids[j] == card) {
+        found = true;
+        continue;
+      }
+      if (dest < count) {
+        new_order[dest++] = deck_cards.ids[j];
+      }
+    }
+
+    if (found && dest == count) {
+      ecs_set_child_order(world, deck, new_order, count);
+    } else {
+      cli_render_logf("[Deck] Reorder skipped - card missing from deck list");
+    }
+
+    ecs_os_free(new_order);
+  }
+
+  queue->count = 0;
+  ecs_singleton_modified(world, DeckReorderQueue);
 }

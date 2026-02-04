@@ -8,6 +8,7 @@
   "scripts": {
     "dev": "COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$(basename \"$PWD\")} docker compose up --build",
     "dev:watch": "COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$(basename \"$PWD\")} docker compose up --build --watch",
+    "dev:infra": "COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$(basename \"$PWD\")} docker compose up --build db migrate web",
     "dev:down": "COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$(basename \"$PWD\")} docker compose down",
     "dev:clean": "COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$(basename \"$PWD\")} docker compose down -v",
     "ws": "yarn workspace @azuki/websocket",

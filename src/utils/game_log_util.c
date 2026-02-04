@@ -61,9 +61,29 @@ static bool is_public_log_zone(GameLogZone zone) {
   }
 }
 
+static bool is_zone_entity(ecs_world_t *world, ecs_entity_t entity) {
+  if (entity == 0) {
+    return false;
+  }
+
+  return ecs_has_id(world, entity, ZDeck) || ecs_has_id(world, entity, ZHand) ||
+         ecs_has_id(world, entity, ZLeader) ||
+         ecs_has_id(world, entity, ZGate) ||
+         ecs_has_id(world, entity, ZGarden) ||
+         ecs_has_id(world, entity, ZAlley) ||
+         ecs_has_id(world, entity, ZIKZPileTag) ||
+         ecs_has_id(world, entity, ZIKZAreaTag) ||
+         ecs_has_id(world, entity, ZDiscard) ||
+         ecs_has_id(world, entity, ZSelection);
+}
+
 int8_t azk_get_card_index_in_zone(ecs_world_t *world, ecs_entity_t card,
                                   ecs_entity_t zone) {
   if (card == 0 || zone == 0) {
+    return -1;
+  }
+
+  if (!is_zone_entity(world, zone)) {
     return -1;
   }
 
@@ -82,6 +102,40 @@ int8_t azk_get_card_index_in_zone(ecs_world_t *world, ecs_entity_t card,
   }
 
   return -1;
+}
+
+static ecs_entity_t find_card_zone(ecs_world_t *world, ecs_entity_t card,
+                                   ecs_entity_t *out_index_card) {
+  if (out_index_card) {
+    *out_index_card = card;
+  }
+
+  ecs_entity_t parent = ecs_get_target(world, card, EcsChildOf, 0);
+  if (parent == 0) {
+    return 0;
+  }
+
+  if (is_zone_entity(world, parent)) {
+    if (out_index_card) {
+      *out_index_card = card;
+    }
+    return parent;
+  }
+
+  ecs_entity_t index_card = parent;
+  ecs_entity_t current = ecs_get_target(world, parent, EcsChildOf, 0);
+  while (current != 0) {
+    if (is_zone_entity(world, current)) {
+      if (out_index_card) {
+        *out_index_card = index_card;
+      }
+      return current;
+    }
+    index_card = current;
+    current = ecs_get_target(world, current, EcsChildOf, 0);
+  }
+
+  return 0;
 }
 
 void azk_clear_game_logs(ecs_world_t *world) {
@@ -158,11 +212,12 @@ GameLogCardRef azk_make_card_ref(ecs_world_t *world, ecs_entity_t card) {
   ref.player = get_card_player(world, card);
   ref.card_def_id = get_card_def_id(world, card);
 
-  // Get zone from parent entity
-  ecs_entity_t zone_entity = ecs_get_target(world, card, EcsChildOf, 0);
+  // Get zone from parent entity (handles attached weapons)
+  ecs_entity_t index_card = card;
+  ecs_entity_t zone_entity = find_card_zone(world, card, &index_card);
   ref.zone = azk_zone_entity_to_log_zone(world, zone_entity);
   // Use azk_get_card_index_in_zone for slow path search (handles IKZ cards)
-  ref.zone_index = azk_get_card_index_in_zone(world, card, zone_entity);
+  ref.zone_index = azk_get_card_index_in_zone(world, index_card, zone_entity);
 
   return ref;
 }

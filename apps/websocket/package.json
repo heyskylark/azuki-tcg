@@ -6,6 +6,10 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch --tsconfig tsconfig.json src/server.ts",
+    "debug": "ROOT_DIR=$(git rev-parse --show-toplevel) && cd \"$ROOT_DIR\" && COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$(basename \"$ROOT_DIR\")} docker compose -f docker-compose.yml -f docker-compose.debug.yml run --rm --service-ports ws gdb -ex \"set follow-fork-mode child\" -ex \"set detach-on-fork off\" -ex run --args node /app/apps/websocket/dist/server.js",
+    "debug:build": "ROOT_DIR=$(git rev-parse --show-toplevel) && cd \"$ROOT_DIR\" && COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$(basename \"$ROOT_DIR\")} docker compose -f docker-compose.yml -f docker-compose.debug.yml build ws",
+    "debug:nosan": "ROOT_DIR=$(git rev-parse --show-toplevel) && cd \"$ROOT_DIR\" && COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$(basename \"$ROOT_DIR\")} docker compose -f docker-compose.yml -f docker-compose.debug.nosan.yml run --rm --service-ports ws gdb -ex \"set follow-fork-mode child\" -ex \"set detach-on-fork off\" -ex run --args node /app/apps/websocket/dist/server.js",
+    "debug:nosan:build": "ROOT_DIR=$(git rev-parse --show-toplevel) && cd \"$ROOT_DIR\" && COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$(basename \"$ROOT_DIR\")} docker compose -f docker-compose.yml -f docker-compose.debug.nosan.yml build ws",
     "build": "tsc && tsc-alias --resolve-full-paths && node scripts/copy-native.js",
     "build:native": "cd native && node-gyp rebuild",
     "build:all": "yarn build:native && yarn build",

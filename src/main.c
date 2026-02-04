@@ -3,6 +3,7 @@
 #include "systems/phase_gate.h"
 #include "utils/actions_util.h"
 #include "utils/cli_rendering_util.h"
+#include "utils/deck_utils.h"
 #include "utils/observation_util.h"
 #include "utils/phase_utils.h"
 #include "utils/status_util.h"
@@ -13,6 +14,10 @@ int main(void) {
 
   bool game_over = false;
   while (!game_over) {
+    if (azk_has_pending_deck_reorders(world)) {
+      azk_process_deck_reorder_queue(world);
+    }
+
     const GameState *gs = ecs_singleton_get(world, GameState);
     ObservationData observation_data =
         create_observation_data(world, gs->active_player_index);
