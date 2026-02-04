@@ -6,6 +6,7 @@ import { OrbitControls } from "@react-three/drei";
 import { Board } from "@/components/game/board/Board";
 import { DraggedCard } from "@/components/game/cards/DraggedCard";
 import { AbilityOverlay } from "@/components/game/abilities/AbilityOverlay";
+import { ActionButtons3D } from "@/components/game/ActionButtons3D";
 
 /**
  * Main game scene component.
@@ -36,6 +37,7 @@ export function GameScene() {
         <Suspense fallback={null}>
           <Board />
           <DraggedCard />
+          <ActionButtons3D />
         </Suspense>
 
         {/* Camera controls - limited to slight adjustments */}

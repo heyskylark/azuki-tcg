@@ -32,9 +32,7 @@ function SignupForm() {
   const redirectPath = getSafeRedirectPath(redirectParam, "/dashboard");
 
   // Build login URL with redirect param if present
-  const loginUrl = redirectParam
-    ? `/login?redirect=${encodeURIComponent(redirectPath)}`
-    : "/login";
+  const loginUrl = redirectParam ? `/login?redirect=${encodeURIComponent(redirectPath)}` : "/login";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

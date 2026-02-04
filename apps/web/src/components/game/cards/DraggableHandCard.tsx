@@ -18,8 +18,8 @@ import type { SnapshotActionMask } from "@tcg/backend-core/types/ws";
 import type { ResolvedHandCard } from "@/types/game";
 
 // Z threshold for determining if cursor is in hand zone
-// MY_HAND_Z = 7.4, so we use a threshold below that
-const HAND_ZONE_Z_THRESHOLD = 6.5;
+// Keep pickup zoom until roughly halfway through the IKZ row.
+const HAND_ZONE_Z_THRESHOLD = 5.5;
 
 interface DraggableHandCardProps {
   card: ResolvedHandCard;
