@@ -51,4 +51,20 @@ void move_selection_to_hand(ecs_world_t *world, ecs_entity_t card);
  */
 void move_selection_to_deck_bottom(ecs_world_t *world, ecs_entity_t player, ecs_entity_t card);
 
+/**
+ * Queue a deck reorder so it can be processed after deferred ops flush.
+ * @return true if queued, false if queue is full.
+ */
+bool azk_queue_deck_reorder(ecs_world_t *world, ecs_entity_t deck, ecs_entity_t card);
+
+/**
+ * Check for pending deck reorder operations.
+ */
+bool azk_has_pending_deck_reorders(ecs_world_t *world);
+
+/**
+ * Process any queued deck reorders.
+ */
+void azk_process_deck_reorder_queue(ecs_world_t *world);
+
 #endif

@@ -5,6 +5,7 @@
 #include "systems/phase_gate.h"
 #include "utils/game_log_util.h"
 #include "utils/phase_utils.h"
+#include "utils/deck_utils.h"
 #include "utils/status_util.h"
 #include "world.h"
 #include "validation/action_enumerator.h"
@@ -95,6 +96,10 @@ bool azk_engine_submit_action(AzkEngine *engine, const UserAction *action) {
 void azk_engine_tick(AzkEngine *engine) {
   if (!engine) {
     return;
+  }
+
+  if (azk_has_pending_deck_reorders(engine)) {
+    azk_process_deck_reorder_queue(engine);
   }
 
   // Process any pending passive buff updates (from observer callbacks)

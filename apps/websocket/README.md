@@ -102,6 +102,49 @@ yarn ws build:native
 yarn dev
 ```
 
+## Native Debugging (Docker + GDB + Sanitizers)
+
+This repo includes a debug Dockerfile and compose override to help catch native
+segfaults with `gdb` and sanitizer instrumentation. Sanitizers are **development
+only** and should not be used in production builds.
+
+### Run the stack with a debug WebSocket container
+
+Open two terminals:
+
+```bash
+# Terminal 1: run the rest of the stack (db, migrate, web)
+yarn dev:infra
+```
+
+```bash
+# Terminal 2: run the WebSocket service under gdb (with sanitizers enabled)
+yarn ws debug
+```
+
+`gdb` will auto-run the server. When it crashes, use:
+
+```gdb
+bt
+thread apply all bt
+```
+
+Notes:
+- `yarn ws debug` uses `docker-compose.debug.yml` + `docker/ws.debug.Dockerfile`.
+- The debug image builds the C engine and native addon with ASan/UBSan and debug symbols.
+- The debug image is cached; rebuild only when C/C++ sources change:
+
+```bash
+yarn ws debug:build
+```
+- If ASan builds are too slow, use the no-sanitizer debug image:
+
+```bash
+yarn ws debug:nosan:build
+yarn ws debug:nosan
+```
+- If you need to tweak sanitizer behavior, set `ASAN_OPTIONS` / `UBSAN_OPTIONS` in your shell before running `yarn ws debug`.
+
 ## Production Build
 
 ### Option 1: Docker (Recommended)

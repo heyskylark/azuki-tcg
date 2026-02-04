@@ -161,6 +161,19 @@ typedef struct {
   uint8_t count;
 } PassiveBuffQueue;
 
+/* Deck reorder queue for deferred child ordering fixes */
+typedef struct {
+  ecs_entity_t deck;
+  ecs_entity_t card;
+} PendingDeckReorder;
+
+#define MAX_DECK_REORDER_QUEUE 16
+
+typedef struct {
+  PendingDeckReorder entries[MAX_DECK_REORDER_QUEUE];
+  uint8_t count;
+} DeckReorderQueue;
+
 extern ECS_COMPONENT_DECLARE(ActionContext);
 extern ECS_COMPONENT_DECLARE(AbilityContext);
 extern ECS_COMPONENT_DECLARE(GameState);
@@ -170,6 +183,7 @@ extern ECS_COMPONENT_DECLARE(IKZToken);
 extern ECS_COMPONENT_DECLARE(ZoneIndex);
 extern ECS_COMPONENT_DECLARE(TriggeredEffectQueue);
 extern ECS_COMPONENT_DECLARE(PassiveBuffQueue);
+extern ECS_COMPONENT_DECLARE(DeckReorderQueue);
 
 /* Relationship Entities */
 extern ECS_ENTITY_DECLARE(Rel_OwnedBy);
