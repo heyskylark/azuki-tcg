@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { useRoom } from "@/contexts/RoomContext";
 import { AssetProvider } from "@/contexts/AssetContext";
 import { GameStateProvider } from "@/contexts/GameStateContext";
 import { GameBridge } from "@/components/game/GameBridge";
+import { GameOverScreen } from "@/components/game/GameOverScreen";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -41,10 +43,13 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
     roomState,
     connectionStatus,
     error,
+    gameOver,
     join,
     send,
     clearError,
+    clearActiveRoom,
   } = useRoom();
+  const router = useRouter();
 
   const isInRoom =
     initialRoom.player0Id === user.id || initialRoom.player1Id === user.id;
@@ -55,6 +60,27 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
   const [needsPassword, setNeedsPassword] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
   const hasAttemptedJoin = useRef(false);
+
+  const handleReturnHome = useCallback(() => {
+    clearActiveRoom();
+    router.push("/");
+  }, [clearActiveRoom, router]);
+
+  const gameOverOutcome = (() => {
+    if (!gameOver) {
+      return null;
+    }
+    if (gameOver.winnerId === null && gameOver.winnerSlot === null) {
+      return "draw";
+    }
+    if (gameOver.winnerId && gameOver.winnerId === user.id) {
+      return "win";
+    }
+    if (gameOver.winnerSlot !== null && gameOver.winnerSlot === playerSlot) {
+      return "win";
+    }
+    return "lose";
+  })();
 
   // Auto-join on mount if conditions are right
   useEffect(() => {
@@ -147,6 +173,16 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
     },
     [join, initialRoom.id]
   );
+
+  if (gameOverOutcome) {
+    return (
+      <GameOverScreen
+        outcome={gameOverOutcome}
+        reason={gameOver?.reason}
+        onReturnHome={handleReturnHome}
+      />
+    );
+  }
 
   // Determine current display status
   const displayStatus = roomState?.status ?? initialRoom.status;
