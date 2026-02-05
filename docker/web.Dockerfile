@@ -1,12 +1,12 @@
-FROM node:22-alpine
+FROM oven/bun:1-debian
 
 WORKDIR /app
 
 # Install dependencies
-COPY package.json yarn.lock ./
+COPY package.json bun.lock ./
 COPY packages/backend-core/package.json ./packages/backend-core/
 COPY apps/web/package.json ./apps/web/
-RUN yarn install --frozen-lockfile
+RUN bun install
 
 # Copy source code
 COPY tsconfig.base.json ./
@@ -16,4 +16,4 @@ COPY apps/web ./apps/web
 EXPOSE 3000
 
 # Run Next.js in development mode for hot reloading
-CMD ["yarn", "web", "dev"]
+CMD ["bun", "run", "--filter", "@azuki/web", "dev"]

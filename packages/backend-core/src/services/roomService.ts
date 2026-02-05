@@ -1,7 +1,7 @@
 import { and, eq, notInArray, or } from "drizzle-orm";
 import { SignJWT } from "jose";
 import { uuidv7 } from "uuidv7";
-import * as bcrypt from "bcrypt";
+import * as bcrypt from "bcryptjs";
 import db, { type IDatabase, type ITransaction } from "@core/database";
 import { Rooms } from "@core/drizzle/schemas/rooms";
 import { Decks } from "@core/drizzle/schemas/decks";

@@ -4,39 +4,22 @@ Next.js web application for Azuki TCG - API routes and game client.
 
 ## Requirements
 
-- **Node.js 20 LTS**
-- Yarn 1.x
-
-```bash
-# Check Node version
-node --version  # Should be v20.x.x
-
-# Switch to Node 20 using nvm
-nvm use 20
-```
+- **[Bun](https://bun.sh)** - JavaScript/TypeScript runtime and package manager
+- **CMake 3.16+** (for building the C engine, if needed)
 
 ## Installation
 
 From the repository root:
 
 ```bash
-yarn install
-```
-
-Or install this package specifically:
-
-```bash
-yarn workspace @azuki/web install
+bun install
 ```
 
 ## Development
 
 ```bash
 # From repository root
-yarn web dev
-
-# Or from this directory
-yarn dev
+bun web dev
 ```
 
 The app starts on `http://localhost:3000`.
@@ -45,16 +28,16 @@ The app starts on `http://localhost:3000`.
 
 ```bash
 # Build
-yarn web build
+bun web build
 
 # Start
-yarn web start
+bun web start
 ```
 
 ## Linting
 
 ```bash
-yarn web lint
+bun web lint
 ```
 
 ## Project Structure

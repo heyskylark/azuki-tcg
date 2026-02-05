@@ -1,12 +1,15 @@
-FROM node:22-slim AS builder
+FROM oven/bun:1-debian AS builder
 
 # Install build dependencies for C engine and native module
+# Node.js and npm are needed for node-gyp to compile the native N-API addon
 RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
     python3 \
     git \
     libncurses-dev \
+    nodejs \
+    npm \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -23,11 +26,11 @@ COPY tests/ ./tests/
 RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_PYTHON_BINDINGS=OFF \
     && cmake --build build -j$(nproc) --target azuki_lib
 
-# Install Node.js dependencies
-COPY package.json yarn.lock ./
+# Install dependencies
+COPY package.json bun.lock ./
 COPY packages/backend-core/package.json ./packages/backend-core/
 COPY apps/websocket/package.json ./apps/websocket/
-RUN yarn install --frozen-lockfile
+RUN bun install
 
 # Copy source code
 COPY tsconfig.base.json ./
@@ -35,13 +38,13 @@ COPY packages/backend-core ./packages/backend-core
 COPY apps/websocket ./apps/websocket
 
 # Build native module (requires C engine library and flecs from build/_deps/)
-RUN cd apps/websocket && yarn build:native
+RUN cd apps/websocket && bun run build:native
 
 # Build backend-core and websocket TypeScript
-RUN yarn core build && yarn ws build
+RUN bun run --filter '@tcg/backend-core' build && bun run --filter '@azuki/websocket' build
 
 # Production image
-FROM node:22-slim
+FROM oven/bun:1-debian
 
 # Install runtime dependencies (ncurses for the engine)
 RUN apt-get update && apt-get install -y \
@@ -51,12 +54,13 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 # Copy built artifacts
-COPY --from=builder /app/package.json /app/yarn.lock ./
+COPY --from=builder /app/package.json ./
 COPY --from=builder /app/packages/backend-core/package.json ./packages/backend-core/
 COPY --from=builder /app/apps/websocket/package.json ./apps/websocket/
 
 # Install production dependencies only
-RUN yarn install --frozen-lockfile --production
+COPY --from=builder /app/bun.lock ./
+RUN bun install --production
 
 # Copy built code
 COPY --from=builder /app/packages/backend-core/dist ./packages/backend-core/dist
@@ -69,4 +73,4 @@ COPY --from=builder /app/build ./build
 
 EXPOSE 3001
 
-CMD ["yarn", "ws", "start"]
+CMD ["bun", "apps/websocket/dist/server.js"]

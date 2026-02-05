@@ -5,16 +5,16 @@
   "type": "module",
   "main": "dist/server.js",
   "scripts": {
-    "dev": "tsx watch --tsconfig tsconfig.json src/server.ts",
+    "dev": "bun --watch src/server.ts",
     "debug": "ROOT_DIR=$(git rev-parse --show-toplevel) && cd \"$ROOT_DIR\" && COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$(basename \"$ROOT_DIR\")} docker compose -f docker-compose.yml -f docker-compose.debug.yml run --rm --service-ports ws gdb -ex \"set follow-fork-mode child\" -ex \"set detach-on-fork off\" -ex run --args node /app/apps/websocket/dist/server.js",
     "debug:build": "ROOT_DIR=$(git rev-parse --show-toplevel) && cd \"$ROOT_DIR\" && COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$(basename \"$ROOT_DIR\")} docker compose -f docker-compose.yml -f docker-compose.debug.yml build ws",
     "debug:nosan": "ROOT_DIR=$(git rev-parse --show-toplevel) && cd \"$ROOT_DIR\" && COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$(basename \"$ROOT_DIR\")} docker compose -f docker-compose.yml -f docker-compose.debug.nosan.yml run --rm --service-ports ws gdb -ex \"set follow-fork-mode child\" -ex \"set detach-on-fork off\" -ex run --args node /app/apps/websocket/dist/server.js",
     "debug:nosan:build": "ROOT_DIR=$(git rev-parse --show-toplevel) && cd \"$ROOT_DIR\" && COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$(basename \"$ROOT_DIR\")} docker compose -f docker-compose.yml -f docker-compose.debug.nosan.yml build ws",
-    "build": "tsc && tsc-alias --resolve-full-paths && node scripts/copy-native.js",
+    "build": "tsc && tsc-alias --resolve-full-paths && bun scripts/copy-native.js",
     "build:native": "cd native && node-gyp rebuild",
-    "build:all": "yarn build:native && yarn build",
-    "start": "node dist/server.js",
-    "test:engine": "tsx scripts/test-engine.ts"
+    "build:all": "bun run build:native && bun run build",
+    "start": "bun dist/server.js",
+    "test:engine": "bun scripts/test-engine.ts"
   },
   "dependencies": {
     "@tcg/backend-core": "*",
@@ -26,8 +26,6 @@
     "@types/node": "^25.0.3",
     "node-gyp": "^10.0.0",
     "tsc-alias": "^1.8.16",
-    "tsconfig-paths": "^4.2.0",
-    "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   }
 }
