@@ -5,6 +5,7 @@
 
 #include "components/abilities.h"
 #include "utils/cli_rendering_util.h"
+#include "utils/debug_log.h"
 #include "validation/action_enumerator.h"
 
 static void reset_legal_actions(ActionMaskObs *action_mask) {
@@ -185,7 +186,7 @@ static CardObservationData get_card_observation(ecs_world_t *world,
 static void
 get_card_observation_array_for_zone(ecs_world_t *world, ecs_entity_t zone,
                                     CardObservationData *observation_data,
-                                    size_t max_count) {
+                                    size_t max_count, bool use_zone_index) {
   ecs_entities_t cards = ecs_get_ordered_children(world, zone);
   size_t count = cards.count;
   if (count > max_count) {
@@ -194,9 +195,67 @@ get_card_observation_array_for_zone(ecs_world_t *world, ecs_entity_t zone,
                     zone, count, max_count);
     count = max_count;
   }
+
+  if (!use_zone_index) {
+    for (size_t i = 0; i < count; i++) {
+      ecs_entity_t card = cards.ids[i];
+      observation_data[i] = get_card_observation(world, card, (uint8_t)i);
+    }
+    return;
+  }
+
+  for (size_t i = 0; i < max_count; ++i) {
+    observation_data[i] = (CardObservationData){0};
+  }
+
+  bool slot_has_card[max_count];
+  for (size_t i = 0; i < max_count; ++i) {
+    slot_has_card[i] = false;
+  }
+
+  size_t fallback_slot = 0;
   for (size_t i = 0; i < count; i++) {
     ecs_entity_t card = cards.ids[i];
-    observation_data[i] = get_card_observation(world, card, (uint8_t)i);
+    const ZoneIndex *zone_index = ecs_get(world, card, ZoneIndex);
+    size_t target_index = max_count;
+
+    if (zone_index != NULL && zone_index->index < max_count &&
+        !slot_has_card[zone_index->index]) {
+      target_index = zone_index->index;
+    } else {
+      if (zone_index == NULL) {
+        AZK_DEBUG_WARN("[Observation] Card %d in zone %d missing ZoneIndex; "
+                       "falling back to first empty slot",
+                       (int)card, (int)zone);
+      } else if (zone_index->index >= max_count) {
+        AZK_DEBUG_WARN("[Observation] Card %d in zone %d has out-of-range "
+                       "ZoneIndex %u; falling back to first empty slot",
+                       (int)card, (int)zone, (unsigned)zone_index->index);
+      } else {
+        AZK_DEBUG_WARN("[Observation] Duplicate ZoneIndex %u in zone %d; "
+                       "falling back to first empty slot",
+                       (unsigned)zone_index->index, (int)zone);
+      }
+
+      while (fallback_slot < max_count && slot_has_card[fallback_slot]) {
+        fallback_slot++;
+      }
+      if (fallback_slot < max_count) {
+        target_index = fallback_slot;
+        fallback_slot++;
+      }
+    }
+
+    if (target_index >= max_count) {
+      AZK_DEBUG_WARN("[Observation] Zone %d has more cards than slots; "
+                     "dropping card %d from observation",
+                     (int)zone, (int)card);
+      continue;
+    }
+
+    observation_data[target_index] =
+        get_card_observation(world, card, (uint8_t)target_index);
+    slot_has_card[target_index] = true;
   }
 }
 
@@ -334,13 +393,17 @@ ObservationData create_observation_data(ecs_world_t *world,
   my_observation_data.gate = get_gate_card_observation(world, my_zones->gate);
   // TODO: Need to handle weapon and spell cards also
   get_card_observation_array_for_zone(world, my_zones->hand,
-                                      my_observation_data.hand, MAX_HAND_SIZE);
+                                      my_observation_data.hand, MAX_HAND_SIZE,
+                                      false);
   get_card_observation_array_for_zone(world, my_zones->alley,
-                                      my_observation_data.alley, ALLEY_SIZE);
+                                      my_observation_data.alley, ALLEY_SIZE,
+                                      true);
   get_card_observation_array_for_zone(world, my_zones->garden,
-                                      my_observation_data.garden, GARDEN_SIZE);
+                                      my_observation_data.garden, GARDEN_SIZE,
+                                      true);
   get_card_observation_array_for_zone(
-      world, my_zones->discard, my_observation_data.discard, MAX_DECK_SIZE);
+      world, my_zones->discard, my_observation_data.discard, MAX_DECK_SIZE,
+      false);
 
   // For selection zone, check if we're in an ability phase that uses selection
   // If so, read from AbilityContext to preserve original indices (with gaps for picked cards)
@@ -356,7 +419,7 @@ ObservationData create_observation_data(ecs_world_t *world,
   } else {
     get_card_observation_array_for_zone(world, my_zones->selection,
                                         my_observation_data.selection,
-                                        MAX_SELECTION_ZONE_SIZE);
+                                        MAX_SELECTION_ZONE_SIZE, false);
     my_observation_data.selection_count =
         get_zone_card_count(world, my_zones->selection);
   }
@@ -376,13 +439,13 @@ ObservationData create_observation_data(ecs_world_t *world,
       get_gate_card_observation(world, opponent_zones->gate);
   get_card_observation_array_for_zone(world, opponent_zones->alley,
                                       opponent_observation_data.alley,
-                                      ALLEY_SIZE);
+                                      ALLEY_SIZE, true);
   get_card_observation_array_for_zone(world, opponent_zones->garden,
                                       opponent_observation_data.garden,
-                                      GARDEN_SIZE);
+                                      GARDEN_SIZE, true);
   get_card_observation_array_for_zone(world, opponent_zones->discard,
                                       opponent_observation_data.discard,
-                                      MAX_DECK_SIZE);
+                                      MAX_DECK_SIZE, false);
   get_ikz_card_observations_for_zone(world, opponent_zones->ikz_area,
                                      opponent_observation_data.ikz_area);
   opponent_observation_data.hand_count =

@@ -47,6 +47,16 @@ int gate_card_into_garden(
   const GatePortalIntent *intent
 );
 
+/**
+  Debug validation for zone indices in garden/alley.
+  Logs warnings for missing ZoneIndex, out-of-range indices, or duplicates.
+*/
+void azk_debug_validate_zone_indices(
+  ecs_world_t *world,
+  ecs_entity_t zone,
+  uint8_t max_slots
+);
+
 ecs_entity_t find_gate_card_in_zone(
   ecs_world_t *world,
   ecs_entity_t zone

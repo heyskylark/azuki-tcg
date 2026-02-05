@@ -108,7 +108,7 @@ export function buildAbilityTargetMaps({
 
     case AbilityTargetType.ENEMY_GARDEN_ENTITY:
       for (const idx of targetIndices) {
-        addGardenTargetByOrderedIndex(maps.opponentGarden, opponentBoard, idx, idx);
+        addGardenTargetByZoneIndex(maps.opponentGarden, opponentBoard, idx, idx);
       }
       break;
 
