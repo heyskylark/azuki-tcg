@@ -43,7 +43,6 @@ function SignupForm() {
       await signup(username, email, password, redirectPath);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Signup failed");
-    } finally {
       setIsLoading(false);
     }
   };

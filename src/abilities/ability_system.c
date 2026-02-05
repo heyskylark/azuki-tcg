@@ -312,8 +312,12 @@ bool azk_process_effect_selection(ecs_world_t *world, int target_index) {
     uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
     ecs_entity_t garden = gs->zones[enemy_num].garden;
     ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
-    if (target_index >= 0 && target_index < garden_cards.count) {
-      target = garden_cards.ids[target_index];
+    for (int i = 0; i < garden_cards.count; i++) {
+      const ZoneIndex *zi = ecs_get(world, garden_cards.ids[i], ZoneIndex);
+      if (zi && zi->index == target_index) {
+        target = garden_cards.ids[i];
+        break;
+      }
     }
     break;
   }
@@ -650,6 +654,8 @@ bool azk_process_selection_to_alley(ecs_world_t *world, int selection_index,
 
   // Reset tap state for newly placed card
   ecs_set(world, target, TapState, {.tapped = false, .cooldown = false});
+
+  azk_debug_validate_zone_indices(world, alley, ALLEY_SIZE);
 
   // Track that an entity was played to alley this turn (for abilities like
   // STT02-005)

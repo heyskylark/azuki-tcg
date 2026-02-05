@@ -6,9 +6,53 @@
 #include "generated/card_defs.h"
 #include "utils/card_utils.h"
 #include "utils/cli_rendering_util.h"
+#include "utils/debug_log.h"
 #include "utils/game_log_util.h"
 #include "utils/player_util.h"
 #include <stdio.h>
+
+void azk_debug_validate_zone_indices(ecs_world_t *world, ecs_entity_t zone,
+                                     uint8_t max_slots) {
+#ifdef NDEBUG
+  (void)world;
+  (void)zone;
+  (void)max_slots;
+  return;
+#else
+  ecs_entities_t zone_cards = ecs_get_ordered_children(world, zone);
+  if (zone_cards.count > max_slots) {
+    AZK_DEBUG_WARN("[ZoneIndex] Zone %d has %d cards; exceeds max slots %u",
+                   (int)zone, zone_cards.count, (unsigned)max_slots);
+  }
+
+  bool seen[max_slots];
+  for (uint8_t i = 0; i < max_slots; ++i) {
+    seen[i] = false;
+  }
+
+  for (int32_t i = 0; i < zone_cards.count; i++) {
+    ecs_entity_t card = zone_cards.ids[i];
+    const ZoneIndex *zone_index = ecs_get(world, card, ZoneIndex);
+    if (!zone_index) {
+      AZK_DEBUG_WARN("[ZoneIndex] Card %d in zone %d missing ZoneIndex",
+                     (int)card, (int)zone);
+      continue;
+    }
+    if (zone_index->index >= max_slots) {
+      AZK_DEBUG_WARN("[ZoneIndex] Card %d in zone %d has out-of-range "
+                     "ZoneIndex %u",
+                     (int)card, (int)zone, (unsigned)zone_index->index);
+      continue;
+    }
+    if (seen[zone_index->index]) {
+      AZK_DEBUG_WARN("[ZoneIndex] Duplicate ZoneIndex %u in zone %d",
+                     (unsigned)zone_index->index, (int)zone);
+      continue;
+    }
+    seen[zone_index->index] = true;
+  }
+#endif
+}
 
 ecs_entity_t find_card_in_zone_index(ecs_world_t *world, ecs_entity_t zone,
                                      int index) {
@@ -115,6 +159,10 @@ static int insert_card_into_zone_index(ecs_world_t *world, ecs_entity_t card,
               {.tapped = tap_state ? tap_state->tapped : false, .cooldown = true});
     }
   }
+
+  azk_debug_validate_zone_indices(
+      world, zone,
+      placement_type == ZONE_GARDEN ? GARDEN_SIZE : ALLEY_SIZE);
 
   return 0;
 }

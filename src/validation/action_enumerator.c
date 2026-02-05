@@ -164,12 +164,15 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
       ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
       for (int i = 0; i < garden_cards.count; i++) {
         ecs_entity_t target = garden_cards.ids[i];
+        const ZoneIndex *zi = ecs_get(world, target, ZoneIndex);
+        if (!zi)
+          continue;
         if (def->validate_effect_target &&
             !def->validate_effect_target(world, ctx->source_card, ctx->owner,
                                          target)) {
           continue;
         }
-        action.subaction_1 = i;
+        action.subaction_1 = zi->index;
         add_valid_action(out_mask, &action);
       }
       break;
