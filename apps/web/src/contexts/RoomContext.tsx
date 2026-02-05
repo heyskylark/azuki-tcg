@@ -18,6 +18,7 @@ import type {
   RoomClosedMessage,
   GameSnapshotMessage,
   GameLogBatchMessage,
+  GameOverMessage,
 } from "@tcg/backend-core/types/ws";
 
 type ConnectionStatus = "disconnected" | "connecting" | "connected" | "error";
@@ -40,6 +41,7 @@ interface RoomContextValue {
   connectionStatus: ConnectionStatus;
   error: string | null;
   lastMessage: WebSocketMessage | null;
+  gameOver: GameOverMessage | null;
   onGameMessage: (callback: (message: GameMessage) => void) => () => void;
   join: (roomId: string, password?: string) => Promise<boolean>;
   leave: () => void;
@@ -83,6 +85,7 @@ export function RoomProvider({ children }: RoomProviderProps) {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("disconnected");
   const [error, setError] = useState<string | null>(null);
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
+  const [gameOver, setGameOver] = useState<GameOverMessage | null>(null);
 
   const socketRef = useRef<WebSocket | null>(null);
   const hasCheckedActiveRoom = useRef(false);
@@ -124,6 +127,7 @@ export function RoomProvider({ children }: RoomProviderProps) {
       disconnect();
       setActiveRoom(null);
       setRoomState(null);
+      setGameOver(null);
       hasCheckedActiveRoom.current = false;
     }
   }, [user, authLoading]);
@@ -214,6 +218,12 @@ export function RoomProvider({ children }: RoomProviderProps) {
         break;
       }
 
+      case "GAME_OVER": {
+        const gameOverMessage = message as unknown as GameOverMessage;
+        setGameOver(gameOverMessage);
+        break;
+      }
+
       case "GAME_SNAPSHOT":
       case "GAME_LOG_BATCH": {
         const gameMessage = message as unknown as GameMessage;
@@ -234,6 +244,7 @@ export function RoomProvider({ children }: RoomProviderProps) {
 
   const joinInternal = useCallback(async (roomId: string, expectedSlot?: 0 | 1, password?: string): Promise<boolean> => {
     setError(null);
+    setGameOver(null);
 
     try {
       const body: { password?: string } = {};
@@ -296,6 +307,7 @@ export function RoomProvider({ children }: RoomProviderProps) {
     // Server will close the connection, but we can clear state preemptively
     setActiveRoom(null);
     setRoomState(null);
+    setGameOver(null);
   }, [send]);
 
   const close = useCallback(() => {
@@ -303,6 +315,7 @@ export function RoomProvider({ children }: RoomProviderProps) {
     // Server will close the connection, but we can clear state preemptively
     setActiveRoom(null);
     setRoomState(null);
+    setGameOver(null);
   }, [send]);
 
   const startGame = useCallback(() => {
@@ -317,6 +330,7 @@ export function RoomProvider({ children }: RoomProviderProps) {
     disconnect();
     setActiveRoom(null);
     setRoomState(null);
+    setGameOver(null);
   }, [disconnect]);
 
   return (
@@ -327,6 +341,7 @@ export function RoomProvider({ children }: RoomProviderProps) {
         connectionStatus,
         error,
         lastMessage,
+        gameOver,
         onGameMessage,
         join,
         leave,
