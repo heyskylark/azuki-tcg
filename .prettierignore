@@ -12,7 +12,7 @@ out/
 *.min.css
 
 # Lock files
-yarn.lock
+bun.lock
 package-lock.json
 pnpm-lock.yaml
 

@@ -4,19 +4,11 @@ WebSocket server for Azuki TCG real-time game communication using uWebSockets.js
 
 ## Requirements
 
-- **Node.js 20 LTS** (uWebSockets.js doesn't support Node 24+)
-- **Yarn 1.x**
+- **[Bun](https://bun.sh)** - JavaScript/TypeScript runtime and package manager
 - **CMake 3.16+** (for building the C engine)
 - **C compiler** (gcc, clang, or MSVC)
 - **Python 3** (for node-gyp)
-
-```bash
-# Check Node version
-node --version  # Should be v20.x.x
-
-# Switch to Node 20 using nvm
-nvm use 20
-```
+- **Node.js** (for node-gyp header compatibility when building native modules)
 
 ## Architecture
 
@@ -27,7 +19,7 @@ The WebSocket server uses a **native Node.js addon** to interface with the C gam
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                 WebSocket Server (Node.js)              │
+│                 WebSocket Server (Bun)                   │
 │  ┌─────────────────────────────────────────────────┐    │
 │  │              Native Module (C)                  │    │
 │  │         apps/websocket/native/                  │    │
@@ -44,7 +36,7 @@ The WebSocket server uses a **native Node.js addon** to interface with the C gam
 The build has three stages that must be completed in order:
 
 1. **C Engine Library** - Core game logic (libazuki_lib)
-2. **Native Module** - Node.js addon wrapping the C engine
+2. **Native Module** - N-API addon wrapping the C engine
 3. **TypeScript** - WebSocket server code
 
 ## Development Setup
@@ -67,11 +59,11 @@ This creates `build/libazuki_lib.a` (or `.so`/`.dll` depending on platform).
 
 ```bash
 # From repository root
-yarn ws build:native
+bun ws build:native
 
 # Or from apps/websocket directory
 cd apps/websocket
-yarn build:native
+bun run build:native
 ```
 
 This runs `node-gyp rebuild` which:
@@ -83,10 +75,10 @@ This runs `node-gyp rebuild` which:
 
 ```bash
 # From repository root (starts all services via Docker Compose)
-yarn dev
+bun dev
 
 # Or run just the WebSocket server locally
-yarn ws dev
+bun ws dev
 ```
 
 ### Full Development Workflow
@@ -96,10 +88,10 @@ yarn ws dev
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug && cmake --build build -j
 
 # 2. Build native module (only needed once, or after native/ changes)
-yarn ws build:native
+bun ws build:native
 
 # 3. Start development (with hot reload for TypeScript)
-yarn dev
+bun dev
 ```
 
 ## Native Debugging (Docker + GDB + Sanitizers)
@@ -114,12 +106,12 @@ Open two terminals:
 
 ```bash
 # Terminal 1: run the rest of the stack (db, migrate, web)
-yarn dev:infra
+bun dev:infra
 ```
 
 ```bash
 # Terminal 2: run the WebSocket service under gdb (with sanitizers enabled)
-yarn ws debug
+bun ws debug
 ```
 
 `gdb` will auto-run the server. When it crashes, use:
@@ -130,20 +122,20 @@ thread apply all bt
 ```
 
 Notes:
-- `yarn ws debug` uses `docker-compose.debug.yml` + `docker/ws.debug.Dockerfile`.
+- `bun ws debug` uses `docker-compose.debug.yml` + `docker/ws.debug.Dockerfile`.
 - The debug image builds the C engine and native addon with ASan/UBSan and debug symbols.
 - The debug image is cached; rebuild only when C/C++ sources change:
 
 ```bash
-yarn ws debug:build
+bun ws debug:build
 ```
 - If ASan builds are too slow, use the no-sanitizer debug image:
 
 ```bash
-yarn ws debug:nosan:build
-yarn ws debug:nosan
+bun ws debug:nosan:build
+bun ws debug:nosan
 ```
-- If you need to tweak sanitizer behavior, set `ASAN_OPTIONS` / `UBSAN_OPTIONS` in your shell before running `yarn ws debug`.
+- If you need to tweak sanitizer behavior, set `ASAN_OPTIONS` / `UBSAN_OPTIONS` in your shell before running `bun ws debug`.
 
 ## Production Build
 
@@ -166,21 +158,21 @@ The Dockerfile handles all build steps including the C engine and native module.
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j
 
 # 2. Build everything (native module + TypeScript)
-yarn ws build:all
+bun ws build:all
 
 # 3. Start server
-yarn ws start
+bun ws start
 ```
 
 ### Build Scripts
 
 | Script | Description |
 |--------|-------------|
-| `yarn ws dev` | Start development server with hot reload |
-| `yarn ws build` | Build TypeScript only |
-| `yarn ws build:native` | Build native module only |
-| `yarn ws build:all` | Build native module + TypeScript |
-| `yarn ws start` | Start production server |
+| `bun ws dev` | Start development server with hot reload |
+| `bun ws build` | Build TypeScript only |
+| `bun ws build:native` | Build native module only |
+| `bun ws build:all` | Build native module + TypeScript |
+| `bun ws start` | Start production server |
 
 ## Troubleshooting
 
@@ -192,13 +184,13 @@ error: cannot find -lazuki_lib
 ```
 Solution: Build the C engine first (Step 1 above).
 
-**Wrong Node.js version:**
+**Wrong runtime version:**
 ```
 Error: The module was compiled against a different Node.js version
 ```
-Solution: Rebuild the native module after switching Node versions:
+Solution: Rebuild the native module after switching runtimes:
 ```bash
-yarn ws build:native
+bun ws build:native
 ```
 
 **Missing build tools:**
@@ -212,7 +204,7 @@ Solution: Install Python 3 and ensure it's in your PATH.
 
 **Native binding not found:**
 ```
-Error: Native binding not found. Run 'yarn build:native' first.
+Error: Native binding not found. Run 'bun run build:native' first.
 ```
 Solution: Build the native module (Step 2 above).
 
@@ -220,9 +212,9 @@ Solution: Build the native module (Step 2 above).
 
 | Changed | Rebuild Command |
 |---------|-----------------|
-| C engine code (`src/`, `include/`) | `cmake --build build -j && yarn ws build:native` |
-| Native wrapper (`native/src/`) | `yarn ws build:native` |
-| TypeScript (`apps/websocket/src/`) | Automatic with `yarn ws dev` |
+| C engine code (`src/`, `include/`) | `cmake --build build -j && bun ws build:native` |
+| Native wrapper (`native/src/`) | `bun ws build:native` |
+| TypeScript (`apps/websocket/src/`) | Automatic with `bun ws dev` |
 
 ## Health Check
 

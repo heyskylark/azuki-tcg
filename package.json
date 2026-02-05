@@ -11,17 +11,13 @@
     "dev:infra": "COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$(basename \"$PWD\")} docker compose up --build db migrate web",
     "dev:down": "COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$(basename \"$PWD\")} docker compose down",
     "dev:clean": "COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$(basename \"$PWD\")} docker compose down -v",
-    "ws": "yarn workspace @azuki/websocket",
-    "web": "yarn workspace @azuki/web",
-    "core": "yarn workspace @tcg/backend-core",
+    "ws": "bun --filter '@azuki/websocket'",
+    "web": "bun --filter '@azuki/web'",
+    "core": "bun --filter '@tcg/backend-core'",
     "format": "prettier --write \"apps/**/*.{ts,tsx,js,jsx,json,css,md}\" \"packages/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "format:check": "prettier --check \"apps/**/*.{ts,tsx,js,jsx,json,css,md}\" \"packages/**/*.{ts,tsx,js,jsx,json,css,md}\""
   },
-  "engines": {
-    "node": ">=20.0.0"
-  },
   "devDependencies": {
     "prettier": "^3.7.4"
-  },
-  "packageManager": "yarn@1.22.22"
+  }
 }

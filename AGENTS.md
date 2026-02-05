@@ -11,8 +11,8 @@ When you start any task in this repo, open and follow this file.
 - Keep engine changes deterministic: use the engine RNG (`GameState.rng_state`) and avoid non-deterministic sources.
 - Do not hand-edit generated card definitions in `src/generated/` or `include/generated/`; regenerate via `scripts/generate_card_defs.py`.
 
-### TypeScript/Node conventions (from CLAUDE.md)
-- Node.js **22 LTS** is required for the web service.
+### TypeScript/Bun conventions (from CLAUDE.md)
+- **Bun** is used as the JavaScript/TypeScript runtime and package manager.
 - **No relative imports** in TS. Use aliases: `@/*` or `@tcg/backend-core/*`.
 - When importing backend-core from apps, use `@tcg/backend-core/*` (not `@tcg/backend-core`).
 - **No barrel exports** (index files that only re-export).
@@ -27,7 +27,7 @@ When you start any task in this repo, open and follow this file.
 - If you change C engine code (`src/`, `include/`), rebuild the engine and the native module before running the web service.
 
 ### Database / migrations (Drizzle)
-- Schema changes: update schema files then run `yarn core db:generate`.
+- Schema changes: update schema files then run `bun core db:generate`.
 - Never edit generated migration files by hand.
 - Use custom migrations only for seed/data transforms (`drizzle-kit generate --custom`).
 

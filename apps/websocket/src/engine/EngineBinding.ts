@@ -70,7 +70,7 @@ export function loadNativeBinding(): NativeBinding {
       return binding;
     } catch {
       throw new Error(
-        "Native binding not found. Run 'yarn build:native' first. Original error: " +
+        "Native binding not found. Run 'bun run build:native' first. Original error: " +
           (error as Error).message
       );
     }

@@ -249,34 +249,31 @@ Refer to these for architectural decisions and implementation details.
 - **Response windows**: Agent selection switches to defender during combat; ensure policy handles role correctly
 - **ECS assertions**: Debug builds use `ecs_assert`; enable them when diagnosing engine bugs
 
-## Web Service (Node.js/TypeScript)
+## Web Service (Bun/TypeScript)
 
 The project includes a web service for online play, consisting of a WebSocket server and a Next.js web application.
 
-### Node.js Version
+### Runtime
 
-**Requires Node.js 22 LTS** (uWebSockets.js doesn't support Node 24+).
+**Uses [Bun](https://bun.sh)** as both the JavaScript/TypeScript runtime and package manager.
 
 ```bash
-# Using nvm (recommended)
-nvm use 22
-
-# Or check .nvmrc file
-cat .nvmrc
+# Install Bun (if not already installed)
+curl -fsSL https://bun.sh/install | bash
 ```
 
-### Yarn Workspaces
+### Bun Workspaces
 
-The web service uses Yarn workspaces for monorepo management:
+The web service uses Bun workspaces for monorepo management:
 
 ```bash
 # Install all dependencies from root
-yarn install
+bun install
 
 # Run commands in specific workspaces
-yarn ws <command>      # @azuki/websocket
-yarn web <command>     # @azuki/web
-yarn core <command>    # @tcg/backend-core
+bun ws <command>      # @azuki/websocket
+bun web <command>     # @azuki/web
+bun core <command>    # @tcg/backend-core
 ```
 
 ### Running the Web Service
@@ -285,16 +282,16 @@ yarn core <command>    # @tcg/backend-core
 
 ```bash
 # Start all services (db, migrations, ws, web)
-yarn dev
+bun dev
 
 # Start with file watching for hot reload
-yarn dev:watch
+bun dev:watch
 
 # Stop all services
-yarn dev:down
+bun dev:down
 
 # Stop and reset database
-yarn dev:clean
+bun dev:clean
 ```
 
 This starts:
@@ -310,16 +307,16 @@ This starts:
 docker compose up db -d
 
 # Run migrations
-yarn core db:migrate
+bun core db:migrate
 
 # WebSocket server (port 3001)
-yarn ws dev
+bun ws dev
 
 # Next.js web app (port 3000)
-yarn web dev
+bun web dev
 
 # Build backend-core package (required before other builds)
-yarn core build
+bun core build
 ```
 
 ### Native Module (Engine Wrapper)
@@ -337,24 +334,24 @@ The WebSocket server uses a **native Node.js addon** to interface with the C gam
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug && cmake --build build -j
 
 # 2. Build native module
-yarn ws build:native
+bun ws build:native
 
 # 3. Now you can run the dev server
-yarn ws dev
+bun ws dev
 ```
 
 **Production Build:**
 ```bash
 # Build everything for production
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j
-yarn ws build:all
-yarn ws start
+bun ws build:all
+bun ws start
 ```
 
 **When to Rebuild:**
 - C engine changes (`src/`, `include/`): Rebuild C engine + native module
 - Native wrapper changes (`apps/websocket/native/`): Rebuild native module only
-- TypeScript changes: Automatic with `yarn ws dev`
+- TypeScript changes: Automatic with `bun ws dev`
 
 ### Web Service Architecture
 
@@ -381,7 +378,7 @@ Drizzle ORM is used for database schema management. Migrations are stored in `pa
 **Schema Changes (modifying .ts schema files):**
 ```bash
 # After modifying any schema file in packages/backend-core/src/drizzle/schemas/
-yarn core db:generate
+bun core db:generate
 ```
 This auto-generates a migration SQL file. **Never manually edit generated migration files.**
 
@@ -405,7 +402,7 @@ This creates an empty `.sql` file you can populate with custom SQL (e.g., INSERT
 | Alias | Resolves To | Usage |
 |-------|-------------|-------|
 | `@/*` | `./src/*` | Internal imports within the same package |
-| `@tcg/backend-core/*` | `packages/backend-core/dist/*` | Imports from backend-core package (apps only, requires `yarn core build` first) |
+| `@tcg/backend-core/*` | `packages/backend-core/dist/*` | Imports from backend-core package (apps only, requires `bun core build` first) |
 
 **Examples:**
 
@@ -644,13 +641,13 @@ azuki-tcg/
 ├── .claude/docs/     # Design documentation (web service)
 ├── build/            # CMake build output (gitignored)
 ├── docker-compose.yml # Web service orchestration
-├── package.json      # Yarn workspaces root
+├── package.json      # Bun workspaces root
 ├── tsconfig.base.json # Shared TypeScript config
-└── .nvmrc            # Node.js version (22)
+└── bun.lock          # Bun lockfile
 ```
 
 When making changes:
 - C engine (`src/`, `include/`): Rebuild with cmake, run C unit tests, rebuild native module
-- Native module (`apps/websocket/native/`): Rebuild with `yarn ws build:native`
+- Native module (`apps/websocket/native/`): Rebuild with `bun ws build:native`
 - Web service TypeScript: Ensure TypeScript compiles without errors, test WebSocket connections
 - Python bindings: Ensure Python integration tests pass

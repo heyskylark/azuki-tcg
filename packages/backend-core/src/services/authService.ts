@@ -1,4 +1,4 @@
-import * as bcrypt from "bcrypt";
+import * as bcrypt from "bcryptjs";
 import { SignJWT, jwtVerify, type JWTPayload as JoseJWTPayload } from "jose";
 import { eq, and, isNull, gt } from "drizzle-orm";
 import { uuidv7 } from "uuidv7";

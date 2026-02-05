@@ -1,18 +1,18 @@
-FROM node:22-alpine
+FROM oven/bun:1-debian
 
 WORKDIR /app
 
 # Install dependencies
-COPY package.json yarn.lock ./
+COPY package.json bun.lock ./
 COPY packages/backend-core/package.json ./packages/backend-core/
-RUN yarn install --frozen-lockfile
+RUN bun install
 
 # Copy source code
 COPY tsconfig.base.json ./
 COPY packages/backend-core ./packages/backend-core
 
 # Build backend-core
-RUN yarn core build
+RUN bun run --filter '@tcg/backend-core' build
 
 # Run migrations
-CMD ["yarn", "core", "db:migrate"]
+CMD ["bun", "run", "--filter", "@tcg/backend-core", "db:migrate"]

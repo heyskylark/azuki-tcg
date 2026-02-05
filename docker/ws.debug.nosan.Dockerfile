@@ -1,6 +1,7 @@
-FROM node:22-slim
+FROM oven/bun:1-debian
 
 # Install build + debug dependencies
+# Node.js and npm are needed for node-gyp to compile the native N-API addon
 RUN apt-get update && apt-get install -y \
     build-essential \
     cmake \
@@ -10,6 +11,8 @@ RUN apt-get update && apt-get install -y \
     gdb \
     ccache \
     ninja-build \
+    nodejs \
+    npm \
   && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -18,9 +21,6 @@ ENV CCACHE_DIR="/ccache"
 ENV CC="ccache gcc"
 ENV CXX="ccache g++"
 ENV FETCHCONTENT_BASE_DIR="/fetchcontent"
-ENV YARN_REGISTRY="https://registry.npmjs.org"
-ENV YARN_NETWORK_TIMEOUT="600000"
-ENV YARN_NETWORK_CONCURRENCY="1"
 
 # Copy C engine source files (flecs is fetched by CMake via FetchContent)
 COPY CMakeLists.txt ./
@@ -41,20 +41,11 @@ RUN --mount=type=cache,target=/ccache \
   && rm -rf /app/build/_deps \
   && cp -R "${FETCHCONTENT_BASE_DIR}" /app/build/_deps
 
-# Install Node.js dependencies
-COPY package.json yarn.lock ./
+# Install dependencies
+COPY package.json bun.lock ./
 COPY packages/backend-core/package.json ./packages/backend-core/
 COPY apps/websocket/package.json ./apps/websocket/
-RUN --mount=type=cache,target=/root/.cache/yarn \
-  bash -lc 'set -e; \
-    for i in 1 2 3; do \
-      yarn config set registry "${YARN_REGISTRY}"; \
-      yarn install --frozen-lockfile --network-timeout "${YARN_NETWORK_TIMEOUT}" --network-concurrency "${YARN_NETWORK_CONCURRENCY}" && exit 0; \
-      echo "yarn install failed (attempt ${i}); clearing cache and retrying..."; \
-      yarn cache clean; \
-      sleep 2; \
-    done; \
-    exit 1'
+RUN bun install
 
 # Copy source code
 COPY tsconfig.base.json ./
@@ -64,9 +55,9 @@ COPY apps/websocket ./apps/websocket
 # Build native module (Debug) + TypeScript
 RUN --mount=type=cache,target=/ccache \
   --mount=type=cache,target=/root/.cache/node-gyp \
-  cd apps/websocket && yarn build:native --debug
-RUN yarn core build && yarn ws build
+  cd apps/websocket && bun run build:native --debug
+RUN bun run --filter '@tcg/backend-core' build && bun run --filter '@azuki/websocket' build
 
 EXPOSE 3001
 
-CMD ["yarn", "ws", "start"]
+CMD ["bun", "run", "--filter", "@azuki/websocket", "start"]

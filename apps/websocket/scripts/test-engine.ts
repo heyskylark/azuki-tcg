@@ -2,7 +2,7 @@
  * Standalone test script for the native engine binding.
  * Tests world creation without going through the full WebSocket flow.
  *
- * Usage: yarn ws test:engine
+ * Usage: bun ws test:engine
  */
 
 import { createRequire } from "module";
@@ -120,7 +120,7 @@ function loadBinding() {
       return require(debugPath);
     } catch (error) {
       console.error("Failed to load native binding from either path.");
-      console.error("Make sure to run: yarn ws build:native");
+      console.error("Make sure to run: bun ws build:native");
       throw error;
     }
   }
