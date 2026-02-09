@@ -123,6 +123,7 @@ export interface GameState {
   abilitySubphase: string;
   activePlayer: 0 | 1;
   turnNumber: number;
+  pendingConfirmationCount?: number;
   abilitySourceCardDefId?: number;
   abilityCostTargetType?: number;
   abilityEffectTargetType?: number;

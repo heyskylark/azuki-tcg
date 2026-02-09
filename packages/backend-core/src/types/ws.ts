@@ -111,6 +111,9 @@ export interface SnapshotStateContext {
   abilitySubphase: string;
   activePlayer: 0 | 1;
   turnNumber: number;
+  // Number of optional confirmation prompts remaining for the active player
+  // (includes the currently displayed prompt).
+  pendingConfirmationCount?: number;
   // Selection zone cards (for SELECTION_PICK and BOTTOM_DECK ability phases)
   selectionCards?: SnapshotSelectionCard[];
   // Card that triggered the current ability (for UI context)

@@ -73,6 +73,9 @@ export async function generateSnapshot(
     activePlayer: gameState.activePlayer,
     turnNumber: gameState.turnNumber,
   };
+  if (typeof gameState.pendingConfirmationCount === "number") {
+    stateContext.pendingConfirmationCount = gameState.pendingConfirmationCount;
+  }
 
   if (typeof gameState.abilitySourceCardDefId === "number") {
     stateContext.abilitySourceCardDefId = gameState.abilitySourceCardDefId;

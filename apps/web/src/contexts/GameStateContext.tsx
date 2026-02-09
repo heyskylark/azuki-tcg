@@ -138,6 +138,7 @@ export function GameStateProvider({
           abilitySubphase: string;
           activePlayer: 0 | 1;
           turnNumber: number;
+          pendingConfirmationCount?: number;
           abilitySourceCardDefId?: number;
           abilityCostTargetType?: number;
           abilityEffectTargetType?: number;
@@ -175,6 +176,7 @@ export function GameStateProvider({
           abilitySubphase: stateContext.abilitySubphase,
           activePlayer: stateContext.activePlayer,
           turnNumber: stateContext.turnNumber,
+          pendingConfirmationCount: stateContext.pendingConfirmationCount,
           abilitySourceCardDefId: stateContext.abilitySourceCardDefId,
           abilityCostTargetType: stateContext.abilityCostTargetType,
           abilityEffectTargetType: stateContext.abilityEffectTargetType,
@@ -410,6 +412,7 @@ function transformSnapshot(
     abilitySubphase: snapshot.stateContext.abilitySubphase,
     activePlayer: snapshot.stateContext.activePlayer,
     turnNumber: snapshot.stateContext.turnNumber,
+    pendingConfirmationCount: snapshot.stateContext.pendingConfirmationCount,
     abilitySourceCardDefId: snapshot.stateContext.abilitySourceCardDefId,
     abilityCostTargetType: snapshot.stateContext.abilityCostTargetType,
     abilityEffectTargetType: snapshot.stateContext.abilityEffectTargetType,
