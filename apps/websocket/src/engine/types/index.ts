@@ -156,6 +156,8 @@ export interface StateContext {
   abilityPhase: AbilityPhase;
   /** @deprecated Use abilityPhase - this is for client compatibility */
   abilitySubphase?: string;
+  // Number of optional confirmation prompts remaining for active player
+  pendingConfirmationCount?: number;
   abilitySourceCardDefId?: number;
   abilityCostTargetType?: number;
   abilityEffectTargetType?: number;

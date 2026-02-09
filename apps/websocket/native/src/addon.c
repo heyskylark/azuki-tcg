@@ -90,6 +90,52 @@ static const char *ability_phase_to_string(AbilityPhase phase) {
   }
 }
 
+static uint8_t get_pending_confirmation_count(AzkEngine *engine) {
+  const GameState *state = azk_engine_game_state(engine);
+  if (!state || state->active_player_index < 0 ||
+      state->active_player_index >= MAX_PLAYERS_PER_MATCH) {
+    return 0;
+  }
+
+  uint8_t pending_count = 0;
+  ecs_entity_t active_player = state->players[state->active_player_index];
+
+  // Count the currently visible confirmation prompt, if any.
+  const AbilityContext *ctx = ecs_singleton_get(engine, AbilityContext);
+  if (ctx && ctx->phase == ABILITY_PHASE_CONFIRMATION && ctx->is_optional &&
+      ctx->owner == active_player) {
+    pending_count++;
+  }
+
+  // Count queued optional triggered effects for the active player.
+  const TriggeredEffectQueue *queue =
+      ecs_singleton_get(engine, TriggeredEffectQueue);
+  if (!queue || queue->count == 0) {
+    return pending_count;
+  }
+
+  for (uint8_t i = 0; i < queue->count; i++) {
+    const PendingTriggeredEffect *effect = &queue->effects[i];
+    if (effect->owner != active_player) {
+      continue;
+    }
+
+    const CardId *card_id = ecs_get(engine, effect->source_card, CardId);
+    if (!card_id) {
+      continue;
+    }
+
+    const AbilityDef *def = azk_get_ability_def(card_id->id);
+    if (!def || !def->has_ability || !def->is_optional) {
+      continue;
+    }
+
+    pending_count++;
+  }
+
+  return pending_count;
+}
+
 static void append_ability_context_metadata(napi_env env,
                                             napi_value state_context,
                                             AzkEngine *engine) {
@@ -795,6 +841,14 @@ static napi_value SubmitAction(napi_env env, napi_callback_info info) {
   // Also set abilitySubphase for client compatibility
   napi_set_named_property(env, state_context, "abilitySubphase", ability_phase_val);
   append_ability_context_metadata(env, state_context, engine);
+  uint8_t pending_confirmation_count = get_pending_confirmation_count(engine);
+  if (pending_confirmation_count > 0) {
+    napi_value pending_confirmation_count_val;
+    napi_create_uint32(env, pending_confirmation_count,
+                       &pending_confirmation_count_val);
+    napi_set_named_property(env, state_context, "pendingConfirmationCount",
+                            pending_confirmation_count_val);
+  }
 
   // Extract game logs
   uint8_t log_count = 0;
@@ -873,6 +927,14 @@ static napi_value GetGameState(napi_env env, napi_callback_info info) {
   napi_set_named_property(env, result, "abilitySubphase", ability_phase_val);
   napi_set_named_property(env, result, "winner", winner_val);
   append_ability_context_metadata(env, result, engine);
+  uint8_t pending_confirmation_count = get_pending_confirmation_count(engine);
+  if (pending_confirmation_count > 0) {
+    napi_value pending_confirmation_count_val;
+    napi_create_uint32(env, pending_confirmation_count,
+                       &pending_confirmation_count_val);
+    napi_set_named_property(env, result, "pendingConfirmationCount",
+                            pending_confirmation_count_val);
+  }
 
   return result;
 }

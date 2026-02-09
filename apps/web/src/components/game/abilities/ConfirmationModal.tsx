@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useGameState } from "@/contexts/GameStateContext";
 import { useRoom } from "@/contexts/RoomContext";
 import {
@@ -19,8 +19,41 @@ export function ConfirmationModal() {
   const { send } = useRoom();
 
   const actionMask = gameState?.actionMask ?? null;
+  const pendingConfirmationCount = gameState?.pendingConfirmationCount ?? null;
   const canConfirm = hasConfirmAbilityAction(actionMask);
   const canDecline = hasNoopAction(actionMask);
+  const progressTotalRef = useRef<number | null>(null);
+  const [queueProgress, setQueueProgress] = useState<{
+    current: number;
+    total: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (pendingConfirmationCount === null || pendingConfirmationCount <= 0) {
+      progressTotalRef.current = null;
+      setQueueProgress(null);
+      return;
+    }
+
+    if (
+      progressTotalRef.current === null ||
+      pendingConfirmationCount > progressTotalRef.current
+    ) {
+      progressTotalRef.current = pendingConfirmationCount;
+    }
+
+    const total = progressTotalRef.current;
+    if (total === null || total <= 1) {
+      setQueueProgress(null);
+      return;
+    }
+
+    const current = Math.max(
+      1,
+      Math.min(total, total - pendingConfirmationCount + 1)
+    );
+    setQueueProgress({ current, total });
+  }, [pendingConfirmationCount]);
 
   const handleConfirm = useCallback(() => {
     if (!canConfirm) return;
@@ -45,7 +78,14 @@ export function ConfirmationModal() {
 
       {/* Modal */}
       <div className="relative bg-slate-800 border border-slate-600 rounded-lg shadow-xl p-6 max-w-sm w-full mx-4">
-        <h2 className="text-xl font-bold text-white mb-2">Activate Ability?</h2>
+        <div className="mb-2 flex items-start justify-between gap-3">
+          <h2 className="text-xl font-bold text-white">Activate Ability?</h2>
+          {queueProgress && (
+            <span className="rounded-md bg-slate-700 px-2 py-1 text-xs font-semibold text-slate-200">
+              {queueProgress.current}/{queueProgress.total} actions
+            </span>
+          )}
+        </div>
         <p className="text-slate-300 mb-6">
           This card has an ability that can be activated. Do you want to use it?
         </p>
