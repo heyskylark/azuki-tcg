@@ -19,6 +19,59 @@ import type {
   LogCardRef,
 } from "@/types/gameLogs";
 
+type OrderedIndexedZone = "HAND" | "IKZ_AREA";
+
+interface BatchIndexRebaseContext {
+  removedOriginalIndicesByZone: Map<string, number[]>;
+}
+
+function isOrderedIndexedZone(zone: ZoneType): zone is OrderedIndexedZone {
+  return zone === "HAND" || zone === "IKZ_AREA";
+}
+
+function getOrderedZoneKey(zone: OrderedIndexedZone, isMyCard: boolean): string {
+  return `${isMyCard ? "my" : "opponent"}:${zone}`;
+}
+
+function rebaseRemovalIndexForBatch(
+  zone: ZoneType,
+  originalIndex: number,
+  isMyCard: boolean,
+  context: BatchIndexRebaseContext
+): number {
+  if (!isOrderedIndexedZone(zone) || originalIndex < 0) {
+    return originalIndex;
+  }
+
+  const zoneKey = getOrderedZoneKey(zone, isMyCard);
+  const priorRemovals = context.removedOriginalIndicesByZone.get(zoneKey) ?? [];
+
+  let rebasedIndex = originalIndex;
+  for (const removedIndex of priorRemovals) {
+    if (removedIndex < originalIndex) {
+      rebasedIndex--;
+    }
+  }
+
+  return rebasedIndex;
+}
+
+function recordOrderedZoneRemoval(
+  zone: ZoneType,
+  originalIndex: number,
+  isMyCard: boolean,
+  context: BatchIndexRebaseContext
+): void {
+  if (!isOrderedIndexedZone(zone) || originalIndex < 0) {
+    return;
+  }
+
+  const zoneKey = getOrderedZoneKey(zone, isMyCard);
+  const priorRemovals = context.removedOriginalIndicesByZone.get(zoneKey) ?? [];
+  priorRemovals.push(originalIndex);
+  context.removedOriginalIndicesByZone.set(zoneKey, priorRemovals);
+}
+
 // ============================================
 // Main entry point
 // ============================================
@@ -35,9 +88,19 @@ export function applyLogBatch(
   cardDefIdMap: Map<number, CardMapping>
 ): GameState {
   let newState = { ...state };
+  const batchIndexRebaseContext: BatchIndexRebaseContext = {
+    removedOriginalIndicesByZone: new Map(),
+  };
 
   for (const log of logs) {
-    newState = applyLog(newState, log, playerSlot, cardMappings, cardDefIdMap);
+    newState = applyLog(
+      newState,
+      log,
+      playerSlot,
+      cardMappings,
+      cardDefIdMap,
+      batchIndexRebaseContext
+    );
   }
 
   return newState;
@@ -51,11 +114,19 @@ function applyLog(
   log: ProcessedGameLog,
   playerSlot: 0 | 1,
   cardMappings: Map<string, CardMapping>,
-  cardDefIdMap: Map<number, CardMapping>
+  cardDefIdMap: Map<number, CardMapping>,
+  batchIndexRebaseContext: BatchIndexRebaseContext
 ): GameState {
   switch (log.type) {
     case "ZONE_MOVED":
-      return applyZoneMoved(state, log.data, playerSlot, cardMappings, cardDefIdMap);
+      return applyZoneMoved(
+        state,
+        log.data,
+        playerSlot,
+        cardMappings,
+        cardDefIdMap,
+        batchIndexRebaseContext
+      );
 
     case "STAT_CHANGE":
       return applyStatChange(state, log.data, playerSlot);
@@ -105,16 +176,29 @@ function applyZoneMoved(
   data: CardZoneMovedData,
   playerSlot: 0 | 1,
   cardMappings: Map<string, CardMapping>,
-  cardDefIdMap: Map<number, CardMapping>
+  cardDefIdMap: Map<number, CardMapping>,
+  batchIndexRebaseContext: BatchIndexRebaseContext
 ): GameState {
   console.log('Applying zone move:', data);
   const isMyCard = data.card.player === playerSlot;
 
   // Create mutable copies
   let newState = deepCopyState(state);
+  const rebasedFromIndex = rebaseRemovalIndexForBatch(
+    data.fromZone,
+    data.fromIndex,
+    isMyCard,
+    batchIndexRebaseContext
+  );
 
   // Remove from source zone
-  newState = removeFromZone(newState, data.fromZone, data.fromIndex, isMyCard, data.card.player, playerSlot);
+  newState = removeFromZone(newState, data.fromZone, rebasedFromIndex, isMyCard);
+  recordOrderedZoneRemoval(
+    data.fromZone,
+    data.fromIndex,
+    isMyCard,
+    batchIndexRebaseContext
+  );
 
   // Add to destination zone
   newState = addToZone(
@@ -135,9 +219,7 @@ function removeFromZone(
   state: GameState,
   zone: ZoneType,
   index: number,
-  isMyCard: boolean,
-  cardPlayer: 0 | 1,
-  viewerSlot: 0 | 1
+  isMyCard: boolean
 ): GameState {
   switch (zone) {
     case "HAND":
