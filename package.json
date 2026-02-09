@@ -12,6 +12,8 @@
     "dev:down": "COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$(basename \"$PWD\")} docker compose down",
     "dev:clean": "COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$(basename \"$PWD\")} docker compose down -v",
     "ws": "bun --filter '@azuki/websocket'",
+    "ws:debug:nosan": "bun run ws debug:nosan",
+    "ws:debug:nosan:build": "bun run ws debug:nosan:build",
     "web": "bun --filter '@azuki/web'",
     "core": "bun --filter '@tcg/backend-core'",
     "format": "prettier --write \"apps/**/*.{ts,tsx,js,jsx,json,css,md}\" \"packages/**/*.{ts,tsx,js,jsx,json,css,md}\"",

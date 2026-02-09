@@ -9,6 +9,8 @@ wandb
 renders
 dist/
 qq
+.codex
+.superset
 
 node_modules
 
