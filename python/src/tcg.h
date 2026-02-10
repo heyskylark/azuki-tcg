@@ -53,7 +53,7 @@ typedef struct {
 typedef struct Client Client;
 typedef struct {
   // Puffer I/O
-  ObservationData* observations; // MAX_PLAYERS_PER_MATCH
+  TrainingObservationData* observations; // MAX_PLAYERS_PER_MATCH
   ActionVector* actions;         // 1 MAX_PLAYERS_PER_MATCH rows of {type, subaction_1..3}
   float* rewards;                // MAX_PLAYERS_PER_MATCH scalars
   unsigned char* terminals;      // MAX_PLAYERS_PER_MATCH scalars {0,1}
@@ -244,7 +244,8 @@ static inline int8_t tcg_active_player_index(CAzukiTCG* env) {
 
 static void refresh_observations(CAzukiTCG* env) {
   for (int8_t player_index = 0; player_index < MAX_PLAYERS_PER_MATCH; ++player_index) {
-    azk_engine_observe(env->engine, player_index, &env->observations[player_index]);
+    azk_engine_observe_training(env->engine, player_index,
+                                &env->observations[player_index]);
   }
 }
 
@@ -328,24 +329,21 @@ void c_step(CAzukiTCG* env) {
           action.subaction_2,
           action.subaction_3
         ); 
-        
-        int card_ikz_cost = 0;
-        if (action.type == 1 || action.type == 2) {
-          card_ikz_cost = env->observations[0].my_observation_data.hand[action.subaction_1].ikz_cost.ikz_cost;
-        }
 
-        const MyObservationData* my_observation_data = &env->observations[0].my_observation_data;
+        const TrainingMyObservationData* my_observation_data =
+            &env->observations[0].my_observation_data;
         int hand_card_count = 0;
         for (int i = 0; i < MAX_HAND_SIZE; ++i) {
-          if (my_observation_data->hand[i].id.code) {
+          if (my_observation_data->hand[i].card_def_id >= 0) {
             hand_card_count++;
           }
         }
 
         int untapped_ikz_card_count = 0;
         for (int i = 0; i < IKZ_AREA_SIZE; ++i) {
-          const IKZCardObservationData* ikz_card = &my_observation_data->ikz_area[i];
-          if (ikz_card->id.code && !ikz_card->tap_state.tapped) {
+          const TrainingIKZCardObservationData* ikz_card =
+              &my_observation_data->ikz_area[i];
+          if (ikz_card->card_def_id >= 0 && !ikz_card->tap_state.tapped) {
             untapped_ikz_card_count++;
           }
         }
@@ -353,26 +351,20 @@ void c_step(CAzukiTCG* env) {
         bool occupied_garden_zones[GARDEN_SIZE] = {false};
         int occupied_garden_slot_count = 0;
         for (int i = 0; i < GARDEN_SIZE; ++i) {
-          if (my_observation_data->garden[i].id.code) {
+          if (my_observation_data->garden[i].card_def_id >= 0) {
             occupied_garden_zones[i] = true;
             occupied_garden_slot_count++;
           }
         }
 
         fprintf(
-          stderr,
-          "Observation data, hand cards %d, card ikz cost %d, occupied garden slots %d/%d [%d, %d, %d, %d, %d], untapped ikz cards %d\n",
-          hand_card_count,
-          card_ikz_cost,
-          occupied_garden_slot_count,
-          GARDEN_SIZE,
-          occupied_garden_zones[0],
-          occupied_garden_zones[1],
-          occupied_garden_zones[2],
-          occupied_garden_zones[3],
-          occupied_garden_zones[4],
-          untapped_ikz_card_count
-        );
+            stderr,
+            "Observation data, hand cards %d, occupied garden slots %d/%d "
+            "[%d, %d, %d, %d, %d], untapped ikz cards %d\n",
+            hand_card_count, occupied_garden_slot_count, GARDEN_SIZE,
+            occupied_garden_zones[0], occupied_garden_zones[1],
+            occupied_garden_zones[2], occupied_garden_zones[3],
+            occupied_garden_zones[4], untapped_ikz_card_count);
 
         abort();
       }
@@ -1124,7 +1116,13 @@ char* c_render(CAzukiTCG* env) {
   if (active_player_index < 0 || active_player_index >= MAX_PLAYERS_PER_MATCH) {
     active_player_index = 0;
   }
-  const ObservationData *observation = &env->observations[active_player_index];
+  ObservationData observation_data = {0};
+  bool observed =
+      azk_engine_observe(env->engine, active_player_index, &observation_data);
+  if (!observed) {
+    return NULL;
+  }
+  const ObservationData *observation = &observation_data;
 
   RenderBuffer buf = {0};
   if (!renderbuf_reserve(&buf, 16384)) {

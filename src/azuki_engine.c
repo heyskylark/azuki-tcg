@@ -50,6 +50,16 @@ bool azk_engine_observe(AzkEngine *engine, int8_t player_index, ObservationData 
   return true;
 }
 
+bool azk_engine_observe_training(AzkEngine *engine, int8_t player_index,
+                                 TrainingObservationData *out_observation) {
+  if (!engine || !out_observation) {
+    return false;
+  }
+
+  *out_observation = create_training_observation_data(engine, player_index);
+  return true;
+}
+
 bool azk_engine_requires_action(AzkEngine *engine) {
   if (!engine) {
     return false;
