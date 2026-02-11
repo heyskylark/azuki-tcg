@@ -70,6 +70,49 @@ bool azk_trigger_when_equipped_ability(ecs_world_t *world, ecs_entity_t card,
   return azk_queue_triggered_effect(world, card, owner, TIMING_TAG_WHEN_EQUIPPED);
 }
 
+static uint8_t count_available_cost_targets(ecs_world_t *world,
+                                            const AbilityDef *def,
+                                            ecs_entity_t source_card,
+                                            ecs_entity_t owner) {
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  uint8_t player_num = get_player_number(world, owner);
+  uint8_t count = 0;
+
+  switch (def->cost_req.type) {
+  case ABILITY_TARGET_FRIENDLY_HAND:
+  case ABILITY_TARGET_FRIENDLY_HAND_WEAPON: {
+    ecs_entity_t hand = gs->zones[player_num].hand;
+    ecs_entities_t hand_cards = ecs_get_ordered_children(world, hand);
+    for (int i = 0; i < hand_cards.count; i++) {
+      ecs_entity_t target = hand_cards.ids[i];
+      if (def->validate_cost_target &&
+          !def->validate_cost_target(world, source_card, owner, target)) {
+        continue;
+      }
+      count++;
+    }
+    break;
+  }
+  case ABILITY_TARGET_FRIENDLY_GARDEN_ENTITY: {
+    ecs_entity_t garden = gs->zones[player_num].garden;
+    ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
+    for (int i = 0; i < garden_cards.count; i++) {
+      ecs_entity_t target = garden_cards.ids[i];
+      if (def->validate_cost_target &&
+          !def->validate_cost_target(world, source_card, owner, target)) {
+        continue;
+      }
+      count++;
+    }
+    break;
+  }
+  default:
+    return def->cost_req.max;
+  }
+
+  return count;
+}
+
 bool azk_process_ability_confirmation(ecs_world_t *world) {
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
 
@@ -91,6 +134,19 @@ bool azk_process_ability_confirmation(ecs_world_t *world) {
 
   // Move to next phase based on requirements
   if (def->cost_req.min > 0) {
+    uint8_t available_cost_targets =
+        count_available_cost_targets(world, def, ctx->source_card, ctx->owner);
+    if (available_cost_targets < def->cost_req.min) {
+      cli_render_logf("[Ability] Confirmed ability has no valid cost targets "
+                      "(available=%u, required_min=%u), skipping",
+                      (unsigned)available_cost_targets,
+                      (unsigned)def->cost_req.min);
+      azk_clear_ability_context(world);
+      return true;
+    }
+    if (ctx->cost_expected > available_cost_targets) {
+      ctx->cost_expected = available_cost_targets;
+    }
     ctx->phase = ABILITY_PHASE_COST_SELECTION;
     cli_render_logf("[Ability] Confirmed, selecting cost targets");
   } else if (def->on_cost_paid) {
@@ -1023,6 +1079,16 @@ bool azk_trigger_main_ability(ecs_world_t *world, ecs_entity_t card,
     return false;
   }
 
+  uint8_t available_cost_targets =
+      count_available_cost_targets(world, def, card, owner);
+  if (def->cost_req.min > 0 && available_cost_targets < def->cost_req.min) {
+    cli_render_logf("[Ability] Main ability has no valid cost targets "
+                    "(available=%u, required_min=%u)",
+                    (unsigned)available_cost_targets,
+                    (unsigned)def->cost_req.min);
+    return false;
+  }
+
   // Check if it's a Main phase ability
   if (def->timing_tag != ecs_id(AMain)) {
     return false;
@@ -1042,7 +1108,9 @@ bool azk_trigger_main_ability(ecs_world_t *world, ecs_entity_t card,
   ctx->owner = owner;
   ctx->is_optional = def->is_optional;
   ctx->cost_min = def->cost_req.min;
-  ctx->cost_expected = def->cost_req.max;
+  ctx->cost_expected = available_cost_targets < def->cost_req.max
+                           ? available_cost_targets
+                           : def->cost_req.max;
   ctx->cost_filled = 0;
   ctx->effect_min = def->effect_req.min;
   ctx->effect_expected = def->effect_req.max;
@@ -1132,6 +1200,16 @@ bool azk_trigger_spell_ability(ecs_world_t *world, ecs_entity_t spell_card,
     return false;
   }
 
+  uint8_t available_cost_targets =
+      count_available_cost_targets(world, def, spell_card, owner);
+  if (def->cost_req.min > 0 && available_cost_targets < def->cost_req.min) {
+    cli_render_logf("[Ability] Spell has no valid cost targets "
+                    "(available=%u, required_min=%u)",
+                    (unsigned)available_cost_targets,
+                    (unsigned)def->cost_req.min);
+    return false;
+  }
+
   // Get ability context singleton
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
 
@@ -1140,7 +1218,9 @@ bool azk_trigger_spell_ability(ecs_world_t *world, ecs_entity_t spell_card,
   ctx->owner = owner;
   ctx->is_optional = false; // Spells are already cast, not optional
   ctx->cost_min = def->cost_req.min;
-  ctx->cost_expected = def->cost_req.max;
+  ctx->cost_expected = available_cost_targets < def->cost_req.max
+                           ? available_cost_targets
+                           : def->cost_req.max;
   ctx->cost_filled = 0;
   ctx->effect_min = def->effect_req.min;
   // Dynamically calculate effect_expected based on available targets
@@ -1197,6 +1277,16 @@ bool azk_trigger_leader_response_ability(ecs_world_t *world, ecs_entity_t card,
     return false;
   }
 
+  uint8_t available_cost_targets =
+      count_available_cost_targets(world, def, card, owner);
+  if (def->cost_req.min > 0 && available_cost_targets < def->cost_req.min) {
+    cli_render_logf("[Ability] Leader response has no valid cost targets "
+                    "(available=%u, required_min=%u)",
+                    (unsigned)available_cost_targets,
+                    (unsigned)def->cost_req.min);
+    return false;
+  }
+
   // Get ability context singleton
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
 
@@ -1205,7 +1295,9 @@ bool azk_trigger_leader_response_ability(ecs_world_t *world, ecs_entity_t card,
   ctx->owner = owner;
   ctx->is_optional = false; // Response abilities are already activated
   ctx->cost_min = def->cost_req.min;
-  ctx->cost_expected = def->cost_req.max;
+  ctx->cost_expected = available_cost_targets < def->cost_req.max
+                           ? available_cost_targets
+                           : def->cost_req.max;
   ctx->cost_filled = 0;
   ctx->effect_min = def->effect_req.min;
   ctx->effect_expected = def->effect_req.max;
@@ -1357,6 +1449,16 @@ bool azk_process_triggered_effect_queue(ecs_world_t *world) {
     return false;
   }
 
+  uint8_t available_cost_targets =
+      count_available_cost_targets(world, def, card, owner);
+  if (def->cost_req.min > 0 && available_cost_targets < def->cost_req.min) {
+    cli_render_logf("[Ability] Queued effect has no valid cost targets "
+                    "(available=%u, required_min=%u), skipping",
+                    (unsigned)available_cost_targets,
+                    (unsigned)def->cost_req.min);
+    return false;
+  }
+
   // Check if it's the correct timing tag
   ecs_id_t expected_tag = get_timing_tag_id(effect.timing_tag);
   if (def->timing_tag != expected_tag) {
@@ -1378,7 +1480,9 @@ bool azk_process_triggered_effect_queue(ecs_world_t *world) {
   ctx->owner = owner;
   ctx->is_optional = def->is_optional;
   ctx->cost_min = def->cost_req.min;
-  ctx->cost_expected = def->cost_req.max;
+  ctx->cost_expected = available_cost_targets < def->cost_req.max
+                           ? available_cost_targets
+                           : def->cost_req.max;
   ctx->cost_filled = 0;
   ctx->effect_min = def->effect_req.min;
   ctx->effect_expected = def->effect_req.max;

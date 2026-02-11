@@ -7,6 +7,7 @@
 #include "utils/phase_utils.h"
 #include "utils/deck_utils.h"
 #include "utils/status_util.h"
+#include "utils/player_util.h"
 #include "world.h"
 #include "validation/action_enumerator.h"
 
@@ -66,7 +67,35 @@ bool azk_engine_requires_action(AzkEngine *engine) {
   }
 
   const GameState *gs = ecs_singleton_get(engine, GameState);
-  return gs && phase_requires_user_action(engine, gs->phase);
+  if (!gs || !phase_requires_user_action(engine, gs->phase)) {
+    return false;
+  }
+
+  // Keep action masking and action consumption in lockstep by not exposing
+  // "requires action" while auto-processed queues still have pending work.
+  if (azk_has_pending_deck_reorders(engine) ||
+      azk_has_pending_passive_buffs(engine) ||
+      (azk_has_queued_triggered_effects(engine) &&
+       !azk_is_in_ability_phase(engine))) {
+    return false;
+  }
+
+  // Mirror PhaseGate's auto-transitions so masks are generated only for states
+  // where an action will actually be consumed next tick.
+  if (gs->phase == PHASE_MAIN && gs->combat_state.attacking_card != 0 &&
+      !azk_has_queued_triggered_effects(engine) &&
+      !azk_is_in_ability_phase(engine)) {
+    return false;
+  }
+
+  if (gs->phase == PHASE_RESPONSE_WINDOW &&
+      !azk_has_queued_triggered_effects(engine) &&
+      !azk_is_in_ability_phase(engine) &&
+      !defender_can_respond(engine, gs, gs->active_player_index)) {
+    return false;
+  }
+
+  return true;
 }
 
 bool azk_engine_is_game_over(AzkEngine *engine) {
@@ -108,8 +137,14 @@ void azk_engine_tick(AzkEngine *engine) {
     return;
   }
 
+  const GameState *gs = ecs_singleton_get(engine, GameState);
+  if (!gs) {
+    return;
+  }
+
   if (azk_has_pending_deck_reorders(engine)) {
     azk_process_deck_reorder_queue(engine);
+    return;
   }
 
   // Process any pending passive buff updates (from observer callbacks)
@@ -117,6 +152,7 @@ void azk_engine_tick(AzkEngine *engine) {
   // to subsequent code in the same frame
   if (azk_has_pending_passive_buffs(engine)) {
     azk_process_passive_buff_queue(engine);
+    return;
   }
 
   // Check for queued triggered effects to auto-process
@@ -129,7 +165,20 @@ void azk_engine_tick(AzkEngine *engine) {
     return;
   }
 
+  const Phase phase_before = gs->phase;
   run_phase_gate_system(engine);
+
+  gs = ecs_singleton_get(engine, GameState);
+  if (!gs) {
+    return;
+  }
+
+  // Phase transitions are a separate auto-progression step.
+  // Returning here prevents consuming stale ActionContext.user_action.
+  if (gs->phase != phase_before) {
+    return;
+  }
+
   ecs_progress(engine, 0);
 }
 

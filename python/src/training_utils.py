@@ -65,6 +65,11 @@ def build_vecenv(trainer_args: dict, *, backend=None, num_envs: int | None = Non
   if seed is not None:
     vec_kwargs["seed"] = seed
   chosen_backend = vec_kwargs.get("backend")
+  if isinstance(chosen_backend, str):
+    backend_attr = getattr(pufferlib.vector, chosen_backend, None)
+    if backend_attr is not None:
+      chosen_backend = backend_attr
+      vec_kwargs["backend"] = chosen_backend
   if chosen_backend == pufferlib.vector.Serial or chosen_backend is pufferlib.vector.Serial:
     vec_kwargs.pop("num_workers", None)
     vec_kwargs["batch_size"] = vec_kwargs.get("num_envs", 1)

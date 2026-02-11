@@ -6,38 +6,53 @@
 #include "utils/cli_rendering_util.h"
 #include "utils/player_util.h"
 
-static ecs_entity_t MulliganPipeline;
-static ecs_entity_t StartOfTurnPipeline;
-static ecs_entity_t MainPipeline;
-static ecs_entity_t ResponseWindowPipeline;
-static ecs_entity_t CombatResolvePipeline;
-static ecs_entity_t EndTurnPipeline;
-static ecs_entity_t EndMatchPipeline;
-static ecs_entity_t AbilityResolutionPipeline;
-static ecs_entity_t s_phase_gate_system = 0;
+static const char *PIPELINE_MULLIGAN = "MulliganPipeline";
+static const char *PIPELINE_START_OF_TURN = "StartOfTurnPipeline";
+static const char *PIPELINE_MAIN = "MainPipeline";
+static const char *PIPELINE_RESPONSE = "ResponseWindowPipeline";
+static const char *PIPELINE_COMBAT = "CombatResolvePipeline";
+static const char *PIPELINE_END_TURN = "EndTurnPipeline";
+static const char *PIPELINE_END_MATCH = "EndMatchPipeline";
+static const char *PIPELINE_ABILITY = "AbilityResolutionPipeline";
+static const char *SYSTEM_PHASE_GATE = "PhaseGate";
+
+static ecs_entity_t lookup_named_entity(ecs_world_t *world,
+                                        const char *entity_name) {
+  ecs_entity_t entity = ecs_lookup(world, entity_name);
+  ecs_assert(entity != 0, ECS_INVALID_PARAMETER,
+             "Entity %s not found in world", entity_name);
+  return entity;
+}
+
+static void create_named_pipeline(ecs_world_t *world, const char *pipeline_name,
+                                  ecs_entity_t phase_tag) {
+  ecs_pipeline(world,
+               {.entity = ecs_entity(world, {.name = pipeline_name}),
+                .query.terms = {{.id = EcsSystem}, {.id = phase_tag}}});
+}
 
 static void set_pipeline_for_phase(ecs_world_t *world, Phase phase) {
   switch (phase) {
   case PHASE_PREGAME_MULLIGAN:
-    ecs_set_pipeline(world, MulliganPipeline);
+    ecs_set_pipeline(world, lookup_named_entity(world, PIPELINE_MULLIGAN));
     break;
   case PHASE_START_OF_TURN:
-    ecs_set_pipeline(world, StartOfTurnPipeline);
+    ecs_set_pipeline(world, lookup_named_entity(world, PIPELINE_START_OF_TURN));
     break;
   case PHASE_MAIN:
-    ecs_set_pipeline(world, MainPipeline);
+    ecs_set_pipeline(world, lookup_named_entity(world, PIPELINE_MAIN));
     break;
   case PHASE_RESPONSE_WINDOW:
-    ecs_set_pipeline(world, ResponseWindowPipeline);
+    ecs_set_pipeline(world, lookup_named_entity(world, PIPELINE_RESPONSE));
     break;
   case PHASE_COMBAT_RESOLVE:
-    ecs_set_pipeline(world, CombatResolvePipeline);
+    ecs_set_pipeline(world, lookup_named_entity(world, PIPELINE_COMBAT));
     break;
   case PHASE_END_TURN:
-    ecs_set_pipeline(world, EndTurnPipeline);
+    ecs_set_pipeline(world, lookup_named_entity(world, PIPELINE_END_TURN));
     break;
   case PHASE_END_MATCH:
-    ecs_set_pipeline(world, EndMatchPipeline);
+    ecs_set_pipeline(world, lookup_named_entity(world, PIPELINE_END_MATCH));
     break;
   default:
     cli_render_logf("[PhaseGate] Unknown phase: %d", phase);
@@ -54,7 +69,7 @@ void PhaseGate(ecs_iter_t *it) {
   if (phase != PHASE_END_MATCH) {
     AbilityPhase ability_phase = azk_get_ability_phase(world);
     if (ability_phase != ABILITY_PHASE_NONE) {
-      ecs_set_pipeline(world, AbilityResolutionPipeline);
+      ecs_set_pipeline(world, lookup_named_entity(world, PIPELINE_ABILITY));
       return;
     }
 
@@ -90,61 +105,21 @@ void PhaseGate(ecs_iter_t *it) {
 }
 
 void init_phase_gate_system(ecs_world_t *world) {
-  MulliganPipeline = ecs_pipeline_init(world, &(ecs_pipeline_desc_t){
-    .query.terms = {
-        { .id = EcsSystem }, // mandatory
-        { .id = TMulligan }
-    }
-  });
-  StartOfTurnPipeline = ecs_pipeline_init(world, &(ecs_pipeline_desc_t){
-    .query.terms = {
-        { .id = EcsSystem }, // mandatory
-        { .id = TStartOfTurn }
-    }
-  });
-  MainPipeline = ecs_pipeline_init(world, &(ecs_pipeline_desc_t){
-    .query.terms = {
-        { .id = EcsSystem }, // mandatory
-        { .id = TMain }
-    }
-  });
-  ResponseWindowPipeline = ecs_pipeline_init(world, &(ecs_pipeline_desc_t){
-    .query.terms = {
-        { .id = EcsSystem }, // mandatory
-        { .id = TResponseWindow }
-    }
-  });
-  CombatResolvePipeline = ecs_pipeline_init(world, &(ecs_pipeline_desc_t){
-    .query.terms = {
-        { .id = EcsSystem }, // mandatory
-        { .id = TCombatResolve }
-    }
-  });
-  EndTurnPipeline = ecs_pipeline_init(world, &(ecs_pipeline_desc_t){
-    .query.terms = {
-        { .id = EcsSystem }, // mandatory
-        { .id = TEndTurn }
-    }
-  });
-  EndMatchPipeline = ecs_pipeline_init(world, &(ecs_pipeline_desc_t){
-    .query.terms = {
-        { .id = EcsSystem }, // mandatory
-        { .id = TEndMatch }
-    }
-  });
-  AbilityResolutionPipeline = ecs_pipeline_init(world, &(ecs_pipeline_desc_t){
-    .query.terms = {
-        { .id = EcsSystem }, // mandatory
-        { .id = TAbilityResolution }
-    }
-  });
+  create_named_pipeline(world, PIPELINE_MULLIGAN, TMulligan);
+  create_named_pipeline(world, PIPELINE_START_OF_TURN, TStartOfTurn);
+  create_named_pipeline(world, PIPELINE_MAIN, TMain);
+  create_named_pipeline(world, PIPELINE_RESPONSE, TResponseWindow);
+  create_named_pipeline(world, PIPELINE_COMBAT, TCombatResolve);
+  create_named_pipeline(world, PIPELINE_END_TURN, TEndTurn);
+  create_named_pipeline(world, PIPELINE_END_MATCH, TEndMatch);
+  create_named_pipeline(world, PIPELINE_ABILITY, TAbilityResolution);
 
   const GameState *gs = ecs_singleton_get(world, GameState);
   set_pipeline_for_phase(world, gs->phase);
 
-  s_phase_gate_system = ecs_system(world, {
+  ecs_system(world, {
     .entity = ecs_entity(world, {
-      .name = "PhaseGate",
+      .name = SYSTEM_PHASE_GATE,
       .add = ecs_ids( ecs_dependson(EcsOnUpdate) )
     }),
     .query.terms = {
@@ -155,6 +130,6 @@ void init_phase_gate_system(ecs_world_t *world) {
 }
 
 void run_phase_gate_system(ecs_world_t *world) {
-  ecs_assert(s_phase_gate_system != 0, ECS_INVALID_PARAMETER, "Phase gate system not initialized");
-  ecs_run(world, s_phase_gate_system, 0, NULL);
+  ecs_entity_t phase_gate_system = lookup_named_entity(world, SYSTEM_PHASE_GATE);
+  ecs_run(world, phase_gate_system, 0, NULL);
 }

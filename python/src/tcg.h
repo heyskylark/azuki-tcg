@@ -309,26 +309,87 @@ void c_step(CAzukiTCG* env) {
     abort();
   }
 
-  bool checked_action_tick = false;
-
   // Some sub-actions do not require a user action
   // We should progress those until a user action is required (or the game ends)
   do {
     azk_engine_tick(env->engine);
 
-    if (!checked_action_tick) {
-      checked_action_tick = true;
-      if (azk_engine_was_prev_action_invalid(env->engine)) {
+    if (azk_engine_was_prev_action_invalid(env->engine)) {
+        const TrainingActionMaskObs *active_action_mask =
+            &env->observations[active_player_index].action_mask;
+        bool action_in_mask = false;
+        for (uint16_t i = 0; i < active_action_mask->legal_action_count; ++i) {
+          if (active_action_mask->legal_primary[i] == (uint8_t)action.type &&
+              active_action_mask->legal_sub1[i] ==
+                  (uint8_t)action.subaction_1 &&
+              active_action_mask->legal_sub2[i] ==
+                  (uint8_t)action.subaction_2 &&
+              active_action_mask->legal_sub3[i] ==
+                  (uint8_t)action.subaction_3) {
+            action_in_mask = true;
+            break;
+          }
+        }
+
+        const GameState *debug_gs = azk_engine_game_state(env->engine);
+        AbilityPhase debug_ability_phase = azk_engine_get_ability_phase(env->engine);
+        bool action_in_fresh_mask = false;
+        uint16_t fresh_legal_action_count = 0;
+        if (debug_gs != NULL) {
+          AzkActionMaskSet fresh_mask = {0};
+          bool fresh_ok = azk_build_action_mask_for_player(
+              env->engine, debug_gs, active_player_index, &fresh_mask);
+          if (fresh_ok) {
+            fresh_legal_action_count = fresh_mask.legal_action_count;
+            for (uint16_t i = 0; i < fresh_mask.legal_action_count; ++i) {
+              const UserAction *fresh = &fresh_mask.legal_actions[i];
+              if (fresh->type == action.type &&
+                  fresh->subaction_1 == action.subaction_1 &&
+                  fresh->subaction_2 == action.subaction_2 &&
+                  fresh->subaction_3 == action.subaction_3) {
+                action_in_fresh_mask = true;
+                break;
+              }
+            }
+          }
+        }
+
         fprintf(
           stderr,
-          "Invalid action detected at tick %d in phase %d: [%d, %d, %d, %d]\n",
+          "Invalid action detected at tick %d in phase %d for active player %d: "
+          "[%d, %d, %d, %d], action_in_mask=%d, legal_action_count=%u, "
+          "action_in_fresh_mask=%d, fresh_legal_action_count=%u, "
+          "ability_phase=%d\n",
           env->tick,
           env->observations[0].phase,
+          active_player_index,
           action.type,
           action.subaction_1,
           action.subaction_2,
-          action.subaction_3
+          action.subaction_3,
+          action_in_mask ? 1 : 0,
+          active_action_mask->legal_action_count,
+          action_in_fresh_mask ? 1 : 0,
+          fresh_legal_action_count,
+          (int)debug_ability_phase
         ); 
+
+        if (!action_in_mask) {
+          const uint16_t debug_limit =
+              active_action_mask->legal_action_count < 24
+                  ? active_action_mask->legal_action_count
+                  : 24;
+          for (uint16_t i = 0; i < debug_limit; ++i) {
+            fprintf(
+                stderr,
+                "  legal[%u]=[%u,%u,%u,%u]\n",
+                i,
+                active_action_mask->legal_primary[i],
+                active_action_mask->legal_sub1[i],
+                active_action_mask->legal_sub2[i],
+                active_action_mask->legal_sub3[i]);
+          }
+        }
 
         const TrainingMyObservationData* my_observation_data =
             &env->observations[0].my_observation_data;
@@ -366,8 +427,8 @@ void c_step(CAzukiTCG* env) {
             occupied_garden_zones[2], occupied_garden_zones[3],
             occupied_garden_zones[4], untapped_ikz_card_count);
 
+        fflush(stderr);
         abort();
-      }
     }
   } while (!azk_engine_requires_action(env->engine) && !azk_engine_is_game_over(env->engine));
 

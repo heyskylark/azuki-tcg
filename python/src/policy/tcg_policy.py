@@ -403,6 +403,11 @@ class TCG(nn.Module):
       stacked = stacked.squeeze(-1)
     return stacked
 
+  def _squeeze_trailing_singleton(self, tensor: torch.Tensor):
+    if tensor.dim() > 0 and tensor.size(-1) == 1:
+      return tensor.squeeze(-1)
+    return tensor
+
   def _card_index_and_mask(self, card_def_ids: torch.Tensor):
     card_def_ids = card_def_ids.long()
     valid_mask = card_def_ids >= 0
@@ -575,11 +580,12 @@ class TCG(nn.Module):
     return set_embeddings, pooled
 
   def _encode_leader(self, leader_obs, *, key_prefix: str):
-    card_def_ids = leader_obs["card_def_id"].long()
+    card_def_ids = self._squeeze_trailing_singleton(leader_obs["card_def_id"]).long()
     idx, _ = self._card_index_and_mask(card_def_ids)
     static = self._lookup_static(idx)
 
-    weapon_emb = self._encode_weapons(leader_obs["weapons"], leader_obs["weapon_count"])
+    weapon_count = self._squeeze_trailing_singleton(leader_obs["weapon_count"])
+    weapon_emb = self._encode_weapons(leader_obs["weapons"], weapon_count)
 
     card_emb = self.card_def_encoder(idx)
     type_emb = self.card_type_encoder(static["card_type"])
@@ -587,13 +593,13 @@ class TCG(nn.Module):
 
     scalar = torch.stack(
       [
-        leader_obs["cur_atk"].float(),
-        leader_obs["cur_hp"].float(),
-        leader_obs["tapped"].float(),
-        leader_obs["cooldown"].float(),
-        leader_obs["has_charge"].float(),
-        leader_obs["has_defender"].float(),
-        leader_obs["has_infiltrate"].float(),
+        self._squeeze_trailing_singleton(leader_obs["cur_atk"]).float(),
+        self._squeeze_trailing_singleton(leader_obs["cur_hp"]).float(),
+        self._squeeze_trailing_singleton(leader_obs["tapped"]).float(),
+        self._squeeze_trailing_singleton(leader_obs["cooldown"]).float(),
+        self._squeeze_trailing_singleton(leader_obs["has_charge"]).float(),
+        self._squeeze_trailing_singleton(leader_obs["has_defender"]).float(),
+        self._squeeze_trailing_singleton(leader_obs["has_infiltrate"]).float(),
         static["base_attack"],
         static["base_health"],
         static["innate_charge"],
@@ -608,7 +614,7 @@ class TCG(nn.Module):
     return self.leader_projector(leader_input)
 
   def _encode_gate(self, gate_obs, *, key_prefix: str):
-    card_def_ids = gate_obs["card_def_id"].long()
+    card_def_ids = self._squeeze_trailing_singleton(gate_obs["card_def_id"]).long()
     idx, _ = self._card_index_and_mask(card_def_ids)
     static = self._lookup_static(idx)
 
@@ -618,8 +624,8 @@ class TCG(nn.Module):
 
     scalar = torch.stack(
       [
-        gate_obs["tapped"].float(),
-        gate_obs["cooldown"].float(),
+        self._squeeze_trailing_singleton(gate_obs["tapped"]).float(),
+        self._squeeze_trailing_singleton(gate_obs["cooldown"]).float(),
         static["has_ability"],
         static["ability_optional"],
       ],
@@ -632,10 +638,14 @@ class TCG(nn.Module):
 
   def _encode_global_context(self, structured_obs):
     ability = self.__get_struct_field(structured_obs, "ability_context")
-    phase = self.__get_struct_field(structured_obs, "phase").long().clamp(0, GAME_PHASE_COUNT - 1)
-    ability_phase = ability["phase"].long().clamp(0, ABILITY_PHASE_COUNT - 1)
+    phase = self._squeeze_trailing_singleton(
+      self.__get_struct_field(structured_obs, "phase")
+    ).long().clamp(0, GAME_PHASE_COUNT - 1)
+    ability_phase = self._squeeze_trailing_singleton(
+      ability["phase"]
+    ).long().clamp(0, ABILITY_PHASE_COUNT - 1)
 
-    source_card = ability["source_card_def_id"].long()
+    source_card = self._squeeze_trailing_singleton(ability["source_card_def_id"]).long()
     source_idx, _ = self._card_index_and_mask(source_card)
 
     phase_emb = self.game_phase_encoder(phase)
@@ -643,18 +653,18 @@ class TCG(nn.Module):
     source_emb = self.card_def_encoder(source_idx)
 
     action_mask = self.__get_struct_field(structured_obs, "action_mask")
-    is_active = (action_mask["legal_action_count"] > 0).float()
+    is_active = (self._squeeze_trailing_singleton(action_mask["legal_action_count"]) > 0).float()
 
     scalar = torch.stack(
       [
-        ability["pending_confirmation_count"].float(),
-        ability["has_source_card_def_id"].float(),
-        ability["cost_target_type"].float(),
-        ability["effect_target_type"].float(),
-        ability["selection_count"].float(),
-        ability["selection_picked"].float(),
-        ability["selection_pick_max"].float(),
-        ability["active_player_index"].float(),
+        self._squeeze_trailing_singleton(ability["pending_confirmation_count"]).float(),
+        self._squeeze_trailing_singleton(ability["has_source_card_def_id"]).float(),
+        self._squeeze_trailing_singleton(ability["cost_target_type"]).float(),
+        self._squeeze_trailing_singleton(ability["effect_target_type"]).float(),
+        self._squeeze_trailing_singleton(ability["selection_count"]).float(),
+        self._squeeze_trailing_singleton(ability["selection_picked"]).float(),
+        self._squeeze_trailing_singleton(ability["selection_pick_max"]).float(),
+        self._squeeze_trailing_singleton(ability["active_player_index"]).float(),
         is_active,
       ],
       dim=-1,
@@ -699,15 +709,15 @@ class TCG(nn.Module):
 
     global_counts = torch.stack(
       [
-        player["hand_count"].float(),
-        player["deck_count"].float(),
-        player["ikz_pile_count"].float(),
-        player["selection_count"].float(),
-        player["has_ikz_token"].float(),
-        opponent["hand_count"].float(),
-        opponent["deck_count"].float(),
-        opponent["ikz_pile_count"].float(),
-        opponent["has_ikz_token"].float(),
+        self._squeeze_trailing_singleton(player["hand_count"]).float(),
+        self._squeeze_trailing_singleton(player["deck_count"]).float(),
+        self._squeeze_trailing_singleton(player["ikz_pile_count"]).float(),
+        self._squeeze_trailing_singleton(player["selection_count"]).float(),
+        self._squeeze_trailing_singleton(player["has_ikz_token"]).float(),
+        self._squeeze_trailing_singleton(opponent["hand_count"]).float(),
+        self._squeeze_trailing_singleton(opponent["deck_count"]).float(),
+        self._squeeze_trailing_singleton(opponent["ikz_pile_count"]).float(),
+        self._squeeze_trailing_singleton(opponent["has_ikz_token"]).float(),
       ],
       dim=-1,
     )
