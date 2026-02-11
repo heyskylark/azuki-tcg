@@ -79,3 +79,73 @@ Short probe config:
 
 Observed from dashboard samples in these short runs:
 - GPU utilization remained low (roughly single-digit %), suggesting environment-side bottlenecks dominate at this scale.
+
+## Speed sweep snapshot (2026-02-11)
+
+Short sweep config family:
+- Multiprocessing backend
+- `train.bptt_horizon=1`
+- `train.update_epochs=1`
+- `train.minibatch_size=train.batch_size`
+
+Representative results:
+- `64 envs / 4 workers / vec.batch=64` -> `~1123 SPS`
+- `128 envs / 8 workers / vec.batch=128` -> `~1649 SPS`
+- `256 envs / 8 workers / vec.batch=256` -> `~2127 SPS`
+- `512 envs / 8 workers / vec.batch=512` -> `~2949 SPS`
+- `480 envs / 12 workers / vec.batch=480` -> `~3501 SPS` (best observed)
+- Pooled cases (`vec.batch < num_envs`) were slower in this environment for the tested points.
+
+## Precision + compile findings (2026-02-11)
+
+Tested on:
+- `vec.num_envs=480`
+- `vec.num_workers=12`
+- `vec.batch_size=480`
+- `train.total_timesteps=9600`
+- `train.batch_size=1920`
+- `train.minibatch_size=1920`
+- `train.bptt_horizon=1`
+- `train.update_epochs=1`
+
+Results:
+- `float32`:
+  - `last-epoch SPS ~2796.47`
+  - `mean SPS ~2325.26`
+- `bfloat16`:
+  - `last-epoch SPS ~2943.17`
+  - `mean SPS ~2414.18`
+- Practical takeaway:
+  - `bfloat16` gave a small but consistent speed gain (~5% on this run shape).
+
+`compile=True` status:
+- `compile=True` (with `bfloat16`) did not reach epoch logs in the validation window.
+- Observed prolonged Triton autotune output and Dynamo recompilation warnings, e.g.:
+  - recompile limit at `python/src/policy/tcg_policy.py:98`
+  - shape/key guard churn (`weapon_scalar` in warning context)
+- Treat compile as non-viable for short/medium runs until graph dynamism is reduced.
+
+## Critical gotchas discovered
+
+- Batch divisibility rule (important):
+  - With current PuffeRL buffer logic, `train.batch_size` should be a multiple of `total_agents` (for `bptt_horizon=1`, this is effectively `num_envs * agents_per_env`).
+  - If violated, you can hit tensor assignment size mismatches during `trainer.evaluate()`.
+  - Example failing pattern seen: `num_envs=384` (768 agents), `train.batch_size=1024`.
+
+- CLI bool parsing trap:
+  - In PufferLib config parser flow, passing `--train.compile False` can still evaluate as truthy due argparse bool typing.
+  - To keep compile disabled, prefer:
+    - omit the flag entirely when config already has `compile = False`, or
+    - set config value directly in `.ini` and avoid CLI bool override.
+
+## Machine-tuned config profile
+
+- Added: `python/config/azuki_speed_3090.ini`
+- Purpose: host-specific faster defaults for this 3090 + 12-core machine:
+  - `vec.num_envs=480`
+  - `vec.num_workers=12`
+  - `vec.batch_size=480`
+  - `train.precision=bfloat16`
+  - `train.compile=False`
+- Quick smoke command:
+  - `PYTHONPATH=build-cuda-validation/python/src:python/src:$PYTHONPATH uv run --active python python/src/train.py --config python/config/azuki_speed_3090.ini --train.total-timesteps 3840 --train.batch-size 1920 --train.minibatch-size 1920 --train.bptt-horizon 1 --train.update-epochs 1`
