@@ -97,8 +97,8 @@ static PyObject* env_init(PyObject* self, PyObject* args, PyObject* kwargs) {
         PyErr_SetString(PyExc_ValueError, "Rewards must be contiguous");
         return NULL;
     }
-    if (PyArray_NDIM(rewards) != 1) {
-        PyErr_SetString(PyExc_ValueError, "Rewards must be 1D");
+    if (PyArray_NDIM(rewards) < 1) {
+        PyErr_SetString(PyExc_ValueError, "Rewards must have at least one dimension");
         return NULL;
     }
     env->rewards = PyArray_DATA(rewards);
@@ -113,8 +113,8 @@ static PyObject* env_init(PyObject* self, PyObject* args, PyObject* kwargs) {
         PyErr_SetString(PyExc_ValueError, "Terminals must be contiguous");
         return NULL;
     }
-    if (PyArray_NDIM(terminals) != 1) {
-        PyErr_SetString(PyExc_ValueError, "Terminals must be 1D");
+    if (PyArray_NDIM(terminals) < 1) {
+        PyErr_SetString(PyExc_ValueError, "Terminals must have at least one dimension");
         return NULL;
     }
     env->terminals = PyArray_DATA(terminals);
@@ -129,8 +129,8 @@ static PyObject* env_init(PyObject* self, PyObject* args, PyObject* kwargs) {
         PyErr_SetString(PyExc_ValueError, "Truncations must be contiguous");
         return NULL;
     }
-    if (PyArray_NDIM(truncations) != 1) {
-        PyErr_SetString(PyExc_ValueError, "Truncations must be 1D");
+    if (PyArray_NDIM(truncations) < 1) {
+        PyErr_SetString(PyExc_ValueError, "Truncations must have at least one dimension");
         return NULL;
     }
     env->truncations = PyArray_DATA(truncations);
@@ -418,8 +418,8 @@ static PyObject* vec_init(PyObject* self, PyObject* args, PyObject* kwargs) {
         PyErr_SetString(PyExc_ValueError, "Rewards must be contiguous");
         return NULL;
     }
-    if (PyArray_NDIM(rewards) != 1) {
-        PyErr_SetString(PyExc_ValueError, "Rewards must be 1D");
+    if (PyArray_NDIM(rewards) < 1) {
+        PyErr_SetString(PyExc_ValueError, "Rewards must have at least one dimension");
         return NULL;
     }
 
@@ -433,8 +433,8 @@ static PyObject* vec_init(PyObject* self, PyObject* args, PyObject* kwargs) {
         PyErr_SetString(PyExc_ValueError, "Terminals must be contiguous");
         return NULL;
     }
-    if (PyArray_NDIM(terminals) != 1) {
-        PyErr_SetString(PyExc_ValueError, "Terminals must be 1D");
+    if (PyArray_NDIM(terminals) < 1) {
+        PyErr_SetString(PyExc_ValueError, "Terminals must have at least one dimension");
         return NULL;
     }
 
@@ -448,8 +448,8 @@ static PyObject* vec_init(PyObject* self, PyObject* args, PyObject* kwargs) {
         PyErr_SetString(PyExc_ValueError, "Truncations must be contiguous");
         return NULL;
     }
-    if (PyArray_NDIM(truncations) != 1) {
-        PyErr_SetString(PyExc_ValueError, "Truncations must be 1D");
+    if (PyArray_NDIM(truncations) < 1) {
+        PyErr_SetString(PyExc_ValueError, "Truncations must have at least one dimension");
         return NULL;
     }
 
@@ -576,7 +576,12 @@ static PyObject* vec_step(PyObject* self, PyObject* arg) {
     }
 
     for (int i = 0; i < vec->num_envs; i++) {
-        c_step(vec->envs[i]);
+        Env* env = vec->envs[i];
+        if (env->terminals[0] == DONE && env->terminals[1] == DONE) {
+            c_reset(env);
+            continue;
+        }
+        c_step(env);
     }
     Py_RETURN_NONE;
 }

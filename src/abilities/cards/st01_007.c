@@ -32,9 +32,12 @@ bool st01_007_validate(ecs_world_t* world, ecs_entity_t card, ecs_entity_t owner
 }
 
 bool st01_007_validate_cost_target(ecs_world_t* world, ecs_entity_t card, ecs_entity_t owner, ecs_entity_t target) {
-    (void)card;  // unused
-
     if (target == 0) {
+        return false;
+    }
+
+    // Prevent self-discard if deferred zone updates still show source in hand.
+    if (target == card) {
         return false;
     }
 

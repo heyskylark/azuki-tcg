@@ -20,9 +20,13 @@ PROJECT=~/git/azuki-tcg
 PUFFER=~/git/rl/SkyPufferLib
 
 docker run -d --name puffertank-dev \
-  --gpus all \
+  --runtime nvidia \
+  -e NVIDIA_VISIBLE_DEVICES=all \
+  -e NVIDIA_DRIVER_CAPABILITIES=compute,utility \
   --network host \
   --ipc host \
+  --security-opt label=disable \
+  --security-opt seccomp=unconfined \
   --restart unless-stopped \
   -v "$PROJECT":/workspace \
   -v "$PUFFER":/ext/SkyPufferLib \
@@ -30,10 +34,13 @@ docker run -d --name puffertank-dev \
   -v "$HOME/.cache/huggingface":/root/.cache/huggingface \
   -v "$HOME/.cache/npm":/root/.npm \
   -w /workspace \
-  pufferai/puffertank:3.0 bash -lc "sleep infinity"
+  pufferai/puffertank:3.0 \
+  bash -lc "/workspace/scripts/wait_for_cuda.sh && exec sleep infinity"
 
 docker exec -it puffertank-dev bash
 ```
+
+The launch uses `--runtime nvidia` with `NVIDIA_VISIBLE_DEVICES` (not `--gpus all`) to avoid stale CDI mount-path issues after host driver updates.
 
 ### System Dependencies
 

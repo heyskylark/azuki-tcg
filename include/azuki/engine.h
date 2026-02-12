@@ -58,6 +58,9 @@ bool azk_engine_observe(AzkEngine *engine, int8_t player_index, ObservationData 
  */
 bool azk_engine_observe_training(AzkEngine *engine, int8_t player_index,
                                  TrainingObservationData *out_observation);
+bool azk_engine_observe_training_all(
+    AzkEngine *engine,
+    TrainingObservationData out_observations[MAX_PLAYERS_PER_MATCH]);
 
 /**
  * Returns true when the engine is waiting for a user/agent action.

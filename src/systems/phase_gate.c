@@ -31,37 +31,65 @@ static void create_named_pipeline(ecs_world_t *world, const char *pipeline_name,
                 .query.terms = {{.id = EcsSystem}, {.id = phase_tag}}});
 }
 
-static void set_pipeline_for_phase(ecs_world_t *world, Phase phase) {
+static const PhaseGateCache *phase_gate_cache(ecs_world_t *world) {
+  const PhaseGateCache *cache = ecs_singleton_get(world, PhaseGateCache);
+  ecs_assert(cache != NULL, ECS_INVALID_PARAMETER,
+             "PhaseGateCache singleton missing");
+  return cache;
+}
+
+static PhaseGateCache *phase_gate_cache_mut(ecs_world_t *world) {
+  PhaseGateCache *cache = ecs_singleton_get_mut(world, PhaseGateCache);
+  ecs_assert(cache != NULL, ECS_INVALID_PARAMETER,
+             "PhaseGateCache singleton missing");
+  return cache;
+}
+
+static void set_pipeline_for_phase(ecs_world_t *world,
+                                   PhaseGateCache *cache,
+                                   Phase phase) {
+  ecs_entity_t pipeline = 0;
   switch (phase) {
   case PHASE_PREGAME_MULLIGAN:
-    ecs_set_pipeline(world, lookup_named_entity(world, PIPELINE_MULLIGAN));
+    pipeline = cache->pipeline_mulligan;
     break;
   case PHASE_START_OF_TURN:
-    ecs_set_pipeline(world, lookup_named_entity(world, PIPELINE_START_OF_TURN));
+    pipeline = cache->pipeline_start_of_turn;
     break;
   case PHASE_MAIN:
-    ecs_set_pipeline(world, lookup_named_entity(world, PIPELINE_MAIN));
+    pipeline = cache->pipeline_main;
     break;
   case PHASE_RESPONSE_WINDOW:
-    ecs_set_pipeline(world, lookup_named_entity(world, PIPELINE_RESPONSE));
+    pipeline = cache->pipeline_response;
     break;
   case PHASE_COMBAT_RESOLVE:
-    ecs_set_pipeline(world, lookup_named_entity(world, PIPELINE_COMBAT));
+    pipeline = cache->pipeline_combat;
     break;
   case PHASE_END_TURN:
-    ecs_set_pipeline(world, lookup_named_entity(world, PIPELINE_END_TURN));
+    pipeline = cache->pipeline_end_turn;
     break;
   case PHASE_END_MATCH:
-    ecs_set_pipeline(world, lookup_named_entity(world, PIPELINE_END_MATCH));
+    pipeline = cache->pipeline_end_match;
     break;
   default:
     cli_render_logf("[PhaseGate] Unknown phase: %d", phase);
     exit(EXIT_FAILURE);
   }
+
+  ecs_assert(pipeline != 0, ECS_INVALID_PARAMETER,
+             "Pipeline missing for phase %d", phase);
+
+  if (cache->current_pipeline == pipeline) {
+    return;
+  }
+
+  ecs_set_pipeline(world, pipeline);
+  cache->current_pipeline = pipeline;
 }
 
 void PhaseGate(ecs_iter_t *it) {
   ecs_world_t *world = ecs_get_world(it->world);
+  PhaseGateCache *cache = phase_gate_cache_mut(world);
   GameState *gs = ecs_field(it, GameState, 0);
   Phase phase = gs->phase;
 
@@ -69,7 +97,9 @@ void PhaseGate(ecs_iter_t *it) {
   if (phase != PHASE_END_MATCH) {
     AbilityPhase ability_phase = azk_get_ability_phase(world);
     if (ability_phase != ABILITY_PHASE_NONE) {
-      ecs_set_pipeline(world, lookup_named_entity(world, PIPELINE_ABILITY));
+      ecs_assert(cache->pipeline_ability != 0, ECS_INVALID_PARAMETER,
+                 "Ability pipeline missing");
+      ecs_set_pipeline(world, cache->pipeline_ability);
       return;
     }
 
@@ -88,20 +118,20 @@ void PhaseGate(ecs_iter_t *it) {
         ecs_singleton_modified(world, GameState);
         cli_render_logf("[PhaseGate] When attacking effects resolved - "
                         "defender has response options");
-        set_pipeline_for_phase(world, PHASE_RESPONSE_WINDOW);
+        set_pipeline_for_phase(world, cache, PHASE_RESPONSE_WINDOW);
         return;
       } else {
         gs->phase = PHASE_COMBAT_RESOLVE;
         ecs_singleton_modified(world, GameState);
         cli_render_logf(
             "[PhaseGate] When attacking effects resolved - proceeding to combat");
-        set_pipeline_for_phase(world, PHASE_COMBAT_RESOLVE);
+        set_pipeline_for_phase(world, cache, PHASE_COMBAT_RESOLVE);
         return;
       }
     }
   }
 
-  set_pipeline_for_phase(world, phase);
+  set_pipeline_for_phase(world, cache, phase);
 }
 
 void init_phase_gate_system(ecs_world_t *world) {
@@ -114,10 +144,7 @@ void init_phase_gate_system(ecs_world_t *world) {
   create_named_pipeline(world, PIPELINE_END_MATCH, TEndMatch);
   create_named_pipeline(world, PIPELINE_ABILITY, TAbilityResolution);
 
-  const GameState *gs = ecs_singleton_get(world, GameState);
-  set_pipeline_for_phase(world, gs->phase);
-
-  ecs_system(world, {
+  ecs_entity_t phase_gate_system = ecs_system(world, {
     .entity = ecs_entity(world, {
       .name = SYSTEM_PHASE_GATE,
       .add = ecs_ids( ecs_dependson(EcsOnUpdate) )
@@ -127,9 +154,28 @@ void init_phase_gate_system(ecs_world_t *world) {
     },
     .callback = PhaseGate
   });
+
+  PhaseGateCache cache = {0};
+  cache.pipeline_mulligan = lookup_named_entity(world, PIPELINE_MULLIGAN);
+  cache.pipeline_start_of_turn =
+      lookup_named_entity(world, PIPELINE_START_OF_TURN);
+  cache.pipeline_main = lookup_named_entity(world, PIPELINE_MAIN);
+  cache.pipeline_response = lookup_named_entity(world, PIPELINE_RESPONSE);
+  cache.pipeline_combat = lookup_named_entity(world, PIPELINE_COMBAT);
+  cache.pipeline_end_turn = lookup_named_entity(world, PIPELINE_END_TURN);
+  cache.pipeline_end_match = lookup_named_entity(world, PIPELINE_END_MATCH);
+  cache.pipeline_ability = lookup_named_entity(world, PIPELINE_ABILITY);
+  cache.phase_gate_system = phase_gate_system;
+  ecs_singleton_set_ptr(world, PhaseGateCache, &cache);
+
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  PhaseGateCache *cache_ptr = phase_gate_cache_mut(world);
+  set_pipeline_for_phase(world, cache_ptr, gs->phase);
 }
 
 void run_phase_gate_system(ecs_world_t *world) {
-  ecs_entity_t phase_gate_system = lookup_named_entity(world, SYSTEM_PHASE_GATE);
-  ecs_run(world, phase_gate_system, 0, NULL);
+  const PhaseGateCache *cache = phase_gate_cache(world);
+  ecs_assert(cache->phase_gate_system != 0, ECS_INVALID_PARAMETER,
+             "Phase gate system missing");
+  ecs_run(world, cache->phase_gate_system, 0, NULL);
 }

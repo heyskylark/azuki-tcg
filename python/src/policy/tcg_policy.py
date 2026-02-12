@@ -2,6 +2,7 @@ import pufferlib.models
 import pufferlib.pytorch
 from gymnasium.wrappers.normalize import RunningMeanStd
 
+import numpy as np
 import torch
 from torch import nn
 
@@ -37,6 +38,65 @@ UNIT_EMBED_SIZE = 64
 
 PROCESS_SET_HIDDEN_SIZE = 128
 LSTM_HIDDEN_SIZE = 4096
+
+
+def _numpy_dtype_to_torch(dtype: np.dtype) -> torch.dtype:
+  dtype = np.dtype(dtype)
+  if dtype == np.dtype(np.int8):
+    return torch.int8
+  if dtype == np.dtype(np.uint8):
+    return torch.uint8
+  if dtype == np.dtype(np.int16):
+    return torch.int16
+  if dtype == np.dtype(np.uint16):
+    return torch.uint16
+  if dtype == np.dtype(np.int32):
+    return torch.int32
+  if dtype == np.dtype(np.uint32):
+    return torch.uint32
+  if dtype == np.dtype(np.int64):
+    return torch.int64
+  if dtype == np.dtype(np.uint64):
+    return torch.uint64
+  if dtype == np.dtype(np.float32):
+    return torch.float32
+  if dtype == np.dtype(np.float64):
+    return torch.float64
+  if dtype == np.dtype(np.bool_):
+    return torch.bool
+  raise TypeError(f"Unsupported numpy dtype for nativize: {dtype}")
+
+
+def _build_native_dtype_from_numpy(dtype: np.dtype, base_offset: int = 0):
+  def _prefix_shape(meta, prefix_shape, delta):
+    if isinstance(meta, tuple):
+      torch_dtype, shape, offset, _ = meta
+      return (torch_dtype, tuple(prefix_shape) + tuple(shape), offset, delta)
+    return {
+      key: _prefix_shape(value, prefix_shape, delta)
+      for key, value in meta.items()
+    }
+
+  dtype = np.dtype(dtype)
+  if dtype.fields:
+    out = {}
+    for name, (field_dtype, field_offset) in dtype.fields.items():
+      out[name] = _build_native_dtype_from_numpy(
+        np.dtype(field_dtype),
+        base_offset + int(field_offset),
+      )
+    return out
+
+  if dtype.subdtype is not None:
+    scalar_dtype, subshape = dtype.subdtype
+    base_meta = _build_native_dtype_from_numpy(
+      np.dtype(scalar_dtype),
+      base_offset,
+    )
+    return _prefix_shape(base_meta, tuple(int(x) for x in subshape), int(dtype.itemsize))
+
+  torch_dtype = _numpy_dtype_to_torch(dtype)
+  return (torch_dtype, (), int(base_offset), int(dtype.itemsize))
 
 
 class ScalarRunningNorm(nn.Module):
@@ -346,7 +406,10 @@ class TCG(nn.Module):
     emulated_spec = getattr(env, "emulated", None)
     if emulated_spec is None:
       raise AttributeError("env must expose emulated metadata for nativize")
-    self._obs_struct_dtype = pufferlib.pytorch.nativize_dtype(emulated_spec)
+    obs_dtype = emulated_spec.get("emulated_observation_dtype")
+    if obs_dtype is None:
+      raise AttributeError("env.emulated missing emulated_observation_dtype")
+    self._obs_struct_dtype = _build_native_dtype_from_numpy(obs_dtype)
     self._cached_mask_observations = None
 
   def __policy_device(self) -> torch.device:

@@ -10,11 +10,8 @@
 static void reset_legal_actions(ActionMaskObs *action_mask) {
   ecs_assert(action_mask != NULL, ECS_INVALID_PARAMETER, "Output mask is null");
   action_mask->legal_action_count = 0;
-  for (size_t i = 0; i < AZK_MAX_LEGAL_ACTIONS; ++i) {
-    action_mask->legal_primary[i] = (uint8_t)0;
-    action_mask->legal_sub1[i] = (uint8_t)0;
-    action_mask->legal_sub2[i] = (uint8_t)0;
-    action_mask->legal_sub3[i] = (uint8_t)0;
+  for (size_t i = 0; i < AZK_ACTION_TYPE_COUNT; ++i) {
+    action_mask->primary_action_mask[i] = false;
   }
 }
 

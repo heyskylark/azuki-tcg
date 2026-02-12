@@ -528,7 +528,6 @@ def _ability_context_to_dict(ability_context: Any) -> dict[str, int]:
         "active_player_index": int(getattr(ability_context, "active_player_index", -1)),
     }
 
-
 def observation_to_dict(observation: Any) -> dict[str, Any]:
     """Convert a ctypes/cffi TrainingObservationData into pure Python primitives."""
 

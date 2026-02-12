@@ -44,9 +44,13 @@ bool stt02_016_validate(ecs_world_t *world, ecs_entity_t card,
 
 bool stt02_016_validate_cost_target(ecs_world_t *world, ecs_entity_t card,
                                     ecs_entity_t owner, ecs_entity_t target) {
-  (void)card;
-
   if (target == 0) {
+    return false;
+  }
+
+  // A spell's additional discard cost must come from another hand card.
+  // During deferred zone updates the source spell may still appear in hand.
+  if (target == card) {
     return false;
   }
 

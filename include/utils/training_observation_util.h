@@ -120,5 +120,8 @@ typedef struct {
 
 TrainingObservationData create_training_observation_data(ecs_world_t *world,
                                                          int8_t player_index);
+void create_training_observation_data_pair(
+    ecs_world_t *world,
+    TrainingObservationData out_observations[MAX_PLAYERS_PER_MATCH]);
 
 #endif

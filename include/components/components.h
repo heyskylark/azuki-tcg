@@ -174,6 +174,19 @@ typedef struct {
   uint8_t count;
 } DeckReorderQueue;
 
+typedef struct {
+  ecs_entity_t pipeline_mulligan;
+  ecs_entity_t pipeline_start_of_turn;
+  ecs_entity_t pipeline_main;
+  ecs_entity_t pipeline_response;
+  ecs_entity_t pipeline_combat;
+  ecs_entity_t pipeline_end_turn;
+  ecs_entity_t pipeline_end_match;
+  ecs_entity_t pipeline_ability;
+  ecs_entity_t phase_gate_system;
+  ecs_entity_t current_pipeline;
+} PhaseGateCache;
+
 extern ECS_COMPONENT_DECLARE(ActionContext);
 extern ECS_COMPONENT_DECLARE(AbilityContext);
 extern ECS_COMPONENT_DECLARE(GameState);
@@ -184,6 +197,7 @@ extern ECS_COMPONENT_DECLARE(ZoneIndex);
 extern ECS_COMPONENT_DECLARE(TriggeredEffectQueue);
 extern ECS_COMPONENT_DECLARE(PassiveBuffQueue);
 extern ECS_COMPONENT_DECLARE(DeckReorderQueue);
+extern ECS_COMPONENT_DECLARE(PhaseGateCache);
 
 /* Relationship Entities */
 extern ECS_ENTITY_DECLARE(Rel_OwnedBy);
