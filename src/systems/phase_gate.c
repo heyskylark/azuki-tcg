@@ -99,7 +99,10 @@ void PhaseGate(ecs_iter_t *it) {
     if (ability_phase != ABILITY_PHASE_NONE) {
       ecs_assert(cache->pipeline_ability != 0, ECS_INVALID_PARAMETER,
                  "Ability pipeline missing");
-      ecs_set_pipeline(world, cache->pipeline_ability);
+      if (cache->current_pipeline != cache->pipeline_ability) {
+        ecs_set_pipeline(world, cache->pipeline_ability);
+        cache->current_pipeline = cache->pipeline_ability;
+      }
       return;
     }
 

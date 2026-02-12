@@ -7,10 +7,13 @@
 #include <time.h>
 
 #include "abilities/ability_registry.h"
+#include "abilities/ability_system.h"
 #include "components/abilities.h"
 #include "utils/card_utils.h"
+#include "utils/deck_utils.h"
 #include "utils/phase_utils.h"
 #include "utils/player_util.h"
+#include "utils/status_util.h"
 #include "utils/zone_util.h"
 
 typedef struct {
@@ -213,6 +216,46 @@ static TrainingActionMaskObs build_training_action_mask(ecs_world_t *world,
 
   populate_action_mask_from_set(&mask_set, &action_mask);
   return action_mask;
+}
+
+static bool should_expose_training_action_mask(ecs_world_t *world,
+                                               const GameState *gs,
+                                               int8_t player_index) {
+  if (gs == NULL || gs->winner != -1) {
+    return false;
+  }
+
+  if (player_index != gs->active_player_index) {
+    return false;
+  }
+
+  if (!phase_requires_user_action(world, gs->phase)) {
+    return false;
+  }
+
+  // Keep mask generation aligned with azk_engine_requires_action.
+  if (azk_has_pending_deck_reorders(world) ||
+      azk_has_pending_passive_buffs(world) ||
+      (azk_has_queued_triggered_effects(world) &&
+       !azk_is_in_ability_phase(world))) {
+    return false;
+  }
+
+  // Mirror PhaseGate auto-transitions so we don't expose stale legal actions.
+  if (gs->phase == PHASE_MAIN && gs->combat_state.attacking_card != 0 &&
+      !azk_has_queued_triggered_effects(world) &&
+      !azk_is_in_ability_phase(world)) {
+    return false;
+  }
+
+  if (gs->phase == PHASE_RESPONSE_WINDOW &&
+      !azk_has_queued_triggered_effects(world) &&
+      !azk_is_in_ability_phase(world) &&
+      !defender_can_respond(world, gs, gs->active_player_index)) {
+    return false;
+  }
+
+  return true;
 }
 
 static TrainingWeaponObservationData get_weapon_observation(
@@ -834,8 +877,10 @@ TrainingObservationData create_training_observation_data(ecs_world_t *world,
   observation.opponent_observation_data = opponent_observation;
   observation.phase = gs->phase;
   observation.ability_context = build_ability_context_observation(world, gs);
-  observation.action_mask =
-      build_training_action_mask(world, gs, player_index);
+  reset_legal_actions(&observation.action_mask);
+  if (should_expose_training_action_mask(world, gs, player_index)) {
+    observation.action_mask = build_training_action_mask(world, gs, player_index);
+  }
   return observation;
 }
 
@@ -879,8 +924,7 @@ void create_training_observation_data_pair(
     // Fast path: only the active player can have legal actions.
     // Keep non-active players' masks empty without invoking the full builder.
     reset_legal_actions(&observation.action_mask);
-    if (gs->winner == -1 && player_index == gs->active_player_index &&
-        phase_requires_user_action(world, gs->phase)) {
+    if (should_expose_training_action_mask(world, gs, player_index)) {
       const uint64_t mask_start_ns = profile_enabled ? obs_now_ns() : 0;
       observation.action_mask =
           build_training_action_mask(world, gs, player_index);

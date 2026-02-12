@@ -558,6 +558,65 @@ Interpretation:
 User asked whether current speed is "fast enough" and to prioritize validating
 that training is actually learning.
 
+## Progression/stall audit + fix (2026-02-12)
+
+Targeted audit result:
+- Reproduced a deterministic "actions appear legal but do nothing" loop in
+  direct parallel env rollouts.
+- Repro signature:
+  - `phase=PHASE_MAIN`
+  - stable legal sets including non-NOOP actions (e.g. `ACT_GATE_PORTAL`,
+    `ACT_ATTACH_WEAPON_FROM_HAND`)
+  - repeated chosen actions caused no board/tap/hand changes for many steps.
+
+Root cause found:
+- Pipeline cache mismatch in `src/systems/phase_gate.c`.
+- In ability-phase branch, `ecs_set_pipeline(...pipeline_ability)` was called
+  without updating `PhaseGateCache.current_pipeline`.
+- After ability resolution ended, cache still thought pipeline was `MAIN`
+  while world could still be on ability pipeline, so `MainPhaseSystem` actions
+  could be effectively ignored.
+
+Fix implemented:
+- `src/systems/phase_gate.c`:
+  - when switching to ability pipeline, now also sets
+    `cache->current_pipeline = cache->pipeline_ability`.
+
+Related mask-alignment hardening:
+- `src/utils/training_observation_util.c`:
+  - added `should_expose_training_action_mask(...)` to mirror
+    `azk_engine_requires_action(...)` semantics before exposing masks.
+  - now gates masks on:
+    - active player + phase requiring action
+    - no pending deck reorder / passive buff / queued triggered auto-work
+    - no phase-gate auto-transition-only states (main/combat transition,
+      response/no-defender-response transition)
+  - applied to both:
+    - `create_training_observation_data(...)`
+    - `create_training_observation_data_pair(...)`
+
+Why this matters:
+- Prevents observation/action-mask states that advertise legal actions while the
+  engine is in an auto-progression window where submitted actions are not
+  consumed this tick.
+- Removes a major source of "policy looks stuck / actions seem ignored" behavior.
+
+Validation runbook/results:
+- Rebuild:
+  - `cmake --build build-312 --target azuki_puffer_env -j`
+- Parallel random-legal smoke:
+  - `episodes_finished 20`
+  - `episodes_truncated 0`
+- Short train smoke (small valid divisibility settings):
+  - `--vec.num-envs 8 --vec.num-workers 2 --vec.batch-size 8`
+  - `--train.total-timesteps 512 --train.batch-size 128 --train.minibatch-size 128`
+  - completed through epoch 4 without invalid-action abort/hang.
+
+Notes:
+- A separate failed smoke with `azuki_speed_3090_parallel.ini` + incompatible
+  batch overrides was a known batch-shape mismatch (`480` vs `1440`) unrelated
+  to the engine fixes.
+
 ### Decision
 - Yes: current throughput is sufficient to pivot to learning validation.
 - Stable observed train throughput on this host/config is already in the
