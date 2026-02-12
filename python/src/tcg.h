@@ -55,6 +55,7 @@ typedef struct Log {
     float gameover_terminal_rate;
     float winner_terminal_rate;
     float curriculum_episode_cap;
+    float reward_shaping_scale;
     float p0_noop_selected_rate;
     float p1_noop_selected_rate;
     float p0_attack_selected_rate;
@@ -244,6 +245,18 @@ typedef struct RewardTuningConfig {
 
 static RewardTuningConfig g_reward_tuning = {0};
 
+typedef struct RewardShapingAnnealConfig {
+  int initialized;
+  int enabled;
+  float initial_scale;
+  float final_scale;
+  int warmup_episodes;
+  int ramp_episodes;
+} RewardShapingAnnealConfig;
+
+static RewardShapingAnnealConfig g_reward_shaping_anneal = {0};
+static int parse_nonnegative_env_int(const char* name, int default_value);
+
 static float parse_nonnegative_env_float(const char *name, float default_value) {
   const char *raw = getenv(name);
   if (raw == NULL || raw[0] == '\0') {
@@ -272,6 +285,75 @@ static void init_reward_tuning_if_needed(void) {
       parse_nonnegative_env_float("AZK_REWARD_NOOP_PENALTY", SHAPED_NOOP_PENALTY);
   g_reward_tuning.truncation_board_edge_weight =
       parse_nonnegative_env_float("AZK_TRUNCATION_BOARD_EDGE_WEIGHT", TRUNCATION_BOARD_EDGE_WEIGHT);
+}
+
+static float parse_unit_env_float(const char *name, float default_value) {
+  const char *raw = getenv(name);
+  if (raw == NULL || raw[0] == '\0') {
+    return default_value;
+  }
+
+  char *endptr = NULL;
+  float parsed = strtof(raw, &endptr);
+  if (endptr == raw || *endptr != '\0' || !isfinite(parsed) ||
+      parsed < 0.0f || parsed > 1.0f) {
+    fprintf(stderr, "Invalid %s='%s'; using default %.3f\n", name, raw, default_value);
+    return default_value;
+  }
+  return parsed;
+}
+
+static void init_reward_shaping_anneal_if_needed(void) {
+  if (g_reward_shaping_anneal.initialized) {
+    return;
+  }
+
+  g_reward_shaping_anneal.initialized = 1;
+  g_reward_shaping_anneal.enabled = env_flag_enabled("AZK_REWARD_SHAPING_ANNEAL");
+  g_reward_shaping_anneal.initial_scale =
+      parse_unit_env_float("AZK_REWARD_SHAPING_ANNEAL_INITIAL", 1.0f);
+  g_reward_shaping_anneal.final_scale =
+      parse_unit_env_float("AZK_REWARD_SHAPING_ANNEAL_FINAL", 0.05f);
+  g_reward_shaping_anneal.warmup_episodes =
+      parse_nonnegative_env_int("AZK_REWARD_SHAPING_ANNEAL_WARMUP_EPISODES", 2000);
+  g_reward_shaping_anneal.ramp_episodes =
+      parse_nonnegative_env_int("AZK_REWARD_SHAPING_ANNEAL_RAMP_EPISODES", 30000);
+
+  if (g_reward_shaping_anneal.final_scale > g_reward_shaping_anneal.initial_scale) {
+    fprintf(stderr,
+            "AZK_REWARD_SHAPING_ANNEAL_FINAL (%.3f) > INITIAL (%.3f); clamping final to initial\n",
+            g_reward_shaping_anneal.final_scale,
+            g_reward_shaping_anneal.initial_scale);
+    g_reward_shaping_anneal.final_scale = g_reward_shaping_anneal.initial_scale;
+  }
+}
+
+static float current_reward_shaping_scale(CAzukiTCG* env) {
+  init_reward_shaping_anneal_if_needed();
+  if (!g_reward_shaping_anneal.enabled) {
+    return 1.0f;
+  }
+
+  const uint64_t completed = env->completed_episodes;
+  const uint64_t warmup = (uint64_t)g_reward_shaping_anneal.warmup_episodes;
+  const uint64_t ramp = (uint64_t)g_reward_shaping_anneal.ramp_episodes;
+  const float initial_scale = g_reward_shaping_anneal.initial_scale;
+  const float final_scale = g_reward_shaping_anneal.final_scale;
+
+  if (completed < warmup) {
+    return initial_scale;
+  }
+  if (ramp == 0) {
+    return final_scale;
+  }
+
+  const uint64_t elapsed = completed - warmup;
+  if (elapsed >= ramp) {
+    return final_scale;
+  }
+
+  const float fraction = (float)((double)elapsed / (double)ramp);
+  return initial_scale + (final_scale - initial_scale) * fraction;
 }
 
 static inline float board_edge_from_snapshot(const AzkRewardSnapshot *snapshot) {
@@ -333,6 +415,7 @@ static bool compute_phi_values(CAzukiTCG* env, float out_phi[MAX_PLAYERS_PER_MAT
 
 static void reset_reward_tracking(CAzukiTCG* env) {
   init_reward_tuning_if_needed();
+  init_reward_shaping_anneal_if_needed();
   env->time_weight = 1.0f;
   env->time_decay = PBRS_TIME_DECAY_DEFAULT;
   for (int8_t player_index = 0; player_index < MAX_PLAYERS_PER_MATCH; ++player_index) {
@@ -417,6 +500,7 @@ static void accumulate_step_rewards(CAzukiTCG* env) {
 }
 
 static void record_episode_stats(CAzukiTCG* env, EpisodeEndReason reason) {
+  const float shaping_scale = current_reward_shaping_scale(env);
   AzkRewardSnapshot snapshot = {0};
   if (!azk_engine_reward_snapshot(env->engine, &snapshot)) {
     fprintf(stderr, "Failed to collect reward snapshot for episode stats\n");
@@ -435,6 +519,7 @@ static void record_episode_stats(CAzukiTCG* env, EpisodeEndReason reason) {
   env->log.p0_episode_return += env->episode_returns[0];
   env->log.p1_episode_return += env->episode_returns[1];
   env->log.curriculum_episode_cap += (float)env->current_episode_cap;
+  env->log.reward_shaping_scale += shaping_scale;
   if (reason == EP_END_REASON_GAMEOVER) {
     env->log.gameover_terminal_rate += 1.0f;
   } else if (reason == EP_END_REASON_TIMEOUT_TRUNCATION) {
@@ -598,8 +683,10 @@ static void apply_shaped_rewards(
     noop_penalty = g_reward_tuning.noop_penalty;
   }
 
-  const float shaped_reward = env->time_weight * phi_delta + leader_delta_term +
-                              board_delta_term - noop_penalty;
+  const float base_shaped_reward = env->time_weight * phi_delta + leader_delta_term +
+                                   board_delta_term - noop_penalty;
+  const float shaping_scale = current_reward_shaping_scale(env);
+  const float shaped_reward = shaping_scale * base_shaped_reward;
   env->rewards[acting_player_index] = shaped_reward;
   env->rewards[opponent_index] = -shaped_reward;
 

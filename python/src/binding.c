@@ -24,6 +24,7 @@ static int my_log(PyObject* dict, Log* log) {
     assign_to_dict(dict, "gameover_terminal_rate", log->gameover_terminal_rate);
     assign_to_dict(dict, "winner_terminal_rate", log->winner_terminal_rate);
     assign_to_dict(dict, "curriculum_episode_cap", log->curriculum_episode_cap);
+    assign_to_dict(dict, "reward_shaping_scale", log->reward_shaping_scale);
     assign_to_dict(dict, "p0_noop_selected_rate", log->p0_noop_selected_rate);
     assign_to_dict(dict, "p1_noop_selected_rate", log->p1_noop_selected_rate);
     assign_to_dict(dict, "p0_attack_selected_rate", log->p0_attack_selected_rate);

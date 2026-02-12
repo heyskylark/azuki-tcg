@@ -617,6 +617,205 @@ Notes:
   batch overrides was a known batch-shape mismatch (`480` vs `1440`) unrelated
   to the engine fixes.
 
+## Next-step plan (no-code planning, 2026-02-12)
+
+User requested planning for:
+1. reward-shaping anneal toward pure win objective,
+2. league training with older checkpoints + ELO-style matchmaking,
+3. incorporating OpenAI Five lessons into final training strategy.
+
+Proposed staged plan:
+- Stage A (stability baseline):
+  - Run fixed "no-new-features" baseline blocks with current engine fixes.
+  - Track terminal exposure, timeout rate, deckout/gameover rates, and action
+    mix consistency by seat.
+- Stage B (reward anneal):
+  - Introduce a time-based (or episode-based) anneal factor `alpha(t)` where
+    shaped rewards are multiplied by `alpha`, annealed to `0`.
+  - Keep terminal win/loss reward unscaled.
+  - Use phased schedule (hold -> ramp-down -> near-zero) with A/B runs.
+- Stage C (league):
+  - Maintain opponent pool from historical checkpoints.
+  - Sample opponents by ELO-weighted distribution (plus exploration floor).
+  - Keep a portion of pure self-play each batch to prevent stale overfitting.
+- Stage D (evaluation harness):
+  - Fixed benchmark suite against:
+    - latest self-play mirror,
+    - several past snapshots,
+    - scripted/random baselines.
+  - Promotion gate for new champion requires multi-opponent uplift, not just
+    single-run training reward.
+
+OpenAI Five references to ground strategy:
+- OpenAI Five paper (large-scale PPO self-play + long-horizon training):
+  - https://arxiv.org/abs/1912.06680
+- OpenAI Five project page (gamma/horizon annealing context):
+  - https://openai.com/index/openai-five/
+- OpenAI Finals post (compute scale, continual training, surgery):
+  - https://openai.com/research/openai-five-defeats-dota-2-world-champions
+- Surgery paper (continue training across env/model changes):
+  - https://arxiv.org/abs/1912.06719
+
+## Run review: `7du2ml7c` (2026-02-12)
+
+W&B summary snapshot:
+- State: `finished`
+- Agent steps: `10,022,400`
+- SPS: `~3334`
+- Epoch: `435`
+- Runtime: `~2767s`
+- Terminal/truncation mix (both seats):
+  - `azk_gameover_terminal=0.65`
+  - `azk_winner_terminal=0.65`
+  - `azk_timeout_truncation=0.35`
+  - `azk_auto_tick_truncation=0`
+- Episode length:
+  - `~194.0` (well below curriculum cap `~578.4`)
+- Win rate:
+  - seat0 `~0.267`
+  - seat1 `~0.383`
+- Action profile is non-trivial (not noop-collapse):
+  - attack `~0.12`
+  - noop `~0.30`
+  - play (garden+alley+spell+attach aggregate tracked via play_selected_rate) `~0.34`
+  - target_selected `~0.15`
+  - gate portal `~0.063-0.067`
+
+Interpretation:
+- This run is materially better than prior timeout-dominated behavior:
+  - majority terminal endings (`65%`) indicates actual game completion is now happening.
+- Residual gap remains:
+  - timeout still high (`35%`) and seat asymmetry persists.
+- This supports moving forward with reward-anneal and then league, rather than
+  major engine surgery first.
+
+## Revised execution plan after `7du2ml7c` (2026-02-12)
+
+### 1) Reward shaping anneal timeline
+
+Suggested first schedule (step-based):
+- `0% -> 30%` of run: shaping scale `alpha = 1.0`
+- `30% -> 70%`: linearly anneal `alpha` from `1.0 -> 0.25`
+- `70% -> 90%`: linearly anneal `alpha` from `0.25 -> 0.05`
+- `90% -> 100%`: hold `alpha = 0.05` (near-pure terminal objective)
+
+Suggested adaptive guardrails (metric-gated):
+- Do not start anneal-down until:
+  - `azk_gameover_terminal >= 0.55` and `azk_timeout_truncation <= 0.45`
+  - sustained for a minimum window (e.g. several million steps)
+- Pause/reverse anneal if terminal rate collapses abruptly.
+
+Rationale:
+- Current run already reaches many terminals; moving too quickly to zero shaping
+  risks destabilizing early game competence.
+- A slow tail toward near-zero shaping should improve endgame conversion and
+  reduce timeout dependence.
+
+### 2) League training implementation path
+
+Checkpoint continuity:
+- Yes: continue from Stage-1 (anneal) checkpoint as the learner initialization.
+
+OpenAI Five reference:
+- In the paper, training used `80%` latest self-play and `20%` past opponents
+  (not 10%): arXiv 1912.06680, Sec 3 / App N.
+
+Implementation options:
+- Minimal disruption (recommended first):
+  - Keep current trainer and implement league sampling in project training code
+    around rollout/inference (learner for one seat, frozen opponent policy for
+    the other seat, collect learner-only gradients).
+  - Avoids deep pufferlib fork up front.
+- Full pufferlib integration:
+  - Add native opponent-pool sampling and dual-policy rollout support in
+    pufferlib core (more invasive, better long-term ergonomics).
+
+Initial mixture proposal:
+- Start with `85/15` (latest/past) for first league phase.
+- Move to `80/20` once stable.
+- Include opponent age diversity (recent, mid, old) to prevent narrow
+  anti-current overfitting.
+
+### 3) Eval gates
+
+Promotion gates should require all:
+- improved head-to-head winrate vs current champion
+- reduced timeout truncation without collapsing terminal rate
+- acceptable seat asymmetry bounds
+- no regression vs fixed baseline opponents.
+
+## Step 1 implemented: reward-shaping anneal (2026-02-12)
+
+Implemented in C env (`python/src/tcg.h`):
+- Added episode-based shaping anneal config:
+  - `AZK_REWARD_SHAPING_ANNEAL` (0/1)
+  - `AZK_REWARD_SHAPING_ANNEAL_INITIAL` (default `1.0`, range `[0,1]`)
+  - `AZK_REWARD_SHAPING_ANNEAL_FINAL` (default `0.05`, range `[0,1]`)
+  - `AZK_REWARD_SHAPING_ANNEAL_WARMUP_EPISODES` (default `2000`)
+  - `AZK_REWARD_SHAPING_ANNEAL_RAMP_EPISODES` (default `30000`)
+- Non-terminal shaped reward is now:
+  - `shaped_reward = shaping_scale * base_shaped_reward`
+- Terminal and truncation rewards are unchanged.
+- Added log metric:
+  - `reward_shaping_scale`
+
+Python logging exposure:
+- `python/src/binding.c` now exports `reward_shaping_scale`.
+- `python/src/tcg.py` + `python/src/tcg_parallel.py` forward it as:
+  - `azk_reward_shaping_scale`
+
+Smoke tests run:
+1) Direct binding anneal progression check (forced short episodes):
+- Config: warmup `0`, ramp `3`, initial `1.0`, final `0.1`
+- Observed episode scales:
+  - ep0 `1.0`
+  - ep1 `0.7`
+  - ep2 `0.4`
+  - ep3 `0.1`
+
+2) Parallel env info propagation check:
+- Confirmed terminal episode `infos` contains `azk_reward_shaping_scale`.
+
+3) Short CUDA train smoke (3090 host) with anneal vars:
+- `--vec.num-envs 8 --vec.num-workers 2 --vec.batch-size 8`
+- `--train.total-timesteps 1024 --train.batch-size 128 --train.minibatch-size 128`
+- Completed without runtime errors.
+
+Recommended first anneal run knobs:
+- `AZK_REWARD_SHAPING_ANNEAL=1`
+- `AZK_REWARD_SHAPING_ANNEAL_INITIAL=1.0`
+- `AZK_REWARD_SHAPING_ANNEAL_FINAL=0.05`
+- `AZK_REWARD_SHAPING_ANNEAL_WARMUP_EPISODES=2000`
+- `AZK_REWARD_SHAPING_ANNEAL_RAMP_EPISODES=30000`
+
+## Run review: `9h8fa457` (50M, anneal_v1) (2026-02-12)
+
+W&B summary:
+- `agent_steps ~50,019,840`
+- `SPS ~3759`
+- `episode_length ~204.1`
+- `azk_gameover_terminal ~0.902`
+- `azk_timeout_truncation ~0.098`
+- `win`: p0 `~0.471`, p1 `~0.431`
+- `azk_reward_shaping_scale = 1` for both seats.
+
+Interpretation:
+- Training progress is strong vs prior runs:
+  - very high terminal completion rate (~90%),
+  - timeout down to ~10%,
+  - action mix remains healthy (not noop-collapse).
+- `azk_reward_shaping_scale` staying at `1.0` is expected with current
+  anneal settings, not a bug:
+  - anneal is episode-based per env instance,
+  - warmup was `2000` episodes,
+  - at this run shape (`720` envs, episode length ~204), each env only sees on
+    the order of a few hundred episodes over 50M agent steps, so warmup is not
+    reached.
+
+Practical takeaway:
+- For visible anneal within a 50M run at this env count, warmup/ramp need to be
+  much smaller (e.g., warmup in low hundreds and ramp in low thousands or less).
+
 ### Decision
 - Yes: current throughput is sufficient to pivot to learning validation.
 - Stable observed train throughput on this host/config is already in the
@@ -1489,3 +1688,120 @@ Action-head / stuck concerns:
 Deck-out concern:
 - 0 deckouts in this run is plausible with decision-tick cap=2000 and nontrivial turn progression/card recycling.
 - Not by itself proof of broken terminal handling.
+
+## Resume crash guard: multinomial invalid distribution (2026-02-12)
+
+Observed on resumed runs:
+- CUDA assert from `torch.multinomial`: `invalid multinomial distribution (sum of probabilities <= 0)`.
+- Crash surfaces in `python/src/policy/tcg_sampler.py` during `_sample_stage(...)`.
+- Subsequent `torch.save(...)` fails because CUDA context is already poisoned by the earlier assert.
+
+Fix applied:
+- Hardened `_sample_stage(...)` in `python/src/policy/tcg_sampler.py`:
+  - sanitize `masked_logits` via `torch.nan_to_num(...)`
+  - force probabilities to zero outside legal mask
+  - sanitize probs and explicitly renormalize row-wise
+  - if row sum is invalid (`<=0` or non-finite), replace with legal-uniform distribution
+  - clamp sampled indices before `gather(...)`
+- Added optional debug print env flag:
+  - `AZK_SAMPLER_DEBUG=1` prints count of corrected invalid rows.
+
+Validation:
+- Targeted Python smoke with injected `NaN` / `-inf` logits now returns finite logprob/entropy and no multinomial failure.
+- Short train smoke (`23040` timesteps) completes without sampler crash.
+
+Root-cause clue for "resume-only" behavior:
+- Loading `experiments/azuki_local_9h8fa457/model_azuki_local_002171.pt` into current policy reports:
+  - `missing_keys=0`
+  - `unexpected_keys=48`
+- All unexpected keys are `policy.scalar_normalizer._rms_*` buffers.
+- Current model has zero `scalar_normalizer` entries in `state_dict()` before first forward
+  (buffers are lazily registered), so checkpoint RMS stats are silently dropped on resume.
+- This creates a resume-only distribution shift (trained weights expecting prior scalar normalization
+  stats, but resumed run starts with fresh normalizer stats), which can produce unstable logits and
+  downstream invalid multinomial rows.
+
+Additional resume gotcha:
+- `trainer_state.pt` from completed run stores optimizer param-group lr as `0.0`.
+- If `--resume-load-optimizer` is used from that checkpoint, LR remains 0 unless explicitly reset.
+
+## Resume normalizer-state compatibility fix (2026-02-12)
+
+User requested we avoid masking deeper issues in sampler path:
+- Reverted temporary defensive changes in `python/src/policy/tcg_sampler.py`.
+
+Implemented proper resume fix in `python/src/train.py`:
+- Added `_materialize_scalar_norm_buffers_from_state_dict(...)` and call it
+  before `policy.load_state_dict(...)` in `_load_model_weights(...)`.
+- Logic scans checkpoint keys for:
+  - `policy.scalar_normalizer._rms_*_mean`
+  - `scalar_normalizer._rms_*_mean`
+  and pre-registers matching buffers on `ScalarRunningNorm` using checkpoint
+  tensor shapes.
+
+Validation:
+- Resume load against `experiments/azuki_local_9h8fa457/model_azuki_local_002171.pt` now reports:
+  - `missing_keys=0`
+  - `unexpected_keys=0`
+  - `materialized_scalar_norm_buffers=16`
+- Confirms previous resume-only mismatch (48 dropped scalar normalizer keys) is resolved.
+
+## Resume instability follow-up (2026-02-12)
+
+Observed after normalizer-buffer fix:
+- Resume still crashed with CUDA multinomial assert after epoch 1.
+- Epoch-1 losses were already `nan` (`policy_loss/value_loss/entropy/...`), indicating
+  failure occurs during/after first training update, not initial checkpoint load.
+
+Targeted probe:
+- Fresh policy on reset batch:
+  - value head outputs near 0 (roughly `[-0.003, 0.008]`).
+- Resumed checkpoint policy on reset batch:
+  - value head outputs extremely large negative values (roughly `[-2102, -733]`),
+  - primary logits still finite.
+- This strongly points to critic-scale mismatch causing value-loss explosion,
+  which then poisons subsequent sampling/eval.
+
+Mitigation implemented:
+- Added CLI flag in `python/src/train.py`:
+  - `--resume-reset-critic`
+- Behavior:
+  - after loading checkpoint, reinitialize `value_fn` (`orthogonal` weight, zero bias),
+    leaving policy/action heads intact.
+
+Validation:
+- Resume smoke with `--resume-reset-critic` completed without multinomial crash.
+- Losses stayed finite (very large value loss initially, but non-NaN).
+
+Practical recommendation for this checkpoint family:
+- Use weights-only resume + `--resume-reset-critic`.
+- Avoid `--resume-load-optimizer` from terminal checkpoints where lr is already 0.
+
+## Continuity hardening pass (2026-02-12)
+
+Implemented in `python/src/train.py`:
+- Added `--resume-auto-reset-critic` (default `True`).
+  - On any resume load, critic head is reset by default for robustness unless explicitly disabled.
+- Added explicit optimizer LR resync after loading trainer state:
+  - `_sync_optimizer_lr_from_scheduler(trainer)`
+  - Ensures `optimizer.param_groups[*].lr` matches scheduler-derived LR after restore.
+- Existing resume compatibility fix retained:
+  - scalar normalizer `_rms_*` buffers are materialized before `load_state_dict`.
+
+Behavior now:
+- Resume without optimizer:
+  - loads weights + scalar normalizer state
+  - auto-resets critic head by default
+  - avoids previous NaN->multinomial crash pattern for the tested checkpoint.
+- Resume with optimizer:
+  - restores optimizer/global_step/epoch
+  - then re-syncs param-group LR from scheduler (prevents frozen `lr=0` carryover).
+  - does not auto-reset critic unless explicitly requested (`--resume-reset-critic`).
+
+Smoke validation:
+- Resume (weights-only, no explicit reset flag) on `azuki_local_9h8fa457`:
+  - auto-reset message emitted
+  - short run completed without CUDA multinomial assert.
+- Resume with `--resume-load-optimizer` on same checkpoint:
+  - restore log shows `optimizer_lrs=[0.001]` (not zero)
+  - training continued for several epochs in smoke without immediate failure.

@@ -90,11 +90,52 @@ def parse_script_args() -> tuple[argparse.Namespace, list[str]]:
         action="store_true",
         help="Require an exact key match when loading model weights from a checkpoint.",
     )
+    parser.add_argument(
+        "--resume-reset-critic",
+        action="store_true",
+        help="When resuming, reinitialize the critic/value head to avoid unstable value-loss spikes.",
+    )
+    parser.add_argument(
+        "--resume-auto-reset-critic",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Automatically reset critic on resume for continuity robustness.",
+    )
     return parser.parse_known_args()
 
 
 def _strip_module_prefix(state_dict: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
     return {k.replace("module.", ""): v for k, v in state_dict.items()}
+
+
+def _materialize_scalar_norm_buffers_from_state_dict(
+    policy: torch.nn.Module, state_dict: dict[str, torch.Tensor]
+) -> int:
+    base_policy = getattr(policy, "policy", policy)
+    scalar_norm = getattr(base_policy, "scalar_normalizer", None)
+    ensure_buffers = getattr(scalar_norm, "_ensure_buffers", None)
+    if scalar_norm is None or ensure_buffers is None:
+        return 0
+
+    created = 0
+    for key, value in state_dict.items():
+        if not key.endswith("_mean") or not torch.is_tensor(value):
+            continue
+
+        norm_key = None
+        if key.startswith("policy.scalar_normalizer._rms_"):
+            norm_key = key[len("policy.scalar_normalizer._rms_") : -len("_mean")]
+        elif key.startswith("scalar_normalizer._rms_"):
+            norm_key = key[len("scalar_normalizer._rms_") : -len("_mean")]
+
+        if not norm_key:
+            continue
+
+        feature_shape = tuple(int(dim) for dim in value.shape)
+        ensure_buffers(norm_key, feature_shape)
+        created += 1
+
+    return created
 
 
 def _select_latest_model_file(checkpoint_dir: Path) -> Path:
@@ -121,11 +162,36 @@ def _load_model_weights(policy: torch.nn.Module, model_path: Path, *, device: st
     if not isinstance(state_dict, dict):
         raise ValueError(f"Unsupported checkpoint format (expected state_dict dict): {model_path}")
     cleaned = _strip_module_prefix(state_dict)
+    materialized = _materialize_scalar_norm_buffers_from_state_dict(policy, cleaned)
     missing, unexpected = policy.load_state_dict(cleaned, strict=strict)
     print(
         "[resume] loaded model checkpoint: "
-        f"path={model_path}, strict={strict}, missing_keys={len(missing)}, unexpected_keys={len(unexpected)}"
+        f"path={model_path}, strict={strict}, missing_keys={len(missing)}, "
+        f"unexpected_keys={len(unexpected)}, materialized_scalar_norm_buffers={materialized}"
     )
+
+
+def _maybe_reset_critic_head(policy: torch.nn.Module) -> bool:
+    base_policy = getattr(policy, "policy", policy)
+    value_head = getattr(base_policy, "value_fn", None)
+    if value_head is None:
+        return False
+    weight = getattr(value_head, "weight", None)
+    bias = getattr(value_head, "bias", None)
+    if weight is None or bias is None:
+        return False
+    torch.nn.init.orthogonal_(weight, gain=1.0)
+    torch.nn.init.constant_(bias, 0.0)
+    return True
+
+
+def _sync_optimizer_lr_from_scheduler(trainer) -> list[float]:
+    scheduler_lrs = [float(v) for v in trainer.scheduler.get_last_lr()]
+    if not scheduler_lrs:
+        scheduler_lrs = [float(trainer.config.get("learning_rate", 0.0))]
+    for idx, group in enumerate(trainer.optimizer.param_groups):
+        group["lr"] = scheduler_lrs[min(idx, len(scheduler_lrs) - 1)]
+    return [float(group.get("lr", 0.0)) for group in trainer.optimizer.param_groups]
 
 
 def _maybe_restore_trainer_state(trainer, trainer_state_path: Path | None) -> bool:
@@ -152,9 +218,11 @@ def _maybe_restore_trainer_state(trainer, trainer_state_path: Path | None) -> bo
     trainer.last_log_time = time.time()
     trainer.start_time = time.time()
     trainer.scheduler.last_epoch = max(restored_epoch - 1, -1)
+    synced_lrs = _sync_optimizer_lr_from_scheduler(trainer)
     print(
         "[resume] restored trainer state: "
-        f"path={trainer_state_path}, global_step={restored_global_step}, epoch={restored_epoch}"
+        f"path={trainer_state_path}, global_step={restored_global_step}, "
+        f"epoch={restored_epoch}, optimizer_lrs={synced_lrs}"
     )
     return True
 
@@ -228,6 +296,15 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
             device=str(train_cfg.get("device", "cpu")),
             strict=bool(script_args.resume_strict),
         )
+        should_reset_critic = bool(script_args.resume_reset_critic) or (
+            bool(script_args.resume_auto_reset_critic) and not bool(script_args.resume_load_optimizer)
+        )
+        if should_reset_critic:
+            if _maybe_reset_critic_head(policy):
+                reason = "manual flag" if script_args.resume_reset_critic else "auto default"
+                print(f"[resume] critic head reset after checkpoint load ({reason})")
+            else:
+                print("[resume] critic head reset requested but no value head was found")
 
     trainer = pufferl.PuffeRL(trainer_args["train"], vecenv, policy, logger=logger)
     if script_args.resume_load_optimizer and trainer_state_path is not None:
