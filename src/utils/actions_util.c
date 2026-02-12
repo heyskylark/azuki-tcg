@@ -124,6 +124,8 @@ void azk_store_user_action(ecs_world_t *world, const UserAction *action) {
   ActionContext *ctx = ecs_singleton_get_mut(world, ActionContext);
   ecs_assert(ctx != NULL, ECS_INVALID_PARAMETER, "ActionContext singleton missing");
 
+  // New action submission starts a fresh validity window.
+  ctx->invalid_action = false;
   ctx->user_action = *action;
 
   ctx->user_action_history[ctx->history_head] = *action;

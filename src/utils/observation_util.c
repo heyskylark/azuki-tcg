@@ -1,7 +1,6 @@
 #include "utils/observation_util.h"
 
 #include <stddef.h>
-#include <stdio.h>
 
 #include "components/abilities.h"
 #include "utils/cli_rendering_util.h"
@@ -11,11 +10,8 @@
 static void reset_legal_actions(ActionMaskObs *action_mask) {
   ecs_assert(action_mask != NULL, ECS_INVALID_PARAMETER, "Output mask is null");
   action_mask->legal_action_count = 0;
-  for (size_t i = 0; i < AZK_MAX_LEGAL_ACTIONS; ++i) {
-    action_mask->legal_primary[i] = (uint8_t)0;
-    action_mask->legal_sub1[i] = (uint8_t)0;
-    action_mask->legal_sub2[i] = (uint8_t)0;
-    action_mask->legal_sub3[i] = (uint8_t)0;
+  for (size_t i = 0; i < AZK_ACTION_TYPE_COUNT; ++i) {
+    action_mask->primary_action_mask[i] = false;
   }
 }
 
@@ -79,17 +75,7 @@ static ActionMaskObs build_observation_action_mask(ecs_world_t *world,
   bool mask_result = azk_build_action_mask_for_player(world, gs, player_index, &mask_set);
   ecs_assert(mask_result, ECS_INVALID_PARAMETER, "Failed to build action mask");
 
-  fprintf(stderr, "[build_observation_action_mask] AFTER azk_build: result=%d, legal_action_count=%d, head0[0]=%d, head0[23]=%d\n",
-          mask_result, mask_set.legal_action_count, mask_set.head0_mask[0], mask_set.head0_mask[23]);
-  fflush(stderr);
-
   populate_action_mask_from_set(&mask_set, &action_mask);
-
-  fprintf(stderr, "[build_observation_action_mask] AFTER populate: legal_action_count=%d, primary_mask[0]=%d, primary_mask[23]=%d\n",
-          action_mask.legal_action_count, action_mask.primary_action_mask[0], action_mask.primary_action_mask[23]);
-  fprintf(stderr, "[build_observation_action_mask] legal_primary[0]=%d, legal_primary[1]=%d\n",
-          action_mask.legal_primary[0], action_mask.legal_primary[1]);
-  fflush(stderr);
 
   return action_mask;
 }
@@ -360,19 +346,6 @@ static bool player_has_ready_ikz_token(ecs_world_t *world,
 
 ObservationData create_observation_data(ecs_world_t *world,
                                         int8_t player_index) {
-  // DEBUG: Print struct sizes from C library side
-  static bool sizes_printed = false;
-  if (!sizes_printed) {
-    fprintf(stderr, "[observation_util.c] STRUCT SIZES: ObservationData=%zu, ActionMaskObs=%zu, MyObservationData=%zu, OpponentObservationData=%zu\n",
-            sizeof(ObservationData), sizeof(ActionMaskObs), sizeof(MyObservationData), sizeof(OpponentObservationData));
-    fprintf(stderr, "[observation_util.c] ActionMaskObs offsets: primary_action_mask@0, legal_action_count@%zu, legal_primary@%zu\n",
-            offsetof(ActionMaskObs, legal_action_count), offsetof(ActionMaskObs, legal_primary));
-    fprintf(stderr, "[observation_util.c] ObservationData offsets: my@0, opponent@%zu, phase@%zu, action_mask@%zu\n",
-            offsetof(ObservationData, opponent_observation_data), offsetof(ObservationData, phase), offsetof(ObservationData, action_mask));
-    fflush(stderr);
-    sizes_printed = true;
-  }
-
   const GameState *gs = ecs_singleton_get(world, GameState);
   ecs_assert(gs != NULL, ECS_INVALID_PARAMETER, "GameState singleton missing");
   ecs_assert(player_index >= 0 && player_index < MAX_PLAYERS_PER_MATCH,
@@ -463,15 +436,6 @@ ObservationData create_observation_data(ecs_world_t *world,
   observation_data.phase = gs->phase;
   observation_data.action_mask =
       build_observation_action_mask(world, gs, player_index);
-
-  fprintf(stderr, "[create_observation_data] AFTER assignment: legal_action_count=%d, primary_mask[0]=%d, primary_mask[23]=%d\n",
-          observation_data.action_mask.legal_action_count,
-          observation_data.action_mask.primary_action_mask[0],
-          observation_data.action_mask.primary_action_mask[23]);
-  fprintf(stderr, "[create_observation_data] legal_primary[0]=%d, legal_primary[1]=%d\n",
-          observation_data.action_mask.legal_primary[0],
-          observation_data.action_mask.legal_primary[1]);
-  fflush(stderr);
 
   return observation_data;
 }

@@ -13,7 +13,9 @@
 static const AzkActionSpec ACTION_SPECS[] = {
   {
     .type = ACT_NOOP,
-    .phase_mask = AZK_PHASE_MASK(PHASE_PREGAME_MULLIGAN) | AZK_PHASE_MASK(PHASE_MAIN),
+    .phase_mask = AZK_PHASE_MASK(PHASE_PREGAME_MULLIGAN) |
+                  AZK_PHASE_MASK(PHASE_MAIN) |
+                  AZK_PHASE_MASK(PHASE_RESPONSE_WINDOW),
     .params = { UNUSED_PARAM, UNUSED_PARAM, UNUSED_PARAM }
   },
   {

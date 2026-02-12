@@ -7,6 +7,7 @@
 #include "components/components.h"
 #include "utils/actions_util.h"
 #include "utils/observation_util.h"
+#include "utils/training_observation_util.h"
 #include "validation/action_enumerator.h"
 #include "world.h"
 
@@ -50,6 +51,16 @@ const GameState *azk_engine_game_state(const AzkEngine *engine);
  * Snapshot the current ObservationData for the requested player perspective into the provided output struct.
  */
 bool azk_engine_observe(AzkEngine *engine, int8_t player_index, ObservationData *out_observation);
+
+/**
+ * Snapshot the compact training observation for the requested player
+ * perspective into the provided output struct.
+ */
+bool azk_engine_observe_training(AzkEngine *engine, int8_t player_index,
+                                 TrainingObservationData *out_observation);
+bool azk_engine_observe_training_all(
+    AzkEngine *engine,
+    TrainingObservationData out_observations[MAX_PLAYERS_PER_MATCH]);
 
 /**
  * Returns true when the engine is waiting for a user/agent action.

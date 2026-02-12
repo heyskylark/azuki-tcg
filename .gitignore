@@ -3,6 +3,11 @@ __pycache__
 build
 build-debug
 build-local
+build-cuda-validation
+build-debug-validation
+build-validation
+build-312
+build-313
 resources
 experiments
 wandb

@@ -1,0 +1,154 @@
+{
+  "cards": {
+    "STT01-001": {
+      "has_ability": true,
+      "is_optional": false,
+      "timing_tag": "AMain"
+    },
+    "STT01-002": {
+      "has_ability": true,
+      "is_optional": false,
+      "timing_tag": "AOnGatePortal"
+    },
+    "STT01-003": {
+      "has_ability": true,
+      "is_optional": true,
+      "timing_tag": "AOnPlay"
+    },
+    "STT01-004": {
+      "has_ability": true,
+      "is_optional": true,
+      "timing_tag": "AOnPlay"
+    },
+    "STT01-005": {
+      "has_ability": true,
+      "is_optional": false,
+      "timing_tag": "AMain"
+    },
+    "STT01-006": {
+      "has_ability": true,
+      "is_optional": false,
+      "timing_tag": "AWhenAttacking"
+    },
+    "STT01-007": {
+      "has_ability": true,
+      "is_optional": true,
+      "timing_tag": "AOnPlay"
+    },
+    "STT01-008": {
+      "has_ability": true,
+      "is_optional": false,
+      "timing_tag": "NONE"
+    },
+    "STT01-009": {
+      "has_ability": true,
+      "is_optional": false,
+      "timing_tag": "NONE"
+    },
+    "STT01-011": {
+      "has_ability": true,
+      "is_optional": false,
+      "timing_tag": "NONE"
+    },
+    "STT01-012": {
+      "has_ability": true,
+      "is_optional": true,
+      "timing_tag": "AWhenAttacking"
+    },
+    "STT01-013": {
+      "has_ability": true,
+      "is_optional": true,
+      "timing_tag": "AOnPlay"
+    },
+    "STT01-014": {
+      "has_ability": true,
+      "is_optional": true,
+      "timing_tag": "AOnPlay"
+    },
+    "STT01-015": {
+      "has_ability": true,
+      "is_optional": false,
+      "timing_tag": "AWhenEquipped"
+    },
+    "STT01-016": {
+      "has_ability": true,
+      "is_optional": true,
+      "timing_tag": "AWhenAttacking"
+    },
+    "STT01-017": {
+      "has_ability": true,
+      "is_optional": false,
+      "timing_tag": "AResponse"
+    },
+    "STT02-001": {
+      "has_ability": true,
+      "is_optional": false,
+      "timing_tag": "AResponse"
+    },
+    "STT02-002": {
+      "has_ability": true,
+      "is_optional": false,
+      "timing_tag": "AOnGatePortal"
+    },
+    "STT02-003": {
+      "has_ability": true,
+      "is_optional": true,
+      "timing_tag": "AOnPlay"
+    },
+    "STT02-005": {
+      "has_ability": true,
+      "is_optional": true,
+      "timing_tag": "AOnPlay"
+    },
+    "STT02-007": {
+      "has_ability": true,
+      "is_optional": false,
+      "timing_tag": "AOnPlay"
+    },
+    "STT02-009": {
+      "has_ability": true,
+      "is_optional": true,
+      "timing_tag": "AOnPlay"
+    },
+    "STT02-010": {
+      "has_ability": true,
+      "is_optional": true,
+      "timing_tag": "AWhenReturnedToHand"
+    },
+    "STT02-011": {
+      "has_ability": true,
+      "is_optional": false,
+      "timing_tag": "AMain"
+    },
+    "STT02-012": {
+      "has_ability": true,
+      "is_optional": false,
+      "timing_tag": "NONE"
+    },
+    "STT02-013": {
+      "has_ability": true,
+      "is_optional": true,
+      "timing_tag": "AOnPlay"
+    },
+    "STT02-014": {
+      "has_ability": true,
+      "is_optional": false,
+      "timing_tag": "AMain"
+    },
+    "STT02-015": {
+      "has_ability": true,
+      "is_optional": false,
+      "timing_tag": "AResponse"
+    },
+    "STT02-016": {
+      "has_ability": true,
+      "is_optional": false,
+      "timing_tag": "AResponse"
+    },
+    "STT02-017": {
+      "has_ability": true,
+      "is_optional": false,
+      "timing_tag": "AMain"
+    }
+  }
+}
