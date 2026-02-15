@@ -1805,3 +1805,311 @@ Smoke validation:
 - Resume with `--resume-load-optimizer` on same checkpoint:
   - restore log shows `optimizer_lrs=[0.001]` (not zero)
   - training continued for several epochs in smoke without immediate failure.
+
+## League training implementation pass 1 (2026-02-13)
+
+Implemented new project-local league training path without forking pufferlib:
+
+- Added `python/src/league_training.py`:
+  - `LeagueConfig` and `LeaguePuffeRL`.
+  - Dual-policy rollout support:
+    - learner policy for learner-controlled rows,
+    - latest-learner mirror or frozen checkpoint policy for opponent-controlled rows.
+  - Random learner seat assignment per episode (configurable).
+  - Opponent source mixing per env via `latest_ratio`:
+    - latest learner opponent vs frozen pool opponent.
+  - Learner-only training updates:
+    - tracks trainable segments for learner seat only,
+    - sampling/prioritization in PPO train step restricted to learner segments,
+    - `global_step` counts learner rows only.
+  - Added league telemetry in stats:
+    - `league/learner_row_fraction`
+    - `league/latest_opponent_fraction`
+
+- Updated `python/src/train.py` with league CLI/config hooks:
+  - `--league-enable/--no-league-enable`
+  - `--league-opponent-dir`
+  - `--league-opponent-checkpoints`
+  - `--league-latest-ratio`
+  - `--league-randomize-learner-seat/--no-league-randomize-learner-seat`
+  - Loads frozen opponent checkpoints into policy copies and uses `LeaguePuffeRL` when enabled.
+  - Default non-league path remains unchanged.
+
+- Added Elo/ranking utility module:
+  - `python/src/league_ratings.py`
+  - Includes:
+    - expected score + Elo update functions,
+    - match result application,
+    - rank sorting,
+    - JSON save/load helpers.
+
+Behavior note on deck randomness:
+- Engine already randomizes deck type per player at world init using seeded RNG (`src/world.c` random_deck_type).
+- Seat randomization in league mode ensures learner is not fixed to always-first seat.
+
+Validation performed:
+1) Syntax/import checks:
+- `python3 -m py_compile python/src/train.py python/src/league_training.py python/src/league_ratings.py`
+- `PYTHONPATH=build-312/python/src:python/src:$PYTHONPATH python3 -c "import train, league_training, league_ratings; print('imports_ok')"`
+
+2) Short league smoke (CPU, serial):
+- Command:
+  - `PYTHONPATH=build-312/python/src:python/src:$PYTHONPATH python3 python/src/train.py --config python/config/azuki.ini --vec.backend Serial --vec.num-envs 2 --train.device cpu --train.total-timesteps 128 --train.batch-size 128 --train.minibatch-size 128 --train.bptt-horizon 1 --train.update-epochs 1 --league-enable --league-opponent-checkpoints experiments/azuki_local_9h8fa457/model_azuki_local_002171.pt`
+- Result:
+  - run completed,
+  - league metrics logged,
+  - learner-row fraction observed ~0.5 as expected with random seat assignment.
+
+## League integration pass 2 (state/pool/eval/promotion) (2026-02-13)
+
+Implemented next-stage league features:
+
+1) Persistent league state store
+- Added `python/src/league_state.py`.
+- Persists:
+  - policy registry (`policy_id`, checkpoint path, source, epoch, bucket, active),
+  - ratings snapshot per policy,
+  - `champion_policy_id`,
+  - event history,
+  - deterministic id counter.
+- Saved/loaded via JSON (default path configurable as `league.state_path`).
+
+2) Automatic opponent-pool lifecycle
+- Added `python/src/league_manager.py`.
+- Supports:
+  - seed policy ingestion from configured checkpoints,
+  - periodic checkpoint ingestion from current run,
+  - active-pool refresh for training opponents.
+
+3) Pool retention / age buckets
+- Implemented keep policy with recent/mid/old buckets:
+  - `league.keep_recent`
+  - `league.keep_mid`
+  - `league.keep_old`
+- Champion is always retained.
+- Non-retained policies are marked `active=false` and `bucket=pruned`.
+
+4) Scheduled evaluation pipeline (controlled matches)
+- Added `python/src/league_eval.py` for seat-balanced head-to-head policy evaluation.
+- Integrated scheduled eval in training loop through `LeagueManager.maybe_evaluate_and_promote(...)`.
+- Uses controlled serial matches (not noisy rollout stats) and updates Elo via `league_ratings`.
+
+5) Promotion logic and gates
+- Candidate promotion checks:
+  - min winrate vs champion:
+    - `league.promotion_min_winrate_vs_champion`
+  - optional baseline checks against top-ranked active baselines:
+    - `league.promotion_baseline_count`
+    - `league.promotion_min_winrate_vs_baseline`
+- Promotion writes history events and updates champion pointer.
+
+6) W&B/logging hooks
+- Numeric league metrics are injected into trainer user stats when eval runs:
+  - candidate/champion Elo
+  - candidate rank
+  - candidate winrate vs champion
+  - baseline min winrate
+  - promotion accepted flag
+  - active pool size
+- String ids (champion/candidate policy id) are printed to logs for traceability.
+
+7) Config surface in `.ini`
+- Added `[league]` defaults to:
+  - `python/config/azuki.ini`
+  - `python/config/azuki_speed_3090_parallel.ini`
+
+8) Focused tests
+- Added:
+  - `python/tests/test_league_state.py`
+  - `python/tests/test_league_training_utils.py`
+- Covers:
+  - league state register/save/load roundtrip,
+  - prune behavior with champion retention,
+  - learner-row mask mapping utility.
+
+Validation:
+- `python3 -m py_compile` on updated league modules and train entrypoint passed.
+- `python3 -m unittest discover -s python/tests -p 'test_*.py'` passed (`3` tests).
+- End-to-end serial smoke with forced per-epoch checkpoint/eval:
+  - checkpoint ingestion executed,
+  - scheduled eval executed,
+  - league metrics emitted,
+  - pool refresh applied to active opponents.
+
+Deferred (explicitly tracked for later):
+- Standalone offline league CLI tool for ad-hoc round-robin/ranking runs outside the trainer loop.
+
+## League hardening pass 3 (2026-02-13)
+
+Implemented additional online-training hardening items:
+
+1) Lower-cost eval cadence (single-box friendly)
+- `python/src/league_manager.py` now supports two-tier cadence:
+  - quick gate:
+    - `league.quick_eval_interval`
+    - `league.quick_eval_episodes`
+  - full gate:
+    - `league.full_eval_interval`
+    - `league.full_eval_episodes`
+- `league.eval_interval` acts as a master stride gate.
+- This keeps league eval inline (same box), but avoids expensive evaluation every checkpoint.
+
+2) Evaluator abstraction for future offload
+- `python/src/league_eval.py` refactored to:
+  - `LeagueEvaluator` interface
+  - `InlineLeagueEvaluator` implementation
+  - `make_league_evaluator(mode)` factory
+- Current mode is `inline`; this is structured so external worker mode can be added later without changing manager logic.
+
+3) Stronger promotion confidence and minimum sample checks
+- Added gates:
+  - `league.promotion_min_games_vs_champion`
+  - `league.promotion_min_games_vs_baseline`
+  - `league.promotion_wilson_confidence_z`
+- Promotion now checks both win-rate thresholds and Wilson lower bounds.
+
+4) Crash-safe league-state persistence + recovery
+- `python/src/league_state.py` now writes atomically:
+  - write `*.tmp` then `os.replace(...)`
+  - rotate previous file to `*.bak`
+- Load path now recovers from `*.bak` if primary JSON is corrupt and logs recovery event in history.
+
+5) Learner identity + resume continuity
+- State now stores:
+  - `learner_policy_id`
+  - `current_candidate_policy_id`
+- Each ingested checkpoint records `created_by_learner_id`.
+- Candidate epoch-gap dedupe is scoped by learner identity to avoid false skips across resumed/new run IDs.
+
+6) Opponent pool + diversity metrics
+- Added manager `pool_metrics()` and trainer logging integration:
+  - `league/pool_size_active`
+  - `league/pool_recent_frac`
+  - `league/pool_mid_frac`
+  - `league/pool_old_frac`
+- Promotion/eval metrics now include reject reason + sample counts.
+
+7) Promotion/ingestion history events
+- League history now records:
+  - `checkpoint_ingested`
+  - `promotion` or `promotion_rejected` with reason/context.
+
+8) Config surface expanded in `.ini`
+- Added defaults to both configs for new cadence/confidence knobs:
+  - `eval_mode`
+  - `quick_eval_*`
+  - `full_eval_*`
+  - `min_candidate_epoch_gap`
+  - `promotion_min_games_*`
+  - `promotion_wilson_confidence_z`
+
+9) Additional focused tests
+- Added `python/tests/test_league_manager.py`:
+  - fail-fast config validation,
+  - candidate min-epoch-gap behavior,
+  - backup recovery on corrupt primary state.
+
+Validation runbook/results:
+- `python3 -m py_compile` on updated league/train modules passed.
+- `python3 -m unittest discover -s python/tests -p 'test_*.py'` passed (`6` tests).
+- Two-run resume continuity smoke (serial CPU):
+  - run1:
+    - candidate `p000002` ingested and rejected with explicit reason.
+  - run2 (resume from run1 checkpoint dir, same league state):
+    - new candidate `p000003` ingested (dedupe correctly scoped by learner id),
+    - state continuity preserved (champion/pool/history persisted),
+    - pool refresh applied with expanded active opponents.
+
+## Checkpoint cadence gotcha (2026-02-13)
+
+Observed on run `bpf9sq9o`:
+- Local `experiments/` did not contain per-run checkpoint dir for this run.
+- W&B local output shows training progressed to ~`72.7M` agent steps (`epoch ~3158`).
+
+Root cause in pufferlib checkpointing:
+- `checkpoint_interval` is interpreted as **epochs/updates**, not agent steps:
+  - `if self.epoch % config['checkpoint_interval'] == 0 or done_training: save_checkpoint()`
+- Therefore `--train.checkpoint-interval 5000000` means every 5,000,000 epochs,
+  effectively never during normal runs.
+- `max_checkpoints` is currently not enforced in pufferlib save path (no pruning logic found).
+
+Practical conversion for this config:
+- With `batch_size=auto` on `720` envs, `2` agents/env, `bptt_horizon=16`:
+  - steps per epoch ~= `23040`
+- Desired checkpoint every 5M steps:
+  - `5000000 / 23040 ~= 217` epochs
+- So use approximately:
+  - `--train.checkpoint-interval 217`
+
+## League training implementation planning notes (2026-02-13)
+
+Context from current code:
+- Current trainer loop (`python/src/train.py`) uses one shared policy for both seats via `pufferl.PuffeRL`.
+- Action selection currently happens inside `PuffeRL.evaluate()` and sends one action tensor for all agents.
+- Existing custom evaluator (`python/src/evaluate_checkpoint.py`) already demonstrates seat-specific policy control and can be reused for league ELO/ranking matches.
+- Resume path is stable enough to warm-start learner from Stage-B anneal checkpoints (`--resume-checkpoint` + optional optimizer restore).
+
+Key design decision for Stage-C:
+- Keep PufferLib unchanged initially; add a project-local league trainer path that subclasses or wraps `PuffeRL` and overrides rollout action construction.
+- Goal: learner gradients only from learner seat; opponent seat actions come from a frozen opponent checkpoint policy chosen from league pool.
+- This matches prior recommendation: minimal disruption before any deep pufferlib fork.
+
+Planned implementation phases:
+
+1) Foundation (no behavior change)
+- Add a small `python/src/league/` package:
+  - `league_pool.py`: checkpoint registry + metadata persistence.
+  - `league_ratings.py`: Elo update math and ranking table.
+  - `league_schedule.py`: opponent sampling policy (`latest` vs `historical`, exploration floor).
+  - `league_eval.py`: batch evaluator for pairwise matches (reuses evaluate logic).
+- Persist league state to JSON under run data dir (e.g. `experiments/<run>/league_state.json`) for crash-safe resume.
+
+2) League rollout integration (minimal trainer changes)
+- Add `LeaguePuffeRL` (local subclass) with custom `evaluate()` path:
+  - Build learner actions from trainable policy.
+  - Build opponent actions from frozen opponent policies for configured env slices.
+  - Override actions for opponent agent rows before `vecenv.send(...)`.
+  - Keep buffer writes for learner rows only (exclude opponent rows from PPO updates).
+- Keep default `PuffeRL` path untouched behind a CLI/config flag (`--league-enable` or `[league].enable=true`).
+
+3) Opponent pool + sampling policy
+- Pool sources:
+  - current champion checkpoint,
+  - latest learner snapshot checkpoints at interval,
+  - curated historical snapshots (recent/mid/old buckets).
+- Initial schedule:
+  - `85/15` learner-vs-latest-self / learner-vs-historical.
+  - Move to `80/20` when stable (per AGENT notes and OpenAI Five precedent).
+- Add exploration floor so low-probability opponents still appear.
+
+4) Elo + rankings
+- Track per-policy rating (start 1000), games played, W/L/D, and confidence proxy.
+- Update ratings from evaluation matches (not raw training rollouts) to reduce noise.
+- Use decoupled promotion gates:
+  - candidate must beat champion across seat-balanced matches,
+  - must not regress versus fixed baseline set,
+  - must keep timeout and seat asymmetry within bounds.
+
+5) Operational flow
+- During training:
+  - periodic checkpoint snapshots to opponent pool,
+  - periodic league evaluation jobs to refresh ratings/rankings.
+- On promotion:
+  - champion pointer updates in `league_state.json`,
+  - preserve previous champion in pool (do not delete).
+- Resume:
+  - load league state + ratings + pool metadata,
+  - continue with current learner checkpoint.
+
+6) Metrics to add (W&B/User stats)
+- `league/opponent_id`, `league/opponent_bucket`, `league/match_type`.
+- `league/elo_current`, `league/elo_champion`, `league/rank`.
+- `league/winrate_vs_champion`, `league/winrate_vs_pool`.
+- Existing terminal/timeout metrics remain required promotion guardrails.
+
+7) Immediate implementation order (when coding starts)
+- Step 1: add league data models + persistence + Elo math.
+- Step 2: add offline league evaluator command for checkpoint-vs-pool round-robin.
+- Step 3: add optional league-enabled training path with learner-only updates.
+- Step 4: connect periodic eval + promotion + ranking logging.
+- Step 5: tune mixture schedule and promotion thresholds after first live league run.

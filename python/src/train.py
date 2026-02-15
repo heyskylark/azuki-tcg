@@ -8,6 +8,8 @@ from pathlib import Path
 import torch
 from pufferlib import pufferl
 
+from league_manager import LeagueManager, parse_league_manager_config
+from league_training import LeagueConfig, LeaguePuffeRL
 from playback import run_playback
 from training_utils import (
     DEFAULT_CONFIG_PATH,
@@ -100,6 +102,35 @@ def parse_script_args() -> tuple[argparse.Namespace, list[str]]:
         action=argparse.BooleanOptionalAction,
         default=True,
         help="Automatically reset critic on resume for continuity robustness.",
+    )
+    parser.add_argument(
+        "--league-enable",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Enable league mode (learner vs mixed latest/frozen opponents).",
+    )
+    parser.add_argument(
+        "--league-opponent-dir",
+        type=Path,
+        help="Directory of opponent checkpoints (model_*.pt) for league training.",
+    )
+    parser.add_argument(
+        "--league-opponent-checkpoints",
+        type=str,
+        default="",
+        help="Comma-separated opponent checkpoint file paths for league training.",
+    )
+    parser.add_argument(
+        "--league-latest-ratio",
+        type=float,
+        default=None,
+        help="Fraction of matchups using latest learner as opponent (e.g. 0.85).",
+    )
+    parser.add_argument(
+        "--league-randomize-learner-seat",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="Randomize learner seat each episode in league mode.",
     )
     return parser.parse_known_args()
 
@@ -227,6 +258,74 @@ def _maybe_restore_trainer_state(trainer, trainer_state_path: Path | None) -> bo
     return True
 
 
+def _collect_league_checkpoint_paths(script_args: argparse.Namespace, trainer_args: dict) -> list[Path]:
+    league_cfg = trainer_args.get("league")
+    if not isinstance(league_cfg, dict):
+        league_cfg = {}
+
+    paths: list[Path] = []
+    if script_args.league_opponent_dir is not None:
+        paths.extend(sorted(Path(script_args.league_opponent_dir).glob("model_*.pt")))
+    elif isinstance(league_cfg.get("opponent_dir"), str) and league_cfg.get("opponent_dir"):
+        paths.extend(sorted(Path(league_cfg["opponent_dir"]).glob("model_*.pt")))
+
+    raw_list = script_args.league_opponent_checkpoints.strip()
+    if not raw_list and isinstance(league_cfg.get("opponent_checkpoints"), str):
+        raw_list = league_cfg["opponent_checkpoints"].strip()
+    if raw_list:
+        for item in raw_list.split(","):
+            stripped = item.strip()
+            if not stripped:
+                continue
+            candidate = Path(stripped)
+            if candidate:
+                paths.append(candidate)
+
+    deduped = []
+    seen = set()
+    for path in paths:
+        key = str(path.resolve()) if path.exists() else str(path)
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(path)
+    return deduped
+
+
+def _is_league_enabled(script_args: argparse.Namespace, trainer_args: dict) -> bool:
+    if script_args.league_enable is not None:
+        return bool(script_args.league_enable)
+    league_cfg = trainer_args.get("league")
+    if isinstance(league_cfg, dict):
+        return bool(league_cfg.get("enable", False))
+    return False
+
+
+def _league_cfg(script_args: argparse.Namespace, trainer_args: dict) -> LeagueConfig:
+    league_cfg = trainer_args.get("league")
+    if not isinstance(league_cfg, dict):
+        league_cfg = {}
+
+    latest_ratio = script_args.league_latest_ratio
+    if latest_ratio is None:
+        latest_ratio = float(league_cfg.get("latest_ratio", 0.85))
+    latest_ratio = max(0.0, min(1.0, float(latest_ratio)))
+
+    randomize_learner_seat = script_args.league_randomize_learner_seat
+    if randomize_learner_seat is None:
+        randomize_learner_seat = bool(league_cfg.get("randomize_learner_seat", True))
+
+    train_cfg = trainer_args.get("train", {})
+    seed = int(train_cfg.get("seed", 0)) if isinstance(train_cfg, dict) else 0
+
+    return LeagueConfig(
+        enabled=True,
+        latest_ratio=latest_ratio,
+        randomize_learner_seat=bool(randomize_learner_seat),
+        seed=seed,
+    )
+
+
 def run_training(script_args: argparse.Namespace, forwarded_cli):
     config_path = script_args.config
     if not config_path.exists():
@@ -306,7 +405,56 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
             else:
                 print("[resume] critic head reset requested but no value head was found")
 
-    trainer = pufferl.PuffeRL(trainer_args["train"], vecenv, policy, logger=logger)
+    league_enabled = _is_league_enabled(script_args, trainer_args)
+    league_cfg = _league_cfg(script_args, trainer_args)
+    league_manager = LeagueManager(parse_league_manager_config(trainer_args)) if league_enabled else None
+    opponent_policies = []
+    opponent_paths: list[Path] = []
+    if league_enabled:
+        opponent_paths = _collect_league_checkpoint_paths(script_args, trainer_args)
+        if league_manager is not None:
+            league_manager.ensure_seed_policies(opponent_paths, created_epoch=0)
+            opponent_paths = [
+                Path(entry.checkpoint_path) for entry in league_manager.opponent_entries_for_training()
+            ]
+        missing = [path for path in opponent_paths if not path.exists()]
+        if missing:
+            missing_str = ", ".join(str(path) for path in missing)
+            raise FileNotFoundError(f"League opponent checkpoints not found: {missing_str}")
+        for checkpoint_path in opponent_paths:
+            opponent_policy = build_policy(vecenv, trainer_args)
+            _load_model_weights(
+                opponent_policy,
+                checkpoint_path,
+                device=str(train_cfg.get("device", "cpu")),
+                strict=False,
+            )
+            opponent_policy.eval()
+            opponent_policies.append(opponent_policy)
+        print(
+            "[league] enabled: "
+            f"opponents={len(opponent_policies)}, "
+            f"latest_ratio={league_cfg.latest_ratio:.3f}"
+        )
+
+    if league_enabled:
+        trainer = LeaguePuffeRL(
+            trainer_args["train"],
+            vecenv,
+            policy,
+            opponent_policies=opponent_policies,
+            league_cfg=league_cfg,
+            logger=logger,
+        )
+    else:
+        trainer = pufferl.PuffeRL(trainer_args["train"], vecenv, policy, logger=logger)
+
+    if league_enabled and league_manager is not None:
+        learner_id = f"learner_{trainer.logger.run_id}"
+        league_manager.attach_learner_identity(learner_id)
+        pool_metrics = league_manager.pool_metrics()
+        for key, value in pool_metrics.items():
+            trainer.stats[key].append(float(value))
     if script_args.resume_load_optimizer and trainer_state_path is not None:
         _maybe_restore_trainer_state(trainer, trainer_state_path)
 
@@ -357,6 +505,56 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
             logs = trainer.train()
             if logs is not None:
                 print(f"[epoch {trainer.epoch}] {logs}")
+            if league_enabled and league_manager is not None:
+                pool_metrics = league_manager.pool_metrics()
+                for key, value in pool_metrics.items():
+                    trainer.stats[key].append(float(value))
+            if league_enabled and league_manager is not None:
+                checkpoint_interval = int(trainer.config.get("checkpoint_interval", 0))
+                done_training = trainer.epoch >= trainer.total_epochs
+                if checkpoint_interval > 0 and (
+                    trainer.epoch % checkpoint_interval == 0 or done_training
+                ):
+                    checkpoint_raw = trainer.save_checkpoint()
+                    if checkpoint_raw:
+                        checkpoint_path = Path(checkpoint_raw)
+                        added = league_manager.maybe_add_checkpoint(checkpoint_path, epoch=trainer.epoch)
+                        if added is not None:
+                            metrics = league_manager.maybe_evaluate_and_promote(
+                                epoch=trainer.epoch,
+                                trainer_args=trainer_args,
+                                vecenv=vecenv,
+                                build_policy_fn=build_policy,
+                                load_weights_fn=_load_model_weights,
+                                learner_policy=policy,
+                            )
+                            if metrics:
+                                for key, value in metrics.items():
+                                    if isinstance(value, (int, float)):
+                                        trainer.stats[key].append(float(value))
+                                    else:
+                                        print(f"[league] {key}={value}")
+
+                            refreshed_paths = [
+                                Path(entry.checkpoint_path)
+                                for entry in league_manager.opponent_entries_for_training()
+                            ]
+                            refreshed_policies = []
+                            for opp_path in refreshed_paths:
+                                opp = build_policy(vecenv, trainer_args)
+                                _load_model_weights(
+                                    opp,
+                                    opp_path,
+                                    device=str(train_cfg.get("device", "cpu")),
+                                    strict=False,
+                                )
+                                opp.eval()
+                                refreshed_policies.append(opp)
+                            trainer.set_opponent_policies(refreshed_policies)
+                            print(
+                                "[league] pool refreshed: "
+                                f"opponents={len(refreshed_policies)}, champion={league_manager.state.champion_policy_id}"
+                            )
             if (
                 script_args.render_playback_interval > 0
                 and trainer.epoch % script_args.render_playback_interval == 0
