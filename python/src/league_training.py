@@ -19,6 +19,7 @@ class LeagueConfig:
   latest_ratio: float = 0.85
   randomize_learner_seat: bool = True
   seed: int = 0
+  activate_after_steps: int = 0
 
 
 def compute_learner_row_mask(
@@ -30,6 +31,11 @@ def compute_learner_row_mask(
   env_indices = (env_ids // agents_per_env).astype(np.int32)
   seat_indices = (env_ids % agents_per_env).astype(np.int32)
   return seat_indices == env_learner_seat[env_indices]
+
+
+def compute_league_active(*, global_step: int, activate_after_steps: int) -> bool:
+  threshold = int(max(0, activate_after_steps))
+  return int(global_step) >= threshold
 
 
 class LeaguePuffeRL(pufferl.PuffeRL):
@@ -98,8 +104,13 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       self._env_opp_policy[env_indices] = -1
       return
 
+    active = compute_league_active(
+      global_step=int(self.global_step),
+      activate_after_steps=int(self.league_cfg.activate_after_steps),
+    )
+    latest_ratio = float(self.league_cfg.latest_ratio) if active else 1.0
     latest_draw = self._rng.random(env_indices.size)
-    self._env_use_latest[env_indices] = latest_draw < float(self.league_cfg.latest_ratio)
+    self._env_use_latest[env_indices] = latest_draw < latest_ratio
     self._env_opp_policy[env_indices] = self._rng.integers(
       0, len(self.opponent_policies), size=env_indices.size, dtype=np.int32
     )
@@ -137,7 +148,12 @@ class LeaguePuffeRL(pufferl.PuffeRL):
   def _zero_done_states(self, done_rows: np.ndarray) -> None:
     if done_rows.size == 0 or not self._use_rnn:
       return
-    done_t = torch.as_tensor(done_rows, device=self.config["device"], dtype=torch.bool)
+    done_rows_np = np.asarray(done_rows, dtype=np.int64).reshape(-1)
+    in_bounds = np.logical_and(done_rows_np >= 0, done_rows_np < self.total_agents)
+    if not bool(in_bounds.any()):
+      return
+    done_rows_np = np.unique(done_rows_np[in_bounds])
+    done_t = torch.as_tensor(done_rows_np, device=self.config["device"], dtype=torch.long)
     self._learner_lstm_h[done_t] = 0
     self._learner_lstm_c[done_t] = 0
     for idx in range(len(self.opponent_policies)):
@@ -147,13 +163,20 @@ class LeaguePuffeRL(pufferl.PuffeRL):
   def _infer_actions(self, o_device: torch.Tensor, mask_t: torch.Tensor, env_id_np: np.ndarray):
     device = self.config["device"]
     batch_n = o_device.shape[0]
+    active = compute_league_active(
+      global_step=int(self.global_step),
+      activate_after_steps=int(self.league_cfg.activate_after_steps),
+    )
 
     env_indices = (env_id_np // self._agents_per_env).astype(np.int32)
-    learner_rows_np = compute_learner_row_mask(
-      env_id_np,
-      agents_per_env=self._agents_per_env,
-      env_learner_seat=self._env_learner_seat,
-    )
+    if active:
+      learner_rows_np = compute_learner_row_mask(
+        env_id_np,
+        agents_per_env=self._agents_per_env,
+        env_learner_seat=self._env_learner_seat,
+      )
+    else:
+      learner_rows_np = np.ones(batch_n, dtype=np.bool_)
 
     actions_out = torch.zeros((batch_n, *self.vecenv.single_action_space.shape), device=device, dtype=torch.int32)
     logprobs_out = torch.zeros(batch_n, device=device)
@@ -173,11 +196,17 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       logprobs_out[learner_idx_t] = logprobs.to(dtype=logprobs_out.dtype)
       values_out[learner_idx_t] = values.flatten().to(dtype=values_out.dtype)
       if self._use_rnn:
-        self._learner_lstm_h[learner_idx_t] = learner_state["lstm_h"]
-        self._learner_lstm_c[learner_idx_t] = learner_state["lstm_c"]
+        self._learner_lstm_h[learner_idx_t] = learner_state["lstm_h"].to(
+          device=self._learner_lstm_h.device,
+          dtype=self._learner_lstm_h.dtype,
+        )
+        self._learner_lstm_c[learner_idx_t] = learner_state["lstm_c"].to(
+          device=self._learner_lstm_c.device,
+          dtype=self._learner_lstm_c.dtype,
+        )
 
     opp_rows_np = np.nonzero(~learner_rows_np)[0]
-    if opp_rows_np.size > 0:
+    if active and opp_rows_np.size > 0:
       opp_env_indices = env_indices[opp_rows_np]
       opp_use_latest = self._env_use_latest[opp_env_indices]
       latest_rows_np = opp_rows_np[opp_use_latest]
@@ -194,8 +223,14 @@ class LeaguePuffeRL(pufferl.PuffeRL):
           latest_actions, _, _ = pufferlib.pytorch.sample_logits(latest_logits)
         actions_out[latest_idx_t] = latest_actions.to(dtype=torch.int32)
         if self._use_rnn:
-          self._learner_lstm_h[latest_idx_t] = latest_state["lstm_h"]
-          self._learner_lstm_c[latest_idx_t] = latest_state["lstm_c"]
+          self._learner_lstm_h[latest_idx_t] = latest_state["lstm_h"].to(
+            device=self._learner_lstm_h.device,
+            dtype=self._learner_lstm_h.dtype,
+          )
+          self._learner_lstm_c[latest_idx_t] = latest_state["lstm_c"].to(
+            device=self._learner_lstm_c.device,
+            dtype=self._learner_lstm_c.dtype,
+          )
 
       if frozen_rows_np.size > 0:
         frozen_env_indices = env_indices[frozen_rows_np]
@@ -215,8 +250,14 @@ class LeaguePuffeRL(pufferl.PuffeRL):
             opp_actions, _, _ = pufferlib.pytorch.sample_logits(opp_logits)
           actions_out[rows_t] = opp_actions.to(dtype=torch.int32)
           if self._use_rnn:
-            self._opp_lstm_h[int(policy_id)][rows_t] = opp_state["lstm_h"]
-            self._opp_lstm_c[int(policy_id)][rows_t] = opp_state["lstm_c"]
+            self._opp_lstm_h[int(policy_id)][rows_t] = opp_state["lstm_h"].to(
+              device=self._opp_lstm_h[int(policy_id)].device,
+              dtype=self._opp_lstm_h[int(policy_id)].dtype,
+            )
+            self._opp_lstm_c[int(policy_id)][rows_t] = opp_state["lstm_c"].to(
+              device=self._opp_lstm_c[int(policy_id)].device,
+              dtype=self._opp_lstm_c[int(policy_id)].dtype,
+            )
 
     return actions_out, logprobs_out, values_out, learner_rows_np, env_indices
 
@@ -333,6 +374,11 @@ class LeaguePuffeRL(pufferl.PuffeRL):
 
       self.stats["league/learner_row_fraction"].append(float(np.mean(learner_rows_np)))
       self.stats["league/latest_opponent_fraction"].append(float(np.mean(self._env_use_latest[env_indices])))
+      active = compute_league_active(
+        global_step=int(self.global_step),
+        activate_after_steps=int(self.league_cfg.activate_after_steps),
+      )
+      self.stats["league/active"].append(1.0 if active else 0.0)
 
       profile("env", epoch)
       self.vecenv.send(actions_np)
@@ -354,6 +400,8 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     losses = defaultdict(float)
     config = self.config
     device = config["device"]
+    # Ensure learner policy is in training mode before any backward pass.
+    self.policy.train()
 
     b0 = config["prio_beta0"]
     a = config["prio_alpha"]

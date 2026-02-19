@@ -161,6 +161,11 @@ AzkEngine *azk_engine_create(uint32_t seed) {
   return azk_world_init(seed);
 }
 
+AzkEngine *azk_engine_create_with_starting_player(uint32_t seed,
+                                                  int8_t starting_player_index) {
+  return azk_world_init_with_starting_player(seed, starting_player_index);
+}
+
 AzkEngine *azk_engine_create_with_decks(
   uint32_t seed,
   const CardInfo *player0_deck,
@@ -228,12 +233,13 @@ bool azk_engine_requires_action(AzkEngine *engine) {
     return false;
   }
 
+  const bool in_ability_phase = azk_is_in_ability_phase(engine);
+
   // Keep action masking and action consumption in lockstep by not exposing
   // "requires action" while auto-processed queues still have pending work.
   if (azk_has_pending_deck_reorders(engine) ||
-      azk_has_pending_passive_buffs(engine) ||
-      (azk_has_queued_triggered_effects(engine) &&
-       !azk_is_in_ability_phase(engine))) {
+      (azk_has_pending_passive_buffs(engine) && !in_ability_phase) ||
+      (azk_has_queued_triggered_effects(engine) && !in_ability_phase)) {
     return false;
   }
 
@@ -241,13 +247,13 @@ bool azk_engine_requires_action(AzkEngine *engine) {
   // where an action will actually be consumed next tick.
   if (gs->phase == PHASE_MAIN && gs->combat_state.attacking_card != 0 &&
       !azk_has_queued_triggered_effects(engine) &&
-      !azk_is_in_ability_phase(engine)) {
+      !in_ability_phase) {
     return false;
   }
 
   if (gs->phase == PHASE_RESPONSE_WINDOW &&
       !azk_has_queued_triggered_effects(engine) &&
-      !azk_is_in_ability_phase(engine) &&
+      !in_ability_phase &&
       !defender_can_respond(engine, gs, gs->active_player_index)) {
     return false;
   }
@@ -350,18 +356,23 @@ void azk_engine_tick(AzkEngine *engine) {
   }
 
   if (has_passive_buffs) {
-    section_start_ns = profile_enabled ? tick_now_ns() : 0;
-    azk_process_passive_buff_queue(engine);
-    if (profile_enabled) {
-      passive_process_ns += tick_now_ns() - section_start_ns;
-      return_path = TICK_PROFILE_RETURN_PASSIVE;
-      const uint64_t total_ns = tick_now_ns() - tick_start_ns;
-      record_tick_profile(total_ns, deck_check_ns, deck_process_ns,
-                          passive_check_ns, passive_process_ns,
-                          triggered_check_ns, triggered_process_ns,
-                          phase_gate_ns, ecs_progress_ns, return_path);
+    // Ability resolution must run against a stable board state once a player is
+    // asked to choose ability targets. Defer passive queue processing until the
+    // active ability fully resolves.
+    if (!azk_is_in_ability_phase(engine)) {
+      section_start_ns = profile_enabled ? tick_now_ns() : 0;
+      azk_process_passive_buff_queue(engine);
+      if (profile_enabled) {
+        passive_process_ns += tick_now_ns() - section_start_ns;
+        return_path = TICK_PROFILE_RETURN_PASSIVE;
+        const uint64_t total_ns = tick_now_ns() - tick_start_ns;
+        record_tick_profile(total_ns, deck_check_ns, deck_process_ns,
+                            passive_check_ns, passive_process_ns,
+                            triggered_check_ns, triggered_process_ns,
+                            phase_gate_ns, ecs_progress_ns, return_path);
+      }
+      return;
     }
-    return;
   }
 
   // Check for queued triggered effects to auto-process

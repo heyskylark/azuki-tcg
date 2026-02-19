@@ -190,6 +190,7 @@ static PyObject* env_reset(PyObject* self, PyObject* args) {
         return NULL;
     }
     env->seed = PyLong_AsLong(seed_arg);
+    env->starter_rng_state = starter_seed_from_env_seed(env->seed);
     c_reset(env);
     Py_RETURN_NONE;
 }
@@ -557,7 +558,10 @@ static PyObject* vec_reset(PyObject* self, PyObject* args) {
  
     for (int i = 0; i < vec->num_envs; i++) {
         // Assumes each process has the same number of environments
-        srand(i + seed*vec->num_envs);
+        const uint32_t env_seed = (uint32_t)(i + seed * vec->num_envs);
+        srand((unsigned int)env_seed);
+        vec->envs[i]->seed = env_seed;
+        vec->envs[i]->starter_rng_state = starter_seed_from_env_seed(env_seed);
         c_reset(vec->envs[i]);
     }
     Py_RETURN_NONE;

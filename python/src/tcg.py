@@ -130,6 +130,7 @@ class AzukiTCG(AECEnv):
     per_agent_stats = (
       {
         "win": float(log.get("p0_winrate", 0.0)),
+        "azk_started_first_rate": float(log.get("p0_start_rate", 0.0)),
         "leader_health": float(log.get("p0_avg_leader_health", 0.0)),
         "azk_episode_return": float(log.get("p0_episode_return", 0.0)),
         "azk_episode_length": float(log.get("episode_length", 0.0)),
@@ -139,6 +140,7 @@ class AzukiTCG(AECEnv):
         "azk_winner_terminal": float(log.get("winner_terminal_rate", 0.0)),
         "azk_curriculum_episode_cap": float(log.get("curriculum_episode_cap", 0.0)),
         "azk_reward_shaping_scale": float(log.get("reward_shaping_scale", 1.0)),
+        "azk_completed_episodes": float(log.get("completed_episodes", 0.0)),
         "azk_noop_selected_rate": float(log.get("p0_noop_selected_rate", 0.0)),
         "azk_attack_selected_rate": float(log.get("p0_attack_selected_rate", 0.0)),
         "azk_attach_weapon_from_hand_selected_rate": float(log.get("p0_attach_weapon_from_hand_selected_rate", 0.0)),
@@ -154,6 +156,7 @@ class AzukiTCG(AECEnv):
       },
       {
         "win": float(log.get("p1_winrate", 0.0)),
+        "azk_started_first_rate": float(log.get("p1_start_rate", 0.0)),
         "leader_health": float(log.get("p1_avg_leader_health", 0.0)),
         "azk_episode_return": float(log.get("p1_episode_return", 0.0)),
         "azk_episode_length": float(log.get("episode_length", 0.0)),
@@ -163,6 +166,7 @@ class AzukiTCG(AECEnv):
         "azk_winner_terminal": float(log.get("winner_terminal_rate", 0.0)),
         "azk_curriculum_episode_cap": float(log.get("curriculum_episode_cap", 0.0)),
         "azk_reward_shaping_scale": float(log.get("reward_shaping_scale", 1.0)),
+        "azk_completed_episodes": float(log.get("completed_episodes", 0.0)),
         "azk_noop_selected_rate": float(log.get("p1_noop_selected_rate", 0.0)),
         "azk_attack_selected_rate": float(log.get("p1_attack_selected_rate", 0.0)),
         "azk_attach_weapon_from_hand_selected_rate": float(log.get("p1_attach_weapon_from_hand_selected_rate", 0.0)),

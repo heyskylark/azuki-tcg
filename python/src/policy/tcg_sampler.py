@@ -15,15 +15,45 @@ from policy.tcg_policy import (
 
 MASK_MIN_VALUE = -1e9
 LOG_EPS = 1e-8
-PRIMARY_TEMPERATURE = 1.0
-SUBACTION_TEMPERATURE = 1.2
-SMOOTHING_EPS = 0.05
+DEFAULT_PRIMARY_TEMPERATURE = 1.0
+DEFAULT_SUBACTION_TEMPERATURE = 1.2
+DEFAULT_SMOOTHING_EPS = 0.05
+_RUNTIME_PRIMARY_TEMPERATURE = DEFAULT_PRIMARY_TEMPERATURE
+_RUNTIME_SUBACTION_TEMPERATURE = DEFAULT_SUBACTION_TEMPERATURE
+_RUNTIME_SMOOTHING_EPS = DEFAULT_SMOOTHING_EPS
 _FALLBACK_SAMPLE_LOGITS: Callable | None = None
 
 def set_fallback_sampler(func: Callable) -> None:
     """Store the default sampler so we can fall back for non-TCG policies."""
     global _FALLBACK_SAMPLE_LOGITS
     _FALLBACK_SAMPLE_LOGITS = func
+
+
+def set_sampling_params(
+    *,
+    primary_temperature: float | None = None,
+    subaction_temperature: float | None = None,
+    smoothing_eps: float | None = None,
+) -> None:
+    """Update runtime sampling params used by the custom Azuki sampler."""
+    global _RUNTIME_PRIMARY_TEMPERATURE
+    global _RUNTIME_SUBACTION_TEMPERATURE
+    global _RUNTIME_SMOOTHING_EPS
+
+    if primary_temperature is not None:
+        _RUNTIME_PRIMARY_TEMPERATURE = max(float(primary_temperature), 1e-6)
+    if subaction_temperature is not None:
+        _RUNTIME_SUBACTION_TEMPERATURE = max(float(subaction_temperature), 1e-6)
+    if smoothing_eps is not None:
+        _RUNTIME_SMOOTHING_EPS = min(max(float(smoothing_eps), 0.0), 1.0)
+
+
+def get_sampling_params() -> dict[str, float]:
+    return {
+        "primary_temperature": float(_RUNTIME_PRIMARY_TEMPERATURE),
+        "subaction_temperature": float(_RUNTIME_SUBACTION_TEMPERATURE),
+        "smoothing_eps": float(_RUNTIME_SMOOTHING_EPS),
+    }
 
 
 def tcg_sample_logits(logits, action=None):
@@ -65,7 +95,7 @@ def tcg_sample_logits(logits, action=None):
         distribution.primary_logits,
         primary_mask,
         provided_action[:, 0] if provided_action is not None else None,
-        temperature=PRIMARY_TEMPERATURE,
+        temperature=_RUNTIME_PRIMARY_TEMPERATURE,
         smoothing_eps=0.0,
     )
 
@@ -88,8 +118,8 @@ def tcg_sample_logits(logits, action=None):
         unit1_logits,
         sub1_mask,
         provided_action[:, 1] if provided_action is not None else None,
-        temperature=SUBACTION_TEMPERATURE,
-        smoothing_eps=SMOOTHING_EPS,
+        temperature=_RUNTIME_SUBACTION_TEMPERATURE,
+        smoothing_eps=_RUNTIME_SMOOTHING_EPS,
     )
 
     sub2_mask = _build_subaction_mask(
@@ -115,8 +145,8 @@ def tcg_sample_logits(logits, action=None):
         sub2_logits,
         sub2_mask,
         provided_action[:, 2] if provided_action is not None else None,
-        temperature=SUBACTION_TEMPERATURE,
-        smoothing_eps=SMOOTHING_EPS,
+        temperature=_RUNTIME_SUBACTION_TEMPERATURE,
+        smoothing_eps=_RUNTIME_SMOOTHING_EPS,
     )
 
     sub3_mask = _build_subaction_mask(
@@ -132,8 +162,8 @@ def tcg_sample_logits(logits, action=None):
         bins3_logits,
         sub3_mask,
         provided_action[:, 3] if provided_action is not None else None,
-        temperature=SUBACTION_TEMPERATURE,
-        smoothing_eps=SMOOTHING_EPS,
+        temperature=_RUNTIME_SUBACTION_TEMPERATURE,
+        smoothing_eps=_RUNTIME_SMOOTHING_EPS,
     )
 
     chosen_actions = torch.stack(

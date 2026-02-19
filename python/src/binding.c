@@ -18,6 +18,8 @@ static int my_log(PyObject* dict, Log* log) {
     assign_to_dict(dict, "p1_episode_return", log->p1_episode_return);
     assign_to_dict(dict, "p0_winrate", log->p0_winrate);
     assign_to_dict(dict, "p1_winrate", log->p1_winrate);
+    assign_to_dict(dict, "p0_start_rate", log->p0_start_rate);
+    assign_to_dict(dict, "p1_start_rate", log->p1_start_rate);
     assign_to_dict(dict, "draw_rate", log->draw_rate);
     assign_to_dict(dict, "timeout_truncation_rate", log->timeout_truncation_rate);
     assign_to_dict(dict, "auto_tick_truncation_rate", log->auto_tick_truncation_rate);
@@ -25,6 +27,7 @@ static int my_log(PyObject* dict, Log* log) {
     assign_to_dict(dict, "winner_terminal_rate", log->winner_terminal_rate);
     assign_to_dict(dict, "curriculum_episode_cap", log->curriculum_episode_cap);
     assign_to_dict(dict, "reward_shaping_scale", log->reward_shaping_scale);
+    assign_to_dict(dict, "completed_episodes", log->completed_episodes);
     assign_to_dict(dict, "p0_noop_selected_rate", log->p0_noop_selected_rate);
     assign_to_dict(dict, "p1_noop_selected_rate", log->p1_noop_selected_rate);
     assign_to_dict(dict, "p0_attack_selected_rate", log->p0_attack_selected_rate);

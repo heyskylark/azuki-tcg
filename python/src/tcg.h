@@ -49,6 +49,8 @@ typedef struct Log {
     float p1_episode_return;
     float p0_winrate;
     float p1_winrate;
+    float p0_start_rate;
+    float p1_start_rate;
     float draw_rate;
     float timeout_truncation_rate;
     float auto_tick_truncation_rate;
@@ -56,6 +58,7 @@ typedef struct Log {
     float winner_terminal_rate;
     float curriculum_episode_cap;
     float reward_shaping_scale;
+    float completed_episodes;
     float p0_noop_selected_rate;
     float p1_noop_selected_rate;
     float p0_attack_selected_rate;
@@ -113,6 +116,7 @@ typedef struct {
   // Game State
   AzkEngine* engine;
   uint32_t seed;
+  uint32_t starter_rng_state;
   int tick;
   AzkActionMaskSet action_masks[MAX_PLAYERS_PER_MATCH];
   float last_phi[MAX_PLAYERS_PER_MATCH];
@@ -166,6 +170,26 @@ static inline int env_flag_enabled(const char *name) {
     return 0;
   }
   return 1;
+}
+
+static inline uint32_t advance_episode_seed(uint32_t seed) {
+  uint32_t x = seed;
+  if (x == 0u) {
+    x = 0x9E3779B9u;
+  }
+  x ^= x << 13;
+  x ^= x >> 17;
+  x ^= x << 5;
+  return x;
+}
+
+static inline uint32_t starter_seed_from_env_seed(uint32_t seed) {
+  return seed ^ 0xA511E9B3u;
+}
+
+static inline int8_t next_starting_player(CAzukiTCG* env) {
+  env->starter_rng_state = advance_episode_seed(env->starter_rng_state);
+  return (int8_t)(env->starter_rng_state % (uint32_t)MAX_PLAYERS_PER_MATCH);
 }
 
 static void init_env_profile_if_needed(void) {
@@ -514,6 +538,7 @@ static void record_episode_stats(CAzukiTCG* env, EpisodeEndReason reason) {
 
   env->log.n += 1.0f;
   env->completed_episodes += 1;
+  env->log.completed_episodes += (float)env->completed_episodes;
   env->log.episode_length += (float)env->tick;
   env->log.episode_return += env->episode_returns[0];
   env->log.p0_episode_return += env->episode_returns[0];
@@ -535,6 +560,11 @@ static void record_episode_stats(CAzukiTCG* env, EpisodeEndReason reason) {
     env->log.winner_terminal_rate += 1.0f;
   } else {
     env->log.draw_rate += 1.0f;
+  }
+  if (game_state->starting_player_index == 0) {
+    env->log.p0_start_rate += 1.0f;
+  } else if (game_state->starting_player_index == 1) {
+    env->log.p1_start_rate += 1.0f;
   }
 
   env->log.p0_avg_leader_health += snapshot.leader_health_ratio[0];
@@ -754,6 +784,31 @@ static int parse_nonnegative_env_int(const char* name, int default_value) {
   return (int)parsed;
 }
 
+static uint64_t initial_completed_episodes_offset(void) {
+  static int initialized = 0;
+  static uint64_t cached = 0;
+  if (initialized) {
+    return cached;
+  }
+  initialized = 1;
+
+  const char* raw = getenv("AZK_RESUME_COMPLETED_EPISODES");
+  if (raw == NULL || raw[0] == '\0') {
+    return cached;
+  }
+
+  char* endptr = NULL;
+  unsigned long long parsed = strtoull(raw, &endptr, 10);
+  if (endptr == raw || *endptr != '\0') {
+    fprintf(stderr,
+            "Invalid AZK_RESUME_COMPLETED_EPISODES='%s'; using default %" PRIu64 "\n",
+            raw, cached);
+    return cached;
+  }
+  cached = (uint64_t)parsed;
+  return cached;
+}
+
 static void init_episode_cap_curriculum_if_needed(void) {
   if (g_episode_cap_curriculum.initialized) {
     return;
@@ -892,10 +947,13 @@ static int max_auto_ticks_per_step_limit(void) {
 }
 
 void init(CAzukiTCG* env) {
-  env->engine = azk_engine_create(env->seed);
+  env->starter_rng_state = starter_seed_from_env_seed(env->seed);
+  const int8_t starting_player = next_starting_player(env);
+  env->engine = azk_engine_create_with_starting_player(env->seed,
+                                                       starting_player);
   env->tick = 0;
-  env->completed_episodes = 0;
-  env->current_episode_cap = max_episode_ticks_limit();
+  env->completed_episodes = initial_completed_episodes_offset();
+  env->current_episode_cap = current_episode_ticks_limit(env);
 }
 
 static inline int8_t tcg_active_player_index(CAzukiTCG* env) {
@@ -955,6 +1013,7 @@ static void refresh_observations(CAzukiTCG* env) {
 }
 
 void c_reset(CAzukiTCG* env) {
+  const int8_t starting_player = next_starting_player(env);
   env->tick = 0;
   env->terminals[0] = NOT_DONE;
   env->terminals[1] = NOT_DONE;
@@ -965,7 +1024,8 @@ void c_reset(CAzukiTCG* env) {
   env->current_episode_cap = current_episode_ticks_limit(env);
 
   azk_engine_destroy(env->engine);
-  env->engine = azk_engine_create(env->seed);
+  env->engine = azk_engine_create_with_starting_player(env->seed,
+                                                       starting_player);
   refresh_observations(env);
   reset_reward_tracking(env);
 }
@@ -1070,6 +1130,12 @@ void c_step(CAzukiTCG* env) {
 
         const GameState *debug_gs = azk_engine_game_state(env->engine);
         AbilityPhase debug_ability_phase = azk_engine_get_ability_phase(env->engine);
+        const TrainingAbilityContextObservationData *ability_context =
+            &env->observations[active_player_index].ability_context;
+        const int ability_ctx_source_card_def_id =
+            ability_context->has_source_card_def_id
+                ? (int)ability_context->source_card_def_id
+                : -1;
         bool action_in_fresh_mask = false;
         uint16_t fresh_legal_action_count = 0;
         if (debug_gs != NULL) {
@@ -1096,9 +1162,11 @@ void c_step(CAzukiTCG* env) {
           "Invalid action detected at tick %d in phase %d for active player %d: "
           "[%d, %d, %d, %d], action_in_mask=%d, legal_action_count=%u, "
           "action_in_fresh_mask=%d, fresh_legal_action_count=%u, "
-          "ability_phase=%d\n",
+          "ability_phase=%d, ability_ctx_phase=%d, "
+          "ability_ctx_source_card_def_id=%d, ability_ctx_effect_target_type=%u, "
+          "ability_ctx_cost_target_type=%u\n",
           env->tick,
-          env->observations[0].phase,
+          (int)env->observations[active_player_index].phase,
           active_player_index,
           action.type,
           action.subaction_1,
@@ -1108,7 +1176,11 @@ void c_step(CAzukiTCG* env) {
           active_action_mask->legal_action_count,
           action_in_fresh_mask ? 1 : 0,
           fresh_legal_action_count,
-          (int)debug_ability_phase
+          (int)debug_ability_phase,
+          (int)ability_context->phase,
+          ability_ctx_source_card_def_id,
+          (unsigned)ability_context->effect_target_type,
+          (unsigned)ability_context->cost_target_type
         ); 
 
         if (!action_in_mask) {
@@ -1129,7 +1201,7 @@ void c_step(CAzukiTCG* env) {
         }
 
         const TrainingMyObservationData* my_observation_data =
-            &env->observations[0].my_observation_data;
+            &env->observations[active_player_index].my_observation_data;
         int hand_card_count = 0;
         for (int i = 0; i < MAX_HAND_SIZE; ++i) {
           if (my_observation_data->hand[i].card_def_id >= 0) {

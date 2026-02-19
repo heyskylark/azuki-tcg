@@ -34,11 +34,17 @@ static bool HandleMulliganShuffleAction(ecs_world_t *world, GameState *gs) {
 static void handle_phase_transition(ecs_world_t *world, GameState *gs) {
   if (is_game_over(world)) {
     gs->phase = PHASE_END_MATCH;
-  } else if (gs->active_player_index == 0) {
-    gs->active_player_index = 1;
   } else {
-    gs->active_player_index = 0;
-    gs->phase = PHASE_START_OF_TURN;
+    gs->mulligan_actions_completed++;
+    if (gs->mulligan_actions_completed >= MAX_PLAYERS_PER_MATCH) {
+      gs->active_player_index = gs->starting_player_index;
+      gs->phase = PHASE_START_OF_TURN;
+      gs->mulligan_actions_completed = 0;
+      return;
+    }
+
+    gs->active_player_index =
+        (gs->active_player_index + 1) % MAX_PLAYERS_PER_MATCH;
   }
 }
 

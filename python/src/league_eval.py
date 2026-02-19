@@ -74,6 +74,9 @@ class InlineLeagueEvaluator(LeagueEvaluator):
     num_agents = int(vecenv.num_agents)
     use_rnn = bool(trainer_args.get("train", {}).get("use_rnn", True))
 
+    # Preserve caller mode (learner policy may be in train mode) and restore on exit.
+    policy_a_was_training = bool(policy_a.training)
+    policy_b_was_training = bool(policy_b.training)
     policy_a.eval()
     policy_b.eval()
     wins_a = 0
@@ -133,6 +136,14 @@ class InlineLeagueEvaluator(LeagueEvaluator):
         else:
           draws += 1
     finally:
+      if policy_a_was_training:
+        policy_a.train()
+      else:
+        policy_a.eval()
+      if policy_b_was_training:
+        policy_b.train()
+      else:
+        policy_b.eval()
       vecenv.close()
 
     return MatchResult(wins_a=wins_a, wins_b=wins_b, draws=draws, episodes=episodes)

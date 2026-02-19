@@ -3,6 +3,7 @@ __pycache__
 build
 build-debug
 build-local
+build_local
 build-cuda-validation
 build-debug-validation
 build-validation

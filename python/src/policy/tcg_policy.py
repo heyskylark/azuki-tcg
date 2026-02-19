@@ -163,17 +163,18 @@ class ScalarRunningNorm(nn.Module):
     feature_shape = () if tensor.dim() == 1 else (tensor.shape[-1],)
     rms = self._get_rms(key, feature_shape)
 
-    with torch.no_grad():
-      values_for_update = tensor
-      if mask is not None:
-        mask_update = mask
-        if mask_update.dim() == tensor.dim():
-          mask_update = mask_update.any(dim=-1)
-        values_for_update = tensor[mask_update]
-      np_values = values_for_update.detach().cpu().numpy()
-      if np_values.size > 0:
-        rms.update(np_values.reshape((-1, *feature_shape)) if feature_shape else np_values.reshape(-1))
-        self._sync_buffers(key, rms)
+    if self.training:
+      with torch.no_grad():
+        values_for_update = tensor
+        if mask is not None:
+          mask_update = mask
+          if mask_update.dim() == tensor.dim():
+            mask_update = mask_update.any(dim=-1)
+          values_for_update = tensor[mask_update]
+        np_values = values_for_update.detach().cpu().numpy()
+        if np_values.size > 0:
+          rms.update(np_values.reshape((-1, *feature_shape)) if feature_shape else np_values.reshape(-1))
+          self._sync_buffers(key, rms)
 
     mean, var = self._get_stats(key, tensor.device, tensor.dtype)
     normalized = (tensor - mean) / torch.sqrt(var + self.eps)

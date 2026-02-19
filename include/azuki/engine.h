@@ -25,6 +25,13 @@ typedef struct ecs_world_t AzkEngine;
 AzkEngine *azk_engine_create(uint32_t seed);
 
 /**
+ * Create a fresh Azuki game world seeded with the provided value and with an
+ * explicit starting player index (0 or 1).
+ */
+AzkEngine *azk_engine_create_with_starting_player(uint32_t seed,
+                                                  int8_t starting_player_index);
+
+/**
  * Create a fresh Azuki game world with custom decks.
  * Each deck is an array of CardInfo structs specifying card_id and count.
  * Requires including world.h for CardInfo type definition.
