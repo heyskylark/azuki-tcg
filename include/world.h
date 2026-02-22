@@ -16,6 +16,8 @@ typedef struct {
 } CardInfo;
 
 ecs_world_t* azk_world_init(uint32_t seed);
+ecs_world_t* azk_world_init_with_starting_player(uint32_t seed,
+                                                 int8_t starting_player_index);
 ecs_world_t* azk_world_init_with_decks(
   uint32_t seed,
   const CardInfo *player0_deck,

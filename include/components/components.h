@@ -102,7 +102,9 @@ typedef struct {
 typedef struct {
   uint32_t seed;
   uint32_t rng_state;
+  int8_t starting_player_index;
   int8_t active_player_index;
+  uint8_t mulligan_actions_completed;
   Phase phase;
   uint8_t response_window;
   int8_t winner; // -1 if no winner, 0 if player 0, 1 if player 1, 2 if draw
@@ -154,7 +156,7 @@ typedef struct {
   bool is_removal;       // True if this is a removal request
 } PendingPassiveBuff;
 
-#define MAX_PASSIVE_BUFF_QUEUE 8
+#define MAX_PASSIVE_BUFF_QUEUE 16
 
 typedef struct {
   PendingPassiveBuff buffs[MAX_PASSIVE_BUFF_QUEUE];

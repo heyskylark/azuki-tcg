@@ -181,6 +181,30 @@ static DeckType random_deck_type(unsigned int *state) {
   return type;
 }
 
+static uint32_t world_seed_mix(uint32_t seed) {
+  uint32_t x = seed;
+  if (x == 0u) {
+    x = 0x9E3779B9u;
+  }
+  x ^= x << 13;
+  x ^= x >> 17;
+  x ^= x << 5;
+  return x;
+}
+
+static int8_t choose_starting_player_index(uint32_t seed) {
+  return (int8_t)(world_seed_mix(seed) % (uint32_t)MAX_PLAYERS_PER_MATCH);
+}
+
+static int8_t normalize_starting_player_index(int8_t requested_starting_player,
+                                              uint32_t seed) {
+  if (requested_starting_player < 0 ||
+      requested_starting_player >= MAX_PLAYERS_PER_MATCH) {
+    return choose_starting_player_index(seed);
+  }
+  return requested_starting_player;
+}
+
 static void register_action_context_singleton(ecs_world_t *world) {
   ecs_add_id(world, ecs_id(ActionContext), EcsSingleton);
   ActionContext ac = {0};
@@ -197,17 +221,24 @@ static void grant_player_ikz_token(ecs_world_t *world, ecs_entity_t player) {
   ecs_set(world, player, IKZToken, {.ikz_token = ikz_token});
 }
 
-ecs_world_t *azk_world_init(uint32_t seed) {
+ecs_world_t *azk_world_init_with_starting_player(uint32_t seed,
+                                                 int8_t starting_player_index) {
   ecs_world_t *world = ecs_init();
   azk_register_components(world);
   WorldRef ref = {0};
   unsigned int rng_state = seed;
+  starting_player_index =
+      normalize_starting_player_index(starting_player_index, seed);
+  const int8_t second_player_index =
+      (starting_player_index + 1) % MAX_PLAYERS_PER_MATCH;
 
   ecs_add_id(world, ecs_id(GameState), EcsSingleton);
   GameState gs = {
       .seed = seed,
       .rng_state = seed,
-      .active_player_index = 0,
+      .starting_player_index = starting_player_index,
+      .active_player_index = starting_player_index,
+      .mulligan_actions_completed = 0,
       .phase = PHASE_PREGAME_MULLIGAN,
       .response_window = 0,
       .winner = -1,
@@ -240,8 +271,8 @@ ecs_world_t *azk_world_init(uint32_t seed) {
     gs_mut->players[p] = player;
     gs_mut->zones[p] = ref.zones[p];
 
-    // Player going second always gets the IKZ token
-    if (p == 1) {
+    // The player going second always gets the IKZ token.
+    if (p == second_player_index) {
       grant_player_ikz_token(world, player);
     }
   }
@@ -268,6 +299,10 @@ ecs_world_t *azk_world_init(uint32_t seed) {
   init_all_system(world);
 
   return world;
+}
+
+ecs_world_t *azk_world_init(uint32_t seed) {
+  return azk_world_init_with_starting_player(seed, -1);
 }
 
 void azk_world_fini(ecs_world_t *world) { ecs_fini(world); }
@@ -425,12 +460,17 @@ ecs_world_t *azk_world_init_with_decks(uint32_t seed,
   ecs_world_t *world = ecs_init();
   azk_register_components(world);
   WorldRef ref = {0};
+  const int8_t starting_player_index = choose_starting_player_index(seed);
+  const int8_t second_player_index =
+      (starting_player_index + 1) % MAX_PLAYERS_PER_MATCH;
 
   ecs_add_id(world, ecs_id(GameState), EcsSingleton);
   GameState gs = {
       .seed = seed,
       .rng_state = seed,
-      .active_player_index = 0,
+      .starting_player_index = starting_player_index,
+      .active_player_index = starting_player_index,
+      .mulligan_actions_completed = 0,
       .phase = PHASE_PREGAME_MULLIGAN,
       .response_window = 0,
       .winner = -1,
@@ -457,7 +497,7 @@ ecs_world_t *azk_world_init_with_decks(uint32_t seed,
     gs_mut->players[p] = player;
     gs_mut->zones[p] = ref.zones[p];
 
-    if (p == 1) {
+    if (p == second_player_index) {
       grant_player_ikz_token(world, player);
     }
   }

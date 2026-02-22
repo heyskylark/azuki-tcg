@@ -233,24 +233,26 @@ static bool should_expose_training_action_mask(ecs_world_t *world,
     return false;
   }
 
+  const bool in_ability_phase = azk_is_in_ability_phase(world);
+
   // Keep mask generation aligned with azk_engine_requires_action.
   if (azk_has_pending_deck_reorders(world) ||
-      azk_has_pending_passive_buffs(world) ||
+      (azk_has_pending_passive_buffs(world) && !in_ability_phase) ||
       (azk_has_queued_triggered_effects(world) &&
-       !azk_is_in_ability_phase(world))) {
+       !in_ability_phase)) {
     return false;
   }
 
   // Mirror PhaseGate auto-transitions so we don't expose stale legal actions.
   if (gs->phase == PHASE_MAIN && gs->combat_state.attacking_card != 0 &&
       !azk_has_queued_triggered_effects(world) &&
-      !azk_is_in_ability_phase(world)) {
+      !in_ability_phase) {
     return false;
   }
 
   if (gs->phase == PHASE_RESPONSE_WINDOW &&
       !azk_has_queued_triggered_effects(world) &&
-      !azk_is_in_ability_phase(world) &&
+      !in_ability_phase &&
       !defender_can_respond(world, gs, gs->active_player_index)) {
     return false;
   }

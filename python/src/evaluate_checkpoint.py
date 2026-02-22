@@ -15,6 +15,15 @@ from training_utils import (
   install_tcg_sampler,
   load_training_config,
 )
+from train import (
+  _apply_sampler_anneal,
+  _build_sampler_anneal_config,
+  _compute_runtime_fingerprint,
+  _load_model_weights,
+  _peek_resume_global_step,
+  _resume_config_fingerprint,
+  _validate_resume_metadata,
+)
 
 
 def _unwrap_base_env(env):
@@ -61,6 +70,21 @@ def evaluate(
   trainer_args = load_training_config(config_path, [])
   trainer_args["train"]["device"] = device
   install_tcg_sampler()
+  anneal_total_timesteps = int(trainer_args.get("train", {}).get("total_timesteps", 0))
+  sampler_cfg = _build_sampler_anneal_config(
+    trainer_args,
+    total_timesteps=anneal_total_timesteps,
+  )
+  checkpoint_global_step = _peek_resume_global_step(checkpoint, None) if checkpoint is not None else None
+  temp_now, smoothing_now = _apply_sampler_anneal(
+    sampler_cfg,
+    global_step=0 if checkpoint_global_step is None else int(checkpoint_global_step),
+  )
+  print(
+    "[sampler] eval settings: "
+    f"global_step={0 if checkpoint_global_step is None else int(checkpoint_global_step)}, "
+    f"subaction_temperature={temp_now:.6f}, smoothing_eps={smoothing_now:.6f}"
+  )
 
   vecenv = build_vecenv(
     trainer_args,
@@ -68,6 +92,8 @@ def evaluate(
     num_envs=1,
     seed=seed,
   )
+  runtime_fingerprint = _compute_runtime_fingerprint(vecenv)
+  resume_config_fingerprint = _resume_config_fingerprint(trainer_args)
   base_env = _unwrap_base_env(vecenv.envs[0])
   policy = build_policy(vecenv, trainer_args)
   use_rnn = bool(trainer_args["train"].get("use_rnn", True))
@@ -83,11 +109,8 @@ def evaluate(
     policy.forward_eval(torch.as_tensor(warm_obs, device=device), warm_state)
 
   if checkpoint is not None:
-    state_dict = torch.load(checkpoint, map_location=device)
-    try:
-      policy.load_state_dict(state_dict)
-    except RuntimeError:
-      policy.load_state_dict(state_dict, strict=False)
+    _validate_resume_metadata(checkpoint, runtime_fingerprint, resume_config_fingerprint)
+    _load_model_weights(policy, checkpoint, device=device, strict=False)
   policy.eval()
 
   rng = np.random.default_rng(seed + 17)

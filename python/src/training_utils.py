@@ -110,7 +110,12 @@ def load_training_config(config_path: Path, forwarded_cli: Sequence[str]) -> dic
 
   train_config = parsed.get("train")
   if isinstance(train_config, dict):
-    train_config["use_rnn"] = parsed.get("rnn_name") is not None
+    # Azuki always builds a TCGLSTM policy. Keep RNN training enabled by
+    # default unless the user explicitly disables it in config/CLI.
+    if "use_rnn" in train_config:
+      train_config["use_rnn"] = bool(train_config["use_rnn"])
+    else:
+      train_config["use_rnn"] = True
     if "wandb_project" not in parsed and "project" in train_config:
       parsed["wandb_project"] = train_config["project"]
     if "wandb_group" not in parsed:
