@@ -1,9 +1,14 @@
-import { RoomStatus } from "@tcg/backend-core/types";
-import { updateRoomStatus, findRoomById } from "@tcg/backend-core/services/roomService";
+import { RoomStatus, UserType } from "@tcg/backend-core/types";
+import {
+  updateRoomStatus,
+  findRoomById,
+  updatePlayerReady,
+} from "@tcg/backend-core/services/roomService";
 import {
   loadDeckAsDefIds,
   deckAsDefIdsToDeckEntries,
 } from "@tcg/backend-core/services/cardMapperService";
+import { findUserById } from "@tcg/backend-core/services/userService";
 import { getRoomChannel, updateRoomChannelStatus, removeRoomChannel } from "@/state/RoomRegistry";
 import {
   startDeckSelectionTimeout,
@@ -14,9 +19,22 @@ import {
 } from "@/state/TimerManager";
 import { broadcastRoomState, broadcastToRoom, sendToPlayer } from "@/utils/broadcast";
 import { DECK_SELECTION_TIMEOUT_MS } from "@/constants";
-import { createGameWorld } from "@/engine/WorldManager";
+import {
+  createGameWorld,
+  destroyGameWorld,
+  getWorldByRoomId,
+} from "@/engine/WorldManager";
+import {
+  clearAiOpponentForRoom,
+  maybeRunAiTurns,
+  registerAiOpponent,
+} from "@/engine/aiOpponentService";
 import { generateSnapshot } from "@/engine/snapshotGenerator";
 import logger from "@/logger";
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 
 export async function transitionToDeckSelection(roomId: string): Promise<void> {
   const channel = getRoomChannel(roomId);
@@ -31,9 +49,39 @@ export async function transitionToDeckSelection(roomId: string): Promise<void> {
     deckSelectionDeadline: deadline,
   });
 
+  let player0Ready = channel.player0Ready;
+  let player1Ready = channel.player1Ready;
+
+  for (const slot of [0, 1] as const) {
+    const player = channel.players[slot];
+    if (!player?.isAi) {
+      continue;
+    }
+
+    const deckId = slot === 0 ? channel.player0DeckId : channel.player1DeckId;
+    if (!deckId) {
+      logger.error("Cannot transition AI player to DECK_SELECTION: missing deck", {
+        roomId,
+        playerSlot: slot,
+        userId: player.userId,
+      });
+      await transitionToAborted(roomId, `AI player ${slot} is missing a deck`);
+      return;
+    }
+
+    await updatePlayerReady(roomId, slot, true);
+    if (slot === 0) {
+      player0Ready = true;
+    } else {
+      player1Ready = true;
+    }
+  }
+
   updateRoomChannelStatus(roomId, {
     status: RoomStatus.DECK_SELECTION,
     deckSelectionDeadline: deadline,
+    player0Ready,
+    player1Ready,
   });
 
   startDeckSelectionTimeout(roomId, deadline, async () => {
@@ -124,6 +172,51 @@ export async function transitionToInMatch(roomId: string, rngSeed: number): Prom
   }
 
   try {
+    const player0User = await findUserById(room.player0Id);
+    const player1User = await findUserById(room.player1Id);
+    if (!player0User || !player1User) {
+      logger.error("Cannot transition to IN_MATCH: missing user records", {
+        roomId,
+        player0Found: !!player0User,
+        player1Found: !!player1User,
+      });
+      await transitionToAborted(roomId, "Missing user records");
+      return;
+    }
+
+    const aiPlayers: Array<{
+      slot: 0 | 1;
+      userId: string;
+      modelKey: string | null;
+    }> = [];
+    if (player0User.type === UserType.AI) {
+      aiPlayers.push({ slot: 0, userId: player0User.id, modelKey: player0User.modelKey });
+    }
+    if (player1User.type === UserType.AI) {
+      aiPlayers.push({ slot: 1, userId: player1User.id, modelKey: player1User.modelKey });
+    }
+
+    if (aiPlayers.length > 1) {
+      logger.error("Cannot transition to IN_MATCH: multiple AI players are not supported", {
+        roomId,
+      });
+      await transitionToAborted(roomId, "Only one AI player is supported per match");
+      return;
+    }
+
+    const aiPlayer = aiPlayers[0] ?? null;
+    if (aiPlayer && !aiPlayer.modelKey) {
+      logger.error("Cannot transition to IN_MATCH: AI player missing model key", {
+        roomId,
+        aiSlot: aiPlayer.slot,
+        aiUserId: aiPlayer.userId,
+      });
+      await transitionToAborted(roomId, "AI player is missing a model key");
+      return;
+    }
+
+    await clearAiOpponentForRoom(roomId);
+
     // Load decks as CardDefIds for the engine
     const player0Deck = await loadDeckAsDefIds(room.player0DeckId);
     const player1Deck = await loadDeckAsDefIds(room.player1DeckId);
@@ -160,6 +253,15 @@ export async function transitionToInMatch(roomId: string, rngSeed: number): Prom
       worldId: world.worldId,
     });
 
+    if (aiPlayer && aiPlayer.modelKey) {
+      registerAiOpponent({
+        roomId,
+        playerSlot: aiPlayer.slot,
+        userId: aiPlayer.userId,
+        modelKey: aiPlayer.modelKey,
+      });
+    }
+
     // Send initial snapshots to each player
     for (const slot of [0, 1] as const) {
       const playerConnection = channel.players[slot];
@@ -170,21 +272,39 @@ export async function transitionToInMatch(roomId: string, rngSeed: number): Prom
         }
       }
     }
+
+    if (aiPlayer) {
+      try {
+        await maybeRunAiTurns(roomId);
+      } catch (error) {
+        const errorMsg = getErrorMessage(error);
+        logger.error("AI turn failed during IN_MATCH transition", {
+          roomId,
+          error: errorMsg,
+        });
+        await transitionToAborted(roomId, `AI inference failed: ${errorMsg}`);
+      }
+    }
   } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : String(error);
+    const errorMsg = getErrorMessage(error);
     logger.error("Failed to create game world", { roomId, error: errorMsg });
     await transitionToAborted(roomId, `Failed to initialize game: ${errorMsg}`);
   }
 }
 
 export async function transitionToClosed(roomId: string, reason: string): Promise<void> {
+  clearAllTimersForRoom(roomId);
+  await clearAiOpponentForRoom(roomId);
+
+  if (getWorldByRoomId(roomId)) {
+    destroyGameWorld(roomId);
+  }
+
   const channel = getRoomChannel(roomId);
   if (!channel) {
     logger.warn("Cannot transition to CLOSED: channel not found", { roomId });
     return;
   }
-
-  clearAllTimersForRoom(roomId);
 
   await updateRoomStatus(roomId, RoomStatus.CLOSED);
 
@@ -204,13 +324,18 @@ export async function transitionToClosed(roomId: string, reason: string): Promis
 }
 
 export async function transitionToAborted(roomId: string, reason: string): Promise<void> {
+  clearAllTimersForRoom(roomId);
+  await clearAiOpponentForRoom(roomId);
+
+  if (getWorldByRoomId(roomId)) {
+    destroyGameWorld(roomId);
+  }
+
   const channel = getRoomChannel(roomId);
   if (!channel) {
     logger.warn("Cannot transition to ABORTED: channel not found", { roomId });
     return;
   }
-
-  clearAllTimersForRoom(roomId);
 
   await updateRoomStatus(roomId, RoomStatus.ABORTED);
 

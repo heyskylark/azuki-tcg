@@ -83,6 +83,7 @@ export interface RoomClosedMessage extends ServerMessage {
 export interface PlayerInfo {
   id: string;
   username: string;
+  isAi?: boolean;
   deckSelected: boolean;
   deckId: string | null;
   ready: boolean;

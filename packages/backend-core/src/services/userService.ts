@@ -115,7 +115,14 @@ export async function findUserByEmail(
 export async function findUserById(
   userId: string,
   database: Database = db
-): Promise<{ id: string; username: string; displayName: string; status: UserStatus; type: UserType } | null> {
+): Promise<{
+  id: string;
+  username: string;
+  displayName: string;
+  status: UserStatus;
+  type: UserType;
+  modelKey: string | null;
+} | null> {
   const result = await database
     .select({
       id: Users.id,
@@ -123,6 +130,7 @@ export async function findUserById(
       displayName: Users.displayName,
       status: Users.status,
       type: Users.type,
+      modelKey: Users.modelKey,
     })
     .from(Users)
     .where(eq(Users.id, userId))

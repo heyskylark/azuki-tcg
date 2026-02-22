@@ -10,6 +10,7 @@ import type { GameOverMessage } from "@tcg/backend-core/types/ws";
 import { updateRoomStatus } from "@tcg/backend-core/services/roomService";
 import { getRoomChannel, removeRoomChannel, updateRoomChannelStatus } from "@/state/RoomRegistry";
 import { getWorldByRoomId, destroyGameWorld, getPlayerUserId } from "@/engine/WorldManager";
+import { clearAiOpponentForRoom } from "@/engine/aiOpponentService";
 import { broadcastToRoom } from "@/utils/broadcast";
 import logger from "@/logger";
 import type { GameEndReason, StateContext } from "@/engine/types";
@@ -105,6 +106,8 @@ export async function handleGameOver(
     logger.error("Failed to update room status", { roomId, error });
   }
 
+  await clearAiOpponentForRoom(roomId);
+
   // Clean up game world
   destroyGameWorld(roomId);
 
@@ -193,6 +196,8 @@ export async function handleForfeit(
   } catch (error) {
     logger.error("Failed to update room status after forfeit", { roomId, error });
   }
+
+  await clearAiOpponentForRoom(roomId);
 
   // Clean up game world
   destroyGameWorld(roomId);

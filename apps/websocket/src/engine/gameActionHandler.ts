@@ -10,18 +10,14 @@ import { getRoomChannel } from "@/state/RoomRegistry";
 import {
   getWorldByRoomId,
   submitPlayerAction,
-  incrementBatchNumber,
-  getPlayerObservationBySlot,
-  flushEngineDebugLogs,
   type SubmitActionResult,
 } from "@/engine/WorldManager";
-import { processLogsForPlayer } from "@/engine/logProcessor";
-import { sendToPlayer } from "@/utils/broadcast";
-import { storeGameLogs } from "@/engine/gameLogService";
-import { handleGameOver } from "@/engine/gameOverHandler";
+import { resolveAcceptedActionResult } from "@/engine/actionResolutionService";
+import { maybeRunAiTurns } from "@/engine/aiOpponentService";
+import { transitionToAborted } from "@/handlers/stateTransitionHandler";
 import logger from "@/logger";
 import type { ConnectionInfo } from "@/state/types";
-import type { ActionTuple, ActionResult } from "@/engine/types";
+import type { ActionTuple } from "@/engine/types";
 
 export interface GameActionMessage {
   type: "GAME_ACTION";
@@ -44,8 +40,26 @@ function sendError(
 
 function isActionResult(
   result: SubmitActionResult
-): result is ActionResult {
+): result is Extract<SubmitActionResult, { success: boolean }> {
   return "success" in result && !("code" in result);
+}
+
+function parseActionTuple(action: unknown): ActionTuple | null {
+  if (!Array.isArray(action) || action.length !== 4) {
+    return null;
+  }
+
+  const [a0, a1, a2, a3] = action;
+  if (
+    !Number.isInteger(a0) ||
+    !Number.isInteger(a1) ||
+    !Number.isInteger(a2) ||
+    !Number.isInteger(a3)
+  ) {
+    return null;
+  }
+
+  return [a0, a1, a2, a3];
 }
 
 /**
@@ -73,8 +87,8 @@ export async function handleGameAction(
   }
 
   // Validate action format
-  const action = message.action;
-  if (!Array.isArray(action) || action.length !== 4) {
+  const action = parseActionTuple(message.action);
+  if (!action) {
     sendError(ws, "INVALID_ACTION", "Action must be array of 4 integers");
     return;
   }
@@ -86,7 +100,7 @@ export async function handleGameAction(
     playerSlot,
     action,
   });
-  const result = submitPlayerAction(roomId, userId, action as ActionTuple);
+  const result = submitPlayerAction(roomId, userId, action);
 
   logger.info("Action result", {
     roomId,
@@ -129,121 +143,19 @@ export async function handleGameAction(
     abilityPhase: result.stateContext.abilityPhase,
     logsCount: result.logs.length,
   });
-
-  // Increment batch number for log storage
-  const batchNumber = incrementBatchNumber(roomId);
-
-  // Store logs to database (non-blocking)
-  storeGameLogs(roomId, batchNumber, result.logs).catch((error) => {
-    logger.error("Failed to store game logs", { roomId, batchNumber, error });
-  });
-
-  // Process and send logs to each player with appropriate redaction
-  for (const slot of [0, 1] as const) {
-    const playerConnection = channel.players[slot];
-
-    logger.info("Processing log batch for player", {
-      roomId,
-      slot,
-      hasConnection: !!playerConnection,
-      hasWs: !!playerConnection?.ws,
-      connected: playerConnection?.connected,
-    });
-
-    if (playerConnection?.ws && playerConnection.connected) {
-      try {
-        // Process logs with visibility redaction for this player
-        const logBatch = processLogsForPlayer(
-          result.logs,
-          slot,
-          result.stateContext,
-          batchNumber
-        );
-
-        logger.info("Log batch created", {
-          roomId,
-          slot,
-          batchNumber,
-          logsCount: logBatch.logs.length,
-          phase: logBatch.stateContext.phase,
-          abilitySubphase: logBatch.stateContext.abilitySubphase,
-        });
-
-        // Add action mask and selection cards if it's this player's turn
-        if (
-          !result.gameOver &&
-          result.stateContext.activePlayer === slot
-        ) {
-          const observation = getPlayerObservationBySlot(roomId, slot);
-          if (observation?.actionMask) {
-            logger.info("Action handler - action mask for next player", {
-              roomId,
-              slot,
-              phase: result.stateContext.phase,
-              abilityPhase: result.stateContext.abilityPhase,
-              legalActionCount: observation.actionMask.legalActionCount,
-              legalPrimary: observation.actionMask.legalPrimary?.slice(0, Math.min(10, observation.actionMask.legalActionCount)),
-              primaryActionMaskTrue: observation.actionMask.primaryActionMask
-                ?.map((v, i) => v ? i : -1)
-                .filter(i => i >= 0),
-            });
-            logBatch.actionMask = observation.actionMask;
-          } else {
-            logger.warn("No action mask available", {
-              roomId,
-              slot,
-              hasObservation: !!observation,
-            });
-          }
-
-          // Add selection cards if in SELECTION_PICK or BOTTOM_DECK ability phase
-          const abilityPhase = result.stateContext.abilityPhase;
-          if (
-            observation &&
-            (abilityPhase === "SELECTION_PICK" || abilityPhase === "BOTTOM_DECK")
-          ) {
-            logBatch.stateContext.selectionCards =
-              observation.myObservationData.selection.flatMap((card) => {
-                if (!card) {
-                  return [];
-                }
-                return [{
-                  cardId: card.cardCode,
-                  cardDefId: card.cardDefId,
-                  zoneIndex: card.zoneIndex,
-                  type: card.type,
-                  ikzCost: card.ikzCost,
-                  curAtk: card.curAtk,
-                  curHp: card.curHp,
-                }];
-              });
-          }
-        }
-
-        logger.info("Sending log batch to player", { roomId, slot, batchNumber });
-        sendToPlayer(channel, slot, logBatch);
-        logger.info("Log batch sent successfully", { roomId, slot, batchNumber });
-      } catch (error) {
-        logger.error("Error processing/sending log batch", {
-          roomId,
-          slot,
-          error: String(error),
-          stack: error instanceof Error ? error.stack : undefined,
-        });
-      }
-    } else {
-      logger.warn("Player not connected, skipping log batch", {
-        roomId,
-        slot,
-      });
-    }
+  await resolveAcceptedActionResult(roomId, result);
+  if (result.gameOver) {
+    return;
   }
 
-  // Flush C engine debug logs to Winston (after all engine operations including observation building)
-  flushEngineDebugLogs();
-
-  // Handle game over
-  if (result.gameOver) {
-    await handleGameOver(roomId, result);
+  try {
+    await maybeRunAiTurns(roomId);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    logger.error("AI turn processing failed after player action", {
+      roomId,
+      error: message,
+    });
+    await transitionToAborted(roomId, `AI inference failed: ${message}`);
   }
 }

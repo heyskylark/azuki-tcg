@@ -49,6 +49,9 @@ export function PlayerCard({
               {isCurrentUser && (
                 <span className="text-muted-foreground ml-1">(You)</span>
               )}
+              {player.isAi && (
+                <span className="text-muted-foreground ml-1">(AI)</span>
+              )}
             </>
           )}
         </p>

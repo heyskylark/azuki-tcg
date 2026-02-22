@@ -51,6 +51,56 @@ WANDB_API_KEY=$WANDB_KEY WANDB_ENTITY=heyskylark-self-affiliated \
     --tag tcg-mvp --train.device cuda --train.total-timesteps 1_000_000
 ```
 
+## Websocket + AI Sidecar (Dev)
+
+Run these from the repo root:
+
+```bash
+# core app services (no AI sidecar)
+bun run dev:infra
+
+# AI sidecar in Docker
+bun run dev:ai
+
+# AI sidecar on host (local Python process)
+bun run dev:ai:local
+```
+
+Check sidecar health:
+
+```bash
+curl http://localhost:8002/health
+```
+
+Expected: `status` is `"ok"` and `runtimeError` is `null`.
+
+### Local sidecar prerequisites
+
+If you use `bun run dev:ai:local`, build Python bindings and install Python deps first (repo root):
+
+```bash
+cmake -S . -B build -DBUILD_PYTHON_BINDINGS=ON
+cmake --build build -j
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install torch numpy pufferlib pettingzoo gymnasium boto3
+```
+
+### INFERENCE_URL notes
+
+- If websocket runs in Docker and sidecar runs locally, set websocket `INFERENCE_URL` to:
+  - `http://host.docker.internal:8002`
+- If both websocket and sidecar run locally, use:
+  - `http://localhost:8002`
+
+### Model key format
+
+- `aiModelKey` must point to a checkpoint **file** (not a directory).
+- Supported values:
+  - local file path, e.g. `experiments/model_azuki_local_010851.pt`
+  - `s3://bucket/path/model.pt`
+
 ## Rendering & Playback
 
 - The Python env now supports `render(mode="ansi")` and exposes a playback helper at `python/src/playback.py` that loads a checkpoint, rolls out single-env self-play, and emits text frames you can pipe to `ttyrec`/`asciinema` or convert with `ffmpeg`. Example:  

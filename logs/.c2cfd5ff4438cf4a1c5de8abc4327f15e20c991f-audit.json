@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "/Users/skylark/git/azuki-tcg/logs/.c2cfd5ff4438cf4a1c5de8abc4327f15e20c991f-audit.json",
+    "files": [
+        {
+            "date": 1771555311165,
+            "name": "/Users/skylark/git/azuki-tcg/logs/mcp-puppeteer-2026-02-19.log",
+            "hash": "96fc97d87f6fe428707cd07581f1ec8f9126dfb38f80e94f9d20776829a8f062"
+        }
+    ],
+    "hashType": "sha256"
+}

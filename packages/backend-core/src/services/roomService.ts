@@ -1,14 +1,17 @@
-import { and, eq, notInArray, or } from "drizzle-orm";
+import { createHash } from "node:crypto";
+import { and, eq, ne, notInArray, or } from "drizzle-orm";
 import { SignJWT } from "jose";
 import { uuidv7 } from "uuidv7";
 import * as bcrypt from "bcryptjs";
 import db, { type IDatabase, type ITransaction } from "@core/database";
 import { Rooms } from "@core/drizzle/schemas/rooms";
 import { Decks } from "@core/drizzle/schemas/decks";
+import { Users } from "@core/drizzle/schemas/users";
 import { JwtTokens } from "@core/drizzle/schemas/jwt_tokens";
-import { RoomStatus, RoomType } from "@core/types";
+import { RoomStatus, RoomType, DeckStatus, UserStatus, UserType } from "@core/types";
 import { TokenType, type AuthConfig } from "@core/types/auth";
 import { JOIN_TOKEN_EXPIRY_SECONDS } from "@core/constants/auth";
+import { addStarterDecks } from "@core/services/DeckService";
 import {
   RoomNotFoundError,
   NotRoomOwnerError,
@@ -27,10 +30,115 @@ export interface CreateRoomParams {
   creatorId: string;
   password?: string;
   type?: RoomType;
+  aiModelKey?: string;
 }
 
 export interface CreateRoomResult {
   room: RoomData;
+}
+
+function buildAiUsername(modelKey: string): string {
+  const normalizedKey = modelKey.trim();
+  const hash = createHash("sha256").update(normalizedKey).digest("hex");
+  const sanitizedLabel = normalizedKey
+    .split("/")
+    .at(-1)
+    ?.replace(/[^a-zA-Z0-9_]/g, "")
+    .toLowerCase()
+    .slice(0, 24) ?? "model";
+
+  const label = sanitizedLabel.length > 0 ? sanitizedLabel : "model";
+  return `ai_${label}_${hash.slice(0, 10)}`;
+}
+
+async function getOrCreateAiUserForModel(
+  modelKey: string,
+  database: Database
+): Promise<{ id: string }> {
+  const normalizedModelKey = modelKey.trim();
+  if (normalizedModelKey.length === 0) {
+    throw new Error("aiModelKey must not be empty");
+  }
+
+  const existing = await database
+    .select({ id: Users.id })
+    .from(Users)
+    .where(and(eq(Users.type, UserType.AI), eq(Users.modelKey, normalizedModelKey)))
+    .limit(1)
+    .then((results) => results[0]);
+
+  if (existing) {
+    return { id: existing.id };
+  }
+
+  const username = buildAiUsername(normalizedModelKey);
+
+  try {
+    const created = await database
+      .insert(Users)
+      .values({
+        username,
+        displayName: "AI Opponent",
+        passwordHash: uuidv7(),
+        type: UserType.AI,
+        status: UserStatus.ACTIVE,
+        modelKey: normalizedModelKey,
+      })
+      .returning({ id: Users.id })
+      .then((results) => results[0]);
+
+    if (created) {
+      return { id: created.id };
+    }
+  } catch {
+    // Fall through to lookup path (handles races on deterministic username).
+  }
+
+  const resolved = await database
+    .select({ id: Users.id })
+    .from(Users)
+    .where(and(eq(Users.type, UserType.AI), eq(Users.modelKey, normalizedModelKey)))
+    .limit(1)
+    .then((results) => results[0]);
+
+  if (!resolved) {
+    throw new Error("Failed to create AI user");
+  }
+
+  return { id: resolved.id };
+}
+
+async function getOrCreateAiDeckId(
+  userId: string,
+  database: Database
+): Promise<string> {
+  const existingDeck = await database
+    .select({ id: Decks.id })
+    .from(Decks)
+    .where(and(eq(Decks.userId, userId), ne(Decks.status, DeckStatus.DELETED)))
+    .orderBy(Decks.createdAt)
+    .limit(1)
+    .then((results) => results[0]);
+
+  if (existingDeck) {
+    return existingDeck.id;
+  }
+
+  await addStarterDecks(userId, database);
+
+  const starterDeck = await database
+    .select({ id: Decks.id })
+    .from(Decks)
+    .where(and(eq(Decks.userId, userId), ne(Decks.status, DeckStatus.DELETED)))
+    .orderBy(Decks.createdAt)
+    .limit(1)
+    .then((results) => results[0]);
+
+  if (!starterDeck) {
+    throw new Error("Failed to create AI starter deck");
+  }
+
+  return starterDeck.id;
 }
 
 export async function createRoom(
@@ -47,6 +155,14 @@ export async function createRoom(
     ? await bcrypt.hash(params.password, config.saltRounds)
     : null;
 
+  let aiUserId: string | null = null;
+  let aiDeckId: string | null = null;
+  if (params.aiModelKey) {
+    const aiUser = await getOrCreateAiUserForModel(params.aiModelKey, database);
+    aiUserId = aiUser.id;
+    aiDeckId = await getOrCreateAiDeckId(aiUser.id, database);
+  }
+
   const room = await database
     .insert(Rooms)
     .values({
@@ -54,6 +170,8 @@ export async function createRoom(
       type: params.type ?? RoomType.PRIVATE,
       passwordHash,
       player0Id: params.creatorId,
+      player1Id: aiUserId,
+      player1DeckId: aiDeckId,
     })
     .returning()
     .then((results) => results[0]);

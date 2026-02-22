@@ -5,7 +5,7 @@ import type {
   WebSocket,
 } from "uWebSockets.js";
 
-import { RoomStatus } from "@tcg/backend-core/types";
+import { RoomStatus, UserType } from "@tcg/backend-core/types";
 import { verifyJoinToken } from "@tcg/backend-core/services/authService";
 import { findRoomById } from "@tcg/backend-core/services/roomService";
 import { findUserById } from "@tcg/backend-core/services/userService";
@@ -204,7 +204,11 @@ export class WebSocketService {
       roomId,
       room,
       player0User?.username ?? null,
-      player1User?.username ?? null
+      player1User?.username ?? null,
+      player0User?.type === UserType.AI,
+      player1User?.type === UserType.AI,
+      player0User?.modelKey ?? null,
+      player1User?.modelKey ?? null
     );
 
     const existingPlayer = channel.players[playerSlot];
@@ -220,6 +224,8 @@ export class WebSocketService {
         ws,
         userId,
         username: user.username,
+        isAi: false,
+        modelKey: null,
         playerSlot,
         connected: true,
         disconnectedAt: null,

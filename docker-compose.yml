@@ -26,6 +26,32 @@ services:
       db:
         condition: service_healthy
 
+  inference:
+    image: python:3.13-slim
+    working_dir: /app
+    command: >
+      sh -lc "python3 python/src/inference_sidecar.py --host 0.0.0.0 --port 8002 --device auto"
+    env_file:
+      - .env.local
+    environment:
+      AZK_INFER_CONFIG: /app/python/config/azuki.ini
+      AZK_INFER_MODEL_CACHE_DIR: /tmp/azk-model-cache
+      AZK_INFER_DEVICE: ${AZK_INFER_DEVICE:-auto}
+      AZK_INFER_SESSION_TTL_SECONDS: ${AZK_INFER_SESSION_TTL_SECONDS:-900}
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./:/app
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          'python3 -c "import urllib.request; urllib.request.urlopen(''http://localhost:8002/health'', timeout=2)"',
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
   ws:
     build:
       context: .
@@ -41,9 +67,14 @@ services:
       DATABASE_URL: postgres://${POSTGRES_USER:-azuki}:${POSTGRES_PASSWORD:-azuki}@db:5432/${POSTGRES_DB:-azuki}
       # Enable C engine debug logging (set to false in production)
       ENGINE_DEBUG: ${ENGINE_DEBUG:-true}
+      # INFERENCE_URL: http://inference:8002
+      INFERENCE_URL: http://host.docker.internal:8002
+      INFERENCE_TIMEOUT_MS: ${INFERENCE_TIMEOUT_MS:-60000}
     depends_on:
       migrate:
         condition: service_completed_successfully
+      inference:
+        condition: service_healthy
     develop:
       watch:
         - action: sync+restart

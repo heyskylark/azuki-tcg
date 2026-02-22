@@ -6,6 +6,8 @@ export interface PlayerConnection {
   ws: WebSocket<UserData> | null;
   userId: string;
   username: string;
+  isAi: boolean;
+  modelKey: string | null;
   playerSlot: 0 | 1;
   connected: boolean;
   disconnectedAt: Date | null;

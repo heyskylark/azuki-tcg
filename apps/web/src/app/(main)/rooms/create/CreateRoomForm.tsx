@@ -19,6 +19,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 export function CreateRoomForm() {
   const router = useRouter();
   const [password, setPassword] = useState("");
+  const [aiModelKey, setAiModelKey] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -28,9 +29,12 @@ export function CreateRoomForm() {
     setIsLoading(true);
 
     try {
-      const body: { password?: string } = {};
+      const body: { password?: string; aiModelKey?: string } = {};
       if (password.trim()) {
         body.password = password;
+      }
+      if (aiModelKey.trim()) {
+        body.aiModelKey = aiModelKey.trim();
       }
 
       const response = await authenticatedFetch("/api/rooms", {
@@ -80,6 +84,20 @@ export function CreateRoomForm() {
               />
               <p className="text-sm text-muted-foreground">
                 Share this password with your friend to let them join.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="aiModelKey">AI Model Key (optional)</Label>
+              <Input
+                id="aiModelKey"
+                type="text"
+                placeholder="e.g. s3://bucket/models/policy.pt"
+                value={aiModelKey}
+                onChange={(e) => setAiModelKey(e.target.value)}
+                disabled={isLoading}
+              />
+              <p className="text-sm text-muted-foreground">
+                Set this to create a room against an AI opponent.
               </p>
             </div>
           </CardContent>
