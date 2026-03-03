@@ -8,6 +8,7 @@ import {
 import { RoomStatus, RoomType } from "@core/types";
 import { Users } from "@core/drizzle/schemas/users";
 import { Decks } from "@core/drizzle/schemas/decks";
+import { AiModels } from "@core/drizzle/schemas/ai_models";
 
 export const roomStatusEnum = pgEnum("room_status", enumToPgEnum(RoomStatus));
 export const roomTypeEnum = pgEnum("room_type", enumToPgEnum(RoomType));
@@ -25,6 +26,7 @@ export const Rooms = pgTable(
     player0DeckId: uuid("player0_deck_id").references(() => Decks.id, { onDelete: "cascade" }),
     player0Ready: boolean("player0_ready").notNull().default(false),
     player1Id: uuid("player1_id").references(() => Users.id, { onDelete: "cascade" }),
+    aiModelId: uuid("ai_model_id").references(() => AiModels.id, { onDelete: "set null" }),
     player1DeckId: uuid("player1_deck_id").references(() => Decks.id, { onDelete: "cascade" }),
     player1Ready: boolean("player1_ready").notNull().default(false),
     deckSelectionDeadline: timestamp("deck_selection_deadline", {

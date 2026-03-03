@@ -87,6 +87,12 @@ pip install --upgrade pip
 pip install torch numpy pufferlib pettingzoo gymnasium boto3
 ```
 
+`dev:ai:local` now auto-loads env files in this order:
+- `.env`
+- `.env.local` (overrides `.env`)
+
+Shell-exported env vars still take precedence over both files.
+
 ### INFERENCE_URL notes
 
 - If websocket runs in Docker and sidecar runs locally, set websocket `INFERENCE_URL` to:
@@ -94,12 +100,40 @@ pip install torch numpy pufferlib pettingzoo gymnasium boto3
 - If both websocket and sidecar run locally, use:
   - `http://localhost:8002`
 
-### Model key format
+### AI model registry + model key format
 
-- `aiModelKey` must point to a checkpoint **file** (not a directory).
-- Supported values:
-  - local file path, e.g. `experiments/model_azuki_local_010851.pt`
-  - `s3://bucket/path/model.pt`
+- Room creation now loads AI options from the `ai_models` table.
+- The room-create dropdown shows models with `status = ENABLED`.
+- Each `ai_models.model_key` should be an S3 object key, e.g. `model_009646.pt`.
+- The inference sidecar resolves model keys as:
+  - `${AZK_INFER_S3_MODEL_PREFIX}${model_key}`
+- Example:
+  - `AZK_INFER_S3_MODEL_PREFIX=s3://azuki-tcg-models/`
+  - `model_key=model_009646.pt`
+  - resolved path: `s3://azuki-tcg-models/model_009646.pt`
+
+### S3 credentials for sidecar
+
+The inference sidecar uses boto3 and supports standard AWS credential resolution.
+
+- Static credentials (optional):
+  - `AWS_ACCESS_KEY_ID`
+  - `AWS_SECRET_ACCESS_KEY`
+  - `AWS_SESSION_TOKEN` (optional)
+- Profile-based credentials (optional):
+  - `AWS_PROFILE`
+- Region selection (optional):
+  - `AZK_AWS_REGION` (preferred)
+  - or `AWS_REGION`
+  - or `AWS_DEFAULT_REGION`
+- Custom S3-compatible endpoint (optional):
+  - `AZK_AWS_S3_ENDPOINT_URL`
+- Required model prefix:
+  - `AZK_INFER_S3_MODEL_PREFIX` (must be `s3://...`)
+- Inference concurrency controls (optional):
+  - `AZK_INFER_MAX_CONCURRENT_INFERENCES` (default `2`)
+  - `AZK_INFER_MAX_QUEUE_SIZE` (default `8`)
+  - `AZK_INFER_QUEUE_WAIT_TIMEOUT_MS` (default `15000`)
 
 ## Rendering & Playback
 

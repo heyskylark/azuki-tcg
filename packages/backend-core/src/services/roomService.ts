@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomInt } from "node:crypto";
 import { and, eq, ne, notInArray, or } from "drizzle-orm";
 import { SignJWT } from "jose";
 import { uuidv7 } from "uuidv7";
@@ -12,6 +12,7 @@ import { RoomStatus, RoomType, DeckStatus, UserStatus, UserType } from "@core/ty
 import { TokenType, type AuthConfig } from "@core/types/auth";
 import { JOIN_TOKEN_EXPIRY_SECONDS } from "@core/constants/auth";
 import { addStarterDecks } from "@core/services/DeckService";
+import { getSelectableAiModelById } from "@core/services/aiModelService";
 import {
   RoomNotFoundError,
   NotRoomOwnerError,
@@ -30,7 +31,7 @@ export interface CreateRoomParams {
   creatorId: string;
   password?: string;
   type?: RoomType;
-  aiModelKey?: string;
+  aiModelId?: string;
 }
 
 export interface CreateRoomResult {
@@ -57,7 +58,7 @@ async function getOrCreateAiUserForModel(
 ): Promise<{ id: string }> {
   const normalizedModelKey = modelKey.trim();
   if (normalizedModelKey.length === 0) {
-    throw new Error("aiModelKey must not be empty");
+    throw new Error("modelKey must not be empty");
   }
 
   const existing = await database
@@ -112,33 +113,38 @@ async function getOrCreateAiDeckId(
   userId: string,
   database: Database
 ): Promise<string> {
-  const existingDeck = await database
+  const existingDeckIds = await database
     .select({ id: Decks.id })
     .from(Decks)
     .where(and(eq(Decks.userId, userId), ne(Decks.status, DeckStatus.DELETED)))
-    .orderBy(Decks.createdAt)
-    .limit(1)
-    .then((results) => results[0]);
+    .then((results) => results.map((result) => result.id));
 
-  if (existingDeck) {
-    return existingDeck.id;
+  if (existingDeckIds.length > 0) {
+    const randomDeckId = existingDeckIds.at(randomInt(existingDeckIds.length));
+    if (!randomDeckId) {
+      throw new Error("Failed to select AI deck");
+    }
+    return randomDeckId;
   }
 
   await addStarterDecks(userId, database);
 
-  const starterDeck = await database
+  const starterDeckIds = await database
     .select({ id: Decks.id })
     .from(Decks)
     .where(and(eq(Decks.userId, userId), ne(Decks.status, DeckStatus.DELETED)))
-    .orderBy(Decks.createdAt)
-    .limit(1)
-    .then((results) => results[0]);
+    .then((results) => results.map((result) => result.id));
 
-  if (!starterDeck) {
+  if (starterDeckIds.length === 0) {
     throw new Error("Failed to create AI starter deck");
   }
 
-  return starterDeck.id;
+  const randomStarterDeckId = starterDeckIds.at(randomInt(starterDeckIds.length));
+  if (!randomStarterDeckId) {
+    throw new Error("Failed to select AI starter deck");
+  }
+
+  return randomStarterDeckId;
 }
 
 export async function createRoom(
@@ -157,8 +163,11 @@ export async function createRoom(
 
   let aiUserId: string | null = null;
   let aiDeckId: string | null = null;
-  if (params.aiModelKey) {
-    const aiUser = await getOrCreateAiUserForModel(params.aiModelKey, database);
+  let aiModelId: string | null = null;
+  if (params.aiModelId) {
+    const selectedAiModel = await getSelectableAiModelById(params.aiModelId, database);
+    aiModelId = selectedAiModel.id;
+    const aiUser = await getOrCreateAiUserForModel(selectedAiModel.modelKey, database);
     aiUserId = aiUser.id;
     aiDeckId = await getOrCreateAiDeckId(aiUser.id, database);
   }
@@ -171,6 +180,7 @@ export async function createRoom(
       passwordHash,
       player0Id: params.creatorId,
       player1Id: aiUserId,
+      aiModelId,
       player1DeckId: aiDeckId,
     })
     .returning()

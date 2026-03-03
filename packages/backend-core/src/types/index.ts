@@ -45,3 +45,9 @@ export enum WinType {
   TIMEOUT = "TIMEOUT",
 }
 
+// AI model status
+export enum AiModelStatus {
+  ENABLED = "ENABLED",
+  ADMIN = "ADMIN",
+  DISABLED = "DISABLED",
+}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback } from "react";
 import Link from "next/link";
 import { useAuth } from "@/hooks/useAuth";
 import { useRoom } from "@/contexts/RoomContext";
@@ -24,7 +25,24 @@ function formatRoomStatus(status: string): string {
 
 export function Navbar() {
   const { user, logout } = useAuth();
-  const { activeRoom, roomState, connectionStatus } = useRoom();
+  const { activeRoom, roomState, connectionStatus, gameOver, send } = useRoom();
+
+  const canForfeit =
+    Boolean(activeRoom) &&
+    connectionStatus === "connected" &&
+    roomState?.status === "IN_MATCH" &&
+    !gameOver;
+
+  const handleForfeit = useCallback(() => {
+    if (!canForfeit) {
+      return;
+    }
+    const confirmed = window.confirm("Forfeit this match? This counts as a loss.");
+    if (!confirmed) {
+      return;
+    }
+    send({ type: "FORFEIT" });
+  }, [canForfeit, send]);
 
   return (
     <nav className="border-b bg-background">
@@ -56,23 +74,30 @@ export function Navbar() {
         </div>
         <div className="flex items-center space-x-4">
           {activeRoom && (
-            <Link
-              href={`/rooms/${activeRoom.id}`}
-              className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 hover:bg-primary/20 transition-colors"
-            >
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  connectionStatus === "connected"
-                    ? "bg-green-500"
-                    : connectionStatus === "connecting"
-                      ? "bg-yellow-500 animate-pulse"
-                      : "bg-red-500"
-                }`}
-              />
-              <span className="text-sm font-medium">
-                {roomState ? formatRoomStatus(roomState.status) : "Room"}
-              </span>
-            </Link>
+            <>
+              <Link
+                href={`/rooms/${activeRoom.id}`}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 hover:bg-primary/20 transition-colors"
+              >
+                <span
+                  className={`w-2 h-2 rounded-full ${
+                    connectionStatus === "connected"
+                      ? "bg-green-500"
+                      : connectionStatus === "connecting"
+                        ? "bg-yellow-500 animate-pulse"
+                        : "bg-red-500"
+                  }`}
+                />
+                <span className="text-sm font-medium">
+                  {roomState ? formatRoomStatus(roomState.status) : "Room"}
+                </span>
+              </Link>
+              {canForfeit && (
+                <Button variant="destructive" size="sm" onClick={handleForfeit}>
+                  Forfeit
+                </Button>
+              )}
+            </>
           )}
           <Link
             href="/profile"

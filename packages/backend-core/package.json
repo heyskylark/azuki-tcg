@@ -54,6 +54,10 @@
       "types": "./dist/services/roomService.d.ts",
       "import": "./dist/services/roomService.js"
     },
+    "./services/aiModelService": {
+      "types": "./dist/services/aiModelService.d.ts",
+      "import": "./dist/services/aiModelService.js"
+    },
     "./services/cardMapperService": {
       "types": "./dist/services/cardMapperService.d.ts",
       "import": "./dist/services/cardMapperService.js"

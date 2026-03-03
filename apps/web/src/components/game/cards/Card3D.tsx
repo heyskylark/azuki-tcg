@@ -42,6 +42,8 @@ interface Card3DProps {
   onWeaponTargetClick?: () => void;
   // Attack targeting props
   isAttackTarget?: boolean;
+  // Placement drop targeting props (entity play / gate replacement)
+  isDropTarget?: boolean;
   // Defender targeting props
   isDefenderTarget?: boolean;
   onDefenderTargetClick?: () => void;
@@ -77,6 +79,7 @@ export function Card3D({
   isWeaponTarget = false,
   onWeaponTargetClick,
   isAttackTarget = false,
+  isDropTarget = false,
   isDefenderTarget = false,
   onDefenderTargetClick,
   onPointerDown,
@@ -160,6 +163,7 @@ export function Card3D({
               isWeaponTarget ||
               isAbilityTarget ||
               isAttackTarget ||
+              isDropTarget ||
               isAbilityActivatable ||
               isDefenderTarget
                 ? "crosshair"
@@ -233,6 +237,9 @@ export function Card3D({
 
         {/* Attack target highlight */}
         {isAttackTarget && <AttackTargetOverlay />}
+
+        {/* Placement drop target highlight */}
+        {isDropTarget && <DropTargetOverlay />}
 
         {/* Defender target highlight */}
         {isDefenderTarget && <DefenderTargetOverlay />}
@@ -563,6 +570,37 @@ function AttackTargetOverlay() {
       <planeGeometry args={[CARD_WIDTH + 0.2, CARD_HEIGHT + 0.2]} />
       <meshBasicMaterial
         color="#cc3333"
+        transparent
+        opacity={0.4}
+        side={THREE.DoubleSide}
+      />
+    </mesh>
+  );
+}
+
+/**
+ * Placement drop target overlay - pulsing green highlight for valid placement slots.
+ */
+function DropTargetOverlay() {
+  const meshRef = useRef<THREE.Mesh>(null!);
+
+  useFrame((state) => {
+    if (meshRef.current) {
+      const pulse = Math.sin(state.clock.elapsedTime * 5) * 0.15 + 0.45;
+      (meshRef.current.material as THREE.MeshBasicMaterial).opacity = pulse;
+    }
+  });
+
+  return (
+    <mesh
+      ref={meshRef}
+      rotation={[-Math.PI / 2, 0, 0]}
+      position={[0, CARD_DEPTH + 0.03, 0]}
+      raycast={() => null}
+    >
+      <planeGeometry args={[CARD_WIDTH + 0.2, CARD_HEIGHT + 0.2]} />
+      <meshBasicMaterial
+        color="#33cc66"
         transparent
         opacity={0.4}
         side={THREE.DoubleSide}

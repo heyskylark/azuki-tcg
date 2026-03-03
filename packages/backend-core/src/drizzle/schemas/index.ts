@@ -1,4 +1,5 @@
 export * from "./users";
+export * from "./ai_models";
 export * from "./cards";
 export * from "./decks";
 export * from "./deck_card_junctions";

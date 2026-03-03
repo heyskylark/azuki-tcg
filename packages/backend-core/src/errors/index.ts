@@ -160,6 +160,20 @@ export class RoomClosedError extends ApiError {
   }
 }
 
+export class AiModelNotFoundError extends ApiError {
+  constructor() {
+    super("AI model not found", 404);
+    this.name = "AiModelNotFoundError";
+  }
+}
+
+export class AiModelUnavailableError extends ApiError {
+  constructor(message = "Selected AI model is not available") {
+    super(message, 400);
+    this.name = "AiModelUnavailableError";
+  }
+}
+
 // Update errors
 export class UpdateFailedError extends ApiError {
   constructor(message = "Failed to update resource") {

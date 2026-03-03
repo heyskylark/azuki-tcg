@@ -6,9 +6,38 @@
 #include "utils/status_util.h"
 
 void reset_entity_health(ecs_world_t *world, ecs_entity_t entity) {
+  const CurStats *before_reset = ecs_get(world, entity, CurStats);
+  int8_t prev_atk = 0;
+  int8_t prev_hp = 0;
+  bool had_stats_before = false;
+  if (before_reset) {
+    prev_atk = before_reset->cur_atk;
+    prev_hp = before_reset->cur_hp;
+    had_stats_before = true;
+  }
+
   // Recalculate health from base stats + any active health buffs
   // This heals damage while preserving passive health buffs (e.g., stt02_012)
   recalculate_health_from_buffs(world, entity);
+
+  if (!had_stats_before) {
+    return;
+  }
+
+  const CurStats *after_reset = ecs_get(world, entity, CurStats);
+  if (!after_reset) {
+    return;
+  }
+
+  int8_t atk_delta = (int8_t)(after_reset->cur_atk - prev_atk);
+  int8_t hp_delta = (int8_t)(after_reset->cur_hp - prev_hp);
+
+  if (atk_delta == 0 && hp_delta == 0) {
+    return;
+  }
+
+  azk_log_card_stat_change(world, entity, atk_delta, hp_delta,
+                           after_reset->cur_atk, after_reset->cur_hp);
 }
 
 static void discard_weapon_card(ecs_world_t *world, ecs_entity_t entity,
