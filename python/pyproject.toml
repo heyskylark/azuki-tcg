@@ -7,6 +7,3 @@ requires-python = ">=3.13"
 dependencies = [
     "pufferlib",
 ]
-
-[tool.uv.sources]
-pufferlib = { path = "../../ext/SkyPufferLib", editable = true }

@@ -2,7 +2,6 @@
 
 ```bash
 PROJECT=~/git/azuki-tcg
-PUFFER=~/git/rl/SkyPufferLib
 
 docker run -d --name puffertank-dev \
   --runtime nvidia \
@@ -14,7 +13,6 @@ docker run -d --name puffertank-dev \
   --security-opt seccomp=unconfined \
   --restart unless-stopped \
   -v "$PROJECT":/workspace \
-  -v "$PUFFER":/ext/SkyPufferLib \
   -v "$HOME/.cache/pip":/root/.cache/pip \
   -v "$HOME/.cache/huggingface":/root/.cache/huggingface \
   -v "$HOME/.cache/npm":/root/.npm \
