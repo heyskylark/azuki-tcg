@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRoom } from "@/contexts/RoomContext";
 import { AssetProvider } from "@/contexts/AssetContext";
@@ -186,6 +187,8 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
 
   // Determine current display status
   const displayStatus = roomState?.status ?? initialRoom.status;
+  const isClosedOrAborted =
+    displayStatus === "ABORTED" || displayStatus === "CLOSED";
 
   // Render password prompt if needed
   if (needsPassword) {
@@ -225,7 +228,13 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
           <Alert variant="destructive">
             <AlertDescription>{error || "Failed to connect to room"}</AlertDescription>
           </Alert>
-          <Button onClick={() => join(initialRoom.id)}>Try Again</Button>
+          {isClosedOrAborted ? (
+            <Button asChild>
+              <Link href="/dashboard">Back to Dashboard</Link>
+            </Button>
+          ) : (
+            <Button onClick={() => join(initialRoom.id)}>Try Again</Button>
+          )}
         </CardContent>
       </Card>
     );

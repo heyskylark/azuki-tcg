@@ -846,8 +846,19 @@ static void enumerate_gate_portal_actions(ecs_world_t *world, const GameState *g
   }
 }
 
+static bool ability_uses_ikz_cost(ecs_world_t *world, ecs_entity_t card) {
+  const CardId *card_id = ecs_get(world, card, CardId);
+  if (card_id == NULL) {
+    return false;
+  }
+
+  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  return def != NULL && def->ikz_cost > 0;
+}
+
 static void enumerate_activate_garden_or_leader_ability_actions(
     ecs_world_t *world, const GameState *gs, ecs_entity_t player,
+    const ActionEnumerationContext *ctx,
     AzkActionMaskSet *out_mask) {
   const uint8_t player_num = get_player_number(world, player);
   UserAction action = {.player = player,
@@ -857,16 +868,30 @@ static void enumerate_activate_garden_or_leader_ability_actions(
                        .subaction_3 = 0};
 
   for (int slot = 0; slot < GARDEN_SIZE; ++slot) {
-    if (find_card_in_zone_index(world, gs->zones[player_num].garden, slot) == 0) {
+    ecs_entity_t card =
+        find_card_in_zone_index(world, gs->zones[player_num].garden, slot);
+    if (card == 0) {
       continue;
     }
     action.subaction_1 = slot;
+    action.subaction_3 = 0;
     try_add_action_if_valid(world, gs, player, &action, out_mask);
+    if (ctx != NULL && ctx->has_ikz_token && ability_uses_ikz_cost(world, card)) {
+      action.subaction_3 = 1;
+      try_add_action_if_valid(world, gs, player, &action, out_mask);
+    }
   }
 
-  if (find_leader_card_in_zone(world, gs->zones[player_num].leader) != 0) {
+  ecs_entity_t leader = find_leader_card_in_zone(world, gs->zones[player_num].leader);
+  if (leader != 0) {
     action.subaction_1 = GARDEN_SIZE;
+    action.subaction_3 = 0;
     try_add_action_if_valid(world, gs, player, &action, out_mask);
+    if (ctx != NULL && ctx->has_ikz_token &&
+        ability_uses_ikz_cost(world, leader)) {
+      action.subaction_3 = 1;
+      try_add_action_if_valid(world, gs, player, &action, out_mask);
+    }
   }
 }
 
@@ -916,7 +941,7 @@ static bool enumerate_spec_fast_path(ecs_world_t *world, const GameState *gs,
     enumerate_gate_portal_actions(world, gs, player, out_mask);
     return true;
   case ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY:
-    enumerate_activate_garden_or_leader_ability_actions(world, gs, player,
+    enumerate_activate_garden_or_leader_ability_actions(world, gs, player, ctx,
                                                         out_mask);
     return true;
   case ACT_ACTIVATE_ALLEY_ABILITY:

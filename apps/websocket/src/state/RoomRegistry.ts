@@ -7,15 +7,21 @@ export function createRoomChannel(
   roomId: string,
   roomData: RoomData,
   player0Username: string | null,
-  player1Username: string | null
+  player1Username: string | null,
+  player0IsAi = false,
+  player1IsAi = false,
+  player0ModelKey: string | null = null,
+  player1ModelKey: string | null = null
 ): RoomChannelState {
   const player0: PlayerConnection | null = roomData.player0Id
     ? {
         ws: null,
         userId: roomData.player0Id,
         username: player0Username ?? "Unknown",
+        isAi: player0IsAi,
+        modelKey: player0ModelKey,
         playerSlot: 0,
-        connected: false,
+        connected: player0IsAi,
         disconnectedAt: null,
       }
     : null;
@@ -25,8 +31,10 @@ export function createRoomChannel(
         ws: null,
         userId: roomData.player1Id,
         username: player1Username ?? "Unknown",
+        isAi: player1IsAi,
+        modelKey: player1ModelKey,
         playerSlot: 1,
-        connected: false,
+        connected: player1IsAi,
         disconnectedAt: null,
       }
     : null;
@@ -55,14 +63,27 @@ export function getOrCreateRoomChannel(
   roomId: string,
   roomData: RoomData,
   player0Username: string | null,
-  player1Username: string | null
+  player1Username: string | null,
+  player0IsAi = false,
+  player1IsAi = false,
+  player0ModelKey: string | null = null,
+  player1ModelKey: string | null = null
 ): RoomChannelState {
   const existing = roomChannels.get(roomId);
   if (existing) {
     return existing;
   }
 
-  return createRoomChannel(roomId, roomData, player0Username, player1Username);
+  return createRoomChannel(
+    roomId,
+    roomData,
+    player0Username,
+    player1Username,
+    player0IsAi,
+    player1IsAi,
+    player0ModelKey,
+    player1ModelKey
+  );
 }
 
 export function removeRoomChannel(roomId: string): boolean {

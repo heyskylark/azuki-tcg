@@ -9,6 +9,8 @@
     "dev": "COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$(basename \"$PWD\")} docker compose up --build",
     "dev:watch": "COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$(basename \"$PWD\")} docker compose up --build --watch",
     "dev:infra": "COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$(basename \"$PWD\")} docker compose up --build db migrate web",
+    "dev:ai": "COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$(basename \"$PWD\")} docker compose up --build inference",
+    "dev:ai:local": "PYTHONPATH=python/src:build/python/src${PYTHONPATH:+:$PYTHONPATH} python3 python/src/inference_sidecar.py --host ${AZK_INFER_HOST:-0.0.0.0} --port ${AZK_INFER_PORT:-8002} --device ${AZK_INFER_DEVICE:-auto}",
     "dev:down": "COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$(basename \"$PWD\")} docker compose down",
     "dev:clean": "COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$(basename \"$PWD\")} docker compose down -v",
     "ws": "bun --filter '@azuki/websocket'",

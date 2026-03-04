@@ -14,12 +14,13 @@ const authConfig: AuthConfig = {
 
 async function postHandler(request: AuthenticatedRequest): Promise<NextResponse> {
   const body = await request.json();
-  const { password } = createRoomSchema.parse(body);
+  const { password, aiModelId } = createRoomSchema.parse(body);
 
   const { room } = await createRoom(
     {
       creatorId: request.user.id,
       password,
+      aiModelId,
     },
     authConfig
   );

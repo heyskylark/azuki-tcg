@@ -203,6 +203,27 @@ export function getPlayerObservationBySlot(roomId: string, playerSlot: 0 | 1): O
 }
 
 /**
+ * Get packed training observation bytes for a player by slot.
+ */
+export function getPlayerTrainingObservationPackedBySlot(
+  roomId: string,
+  playerSlot: 0 | 1
+): Uint8Array | null {
+  const world = activeWorlds.get(roomId);
+  if (!world) {
+    return null;
+  }
+
+  const binding = getNativeBinding();
+  const packed = binding.getTrainingObservationPacked(world.worldId, playerSlot);
+  if (!packed) {
+    return null;
+  }
+
+  return packed;
+}
+
+/**
  * Get the game state for a room.
  */
 export function getGameState(roomId: string): StateContext | null {

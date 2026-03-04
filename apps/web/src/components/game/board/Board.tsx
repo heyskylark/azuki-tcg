@@ -117,7 +117,7 @@ function SpellDropZone({
 
 /**
  * Render a row of garden/alley slots with cards or empty slots.
- * Supports drag-and-drop for empty slots when not opponent's row.
+ * Supports drag-and-drop for mask-valid slots when not opponent's row.
  * Supports ability target highlighting during EFFECT_SELECTION phase.
  * Supports weapon attachment targeting on entities.
  * For player's alley, renders DraggableAlleyCard for cards that can be gated.
@@ -165,6 +165,7 @@ function CardRow({
   const validWeaponAttachTargets = useDragStore((state) => state.validWeaponAttachTargets);
   const dragPhase = useDragStore((state) => state.dragPhase);
   const dragSourceType = useDragStore((state) => state.dragSourceType);
+  const onDropCallback = useDragStore((state) => state.onDropCallback);
 
   const isDragging = dragPhase === "pickup" || dragPhase === "dragging";
   const isWeaponDrag = isDragging && dragSourceType === "weapon";
@@ -230,6 +231,12 @@ function CardRow({
             zone === "garden" &&
             defenderTargets?.has(index);
 
+          const isPlacementDropTarget =
+            !isOpponent &&
+            isDragging &&
+            (dragSourceType === "hand" || dragSourceType === "alley") &&
+            validSlots.has(index);
+
           return (
             <Card3D
               key={`card-${index}-${card.cardCode}`}
@@ -251,6 +258,7 @@ function CardRow({
               isAbilityTarget={isAbilityTarget}
               isWeaponTarget={isWeaponAttachTarget}
               isAttackTarget={isAttackTarget}
+              isDropTarget={isPlacementDropTarget}
               isAbilityActivatable={canActivateAbility}
               onAbilityActivate={
                 canActivateAbility && onActivateAbility
@@ -278,6 +286,14 @@ function CardRow({
                   ? (event) => {
                       event.stopPropagation();
                       onAttackPointerDown(index, position, event);
+                    }
+                  : undefined
+              }
+              onPointerUp={
+                isPlacementDropTarget && onDropCallback
+                  ? (event) => {
+                      event.stopPropagation();
+                      onDropCallback(zone, index);
                     }
                   : undefined
               }

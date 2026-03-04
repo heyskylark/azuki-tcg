@@ -17,6 +17,7 @@ export function buildPlayerInfo(channel: RoomChannelState, playerSlot: 0 | 1): P
   return {
     id: player.userId,
     username: player.username,
+    isAi: player.isAi,
     deckSelected: deckId !== null,
     deckId,
     ready,

@@ -7,9 +7,10 @@ import db from "@tcg/backend-core/database";
 import { MatchResults } from "@tcg/backend-core/drizzle/schemas/match_results";
 import { RoomStatus, WinType } from "@tcg/backend-core/types";
 import type { GameOverMessage } from "@tcg/backend-core/types/ws";
-import { updateRoomStatus } from "@tcg/backend-core/services/roomService";
+import { findRoomById, updateRoomStatus } from "@tcg/backend-core/services/roomService";
 import { getRoomChannel, removeRoomChannel, updateRoomChannelStatus } from "@/state/RoomRegistry";
 import { getWorldByRoomId, destroyGameWorld, getPlayerUserId } from "@/engine/WorldManager";
+import { clearAiOpponentForRoom } from "@/engine/aiOpponentService";
 import { broadcastToRoom } from "@/utils/broadcast";
 import logger from "@/logger";
 import type { GameEndReason, StateContext } from "@/engine/types";
@@ -56,6 +57,12 @@ export async function handleGameOver(
     return;
   }
 
+  const room = await findRoomById(roomId);
+  if (!room) {
+    logger.error("Cannot handle game over: room data not found", { roomId });
+    return;
+  }
+
   // Determine winner info
   const winnerSlot = result.winner as 0 | 1 | null;
   const winnerId = winnerSlot !== null ? getPlayerUserId(roomId, winnerSlot) : null;
@@ -71,6 +78,7 @@ export async function handleGameOver(
       roomId,
       player0Id: world.player0UserId,
       player1Id: world.player1UserId,
+      aiModelId: room.aiModelId,
       winnerId,
       winType: WinType.WIN, // Default to WIN, could be FORFEIT for concede
       totalTurns: result.stateContext.turnNumber,
@@ -104,6 +112,8 @@ export async function handleGameOver(
   } catch (error) {
     logger.error("Failed to update room status", { roomId, error });
   }
+
+  await clearAiOpponentForRoom(roomId);
 
   // Clean up game world
   destroyGameWorld(roomId);
@@ -144,6 +154,12 @@ export async function handleForfeit(
     return;
   }
 
+  const room = await findRoomById(roomId);
+  if (!room) {
+    logger.error("Cannot handle forfeit: room data not found", { roomId });
+    return;
+  }
+
   // Winner is the opponent
   const winnerSlot = forfeitingPlayerSlot === 0 ? 1 : 0;
   const winnerId = getPlayerUserId(roomId, winnerSlot);
@@ -160,6 +176,7 @@ export async function handleForfeit(
       roomId,
       player0Id: world.player0UserId,
       player1Id: world.player1UserId,
+      aiModelId: room.aiModelId,
       winnerId,
       winType: WinType.FORFEIT,
       totalTurns: 0, // We don't track turn number for forfeits
@@ -193,6 +210,8 @@ export async function handleForfeit(
   } catch (error) {
     logger.error("Failed to update room status after forfeit", { roomId, error });
   }
+
+  await clearAiOpponentForRoom(roomId);
 
   // Clean up game world
   destroyGameWorld(roomId);

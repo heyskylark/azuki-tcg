@@ -8,6 +8,7 @@ import {
 import { WinType } from "@core/types";
 import { Rooms } from "@core/drizzle/schemas/rooms";
 import { Users } from "@core/drizzle/schemas/users";
+import { AiModels } from "@core/drizzle/schemas/ai_models";
 
 export const winTypeEnum = pgEnum("win_type", enumToPgEnum(WinType));
 
@@ -22,6 +23,7 @@ export const MatchResults = pgTable("match_results", {
   player1Id: uuid("player1_id")
     .notNull()
     .references(() => Users.id, { onDelete: "cascade" }),
+  aiModelId: uuid("ai_model_id").references(() => AiModels.id, { onDelete: "set null" }),
   winnerId: uuid("winner_id").references(() => Users.id),
   winType: winTypeEnum("win_type").notNull(),
   totalTurns: integer("total_turns").notNull(),

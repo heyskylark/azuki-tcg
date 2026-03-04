@@ -1,4 +1,8 @@
 .codexignore
+.env.local
+.DS_Store
+python/.DS_Store
+logs
 __pycache__
 build
 build-debug
@@ -20,3 +24,4 @@ qq
 
 node_modules
 
+**/.env.local

@@ -17,6 +17,7 @@ const roomPasswordSchema = z
 export const createRoomSchema = z
   .object({
     password: roomPasswordSchema.optional(),
+    aiModelId: z.string().uuid("Invalid AI model selection").optional(),
   })
   .strict();
 

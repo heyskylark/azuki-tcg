@@ -15,6 +15,8 @@ const envSchema = z.object({
     .enum(["true", "false", "1", "0"])
     .optional()
     .transform((val) => val === "true" || val === "1"),
+  INFERENCE_URL: z.string().url().default("http://localhost:8002"),
+  INFERENCE_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
 });
 
 export const env = envSchema.parse(process.env);

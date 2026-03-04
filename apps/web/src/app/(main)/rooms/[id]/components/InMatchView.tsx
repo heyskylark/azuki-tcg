@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useEffect, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { GameScene } from "@/components/game/GameScene";
 import { LoadingScreen } from "@/components/game/LoadingScreen";
 import { DevDebugOverlay } from "@/components/game/DevDebugOverlay";
+import { Button } from "@/components/ui/button";
 import { useAssets } from "@/contexts/AssetContext";
 import { useGameState } from "@/contexts/GameStateContext";
 import { useRoom } from "@/contexts/RoomContext";
@@ -16,11 +17,25 @@ interface DeckApiResponse {
   deck: DeckWithCards;
 }
 
+function formatPhaseLabel(phase: string | undefined): string {
+  if (!phase) {
+    return "-";
+  }
+
+  return phase
+    .toLowerCase()
+    .split("_")
+    .filter((part) => part.length > 0)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 export function InMatchView() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const { loadingState, preloadDeckCards } = useAssets();
   const { gameState, isLoading, setCardMappings, setCardDefIdMap } = useGameState();
-  const { roomState } = useRoom();
+  const { roomState, activeRoom, connectionStatus, send } = useRoom();
 
   const [isDeckLoading, setIsDeckLoading] = useState(true);
   const [deckLoadError, setDeckLoadError] = useState<string | null>(null);
@@ -81,6 +96,33 @@ export function InMatchView() {
   }, [roomState, preloadDeckCards, setCardMappings, setCardDefIdMap]);
 
   const isBusy = isDeckLoading || loadingState.isLoading || isLoading || !gameState;
+  const turnPlayerLabel = !gameState
+    ? "-"
+    : activeRoom?.playerSlot === undefined
+      ? `Player ${gameState.activePlayer}`
+      : gameState.activePlayer === activeRoom.playerSlot
+        ? `Player ${gameState.activePlayer} (You)`
+        : `Player ${gameState.activePlayer} (Opponent)`;
+  const mainPhaseLabel = formatPhaseLabel(gameState?.phase);
+  const subPhaseLabel = formatPhaseLabel(gameState?.abilitySubphase);
+  const canForfeit =
+    connectionStatus === "connected" &&
+    roomState?.status === "IN_MATCH";
+
+  const handleForfeit = useCallback(() => {
+    if (!canForfeit) {
+      return;
+    }
+    const confirmed = window.confirm("Forfeit this match?");
+    if (!confirmed) {
+      return;
+    }
+    send({ type: "FORFEIT" });
+  }, [canForfeit, send]);
+
+  const handleReturnToDashboard = useCallback(() => {
+    router.push("/dashboard");
+  }, [router]);
 
   return (
     <div className="fixed inset-0 z-50 bg-black">
@@ -99,6 +141,31 @@ export function InMatchView() {
       ) : (
         <>
           <GameScene />
+          <div className="absolute top-4 right-4 z-50 pointer-events-auto flex items-center gap-2">
+            <Button variant="outline" size="sm" onClick={handleReturnToDashboard}>
+              Dashboard
+            </Button>
+            {canForfeit && (
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleForfeit}
+              >
+                Forfeit
+              </Button>
+            )}
+          </div>
+          <div className="absolute top-4 left-4 z-40 pointer-events-none rounded-md border border-gray-700 bg-black/70 px-3 py-2 text-xs text-white shadow-lg">
+            <p>
+              <span className="text-gray-300">Turn:</span> {turnPlayerLabel}
+            </p>
+            <p>
+              <span className="text-gray-300">Main Phase:</span> {mainPhaseLabel}
+            </p>
+            <p>
+              <span className="text-gray-300">Sub Phase:</span> {subPhaseLabel}
+            </p>
+          </div>
           {isDevMode && <DevDebugOverlay />}
         </>
       )}

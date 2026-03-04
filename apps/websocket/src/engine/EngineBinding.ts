@@ -35,6 +35,7 @@ interface NativeBinding {
     action: ActionTuple
   ): ActionResult;
   getObservation(worldId: string, playerIndex: number): ObservationData;
+  getTrainingObservationPacked(worldId: string, playerIndex: number): Buffer | null;
   getGameState(worldId: string): StateContext;
   getGameLogs(worldId: string): GameLog[];
   requiresAction(worldId: string): boolean;

@@ -243,11 +243,14 @@ class TCGLSTM(pufferlib.models.LSTMWrapper):
     lstm_inputs, target_matrix = self._split_encoded(
       self.policy.encode_observations(observations, state=state)
     )
+    batch_size = int(lstm_inputs.shape[0]) if torch.is_tensor(lstm_inputs) else None
     h = state.get("lstm_h")
     c = state.get("lstm_c")
 
     if h is not None:
-      assert h.shape[0] == c.shape[0] == observations.shape[0], "LSTM state must be (h, c)"
+      if batch_size is None:
+        raise ValueError("Unable to infer batch size from observations")
+      assert h.shape[0] == c.shape[0] == batch_size, "LSTM state must be (h, c)"
       lstm_state = (h, c)
     else:
       lstm_state = None
@@ -419,7 +422,58 @@ class TCG(nn.Module):
       return sample_param.device
     return torch.device("cpu")
 
+  def __tensorize_structured_observation(self, value, device: torch.device):
+    if torch.is_tensor(value):
+      return value.to(device=device)
+
+    if isinstance(value, np.ndarray):
+      tensor = torch.as_tensor(value, device=device)
+      if tensor.dim() == 0:
+        return tensor.reshape(1, 1)
+      return tensor.unsqueeze(0)
+
+    if isinstance(value, np.generic):
+      return torch.as_tensor([[value.item()]], device=device)
+
+    if isinstance(value, (bool, int, float)):
+      return torch.as_tensor([[value]], device=device)
+
+    if isinstance(value, dict):
+      return {
+        key: self.__tensorize_structured_observation(subvalue, device)
+        for key, subvalue in value.items()
+      }
+
+    if isinstance(value, tuple):
+      return tuple(self.__tensorize_structured_observation(subvalue, device) for subvalue in value)
+
+    if isinstance(value, list):
+      return [self.__tensorize_structured_observation(subvalue, device) for subvalue in value]
+
+    raise TypeError(f"Unsupported structured observation value type: {type(value)}")
+
+  def __detach_observation_tree(self, value):
+    if torch.is_tensor(value):
+      return value.detach()
+    if isinstance(value, dict):
+      return {
+        key: self.__detach_observation_tree(subvalue)
+        for key, subvalue in value.items()
+      }
+    if isinstance(value, tuple):
+      return tuple(self.__detach_observation_tree(subvalue) for subvalue in value)
+    if isinstance(value, list):
+      return [self.__detach_observation_tree(subvalue) for subvalue in value]
+    return value
+
   def __prepare_structured_observations(self, observations):
+    if isinstance(observations, dict):
+      structured_obs = self.__tensorize_structured_observation(
+        observations,
+        self.__policy_device(),
+      )
+      return structured_obs, False, structured_obs
+
     obs_tensor = observations if torch.is_tensor(observations) else torch.as_tensor(observations)
     squeeze_batch = obs_tensor.dim() == 1
     if squeeze_batch:
@@ -429,7 +483,7 @@ class TCG(nn.Module):
     return structured_obs, squeeze_batch, obs_tensor
 
   def __store_mask_observations(self, obs_tensor: torch.Tensor, state):
-    detached = obs_tensor.detach()
+    detached = self.__detach_observation_tree(obs_tensor)
     if state is not None:
       try:
         state["_azk_mask_observations"] = detached
@@ -862,13 +916,28 @@ class TCG(nn.Module):
 
     device = flat_hidden.device
     primary_action_mask = action_mask_struct["primary_action_mask"].to(dtype=torch.bool, device=device)
-    legal_actions = action_mask_struct["legal_actions"]
+
+    # Support both observation layouts:
+    # - emulated: action_mask.legal_actions.{legal_primary,legal_sub1,legal_sub2,legal_sub3}
+    # - packed native: action_mask.{legal_primary,legal_sub1,legal_sub2,legal_sub3}
+    try:
+      legal_actions_struct = self.__get_struct_field(action_mask_struct, "legal_actions")
+      legal_primary = legal_actions_struct["legal_primary"]
+      legal_sub1 = legal_actions_struct["legal_sub1"]
+      legal_sub2 = legal_actions_struct["legal_sub2"]
+      legal_sub3 = legal_actions_struct["legal_sub3"]
+    except KeyError:
+      legal_primary = self.__get_struct_field(action_mask_struct, "legal_primary")
+      legal_sub1 = self.__get_struct_field(action_mask_struct, "legal_sub1")
+      legal_sub2 = self.__get_struct_field(action_mask_struct, "legal_sub2")
+      legal_sub3 = self.__get_struct_field(action_mask_struct, "legal_sub3")
+
     legal_actions = torch.stack(
       (
-        legal_actions["legal_primary"],
-        legal_actions["legal_sub1"],
-        legal_actions["legal_sub2"],
-        legal_actions["legal_sub3"],
+        legal_primary,
+        legal_sub1,
+        legal_sub2,
+        legal_sub3,
       ),
       dim=-1,
     ).to(device=device, dtype=torch.long)

@@ -3,6 +3,7 @@ import { Emails, Users } from "@core/drizzle/schemas/users";
 import { Cards } from "@core/drizzle/schemas/cards";
 import { Decks } from "@core/drizzle/schemas/decks";
 import { DeckCardJunctions } from "@core/drizzle/schemas/deck_card_junctions";
+import { AiModels } from "@core/drizzle/schemas/ai_models";
 import { Rooms } from "@core/drizzle/schemas/rooms";
 import { MatchResults } from "@core/drizzle/schemas/match_results";
 import { GameLogs } from "@core/drizzle/schemas/game_logs";
@@ -48,6 +49,12 @@ export const deckCardJunctionsRelations = relations(DeckCardJunctions, ({ one })
   }),
 }));
 
+// AI model relations
+export const aiModelsRelations = relations(AiModels, ({ many }) => ({
+  rooms: many(Rooms),
+  matchResults: many(MatchResults),
+}));
+
 // Room relations
 export const roomsRelations = relations(Rooms, ({ one, many }) => ({
   player0: one(Users, {
@@ -59,6 +66,10 @@ export const roomsRelations = relations(Rooms, ({ one, many }) => ({
     fields: [Rooms.player1Id],
     references: [Users.id],
     relationName: "player1",
+  }),
+  aiModel: one(AiModels, {
+    fields: [Rooms.aiModelId],
+    references: [AiModels.id],
   }),
   player0Deck: one(Decks, {
     fields: [Rooms.player0DeckId],
@@ -89,6 +100,10 @@ export const matchResultsRelations = relations(MatchResults, ({ one }) => ({
     fields: [MatchResults.player1Id],
     references: [Users.id],
     relationName: "player1",
+  }),
+  aiModel: one(AiModels, {
+    fields: [MatchResults.aiModelId],
+    references: [AiModels.id],
   }),
   winner: one(Users, {
     fields: [MatchResults.winnerId],

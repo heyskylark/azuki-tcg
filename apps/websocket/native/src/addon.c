@@ -13,6 +13,7 @@
 #include "components/game_log.h"
 #include "constants/game.h"
 #include "utils/observation_util.h"
+#include "utils/training_observation_util.h"
 #include "utils/game_log_util.h"
 #include "utils/debug_log.h"
 #include "abilities/ability_registry.h"
@@ -1505,6 +1506,55 @@ static napi_value GetObservation(napi_env env, napi_callback_info info) {
   return result;
 }
 
+// getTrainingObservationPacked(worldId: string, playerIndex: number) -> Buffer | null
+static napi_value GetTrainingObservationPacked(napi_env env, napi_callback_info info) {
+  size_t argc = 2;
+  napi_value args[2];
+  napi_get_cb_info(env, info, &argc, args, NULL, NULL);
+
+  if (argc < 2) {
+    return throw_error(env, "getTrainingObservationPacked requires worldId and playerIndex");
+  }
+
+  char world_id[32];
+  size_t len;
+  napi_get_value_string_utf8(env, args[0], world_id, sizeof(world_id), &len);
+
+  int32_t player_index;
+  napi_get_value_int32(env, args[1], &player_index);
+
+  AzkEngine *engine = find_world(world_id);
+  if (!engine) {
+    napi_value result;
+    napi_get_null(env, &result);
+    return result;
+  }
+
+  TrainingObservationData observation;
+  bool ok = azk_engine_observe_training(engine, (int8_t)player_index, &observation);
+  if (!ok) {
+    napi_value result;
+    napi_get_null(env, &result);
+    return result;
+  }
+
+  napi_value buffer;
+  void *copied_data = NULL;
+  napi_status status = napi_create_buffer_copy(
+    env,
+    sizeof(TrainingObservationData),
+    &observation,
+    &copied_data,
+    &buffer
+  );
+
+  if (status != napi_ok) {
+    return throw_error(env, "Failed to create training observation buffer");
+  }
+
+  return buffer;
+}
+
 // getGameLogs(worldId: string) -> GameLog[]
 static napi_value GetGameLogs(napi_env env, napi_callback_info info) {
   size_t argc = 1;
@@ -1609,6 +1659,16 @@ static napi_value Init(napi_env env, napi_value exports) {
 
   status = napi_create_function(env, "getObservation", NAPI_AUTO_LENGTH, GetObservation, NULL, &fn);
   if (status == napi_ok) napi_set_named_property(env, exports, "getObservation", fn);
+
+  status = napi_create_function(
+    env,
+    "getTrainingObservationPacked",
+    NAPI_AUTO_LENGTH,
+    GetTrainingObservationPacked,
+    NULL,
+    &fn
+  );
+  if (status == napi_ok) napi_set_named_property(env, exports, "getTrainingObservationPacked", fn);
 
   status = napi_create_function(env, "getGameState", NAPI_AUTO_LENGTH, GetGameState, NULL, &fn);
   if (status == napi_ok) napi_set_named_property(env, exports, "getGameState", fn);
