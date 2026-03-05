@@ -27,6 +27,9 @@ endif()
 file(GLOB_RECURSE AZUKI_SOURCES CONFIGURE_DEPENDS
   ${CMAKE_CURRENT_SOURCE_DIR}/src/*.c
 )
+# Keep copied v2 snapshots out of the default azuki_lib build until we wire a
+# dedicated v2 C target. This avoids duplicate symbol collisions.
+list(FILTER AZUKI_SOURCES EXCLUDE REGEX ".*/src/.*/v2/.*\\.c$")
 
 set(AZUKI_MAIN ${CMAKE_CURRENT_SOURCE_DIR}/src/main.c)
 set(AZUKI_LIB_SOURCES ${AZUKI_SOURCES})

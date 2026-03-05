@@ -16,7 +16,7 @@ import pufferlib.pytorch
 import pufferlib.vector
 from pufferlib import pufferl
 
-from policy import tcg_sampler
+from policy.v2 import tcg_sampler
 from league_manager import LeagueManager, parse_league_manager_config
 from league_training import LeagueConfig, LeaguePuffeRL, compute_league_active
 from playback import run_playback
@@ -53,8 +53,11 @@ RESUME_SCHEDULE_ENV_VARS = (
     "AZK_REWARD_SHAPING_ANNEAL_RAMP_EPISODES",
 )
 RESUME_SOURCE_HASH_TARGETS = (
-    "python/src/policy/tcg_policy.py",
-    "python/src/policy/tcg_sampler.py",
+    "python/src/policy/v2/tcg_policy.py",
+    "python/src/policy/v2/tcg_sampler.py",
+    "python/src/v2/tcg.py",
+    "python/src/v2/tcg_parallel.py",
+    "python/src/v2/observation.py",
     "python/src/tcg.h",
     "python/src/train.py",
     "python/src/training_utils.py",

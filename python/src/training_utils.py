@@ -13,8 +13,8 @@ import pufferlib.vector
 from pufferlib import MultiagentEpisodeStats, emulation, pufferl
 import pufferlib.pytorch
 
-from policy.tcg_policy import TCG, TCGLSTM
-from policy import tcg_sampler
+from policy.v2.tcg_policy import TCG, TCGLSTM
+from policy.v2 import tcg_sampler
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BUILD_PYTHON_DIR = REPO_ROOT / "build" / "python" / "src"
@@ -28,8 +28,8 @@ def ensure_python_build_on_path() -> None:
 
 ensure_python_build_on_path()
 
-from tcg import AzukiTCG  # noqa: E402  (import after adjusting sys.path)
-from tcg_parallel import AzukiTCGParallel  # noqa: E402
+from v2.tcg import AzukiTCG  # noqa: E402  (import after adjusting sys.path)
+from v2.tcg_parallel import AzukiTCGParallel  # noqa: E402
 
 
 def install_tcg_sampler() -> None:
