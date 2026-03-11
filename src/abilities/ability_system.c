@@ -828,6 +828,7 @@ bool azk_process_selection_to_equip(ecs_world_t *world, int selection_index,
   // Get game state and find target entity
   const GameState *gs = ecs_singleton_get(world, GameState);
   uint8_t player_num = get_player_number(world, ctx->owner);
+  ecs_entity_t selection_zone = gs->zones[player_num].selection;
   ecs_entity_t target_entity = 0;
 
   if (entity_index < GARDEN_SIZE) {
@@ -851,6 +852,13 @@ bool azk_process_selection_to_equip(ecs_world_t *world, int selection_index,
     cli_render_logf("[Ability] Missing stats for weapon or target");
     return false;
   }
+
+  int8_t from_index = azk_get_card_index_in_zone(world, weapon, selection_zone);
+
+  // Log selection -> equipped movement before the deferred reparent changes
+  // the visible parent chain.
+  azk_log_card_zone_moved(world, weapon, GLOG_ZONE_SELECTION, from_index,
+                          GLOG_ZONE_EQUIPPED, -1);
 
   // Attach weapon to target (ChildOf relationship)
   ecs_add_pair(world, weapon, EcsChildOf, target_entity);

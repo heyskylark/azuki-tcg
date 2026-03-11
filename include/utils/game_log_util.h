@@ -17,10 +17,24 @@ void azk_clear_game_logs(ecs_world_t *world);
 uint8_t azk_get_game_log_count(ecs_world_t *world);
 
 /**
+ * Finalize pending ordered-zone move logs after deferred ECS changes commit.
+ * Must only be called at post-commit sync points when the world is not deferred.
+ */
+void azk_finalize_pending_zone_move_logs(ecs_world_t *world);
+
+/**
  * Get logs array (for serialization).
  * Returns pointer to logs array and sets out_count to the number of logs.
  */
 const GameStateLog *azk_get_game_logs(ecs_world_t *world, uint8_t *out_count);
+
+/**
+ * Get a player's effective hand count for the current action batch.
+ * Includes pending HAND zone movements that have already been logged but may
+ * not yet be reflected in Flecs ordered children due to deferred mutations.
+ */
+int32_t azk_get_effective_hand_count(ecs_world_t *world, ecs_entity_t hand_zone,
+                                     uint8_t player);
 
 /**
  * Build GameLogCardRef from entity.
@@ -54,6 +68,7 @@ int8_t azk_get_card_index_in_zone(ecs_world_t *world, ecs_entity_t card,
 
 /**
  * Log a card moving between zones.
+ * HAND and SELECTION destinations are finalized post-commit.
  */
 void azk_log_card_zone_moved(ecs_world_t *world, ecs_entity_t card,
                              GameLogZone from_zone, int8_t from_index,
@@ -62,6 +77,8 @@ void azk_log_card_zone_moved(ecs_world_t *world, ecs_entity_t card,
 /**
  * Log a card moving between zones with explicit card info.
  * Use when card entity may have already changed zones.
+ * This bypasses post-commit finalization and should not be used for HAND or
+ * SELECTION destinations that depend on committed ordering.
  */
 void azk_log_card_zone_moved_ex(ecs_world_t *world, uint8_t player,
                                 CardDefId card_def_id, GameLogZone from_zone,

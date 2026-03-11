@@ -14,6 +14,7 @@
 #include "components/abilities.h"
 #include "components/components.h"
 #include "components/game_log.h"
+#include "utils/card_utils.h"
 #include "utils/deck_utils.h"
 #include "utils/game_log_util.h"
 #include "utils/observation_util.h"
@@ -160,6 +161,23 @@ static ecs_entity_t find_zone_for_player(
   return 0;
 }
 
+static int collect_cards_of_type_in_zone(ecs_world_t *world, ecs_entity_t zone,
+                                         CardType type, ecs_entity_t *out_cards,
+                                         int max_cards) {
+  ecs_entities_t cards = ecs_get_ordered_children(world, zone);
+  int found = 0;
+
+  for (int32_t i = 0; i < cards.count && found < max_cards; i++) {
+    ecs_entity_t card = cards.ids[i];
+    const Type *card_type = ecs_get(world, card, Type);
+    if (card_type != NULL && card_type->value == type) {
+      out_cards[found++] = card;
+    }
+  }
+
+  return found;
+}
+
 static void test_azk_world_init_sets_game_state(void) {
   const uint32_t seed = 1234;
   ecs_world_t *world = azk_world_init(seed);
@@ -168,7 +186,9 @@ static void test_azk_world_init_sets_game_state(void) {
   assert(gs != NULL);
   assert(gs->seed == seed);
   assert(gs->phase == PHASE_PREGAME_MULLIGAN);
-  assert(gs->active_player_index == 0);
+  assert(gs->starting_player_index >= 0);
+  assert(gs->starting_player_index < MAX_PLAYERS_PER_MATCH);
+  assert(gs->active_player_index == gs->starting_player_index);
   assert(gs->response_window == 0);
   assert(gs->winner == -1);
 
@@ -1724,6 +1744,202 @@ static void test_game_log_singleton_initialized(void) {
   azk_world_fini(world);
 }
 
+static void test_return_card_to_hand_uses_pending_hand_logs(void) {
+  ecs_world_t *world = azk_world_init(42);
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  assert(gs != NULL);
+
+  ecs_entity_t deck = gs->zones[0].deck;
+  ecs_entity_t hand = gs->zones[0].hand;
+  ecs_entity_t garden = gs->zones[0].garden;
+
+  ecs_entity_t cards[2] = {0};
+  int card_count =
+      collect_cards_of_type_in_zone(world, deck, CARD_TYPE_ENTITY, cards, 2);
+  assert(card_count == 2);
+
+  ecs_add_pair(world, cards[0], EcsChildOf, garden);
+  ecs_set(world, cards[0], ZoneIndex, {.index = 0});
+  ecs_add_pair(world, cards[1], EcsChildOf, garden);
+  ecs_set(world, cards[1], ZoneIndex, {.index = 1});
+
+  int32_t initial_hand_count = ecs_get_ordered_children(world, hand).count;
+
+  azk_clear_game_logs(world);
+
+  ecs_defer_begin(world);
+  return_card_to_hand(world, cards[0]);
+  return_card_to_hand(world, cards[1]);
+  ecs_defer_end(world);
+  azk_finalize_pending_zone_move_logs(world);
+
+  uint8_t log_count = 0;
+  const GameStateLog *logs = azk_get_game_logs(world, &log_count);
+  assert(logs != NULL);
+
+  int matched_logs = 0;
+  for (uint8_t i = 0; i < log_count; i++) {
+    if (logs[i].type != GLOG_CARD_ZONE_MOVED) {
+      continue;
+    }
+
+    const GameLogZoneMoved *zone_moved = &logs[i].data.zone_moved;
+    if (zone_moved->card.player != 0 ||
+        zone_moved->from_zone != GLOG_ZONE_GARDEN ||
+        zone_moved->to_zone != GLOG_ZONE_HAND) {
+      continue;
+    }
+
+    assert(matched_logs < 2);
+    assert(zone_moved->from_index == matched_logs);
+    assert(zone_moved->to_index == initial_hand_count + matched_logs);
+    matched_logs++;
+  }
+
+  assert(matched_logs == 2);
+  assert(ecs_get_ordered_children(world, hand).count == initial_hand_count + 2);
+
+  azk_world_fini(world);
+}
+
+static void test_move_selection_to_hand_uses_pending_hand_logs(void) {
+  ecs_world_t *world = azk_world_init(99);
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  assert(gs != NULL);
+
+  ecs_entity_t deck = gs->zones[0].deck;
+  ecs_entity_t hand = gs->zones[0].hand;
+  ecs_entity_t selection = gs->zones[0].selection;
+
+  ecs_entity_t cards[2] = {0};
+  int card_count =
+      collect_cards_of_type_in_zone(world, deck, CARD_TYPE_ENTITY, cards, 2);
+  assert(card_count == 2);
+
+  ecs_add_pair(world, cards[0], EcsChildOf, selection);
+  ecs_add_pair(world, cards[1], EcsChildOf, selection);
+
+  int32_t initial_hand_count = ecs_get_ordered_children(world, hand).count;
+
+  azk_clear_game_logs(world);
+
+  ecs_defer_begin(world);
+  move_selection_to_hand(world, cards[0]);
+  move_selection_to_hand(world, cards[1]);
+  ecs_defer_end(world);
+  azk_finalize_pending_zone_move_logs(world);
+
+  uint8_t log_count = 0;
+  const GameStateLog *logs = azk_get_game_logs(world, &log_count);
+  assert(logs != NULL);
+
+  int matched_logs = 0;
+  for (uint8_t i = 0; i < log_count; i++) {
+    if (logs[i].type != GLOG_CARD_ZONE_MOVED) {
+      continue;
+    }
+
+    const GameLogZoneMoved *zone_moved = &logs[i].data.zone_moved;
+    if (zone_moved->card.player != 0 ||
+        zone_moved->from_zone != GLOG_ZONE_SELECTION ||
+        zone_moved->to_zone != GLOG_ZONE_HAND) {
+      continue;
+    }
+
+    assert(matched_logs < 2);
+    assert(zone_moved->from_index == matched_logs);
+    assert(zone_moved->to_index == initial_hand_count + matched_logs);
+    matched_logs++;
+  }
+
+  assert(matched_logs == 2);
+  assert(ecs_get_ordered_children(world, hand).count == initial_hand_count + 2);
+
+  azk_world_fini(world);
+}
+
+static void test_deck_to_selection_to_hand_finalizes_each_committed_step(void) {
+  ecs_world_t *world = azk_world_init(7);
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  assert(gs != NULL);
+
+  ecs_entity_t player0 = gs->players[0];
+  ecs_entity_t selection = gs->zones[0].selection;
+  ecs_entity_t hand = gs->zones[0].hand;
+  ecs_entity_t cards[2] = {0};
+
+  int32_t initial_hand_count = ecs_get_ordered_children(world, hand).count;
+
+  azk_clear_game_logs(world);
+
+  ecs_defer_begin(world);
+  int moved = look_at_top_n_cards(world, player0, 2, cards);
+  ecs_defer_end(world);
+  azk_finalize_pending_zone_move_logs(world);
+
+  assert(moved == 2);
+
+  uint8_t log_count = 0;
+  const GameStateLog *logs = azk_get_game_logs(world, &log_count);
+  assert(logs != NULL);
+
+  int selection_logs = 0;
+  for (uint8_t i = 0; i < log_count; i++) {
+    if (logs[i].type != GLOG_CARD_ZONE_MOVED) {
+      continue;
+    }
+
+    const GameLogZoneMoved *zone_moved = &logs[i].data.zone_moved;
+    if (zone_moved->card.player != 0 ||
+        zone_moved->from_zone != GLOG_ZONE_DECK ||
+        zone_moved->to_zone != GLOG_ZONE_SELECTION) {
+      continue;
+    }
+
+    assert(selection_logs < 2);
+    assert(zone_moved->to_index == selection_logs);
+    assert(zone_moved->from_index >= 0);
+    selection_logs++;
+  }
+
+  assert(selection_logs == 2);
+  assert(ecs_get_ordered_children(world, selection).count == 2);
+
+  azk_clear_game_logs(world);
+
+  ecs_defer_begin(world);
+  move_selection_to_hand(world, cards[1]);
+  ecs_defer_end(world);
+  azk_finalize_pending_zone_move_logs(world);
+
+  logs = azk_get_game_logs(world, &log_count);
+  assert(logs != NULL);
+
+  int hand_logs = 0;
+  for (uint8_t i = 0; i < log_count; i++) {
+    if (logs[i].type != GLOG_CARD_ZONE_MOVED) {
+      continue;
+    }
+
+    const GameLogZoneMoved *zone_moved = &logs[i].data.zone_moved;
+    if (zone_moved->card.player != 0 ||
+        zone_moved->from_zone != GLOG_ZONE_SELECTION ||
+        zone_moved->to_zone != GLOG_ZONE_HAND) {
+      continue;
+    }
+
+    hand_logs++;
+    assert(zone_moved->from_index == 1);
+    assert(zone_moved->to_index == initial_hand_count);
+  }
+
+  assert(hand_logs == 1);
+  assert(ecs_get_ordered_children(world, hand).count == initial_hand_count + 1);
+  assert(ecs_get_ordered_children(world, selection).count == 1);
+
+  azk_world_fini(world);
+}
+
 int main(void) {
   test_azk_world_init_sets_game_state();
   test_world_init_creates_player_zones();
@@ -1754,6 +1970,9 @@ int main(void) {
   // Game log tests
   printf("Running game log tests...\n");
   test_game_log_singleton_initialized();
+  test_return_card_to_hand_uses_pending_hand_logs();
+  test_move_selection_to_hand_uses_pending_hand_logs();
+  test_deck_to_selection_to_hand_finalizes_each_committed_step();
   printf("Game log tests passed!\n");
 
   return 0;
