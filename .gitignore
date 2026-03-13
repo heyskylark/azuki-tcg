@@ -25,4 +25,6 @@ qq
 node_modules
 
 .env.local
-**/.env.local
+.next
+next-env.d.ts
+tsconfig.tsbuildinfo
