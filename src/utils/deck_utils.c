@@ -136,11 +136,13 @@ bool draw_cards_with_deckout_check(ecs_world_t *world, ecs_entity_t player,
 
     // Move the top card (last in ordered list) to hand
     ecs_entity_t card = deck_cards.ids[deck_count - 1 - i];
+    int8_t from_index = (int8_t)(deck_count - 1 - i);
     ecs_add_pair(world, card, EcsChildOf, hand);
 
-    // Log zone movement (hand_index + i = position of this card in hand)
-    azk_log_card_zone_moved(world, card, GLOG_ZONE_DECK, -1, GLOG_ZONE_HAND,
-                            (int8_t)(hand_index + i));
+    // Capture the draw source index before the deferred move; the hand index is
+    // finalized post-commit.
+    azk_log_card_zone_moved(world, card, GLOG_ZONE_DECK, from_index,
+                            GLOG_ZONE_HAND, (int8_t)(hand_index + i));
 
     if (out_cards) {
       out_cards[i] = card;
@@ -182,11 +184,13 @@ int look_at_top_n_cards(ecs_world_t *world, ecs_entity_t player, int count,
   // Move top N cards from deck (end of array) to selection zone
   for (int i = 0; i < to_move; i++) {
     ecs_entity_t card = deck_cards.ids[deck_count - 1 - i];
+    int8_t from_index = (int8_t)(deck_count - 1 - i);
     ecs_add_pair(world, card, EcsChildOf, selection);
     out_cards[i] = card;
-    // Log zone movement
-    azk_log_card_zone_moved(world, card, GLOG_ZONE_DECK, -1, GLOG_ZONE_SELECTION,
-                            (int8_t)i);
+    // Capture the deck source index before the deferred move; the selection
+    // index is finalized post-commit.
+    azk_log_card_zone_moved(world, card, GLOG_ZONE_DECK, from_index,
+                            GLOG_ZONE_SELECTION, (int8_t)i);
   }
 
   // Zero out remaining slots if fewer cards available
@@ -232,16 +236,22 @@ void move_selection_to_hand(ecs_world_t *world, ecs_entity_t card) {
 
   const GameState *gs = ecs_singleton_get(world, GameState);
   ecs_entity_t hand_zone = gs->zones[player_number->player_number].hand;
+  ecs_entity_t selection_zone = gs->zones[player_number->player_number].selection;
 
-  // Get hand count before adding (card will be appended at this index)
-  int32_t hand_index = ecs_get_ordered_children(world, hand_zone).count;
+  // Capture the selection slot before the card leaves the source zone.
+  int8_t from_index = azk_get_card_index_in_zone(world, card, selection_zone);
+
+  // Include already-logged hand moves in this action batch so repeated
+  // selection-to-hand moves under deferred ops keep their append order.
+  int32_t hand_index = azk_get_effective_hand_count(
+      world, hand_zone, player_number->player_number);
 
   // Move from selection to hand
   ecs_add_pair(world, card, EcsChildOf, hand_zone);
 
-  // Log zone movement
-  azk_log_card_zone_moved(world, card, GLOG_ZONE_SELECTION, -1, GLOG_ZONE_HAND,
-                          (int8_t)hand_index);
+  // Log zone movement. The final hand index is resolved after commit.
+  azk_log_card_zone_moved(world, card, GLOG_ZONE_SELECTION, from_index,
+                          GLOG_ZONE_HAND, (int8_t)hand_index);
 }
 
 void move_selection_to_deck_bottom(ecs_world_t *world, ecs_entity_t player,

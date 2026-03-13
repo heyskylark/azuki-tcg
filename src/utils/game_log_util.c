@@ -16,8 +16,27 @@ static GameStateLog *add_log_entry(ecs_world_t *world) {
     return NULL;
   }
   GameStateLog *log = &ctx->logs[ctx->count++];
+  *log = (GameStateLog){0};
   ecs_singleton_modified(world, GameStateLogContext);
   return log;
+}
+
+static PendingZoneMoveLog *add_pending_zone_move(ecs_world_t *world) {
+  GameStateLogContext *ctx = ecs_singleton_get_mut(world, GameStateLogContext);
+  if (!ctx) {
+    return NULL;
+  }
+  if (ctx->pending_zone_move_count >= MAX_GAME_STATE_LOGS) {
+    cli_render_logf("[GameLog] Warning: Pending move buffer full, dropping "
+                    "post-commit finalization");
+    return NULL;
+  }
+
+  PendingZoneMoveLog *pending =
+      &ctx->pending_zone_moves[ctx->pending_zone_move_count++];
+  *pending = (PendingZoneMoveLog){0};
+  ecs_singleton_modified(world, GameStateLogContext);
+  return pending;
 }
 
 /* Get player number from card entity */
@@ -59,6 +78,10 @@ static bool is_public_log_zone(GameLogZone zone) {
   default:
     return false;
   }
+}
+
+static bool zone_move_requires_post_commit_finalization(GameLogZone to_zone) {
+  return to_zone == GLOG_ZONE_HAND || to_zone == GLOG_ZONE_SELECTION;
 }
 
 static bool is_zone_entity(ecs_world_t *world, ecs_entity_t entity) {
@@ -142,6 +165,7 @@ void azk_clear_game_logs(ecs_world_t *world) {
   GameStateLogContext *ctx = ecs_singleton_get_mut(world, GameStateLogContext);
   if (ctx) {
     ctx->count = 0;
+    ctx->pending_zone_move_count = 0;
     ecs_singleton_modified(world, GameStateLogContext);
   }
 }
@@ -163,6 +187,101 @@ const GameStateLog *azk_get_game_logs(ecs_world_t *world, uint8_t *out_count) {
     *out_count = ctx->count;
   }
   return ctx->logs;
+}
+
+void azk_finalize_pending_zone_move_logs(ecs_world_t *world) {
+  ecs_assert(world != NULL, ECS_INVALID_PARAMETER, "World pointer is null");
+
+  bool is_deferred = ecs_is_deferred(world);
+  ecs_assert(!is_deferred, ECS_INVALID_OPERATION,
+             "Cannot finalize zone move logs while world is deferred");
+  if (is_deferred) {
+    return;
+  }
+
+  GameStateLogContext *ctx = ecs_singleton_get_mut(world, GameStateLogContext);
+  if (!ctx || ctx->pending_zone_move_count == 0) {
+    return;
+  }
+
+  uint8_t write_index = 0;
+  uint8_t original_pending_count = ctx->pending_zone_move_count;
+
+  for (uint8_t i = 0; i < original_pending_count; i++) {
+    PendingZoneMoveLog pending = ctx->pending_zone_moves[i];
+    if (pending.card == 0 || pending.log_index >= ctx->count) {
+      continue;
+    }
+
+    ecs_entity_t index_card = pending.card;
+    ecs_entity_t zone_entity = find_card_zone(world, pending.card, &index_card);
+    GameLogZone actual_zone = azk_zone_entity_to_log_zone(world, zone_entity);
+    if (actual_zone != pending.to_zone) {
+      ctx->pending_zone_moves[write_index++] = pending;
+      continue;
+    }
+
+    int8_t to_index = azk_get_card_index_in_zone(world, index_card, zone_entity);
+    if (to_index < 0) {
+      ctx->pending_zone_moves[write_index++] = pending;
+      continue;
+    }
+
+    GameStateLog *log = &ctx->logs[pending.log_index];
+    ecs_assert(log->type == GLOG_CARD_ZONE_MOVED, ECS_INVALID_OPERATION,
+               "Pending zone move referenced non-zone-move log");
+    if (log->type != GLOG_CARD_ZONE_MOVED) {
+      continue;
+    }
+
+    log->data.zone_moved.card = azk_make_card_ref(world, pending.card);
+    log->data.zone_moved.card.zone = actual_zone;
+    log->data.zone_moved.card.zone_index = to_index;
+    log->data.zone_moved.to_zone = actual_zone;
+    log->data.zone_moved.to_index = to_index;
+    log->data.zone_moved.metadata = azk_make_card_metadata(world, pending.card);
+  }
+
+  ctx->pending_zone_move_count = write_index;
+  if (write_index != original_pending_count) {
+    ecs_singleton_modified(world, GameStateLogContext);
+  }
+}
+
+int32_t azk_get_effective_hand_count(ecs_world_t *world, ecs_entity_t hand_zone,
+                                     uint8_t player) {
+  int32_t hand_count = ecs_get_ordered_children(world, hand_zone).count;
+  const GameStateLogContext *ctx = ecs_singleton_get(world, GameStateLogContext);
+  ecs_assert(ctx != NULL, ECS_INVALID_PARAMETER,
+             "GameStateLogContext singleton missing");
+  if (ctx == NULL) {
+    return hand_count;
+  }
+
+  for (uint8_t i = 0; i < ctx->count; i++) {
+    const GameStateLog *log = &ctx->logs[i];
+    if (log->type != GLOG_CARD_ZONE_MOVED) {
+      continue;
+    }
+
+    const GameLogZoneMoved *zone_moved = &log->data.zone_moved;
+    if (zone_moved->card.player != player) {
+      continue;
+    }
+
+    if (zone_moved->from_zone == GLOG_ZONE_HAND) {
+      hand_count--;
+    }
+    if (zone_moved->to_zone == GLOG_ZONE_HAND) {
+      hand_count++;
+    }
+  }
+
+  if (hand_count < 0) {
+    hand_count = 0;
+  }
+
+  return hand_count;
 }
 
 GameLogZone azk_zone_entity_to_log_zone(ecs_world_t *world,
@@ -287,6 +406,21 @@ void azk_log_card_zone_moved(ecs_world_t *world, ecs_entity_t card,
   log->data.zone_moved.to_zone = to_zone;
   log->data.zone_moved.to_index = to_index;
   log->data.zone_moved.metadata = azk_make_card_metadata(world, card);
+
+  if (zone_move_requires_post_commit_finalization(to_zone)) {
+    const GameStateLogContext *ctx =
+        ecs_singleton_get(world, GameStateLogContext);
+    ecs_assert(ctx != NULL, ECS_INVALID_PARAMETER,
+               "GameStateLogContext singleton missing");
+    if (ctx != NULL) {
+      PendingZoneMoveLog *pending = add_pending_zone_move(world);
+      if (pending) {
+        pending->card = card;
+        pending->log_index = (uint8_t)(ctx->count - 1);
+        pending->to_zone = to_zone;
+      }
+    }
+  }
 }
 
 void azk_log_card_zone_moved_ex(ecs_world_t *world, uint8_t player,

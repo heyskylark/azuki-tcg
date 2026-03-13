@@ -86,6 +86,8 @@ typedef struct {
   ecs_entity_t source_card;
   ecs_entity_t owner;
   bool is_optional;
+  bool restores_active_player;
+  int8_t saved_active_player_index;
   uint8_t cost_min, effect_min;
   uint8_t cost_expected, effect_expected;
   uint8_t cost_filled, effect_filled;

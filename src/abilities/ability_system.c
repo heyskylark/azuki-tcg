@@ -113,6 +113,35 @@ static uint8_t count_available_cost_targets(ecs_world_t *world,
   return count;
 }
 
+static void maybe_transfer_triggered_ability_control(ecs_world_t *world,
+                                                     AbilityContext *ctx,
+                                                     ecs_entity_t owner) {
+  ctx->restores_active_player = false;
+  ctx->saved_active_player_index = -1;
+
+  if (ctx->phase == ABILITY_PHASE_NONE) {
+    return;
+  }
+
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  if (!gs) {
+    return;
+  }
+
+  uint8_t owner_player_num = get_player_number(world, owner);
+  if (gs->active_player_index == owner_player_num) {
+    return;
+  }
+
+  ctx->restores_active_player = true;
+  ctx->saved_active_player_index = gs->active_player_index;
+
+  cli_render_logf("[Ability] Switching control to player %d for triggered ability",
+                  owner_player_num);
+  gs->active_player_index = (int8_t)owner_player_num;
+  ecs_singleton_modified(world, GameState);
+}
+
 bool azk_process_ability_confirmation(ecs_world_t *world) {
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
 
@@ -828,6 +857,7 @@ bool azk_process_selection_to_equip(ecs_world_t *world, int selection_index,
   // Get game state and find target entity
   const GameState *gs = ecs_singleton_get(world, GameState);
   uint8_t player_num = get_player_number(world, ctx->owner);
+  ecs_entity_t selection_zone = gs->zones[player_num].selection;
   ecs_entity_t target_entity = 0;
 
   if (entity_index < GARDEN_SIZE) {
@@ -851,6 +881,13 @@ bool azk_process_selection_to_equip(ecs_world_t *world, int selection_index,
     cli_render_logf("[Ability] Missing stats for weapon or target");
     return false;
   }
+
+  int8_t from_index = azk_get_card_index_in_zone(world, weapon, selection_zone);
+
+  // Log selection -> equipped movement before the deferred reparent changes
+  // the visible parent chain.
+  azk_log_card_zone_moved(world, weapon, GLOG_ZONE_SELECTION, from_index,
+                          GLOG_ZONE_EQUIPPED, -1);
 
   // Attach weapon to target (ChildOf relationship)
   ecs_add_pair(world, weapon, EcsChildOf, target_entity);
@@ -1028,10 +1065,24 @@ void azk_clear_ability_context(ecs_world_t *world) {
             {.is_once_per_turn = true, .was_applied = true});
   }
 
+  if (ctx->restores_active_player) {
+    GameState *gs = ecs_singleton_get_mut(world, GameState);
+    if (gs && ctx->saved_active_player_index >= 0 &&
+        ctx->saved_active_player_index < MAX_PLAYERS_PER_MATCH &&
+        gs->active_player_index != ctx->saved_active_player_index) {
+      cli_render_logf("[Ability] Restoring control to player %d",
+                      ctx->saved_active_player_index);
+      gs->active_player_index = ctx->saved_active_player_index;
+      ecs_singleton_modified(world, GameState);
+    }
+  }
+
   ctx->phase = ABILITY_PHASE_NONE;
   ctx->source_card = 0;
   ctx->owner = 0;
   ctx->is_optional = false;
+  ctx->restores_active_player = false;
+  ctx->saved_active_player_index = -1;
   ctx->cost_min = 0;
   ctx->cost_expected = 0;
   ctx->cost_filled = 0;
@@ -1107,6 +1158,8 @@ bool azk_trigger_main_ability(ecs_world_t *world, ecs_entity_t card,
   ctx->source_card = card;
   ctx->owner = owner;
   ctx->is_optional = def->is_optional;
+  ctx->restores_active_player = false;
+  ctx->saved_active_player_index = -1;
   ctx->cost_min = def->cost_req.min;
   ctx->cost_expected = available_cost_targets < def->cost_req.max
                            ? available_cost_targets
@@ -1217,6 +1270,8 @@ bool azk_trigger_spell_ability(ecs_world_t *world, ecs_entity_t spell_card,
   ctx->source_card = spell_card;
   ctx->owner = owner;
   ctx->is_optional = false; // Spells are already cast, not optional
+  ctx->restores_active_player = false;
+  ctx->saved_active_player_index = -1;
   ctx->cost_min = def->cost_req.min;
   ctx->cost_expected = available_cost_targets < def->cost_req.max
                            ? available_cost_targets
@@ -1294,6 +1349,8 @@ bool azk_trigger_leader_response_ability(ecs_world_t *world, ecs_entity_t card,
   ctx->source_card = card;
   ctx->owner = owner;
   ctx->is_optional = false; // Response abilities are already activated
+  ctx->restores_active_player = false;
+  ctx->saved_active_player_index = -1;
   ctx->cost_min = def->cost_req.min;
   ctx->cost_expected = available_cost_targets < def->cost_req.max
                            ? available_cost_targets
@@ -1418,18 +1475,6 @@ bool azk_process_triggered_effect_queue(ecs_world_t *world) {
   ecs_entity_t card = effect.source_card;
   ecs_entity_t owner = effect.owner;
 
-  // Switch active player to ability owner if different
-  // This ensures the correct player has control to confirm/decline
-  GameState *gs = ecs_singleton_get_mut(world, GameState);
-  uint8_t owner_player_num = get_player_number(world, owner);
-  if (gs->active_player_index != owner_player_num) {
-    cli_render_logf(
-        "[Ability] Switching control to player %d for triggered ability",
-        owner_player_num);
-    gs->active_player_index = owner_player_num;
-    ecs_singleton_modified(world, GameState);
-  }
-
   // Get card ID
   const CardId *card_id = ecs_get(world, card, CardId);
   if (!card_id) {
@@ -1479,6 +1524,8 @@ bool azk_process_triggered_effect_queue(ecs_world_t *world) {
   ctx->source_card = card;
   ctx->owner = owner;
   ctx->is_optional = def->is_optional;
+  ctx->restores_active_player = false;
+  ctx->saved_active_player_index = -1;
   ctx->cost_min = def->cost_req.min;
   ctx->cost_expected = available_cost_targets < def->cost_req.max
                            ? available_cost_targets
@@ -1497,6 +1544,7 @@ bool azk_process_triggered_effect_queue(ecs_world_t *world) {
   if (def->is_optional) {
     // Optional ability - enter confirmation phase
     ctx->phase = ABILITY_PHASE_CONFIRMATION;
+    maybe_transfer_triggered_ability_control(world, ctx, owner);
     cli_render_logf(
         "[Ability] Triggered optional ability, waiting for confirmation");
     ecs_singleton_modified(world, AbilityContext);
@@ -1519,6 +1567,7 @@ bool azk_process_triggered_effect_queue(ecs_world_t *world) {
       ctx->phase = ABILITY_PHASE_NONE;
       cli_render_logf("[Ability] Applied mandatory ability with no targets");
     }
+    maybe_transfer_triggered_ability_control(world, ctx, owner);
     ecs_singleton_modified(world, AbilityContext);
     return ctx->phase != ABILITY_PHASE_NONE;
   }
@@ -1604,6 +1653,8 @@ void azk_trigger_gate_portal_ability(ecs_world_t *world, ecs_entity_t gate_card,
   ctx->source_card = gate_card;
   ctx->owner = owner;
   ctx->is_optional = def->is_optional;
+  ctx->restores_active_player = false;
+  ctx->saved_active_player_index = -1;
   ctx->effect_targets[0] = portaled_card; // Store portaled card for effect
   ctx->effect_filled = 1;
 

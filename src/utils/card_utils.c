@@ -112,8 +112,10 @@ void return_card_to_hand(ecs_world_t *world, ecs_entity_t card) {
     }
   }
 
-  // Get hand count before adding (card will be appended at this index)
-  int32_t hand_index = ecs_get_ordered_children(world, hand_zone).count;
+  // Include already-logged hand moves in this action batch so repeated
+  // returns under deferred ops still get monotonic append indices.
+  int32_t hand_index =
+      azk_get_effective_hand_count(world, hand_zone, player_num);
 
   // Move to hand
   ecs_add_pair(world, card, EcsChildOf, hand_zone);

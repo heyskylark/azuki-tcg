@@ -334,6 +334,7 @@ void azk_engine_tick(AzkEngine *engine) {
   if (has_deck_reorders) {
     section_start_ns = profile_enabled ? tick_now_ns() : 0;
     azk_process_deck_reorder_queue(engine);
+    azk_finalize_pending_zone_move_logs(engine);
     if (profile_enabled) {
       deck_process_ns += tick_now_ns() - section_start_ns;
       return_path = TICK_PROFILE_RETURN_DECK;
@@ -362,6 +363,7 @@ void azk_engine_tick(AzkEngine *engine) {
     if (!azk_is_in_ability_phase(engine)) {
       section_start_ns = profile_enabled ? tick_now_ns() : 0;
       azk_process_passive_buff_queue(engine);
+      azk_finalize_pending_zone_move_logs(engine);
       if (profile_enabled) {
         passive_process_ns += tick_now_ns() - section_start_ns;
         return_path = TICK_PROFILE_RETURN_PASSIVE;
@@ -392,6 +394,7 @@ void azk_engine_tick(AzkEngine *engine) {
     // Auto-process the queued effect (validates and sets up AbilityContext)
     section_start_ns = profile_enabled ? tick_now_ns() : 0;
     azk_process_triggered_effect_queue(engine);
+    azk_finalize_pending_zone_move_logs(engine);
     if (profile_enabled) {
       triggered_process_ns += tick_now_ns() - section_start_ns;
       return_path = TICK_PROFILE_RETURN_TRIGGERED;
@@ -413,6 +416,7 @@ void azk_engine_tick(AzkEngine *engine) {
 
   gs = ecs_singleton_get(engine, GameState);
   if (!gs) {
+    azk_finalize_pending_zone_move_logs(engine);
     if (profile_enabled) {
       const uint64_t total_ns = tick_now_ns() - tick_start_ns;
       record_tick_profile(total_ns, deck_check_ns, deck_process_ns,
@@ -426,6 +430,7 @@ void azk_engine_tick(AzkEngine *engine) {
   // Phase transitions are a separate auto-progression step.
   // Returning here prevents consuming stale ActionContext.user_action.
   if (gs->phase != phase_before) {
+    azk_finalize_pending_zone_move_logs(engine);
     if (profile_enabled) {
       return_path = TICK_PROFILE_RETURN_PHASE_CHANGE;
       const uint64_t total_ns = tick_now_ns() - tick_start_ns;
@@ -439,6 +444,7 @@ void azk_engine_tick(AzkEngine *engine) {
 
   section_start_ns = profile_enabled ? tick_now_ns() : 0;
   ecs_progress(engine, 0);
+  azk_finalize_pending_zone_move_logs(engine);
   if (profile_enabled) {
     ecs_progress_ns += tick_now_ns() - section_start_ns;
     return_path = TICK_PROFILE_RETURN_PROGRESS;

@@ -245,11 +245,23 @@ typedef struct {
 } GameStateLog;
 
 /**
+ * Pending zone-move log entry awaiting post-commit finalization.
+ * Phase 1A only defers ordered/private destinations that need committed order.
+ */
+typedef struct {
+  ecs_entity_t card;
+  uint8_t log_index;
+  GameLogZone to_zone;
+} PendingZoneMoveLog;
+
+/**
  * ECS Singleton - stores logs for current action batch.
  */
 typedef struct {
   GameStateLog logs[MAX_GAME_STATE_LOGS];
+  PendingZoneMoveLog pending_zone_moves[MAX_GAME_STATE_LOGS];
   uint8_t count;
+  uint8_t pending_zone_move_count;
   uint16_t turn_number; // Current turn for context
 } GameStateLogContext;
 
