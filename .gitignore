@@ -1,4 +1,5 @@
 .codexignore
+.cache
 .env.local
 .DS_Store
 python/.DS_Store
@@ -23,4 +24,5 @@ qq
 
 node_modules
 
+.env.local
 **/.env.local

@@ -81,6 +81,10 @@ static void handle_phase_transition(ecs_world_t *world, GameState *gs) {
   }
 }
 
+static bool should_draw_start_of_turn_card(const GameState *gs) {
+  return gs->turn_number > 1;
+}
+
 void StartPhase(ecs_iter_t *it) {
   ecs_world_t *world = it->world;
   GameState *gs = ecs_field(it, GameState, 0);
@@ -106,7 +110,11 @@ void StartPhase(ecs_iter_t *it) {
   ResetOnceTurnAbilities(world, gs);
 
   UntapAllCards(world, gs);
-  DrawCard(world, gs);
+  if (should_draw_start_of_turn_card(gs)) {
+    DrawCard(world, gs);
+  } else {
+    cli_render_log("[StartPhase] Skipping opening draw for the starting player");
+  }
   GrantIKZ(world, gs);
 
   handle_phase_transition(world, gs);
