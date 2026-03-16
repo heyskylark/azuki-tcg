@@ -6,9 +6,9 @@
 
 #include "components/components.h"
 
-// STT01-003 "Crate Rat Kurobo": On Play; You may put 3 cards from the top of
-// your deck into your discard pile. If you have no weapon cards in your
-// discard pile, put 5 cards instead.
+// STT01-003 "Crate Rat Kurobo": On Play; Put 3 cards from the top of your deck
+// into your discard pile. If you have no weapon cards in your discard pile
+// when you activate this ability, put 5 cards instead.
 
 // Validate if ability can be activated
 // Always returns true - no validation needed for this simple effect

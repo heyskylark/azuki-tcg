@@ -1550,26 +1550,49 @@ bool azk_process_triggered_effect_queue(ecs_world_t *world) {
     ecs_singleton_modified(world, AbilityContext);
     return true;
   } else {
-    // Non-optional ability - skip confirmation, go straight to cost selection
+    // Non-optional ability - skip confirmation, but still enter the same
+    // follow-up phase the ability would enter after being confirmed.
     if (def->cost_req.min > 0) {
       ctx->phase = ABILITY_PHASE_COST_SELECTION;
       cli_render_logf(
           "[Ability] Triggered mandatory ability, selecting cost targets");
-    } else if (def->effect_req.min > 0) {
+    } else if (def->on_cost_paid) {
+      if (def->apply_costs) {
+        def->apply_costs(world, ctx);
+        cli_render_logf(
+            "[Ability] Applied mandatory ability costs before selection flow");
+      }
+      def->on_cost_paid(world, ctx);
+      cli_render_logf(
+          "[Ability] Triggered mandatory ability, started selection flow");
+      if (ctx->phase == ABILITY_PHASE_NONE) {
+        azk_clear_ability_context(world);
+        return false;
+      }
+    } else if (def->effect_req.max > 0) {
+      if (def->apply_costs) {
+        def->apply_costs(world, ctx);
+        cli_render_logf(
+            "[Ability] Applied mandatory ability costs before effect selection");
+      }
       ctx->phase = ABILITY_PHASE_EFFECT_SELECTION;
       cli_render_logf(
           "[Ability] Triggered mandatory ability, selecting effect targets");
     } else {
-      // No targets needed - apply immediately
+      // No targets needed - apply immediately.
+      if (def->apply_costs) {
+        def->apply_costs(world, ctx);
+      }
       if (def->apply_effects) {
         def->apply_effects(world, ctx);
       }
-      ctx->phase = ABILITY_PHASE_NONE;
+      azk_clear_ability_context(world);
       cli_render_logf("[Ability] Applied mandatory ability with no targets");
+      return false;
     }
     maybe_transfer_triggered_ability_control(world, ctx, owner);
     ecs_singleton_modified(world, AbilityContext);
-    return ctx->phase != ABILITY_PHASE_NONE;
+    return true;
   }
 }
 

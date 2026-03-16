@@ -12,7 +12,7 @@
     },
     "STT01-003": {
       "has_ability": true,
-      "is_optional": true,
+      "is_optional": false,
       "timing_tag": "AOnPlay"
     },
     "STT01-004": {
@@ -52,7 +52,7 @@
     },
     "STT01-012": {
       "has_ability": true,
-      "is_optional": true,
+      "is_optional": false,
       "timing_tag": "AWhenAttacking"
     },
     "STT01-013": {
@@ -62,7 +62,7 @@
     },
     "STT01-014": {
       "has_ability": true,
-      "is_optional": true,
+      "is_optional": false,
       "timing_tag": "AOnPlay"
     },
     "STT01-015": {
@@ -72,7 +72,7 @@
     },
     "STT01-016": {
       "has_ability": true,
-      "is_optional": true,
+      "is_optional": false,
       "timing_tag": "AWhenAttacking"
     },
     "STT01-017": {
@@ -92,12 +92,12 @@
     },
     "STT02-003": {
       "has_ability": true,
-      "is_optional": true,
+      "is_optional": false,
       "timing_tag": "AOnPlay"
     },
     "STT02-005": {
       "has_ability": true,
-      "is_optional": true,
+      "is_optional": false,
       "timing_tag": "AOnPlay"
     },
     "STT02-007": {
@@ -127,7 +127,7 @@
     },
     "STT02-013": {
       "has_ability": true,
-      "is_optional": true,
+      "is_optional": false,
       "timing_tag": "AOnPlay"
     },
     "STT02-014": {

@@ -2,8 +2,8 @@
 
 #include "components/components.h"
 #include "generated/card_defs.h"
-#include "utils/card_utils.h"
 #include "utils/cli_rendering_util.h"
+#include "utils/deck_utils.h"
 #include "utils/player_util.h"
 
 // STT01-012 "Lightning Shuriken": [When Attacking] Put the top card of your
@@ -24,22 +24,15 @@ bool stt01_012_validate(ecs_world_t *world, ecs_entity_t card,
 }
 
 void stt01_012_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
-  uint8_t player_num = get_player_number(world, ctx->owner);
-  const GameState *gs = ecs_singleton_get(world, GameState);
+  ecs_entity_t milled_card = 0;
+  mill_cards_with_deckout_check(world, ctx->owner, 1, &milled_card);
 
-  ecs_entity_t deck_zone = gs->zones[player_num].deck;
-  ecs_entities_t deck_cards = ecs_get_ordered_children(world, deck_zone);
-
-  if (deck_cards.count == 0) {
+  if (milled_card == 0) {
     cli_render_logf("[STT01-012] No cards in deck to discard");
     return;
   }
 
-  // Mill top card (top of deck = last element in array)
-  ecs_entity_t top_card = deck_cards.ids[deck_cards.count - 1];
-  discard_card(world, top_card);
-
-  const CardId *discarded_id = ecs_get(world, top_card, CardId);
+  const CardId *discarded_id = ecs_get(world, milled_card, CardId);
   if (discarded_id) {
     cli_render_logf("[STT01-012] Discarded %s from top of deck",
                     discarded_id->code);

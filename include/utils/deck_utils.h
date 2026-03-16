@@ -1,10 +1,12 @@
 #ifndef AZUKI_UTILS_DECK_UTILS_H
 #define AZUKI_UTILS_DECK_UTILS_H
 
-#include <flecs.h>  
+#include <flecs.h>
 
 void shuffle_deck(ecs_world_t *world, ecs_entity_t deck_zone);
-bool move_cards_to_zone(ecs_world_t *world, ecs_entity_t from_zone, ecs_entity_t to_zone, int draw_count, ecs_entity_t *out_cards);
+bool move_cards_to_zone(ecs_world_t *world, ecs_entity_t from_zone,
+                        ecs_entity_t to_zone, int draw_count,
+                        ecs_entity_t *out_cards);
 
 /**
  * Draw cards from deck to hand with deck-out check after each draw.
@@ -16,6 +18,21 @@ bool move_cards_to_zone(ecs_world_t *world, ecs_entity_t from_zone, ecs_entity_t
  * @return true if all cards were drawn successfully, false if deck-out occurred
  */
 bool draw_cards_with_deckout_check(ecs_world_t *world, ecs_entity_t player, int draw_count, ecs_entity_t *out_cards);
+
+/**
+ * Mill cards from deck to discard pile with deck-out check after the mill.
+ * If the deck becomes empty after milling, sets winner to opponent and returns
+ * false.
+ * @param world The ECS world
+ * @param player The player entity whose deck is being milled
+ * @param mill_count Number of cards to mill
+ * @param out_cards Optional array to store milled card entities (must be at
+ * least mill_count size)
+ * @return true if the deck still has cards remaining after milling, false if
+ * deck-out occurred
+ */
+bool mill_cards_with_deckout_check(ecs_world_t *world, ecs_entity_t player,
+                                   int mill_count, ecs_entity_t *out_cards);
 
 /**
  * Move top N cards from deck to selection zone for examination.

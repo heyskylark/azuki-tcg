@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "components/components.h"
+#include "utils/card_utils.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/game_log_util.h"
 #include "utils/player_util.h"
@@ -18,6 +19,15 @@ static inline uint32_t deck_next_rand(uint32_t *state) {
   x ^= x << 5;
   *state = x;
   return x;
+}
+
+static bool set_deck_out_loss(ecs_world_t *world, GameState *gs,
+                              uint8_t player_num) {
+  gs->winner = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
+  gs->phase = PHASE_END_MATCH;
+  ecs_singleton_modified(world, GameState);
+  azk_log_game_ended(world, gs->winner, GLOG_END_DECK_OUT);
+  return false;
 }
 
 void shuffle_deck(ecs_world_t *world, ecs_entity_t deck_zone) {
@@ -127,11 +137,7 @@ bool draw_cards_with_deckout_check(ecs_world_t *world, ecs_entity_t player,
   for (int i = 0; i < draw_count; i++) {
     if (deck_count == 0) {
       // Couldn't draw (deck was already empty)
-      gs->winner = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
-      gs->phase = PHASE_END_MATCH;
-      ecs_singleton_modified(world, GameState);
-      azk_log_game_ended(world, gs->winner, GLOG_END_DECK_OUT);
-      return false;
+      return set_deck_out_loss(world, gs, player_num);
     }
 
     // Move the top card (last in ordered list) to hand
@@ -152,13 +158,47 @@ bool draw_cards_with_deckout_check(ecs_world_t *world, ecs_entity_t player,
     // (deck_count - i - 1 = remaining cards after this draw)
     int remaining = deck_count - i - 1;
     if (remaining == 0) {
-      gs->winner = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
-      gs->phase = PHASE_END_MATCH;
-      ecs_singleton_modified(world, GameState);
-      azk_log_game_ended(world, gs->winner, GLOG_END_DECK_OUT);
-      return false; // Player loses due to deck-out
+      return set_deck_out_loss(world, gs, player_num);
     }
   }
+  return true;
+}
+
+bool mill_cards_with_deckout_check(ecs_world_t *world, ecs_entity_t player,
+                                   int mill_count, ecs_entity_t *out_cards) {
+  if (mill_count <= 0) {
+    return true;
+  }
+
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  uint8_t player_num = get_player_number(world, player);
+  ecs_entity_t deck = gs->zones[player_num].deck;
+
+  ecs_entities_t deck_cards = ecs_get_ordered_children(world, deck);
+  int32_t deck_count = deck_cards.count;
+  int32_t to_mill = mill_count;
+  if (to_mill > deck_count) {
+    to_mill = deck_count;
+  }
+
+  for (int32_t i = 0; i < to_mill; i++) {
+    ecs_entity_t card = deck_cards.ids[deck_count - 1 - i];
+    discard_card(world, card);
+    if (out_cards) {
+      out_cards[i] = card;
+    }
+  }
+
+  if (out_cards) {
+    for (int32_t i = to_mill; i < mill_count; i++) {
+      out_cards[i] = 0;
+    }
+  }
+
+  if (deck_count > 0 && to_mill == deck_count) {
+    return set_deck_out_loss(world, gs, player_num);
+  }
+
   return true;
 }
 

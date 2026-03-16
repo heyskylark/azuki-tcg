@@ -494,12 +494,52 @@ static void test_ability_registry_lookup(void) {
   const AbilityDef *stt01_003_def = azk_get_ability_def(CARD_DEF_STT01_003);
   assert(stt01_003_def != NULL);
   assert(stt01_003_def->has_ability);
-  assert(stt01_003_def->is_optional);
+  assert(!stt01_003_def->is_optional);
   assert(stt01_003_def->timing_tag == ecs_id(AOnPlay));
   assert(stt01_003_def->cost_req.type == ABILITY_TARGET_NONE);
   assert(stt01_003_def->effect_req.type == ABILITY_TARGET_NONE);
   assert(stt01_003_def->validate != NULL);
   assert(stt01_003_def->apply_effects != NULL);
+
+  const AbilityDef *stt01_012_def = azk_get_ability_def(CARD_DEF_STT01_012);
+  assert(stt01_012_def != NULL);
+  assert(stt01_012_def->has_ability);
+  assert(!stt01_012_def->is_optional);
+
+  const AbilityDef *stt01_006_def = azk_get_ability_def(CARD_DEF_STT01_006);
+  assert(stt01_006_def != NULL);
+  assert(stt01_006_def->has_ability);
+  assert(!stt01_006_def->is_optional);
+
+  const AbilityDef *stt01_014_def = azk_get_ability_def(CARD_DEF_STT01_014);
+  assert(stt01_014_def != NULL);
+  assert(stt01_014_def->has_ability);
+  assert(!stt01_014_def->is_optional);
+
+  const AbilityDef *stt01_016_def = azk_get_ability_def(CARD_DEF_STT01_016);
+  assert(stt01_016_def != NULL);
+  assert(stt01_016_def->has_ability);
+  assert(!stt01_016_def->is_optional);
+
+  const AbilityDef *stt02_003_def = azk_get_ability_def(CARD_DEF_STT02_003);
+  assert(stt02_003_def != NULL);
+  assert(stt02_003_def->has_ability);
+  assert(!stt02_003_def->is_optional);
+
+  const AbilityDef *stt02_005_def = azk_get_ability_def(CARD_DEF_STT02_005);
+  assert(stt02_005_def != NULL);
+  assert(stt02_005_def->has_ability);
+  assert(!stt02_005_def->is_optional);
+
+  const AbilityDef *stt02_007_def = azk_get_ability_def(CARD_DEF_STT02_007);
+  assert(stt02_007_def != NULL);
+  assert(stt02_007_def->has_ability);
+  assert(!stt02_007_def->is_optional);
+
+  const AbilityDef *stt02_013_def = azk_get_ability_def(CARD_DEF_STT02_013);
+  assert(stt02_013_def != NULL);
+  assert(stt02_013_def->has_ability);
+  assert(!stt02_013_def->is_optional);
 
   // A card without ability should return NULL or has_ability=false
   const AbilityDef *no_ability = azk_get_ability_def(CARD_DEF_IKZ_001);
@@ -809,9 +849,9 @@ static void test_st01_007_ability_flow_decline(void) {
 }
 
 // ============================================================================
-// STT01-003 Tests: "On Play; You may put 3 cards from the top of your deck
-// into your discard pile. If you have no weapon cards in your discard pile,
-// put 5 cards instead."
+// STT01-003 Tests: "On Play; Put 3 cards from the top of your deck into your
+// discard pile. If you have no weapon cards in your discard pile when you
+// activate this ability, put 5 cards instead."
 // ============================================================================
 
 static void test_stt01_003_mills_5_without_weapons(void) {
@@ -871,17 +911,9 @@ static void test_stt01_003_mills_5_without_weapons(void) {
 
   // Process the queue
   bool processed = azk_process_triggered_effect_queue(world);
-  assert(processed);
+  assert(!processed);
 
-  // Should be in confirmation phase (optional ability)
-  assert(azk_is_in_ability_phase(world));
-  assert(azk_get_ability_phase(world) == ABILITY_PHASE_CONFIRMATION);
-
-  // Confirm the ability
-  bool confirmed = azk_process_ability_confirmation(world);
-  assert(confirmed);
-
-  // Ability should complete immediately (no cost/effect targets)
+  // Mandatory triggered ability should resolve immediately.
   assert(!azk_is_in_ability_phase(world));
   assert(azk_get_ability_phase(world) == ABILITY_PHASE_NONE);
 
@@ -964,16 +996,9 @@ static void test_stt01_003_mills_3_with_weapons(void) {
 
   // Process the queue
   bool processed = azk_process_triggered_effect_queue(world);
-  assert(processed);
+  assert(!processed);
 
-  // Should be in confirmation phase (optional ability)
-  assert(azk_get_ability_phase(world) == ABILITY_PHASE_CONFIRMATION);
-
-  // Confirm the ability
-  bool confirmed = azk_process_ability_confirmation(world);
-  assert(confirmed);
-
-  // Ability should complete immediately
+  // Mandatory triggered ability should resolve immediately.
   assert(!azk_is_in_ability_phase(world));
 
   // Verify final state: 3 cards milled (weapon was in discard)
@@ -992,7 +1017,7 @@ static void test_stt01_003_mills_3_with_weapons(void) {
   ecs_fini(world);
 }
 
-static void test_stt01_003_decline_does_nothing(void) {
+static void test_stt01_003_resolves_without_confirmation(void) {
   ecs_world_t *world = ecs_init();
   azk_register_components(world);
 
@@ -1048,25 +1073,18 @@ static void test_stt01_003_decline_does_nothing(void) {
 
   // Process the queue
   bool processed = azk_process_triggered_effect_queue(world);
-  assert(processed);
+  assert(!processed);
 
-  // Should be in confirmation phase (optional ability)
-  assert(azk_get_ability_phase(world) == ABILITY_PHASE_CONFIRMATION);
-
-  // Decline the ability
-  bool declined = azk_process_ability_decline(world);
-  assert(declined);
-
-  // Ability should be cleared
+  // Mandatory triggered ability should not enter confirmation.
   assert(!azk_is_in_ability_phase(world));
   assert(azk_get_ability_phase(world) == ABILITY_PHASE_NONE);
 
-  // Verify state unchanged: deck and discard should be same as before
+  // Verify the effect resolved immediately.
   ecs_entities_t final_deck = ecs_get_ordered_children(world, deck);
   ecs_entities_t final_discard = ecs_get_ordered_children(world, discard);
 
-  assert(final_deck.count == 5);    // Unchanged
-  assert(final_discard.count == 0); // Unchanged
+  assert(final_deck.count == 0);
+  assert(final_discard.count == 5);
 
   ecs_fini(world);
 }
@@ -1124,13 +1142,9 @@ static void test_stt01_003_mills_all_if_deck_smaller(void) {
   assert(queued);
 
   bool processed = azk_process_triggered_effect_queue(world);
-  assert(processed);
+  assert(!processed);
 
-  // Confirm the ability
-  bool confirmed = azk_process_ability_confirmation(world);
-  assert(confirmed);
-
-  // Ability should complete immediately
+  // Ability should complete immediately.
   assert(!azk_is_in_ability_phase(world));
 
   // Verify final state: all 2 cards milled (would mill 5 but only 2 available)
@@ -1139,6 +1153,11 @@ static void test_stt01_003_mills_all_if_deck_smaller(void) {
 
   assert(final_deck.count == 0);    // All milled
   assert(final_discard.count == 2); // Both cards in discard
+
+  // Milling the last card in deck causes deck-out.
+  const GameState *final_gs = ecs_singleton_get(world, GameState);
+  assert(final_gs->winner == 1);
+  assert(final_gs->phase == PHASE_END_MATCH);
 
   ecs_fini(world);
 }
@@ -1733,6 +1752,204 @@ static void test_triggered_ability_decline_restores_active_player(void) {
   ecs_fini(world);
 }
 
+static void test_triggered_mandatory_target_selection_skips_confirmation(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  ecs_set(world, ecs_id(GameState), GameState, {0});
+  ecs_set(world, ecs_id(AbilityContext), AbilityContext, {0});
+
+  ecs_entity_t player0 = ecs_new(world);
+  ecs_set(world, player0, PlayerId, {.pid = 0});
+  ecs_set(world, player0, PlayerNumber, {.player_number = 0});
+
+  ecs_entity_t player1 = ecs_new(world);
+  ecs_set(world, player1, PlayerId, {.pid = 1});
+  ecs_set(world, player1, PlayerNumber, {.player_number = 1});
+
+  ecs_entity_t garden1 = create_zone(world, player1, ZGarden, "Garden_P1");
+
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->players[0] = player0;
+  gs->players[1] = player1;
+  gs->zones[1].garden = garden1;
+  gs->active_player_index = 0;
+  ecs_singleton_modified(world, GameState);
+
+  ecs_entity_t target = ecs_new(world);
+  ecs_add_pair(world, target, Rel_OwnedBy, player1);
+  ecs_add_pair(world, target, EcsChildOf, garden1);
+  ecs_set(world, target, ZoneIndex, {.index = 0});
+  ecs_set(world, target, CurStats, {.cur_atk = 1, .cur_hp = 2});
+
+  ecs_entity_t stt01_006_card = ecs_new(world);
+  ecs_set(world, stt01_006_card, CardId,
+          {.id = CARD_DEF_STT01_006, .code = "STT01-006"});
+
+  bool queued = azk_queue_triggered_effect(world, stt01_006_card, player0,
+                                           TIMING_TAG_WHEN_ATTACKING);
+  assert(queued);
+
+  bool processed = azk_process_triggered_effect_queue(world);
+  assert(processed);
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_EFFECT_SELECTION);
+
+  bool selected = azk_process_effect_selection(world, 0);
+  assert(selected);
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_NONE);
+
+  const CurStats *target_stats = ecs_get(world, target, CurStats);
+  assert(target_stats != NULL);
+  assert(target_stats->cur_hp == 1);
+
+  ecs_fini(world);
+}
+
+static void test_triggered_mandatory_up_to_effect_skips_confirmation(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  ecs_set(world, ecs_id(GameState), GameState, {0});
+  ecs_set(world, ecs_id(AbilityContext), AbilityContext, {0});
+
+  ecs_entity_t player0 = ecs_new(world);
+  ecs_set(world, player0, PlayerId, {.pid = 0});
+  ecs_set(world, player0, PlayerNumber, {.player_number = 0});
+
+  ecs_entity_t player1 = ecs_new(world);
+  ecs_set(world, player1, PlayerId, {.pid = 1});
+  ecs_set(world, player1, PlayerNumber, {.player_number = 1});
+
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->players[0] = player0;
+  gs->players[1] = player1;
+  gs->active_player_index = 0;
+  ecs_singleton_modified(world, GameState);
+
+  ecs_entity_t stt01_014_card = ecs_new(world);
+  ecs_set(world, stt01_014_card, CardId,
+          {.id = CARD_DEF_STT01_014, .code = "STT01-014"});
+
+  bool queued = azk_trigger_on_play_ability(world, stt01_014_card, player0);
+  assert(queued);
+
+  bool processed = azk_process_triggered_effect_queue(world);
+  assert(processed);
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_EFFECT_SELECTION);
+
+  bool skipped = azk_process_effect_skip(world);
+  assert(skipped);
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_NONE);
+
+  ecs_fini(world);
+}
+
+static void test_triggered_selection_pick_skips_confirmation_stt02_003(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  ecs_set(world, ecs_id(GameState), GameState, {0});
+  ecs_set(world, ecs_id(AbilityContext), AbilityContext, {0});
+
+  ecs_entity_t player = ecs_new(world);
+  ecs_set(world, player, PlayerId, {.pid = 0});
+  ecs_set(world, player, PlayerNumber, {.player_number = 0});
+
+  ecs_entity_t deck = create_zone(world, player, ZDeck, "Deck_P0");
+  ecs_entity_t selection = create_zone(world, player, ZSelection, "Selection_P0");
+
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->players[0] = player;
+  gs->zones[0].deck = deck;
+  gs->zones[0].selection = selection;
+  gs->active_player_index = 0;
+  ecs_singleton_modified(world, GameState);
+
+  for (int i = 0; i < 5; i++) {
+    ecs_entity_t deck_card = ecs_new(world);
+    ecs_add_pair(world, deck_card, EcsChildOf, deck);
+    ecs_add_pair(world, deck_card, Rel_OwnedBy, player);
+    ecs_set(world, deck_card, Type,
+            {.value = (i == 4) ? CARD_TYPE_SPELL : CARD_TYPE_ENTITY});
+    if (i == 4) {
+      ecs_add_id(world, deck_card, ecs_id(TSubtype_Watercrafting));
+    }
+  }
+
+  ecs_entity_t stt02_003_card = ecs_new(world);
+  ecs_set(world, stt02_003_card, CardId,
+          {.id = CARD_DEF_STT02_003, .code = "STT02-003"});
+
+  bool queued = azk_trigger_on_play_ability(world, stt02_003_card, player);
+  assert(queued);
+
+  bool processed = azk_process_triggered_effect_queue(world);
+  assert(processed);
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_SELECTION_PICK);
+
+  bool skipped = azk_process_skip_selection(world);
+  assert(skipped);
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_BOTTOM_DECK);
+
+  bool bottom_decked = azk_process_bottom_deck_all(world);
+  assert(bottom_decked);
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_NONE);
+
+  ecs_fini(world);
+}
+
+static void test_triggered_selection_pick_skips_confirmation_stt02_013(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  ecs_set(world, ecs_id(GameState), GameState, {0});
+  ecs_set(world, ecs_id(AbilityContext), AbilityContext, {0});
+
+  ecs_entity_t player = ecs_new(world);
+  ecs_set(world, player, PlayerId, {.pid = 0});
+  ecs_set(world, player, PlayerNumber, {.player_number = 0});
+
+  ecs_entity_t deck = create_zone(world, player, ZDeck, "Deck_P0");
+  ecs_entity_t selection = create_zone(world, player, ZSelection, "Selection_P0");
+
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->players[0] = player;
+  gs->zones[0].deck = deck;
+  gs->zones[0].selection = selection;
+  gs->active_player_index = 0;
+  ecs_singleton_modified(world, GameState);
+
+  for (int i = 0; i < 3; i++) {
+    ecs_entity_t deck_card = ecs_new(world);
+    ecs_add_pair(world, deck_card, EcsChildOf, deck);
+    ecs_add_pair(world, deck_card, Rel_OwnedBy, player);
+    ecs_set(world, deck_card, Type, {.value = CARD_TYPE_ENTITY});
+    ecs_set(world, deck_card, Element, {.element = CARD_ELEMENT_WATER});
+    ecs_set(world, deck_card, IKZCost, {.ikz_cost = (uint8_t)(i == 2 ? 2 : 4)});
+  }
+
+  ecs_entity_t stt02_013_card = ecs_new(world);
+  ecs_set(world, stt02_013_card, CardId,
+          {.id = CARD_DEF_STT02_013, .code = "STT02-013"});
+
+  bool queued = azk_trigger_on_play_ability(world, stt02_013_card, player);
+  assert(queued);
+
+  bool processed = azk_process_triggered_effect_queue(world);
+  assert(processed);
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_SELECTION_PICK);
+
+  bool skipped = azk_process_skip_selection(world);
+  assert(skipped);
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_BOTTOM_DECK);
+
+  bool bottom_decked = azk_process_bottom_deck_all(world);
+  assert(bottom_decked);
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_NONE);
+
+  ecs_fini(world);
+}
+
 static void test_start_phase_skips_opening_draw_for_starting_player(void) {
   ecs_world_t *world = azk_world_init_with_starting_player(42, 0);
 
@@ -2159,7 +2376,7 @@ int main(void) {
   // STT01-003 tests
   test_stt01_003_mills_5_without_weapons();
   test_stt01_003_mills_3_with_weapons();
-  test_stt01_003_decline_does_nothing();
+  test_stt01_003_resolves_without_confirmation();
   test_stt01_003_mills_all_if_deck_smaller();
 
   // STT01-005 tests
@@ -2173,6 +2390,10 @@ int main(void) {
   test_stt02_014_effect_target_uses_zone_index();
   test_triggered_ability_confirmation_restores_active_player();
   test_triggered_ability_decline_restores_active_player();
+  test_triggered_mandatory_target_selection_skips_confirmation();
+  test_triggered_mandatory_up_to_effect_skips_confirmation();
+  test_triggered_selection_pick_skips_confirmation_stt02_003();
+  test_triggered_selection_pick_skips_confirmation_stt02_013();
   test_start_phase_skips_opening_draw_for_starting_player();
   test_observation_garden_slots_use_zone_index();
 
