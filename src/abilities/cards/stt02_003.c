@@ -24,7 +24,8 @@ bool stt02_003_validate(ecs_world_t *world, ecs_entity_t card,
   return true;
 }
 
-// Called after confirmation: move top 5 cards from deck to selection zone
+// Called after the ability is accepted: move top 5 cards from deck to
+// selection zone
 void stt02_003_on_cost_paid(ecs_world_t *world, AbilityContext *ctx) {
   const GameState *gs = ecs_singleton_get(world, GameState);
   uint8_t player_num = get_player_number(world, ctx->owner);

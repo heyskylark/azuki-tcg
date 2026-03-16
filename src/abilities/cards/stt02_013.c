@@ -44,7 +44,8 @@ bool stt02_013_validate(ecs_world_t *world, ecs_entity_t card,
   return true;
 }
 
-// Called after confirmation: move top 3 cards from deck to selection zone
+// Called after the ability is accepted: move top 3 cards from deck to
+// selection zone
 void stt02_013_on_cost_paid(ecs_world_t *world, AbilityContext *ctx) {
   // Look at top 3 cards
   ecs_entity_t cards[MAX_SELECTION_ZONE_SIZE];

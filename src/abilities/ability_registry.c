@@ -141,12 +141,12 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .cleanup_passive_observers = stt01_011_cleanup_passive_observers,
   };
 
-  // STT01-003 "Crate Rat Kurobo": On Play; You may put 3 cards from the top of
-  // your deck into your discard pile. If you have no weapon cards in your
-  // discard pile, put 5 cards instead.
+  // STT01-003 "Crate Rat Kurobo": On Play; Put 3 cards from the top of your
+  // deck into your discard pile. If you have no weapon cards in your discard
+  // pile when you activate this ability, put 5 cards instead.
   kAbilityRegistry[CARD_DEF_STT01_003] = (AbilityDef){
       .has_ability = true,
-      .is_optional = true,
+      .is_optional = false,
       .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
       .effect_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
       .timing_tag = ecs_id(AOnPlay),
@@ -197,7 +197,7 @@ void azk_init_ability_registry(ecs_world_t *world) {
   // deck the rest in any order
   kAbilityRegistry[CARD_DEF_STT02_003] = (AbilityDef){
       .has_ability = true,
-      .is_optional = true,
+      .is_optional = false,
       .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
       .effect_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
       .timing_tag = ecs_id(AOnPlay),
@@ -349,7 +349,7 @@ void azk_init_ability_registry(ecs_world_t *world) {
   // STT02-005: On Play; If you played 2 other entities this turn, draw 1
   kAbilityRegistry[CARD_DEF_STT02_005] = (AbilityDef){
       .has_ability = true,
-      .is_optional = true,
+      .is_optional = false,
       .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
       .effect_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
       .timing_tag = ecs_id(AOnPlay),
@@ -364,7 +364,7 @@ void azk_init_ability_registry(ecs_world_t *world) {
   // card and add to hand OR play to alley if entity, bottom deck rest
   kAbilityRegistry[CARD_DEF_STT02_013] = (AbilityDef){
       .has_ability = true,
-      .is_optional = true,
+      .is_optional = false,
       .can_select_to_alley = true,
       .can_select_to_hand = true, // Allows both add to hand AND play to alley
       .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
@@ -456,7 +456,7 @@ void azk_init_ability_registry(ecs_world_t *world) {
   // deck into your discard pile.
   kAbilityRegistry[CARD_DEF_STT01_012] = (AbilityDef){
       .has_ability = true,
-      .is_optional = true,
+      .is_optional = false,
       .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
       .effect_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
       .timing_tag = ecs_id(AWhenAttacking),
@@ -470,7 +470,7 @@ void azk_init_ability_registry(ecs_world_t *world) {
   // STT01-014 "Tenshin": [On Play] Deal up to 1 damage to a leader.
   kAbilityRegistry[CARD_DEF_STT01_014] = (AbilityDef){
       .has_ability = true,
-      .is_optional = true,
+      .is_optional = false,
       .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
       .effect_req = {.type = ABILITY_TARGET_ANY_LEADER,
                      .min = 0, // "up to" means optional
@@ -502,7 +502,7 @@ void azk_init_ability_registry(ecs_world_t *world) {
   // card, deal 1 damage to all entities in your opponent's garden.
   kAbilityRegistry[CARD_DEF_STT01_016] = (AbilityDef){
       .has_ability = true,
-      .is_optional = true,
+      .is_optional = false,
       .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
       .effect_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
       .timing_tag = ecs_id(AWhenAttacking),
