@@ -77,6 +77,7 @@ export function DraggedCard() {
   const dragSourceType = useDragStore((state) => state.dragSourceType);
   const draggedCardCode = useDragStore((state) => state.draggedCardCode);
   const targetPosition = useDragStore((state) => state.targetPosition);
+  const currentPosition = useDragStore((state) => state.currentPosition);
   const originalHandPosition = useDragStore((state) => state.originalHandPosition);
   const originalAlleyPosition = useDragStore((state) => state.originalAlleyPosition);
   const hoveredZone = useDragStore((state) => state.hoveredZone);
@@ -245,6 +246,11 @@ export function DraggedCard() {
       sourceAlleyIndex: state.sourceAlleyIndex,
     });
 
+    if (currentDragPhase === "preview") {
+      startReturning();
+      return;
+    }
+
     // Check if over valid target with current values
     // For alley drags, only garden is valid; for hand drags, both garden and alley are valid
     const currentIsOverValidTarget =
@@ -299,25 +305,33 @@ export function DraggedCard() {
   useEffect(() => {
     if (dragPhase === "idle" || dragPhase === "returning") return;
 
-    window.addEventListener("pointermove", handlePointerMove);
+    if (dragPhase === "pickup" || dragPhase === "dragging") {
+      window.addEventListener("pointermove", handlePointerMove);
+    }
     window.addEventListener("pointerup", handlePointerUp);
 
     return () => {
-      window.removeEventListener("pointermove", handlePointerMove);
+      if (dragPhase === "pickup" || dragPhase === "dragging") {
+        window.removeEventListener("pointermove", handlePointerMove);
+      }
       window.removeEventListener("pointerup", handlePointerUp);
     };
   }, [dragPhase, handlePointerMove, handlePointerUp]);
 
   // Initialize position when drag starts
   useEffect(() => {
-    if (dragPhase === "pickup" || dragPhase === "dragging") {
+    if (
+      dragPhase === "pickup" ||
+      dragPhase === "dragging" ||
+      dragPhase === "preview"
+    ) {
       currentPos.current.set(
-        targetPosition[0],
-        targetPosition[1],
-        targetPosition[2]
+        currentPosition[0],
+        currentPosition[1],
+        currentPosition[2]
       );
     }
-  }, [dragPhase === "idle"]);
+  }, [currentPosition, dragPhase]);
 
   // Animation frame
   useFrame((_, delta) => {
@@ -349,6 +363,8 @@ export function DraggedCard() {
     let targetScale = 1;
     if (dragPhase === "pickup") {
       targetScale = 2.25;
+    } else if (dragPhase === "preview") {
+      targetScale = 2.25;
     } else if (dragPhase === "dragging") {
       targetScale = isHandDrag && isInHandZone ? 2.25 : isOverValidTarget ? 1.15 : 1;
     } else if (dragPhase === "returning") {
@@ -369,6 +385,10 @@ export function DraggedCard() {
       }
     } else if (dragPhase === "pickup") {
       // Fast follow in pickup
+      const springFactor = Math.min(delta * PICKUP_SPRING, 1);
+      currentPos.current.lerp(target, springFactor);
+      currentScale.current += (targetScale - currentScale.current) * springFactor;
+    } else if (dragPhase === "preview") {
       const springFactor = Math.min(delta * PICKUP_SPRING, 1);
       currentPos.current.lerp(target, springFactor);
       currentScale.current += (targetScale - currentScale.current) * springFactor;

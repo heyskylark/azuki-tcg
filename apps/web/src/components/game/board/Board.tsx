@@ -236,6 +236,14 @@ function CardRow({
             isDragging &&
             (dragSourceType === "hand" || dragSourceType === "alley") &&
             validSlots.has(index);
+          const canPreviewCard =
+            !isAbilityTarget &&
+            !isWeaponAttachTarget &&
+            !isAttackSource &&
+            !isAttackTarget &&
+            !isDefenderTarget &&
+            !isPlacementDropTarget &&
+            !canActivateAbility;
 
           return (
             <Card3D
@@ -266,6 +274,8 @@ function CardRow({
                   : undefined
               }
               isDefenderTarget={isDefenderTarget}
+              canPreview={canPreviewCard}
+              previewCardId={`${isOpponent ? "opp" : "me"}:${zone}:${index}`}
               onAbilityTargetClick={
                 isAbilityTarget && onAbilityTargetClick && abilityTargetIndex !== undefined
                   ? () => onAbilityTargetClick(abilityTargetIndex)
@@ -331,6 +341,7 @@ function CardRow({
 function LeaderCard({
   leader,
   position,
+  previewCardId,
   isWeaponTarget = false,
   onWeaponTargetClick,
   isAbilityTarget = false,
@@ -343,6 +354,7 @@ function LeaderCard({
 }: {
   leader: ResolvedLeader;
   position: [number, number, number];
+  previewCardId: string;
   isWeaponTarget?: boolean;
   onWeaponTargetClick?: () => void;
   isAbilityTarget?: boolean;
@@ -377,6 +389,14 @@ function LeaderCard({
       isAbilityActivatable={isAbilityActivatable}
       onAbilityActivate={onAbilityActivate}
       isAttackTarget={isAttackTarget}
+      canPreview={
+        !isWeaponTarget &&
+        !isAbilityTarget &&
+        !isAbilityActivatable &&
+        !isAttackSource &&
+        !isAttackTarget
+      }
+      previewCardId={previewCardId}
       onPointerDown={
         isAttackSource && onAttackPointerDown
           ? (event) => {
@@ -407,9 +427,11 @@ function LeaderCard({
 function GateCard({
   gate,
   position,
+  previewCardId,
 }: {
   gate: ResolvedGate;
   position: [number, number, number];
+  previewCardId: string;
 }) {
   return (
     <Card3D
@@ -420,6 +442,8 @@ function GateCard({
       tapped={gate.tapped}
       cooldown={gate.cooldown}
       showStats={false}
+      canPreview
+      previewCardId={previewCardId}
     />
   );
 }
@@ -430,9 +454,11 @@ function GateCard({
 function IkzPool({
   ikzArea,
   position,
+  previewIdPrefix,
 }: {
   ikzArea: ResolvedIkz[];
   position: [number, number, number];
+  previewIdPrefix: string;
 }) {
   const cardCount = ikzArea.length;
 
@@ -453,6 +479,8 @@ function IkzPool({
             tapped={ikz.tapped}
             cooldown={ikz.cooldown}
             showStats={false}
+            canPreview
+            previewCardId={`${previewIdPrefix}:${index}`}
           />
         );
       })}
@@ -686,6 +714,7 @@ function PlayerArea({
       <LeaderCard
         leader={board.leader}
         position={[RIGHT_SIDE_X, 0, gardenZ]}
+        previewCardId={`${isOpponent ? "opp" : "me"}:leader`}
         isWeaponTarget={isLeaderWeaponTarget}
         onWeaponTargetClick={
           isLeaderWeaponTarget && onWeaponAttachToSlot
@@ -714,7 +743,11 @@ function PlayerArea({
       />
 
       {/* Gate - right side, same row as alley */}
-      <GateCard gate={board.gate} position={[RIGHT_SIDE_X, 0, alleyZ]} />
+      <GateCard
+        gate={board.gate}
+        position={[RIGHT_SIDE_X, 0, alleyZ]}
+        previewCardId={`${isOpponent ? "opp" : "me"}:gate`}
+      />
 
       {/* Garden (front row) */}
       <CardRow
@@ -773,6 +806,7 @@ function PlayerArea({
       <IkzPool
         ikzArea={board.ikzArea}
         position={[0, 0, ikzZ]}
+        previewIdPrefix={`${isOpponent ? "opp" : "me"}:ikz`}
       />
 
       {/* Hand (only for player, not opponent) - slightly elevated to overlap IKZ */}

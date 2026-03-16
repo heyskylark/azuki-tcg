@@ -252,6 +252,8 @@ export function DraggableHandCard({
         position={[0, 0, 0]}
         showStats={false}
         isAbilityTarget={isAbilityTarget}
+        canPreview={!isDraggable && !isAbilityTarget}
+        previewCardId={`hand:${handIndex}`}
       >
         {/* IKZ cost badge */}
         <group position={[CARD_WIDTH * 0.35, 0.1, -0.8]}>

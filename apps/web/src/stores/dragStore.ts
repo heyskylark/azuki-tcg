@@ -1,8 +1,8 @@
 import { create } from "zustand";
 
-export type DragPhase = "idle" | "pickup" | "dragging" | "returning";
+export type DragPhase = "idle" | "pickup" | "dragging" | "preview" | "returning";
 export type HoveredZone = "garden" | "alley" | "hand" | "leader" | "spell" | null;
-export type DragSourceType = "hand" | "alley" | "weapon" | "spell" | null;
+export type DragSourceType = "hand" | "alley" | "weapon" | "spell" | "preview" | null;
 
 interface DragState {
   // Drag phase state
@@ -17,6 +17,9 @@ interface DragState {
 
   // Alley-specific drag info
   sourceAlleyIndex: number | null;
+
+  // Passive card preview source
+  previewCardId: string | null;
 
   // Position tracking
   targetPosition: [number, number, number]; // Where cursor is pointing
@@ -61,6 +64,12 @@ interface DragState {
     alleyPosition: [number, number, number],
     validGardenSlots: Set<number>
   ) => void;
+  startPreview: (
+    cardCode: string,
+    originalPosition: [number, number, number],
+    previewPosition: [number, number, number],
+    previewCardId: string
+  ) => void;
   startDragging: () => void;
   updateTargetPosition: (position: [number, number, number]) => void;
   updateCurrentPosition: (position: [number, number, number]) => void;
@@ -78,6 +87,7 @@ const initialState = {
   draggedCardIndex: null,
   draggedCardCode: null,
   sourceAlleyIndex: null,
+  previewCardId: null,
   targetPosition: [0, 0, 0] as [number, number, number],
   currentPosition: [0, 0, 0] as [number, number, number],
   originalHandPosition: [0, 0, 0] as [number, number, number],
@@ -100,6 +110,7 @@ export const useDragStore = create<DragState>((set) => ({
       draggedCardIndex: handIndex,
       draggedCardCode: cardCode,
       sourceAlleyIndex: null,
+      previewCardId: null,
       originalHandPosition: handPosition,
       currentPosition: [...handPosition],
       targetPosition: [...handPosition],
@@ -117,6 +128,7 @@ export const useDragStore = create<DragState>((set) => ({
       draggedCardIndex: handIndex,
       draggedCardCode: cardCode,
       sourceAlleyIndex: null,
+      previewCardId: null,
       originalHandPosition: handPosition,
       currentPosition: [...handPosition],
       targetPosition: [...handPosition],
@@ -134,6 +146,7 @@ export const useDragStore = create<DragState>((set) => ({
       draggedCardIndex: handIndex,
       draggedCardCode: cardCode,
       sourceAlleyIndex: null,
+      previewCardId: null,
       originalHandPosition: handPosition,
       currentPosition: [...handPosition],
       targetPosition: [...handPosition],
@@ -151,6 +164,7 @@ export const useDragStore = create<DragState>((set) => ({
       draggedCardIndex: null, // Not used for alley drags
       draggedCardCode: cardCode,
       sourceAlleyIndex: alleyIndex,
+      previewCardId: null,
       originalAlleyPosition: alleyPosition,
       currentPosition: [...alleyPosition],
       targetPosition: [...alleyPosition],
@@ -159,6 +173,25 @@ export const useDragStore = create<DragState>((set) => ({
       validWeaponAttachTargets: new Set<number>(),
       hoveredZone: "alley",
       hoveredSlotIndex: null,
+    }),
+
+  startPreview: (cardCode, originalPosition, previewPosition, previewCardId) =>
+    set({
+      dragPhase: "preview",
+      dragSourceType: "preview",
+      draggedCardIndex: null,
+      draggedCardCode: cardCode,
+      sourceAlleyIndex: null,
+      previewCardId,
+      originalHandPosition: originalPosition,
+      currentPosition: [...originalPosition],
+      targetPosition: [...previewPosition],
+      validGardenSlots: new Set<number>(),
+      validAlleySlots: new Set<number>(),
+      validWeaponAttachTargets: new Set<number>(),
+      hoveredZone: null,
+      hoveredSlotIndex: null,
+      onDropCallback: null,
     }),
 
   startDragging: () =>
@@ -194,6 +227,7 @@ export const useDragStore = create<DragState>((set) => ({
       draggedCardIndex: null,
       draggedCardCode: null,
       sourceAlleyIndex: null,
+      previewCardId: null,
       validGardenSlots: new Set(),
       validAlleySlots: new Set(),
       validWeaponAttachTargets: new Set(),
@@ -212,6 +246,7 @@ export const useDragStore = create<DragState>((set) => ({
       ...initialState,
       dragSourceType: null,
       sourceAlleyIndex: null,
+      previewCardId: null,
       validGardenSlots: new Set(),
       validAlleySlots: new Set(),
       validWeaponAttachTargets: new Set(),
@@ -222,6 +257,7 @@ export const useDragStore = create<DragState>((set) => ({
       ...initialState,
       dragSourceType: null,
       sourceAlleyIndex: null,
+      previewCardId: null,
       validGardenSlots: new Set(),
       validAlleySlots: new Set(),
       validWeaponAttachTargets: new Set(),

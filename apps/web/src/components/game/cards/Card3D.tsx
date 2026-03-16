@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Text } from "@react-three/drei";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
@@ -12,6 +12,9 @@ import { useDragStore } from "@/stores/dragStore";
 export const CARD_WIDTH = 1.4;
 export const CARD_HEIGHT = 2.0;
 export const CARD_DEPTH = 0.05;
+
+const PREVIEW_HOLD_MS = 250;
+const PREVIEW_MOVE_THRESHOLD = 8;
 
 interface Card3DProps {
   cardCode: string;
@@ -47,6 +50,8 @@ interface Card3DProps {
   // Defender targeting props
   isDefenderTarget?: boolean;
   onDefenderTargetClick?: () => void;
+  canPreview?: boolean;
+  previewCardId?: string;
   onPointerDown?: (event: ThreeEvent<PointerEvent>) => void;
   onPointerUp?: (event: ThreeEvent<PointerEvent>) => void;
 }
@@ -82,12 +87,19 @@ export function Card3D({
   isDropTarget = false,
   isDefenderTarget = false,
   onDefenderTargetClick,
+  canPreview = false,
+  previewCardId,
   onPointerDown,
   onPointerUp,
 }: Card3DProps) {
   const groupRef = useRef<THREE.Group>(null!);
+  const previewCleanupRef = useRef<(() => void) | null>(null);
   const [hovered, setHover] = useState(false);
   const { getCardTexture, cardBackTexture } = useAssets();
+  const dragPhase = useDragStore((state) => state.dragPhase);
+  const activePreviewCardId = useDragStore((state) => state.previewCardId);
+  const startPreview = useDragStore((state) => state.startPreview);
+  const startReturning = useDragStore((state) => state.startReturning);
 
   // Get texture from cache or use placeholder
   const texture = getCardTexture(cardCode);
@@ -132,6 +144,21 @@ export function Card3D({
     hasInfiltrate ? { label: "INF", color: "#ff6b6b" } : null,
   ].filter(Boolean) as Array<{ label: string; color: string }>;
 
+  useEffect(() => {
+    return () => {
+      previewCleanupRef.current?.();
+    };
+  }, []);
+
+  const isPreviewSourceHidden =
+    previewCardId !== undefined &&
+    previewCardId === activePreviewCardId &&
+    (dragPhase === "preview" || dragPhase === "returning");
+
+  if (isPreviewSourceHidden) {
+    return null;
+  }
+
   return (
     <group position={position}>
       {/* Animated group containing card + overlays + stats */}
@@ -155,6 +182,83 @@ export function Card3D({
           }}
           onPointerDown={(e) => {
             onPointerDown?.(e);
+
+            if (
+              !canPreview ||
+              !previewCardId ||
+              e.clientX === undefined ||
+              e.clientY === undefined
+            ) {
+              return;
+            }
+
+            if (useDragStore.getState().dragPhase !== "idle" || !groupRef.current) {
+              return;
+            }
+
+            e.stopPropagation();
+            previewCleanupRef.current?.();
+
+            const worldPos = new THREE.Vector3();
+            groupRef.current.getWorldPosition(worldPos);
+
+            const startX = e.clientX;
+            const startY = e.clientY;
+            let previewStarted = false;
+            let timeoutId = 0;
+
+            const handleWindowMove = (event: PointerEvent) => {
+              if (previewStarted) return;
+
+              const dx = event.clientX - startX;
+              const dy = event.clientY - startY;
+              if (Math.hypot(dx, dy) >= PREVIEW_MOVE_THRESHOLD) {
+                cleanup();
+              }
+            };
+
+            const handleWindowEnd = () => {
+              const shouldReturn =
+                previewStarted &&
+                useDragStore.getState().previewCardId === previewCardId;
+              cleanup();
+              if (shouldReturn) {
+                startReturning();
+              }
+            };
+
+            const cleanup = () => {
+              if (timeoutId !== 0) {
+                window.clearTimeout(timeoutId);
+              }
+              window.removeEventListener("pointermove", handleWindowMove);
+              window.removeEventListener("pointerup", handleWindowEnd);
+              window.removeEventListener("pointercancel", handleWindowEnd);
+              if (previewCleanupRef.current === cleanup) {
+                previewCleanupRef.current = null;
+              }
+            };
+
+            timeoutId = window.setTimeout(() => {
+              if (useDragStore.getState().dragPhase !== "idle") {
+                cleanup();
+                return;
+              }
+
+              previewStarted = true;
+              startPreview(
+                cardCode,
+                [worldPos.x, worldPos.y, worldPos.z],
+                [worldPos.x, 3, worldPos.z],
+                previewCardId
+              );
+              previewCleanupRef.current = null;
+            }, PREVIEW_HOLD_MS);
+
+            window.addEventListener("pointermove", handleWindowMove);
+            window.addEventListener("pointerup", handleWindowEnd);
+            window.addEventListener("pointercancel", handleWindowEnd);
+            previewCleanupRef.current = cleanup;
           }}
           onPointerOver={(e) => {
             e.stopPropagation();
