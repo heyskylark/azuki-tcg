@@ -5,20 +5,27 @@ import {
   useContext,
   useState,
   useCallback,
+  useEffect,
+  useRef,
   type ReactNode,
 } from "react";
 import type {
   GameSnapshotMessage,
   GameLogBatchMessage,
+  SnapshotActionMask,
 } from "@tcg/backend-core/types/ws";
 import type { GameState, CardMapping } from "@/types/game";
 import type { ProcessedGameLog } from "@/types/gameLogs";
-import { applyLogBatch } from "@/lib/game/logProcessor";
+import type { BoardMoveAnimation } from "@/lib/game/boardAnimations";
+import { buildBoardMoveAnimationForLog } from "@/lib/game/boardAnimations";
+import { applySingleLog, createBatchIndexRebaseContext } from "@/lib/game/logProcessor";
 
 interface GameStateContextValue {
   gameState: GameState | null;
   isLoading: boolean;
   error: string | null;
+  activeBoardAnimation: BoardMoveAnimation | null;
+  hiddenBoardSlotKeys: ReadonlySet<string>;
 
   // Card mappings for resolving cardCode -> imageUrl
   cardMappings: Map<string, CardMapping>;
@@ -45,38 +52,286 @@ interface GameStateContextValue {
 
 const GameStateContext = createContext<GameStateContextValue | null>(null);
 
+interface BatchStateContext {
+  phase: string;
+  abilitySubphase: string;
+  activePlayer: 0 | 1;
+  turnNumber: number;
+  pendingConfirmationCount?: number;
+  abilitySourceCardDefId?: number;
+  abilityCostTargetType?: number;
+  abilityEffectTargetType?: number;
+  selectionCards?: Array<{
+    cardId: string | null;
+    cardDefId: number;
+    zoneIndex: number;
+    type: string;
+    ikzCost: number;
+    curAtk: number | null;
+    curHp: number | null;
+  }>;
+}
+
+interface QueuedLogBatch {
+  batch: GameLogBatchMessage;
+  playerSlot: 0 | 1;
+}
+
+function resolveSelectionCards(
+  stateContext: BatchStateContext,
+  cardMappings: Map<string, CardMapping>
+) {
+  return stateContext.selectionCards?.map((card) => {
+    const cardCode = card.cardId ?? "unknown";
+    const mapping = cardMappings.get(cardCode);
+    return {
+      cardCode,
+      cardDefId: card.cardDefId,
+      zoneIndex: card.zoneIndex,
+      imageUrl: mapping?.imageUrl ?? "",
+      name: mapping?.name ?? cardCode,
+      type: card.type,
+      ikzCost: card.ikzCost,
+      curAtk: card.curAtk,
+      curHp: card.curHp,
+    };
+  });
+}
+
+function applyBatchStateContext(
+  state: GameState,
+  stateContext: BatchStateContext,
+  actionMask: SnapshotActionMask | null | undefined,
+  cardMappings: Map<string, CardMapping>
+): GameState {
+  const selectionCards = resolveSelectionCards(stateContext, cardMappings);
+
+  return {
+    ...state,
+    phase: stateContext.phase,
+    abilitySubphase: stateContext.abilitySubphase,
+    activePlayer: stateContext.activePlayer,
+    turnNumber: stateContext.turnNumber,
+    pendingConfirmationCount: stateContext.pendingConfirmationCount,
+    abilitySourceCardDefId: stateContext.abilitySourceCardDefId,
+    abilityCostTargetType: stateContext.abilityCostTargetType,
+    abilityEffectTargetType: stateContext.abilityEffectTargetType,
+    selectionCards,
+    actionMask: actionMask ?? null,
+  };
+}
+
 interface GameStateProviderProps {
   children: ReactNode;
   initialState?: GameState | null;
 }
 
-export function GameStateProvider({
-  children,
-  initialState = null,
-}: GameStateProviderProps) {
-  const [gameState, setGameState] = useState<GameState | null>(initialState);
+export function GameStateProvider({ children, initialState = null }: GameStateProviderProps) {
+  const [gameState, setGameStateState] = useState<GameState | null>(initialState);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [cardMappings, setCardMappingsState] = useState<Map<string, CardMapping>>(
-    new Map()
-  );
-  const [cardDefIdMap, setCardDefIdMap] = useState<Map<number, CardMapping>>(
-    new Map()
+  const [activeBoardAnimation, setActiveBoardAnimation] = useState<BoardMoveAnimation | null>(null);
+  const [hiddenBoardSlotKeys, setHiddenBoardSlotKeys] = useState<Set<string>>(new Set());
+  const [cardMappings, setCardMappingsState] = useState<Map<string, CardMapping>>(new Map());
+  const [cardDefIdMap, setCardDefIdMap] = useState<Map<number, CardMapping>>(new Map());
+  const gameStateRef = useRef<GameState | null>(initialState);
+  const cardMappingsRef = useRef<Map<string, CardMapping>>(new Map());
+  const cardDefIdMapRef = useRef<Map<number, CardMapping>>(new Map());
+  const logBatchQueueRef = useRef<QueuedLogBatch[]>([]);
+  const isDrainingQueueRef = useRef(false);
+  const queueGenerationRef = useRef(0);
+  const animationTimeoutRef = useRef<number | null>(null);
+  const animationResolveRef = useRef<(() => void) | null>(null);
+
+  const commitGameState = useCallback((nextState: GameState | null) => {
+    gameStateRef.current = nextState;
+    setGameStateState(nextState);
+  }, []);
+
+  const clearPendingAnimation = useCallback(() => {
+    if (animationTimeoutRef.current !== null) {
+      window.clearTimeout(animationTimeoutRef.current);
+      animationTimeoutRef.current = null;
+    }
+
+    if (animationResolveRef.current) {
+      const resolve = animationResolveRef.current;
+      animationResolveRef.current = null;
+      resolve();
+    }
+
+    setActiveBoardAnimation(null);
+    setHiddenBoardSlotKeys(new Set());
+  }, []);
+
+  const cancelQueuedPlayback = useCallback(() => {
+    queueGenerationRef.current += 1;
+    logBatchQueueRef.current = [];
+    clearPendingAnimation();
+  }, [clearPendingAnimation]);
+
+  const waitForAnimation = useCallback(
+    (durationMs: number, expectedGeneration: number) =>
+      new Promise<void>((resolve) => {
+        if (expectedGeneration !== queueGenerationRef.current) {
+          resolve();
+          return;
+        }
+
+        animationResolveRef.current = () => {
+          animationResolveRef.current = null;
+          resolve();
+        };
+
+        animationTimeoutRef.current = window.setTimeout(() => {
+          animationTimeoutRef.current = null;
+          const finish = animationResolveRef.current;
+          animationResolveRef.current = null;
+          finish?.();
+        }, durationMs);
+      }),
+    []
   );
 
   const setCardMappings = useCallback((mappings: Map<string, CardMapping>) => {
+    cardMappingsRef.current = mappings;
     setCardMappingsState(mappings);
   }, []);
 
   const setCardDefIdMapCallback = useCallback((map: Map<number, CardMapping>) => {
+    cardDefIdMapRef.current = map;
     setCardDefIdMap(map);
   }, []);
 
-  const setMockState = useCallback((state: GameState) => {
-    setGameState(state);
-    setIsLoading(false);
-    setError(null);
-  }, []);
+  const setMockState = useCallback(
+    (state: GameState) => {
+      cancelQueuedPlayback();
+      commitGameState(state);
+      setIsLoading(false);
+      setError(null);
+    },
+    [cancelQueuedPlayback, commitGameState]
+  );
+
+  const drainQueuedLogBatches = useCallback(async () => {
+    if (isDrainingQueueRef.current) {
+      return;
+    }
+
+    isDrainingQueueRef.current = true;
+    const drainGeneration = queueGenerationRef.current;
+
+    try {
+      while (logBatchQueueRef.current.length > 0) {
+        if (drainGeneration !== queueGenerationRef.current) {
+          return;
+        }
+
+        const queuedBatch = logBatchQueueRef.current.shift();
+        if (!queuedBatch) {
+          break;
+        }
+
+        const { batch, playerSlot } = queuedBatch;
+        const logs = batch.logs as ProcessedGameLog[];
+        const batchIndexRebaseContext = createBatchIndexRebaseContext();
+
+        if (logs.length === 0) {
+          const currentState = gameStateRef.current;
+          if (!currentState) {
+            continue;
+          }
+
+          commitGameState(
+            applyBatchStateContext(
+              currentState,
+              batch.stateContext as BatchStateContext,
+              batch.actionMask,
+              cardMappingsRef.current
+            )
+          );
+          continue;
+        }
+
+        for (let logIndex = 0; logIndex < logs.length; logIndex += 1) {
+          if (drainGeneration !== queueGenerationRef.current) {
+            return;
+          }
+
+          const currentState = gameStateRef.current;
+          if (!currentState) {
+            break;
+          }
+
+          const log = logs[logIndex];
+          const animation = buildBoardMoveAnimationForLog(
+            currentState,
+            log,
+            playerSlot,
+            cardDefIdMapRef.current
+          );
+
+          let nextState = applySingleLog(
+            currentState,
+            log,
+            playerSlot,
+            cardMappingsRef.current,
+            cardDefIdMapRef.current,
+            batchIndexRebaseContext
+          );
+
+          const isFinalLog = logIndex === logs.length - 1;
+          let finalState = nextState;
+          if (isFinalLog) {
+            finalState = applyBatchStateContext(
+              nextState,
+              batch.stateContext as BatchStateContext,
+              batch.actionMask,
+              cardMappingsRef.current
+            );
+          }
+
+          if (animation) {
+            setActiveBoardAnimation(animation);
+            setHiddenBoardSlotKeys(
+              animation.hiddenTargetKey ? new Set([animation.hiddenTargetKey]) : new Set()
+            );
+          }
+
+          commitGameState(
+            animation
+              ? {
+                  ...nextState,
+                  actionMask: null,
+                }
+              : finalState
+          );
+
+          if (!animation) {
+            continue;
+          }
+
+          await waitForAnimation(animation.durationMs, drainGeneration);
+
+          if (drainGeneration !== queueGenerationRef.current) {
+            return;
+          }
+
+          if (isFinalLog) {
+            commitGameState(finalState);
+          }
+
+          clearPendingAnimation();
+        }
+      }
+    } finally {
+      isDrainingQueueRef.current = false;
+
+      if (logBatchQueueRef.current.length > 0) {
+        void drainQueuedLogBatches();
+      }
+    }
+  }, [clearPendingAnimation, commitGameState, waitForAnimation]);
 
   const processSnapshot = useCallback(
     (
@@ -85,6 +340,7 @@ export function GameStateProvider({
       cardMappingsOverride?: Map<string, CardMapping>
     ) => {
       try {
+        cancelQueuedPlayback();
         setIsLoading(true);
 
         // Transform snapshot to GameState using card mappings
@@ -99,101 +355,46 @@ export function GameStateProvider({
             return currentMap;
           }
           // Build from snapshot as fallback
-          return buildCardDefIdMap(snapshot, mappings);
+          const nextMap = buildCardDefIdMap(snapshot, mappings);
+          cardDefIdMapRef.current = nextMap;
+          return nextMap;
         });
 
-        setGameState(transformed);
+        commitGameState(transformed);
         setError(null);
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to process snapshot"
-        );
+        setError(err instanceof Error ? err.message : "Failed to process snapshot");
       } finally {
         setIsLoading(false);
       }
     },
-    [cardMappings]
+    [cancelQueuedPlayback, cardMappings, commitGameState]
   );
 
   const processLogBatch = useCallback(
     (batch: GameLogBatchMessage, playerSlot: 0 | 1) => {
-      setGameState((prevState) => {
-        if (!prevState) {
-          return null;
-        }
+      if (!gameStateRef.current) {
+        return;
+      }
 
-        // Apply log entries to update game state
-        const logs = batch.logs as ProcessedGameLog[];
-        const updatedState = applyLogBatch(
-          prevState,
-          logs,
-          playerSlot,
-          cardMappings,
-          cardDefIdMap
-        );
-
-        // Resolve selection cards if present in the batch
-        const stateContext = batch.stateContext as {
-          phase: string;
-          abilitySubphase: string;
-          activePlayer: 0 | 1;
-          turnNumber: number;
-          pendingConfirmationCount?: number;
-          abilitySourceCardDefId?: number;
-          abilityCostTargetType?: number;
-          abilityEffectTargetType?: number;
-          selectionCards?: Array<{
-            cardId: string | null;
-            cardDefId: number;
-            zoneIndex: number;
-            type: string;
-            ikzCost: number;
-            curAtk: number | null;
-            curHp: number | null;
-          }>;
-        };
-
-        const selectionCards = stateContext.selectionCards?.map((card) => {
-          const cardCode = card.cardId ?? "unknown";
-          const mapping = cardMappings.get(cardCode);
-          return {
-            cardCode,
-            cardDefId: card.cardDefId,
-            zoneIndex: card.zoneIndex,
-            imageUrl: mapping?.imageUrl ?? "",
-            name: mapping?.name ?? cardCode,
-            type: card.type,
-            ikzCost: card.ikzCost,
-            curAtk: card.curAtk,
-            curHp: card.curHp,
-          };
-        });
-
-        // Also update state context and action mask from the batch
-        return {
-          ...updatedState,
-          phase: stateContext.phase,
-          abilitySubphase: stateContext.abilitySubphase,
-          activePlayer: stateContext.activePlayer,
-          turnNumber: stateContext.turnNumber,
-          pendingConfirmationCount: stateContext.pendingConfirmationCount,
-          abilitySourceCardDefId: stateContext.abilitySourceCardDefId,
-          abilityCostTargetType: stateContext.abilityCostTargetType,
-          abilityEffectTargetType: stateContext.abilityEffectTargetType,
-          selectionCards,
-          // Use action mask from batch if present (for active player), otherwise clear it
-          actionMask: batch.actionMask ?? null,
-        };
-      });
+      logBatchQueueRef.current.push({ batch, playerSlot });
+      void drainQueuedLogBatches();
     },
-    [cardMappings, cardDefIdMap]
+    [drainQueuedLogBatches]
   );
 
   const clearGameState = useCallback(() => {
-    setGameState(null);
+    cancelQueuedPlayback();
+    commitGameState(null);
     setIsLoading(false);
     setError(null);
-  }, []);
+  }, [cancelQueuedPlayback, commitGameState]);
+
+  useEffect(() => {
+    return () => {
+      cancelQueuedPlayback();
+    };
+  }, [cancelQueuedPlayback]);
 
   return (
     <GameStateContext.Provider
@@ -201,6 +402,8 @@ export function GameStateProvider({
         gameState,
         isLoading,
         error,
+        activeBoardAnimation,
+        hiddenBoardSlotKeys,
         cardMappings,
         setCardMappings,
         cardDefIdMap,
@@ -248,10 +451,7 @@ import type {
 import { buildImageUrl } from "@/types/game";
 import type { SnapshotSelectionCard } from "@tcg/backend-core/types/ws";
 
-function resolveCard(
-  card: SnapshotCard,
-  cardMappings: Map<string, CardMapping>
-): ResolvedCard {
+function resolveCard(card: SnapshotCard, cardMappings: Map<string, CardMapping>): ResolvedCard {
   const cardCode = card.cardId ?? "unknown"; // cardId IS the cardCode, null for hidden cards
   const mapping = cardMappings.get(cardCode);
 
@@ -299,10 +499,7 @@ function resolveLeader(
   };
 }
 
-function resolveGate(
-  gate: SnapshotGate,
-  cardMappings: Map<string, CardMapping>
-): ResolvedGate {
+function resolveGate(gate: SnapshotGate, cardMappings: Map<string, CardMapping>): ResolvedGate {
   const cardCode = gate.cardId ?? "unknown";
   const mapping = cardMappings.get(cardCode);
 
@@ -316,10 +513,7 @@ function resolveGate(
   };
 }
 
-function resolveIkz(
-  ikz: SnapshotIkz,
-  cardMappings: Map<string, CardMapping>
-): ResolvedIkz {
+function resolveIkz(ikz: SnapshotIkz, cardMappings: Map<string, CardMapping>): ResolvedIkz {
   const cardCode = ikz.cardId ?? "unknown";
   const mapping = cardMappings.get(cardCode);
 
@@ -377,12 +571,8 @@ function resolvePlayerBoard(
   return {
     leader: resolveLeader(board.leader, cardMappings),
     gate: resolveGate(board.gate, cardMappings),
-    garden: board.garden.map((card) =>
-      card ? resolveCard(card, cardMappings) : null
-    ),
-    alley: board.alley.map((card) =>
-      card ? resolveCard(card, cardMappings) : null
-    ),
+    garden: board.garden.map((card) => (card ? resolveCard(card, cardMappings) : null)),
+    alley: board.alley.map((card) => (card ? resolveCard(card, cardMappings) : null)),
     ikzArea: board.ikzArea.map((ikz) => resolveIkz(ikz, cardMappings)),
     handCount: board.handCount,
     deckCount: board.deckCount,

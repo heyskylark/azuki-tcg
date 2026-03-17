@@ -54,6 +54,7 @@ interface Card3DProps {
   previewCardId?: string;
   onPointerDown?: (event: ThreeEvent<PointerEvent>) => void;
   onPointerUp?: (event: ThreeEvent<PointerEvent>) => void;
+  interactive?: boolean;
 }
 
 /**
@@ -91,6 +92,7 @@ export function Card3D({
   previewCardId,
   onPointerDown,
   onPointerUp,
+  interactive = true,
 }: Card3DProps) {
   const groupRef = useRef<THREE.Group>(null!);
   const previewCleanupRef = useRef<(() => void) | null>(null);
@@ -164,7 +166,11 @@ export function Card3D({
       {/* Animated group containing card + overlays + stats */}
       <group ref={groupRef}>
         <mesh
+          raycast={interactive ? undefined : () => null}
           onClick={(e) => {
+            if (!interactive) {
+              return;
+            }
             e.stopPropagation();
             // If this is a weapon target and we have a target click handler, use it
             if (isWeaponTarget && onWeaponTargetClick) {
@@ -181,6 +187,9 @@ export function Card3D({
             }
           }}
           onPointerDown={(e) => {
+            if (!interactive) {
+              return;
+            }
             onPointerDown?.(e);
 
             if (
@@ -219,8 +228,7 @@ export function Card3D({
 
             const handleWindowEnd = () => {
               const shouldReturn =
-                previewStarted &&
-                useDragStore.getState().previewCardId === previewCardId;
+                previewStarted && useDragStore.getState().previewCardId === previewCardId;
               cleanup();
               if (shouldReturn) {
                 startReturning();
@@ -261,6 +269,9 @@ export function Card3D({
             previewCleanupRef.current = cleanup;
           }}
           onPointerOver={(e) => {
+            if (!interactive) {
+              return;
+            }
             e.stopPropagation();
             setHover(true);
             document.body.style.cursor =
@@ -274,10 +285,16 @@ export function Card3D({
                 : "pointer";
           }}
           onPointerOut={() => {
+            if (!interactive) {
+              return;
+            }
             setHover(false);
             document.body.style.cursor = "default";
           }}
           onPointerUp={(e) => {
+            if (!interactive) {
+              return;
+            }
             // Handle weapon attachment via drop (pointer up while hovering)
             if (isWeaponTarget && onWeaponTargetClick) {
               e.stopPropagation();
@@ -295,11 +312,7 @@ export function Card3D({
               <meshStandardMaterial attach="material-0" color="#2a2a4e" />
               <meshStandardMaterial attach="material-1" color="#2a2a4e" />
               {/* Top face (card art) - faces up after X rotation */}
-              <meshStandardMaterial
-                attach="material-2"
-                map={texture}
-                color={getCardColor()}
-              />
+              <meshStandardMaterial attach="material-2" map={texture} color={getCardColor()} />
               {/* Bottom face (card back) - faces down after X rotation */}
               <meshStandardMaterial
                 attach="material-3"
@@ -349,14 +362,18 @@ export function Card3D({
         {isDefenderTarget && <DefenderTargetOverlay />}
 
         {/* Stats display */}
-        {showStats && attack !== null && attack !== undefined && health !== null && health !== undefined && (
-          <CardStats
-            attack={attack}
-            health={health}
-            position={[0, CARD_DEPTH + 0.01, 0]}
-            tapped={tapped}
-          />
-        )}
+        {showStats &&
+          attack !== null &&
+          attack !== undefined &&
+          health !== null &&
+          health !== undefined && (
+            <CardStats
+              attack={attack}
+              health={health}
+              position={[0, CARD_DEPTH + 0.01, 0]}
+              tapped={tapped}
+            />
+          )}
 
         {/* Additional elements passed as children */}
         {children}
@@ -365,11 +382,7 @@ export function Card3D({
   );
 }
 
-function KeywordBadges({
-  badges,
-}: {
-  badges: Array<{ label: string; color: string }>;
-}) {
+function KeywordBadges({ badges }: { badges: Array<{ label: string; color: string }> }) {
   const startX = -CARD_WIDTH * 0.38;
   const startZ = CARD_HEIGHT * 0.38;
   const gap = 0.34;
@@ -472,12 +485,7 @@ function AbilityActivateOverlay() {
       raycast={() => null}
     >
       <planeGeometry args={[CARD_WIDTH + 0.24, CARD_HEIGHT + 0.24]} />
-      <meshBasicMaterial
-        color="#33ccff"
-        transparent
-        opacity={0.25}
-        side={THREE.DoubleSide}
-      />
+      <meshBasicMaterial color="#33ccff" transparent opacity={0.25} side={THREE.DoubleSide} />
     </mesh>
   );
 }
@@ -487,18 +495,9 @@ function AbilityActivateOverlay() {
  */
 function FrozenOverlay() {
   return (
-    <mesh
-      rotation={[-Math.PI / 2, 0, 0]}
-      position={[0, CARD_DEPTH + 0.01, 0]}
-      raycast={() => null}
-    >
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, CARD_DEPTH + 0.01, 0]} raycast={() => null}>
       <planeGeometry args={[CARD_WIDTH * 0.9, CARD_HEIGHT * 0.9]} />
-      <meshBasicMaterial
-        color="#4488ff"
-        transparent
-        opacity={0.3}
-        side={THREE.DoubleSide}
-      />
+      <meshBasicMaterial color="#4488ff" transparent opacity={0.3} side={THREE.DoubleSide} />
     </mesh>
   );
 }
@@ -525,12 +524,7 @@ function ShockedOverlay() {
       raycast={() => null}
     >
       <planeGeometry args={[CARD_WIDTH * 0.9, CARD_HEIGHT * 0.9]} />
-      <meshBasicMaterial
-        color="#ffff00"
-        transparent
-        opacity={0.2}
-        side={THREE.DoubleSide}
-      />
+      <meshBasicMaterial color="#ffff00" transparent opacity={0.2} side={THREE.DoubleSide} />
     </mesh>
   );
 }
@@ -556,12 +550,7 @@ function EffectImmuneOverlay() {
       raycast={() => null}
     >
       <planeGeometry args={[CARD_WIDTH * 0.92, CARD_HEIGHT * 0.92]} />
-      <meshBasicMaterial
-        color="#33ddb9"
-        transparent
-        opacity={0.25}
-        side={THREE.DoubleSide}
-      />
+      <meshBasicMaterial color="#33ddb9" transparent opacity={0.25} side={THREE.DoubleSide} />
     </mesh>
   );
 }
@@ -571,18 +560,9 @@ function EffectImmuneOverlay() {
  */
 function CooldownOverlay() {
   return (
-    <mesh
-      rotation={[-Math.PI / 2, 0, 0]}
-      position={[0, CARD_DEPTH + 0.01, 0]}
-      raycast={() => null}
-    >
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, CARD_DEPTH + 0.01, 0]} raycast={() => null}>
       <planeGeometry args={[CARD_WIDTH * 0.9, CARD_HEIGHT * 0.9]} />
-      <meshBasicMaterial
-        color="#000000"
-        transparent
-        opacity={0.4}
-        side={THREE.DoubleSide}
-      />
+      <meshBasicMaterial color="#000000" transparent opacity={0.4} side={THREE.DoubleSide} />
     </mesh>
   );
 }
@@ -609,12 +589,7 @@ function AbilityTargetOverlay() {
       raycast={() => null}
     >
       <planeGeometry args={[CARD_WIDTH + 0.2, CARD_HEIGHT + 0.2]} />
-      <meshBasicMaterial
-        color="#ffaa00"
-        transparent
-        opacity={0.35}
-        side={THREE.DoubleSide}
-      />
+      <meshBasicMaterial color="#ffaa00" transparent opacity={0.35} side={THREE.DoubleSide} />
     </mesh>
   );
 }
@@ -641,12 +616,7 @@ function WeaponTargetOverlay() {
       raycast={() => null}
     >
       <planeGeometry args={[CARD_WIDTH + 0.2, CARD_HEIGHT + 0.2]} />
-      <meshBasicMaterial
-        color="#ff6600"
-        transparent
-        opacity={0.4}
-        side={THREE.DoubleSide}
-      />
+      <meshBasicMaterial color="#ff6600" transparent opacity={0.4} side={THREE.DoubleSide} />
     </mesh>
   );
 }
@@ -672,12 +642,7 @@ function AttackTargetOverlay() {
       raycast={() => null}
     >
       <planeGeometry args={[CARD_WIDTH + 0.2, CARD_HEIGHT + 0.2]} />
-      <meshBasicMaterial
-        color="#cc3333"
-        transparent
-        opacity={0.4}
-        side={THREE.DoubleSide}
-      />
+      <meshBasicMaterial color="#cc3333" transparent opacity={0.4} side={THREE.DoubleSide} />
     </mesh>
   );
 }
@@ -703,12 +668,7 @@ function DropTargetOverlay() {
       raycast={() => null}
     >
       <planeGeometry args={[CARD_WIDTH + 0.2, CARD_HEIGHT + 0.2]} />
-      <meshBasicMaterial
-        color="#33cc66"
-        transparent
-        opacity={0.4}
-        side={THREE.DoubleSide}
-      />
+      <meshBasicMaterial color="#33cc66" transparent opacity={0.4} side={THREE.DoubleSide} />
     </mesh>
   );
 }
@@ -734,12 +694,7 @@ function DefenderTargetOverlay() {
       raycast={() => null}
     >
       <planeGeometry args={[CARD_WIDTH + 0.2, CARD_HEIGHT + 0.2]} />
-      <meshBasicMaterial
-        color="#4ecdc4"
-        transparent
-        opacity={0.4}
-        side={THREE.DoubleSide}
-      />
+      <meshBasicMaterial color="#4ecdc4" transparent opacity={0.4} side={THREE.DoubleSide} />
     </mesh>
   );
 }
@@ -795,12 +750,7 @@ export function EmptyCardSlot({
 
   const handlePointerOver = () => {
     setHovered(true);
-    if (
-      isDragging &&
-      dragSourceType !== "spell" &&
-      zone !== undefined &&
-      slotIndex !== undefined
-    ) {
+    if (isDragging && dragSourceType !== "spell" && zone !== undefined && slotIndex !== undefined) {
       setHoveredSlot(zone, slotIndex);
     }
   };

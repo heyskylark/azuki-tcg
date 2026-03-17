@@ -13,7 +13,7 @@ import { BottomDeckUI } from "@/components/game/abilities/BottomDeckUI";
  * Provides UI for confirming abilities, selecting targets, etc.
  */
 export function AbilityOverlay() {
-  const { gameState } = useGameState();
+  const { gameState, activeBoardAnimation } = useGameState();
   const { activeRoom } = useRoom();
 
   const playerSlot = activeRoom?.playerSlot;
@@ -21,7 +21,7 @@ export function AbilityOverlay() {
   const abilityPhase = gameState?.abilitySubphase;
 
   // Don't render if not in an ability phase or not my turn
-  if (!isMyTurn || !abilityPhase || abilityPhase === "NONE") {
+  if (activeBoardAnimation || !isMyTurn || !abilityPhase || abilityPhase === "NONE") {
     return null;
   }
 

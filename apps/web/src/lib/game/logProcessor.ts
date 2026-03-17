@@ -3,7 +3,13 @@
  * Transforms GAME_LOG_BATCH messages into GameState updates.
  */
 
-import type { GameState, CardMapping, ResolvedCard, ResolvedHandCard, ResolvedIkz } from "@/types/game";
+import type {
+  GameState,
+  CardMapping,
+  ResolvedCard,
+  ResolvedHandCard,
+  ResolvedIkz,
+} from "@/types/game";
 import { buildImageUrl } from "@/types/game";
 import type {
   ProcessedGameLog,
@@ -21,8 +27,14 @@ import type {
 
 type OrderedIndexedZone = "HAND" | "IKZ_AREA";
 
-interface BatchIndexRebaseContext {
+export interface BatchIndexRebaseContext {
   removedOriginalIndicesByZone: Map<string, number[]>;
+}
+
+export function createBatchIndexRebaseContext(): BatchIndexRebaseContext {
+  return {
+    removedOriginalIndicesByZone: new Map(),
+  };
 }
 
 function isOrderedIndexedZone(zone: ZoneType): zone is OrderedIndexedZone {
@@ -88,12 +100,10 @@ export function applyLogBatch(
   cardDefIdMap: Map<number, CardMapping>
 ): GameState {
   let newState = { ...state };
-  const batchIndexRebaseContext: BatchIndexRebaseContext = {
-    removedOriginalIndicesByZone: new Map(),
-  };
+  const batchIndexRebaseContext = createBatchIndexRebaseContext();
 
   for (const log of logs) {
-    newState = applyLog(
+    newState = applySingleLog(
       newState,
       log,
       playerSlot,
@@ -109,7 +119,7 @@ export function applyLogBatch(
 /**
  * Apply a single game log to the state.
  */
-function applyLog(
+export function applySingleLog(
   state: GameState,
   log: ProcessedGameLog,
   playerSlot: 0 | 1,
@@ -179,7 +189,7 @@ function applyZoneMoved(
   cardDefIdMap: Map<number, CardMapping>,
   batchIndexRebaseContext: BatchIndexRebaseContext
 ): GameState {
-  console.log('Applying zone move:', data);
+  console.log("Applying zone move:", data);
   const isMyCard = data.card.player === playerSlot;
 
   // Create mutable copies
@@ -193,12 +203,7 @@ function applyZoneMoved(
 
   // Remove from source zone
   newState = removeFromZone(newState, data.fromZone, rebasedFromIndex, isMyCard);
-  recordOrderedZoneRemoval(
-    data.fromZone,
-    data.fromIndex,
-    isMyCard,
-    batchIndexRebaseContext
-  );
+  recordOrderedZoneRemoval(data.fromZone, data.fromIndex, isMyCard, batchIndexRebaseContext);
 
   // Add to destination zone
   newState = addToZone(
@@ -259,14 +264,16 @@ function removeFromZone(
         const newGarden = state.myBoard.garden.map((card, i) => {
           if (i === index) {
             if (card === null) {
-              console.error(`Warning: Attempted to remove card from my garden at invalid index ${index}`);
+              console.error(
+                `Warning: Attempted to remove card from my garden at invalid index ${index}`
+              );
             }
 
             return null;
           } else {
-            return card
+            return card;
           }
-      });
+        });
         state.myBoard = {
           ...state.myBoard,
           garden: newGarden,
@@ -275,18 +282,20 @@ function removeFromZone(
         const newGarden = state.opponentBoard.garden.map((card, i) => {
           if (i === index) {
             if (card === null) {
-              console.error(`Warning: Attempted to remove card from opponent garden at invalid index ${index}`);
+              console.error(
+                `Warning: Attempted to remove card from opponent garden at invalid index ${index}`
+              );
             }
 
             return null;
           } else {
-            return card
+            return card;
           }
         });
 
         state.opponentBoard = {
           ...state.opponentBoard,
-          garden: newGarden
+          garden: newGarden,
         };
       }
       break;
@@ -296,12 +305,14 @@ function removeFromZone(
         const newAlley = state.myBoard.alley.map((card, i) => {
           if (i === index) {
             if (card === null) {
-              console.error(`Warning: Attempted to remove card from my alley at invalid index ${index}`);
+              console.error(
+                `Warning: Attempted to remove card from my alley at invalid index ${index}`
+              );
             }
 
             return null;
           } else {
-            return card
+            return card;
           }
         });
 
@@ -313,18 +324,20 @@ function removeFromZone(
         const newAlley = state.opponentBoard.alley.map((card, i) => {
           if (i === index) {
             if (card === null) {
-              console.error(`Warning: Attempted to remove card from opponent alley at invalid index ${index}`);
+              console.error(
+                `Warning: Attempted to remove card from opponent alley at invalid index ${index}`
+              );
             }
 
             return null;
           } else {
-            return card
+            return card;
           }
         });
 
         state.opponentBoard = {
           ...state.opponentBoard,
-          alley: newAlley
+          alley: newAlley,
         };
       }
       break;
@@ -347,7 +360,9 @@ function removeFromZone(
       if (isMyCard) {
         const newIkzArea = state.myBoard.ikzArea.filter((_, i) => i !== index);
         if (newIkzArea.length === state.myBoard.ikzArea.length) {
-          console.error(`Warning: Attempted to remove IKZ from my IKZ area at invalid index ${index}`);
+          console.error(
+            `Warning: Attempted to remove IKZ from my IKZ area at invalid index ${index}`
+          );
         }
 
         state.myBoard = {
@@ -357,7 +372,9 @@ function removeFromZone(
       } else {
         const newIkzArea = state.opponentBoard.ikzArea.filter((_, i) => i !== index);
         if (newIkzArea.length === state.opponentBoard.ikzArea.length) {
-          console.error(`Warning: Attempted to remove IKZ from opponent IKZ area at invalid index ${index}`);
+          console.error(
+            `Warning: Attempted to remove IKZ from opponent IKZ area at invalid index ${index}`
+          );
         }
 
         state.opponentBoard = {
@@ -430,7 +447,7 @@ function addToZone(
           state.myHand = newHand;
         } else {
           console.debug(`Appending card to end of my hand`);
-          
+
           // Append to end (index is at or beyond current length)
           state.myHand = [...state.myHand, handCard];
         }
@@ -555,11 +572,7 @@ function addToZone(
 // Stat change handling
 // ============================================
 
-function applyStatChange(
-  state: GameState,
-  data: CardStatChangeData,
-  playerSlot: 0 | 1
-): GameState {
+function applyStatChange(state: GameState, data: CardStatChangeData, playerSlot: 0 | 1): GameState {
   const isMyCard = data.card.player === playerSlot;
   const board = isMyCard ? state.myBoard : state.opponentBoard;
 
@@ -613,11 +626,7 @@ function applyStatChange(
 // Combat damage handling
 // ============================================
 
-function applyCombatDamage(
-  state: GameState,
-  data: CombatDamageData,
-  playerSlot: 0 | 1
-): GameState {
+function applyCombatDamage(state: GameState, data: CombatDamageData, playerSlot: 0 | 1): GameState {
   let nextState = state;
 
   if (data.attackerDamageTaken !== 0) {
@@ -674,7 +683,9 @@ function applyHpDelta(
     case "GARDEN": {
       const gardenCard = board.garden[card.zoneIndex];
       if (!gardenCard) {
-        console.error(`Warning: Could not find ${label} in ${isMyCard ? "my" : "opponent"} garden at index ${card.zoneIndex} to apply combat damage`);
+        console.error(
+          `Warning: Could not find ${label} in ${isMyCard ? "my" : "opponent"} garden at index ${card.zoneIndex} to apply combat damage`
+        );
         return state;
       }
       if (gardenCard.curHp == null) {
@@ -693,7 +704,9 @@ function applyHpDelta(
     case "ALLEY": {
       const alleyCard = board.alley[card.zoneIndex];
       if (!alleyCard) {
-        console.error(`Warning: Could not find ${label} in ${isMyCard ? "my" : "opponent"} alley at index ${card.zoneIndex} to apply combat damage`);
+        console.error(
+          `Warning: Could not find ${label} in ${isMyCard ? "my" : "opponent"} alley at index ${card.zoneIndex} to apply combat damage`
+        );
         return state;
       }
       if (alleyCard.curHp == null) {
@@ -809,7 +822,9 @@ function applyTapStateChange(
     case "GARDEN": {
       const gardenCard = board.garden[data.card.zoneIndex];
       if (gardenCard == null) {
-        console.error(`Warning: Could not find card in ${isMyCard ? "my" : "opponent"} garden at index ${data.card.zoneIndex} to update tap state`);
+        console.error(
+          `Warning: Could not find card in ${isMyCard ? "my" : "opponent"} garden at index ${data.card.zoneIndex} to update tap state`
+        );
         break;
       }
 
@@ -826,7 +841,9 @@ function applyTapStateChange(
     case "ALLEY": {
       const alleyCard = board.alley[data.card.zoneIndex];
       if (alleyCard == null) {
-        console.error(`Warning: Could not find card in ${isMyCard ? "my" : "opponent"} alley at index ${data.card.zoneIndex} to update tap state`);
+        console.error(
+          `Warning: Could not find card in ${isMyCard ? "my" : "opponent"} alley at index ${data.card.zoneIndex} to update tap state`
+        );
         break;
       }
 
@@ -843,7 +860,9 @@ function applyTapStateChange(
     case "IKZ_AREA": {
       const ikzCard = board.ikzArea[data.card.zoneIndex];
       if (ikzCard == null) {
-        console.error(`Warning: Could not find IKZ in ${isMyCard ? "my" : "opponent"} IKZ area at index ${data.card.zoneIndex} to update tap state`);
+        console.error(
+          `Warning: Could not find IKZ in ${isMyCard ? "my" : "opponent"} IKZ area at index ${data.card.zoneIndex} to update tap state`
+        );
         break;
       }
 
