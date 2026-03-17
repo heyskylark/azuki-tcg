@@ -793,6 +793,45 @@ Expected end result:
 6. P2 registry split by set
 7. P3 dead code and validation cleanup
 
+## Discrete Task Breakdown
+
+### Finish P0 Runtime Bootstrap And Phase Flow
+
+1. Extract `azk_enter_initial_phase(...)` so phase selection happens in one
+   place.
+2. Move any remaining target-state reset logic out of entry points and into
+   shared runtime/context helpers.
+3. Move active-player handoff and restore behavior into the same shared runtime
+   path.
+4. Convert each entry point to the shared path one by one:
+   - `azk_trigger_main_ability`
+   - `azk_trigger_spell_ability`
+   - `azk_trigger_leader_response_ability`
+   - `azk_process_triggered_effect_queue`
+   - `azk_trigger_gate_portal_ability`
+5. Add regression coverage for each start path so they enter the same phase as
+   before the refactor.
+
+### P0 Target Model Centralization
+
+1. Define one encoded target-choice model in a new targeting module.
+2. Implement shared "count legal targets" APIs for each `AbilityTargetType`.
+3. Implement shared "enumerate legal choices" APIs.
+4. Implement shared "resolve action index to entity" APIs.
+5. Replace runtime cost-target resolution in `src/abilities/ability_system.c`.
+6. Replace runtime effect-target resolution in `src/abilities/ability_system.c`.
+7. Replace ability action enumeration in `src/validation/action_enumerator.c`.
+8. Add cross-check tests so runtime and enumeration produce the same legal
+   choices.
+
+### Suggested PR Boundaries
+
+1. Shared initial-phase helper plus one migrated trigger path
+2. Migrate all remaining trigger/start paths
+3. Target-choice model plus counting/enumeration helpers
+4. Runtime target resolver migration
+5. Action enumerator migration plus regression tests
+
 ## Short Recommendation
 
 If only one thing gets done first, do this:

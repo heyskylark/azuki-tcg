@@ -150,6 +150,11 @@ typedef struct {
   uint8_t initial_effect_filled;
 } AbilityStartOptions;
 
+typedef struct {
+  bool select_effects_when_max_positive;
+  bool apply_costs_before_effect_selection;
+} AbilityInitialPhaseOptions;
+
 static uint8_t clamp_expected_target_count(uint8_t available,
                                            uint8_t requested_max) {
   return available < requested_max ? available : requested_max;
@@ -195,6 +200,76 @@ static void init_ability_context(ecs_world_t *world, AbilityContext *ctx,
     if (ctx->effect_expected < options->initial_effect_filled) {
       ctx->effect_expected = options->initial_effect_filled;
     }
+  }
+}
+
+static bool should_enter_effect_selection(
+    const AbilityDef *def, const AbilityInitialPhaseOptions *options) {
+  if (options->select_effects_when_max_positive) {
+    return def->effect_req.max > 0;
+  }
+
+  return def->effect_req.min > 0;
+}
+
+static bool azk_enter_initial_phase(
+    ecs_world_t *world, AbilityContext *ctx, const AbilityDef *def,
+    const AbilityInitialPhaseOptions *options) {
+  ctx->phase = ABILITY_PHASE_NONE;
+
+  if (def->cost_req.min > 0) {
+    ctx->phase = ABILITY_PHASE_COST_SELECTION;
+    return true;
+  }
+
+  if (def->on_cost_paid) {
+    if (def->apply_costs) {
+      def->apply_costs(world, ctx);
+    }
+    def->on_cost_paid(world, ctx);
+    return ctx->phase != ABILITY_PHASE_NONE;
+  }
+
+  if (should_enter_effect_selection(def, options)) {
+    if (options->apply_costs_before_effect_selection && def->apply_costs) {
+      def->apply_costs(world, ctx);
+    }
+    ctx->phase = ABILITY_PHASE_EFFECT_SELECTION;
+    return true;
+  }
+
+  if (def->apply_costs) {
+    def->apply_costs(world, ctx);
+  }
+  if (def->apply_effects) {
+    def->apply_effects(world, ctx);
+  }
+
+  return false;
+}
+
+static void log_initial_phase_entry(AbilityPhase phase, const char *cost_log,
+                                    const char *effect_log,
+                                    const char *selection_log) {
+  switch (phase) {
+  case ABILITY_PHASE_COST_SELECTION:
+    if (cost_log) {
+      cli_render_logf("%s", cost_log);
+    }
+    break;
+  case ABILITY_PHASE_EFFECT_SELECTION:
+    if (effect_log) {
+      cli_render_logf("%s", effect_log);
+    }
+    break;
+  case ABILITY_PHASE_SELECTION_PICK:
+  case ABILITY_PHASE_BOTTOM_DECK:
+    if (selection_log) {
+      cli_render_logf("%s", selection_log);
+    }
+    break;
+  default:
+    break;
   }
 }
 
@@ -246,7 +321,6 @@ bool azk_process_ability_confirmation(ecs_world_t *world) {
     return false;
   }
 
-  // Move to next phase based on requirements
   if (def->cost_req.min > 0) {
     uint8_t available_cost_targets =
         count_available_cost_targets(world, def, ctx->source_card, ctx->owner);
@@ -261,45 +335,21 @@ bool azk_process_ability_confirmation(ecs_world_t *world) {
     if (ctx->cost_expected > available_cost_targets) {
       ctx->cost_expected = available_cost_targets;
     }
-    ctx->phase = ABILITY_PHASE_COST_SELECTION;
-    cli_render_logf("[Ability] Confirmed, selecting cost targets");
-  } else if (def->on_cost_paid) {
-    // No cost targets to select, but has on_cost_paid callback
-    // (e.g., STT02-003 which has selection phase without cost)
-    if (def->apply_costs) {
-      def->apply_costs(world, ctx);
-      cli_render_logf("[Ability] Applied costs (no cost targets needed)");
-    }
-    def->on_cost_paid(world, ctx);
-    cli_render_logf("[Ability] Called on_cost_paid callback");
-    // on_cost_paid sets the next phase (SELECTION_PICK or BOTTOM_DECK)
-    // Check if we're done or need further processing
-    if (ctx->phase == ABILITY_PHASE_NONE) {
-      azk_clear_ability_context(world);
-      return true;
-    }
-  } else if (def->effect_req.max > 0) {
-    // Use max > 0 (not min > 0) to enter effect selection for "up to" effects
-    // No cost targets to select, but still apply costs (e.g., sacrifice self,
-    // draw cards)
-    if (def->apply_costs) {
-      def->apply_costs(world, ctx);
-      cli_render_logf("[Ability] Applied costs (no cost targets needed)");
-    }
-    ctx->phase = ABILITY_PHASE_EFFECT_SELECTION;
-    cli_render_logf("[Ability] Confirmed, selecting effect targets");
-  } else {
-    // No targets needed - apply costs and effects immediately
-    if (def->apply_costs) {
-      def->apply_costs(world, ctx);
-    }
-    if (def->apply_effects) {
-      def->apply_effects(world, ctx);
-    }
+  }
+
+  if (!azk_enter_initial_phase(world, ctx, def,
+                               &(AbilityInitialPhaseOptions){
+                                   .select_effects_when_max_positive = true,
+                                   .apply_costs_before_effect_selection = true,
+                               })) {
     azk_clear_ability_context(world);
     cli_render_logf("[Ability] Confirmed and applied ability with no targets");
     return true;
   }
+
+  log_initial_phase_entry(ctx->phase, "[Ability] Confirmed, selecting cost targets",
+                          "[Ability] Confirmed, selecting effect targets",
+                          "[Ability] Confirmed, started selection flow");
 
   ecs_singleton_modified(world, AbilityContext);
   return true;
@@ -1220,32 +1270,23 @@ bool azk_trigger_main_ability(ecs_world_t *world, ecs_entity_t card,
                            .is_optional = def->is_optional,
                        });
 
-  // Main abilities are triggered by player action, so skip confirmation phase
-  // (player already opted in by taking the action)
-  if (def->cost_req.min > 0) {
-    ctx->phase = ABILITY_PHASE_COST_SELECTION;
-    cli_render_logf("[Ability] Triggered main ability, selecting cost targets");
-  } else if (def->effect_req.min > 0) {
-    // No cost targets needed, apply costs (if any) and go to effect selection
-    if (def->apply_costs) {
-      def->apply_costs(world, ctx);
-    }
-    ctx->phase = ABILITY_PHASE_EFFECT_SELECTION;
-    cli_render_logf(
-        "[Ability] Triggered main ability, selecting effect targets");
-  } else {
-    // No targets needed - apply immediately
-    if (def->apply_costs) {
-      def->apply_costs(world, ctx);
-    }
-    if (def->apply_effects) {
-      def->apply_effects(world, ctx);
-    }
-    ctx->phase = ABILITY_PHASE_NONE;
+  bool is_active = azk_enter_initial_phase(
+      world, ctx, def,
+      &(AbilityInitialPhaseOptions){
+          .select_effects_when_max_positive = false,
+          .apply_costs_before_effect_selection = true,
+      });
+  if (!is_active) {
     cli_render_logf("[Ability] Applied main ability with no targets");
+  } else {
+    log_initial_phase_entry(
+        ctx->phase, "[Ability] Triggered main ability, selecting cost targets",
+        "[Ability] Triggered main ability, selecting effect targets",
+        "[Ability] Triggered main ability, started selection flow");
   }
+
   ecs_singleton_modified(world, AbilityContext);
-  return ctx->phase != ABILITY_PHASE_NONE;
+  return is_active;
 }
 
 bool azk_trigger_spell_ability(ecs_world_t *world, ecs_entity_t spell_card,
@@ -1286,25 +1327,24 @@ bool azk_trigger_spell_ability(ecs_world_t *world, ecs_entity_t spell_card,
                            .clamp_effect_expected_to_available = true,
                        });
 
-  // Spells skip confirmation phase - go straight to cost or effect selection
-  if (def->cost_req.min > 0) {
-    ctx->phase = ABILITY_PHASE_COST_SELECTION;
-    cli_render_logf("[Ability] Spell triggered, selecting cost targets");
-  } else if (def->effect_req.min > 0) {
-    ctx->phase = ABILITY_PHASE_EFFECT_SELECTION;
-    cli_render_logf("[Ability] Spell triggered, selecting effect targets");
-  } else {
-    // No targets needed - apply immediately
-    if (def->apply_effects) {
-      def->apply_effects(world, ctx);
-    }
-    ctx->phase = ABILITY_PHASE_NONE;
+  bool is_active = azk_enter_initial_phase(
+      world, ctx, def,
+      &(AbilityInitialPhaseOptions){
+          .select_effects_when_max_positive = false,
+          .apply_costs_before_effect_selection = false,
+      });
+  if (!is_active) {
     cli_render_logf("[Ability] Applied spell with no targets");
     return false; // No further action required
   }
 
+  log_initial_phase_entry(ctx->phase,
+                          "[Ability] Spell triggered, selecting cost targets",
+                          "[Ability] Spell triggered, selecting effect targets",
+                          "[Ability] Spell triggered, started selection flow");
+
   ecs_singleton_modified(world, AbilityContext);
-  return ctx->phase != ABILITY_PHASE_NONE;
+  return true;
 }
 
 bool azk_trigger_leader_response_ability(ecs_world_t *world, ecs_entity_t card,
@@ -1343,28 +1383,24 @@ bool azk_trigger_leader_response_ability(ecs_world_t *world, ecs_entity_t card,
                            .is_optional = false,
                        });
 
-  // Leader response abilities skip confirmation (already activated)
-  // Go straight to cost or effect selection
-  if (def->cost_req.min > 0) {
-    ctx->phase = ABILITY_PHASE_COST_SELECTION;
-    cli_render_logf(
-        "[Ability] Leader response triggered, selecting cost targets");
-  } else if (def->effect_req.min > 0) {
-    ctx->phase = ABILITY_PHASE_EFFECT_SELECTION;
-    cli_render_logf(
-        "[Ability] Leader response triggered, selecting effect targets");
-  } else {
-    // No targets needed - apply immediately
-    if (def->apply_effects) {
-      def->apply_effects(world, ctx);
-    }
-    ctx->phase = ABILITY_PHASE_NONE;
+  bool is_active = azk_enter_initial_phase(
+      world, ctx, def,
+      &(AbilityInitialPhaseOptions){
+          .select_effects_when_max_positive = false,
+          .apply_costs_before_effect_selection = false,
+      });
+  if (!is_active) {
     cli_render_logf("[Ability] Applied leader response with no targets");
     return false; // No further action required
   }
 
+  log_initial_phase_entry(
+      ctx->phase, "[Ability] Leader response triggered, selecting cost targets",
+      "[Ability] Leader response triggered, selecting effect targets",
+      "[Ability] Leader response triggered, started selection flow");
+
   ecs_singleton_modified(world, AbilityContext);
-  return ctx->phase != ABILITY_PHASE_NONE;
+  return true;
 }
 
 bool azk_queue_triggered_effect(ecs_world_t *world, ecs_entity_t card,
@@ -1510,51 +1546,28 @@ bool azk_process_triggered_effect_queue(ecs_world_t *world) {
         "[Ability] Triggered optional ability, waiting for confirmation");
     ecs_singleton_modified(world, AbilityContext);
     return true;
-  } else {
-    // Non-optional ability - skip confirmation, but still enter the same
-    // follow-up phase the ability would enter after being confirmed.
-    if (def->cost_req.min > 0) {
-      ctx->phase = ABILITY_PHASE_COST_SELECTION;
-      cli_render_logf(
-          "[Ability] Triggered mandatory ability, selecting cost targets");
-    } else if (def->on_cost_paid) {
-      if (def->apply_costs) {
-        def->apply_costs(world, ctx);
-        cli_render_logf(
-            "[Ability] Applied mandatory ability costs before selection flow");
-      }
-      def->on_cost_paid(world, ctx);
-      cli_render_logf(
-          "[Ability] Triggered mandatory ability, started selection flow");
-      if (ctx->phase == ABILITY_PHASE_NONE) {
-        azk_clear_ability_context(world);
-        return false;
-      }
-    } else if (def->effect_req.max > 0) {
-      if (def->apply_costs) {
-        def->apply_costs(world, ctx);
-        cli_render_logf(
-            "[Ability] Applied mandatory ability costs before effect selection");
-      }
-      ctx->phase = ABILITY_PHASE_EFFECT_SELECTION;
-      cli_render_logf(
-          "[Ability] Triggered mandatory ability, selecting effect targets");
-    } else {
-      // No targets needed - apply immediately.
-      if (def->apply_costs) {
-        def->apply_costs(world, ctx);
-      }
-      if (def->apply_effects) {
-        def->apply_effects(world, ctx);
-      }
-      azk_clear_ability_context(world);
-      cli_render_logf("[Ability] Applied mandatory ability with no targets");
-      return false;
-    }
-    maybe_transfer_triggered_ability_control(world, ctx, owner);
-    ecs_singleton_modified(world, AbilityContext);
-    return true;
   }
+
+  bool is_active = azk_enter_initial_phase(
+      world, ctx, def,
+      &(AbilityInitialPhaseOptions){
+          .select_effects_when_max_positive = true,
+          .apply_costs_before_effect_selection = true,
+      });
+  if (!is_active) {
+    azk_clear_ability_context(world);
+    cli_render_logf("[Ability] Applied mandatory ability with no targets");
+    return false;
+  }
+
+  log_initial_phase_entry(
+      ctx->phase, "[Ability] Triggered mandatory ability, selecting cost targets",
+      "[Ability] Triggered mandatory ability, selecting effect targets",
+      "[Ability] Triggered mandatory ability, started selection flow");
+
+  maybe_transfer_triggered_ability_control(world, ctx, owner);
+  ecs_singleton_modified(world, AbilityContext);
+  return true;
 }
 
 void azk_trigger_return_to_hand_observers(ecs_world_t *world,
@@ -1643,30 +1656,29 @@ void azk_trigger_gate_portal_ability(ecs_world_t *world, ecs_entity_t gate_card,
                            .initial_effect_filled = 1,
                        });
 
-  // Check if this ability has multi-step processing
-  if (def->on_cost_paid) {
-    // Multi-step ability - call on_cost_paid to set up selection
-    if (def->is_optional) {
-      // Optional multi-step ability requires confirmation first
-      ctx->phase = ABILITY_PHASE_CONFIRMATION;
-      ecs_singleton_modified(world, AbilityContext);
-      cli_render_logf("[Ability] Gate portal triggered optional ability, "
-                      "waiting for confirmation");
-    } else {
-      // Non-optional: call on_cost_paid directly to start selection
-      def->on_cost_paid(world, ctx);
-      ecs_singleton_modified(world, AbilityContext);
-      cli_render_logf("[Ability] Gate portal triggered multi-step ability");
-    }
-  } else if (def->apply_effects) {
-    // Simple immediate effect (like STT02-002)
-    def->apply_effects(world, ctx);
-    ctx->phase = ABILITY_PHASE_NONE;
+  if (def->is_optional) {
+    ctx->phase = ABILITY_PHASE_CONFIRMATION;
     ecs_singleton_modified(world, AbilityContext);
+    cli_render_logf("[Ability] Gate portal triggered optional ability, "
+                    "waiting for confirmation");
+    return;
+  }
+
+  bool is_active = azk_enter_initial_phase(
+      world, ctx, def,
+      &(AbilityInitialPhaseOptions){
+          .select_effects_when_max_positive = false,
+          .apply_costs_before_effect_selection = false,
+      });
+  ecs_singleton_modified(world, AbilityContext);
+
+  if (!is_active) {
     cli_render_logf("[Ability] Applied gate portal ability for %s",
                     ecs_get_name(world, gate_card));
-  } else {
-    ctx->phase = ABILITY_PHASE_NONE;
-    ecs_singleton_modified(world, AbilityContext);
+    return;
   }
+
+  log_initial_phase_entry(ctx->phase, "[Ability] Gate portal ability, selecting cost targets",
+                          "[Ability] Gate portal ability, selecting effect targets",
+                          "[Ability] Gate portal triggered multi-step ability");
 }

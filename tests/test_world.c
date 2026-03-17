@@ -1950,6 +1950,111 @@ static void test_triggered_selection_pick_skips_confirmation_stt02_013(void) {
   ecs_fini(world);
 }
 
+static void test_leader_response_enters_effect_selection(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  ecs_set(world, ecs_id(GameState), GameState, {0});
+  ecs_set(world, ecs_id(AbilityContext), AbilityContext, {0});
+
+  ecs_entity_t player0 = ecs_new(world);
+  ecs_set(world, player0, PlayerId, {.pid = 0});
+  ecs_set(world, player0, PlayerNumber, {.player_number = 0});
+
+  ecs_entity_t player1 = ecs_new(world);
+  ecs_set(world, player1, PlayerId, {.pid = 1});
+  ecs_set(world, player1, PlayerNumber, {.player_number = 1});
+
+  ecs_entity_t leader0 = create_zone(world, player0, ZLeader, "Leader_P0");
+  ecs_entity_t garden1 = create_zone(world, player1, ZGarden, "Garden_P1");
+
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->players[0] = player0;
+  gs->players[1] = player1;
+  gs->zones[0].leader = leader0;
+  gs->zones[1].garden = garden1;
+  ecs_singleton_modified(world, GameState);
+
+  ecs_entity_t shao = ecs_new(world);
+  ecs_set(world, shao, CardId, {.id = CARD_DEF_STT02_001, .code = "STT02-001"});
+  ecs_set(world, shao, Type, {.value = CARD_TYPE_LEADER});
+  ecs_add_pair(world, shao, Rel_OwnedBy, player0);
+  ecs_add_pair(world, shao, EcsChildOf, leader0);
+
+  ecs_entity_t target = ecs_new(world);
+  ecs_set(world, target, CardId, {.id = CARD_DEF_STT02_003, .code = "TARGET"});
+  ecs_set(world, target, Type, {.value = CARD_TYPE_ENTITY});
+  ecs_set(world, target, IKZCost, {.ikz_cost = 2});
+  ecs_add_pair(world, target, Rel_OwnedBy, player1);
+  ecs_add_pair(world, target, EcsChildOf, garden1);
+  ecs_set(world, target, ZoneIndex, {.index = 0});
+
+  bool triggered = azk_trigger_leader_response_ability(world, shao, player0);
+  assert(triggered);
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_EFFECT_SELECTION);
+
+  const AbilityContext *ctx = ecs_singleton_get(world, AbilityContext);
+  assert(ctx != NULL);
+  assert(ctx->source_card == shao);
+  assert(ctx->owner == player0);
+  assert(ctx->effect_expected == 1);
+
+  ecs_fini(world);
+}
+
+static void test_gate_portal_enters_selection_flow_stt01_002(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  ecs_set(world, ecs_id(GameState), GameState, {0});
+  ecs_set(world, ecs_id(AbilityContext), AbilityContext, {0});
+
+  ecs_entity_t player0 = ecs_new(world);
+  ecs_set(world, player0, PlayerId, {.pid = 0});
+  ecs_set(world, player0, PlayerNumber, {.player_number = 0});
+
+  ecs_entity_t discard = create_zone(world, player0, ZDiscard, "Discard_P0");
+  ecs_entity_t selection =
+      create_zone(world, player0, ZSelection, "Selection_P0");
+
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->players[0] = player0;
+  gs->zones[0].discard = discard;
+  gs->zones[0].selection = selection;
+  ecs_singleton_modified(world, GameState);
+
+  ecs_entity_t gate_card = ecs_new(world);
+  ecs_set(world, gate_card, CardId, {.id = CARD_DEF_STT01_002, .code = "STT01-002"});
+  ecs_set(world, gate_card, Type, {.value = CARD_TYPE_GATE});
+  ecs_add_pair(world, gate_card, Rel_OwnedBy, player0);
+
+  ecs_entity_t portaled_card = ecs_new(world);
+  ecs_set(world, portaled_card, Type, {.value = CARD_TYPE_ENTITY});
+  ecs_set(world, portaled_card, GatePoints, {.gate_points = 2});
+
+  ecs_entity_t weapon = ecs_new(world);
+  ecs_set(world, weapon, CardId, {.id = CARD_DEF_STT01_016, .code = "WEAPON"});
+  ecs_set(world, weapon, Type, {.value = CARD_TYPE_WEAPON});
+  ecs_set(world, weapon, IKZCost, {.ikz_cost = 1});
+  ecs_add_pair(world, weapon, Rel_OwnedBy, player0);
+  ecs_add_pair(world, weapon, EcsChildOf, discard);
+
+  azk_trigger_gate_portal_ability(world, gate_card, portaled_card, player0);
+
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_SELECTION_PICK);
+
+  const AbilityContext *ctx = ecs_singleton_get(world, AbilityContext);
+  assert(ctx != NULL);
+  assert(ctx->source_card == gate_card);
+  assert(ctx->owner == player0);
+  assert(ctx->effect_targets[0] == portaled_card);
+  assert(ctx->selection_count == 1);
+  assert(ctx->selection_cards[0] == weapon);
+  assert(ecs_get_target(world, weapon, EcsChildOf, 0) == selection);
+
+  ecs_fini(world);
+}
+
 static void test_start_phase_skips_opening_draw_for_starting_player(void) {
   ecs_world_t *world = azk_world_init_with_starting_player(42, 0);
 
@@ -2394,6 +2499,8 @@ int main(void) {
   test_triggered_mandatory_up_to_effect_skips_confirmation();
   test_triggered_selection_pick_skips_confirmation_stt02_003();
   test_triggered_selection_pick_skips_confirmation_stt02_013();
+  test_leader_response_enters_effect_selection();
+  test_gate_portal_enters_selection_flow_stt01_002();
   test_start_phase_skips_opening_draw_for_starting_player();
   test_observation_garden_slots_use_zone_index();
 
