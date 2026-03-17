@@ -146,31 +146,6 @@ static uint8_t count_available_effect_targets(ecs_world_t *world,
   return count;
 }
 
-static void log_initial_phase_entry(AbilityPhase phase, const char *cost_log,
-                                    const char *effect_log,
-                                    const char *selection_log) {
-  switch (phase) {
-  case ABILITY_PHASE_COST_SELECTION:
-    if (cost_log) {
-      cli_render_logf("%s", cost_log);
-    }
-    break;
-  case ABILITY_PHASE_EFFECT_SELECTION:
-    if (effect_log) {
-      cli_render_logf("%s", effect_log);
-    }
-    break;
-  case ABILITY_PHASE_SELECTION_PICK:
-  case ABILITY_PHASE_BOTTOM_DECK:
-    if (selection_log) {
-      cli_render_logf("%s", selection_log);
-    }
-    break;
-  default:
-    break;
-  }
-}
-
 bool azk_process_ability_confirmation(ecs_world_t *world) {
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
 
@@ -216,9 +191,10 @@ bool azk_process_ability_confirmation(ecs_world_t *world) {
     return true;
   }
 
-  log_initial_phase_entry(ctx->phase, "[Ability] Confirmed, selecting cost targets",
-                          "[Ability] Confirmed, selecting effect targets",
-                          "[Ability] Confirmed, started selection flow");
+  azk_log_ability_initial_phase_entry(
+      ctx->phase, "[Ability] Confirmed, selecting cost targets",
+      "[Ability] Confirmed, selecting effect targets",
+      "[Ability] Confirmed, started selection flow");
 
   ecs_singleton_modified(world, AbilityContext);
   return true;
@@ -1105,31 +1081,21 @@ bool azk_trigger_main_ability(ecs_world_t *world, ecs_entity_t card,
     return false;
   }
 
-  // Get ability context singleton
-  AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
-
-  azk_init_ability_context(ctx, card, owner, def, available_cost_targets,
-                           &(AbilityContextInitOptions){
-                           .is_optional = def->is_optional,
-                       });
-
-  bool is_active = azk_enter_initial_phase(
-      world, ctx, def,
-      &(AbilityInitialPhaseOptions){
+  return azk_begin_ability(
+      world, card, owner, def,
+      &(AbilityBeginOptions){
+          .is_optional = def->is_optional,
+          .available_cost_targets = available_cost_targets,
           .select_effects_when_max_positive = false,
           .apply_costs_before_effect_selection = true,
+          .applied_log = "[Ability] Applied main ability with no targets",
+          .cost_selection_log =
+              "[Ability] Triggered main ability, selecting cost targets",
+          .effect_selection_log =
+              "[Ability] Triggered main ability, selecting effect targets",
+          .selection_log =
+              "[Ability] Triggered main ability, started selection flow",
       });
-  if (!is_active) {
-    cli_render_logf("[Ability] Applied main ability with no targets");
-  } else {
-    log_initial_phase_entry(
-        ctx->phase, "[Ability] Triggered main ability, selecting cost targets",
-        "[Ability] Triggered main ability, selecting effect targets",
-        "[Ability] Triggered main ability, started selection flow");
-  }
-
-  ecs_singleton_modified(world, AbilityContext);
-  return is_active;
 }
 
 bool azk_trigger_spell_ability(ecs_world_t *world, ecs_entity_t spell_card,
@@ -1160,38 +1126,25 @@ bool azk_trigger_spell_ability(ecs_world_t *world, ecs_entity_t spell_card,
     return false;
   }
 
-  // Get ability context singleton
-  AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
   uint8_t available_effect_targets =
       count_available_effect_targets(world, def, spell_card, owner);
 
-  azk_init_ability_context(ctx, spell_card, owner, def,
-                           available_cost_targets,
-                           &(AbilityContextInitOptions){
-                               .is_optional = false,
-                               .clamp_effect_expected_to_available = true,
-                               .available_effect_targets =
-                                   available_effect_targets,
-                           });
-
-  bool is_active = azk_enter_initial_phase(
-      world, ctx, def,
-      &(AbilityInitialPhaseOptions){
+  return azk_begin_ability(
+      world, spell_card, owner, def,
+      &(AbilityBeginOptions){
+          .is_optional = false,
+          .available_cost_targets = available_cost_targets,
+          .available_effect_targets = available_effect_targets,
+          .clamp_effect_expected_to_available = true,
           .select_effects_when_max_positive = false,
           .apply_costs_before_effect_selection = false,
+          .applied_log = "[Ability] Applied spell with no targets",
+          .cost_selection_log =
+              "[Ability] Spell triggered, selecting cost targets",
+          .effect_selection_log =
+              "[Ability] Spell triggered, selecting effect targets",
+          .selection_log = "[Ability] Spell triggered, started selection flow",
       });
-  if (!is_active) {
-    cli_render_logf("[Ability] Applied spell with no targets");
-    return false; // No further action required
-  }
-
-  log_initial_phase_entry(ctx->phase,
-                          "[Ability] Spell triggered, selecting cost targets",
-                          "[Ability] Spell triggered, selecting effect targets",
-                          "[Ability] Spell triggered, started selection flow");
-
-  ecs_singleton_modified(world, AbilityContext);
-  return true;
 }
 
 bool azk_trigger_leader_response_ability(ecs_world_t *world, ecs_entity_t card,
@@ -1222,32 +1175,21 @@ bool azk_trigger_leader_response_ability(ecs_world_t *world, ecs_entity_t card,
     return false;
   }
 
-  // Get ability context singleton
-  AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
-
-  azk_init_ability_context(ctx, card, owner, def, available_cost_targets,
-                           &(AbilityContextInitOptions){
-                           .is_optional = false,
-                       });
-
-  bool is_active = azk_enter_initial_phase(
-      world, ctx, def,
-      &(AbilityInitialPhaseOptions){
+  return azk_begin_ability(
+      world, card, owner, def,
+      &(AbilityBeginOptions){
+          .is_optional = false,
+          .available_cost_targets = available_cost_targets,
           .select_effects_when_max_positive = false,
           .apply_costs_before_effect_selection = false,
+          .applied_log = "[Ability] Applied leader response with no targets",
+          .cost_selection_log =
+              "[Ability] Leader response triggered, selecting cost targets",
+          .effect_selection_log =
+              "[Ability] Leader response triggered, selecting effect targets",
+          .selection_log =
+              "[Ability] Leader response triggered, started selection flow",
       });
-  if (!is_active) {
-    cli_render_logf("[Ability] Applied leader response with no targets");
-    return false; // No further action required
-  }
-
-  log_initial_phase_entry(
-      ctx->phase, "[Ability] Leader response triggered, selecting cost targets",
-      "[Ability] Leader response triggered, selecting effect targets",
-      "[Ability] Leader response triggered, started selection flow");
-
-  ecs_singleton_modified(world, AbilityContext);
-  return true;
 }
 
 bool azk_queue_triggered_effect(ecs_world_t *world, ecs_entity_t card,
@@ -1377,44 +1319,26 @@ bool azk_process_triggered_effect_queue(ecs_world_t *world) {
     return false;
   }
 
-  // Get ability context singleton
-  AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
-
-  azk_init_ability_context(ctx, card, owner, def, available_cost_targets,
-                           &(AbilityContextInitOptions){
-                           .is_optional = def->is_optional,
-                       });
-
-  if (def->is_optional) {
-    // Optional ability - enter confirmation phase
-    ctx->phase = ABILITY_PHASE_CONFIRMATION;
-    azk_maybe_transfer_triggered_ability_control(world, ctx);
-    cli_render_logf(
-        "[Ability] Triggered optional ability, waiting for confirmation");
-    ecs_singleton_modified(world, AbilityContext);
-    return true;
-  }
-
-  bool is_active = azk_enter_initial_phase(
-      world, ctx, def,
-      &(AbilityInitialPhaseOptions){
+  return azk_begin_ability(
+      world, card, owner, def,
+      &(AbilityBeginOptions){
+          .is_optional = def->is_optional,
+          .enter_confirmation_when_optional = true,
+          .transfer_control_on_user_input = true,
+          .available_cost_targets = available_cost_targets,
           .select_effects_when_max_positive = true,
           .apply_costs_before_effect_selection = true,
+          .clear_context_on_immediate_resolve = true,
+          .confirmation_log =
+              "[Ability] Triggered optional ability, waiting for confirmation",
+          .applied_log = "[Ability] Applied mandatory ability with no targets",
+          .cost_selection_log =
+              "[Ability] Triggered mandatory ability, selecting cost targets",
+          .effect_selection_log =
+              "[Ability] Triggered mandatory ability, selecting effect targets",
+          .selection_log =
+              "[Ability] Triggered mandatory ability, started selection flow",
       });
-  if (!is_active) {
-    azk_clear_ability_context(world);
-    cli_render_logf("[Ability] Applied mandatory ability with no targets");
-    return false;
-  }
-
-  log_initial_phase_entry(
-      ctx->phase, "[Ability] Triggered mandatory ability, selecting cost targets",
-      "[Ability] Triggered mandatory ability, selecting effect targets",
-      "[Ability] Triggered mandatory ability, started selection flow");
-
-  azk_maybe_transfer_triggered_ability_control(world, ctx);
-  ecs_singleton_modified(world, AbilityContext);
-  return true;
 }
 
 void azk_trigger_return_to_hand_observers(ecs_world_t *world,
@@ -1492,40 +1416,28 @@ void azk_trigger_gate_portal_ability(ecs_world_t *world, ecs_entity_t gate_card,
     return;
   }
 
-  // Set up context with portaled card info
-  AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
-  azk_init_ability_context(
-      ctx, gate_card, owner, def,
-      count_available_cost_targets(world, def, gate_card, owner),
-      &(AbilityContextInitOptions){
+  bool is_active = azk_begin_ability(
+      world, gate_card, owner, def,
+      &(AbilityBeginOptions){
           .is_optional = def->is_optional,
+          .enter_confirmation_when_optional = true,
+          .available_cost_targets =
+              count_available_cost_targets(world, def, gate_card, owner),
           .initial_effect_target = portaled_card,
           .initial_effect_filled = 1,
+          .confirmation_log =
+              "[Ability] Gate portal triggered optional ability, waiting for "
+              "confirmation",
+          .cost_selection_log =
+              "[Ability] Gate portal ability, selecting cost targets",
+          .effect_selection_log =
+              "[Ability] Gate portal ability, selecting effect targets",
+          .selection_log =
+              "[Ability] Gate portal triggered multi-step ability",
       });
-
-  if (def->is_optional) {
-    ctx->phase = ABILITY_PHASE_CONFIRMATION;
-    ecs_singleton_modified(world, AbilityContext);
-    cli_render_logf("[Ability] Gate portal triggered optional ability, "
-                    "waiting for confirmation");
-    return;
-  }
-
-  bool is_active = azk_enter_initial_phase(
-      world, ctx, def,
-      &(AbilityInitialPhaseOptions){
-          .select_effects_when_max_positive = false,
-          .apply_costs_before_effect_selection = false,
-      });
-  ecs_singleton_modified(world, AbilityContext);
 
   if (!is_active) {
     cli_render_logf("[Ability] Applied gate portal ability for %s",
                     ecs_get_name(world, gate_card));
-    return;
   }
-
-  log_initial_phase_entry(ctx->phase, "[Ability] Gate portal ability, selecting cost targets",
-                          "[Ability] Gate portal ability, selecting effect targets",
-                          "[Ability] Gate portal triggered multi-step ability");
 }
