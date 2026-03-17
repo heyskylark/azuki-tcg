@@ -62,17 +62,18 @@ const SLOT_SPACING = 1.8;
 const IKZ_SPACING = 1.2; // Tighter spacing for IKZ cards (up to 10)
 const GARDEN_SLOTS = 5;
 const ALLEY_SLOTS = 5;
+const CENTER_LANE_OFFSET = 0.6;
 
 // Z positions (depth into screen) - positive Z is toward player
 // Card height is 2.0, gap of ~2.1 between rows
-const MY_GARDEN_Z = 1.5;
-const MY_ALLEY_Z = 3.6; // Same gap as alley-to-IKZ
-const MY_IKZ_Z = 5.7; // Same gap as garden-to-alley
-const MY_HAND_Z = 7.4; // Hand slightly overlaps IKZ area
+const MY_GARDEN_Z = 1.5 + CENTER_LANE_OFFSET;
+const MY_ALLEY_Z = 3.6 + CENTER_LANE_OFFSET; // Same gap as alley-to-IKZ
+const MY_IKZ_Z = 5.7 + CENTER_LANE_OFFSET; // Same gap as garden-to-alley
+const MY_HAND_Z = 7.4 + CENTER_LANE_OFFSET; // Hand slightly overlaps IKZ area
 
-const OPP_GARDEN_Z = -1.5;
-const OPP_ALLEY_Z = -3.6; // Same gap as alley-to-IKZ
-const OPP_IKZ_Z = -5.7; // Same gap as garden-to-alley
+const OPP_GARDEN_Z = -(1.5 + CENTER_LANE_OFFSET);
+const OPP_ALLEY_Z = -(3.6 + CENTER_LANE_OFFSET); // Same gap as alley-to-IKZ
+const OPP_IKZ_Z = -(5.7 + CENTER_LANE_OFFSET); // Same gap as garden-to-alley
 
 // X positions - right side for leader/gate/deck/discard, left side for IKZ pile
 const RIGHT_SIDE_X = 6;
@@ -80,6 +81,35 @@ const DECK_X = RIGHT_SIDE_X;
 const DISCARD_X = RIGHT_SIDE_X + 1.8;
 const IKZ_PILE_X = -6;
 const ATTACK_DRAG_THRESHOLD = 6;
+const PHASE_TRACK_Y = -0.04;
+const MAIN_PHASE_TRACK_Z = -0.34;
+const SUBPHASE_TRACK_Z = 0.34;
+const MAIN_PHASE_TRACK_SPACING = 1.34;
+const SUBPHASE_TRACK_SPACING = 1.58;
+const PHASE_TRACK_BADGE_X_PADDING = 1.7;
+
+interface PhaseTrackStep {
+  key: string;
+  label: string;
+}
+
+const MAIN_PHASE_TRACK: PhaseTrackStep[] = [
+  { key: "PREGAME_MULLIGAN", label: "MU" },
+  { key: "START_OF_TURN", label: "ST" },
+  { key: "MAIN", label: "MA" },
+  { key: "RESPONSE_WINDOW", label: "RW" },
+  { key: "COMBAT_RESOLVE", label: "CR" },
+  { key: "END_TURN_ACTION", label: "EA" },
+  { key: "END_TURN", label: "ET" },
+];
+
+const SUBPHASE_TRACK: PhaseTrackStep[] = [
+  { key: "CONFIRMATION", label: "CF" },
+  { key: "COST_SELECTION", label: "CS" },
+  { key: "EFFECT_SELECTION", label: "ES" },
+  { key: "SELECTION_PICK", label: "SP" },
+  { key: "BOTTOM_DECK", label: "BD" },
+];
 
 function getSlotX(index: number): number {
   return (index - Math.floor(GARDEN_SLOTS / 2)) * SLOT_SPACING;
@@ -545,6 +575,178 @@ function BoardSurface() {
       <planeGeometry args={[22, 20]} />
       <meshStandardMaterial color="#1a472a" />
     </mesh>
+  );
+}
+
+function PhaseTrackNode({
+  label,
+  position,
+  active,
+}: {
+  label: string;
+  position: [number, number, number];
+  active: boolean;
+}) {
+  const groupRef = useRef<THREE.Group>(null);
+  const frameMaterialRef = useRef<THREE.MeshStandardMaterial>(null);
+  const faceMaterialRef = useRef<THREE.MeshStandardMaterial>(null);
+
+  useFrame((state) => {
+    const pulse = active ? (Math.sin(state.clock.elapsedTime * 4.4) + 1) / 2 : 0;
+
+    if (groupRef.current) {
+      groupRef.current.position.set(
+        position[0],
+        position[1] + (active ? 0.018 + pulse * 0.007 : 0),
+        position[2]
+      );
+      groupRef.current.scale.setScalar(active ? 1.06 + pulse * 0.02 : 1);
+    }
+
+    if (frameMaterialRef.current) {
+      frameMaterialRef.current.emissiveIntensity = active ? 0.6 + pulse * 0.45 : 0.02;
+    }
+
+    if (faceMaterialRef.current) {
+      faceMaterialRef.current.emissiveIntensity = active ? 1.45 + pulse * 0.85 : 0.04;
+    }
+  });
+
+  return (
+    <group ref={groupRef} position={position}>
+      <mesh position={[0, 0, 0]} scale={[1.25, 1, 0.56]} raycast={() => null}>
+        <cylinderGeometry args={[0.58, 0.64, 0.08, 8]} />
+        <meshStandardMaterial
+          ref={frameMaterialRef}
+          color={active ? "#ffc6c6" : "#49505b"}
+          emissive={active ? "#9a0f0f" : "#080b10"}
+          metalness={0.88}
+          roughness={0.24}
+        />
+      </mesh>
+      <mesh position={[0, 0.026, 0]} scale={[1.1, 1, 0.46]} raycast={() => null}>
+        <cylinderGeometry args={[0.52, 0.58, 0.05, 8]} />
+        <meshStandardMaterial
+          ref={faceMaterialRef}
+          color={active ? "#ff3b30" : "#b7bec8"}
+          emissive={active ? "#ff1200" : "#1a212b"}
+          metalness={0.28}
+          roughness={active ? 0.12 : 0.22}
+        />
+      </mesh>
+      <Text
+        position={[0, 0.056, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        fontSize={0.28}
+        color={active ? "#ffffff" : "#303540"}
+        anchorX="center"
+        anchorY="middle"
+        outlineColor={active ? "#3c0505" : "#d8dde4"}
+        outlineWidth={active ? 0.05 : 0.026}
+        fontWeight="bold"
+        raycast={() => null}
+      >
+        {label}
+      </Text>
+    </group>
+  );
+}
+
+function getPhaseTrackX(index: number, count: number, spacing: number): number {
+  return (index - (count - 1) / 2) * spacing;
+}
+
+function PhaseTrackPlayerBadge({
+  label,
+  position,
+}: {
+  label: string;
+  position: [number, number, number];
+}) {
+  return (
+    <group position={position}>
+      <mesh position={[0, 0, 0]} scale={[1.18, 1, 0.6]} raycast={() => null}>
+        <cylinderGeometry args={[0.56, 0.62, 0.085, 8]} />
+        <meshStandardMaterial
+          color="#b9c1cc"
+          emissive="#5f1010"
+          emissiveIntensity={0.2}
+          metalness={0.88}
+          roughness={0.26}
+        />
+      </mesh>
+      <mesh position={[0, 0.028, 0]} scale={[1.02, 1, 0.5]} raycast={() => null}>
+        <cylinderGeometry args={[0.5, 0.56, 0.05, 8]} />
+        <meshStandardMaterial
+          color="#f06f6f"
+          emissive="#b41919"
+          emissiveIntensity={0.72}
+          metalness={0.34}
+          roughness={0.24}
+        />
+      </mesh>
+      <Text
+        position={[0, 0.057, 0]}
+        rotation={[-Math.PI / 2, 0, 0]}
+        fontSize={0.3}
+        color="#ffffff"
+        anchorX="center"
+        anchorY="middle"
+        outlineColor="#7a1111"
+        outlineWidth={0.034}
+        fontWeight="bold"
+        raycast={() => null}
+      >
+        {label}
+      </Text>
+    </group>
+  );
+}
+
+function PhaseTrack({
+  phase,
+  abilitySubphase,
+  activePlayer,
+}: {
+  phase: string;
+  abilitySubphase: string;
+  activePlayer: 0 | 1;
+}) {
+  const mainRowWidth = MAIN_PHASE_TRACK_SPACING * (MAIN_PHASE_TRACK.length - 1) + 1.75;
+  const subphaseRowWidth = SUBPHASE_TRACK_SPACING * (SUBPHASE_TRACK.length - 1) + 1.75;
+  const badgeX = -(Math.max(mainRowWidth, subphaseRowWidth) / 2 + PHASE_TRACK_BADGE_X_PADDING);
+  const activePlayerLabel = activePlayer === 0 ? "P1" : "P2";
+
+  return (
+    <group>
+      <PhaseTrackPlayerBadge label={activePlayerLabel} position={[badgeX, PHASE_TRACK_Y, 0]} />
+
+      {MAIN_PHASE_TRACK.map((step, index) => (
+        <PhaseTrackNode
+          key={step.key}
+          label={step.label}
+          position={[
+            getPhaseTrackX(index, MAIN_PHASE_TRACK.length, MAIN_PHASE_TRACK_SPACING),
+            PHASE_TRACK_Y,
+            MAIN_PHASE_TRACK_Z,
+          ]}
+          active={phase === step.key}
+        />
+      ))}
+
+      {SUBPHASE_TRACK.map((step, index) => (
+        <PhaseTrackNode
+          key={step.key}
+          label={step.label}
+          position={[
+            getPhaseTrackX(index, SUBPHASE_TRACK.length, SUBPHASE_TRACK_SPACING),
+            PHASE_TRACK_Y,
+            SUBPHASE_TRACK_Z,
+          ]}
+          active={abilitySubphase === step.key}
+        />
+      ))}
+    </group>
   );
 }
 
@@ -1833,6 +2035,12 @@ export function Board() {
     <group>
       {/* Board surface */}
       <BoardSurface />
+
+      <PhaseTrack
+        phase={gameState.phase}
+        abilitySubphase={gameState.abilitySubphase}
+        activePlayer={gameState.activePlayer}
+      />
 
       <SpellDropZone isActive={isDraggingSpell} isHovered={isSpellDropHovered} />
 
