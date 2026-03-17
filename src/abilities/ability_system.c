@@ -4,6 +4,7 @@
 #include "abilities/core/ability_flow.h"
 #include "abilities/core/ability_runtime.h"
 #include "abilities/ability_registry.h"
+#include "abilities/targeting/ability_targeting.h"
 #include "components/abilities.h"
 #include "components/components.h"
 #include "generated/card_defs.h"
@@ -73,79 +74,6 @@ bool azk_trigger_when_equipped_ability(ecs_world_t *world, ecs_entity_t card,
   return azk_queue_triggered_effect(world, card, owner, TIMING_TAG_WHEN_EQUIPPED);
 }
 
-static uint8_t count_available_cost_targets(ecs_world_t *world,
-                                            const AbilityDef *def,
-                                            ecs_entity_t source_card,
-                                            ecs_entity_t owner) {
-  const GameState *gs = ecs_singleton_get(world, GameState);
-  uint8_t player_num = get_player_number(world, owner);
-  uint8_t count = 0;
-
-  switch (def->cost_req.type) {
-  case ABILITY_TARGET_FRIENDLY_HAND:
-  case ABILITY_TARGET_FRIENDLY_HAND_WEAPON: {
-    ecs_entity_t hand = gs->zones[player_num].hand;
-    ecs_entities_t hand_cards = ecs_get_ordered_children(world, hand);
-    for (int i = 0; i < hand_cards.count; i++) {
-      ecs_entity_t target = hand_cards.ids[i];
-      if (def->validate_cost_target &&
-          !def->validate_cost_target(world, source_card, owner, target)) {
-        continue;
-      }
-      count++;
-    }
-    break;
-  }
-  case ABILITY_TARGET_FRIENDLY_GARDEN_ENTITY: {
-    ecs_entity_t garden = gs->zones[player_num].garden;
-    ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
-    for (int i = 0; i < garden_cards.count; i++) {
-      ecs_entity_t target = garden_cards.ids[i];
-      if (def->validate_cost_target &&
-          !def->validate_cost_target(world, source_card, owner, target)) {
-        continue;
-      }
-      count++;
-    }
-    break;
-  }
-  default:
-    return def->cost_req.max;
-  }
-
-  return count;
-}
-
-static uint8_t count_available_effect_targets(ecs_world_t *world,
-                                              const AbilityDef *def,
-                                              ecs_entity_t source_card,
-                                              ecs_entity_t owner) {
-  const GameState *gs = ecs_singleton_get(world, GameState);
-  uint8_t player_num = get_player_number(world, owner);
-  uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
-  uint8_t count = 0;
-
-  switch (def->effect_req.type) {
-  case ABILITY_TARGET_ENEMY_GARDEN_ENTITY: {
-    ecs_entity_t garden = gs->zones[enemy_num].garden;
-    ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
-    for (int i = 0; i < garden_cards.count; i++) {
-      ecs_entity_t target = garden_cards.ids[i];
-      if (def->validate_effect_target &&
-          !def->validate_effect_target(world, source_card, owner, target)) {
-        continue;
-      }
-      count++;
-    }
-    break;
-  }
-  default:
-    return def->effect_req.max;
-  }
-
-  return count;
-}
-
 bool azk_process_ability_confirmation(ecs_world_t *world) {
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
 
@@ -166,8 +94,8 @@ bool azk_process_ability_confirmation(ecs_world_t *world) {
   }
 
   if (def->cost_req.min > 0) {
-    uint8_t available_cost_targets =
-        count_available_cost_targets(world, def, ctx->source_card, ctx->owner);
+    uint8_t available_cost_targets = azk_count_ability_target_choices(
+        world, def, ABILITY_TARGET_SCOPE_COST, ctx->source_card, ctx->owner);
     if (available_cost_targets < def->cost_req.min) {
       cli_render_logf("[Ability] Confirmed ability has no valid cost targets "
                       "(available=%u, required_min=%u), skipping",
@@ -234,36 +162,8 @@ bool azk_process_cost_selection(ecs_world_t *world, int target_index) {
     return false;
   }
 
-  // Get the target entity based on cost type
-  ecs_entity_t target = 0;
-  const GameState *gs = ecs_singleton_get(world, GameState);
-  uint8_t player_num = get_player_number(world, ctx->owner);
-
-  switch (def->cost_req.type) {
-  case ABILITY_TARGET_FRIENDLY_HAND:
-  case ABILITY_TARGET_FRIENDLY_HAND_WEAPON: {
-    ecs_entity_t hand = gs->zones[player_num].hand;
-    ecs_entities_t hand_cards = ecs_get_ordered_children(world, hand);
-    if (target_index >= 0 && target_index < hand_cards.count) {
-      target = hand_cards.ids[target_index];
-    }
-    break;
-  }
-  case ABILITY_TARGET_FRIENDLY_GARDEN_ENTITY: {
-    ecs_entity_t garden = gs->zones[player_num].garden;
-    ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
-    for (int i = 0; i < garden_cards.count; i++) {
-      const ZoneIndex *zi = ecs_get(world, garden_cards.ids[i], ZoneIndex);
-      if (zi && zi->index == target_index) {
-        target = garden_cards.ids[i];
-        break;
-      }
-    }
-    break;
-  }
-  default:
-    break;
-  }
+  ecs_entity_t target = azk_resolve_ability_target_choice_entity(
+      world, def, ABILITY_TARGET_SCOPE_COST, ctx->owner, target_index);
 
   if (target == 0) {
     cli_render_logf("[Ability] Invalid cost target index %d", target_index);
@@ -347,105 +247,8 @@ bool azk_process_effect_selection(ecs_world_t *world, int target_index) {
     return false;
   }
 
-  // Get the target entity based on effect type
-  ecs_entity_t target = 0;
-  const GameState *gs = ecs_singleton_get(world, GameState);
-  uint8_t player_num = get_player_number(world, ctx->owner);
-
-  switch (def->effect_req.type) {
-  case ABILITY_TARGET_FRIENDLY_HAND: {
-    ecs_entity_t hand = gs->zones[player_num].hand;
-    ecs_entities_t hand_cards = ecs_get_ordered_children(world, hand);
-    if (target_index >= 0 && target_index < hand_cards.count) {
-      target = hand_cards.ids[target_index];
-    }
-    break;
-  }
-  case ABILITY_TARGET_FRIENDLY_GARDEN_ENTITY: {
-    ecs_entity_t garden = gs->zones[player_num].garden;
-    ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
-    for (int i = 0; i < garden_cards.count; i++) {
-      const ZoneIndex *zi = ecs_get(world, garden_cards.ids[i], ZoneIndex);
-      if (zi && zi->index == target_index) {
-        target = garden_cards.ids[i];
-        break;
-      }
-    }
-    break;
-  }
-  case ABILITY_TARGET_ENEMY_GARDEN_ENTITY: {
-    uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
-    ecs_entity_t garden = gs->zones[enemy_num].garden;
-    ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
-    for (int i = 0; i < garden_cards.count; i++) {
-      const ZoneIndex *zi = ecs_get(world, garden_cards.ids[i], ZoneIndex);
-      if (zi && zi->index == target_index) {
-        target = garden_cards.ids[i];
-        break;
-      }
-    }
-    break;
-  }
-  case ABILITY_TARGET_ENEMY_LEADER_OR_GARDEN_ENTITY: {
-    // Index encoding: 0-4 = opponent garden slots (by ZoneIndex), 5 = opponent
-    // leader
-    uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
-    if (target_index < GARDEN_SIZE) {
-      // Garden entity by zone index
-      ecs_entity_t garden = gs->zones[enemy_num].garden;
-      ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
-      for (int i = 0; i < garden_cards.count; i++) {
-        const ZoneIndex *zi = ecs_get(world, garden_cards.ids[i], ZoneIndex);
-        if (zi && zi->index == target_index) {
-          target = garden_cards.ids[i];
-          break;
-        }
-      }
-    } else if (target_index == GARDEN_SIZE) {
-      // Leader
-      target = find_leader_card_in_zone(world, gs->zones[enemy_num].leader);
-    }
-    break;
-  }
-  case ABILITY_TARGET_ANY_GARDEN_ENTITY: {
-    // Index encoding: 0-4 = self garden, 5-9 = opponent garden
-    uint8_t target_player_num;
-    int garden_index;
-    if (target_index < GARDEN_SIZE) {
-      target_player_num = player_num;
-      garden_index = target_index;
-    } else {
-      target_player_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
-      garden_index = target_index - GARDEN_SIZE;
-    }
-    ecs_entity_t garden = gs->zones[target_player_num].garden;
-    ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
-    // Find card at the specific zone index
-    for (int i = 0; i < garden_cards.count; i++) {
-      const ZoneIndex *zi = ecs_get(world, garden_cards.ids[i], ZoneIndex);
-      if (zi && zi->index == garden_index) {
-        target = garden_cards.ids[i];
-        break;
-      }
-    }
-    break;
-  }
-  case ABILITY_TARGET_ANY_LEADER: {
-    // Index encoding: 0 = friendly leader, 1 = enemy leader
-    uint8_t target_player_num;
-    if (target_index == 0) {
-      target_player_num = player_num;
-    } else if (target_index == 1) {
-      target_player_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
-    } else {
-      break; // Invalid index
-    }
-    target = find_leader_card_in_zone(world, gs->zones[target_player_num].leader);
-    break;
-  }
-  default:
-    break;
-  }
+  ecs_entity_t target = azk_resolve_ability_target_choice_entity(
+      world, def, ABILITY_TARGET_SCOPE_EFFECT, ctx->owner, target_index);
 
   if (target == 0) {
     cli_render_logf("[Ability] Invalid effect target index %d", target_index);
@@ -1060,8 +863,8 @@ bool azk_trigger_main_ability(ecs_world_t *world, ecs_entity_t card,
     return false;
   }
 
-  uint8_t available_cost_targets =
-      count_available_cost_targets(world, def, card, owner);
+  uint8_t available_cost_targets = azk_count_ability_target_choices(
+      world, def, ABILITY_TARGET_SCOPE_COST, card, owner);
   if (def->cost_req.min > 0 && available_cost_targets < def->cost_req.min) {
     cli_render_logf("[Ability] Main ability has no valid cost targets "
                     "(available=%u, required_min=%u)",
@@ -1116,8 +919,8 @@ bool azk_trigger_spell_ability(ecs_world_t *world, ecs_entity_t spell_card,
     return false;
   }
 
-  uint8_t available_cost_targets =
-      count_available_cost_targets(world, def, spell_card, owner);
+  uint8_t available_cost_targets = azk_count_ability_target_choices(
+      world, def, ABILITY_TARGET_SCOPE_COST, spell_card, owner);
   if (def->cost_req.min > 0 && available_cost_targets < def->cost_req.min) {
     cli_render_logf("[Ability] Spell has no valid cost targets "
                     "(available=%u, required_min=%u)",
@@ -1126,8 +929,8 @@ bool azk_trigger_spell_ability(ecs_world_t *world, ecs_entity_t spell_card,
     return false;
   }
 
-  uint8_t available_effect_targets =
-      count_available_effect_targets(world, def, spell_card, owner);
+  uint8_t available_effect_targets = azk_count_ability_target_choices(
+      world, def, ABILITY_TARGET_SCOPE_EFFECT, spell_card, owner);
 
   return azk_begin_ability(
       world, spell_card, owner, def,
@@ -1165,8 +968,8 @@ bool azk_trigger_leader_response_ability(ecs_world_t *world, ecs_entity_t card,
     return false;
   }
 
-  uint8_t available_cost_targets =
-      count_available_cost_targets(world, def, card, owner);
+  uint8_t available_cost_targets = azk_count_ability_target_choices(
+      world, def, ABILITY_TARGET_SCOPE_COST, card, owner);
   if (def->cost_req.min > 0 && available_cost_targets < def->cost_req.min) {
     cli_render_logf("[Ability] Leader response has no valid cost targets "
                     "(available=%u, required_min=%u)",
@@ -1296,8 +1099,8 @@ bool azk_process_triggered_effect_queue(ecs_world_t *world) {
     return false;
   }
 
-  uint8_t available_cost_targets =
-      count_available_cost_targets(world, def, card, owner);
+  uint8_t available_cost_targets = azk_count_ability_target_choices(
+      world, def, ABILITY_TARGET_SCOPE_COST, card, owner);
   if (def->cost_req.min > 0 && available_cost_targets < def->cost_req.min) {
     cli_render_logf("[Ability] Queued effect has no valid cost targets "
                     "(available=%u, required_min=%u), skipping",
@@ -1421,8 +1224,8 @@ void azk_trigger_gate_portal_ability(ecs_world_t *world, ecs_entity_t gate_card,
       &(AbilityBeginOptions){
           .is_optional = def->is_optional,
           .enter_confirmation_when_optional = true,
-          .available_cost_targets =
-              count_available_cost_targets(world, def, gate_card, owner),
+          .available_cost_targets = azk_count_ability_target_choices(
+              world, def, ABILITY_TARGET_SCOPE_COST, gate_card, owner),
           .initial_effect_target = portaled_card,
           .initial_effect_filled = 1,
           .confirmation_log =

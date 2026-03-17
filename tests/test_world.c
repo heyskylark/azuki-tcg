@@ -19,6 +19,7 @@
 #include "utils/deck_utils.h"
 #include "utils/game_log_util.h"
 #include "utils/observation_util.h"
+#include "validation/action_enumerator.h"
 #include "generated/card_defs.h"
 
 static const CardDef *find_card_def_by_entity_name(const char *entity_name) {
@@ -1667,6 +1668,89 @@ static void test_stt02_014_effect_target_uses_zone_index(void) {
   ecs_fini(world);
 }
 
+static void test_stt02_014_action_mask_uses_zone_index(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  ecs_set(world, ecs_id(GameState), GameState, {0});
+  ecs_set(world, ecs_id(AbilityContext), AbilityContext, {0});
+
+  ecs_entity_t player0 = ecs_new(world);
+  ecs_set(world, player0, PlayerId, {.pid = 0});
+  ecs_set(world, player0, PlayerNumber, {.player_number = 0});
+
+  ecs_entity_t player1 = ecs_new(world);
+  ecs_set(world, player1, PlayerId, {.pid = 1});
+  ecs_set(world, player1, PlayerNumber, {.player_number = 1});
+
+  ecs_entity_t garden0 = create_zone(world, player0, ZGarden, "Garden_P0");
+  ecs_entity_t garden1 = create_zone(world, player1, ZGarden, "Garden_P1");
+
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->winner = -1;
+  gs->phase = PHASE_MAIN;
+  gs->active_player_index = 0;
+  gs->players[0] = player0;
+  gs->players[1] = player1;
+  gs->zones[0].garden = garden0;
+  gs->zones[1].garden = garden1;
+  ecs_singleton_modified(world, GameState);
+
+  ecs_entity_t spell_card = ecs_new(world);
+  ecs_set(world, spell_card, CardId,
+          {.id = CARD_DEF_STT02_014, .code = "STT02-014"});
+  ecs_set(world, spell_card, Type, {.value = CARD_TYPE_SPELL});
+  ecs_add_pair(world, spell_card, Rel_OwnedBy, player0);
+
+  ecs_entity_t target_z1 = ecs_new(world);
+  ecs_set(world, target_z1, CardId,
+          {.id = CARD_DEF_STT02_003, .code = "TARGET_Z1"});
+  ecs_set(world, target_z1, Type, {.value = CARD_TYPE_ENTITY});
+  ecs_set(world, target_z1, IKZCost, {.ikz_cost = 1});
+  ecs_set(world, target_z1, TapState, {.tapped = false, .cooldown = false});
+  ecs_add_pair(world, target_z1, Rel_OwnedBy, player1);
+  ecs_add_pair(world, target_z1, EcsChildOf, garden1);
+  ecs_set(world, target_z1, ZoneIndex, {.index = 1});
+
+  ecs_entity_t target_z0 = ecs_new(world);
+  ecs_set(world, target_z0, CardId,
+          {.id = CARD_DEF_STT02_006, .code = "TARGET_Z0"});
+  ecs_set(world, target_z0, Type, {.value = CARD_TYPE_ENTITY});
+  ecs_set(world, target_z0, IKZCost, {.ikz_cost = 3});
+  ecs_set(world, target_z0, TapState, {.tapped = false, .cooldown = false});
+  ecs_add_pair(world, target_z0, Rel_OwnedBy, player1);
+  ecs_add_pair(world, target_z0, EcsChildOf, garden1);
+  ecs_set(world, target_z0, ZoneIndex, {.index = 0});
+
+  bool triggered = azk_trigger_spell_ability(world, spell_card, player0);
+  assert(triggered);
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_EFFECT_SELECTION);
+
+  AzkActionMaskSet mask = {0};
+  bool built = azk_build_action_mask_for_player(world, gs, 0, &mask);
+  assert(built);
+
+  bool found_target_z1 = false;
+  bool found_target_z0 = false;
+  for (uint16_t i = 0; i < mask.legal_action_count; i++) {
+    const UserAction *action = &mask.legal_actions[i];
+    if (action->type != ACT_SELECT_EFFECT_TARGET) {
+      continue;
+    }
+    if (action->subaction_1 == 1) {
+      found_target_z1 = true;
+    }
+    if (action->subaction_1 == 0) {
+      found_target_z0 = true;
+    }
+  }
+
+  assert(found_target_z1);
+  assert(!found_target_z0);
+
+  ecs_fini(world);
+}
+
 static void test_triggered_ability_confirmation_restores_active_player(void) {
   ecs_world_t *world = ecs_init();
   azk_register_components(world);
@@ -2493,6 +2577,7 @@ int main(void) {
   test_draw_cards_with_deckout_check();
   test_draw_cards_with_deckout_check_success();
   test_stt02_014_effect_target_uses_zone_index();
+  test_stt02_014_action_mask_uses_zone_index();
   test_triggered_ability_confirmation_restores_active_player();
   test_triggered_ability_decline_restores_active_player();
   test_triggered_mandatory_target_selection_skips_confirmation();

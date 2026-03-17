@@ -7,9 +7,10 @@
 #include <time.h>
 
 #include "abilities/ability_registry.h"
-#include "utils/debug_log.h"
 #include "abilities/ability_system.h"
+#include "abilities/targeting/ability_targeting.h"
 #include "generated/card_defs.h"
+#include "utils/debug_log.h"
 #include "utils/card_utils.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/phase_utils.h"
@@ -242,7 +243,6 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
     break;
 
   case ABILITY_PHASE_COST_SELECTION: {
-    // Get ability def to know target type
     const CardId *card_id = ecs_get(world, ctx->source_card, CardId);
     if (!card_id)
       break;
@@ -253,51 +253,18 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
 
     action.type = ACT_SELECT_COST_TARGET;
 
-    // Enumerate valid cost targets based on type
-    uint8_t player_num = get_player_number(world, ctx->owner);
-    switch (def->cost_req.type) {
-    case ABILITY_TARGET_FRIENDLY_HAND:
-    case ABILITY_TARGET_FRIENDLY_HAND_WEAPON: {
-      ecs_entity_t hand = gs->zones[player_num].hand;
-      ecs_entities_t hand_cards = ecs_get_ordered_children(world, hand);
-      for (int i = 0; i < hand_cards.count; i++) {
-        ecs_entity_t target = hand_cards.ids[i];
-        if (def->validate_cost_target &&
-            !def->validate_cost_target(world, ctx->source_card, ctx->owner,
-                                       target)) {
-          continue;
-        }
-        action.subaction_1 = i;
-        add_valid_action(out_mask, &action);
-      }
-      break;
-    }
-    case ABILITY_TARGET_FRIENDLY_GARDEN_ENTITY: {
-      ecs_entity_t garden = gs->zones[player_num].garden;
-      ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
-      for (int i = 0; i < garden_cards.count; i++) {
-        ecs_entity_t target = garden_cards.ids[i];
-        const ZoneIndex *zi = ecs_get(world, target, ZoneIndex);
-        if (!zi)
-          continue;
-        if (def->validate_cost_target &&
-            !def->validate_cost_target(world, ctx->source_card, ctx->owner,
-                                       target)) {
-          continue;
-        }
-        action.subaction_1 = zi->index;
-        add_valid_action(out_mask, &action);
-      }
-      break;
-    }
-    default:
-      break;
+    AbilityTargetChoice choices[AZK_MAX_ABILITY_TARGET_CHOICES];
+    int choice_count = azk_collect_ability_target_choices(
+        world, def, ABILITY_TARGET_SCOPE_COST, ctx->source_card, ctx->owner,
+        choices, AZK_MAX_ABILITY_TARGET_CHOICES);
+    for (int i = 0; i < choice_count; i++) {
+      action.subaction_1 = choices[i].action_index;
+      add_valid_action(out_mask, &action);
     }
     break;
   }
 
   case ABILITY_PHASE_EFFECT_SELECTION: {
-    // Get ability def to know target type
     const CardId *card_id = ecs_get(world, ctx->source_card, CardId);
     if (!card_id)
       break;
@@ -314,164 +281,13 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
 
     action.type = ACT_SELECT_EFFECT_TARGET;
 
-    // Enumerate valid effect targets based on type
-    uint8_t player_num = get_player_number(world, ctx->owner);
-    switch (def->effect_req.type) {
-    case ABILITY_TARGET_FRIENDLY_HAND: {
-      ecs_entity_t hand = gs->zones[player_num].hand;
-      ecs_entities_t hand_cards = ecs_get_ordered_children(world, hand);
-      for (int i = 0; i < hand_cards.count; i++) {
-        ecs_entity_t target = hand_cards.ids[i];
-        if (def->validate_effect_target &&
-            !def->validate_effect_target(world, ctx->source_card, ctx->owner,
-                                         target)) {
-          continue;
-        }
-        action.subaction_1 = i;
-        add_valid_action(out_mask, &action);
-      }
-      break;
-    }
-    case ABILITY_TARGET_FRIENDLY_GARDEN_ENTITY: {
-      ecs_entity_t garden = gs->zones[player_num].garden;
-      ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
-      for (int i = 0; i < garden_cards.count; i++) {
-        ecs_entity_t target = garden_cards.ids[i];
-        const ZoneIndex *zi = ecs_get(world, target, ZoneIndex);
-        if (!zi)
-          continue;
-        if (def->validate_effect_target &&
-            !def->validate_effect_target(world, ctx->source_card, ctx->owner,
-                                         target)) {
-          continue;
-        }
-        action.subaction_1 = zi->index;
-        add_valid_action(out_mask, &action);
-      }
-      break;
-    }
-    case ABILITY_TARGET_ENEMY_GARDEN_ENTITY: {
-      uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
-      ecs_entity_t garden = gs->zones[enemy_num].garden;
-      ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
-      for (int i = 0; i < garden_cards.count; i++) {
-        ecs_entity_t target = garden_cards.ids[i];
-        const ZoneIndex *zi = ecs_get(world, target, ZoneIndex);
-        if (!zi)
-          continue;
-        if (def->validate_effect_target &&
-            !def->validate_effect_target(world, ctx->source_card, ctx->owner,
-                                         target)) {
-          continue;
-        }
-        action.subaction_1 = zi->index;
-        add_valid_action(out_mask, &action);
-      }
-      break;
-    }
-    case ABILITY_TARGET_ANY_GARDEN_ENTITY: {
-      // Index encoding: 0-4 = self garden, 5-9 = opponent garden
-      // Check self garden
-      ecs_entity_t self_garden = gs->zones[player_num].garden;
-      ecs_entities_t self_cards = ecs_get_ordered_children(world, self_garden);
-      for (int i = 0; i < self_cards.count; i++) {
-        ecs_entity_t target = self_cards.ids[i];
-        const ZoneIndex *zi = ecs_get(world, target, ZoneIndex);
-        if (!zi)
-          continue;
-        if (def->validate_effect_target &&
-            !def->validate_effect_target(world, ctx->source_card, ctx->owner,
-                                         target)) {
-          continue;
-        }
-        action.subaction_1 = zi->index; // 0-4 for self garden
-        add_valid_action(out_mask, &action);
-      }
-      // Check opponent garden
-      uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
-      ecs_entity_t enemy_garden = gs->zones[enemy_num].garden;
-      ecs_entities_t enemy_cards =
-          ecs_get_ordered_children(world, enemy_garden);
-      for (int i = 0; i < enemy_cards.count; i++) {
-        ecs_entity_t target = enemy_cards.ids[i];
-        const ZoneIndex *zi = ecs_get(world, target, ZoneIndex);
-        if (!zi)
-          continue;
-        if (def->validate_effect_target &&
-            !def->validate_effect_target(world, ctx->source_card, ctx->owner,
-                                         target)) {
-          continue;
-        }
-        action.subaction_1 = zi->index + GARDEN_SIZE; // 5-9 for opponent garden
-        add_valid_action(out_mask, &action);
-      }
-      break;
-    }
-    case ABILITY_TARGET_ENEMY_LEADER_OR_GARDEN_ENTITY: {
-      // Index encoding: 0-4 = opponent garden slots (by ZoneIndex), 5 = opponent leader
-      uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
-
-      // Check opponent garden entities
-      ecs_entity_t enemy_garden = gs->zones[enemy_num].garden;
-      ecs_entities_t enemy_cards =
-          ecs_get_ordered_children(world, enemy_garden);
-      for (int i = 0; i < enemy_cards.count; i++) {
-        ecs_entity_t target = enemy_cards.ids[i];
-        const ZoneIndex *zi = ecs_get(world, target, ZoneIndex);
-        if (!zi)
-          continue;
-        if (def->validate_effect_target &&
-            !def->validate_effect_target(world, ctx->source_card, ctx->owner,
-                                         target)) {
-          continue;
-        }
-        action.subaction_1 = zi->index; // 0-4 for opponent garden
-        add_valid_action(out_mask, &action);
-      }
-
-      // Check opponent leader (index 5)
-      ecs_entity_t leader =
-          find_leader_card_in_zone(world, gs->zones[enemy_num].leader);
-      if (leader != 0) {
-        if (!def->validate_effect_target ||
-            def->validate_effect_target(world, ctx->source_card, ctx->owner,
-                                        leader)) {
-          action.subaction_1 = GARDEN_SIZE; // 5 for leader
-          add_valid_action(out_mask, &action);
-        }
-      }
-      break;
-    }
-    case ABILITY_TARGET_ANY_LEADER: {
-      // Index encoding: 0 = friendly leader, 1 = enemy leader
-      // Check friendly leader (index 0)
-      ecs_entity_t friendly_leader =
-          find_leader_card_in_zone(world, gs->zones[player_num].leader);
-      if (friendly_leader != 0) {
-        if (!def->validate_effect_target ||
-            def->validate_effect_target(world, ctx->source_card, ctx->owner,
-                                        friendly_leader)) {
-          action.subaction_1 = 0; // 0 for friendly leader
-          add_valid_action(out_mask, &action);
-        }
-      }
-
-      // Check enemy leader (index 1)
-      uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
-      ecs_entity_t enemy_leader =
-          find_leader_card_in_zone(world, gs->zones[enemy_num].leader);
-      if (enemy_leader != 0) {
-        if (!def->validate_effect_target ||
-            def->validate_effect_target(world, ctx->source_card, ctx->owner,
-                                        enemy_leader)) {
-          action.subaction_1 = 1; // 1 for enemy leader
-          add_valid_action(out_mask, &action);
-        }
-      }
-      break;
-    }
-    default:
-      break;
+    AbilityTargetChoice choices[AZK_MAX_ABILITY_TARGET_CHOICES];
+    int choice_count = azk_collect_ability_target_choices(
+        world, def, ABILITY_TARGET_SCOPE_EFFECT, ctx->source_card, ctx->owner,
+        choices, AZK_MAX_ABILITY_TARGET_CHOICES);
+    for (int i = 0; i < choice_count; i++) {
+      action.subaction_1 = choices[i].action_index;
+      add_valid_action(out_mask, &action);
     }
     break;
   }
