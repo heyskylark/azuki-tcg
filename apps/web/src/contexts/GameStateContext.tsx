@@ -16,15 +16,15 @@ import type {
 } from "@tcg/backend-core/types/ws";
 import type { GameState, CardMapping } from "@/types/game";
 import type { ProcessedGameLog } from "@/types/gameLogs";
-import type { BoardMoveAnimation } from "@/lib/game/boardAnimations";
-import { buildBoardMoveAnimationForLog } from "@/lib/game/boardAnimations";
+import type { BoardAnimation } from "@/lib/game/boardAnimations";
+import { buildBoardAnimationForLog } from "@/lib/game/boardAnimations";
 import { applySingleLog, createBatchIndexRebaseContext } from "@/lib/game/logProcessor";
 
 interface GameStateContextValue {
   gameState: GameState | null;
   isLoading: boolean;
   error: string | null;
-  activeBoardAnimation: BoardMoveAnimation | null;
+  activeBoardAnimation: BoardAnimation | null;
   hiddenBoardSlotKeys: ReadonlySet<string>;
 
   // Card mappings for resolving cardCode -> imageUrl
@@ -130,7 +130,7 @@ export function GameStateProvider({ children, initialState = null }: GameStatePr
   const [gameState, setGameStateState] = useState<GameState | null>(initialState);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [activeBoardAnimation, setActiveBoardAnimation] = useState<BoardMoveAnimation | null>(null);
+  const [activeBoardAnimation, setActiveBoardAnimation] = useState<BoardAnimation | null>(null);
   const [hiddenBoardSlotKeys, setHiddenBoardSlotKeys] = useState<Set<string>>(new Set());
   const [cardMappings, setCardMappingsState] = useState<Map<string, CardMapping>>(new Map());
   const [cardDefIdMap, setCardDefIdMap] = useState<Map<number, CardMapping>>(new Map());
@@ -264,7 +264,7 @@ export function GameStateProvider({ children, initialState = null }: GameStatePr
           }
 
           const log = logs[logIndex];
-          const animation = buildBoardMoveAnimationForLog(
+          const animation = buildBoardAnimationForLog(
             currentState,
             log,
             playerSlot,
@@ -293,9 +293,7 @@ export function GameStateProvider({ children, initialState = null }: GameStatePr
 
           if (animation) {
             setActiveBoardAnimation(animation);
-            setHiddenBoardSlotKeys(
-              animation.hiddenTargetKey ? new Set([animation.hiddenTargetKey]) : new Set()
-            );
+            setHiddenBoardSlotKeys(new Set(animation.hiddenSlotKeys));
           }
 
           commitGameState(

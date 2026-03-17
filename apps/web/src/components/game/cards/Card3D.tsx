@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Text } from "@react-three/drei";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import * as THREE from "three";
@@ -55,6 +55,7 @@ interface Card3DProps {
   onPointerDown?: (event: ThreeEvent<PointerEvent>) => void;
   onPointerUp?: (event: ThreeEvent<PointerEvent>) => void;
   interactive?: boolean;
+  snapTapRotationOnMount?: boolean;
 }
 
 /**
@@ -93,9 +94,11 @@ export function Card3D({
   onPointerDown,
   onPointerUp,
   interactive = true,
+  snapTapRotationOnMount = false,
 }: Card3DProps) {
   const groupRef = useRef<THREE.Group>(null!);
   const previewCleanupRef = useRef<(() => void) | null>(null);
+  const didSnapTapRotationRef = useRef(false);
   const [hovered, setHover] = useState(false);
   const { getCardTexture, cardBackTexture } = useAssets();
   const dragPhase = useDragStore((state) => state.dragPhase);
@@ -108,6 +111,19 @@ export function Card3D({
 
   // Animate tapped rotation (rotate around Y axis for flat cards on XZ plane)
   const targetRotationY = tapped ? -Math.PI / 2 : 0;
+
+  useLayoutEffect(() => {
+    if (
+      didSnapTapRotationRef.current ||
+      !groupRef.current ||
+      (!snapTapRotationOnMount && !tapped)
+    ) {
+      return;
+    }
+
+    groupRef.current.rotation.y = targetRotationY;
+    didSnapTapRotationRef.current = true;
+  }, [snapTapRotationOnMount, tapped, targetRotationY]);
 
   useFrame((_state, delta) => {
     if (groupRef.current) {

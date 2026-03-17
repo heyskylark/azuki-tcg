@@ -1,8 +1,20 @@
 "use client";
 
-import type { CardMapping, GameState, ResolvedCard, ResolvedHandCard } from "@/types/game";
+import type {
+  CardMapping,
+  GameState,
+  ResolvedCard,
+  ResolvedHandCard,
+  ResolvedLeader,
+} from "@/types/game";
 import { buildImageUrl } from "@/types/game";
-import type { CardZoneMovedData, ProcessedGameLog, ZoneMovedMetadata } from "@/types/gameLogs";
+import type {
+  CardZoneMovedData,
+  CombatDamageData,
+  LogCardRef,
+  ProcessedGameLog,
+  ZoneMovedMetadata,
+} from "@/types/gameLogs";
 
 type BoardAnimationSide = "my" | "opponent";
 
@@ -29,11 +41,18 @@ interface BoardZoneAnimationAnchor {
   index: number;
 }
 
+interface LeaderAnimationAnchor {
+  zone: "LEADER";
+  side: BoardAnimationSide;
+  index: 0;
+}
+
 export type BoardAnimationAnchor =
   | DeckAnimationAnchor
   | DiscardAnimationAnchor
   | HandAnimationAnchor
-  | BoardZoneAnimationAnchor;
+  | BoardZoneAnimationAnchor
+  | LeaderAnimationAnchor;
 
 export interface BoardAnimationCard {
   cardCode: string;
@@ -53,22 +72,46 @@ export interface BoardAnimationCard {
 }
 
 export interface BoardMoveAnimation {
-  id: string;
   kind: "draw" | "play" | "portal" | "discard";
+  id: string;
   card: BoardAnimationCard;
   from: BoardAnimationAnchor;
   to: BoardAnimationAnchor;
   durationMs: number;
-  hiddenTargetKey: string | null;
+  hiddenSlotKeys: string[];
   startedAtMs: number;
 }
 
+export interface BoardDamageNumberAnimation {
+  id: string;
+  value: number;
+  anchor: BoardAnimationAnchor;
+  color: string;
+}
+
+export interface BoardCombatAnimation {
+  kind: "combat";
+  id: string;
+  attacker: BoardAnimationCard;
+  defender: BoardAnimationCard;
+  attackerFrom: BoardAnimationAnchor;
+  attackerTo: BoardAnimationAnchor;
+  defenderAnchor: BoardAnimationAnchor;
+  damageNumbers: BoardDamageNumberAnimation[];
+  durationMs: number;
+  hiddenSlotKeys: string[];
+  startedAtMs: number;
+}
+
+export type BoardAnimation = BoardMoveAnimation | BoardCombatAnimation;
+
 const DRAW_ANIMATION_MS = 420;
 const ZONE_MOVE_ANIMATION_MS = 360;
+const COMBAT_ANIMATION_MS = 700;
 
 export function buildBoardAnimationKey(
   side: BoardAnimationSide,
-  zone: "HAND" | "GARDEN" | "ALLEY",
+  zone: "HAND" | "GARDEN" | "ALLEY" | "LEADER",
   index: number
 ): string {
   return `${side}:${zone}:${index}`;
@@ -162,6 +205,28 @@ function buildCardFromResolvedBoardCard(
   };
 }
 
+function buildCardFromResolvedLeader(
+  leader: ResolvedLeader,
+  showStats: boolean
+): BoardAnimationCard {
+  return {
+    cardCode: leader.cardCode,
+    imageUrl: leader.imageUrl,
+    name: leader.name,
+    attack: leader.curAtk,
+    health: leader.curHp,
+    tapped: leader.tapped,
+    cooldown: leader.cooldown,
+    isFrozen: leader.isFrozen,
+    isShocked: leader.isShocked,
+    isEffectImmune: leader.isEffectImmune,
+    hasCharge: leader.hasCharge,
+    hasDefender: leader.hasDefender,
+    hasInfiltrate: leader.hasInfiltrate,
+    showStats,
+  };
+}
+
 function buildAnimationCard(
   state: GameState,
   data: CardZoneMovedData,
@@ -200,6 +265,37 @@ function buildAnimationCard(
   return null;
 }
 
+function buildCombatCard(
+  state: GameState,
+  card: LogCardRef,
+  playerSlot: 0 | 1,
+  cardDefIdMap: Map<number, CardMapping>,
+  showStats: boolean
+): BoardAnimationCard | null {
+  const isMyCard = card.player === playerSlot;
+  const board = isMyCard ? state.myBoard : state.opponentBoard;
+
+  switch (card.zone) {
+    case "LEADER":
+      return buildCardFromResolvedLeader(board.leader, showStats);
+
+    case "GARDEN": {
+      const gardenCard = board.garden[card.zoneIndex];
+      return gardenCard ? buildCardFromResolvedBoardCard(gardenCard, null, showStats) : null;
+    }
+
+    case "ALLEY": {
+      const alleyCard = board.alley[card.zoneIndex];
+      return alleyCard ? buildCardFromResolvedBoardCard(alleyCard, null, showStats) : null;
+    }
+
+    default: {
+      const mapping = resolveCardMapping(card.cardDefId, cardDefIdMap);
+      return mapping ? buildCardFromMapping(mapping, null, showStats) : null;
+    }
+  }
+}
+
 function buildHandAnchor(
   side: BoardAnimationSide,
   index: number,
@@ -210,6 +306,14 @@ function buildHandAnchor(
     side,
     index,
     handCount,
+  };
+}
+
+function buildLeaderAnchor(side: BoardAnimationSide): LeaderAnimationAnchor {
+  return {
+    zone: "LEADER",
+    side,
+    index: 0,
   };
 }
 
@@ -239,6 +343,36 @@ function buildDiscardAnchor(side: BoardAnimationSide): DiscardAnimationAnchor {
   };
 }
 
+function buildCombatAnchor(card: LogCardRef, playerSlot: 0 | 1): BoardAnimationAnchor | null {
+  const side: BoardAnimationSide = card.player === playerSlot ? "my" : "opponent";
+
+  switch (card.zone) {
+    case "LEADER":
+      return buildLeaderAnchor(side);
+
+    case "GARDEN":
+    case "ALLEY":
+      return buildBoardAnchor(card.zone, side, card.zoneIndex);
+
+    default:
+      return null;
+  }
+}
+
+function createAnimationId(prefix: string): string {
+  return `${prefix}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function getHiddenSlotKeys(anchors: BoardAnimationAnchor[]): string[] {
+  return Array.from(
+    new Set(
+      anchors
+        .map((anchor) => getBoardAnimationKeyForAnchor(anchor))
+        .filter((key): key is string => key !== null)
+    )
+  );
+}
+
 function buildZoneMoveAnimation(
   state: GameState,
   data: CardZoneMovedData,
@@ -259,13 +393,15 @@ function buildZoneMoveAnimation(
     const destination = buildHandAnchor(side, destinationIndex, state.myHand.length + 1);
 
     return {
-      id: `anim:${data.card.player}:${data.fromZone}:${data.fromIndex}:${data.toZone}:${data.toIndex}:${Date.now()}`,
       kind: "draw",
+      id: createAnimationId(
+        `move:${data.card.player}:${data.fromZone}:${data.fromIndex}:${data.toZone}:${data.toIndex}`
+      ),
       card,
       from: buildDeckAnchor(side),
       to: destination,
       durationMs: DRAW_ANIMATION_MS,
-      hiddenTargetKey: getBoardAnimationKeyForAnchor(destination),
+      hiddenSlotKeys: getHiddenSlotKeys([destination]),
       startedAtMs: performance.now(),
     };
   }
@@ -284,13 +420,15 @@ function buildZoneMoveAnimation(
     const destination = buildBoardAnchor(data.toZone, side, data.toIndex);
 
     return {
-      id: `anim:${data.card.player}:${data.fromZone}:${data.fromIndex}:${data.toZone}:${data.toIndex}:${Date.now()}`,
       kind: "play",
+      id: createAnimationId(
+        `move:${data.card.player}:${data.fromZone}:${data.fromIndex}:${data.toZone}:${data.toIndex}`
+      ),
       card,
       from: source,
       to: destination,
       durationMs: ZONE_MOVE_ANIMATION_MS,
-      hiddenTargetKey: getBoardAnimationKeyForAnchor(destination),
+      hiddenSlotKeys: getHiddenSlotKeys([destination]),
       startedAtMs: performance.now(),
     };
   }
@@ -313,13 +451,15 @@ function buildZoneMoveAnimation(
         : buildBoardAnchor(data.fromZone, side, data.fromIndex);
 
     return {
-      id: `anim:${data.card.player}:${data.fromZone}:${data.fromIndex}:${data.toZone}:${data.toIndex}:${Date.now()}`,
       kind: "discard",
+      id: createAnimationId(
+        `move:${data.card.player}:${data.fromZone}:${data.fromIndex}:${data.toZone}:${data.toIndex}`
+      ),
       card,
       from: source,
       to: buildDiscardAnchor(side),
       durationMs: ZONE_MOVE_ANIMATION_MS,
-      hiddenTargetKey: null,
+      hiddenSlotKeys: [],
       startedAtMs: performance.now(),
     };
   }
@@ -334,13 +474,15 @@ function buildZoneMoveAnimation(
     const destination = buildBoardAnchor("GARDEN", side, data.toIndex);
 
     return {
-      id: `anim:${data.card.player}:${data.fromZone}:${data.fromIndex}:${data.toZone}:${data.toIndex}:${Date.now()}`,
       kind: "portal",
+      id: createAnimationId(
+        `move:${data.card.player}:${data.fromZone}:${data.fromIndex}:${data.toZone}:${data.toIndex}`
+      ),
       card,
       from: source,
       to: destination,
       durationMs: ZONE_MOVE_ANIMATION_MS,
-      hiddenTargetKey: getBoardAnimationKeyForAnchor(destination),
+      hiddenSlotKeys: getHiddenSlotKeys([destination]),
       startedAtMs: performance.now(),
     };
   }
@@ -348,15 +490,80 @@ function buildZoneMoveAnimation(
   return null;
 }
 
-export function buildBoardMoveAnimationForLog(
+function buildCombatAnimation(
+  state: GameState,
+  data: CombatDamageData,
+  playerSlot: 0 | 1,
+  cardDefIdMap: Map<number, CardMapping>
+): BoardCombatAnimation | null {
+  const attackerFrom = buildCombatAnchor(data.attacker, playerSlot);
+  const attackerTo = buildCombatAnchor(data.defender, playerSlot);
+  const defenderAnchor = buildCombatAnchor(data.defender, playerSlot);
+
+  if (!attackerFrom || !attackerTo || !defenderAnchor) {
+    return null;
+  }
+
+  const attacker = buildCombatCard(state, data.attacker, playerSlot, cardDefIdMap, true);
+  const defender = buildCombatCard(state, data.defender, playerSlot, cardDefIdMap, true);
+
+  if (!attacker || !defender) {
+    return null;
+  }
+
+  // Keep the attacker upright during the lunge and reveal the tapped card after
+  // the overlay finishes.
+  attacker.tapped = false;
+
+  const damageNumbers: BoardDamageNumberAnimation[] = [];
+  if (data.attackerDamageTaken > 0) {
+    damageNumbers.push({
+      id: createAnimationId("dmg:attacker"),
+      value: data.attackerDamageTaken,
+      anchor: attackerFrom,
+      color: "#ffb86c",
+    });
+  }
+  if (data.defenderDamageTaken > 0) {
+    damageNumbers.push({
+      id: createAnimationId("dmg:defender"),
+      value: data.defenderDamageTaken,
+      anchor: defenderAnchor,
+      color: "#ff7f7f",
+    });
+  }
+
+  return {
+    kind: "combat",
+    id: createAnimationId(
+      `combat:${data.attacker.player}:${data.attacker.zone}:${data.attacker.zoneIndex}:${data.defender.player}:${data.defender.zone}:${data.defender.zoneIndex}`
+    ),
+    attacker,
+    defender,
+    attackerFrom,
+    attackerTo,
+    defenderAnchor,
+    damageNumbers,
+    durationMs: COMBAT_ANIMATION_MS,
+    hiddenSlotKeys: getHiddenSlotKeys([attackerFrom, defenderAnchor]),
+    startedAtMs: performance.now(),
+  };
+}
+
+export function buildBoardAnimationForLog(
   state: GameState,
   log: ProcessedGameLog,
   playerSlot: 0 | 1,
   cardDefIdMap: Map<number, CardMapping>
-): BoardMoveAnimation | null {
-  if (log.type !== "ZONE_MOVED") {
-    return null;
-  }
+): BoardAnimation | null {
+  switch (log.type) {
+    case "ZONE_MOVED":
+      return buildZoneMoveAnimation(state, log.data, playerSlot, cardDefIdMap);
 
-  return buildZoneMoveAnimation(state, log.data, playerSlot, cardDefIdMap);
+    case "COMBAT_DAMAGE":
+      return buildCombatAnimation(state, log.data, playerSlot, cardDefIdMap);
+
+    default:
+      return null;
+  }
 }

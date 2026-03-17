@@ -18,7 +18,13 @@ import { DraggableHandCard } from "@/components/game/cards/DraggableHandCard";
 import { DraggableAlleyCard } from "@/components/game/cards/DraggableAlleyCard";
 import { AttackDragOverlay } from "@/components/game/attack/AttackDragOverlay";
 import { useDragStore } from "@/stores/dragStore";
-import { type BoardAnimationAnchor, type BoardMoveAnimation } from "@/lib/game/boardAnimations";
+import {
+  buildBoardAnimationKey,
+  type BoardAnimationAnchor,
+  type BoardCombatAnimation,
+  type BoardDamageNumberAnimation,
+  type BoardMoveAnimation,
+} from "@/lib/game/boardAnimations";
 import {
   findValidAlleyAbilityAction,
   findValidAttackAction,
@@ -99,6 +105,14 @@ function getAnchorTransform(anchor: BoardAnimationAnchor) {
     case "HAND":
       return getHandTransform(anchor.side, anchor.index, anchor.handCount);
 
+    case "LEADER": {
+      const z = anchor.side === "my" ? MY_GARDEN_Z : OPP_GARDEN_Z;
+      return {
+        position: [RIGHT_SIDE_X, 0, z] as [number, number, number],
+        rotation: [0, 0, 0] as [number, number, number],
+      };
+    }
+
     case "DECK": {
       const z = anchor.side === "my" ? MY_IKZ_Z : OPP_IKZ_Z;
       return {
@@ -155,6 +169,15 @@ function getHiddenIndices(
   return hiddenIndices;
 }
 
+function hasHiddenSlotKey(
+  hiddenBoardSlotKeys: ReadonlySet<string>,
+  side: "my" | "opponent",
+  zone: "LEADER",
+  index: number
+): boolean {
+  return hiddenBoardSlotKeys.has(buildBoardAnimationKey(side, zone, index));
+}
+
 function BoardMoveAnimationCard({ animation }: { animation: BoardMoveAnimation }) {
   const groupRef = useRef<THREE.Group>(null!);
   const fromTransform = useMemo(() => getAnchorTransform(animation.from), [animation.from]);
@@ -205,6 +228,247 @@ function BoardMoveAnimationCard({ animation }: { animation: BoardMoveAnimation }
         canPreview={false}
         interactive={false}
       />
+    </group>
+  );
+}
+
+const COMBAT_IMPACT_RATIO = 0.42;
+const COMBAT_RETURN_RATIO = 0.8;
+const COMBAT_ATTACKER_HEIGHT_OFFSET = 0.06;
+
+function easeOutCubic(value: number): number {
+  return 1 - Math.pow(1 - value, 3);
+}
+
+function easeInOutCubic(value: number): number {
+  return value < 0.5 ? 4 * value * value * value : 1 - Math.pow(-2 * value + 2, 3) / 2;
+}
+
+function createShakeOffset(
+  progress: number,
+  elapsedMs: number,
+  intensity: number
+): [number, number, number] {
+  if (progress < COMBAT_IMPACT_RATIO || progress > COMBAT_RETURN_RATIO) {
+    return [0, 0, 0];
+  }
+
+  const localProgress =
+    (progress - COMBAT_IMPACT_RATIO) / (COMBAT_RETURN_RATIO - COMBAT_IMPACT_RATIO);
+  const damping = 1 - Math.min(1, localProgress);
+  const time = elapsedMs / 1000;
+
+  return [
+    Math.sin(time * 70) * intensity * damping,
+    Math.abs(Math.sin(time * 52)) * intensity * 0.45 * damping,
+    Math.cos(time * 88) * intensity * 0.7 * damping,
+  ];
+}
+
+function FloatingDamageNumber({
+  popup,
+  animation,
+}: {
+  popup: BoardDamageNumberAnimation;
+  animation: BoardCombatAnimation;
+}) {
+  const groupRef = useRef<THREE.Group>(null!);
+  const textRef = useRef<THREE.Mesh>(null!);
+  const anchorTransform = useMemo(() => getAnchorTransform(popup.anchor), [popup.anchor]);
+
+  useFrame(() => {
+    if (!groupRef.current || !textRef.current) {
+      return;
+    }
+
+    const elapsedMs = performance.now() - animation.startedAtMs;
+    const rawProgress = Math.min(1, elapsedMs / animation.durationMs);
+    const popupProgress = (rawProgress - COMBAT_IMPACT_RATIO) / (1 - COMBAT_IMPACT_RATIO);
+
+    if (popupProgress <= 0) {
+      groupRef.current.visible = false;
+      return;
+    }
+
+    const clampedProgress = Math.min(1, popupProgress);
+    const opacity = 1 - clampedProgress;
+    const driftX = popup.anchor.side === "my" ? -0.12 : 0.12;
+    const material = textRef.current.material as THREE.Material & {
+      opacity?: number;
+      transparent?: boolean;
+    };
+
+    groupRef.current.visible = true;
+    groupRef.current.position.set(
+      anchorTransform.position[0] + driftX * clampedProgress,
+      0.55 + clampedProgress * 1.1,
+      anchorTransform.position[2]
+    );
+
+    if (material) {
+      material.transparent = true;
+      material.opacity = opacity;
+    }
+  });
+
+  return (
+    <group ref={groupRef} visible={false}>
+      <Text
+        ref={textRef}
+        rotation={[-Math.PI / 2, 0, 0]}
+        fontSize={0.42}
+        color={popup.color}
+        anchorX="center"
+        anchorY="middle"
+        outlineColor="#2b0f0f"
+        outlineWidth={0.05}
+        fillOpacity={1}
+        raycast={() => null}
+      >
+        -{popup.value}
+      </Text>
+    </group>
+  );
+}
+
+function BoardCombatAnimationCard({ animation }: { animation: BoardCombatAnimation }) {
+  const attackerGroupRef = useRef<THREE.Group>(null!);
+  const defenderGroupRef = useRef<THREE.Group>(null!);
+  const attackerFrom = useMemo(
+    () => getAnchorTransform(animation.attackerFrom),
+    [animation.attackerFrom]
+  );
+  const attackerTo = useMemo(
+    () => getAnchorTransform(animation.attackerTo),
+    [animation.attackerTo]
+  );
+  const defenderTransform = useMemo(
+    () => getAnchorTransform(animation.defenderAnchor),
+    [animation.defenderAnchor]
+  );
+
+  useFrame(() => {
+    const elapsedMs = performance.now() - animation.startedAtMs;
+    const rawProgress = Math.min(1, elapsedMs / animation.durationMs);
+    const attackVector = new THREE.Vector3(
+      attackerTo.position[0] - attackerFrom.position[0],
+      0,
+      attackerTo.position[2] - attackerFrom.position[2]
+    );
+    const impactPoint = new THREE.Vector3(
+      attackerFrom.position[0],
+      attackerFrom.position[1],
+      attackerFrom.position[2]
+    ).lerp(
+      new THREE.Vector3(attackerTo.position[0], attackerTo.position[1], attackerTo.position[2]),
+      0.9
+    );
+    const attackerShake = createShakeOffset(rawProgress, elapsedMs, 0.09);
+    const defenderShake = createShakeOffset(rawProgress, elapsedMs + 30, 0.07);
+
+    if (attackerGroupRef.current) {
+      let x = attackerFrom.position[0];
+      let y = attackerFrom.position[1];
+      let z = attackerFrom.position[2];
+
+      if (rawProgress <= COMBAT_IMPACT_RATIO) {
+        const travelProgress = easeOutCubic(rawProgress / COMBAT_IMPACT_RATIO);
+        x = THREE.MathUtils.lerp(attackerFrom.position[0], impactPoint.x, travelProgress);
+        y =
+          THREE.MathUtils.lerp(attackerFrom.position[1], impactPoint.y, travelProgress) +
+          Math.sin(Math.PI * travelProgress) * 0.85 +
+          COMBAT_ATTACKER_HEIGHT_OFFSET;
+        z = THREE.MathUtils.lerp(attackerFrom.position[2], impactPoint.z, travelProgress);
+      } else if (rawProgress <= COMBAT_RETURN_RATIO) {
+        x = impactPoint.x + attackerShake[0];
+        y = impactPoint.y + attackerShake[1] + COMBAT_ATTACKER_HEIGHT_OFFSET;
+        z = impactPoint.z + attackerShake[2];
+      } else {
+        const returnProgress = easeInOutCubic(
+          (rawProgress - COMBAT_RETURN_RATIO) / (1 - COMBAT_RETURN_RATIO)
+        );
+        x = THREE.MathUtils.lerp(impactPoint.x, attackerFrom.position[0], returnProgress);
+        y =
+          THREE.MathUtils.lerp(impactPoint.y, attackerFrom.position[1], returnProgress) +
+          Math.sin(Math.PI * returnProgress) * 0.25 +
+          COMBAT_ATTACKER_HEIGHT_OFFSET * (1 - returnProgress);
+        z = THREE.MathUtils.lerp(impactPoint.z, attackerFrom.position[2], returnProgress);
+      }
+
+      attackerGroupRef.current.position.set(x, y, z);
+      attackerGroupRef.current.rotation.set(
+        attackerFrom.rotation[0],
+        attackerFrom.rotation[1],
+        attackerFrom.rotation[2] +
+          THREE.MathUtils.clamp(attackVector.length() * 0.015, -0.14, 0.14) *
+            (attackVector.x >= 0 ? -1 : 1)
+      );
+    }
+
+    if (defenderGroupRef.current) {
+      defenderGroupRef.current.position.set(
+        defenderTransform.position[0] + defenderShake[0],
+        defenderTransform.position[1] + defenderShake[1],
+        defenderTransform.position[2] + defenderShake[2]
+      );
+      defenderGroupRef.current.rotation.set(
+        defenderTransform.rotation[0],
+        defenderTransform.rotation[1],
+        defenderTransform.rotation[2]
+      );
+    }
+  });
+
+  return (
+    <group>
+      <group ref={defenderGroupRef}>
+        <Card3D
+          cardCode={animation.defender.cardCode}
+          imageUrl={animation.defender.imageUrl}
+          name={animation.defender.name}
+          attack={animation.defender.attack}
+          health={animation.defender.health}
+          position={[0, 0, 0]}
+          tapped={animation.defender.tapped}
+          cooldown={animation.defender.cooldown}
+          isFrozen={animation.defender.isFrozen}
+          isShocked={animation.defender.isShocked}
+          isEffectImmune={animation.defender.isEffectImmune}
+          hasCharge={animation.defender.hasCharge}
+          hasDefender={animation.defender.hasDefender}
+          hasInfiltrate={animation.defender.hasInfiltrate}
+          showStats={animation.defender.showStats}
+          canPreview={false}
+          interactive={false}
+          snapTapRotationOnMount={animation.defender.tapped}
+        />
+      </group>
+
+      <group ref={attackerGroupRef}>
+        <Card3D
+          cardCode={animation.attacker.cardCode}
+          imageUrl={animation.attacker.imageUrl}
+          name={animation.attacker.name}
+          attack={animation.attacker.attack}
+          health={animation.attacker.health}
+          position={[0, 0, 0]}
+          tapped={animation.attacker.tapped}
+          cooldown={animation.attacker.cooldown}
+          isFrozen={animation.attacker.isFrozen}
+          isShocked={animation.attacker.isShocked}
+          isEffectImmune={animation.attacker.isEffectImmune}
+          hasCharge={animation.attacker.hasCharge}
+          hasDefender={animation.attacker.hasDefender}
+          hasInfiltrate={animation.attacker.hasInfiltrate}
+          showStats={animation.attacker.showStats}
+          canPreview={false}
+          interactive={false}
+        />
+      </group>
+
+      {animation.damageNumbers.map((popup) => (
+        <FloatingDamageNumber key={popup.id} popup={popup} animation={animation} />
+      ))}
     </group>
   );
 }
@@ -770,6 +1034,7 @@ function PlayerArea({
   hand,
   isOpponent,
   actionMask,
+  hiddenLeader = false,
   hiddenGardenSlots,
   hiddenAlleySlots,
   hiddenHandIndices,
@@ -793,6 +1058,7 @@ function PlayerArea({
   hand?: ResolvedHandCard[];
   isOpponent: boolean;
   actionMask?: SnapshotActionMask | null;
+  hiddenLeader?: boolean;
   hiddenGardenSlots?: Set<number>;
   hiddenAlleySlots?: Set<number>;
   hiddenHandIndices?: Set<number>;
@@ -833,39 +1099,41 @@ function PlayerArea({
   return (
     <group>
       {/* Leader - right side, same row as garden */}
-      <LeaderCard
-        leader={board.leader}
-        position={[RIGHT_SIDE_X, 0, gardenZ]}
-        previewCardId={`${isOpponent ? "opp" : "me"}:leader`}
-        isWeaponTarget={isLeaderWeaponTarget}
-        onWeaponTargetClick={
-          isLeaderWeaponTarget && onWeaponAttachToSlot
-            ? () => onWeaponAttachToSlot("leader", 5)
-            : undefined
-        }
-        isAbilityTarget={isLeaderAbilityTarget}
-        onAbilityTargetClick={
-          isLeaderAbilityTarget &&
-          onAbilityTargetClick &&
-          leaderTargetIndex !== null &&
-          leaderTargetIndex !== undefined
-            ? () => onAbilityTargetClick(leaderTargetIndex)
-            : undefined
-        }
-        isAbilityActivatable={isLeaderAbilityActivatable}
-        onAbilityActivate={
-          isLeaderAbilityActivatable && onActivateGardenOrLeaderAbility
-            ? () => onActivateGardenOrLeaderAbility(5)
-            : undefined
-        }
-        isAttackSource={isLeaderAttackSource}
-        isAttackTarget={isLeaderAttackTarget}
-        onAttackPointerDown={
-          isLeaderAttackSource && onAttackPointerDown
-            ? (event) => onAttackPointerDown(5, [RIGHT_SIDE_X, 0, gardenZ], event)
-            : undefined
-        }
-      />
+      {!hiddenLeader ? (
+        <LeaderCard
+          leader={board.leader}
+          position={[RIGHT_SIDE_X, 0, gardenZ]}
+          previewCardId={`${isOpponent ? "opp" : "me"}:leader`}
+          isWeaponTarget={isLeaderWeaponTarget}
+          onWeaponTargetClick={
+            isLeaderWeaponTarget && onWeaponAttachToSlot
+              ? () => onWeaponAttachToSlot("leader", 5)
+              : undefined
+          }
+          isAbilityTarget={isLeaderAbilityTarget}
+          onAbilityTargetClick={
+            isLeaderAbilityTarget &&
+            onAbilityTargetClick &&
+            leaderTargetIndex !== null &&
+            leaderTargetIndex !== undefined
+              ? () => onAbilityTargetClick(leaderTargetIndex)
+              : undefined
+          }
+          isAbilityActivatable={isLeaderAbilityActivatable}
+          onAbilityActivate={
+            isLeaderAbilityActivatable && onActivateGardenOrLeaderAbility
+              ? () => onActivateGardenOrLeaderAbility(5)
+              : undefined
+          }
+          isAttackSource={isLeaderAttackSource}
+          isAttackTarget={isLeaderAttackTarget}
+          onAttackPointerDown={
+            isLeaderAttackSource && onAttackPointerDown
+              ? (event) => onAttackPointerDown(5, [RIGHT_SIDE_X, 0, gardenZ], event)
+              : undefined
+          }
+        />
+      ) : null}
 
       {/* Gate - right side, same row as alley */}
       <GateCard
@@ -1462,6 +1730,10 @@ export function Board() {
     () => getHiddenIndices(hiddenBoardSlotKeys, "my", "HAND"),
     [hiddenBoardSlotKeys]
   );
+  const hiddenMyLeader = useMemo(
+    () => hasHiddenSlotKey(hiddenBoardSlotKeys, "my", "LEADER", 0),
+    [hiddenBoardSlotKeys]
+  );
   const hiddenMyGardenSlots = useMemo(
     () => getHiddenIndices(hiddenBoardSlotKeys, "my", "GARDEN"),
     [hiddenBoardSlotKeys]
@@ -1472,6 +1744,10 @@ export function Board() {
   );
   const hiddenOpponentGardenSlots = useMemo(
     () => getHiddenIndices(hiddenBoardSlotKeys, "opponent", "GARDEN"),
+    [hiddenBoardSlotKeys]
+  );
+  const hiddenOpponentLeader = useMemo(
+    () => hasHiddenSlotKey(hiddenBoardSlotKeys, "opponent", "LEADER", 0),
     [hiddenBoardSlotKeys]
   );
   const hiddenOpponentAlleySlots = useMemo(
@@ -1503,6 +1779,7 @@ export function Board() {
         hand={gameState.myHand}
         isOpponent={false}
         actionMask={gameState.actionMask}
+        hiddenLeader={hiddenMyLeader}
         hiddenGardenSlots={hiddenMyGardenSlots}
         hiddenAlleySlots={hiddenMyAlleySlots}
         hiddenHandIndices={hiddenMyHandIndices}
@@ -1534,6 +1811,7 @@ export function Board() {
       <PlayerArea
         board={gameState.opponentBoard}
         isOpponent={true}
+        hiddenLeader={hiddenOpponentLeader}
         hiddenGardenSlots={hiddenOpponentGardenSlots}
         hiddenAlleySlots={hiddenOpponentAlleySlots}
         attackTargets={attackDrag.active ? attackDrag.validTargets : undefined}
@@ -1557,7 +1835,13 @@ export function Board() {
         onCancel={cancelAttackDrag}
       />
 
-      {activeBoardAnimation ? <BoardMoveAnimationCard animation={activeBoardAnimation} /> : null}
+      {activeBoardAnimation ? (
+        activeBoardAnimation.kind === "combat" ? (
+          <BoardCombatAnimationCard animation={activeBoardAnimation} />
+        ) : (
+          <BoardMoveAnimationCard animation={activeBoardAnimation} />
+        )
+      ) : null}
     </group>
   );
 }
