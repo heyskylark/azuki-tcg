@@ -113,6 +113,91 @@ static uint8_t count_available_cost_targets(ecs_world_t *world,
   return count;
 }
 
+static uint8_t count_available_effect_targets(ecs_world_t *world,
+                                              const AbilityDef *def,
+                                              ecs_entity_t source_card,
+                                              ecs_entity_t owner) {
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  uint8_t player_num = get_player_number(world, owner);
+  uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
+  uint8_t count = 0;
+
+  switch (def->effect_req.type) {
+  case ABILITY_TARGET_ENEMY_GARDEN_ENTITY: {
+    ecs_entity_t garden = gs->zones[enemy_num].garden;
+    ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
+    for (int i = 0; i < garden_cards.count; i++) {
+      ecs_entity_t target = garden_cards.ids[i];
+      if (def->validate_effect_target &&
+          !def->validate_effect_target(world, source_card, owner, target)) {
+        continue;
+      }
+      count++;
+    }
+    break;
+  }
+  default:
+    return def->effect_req.max;
+  }
+
+  return count;
+}
+
+typedef struct {
+  bool is_optional;
+  bool clamp_effect_expected_to_available;
+  ecs_entity_t initial_effect_target;
+  uint8_t initial_effect_filled;
+} AbilityStartOptions;
+
+static uint8_t clamp_expected_target_count(uint8_t available,
+                                           uint8_t requested_max) {
+  return available < requested_max ? available : requested_max;
+}
+
+static void reset_ability_context_state(AbilityContext *ctx) {
+  *ctx = (AbilityContext){
+      .saved_active_player_index = -1,
+  };
+}
+
+static void init_ability_context(ecs_world_t *world, AbilityContext *ctx,
+                                 ecs_entity_t source_card, ecs_entity_t owner,
+                                 const AbilityDef *def,
+                                 uint8_t available_cost_targets,
+                                 const AbilityStartOptions *options) {
+  reset_ability_context_state(ctx);
+
+  ctx->source_card = source_card;
+  ctx->owner = owner;
+  ctx->is_optional = options->is_optional;
+  ctx->cost_min = def->cost_req.min;
+  ctx->cost_expected =
+      clamp_expected_target_count(available_cost_targets, def->cost_req.max);
+  ctx->effect_min = def->effect_req.min;
+
+  if (options->clamp_effect_expected_to_available) {
+    uint8_t available_effect_targets =
+        count_available_effect_targets(world, def, source_card, owner);
+    ctx->effect_expected =
+        clamp_expected_target_count(available_effect_targets,
+                                    def->effect_req.max);
+    if (ctx->effect_expected < ctx->effect_min) {
+      ctx->effect_expected = ctx->effect_min;
+    }
+  } else {
+    ctx->effect_expected = def->effect_req.max;
+  }
+
+  if (options->initial_effect_filled > 0) {
+    ctx->effect_targets[0] = options->initial_effect_target;
+    ctx->effect_filled = options->initial_effect_filled;
+    if (ctx->effect_expected < options->initial_effect_filled) {
+      ctx->effect_expected = options->initial_effect_filled;
+    }
+  }
+}
+
 static void maybe_transfer_triggered_ability_control(ecs_world_t *world,
                                                      AbilityContext *ctx,
                                                      ecs_entity_t owner) {
@@ -1077,31 +1162,7 @@ void azk_clear_ability_context(ecs_world_t *world) {
     }
   }
 
-  ctx->phase = ABILITY_PHASE_NONE;
-  ctx->source_card = 0;
-  ctx->owner = 0;
-  ctx->is_optional = false;
-  ctx->restores_active_player = false;
-  ctx->saved_active_player_index = -1;
-  ctx->cost_min = 0;
-  ctx->cost_expected = 0;
-  ctx->cost_filled = 0;
-  ctx->effect_min = 0;
-  ctx->effect_expected = 0;
-  ctx->effect_filled = 0;
-
-  for (int i = 0; i < MAX_ABILITY_SELECTION; i++) {
-    ctx->cost_targets[i] = 0;
-    ctx->effect_targets[i] = 0;
-  }
-
-  // Clear selection zone tracking
-  ctx->selection_count = 0;
-  ctx->selection_picked = 0;
-  ctx->selection_pick_max = 0;
-  for (int i = 0; i < MAX_SELECTION_ZONE_SIZE; i++) {
-    ctx->selection_cards[i] = 0;
-  }
+  reset_ability_context_state(ctx);
 
   ecs_singleton_modified(world, AbilityContext);
 }
@@ -1154,26 +1215,10 @@ bool azk_trigger_main_ability(ecs_world_t *world, ecs_entity_t card,
   // Get ability context singleton
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
 
-  // Set up the ability context
-  ctx->source_card = card;
-  ctx->owner = owner;
-  ctx->is_optional = def->is_optional;
-  ctx->restores_active_player = false;
-  ctx->saved_active_player_index = -1;
-  ctx->cost_min = def->cost_req.min;
-  ctx->cost_expected = available_cost_targets < def->cost_req.max
-                           ? available_cost_targets
-                           : def->cost_req.max;
-  ctx->cost_filled = 0;
-  ctx->effect_min = def->effect_req.min;
-  ctx->effect_expected = def->effect_req.max;
-  ctx->effect_filled = 0;
-
-  // Clear target arrays
-  for (int i = 0; i < MAX_ABILITY_SELECTION; i++) {
-    ctx->cost_targets[i] = 0;
-    ctx->effect_targets[i] = 0;
-  }
+  init_ability_context(world, ctx, card, owner, def, available_cost_targets,
+                       &(AbilityStartOptions){
+                           .is_optional = def->is_optional,
+                       });
 
   // Main abilities are triggered by player action, so skip confirmation phase
   // (player already opted in by taking the action)
@@ -1201,38 +1246,6 @@ bool azk_trigger_main_ability(ecs_world_t *world, ecs_entity_t card,
   }
   ecs_singleton_modified(world, AbilityContext);
   return ctx->phase != ABILITY_PHASE_NONE;
-}
-
-// Helper to count available effect targets for a given ability
-static uint8_t count_available_effect_targets(ecs_world_t *world,
-                                              const AbilityDef *def,
-                                              ecs_entity_t source_card,
-                                              ecs_entity_t owner) {
-  const GameState *gs = ecs_singleton_get(world, GameState);
-  uint8_t player_num = get_player_number(world, owner);
-  uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
-  uint8_t count = 0;
-
-  switch (def->effect_req.type) {
-  case ABILITY_TARGET_ENEMY_GARDEN_ENTITY: {
-    ecs_entity_t garden = gs->zones[enemy_num].garden;
-    ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
-    for (int i = 0; i < garden_cards.count; i++) {
-      ecs_entity_t target = garden_cards.ids[i];
-      if (def->validate_effect_target &&
-          !def->validate_effect_target(world, source_card, owner, target)) {
-        continue;
-      }
-      count++;
-    }
-    break;
-  }
-  default:
-    // For other target types, use max as default
-    return def->effect_req.max;
-  }
-
-  return count;
 }
 
 bool azk_trigger_spell_ability(ecs_world_t *world, ecs_entity_t spell_card,
@@ -1266,32 +1279,12 @@ bool azk_trigger_spell_ability(ecs_world_t *world, ecs_entity_t spell_card,
   // Get ability context singleton
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
 
-  // Set up the ability context
-  ctx->source_card = spell_card;
-  ctx->owner = owner;
-  ctx->is_optional = false; // Spells are already cast, not optional
-  ctx->restores_active_player = false;
-  ctx->saved_active_player_index = -1;
-  ctx->cost_min = def->cost_req.min;
-  ctx->cost_expected = available_cost_targets < def->cost_req.max
-                           ? available_cost_targets
-                           : def->cost_req.max;
-  ctx->cost_filled = 0;
-  ctx->effect_min = def->effect_req.min;
-  // Dynamically calculate effect_expected based on available targets
-  uint8_t available = count_available_effect_targets(world, def, spell_card, owner);
-  ctx->effect_expected = (available < def->effect_req.max) ? available : def->effect_req.max;
-  // Ensure effect_expected is at least effect_min
-  if (ctx->effect_expected < ctx->effect_min) {
-    ctx->effect_expected = ctx->effect_min;
-  }
-  ctx->effect_filled = 0;
-
-  // Clear target arrays
-  for (int i = 0; i < MAX_ABILITY_SELECTION; i++) {
-    ctx->cost_targets[i] = 0;
-    ctx->effect_targets[i] = 0;
-  }
+  init_ability_context(world, ctx, spell_card, owner, def,
+                       available_cost_targets,
+                       &(AbilityStartOptions){
+                           .is_optional = false,
+                           .clamp_effect_expected_to_available = true,
+                       });
 
   // Spells skip confirmation phase - go straight to cost or effect selection
   if (def->cost_req.min > 0) {
@@ -1345,26 +1338,10 @@ bool azk_trigger_leader_response_ability(ecs_world_t *world, ecs_entity_t card,
   // Get ability context singleton
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
 
-  // Set up the ability context
-  ctx->source_card = card;
-  ctx->owner = owner;
-  ctx->is_optional = false; // Response abilities are already activated
-  ctx->restores_active_player = false;
-  ctx->saved_active_player_index = -1;
-  ctx->cost_min = def->cost_req.min;
-  ctx->cost_expected = available_cost_targets < def->cost_req.max
-                           ? available_cost_targets
-                           : def->cost_req.max;
-  ctx->cost_filled = 0;
-  ctx->effect_min = def->effect_req.min;
-  ctx->effect_expected = def->effect_req.max;
-  ctx->effect_filled = 0;
-
-  // Clear target arrays
-  for (int i = 0; i < MAX_ABILITY_SELECTION; i++) {
-    ctx->cost_targets[i] = 0;
-    ctx->effect_targets[i] = 0;
-  }
+  init_ability_context(world, ctx, card, owner, def, available_cost_targets,
+                       &(AbilityStartOptions){
+                           .is_optional = false,
+                       });
 
   // Leader response abilities skip confirmation (already activated)
   // Go straight to cost or effect selection
@@ -1520,26 +1497,10 @@ bool azk_process_triggered_effect_queue(ecs_world_t *world) {
   // Get ability context singleton
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
 
-  // Set up the ability context
-  ctx->source_card = card;
-  ctx->owner = owner;
-  ctx->is_optional = def->is_optional;
-  ctx->restores_active_player = false;
-  ctx->saved_active_player_index = -1;
-  ctx->cost_min = def->cost_req.min;
-  ctx->cost_expected = available_cost_targets < def->cost_req.max
-                           ? available_cost_targets
-                           : def->cost_req.max;
-  ctx->cost_filled = 0;
-  ctx->effect_min = def->effect_req.min;
-  ctx->effect_expected = def->effect_req.max;
-  ctx->effect_filled = 0;
-
-  // Clear target arrays
-  for (int i = 0; i < MAX_ABILITY_SELECTION; i++) {
-    ctx->cost_targets[i] = 0;
-    ctx->effect_targets[i] = 0;
-  }
+  init_ability_context(world, ctx, card, owner, def, available_cost_targets,
+                       &(AbilityStartOptions){
+                           .is_optional = def->is_optional,
+                       });
 
   if (def->is_optional) {
     // Optional ability - enter confirmation phase
@@ -1673,13 +1634,14 @@ void azk_trigger_gate_portal_ability(ecs_world_t *world, ecs_entity_t gate_card,
 
   // Set up context with portaled card info
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
-  ctx->source_card = gate_card;
-  ctx->owner = owner;
-  ctx->is_optional = def->is_optional;
-  ctx->restores_active_player = false;
-  ctx->saved_active_player_index = -1;
-  ctx->effect_targets[0] = portaled_card; // Store portaled card for effect
-  ctx->effect_filled = 1;
+  init_ability_context(world, ctx, gate_card, owner, def,
+                       count_available_cost_targets(world, def, gate_card,
+                                                    owner),
+                       &(AbilityStartOptions){
+                           .is_optional = def->is_optional,
+                           .initial_effect_target = portaled_card,
+                           .initial_effect_filled = 1,
+                       });
 
   // Check if this ability has multi-step processing
   if (def->on_cost_paid) {
