@@ -78,12 +78,14 @@ function getSlotX(index: number): number {
   return (index - Math.floor(GARDEN_SLOTS / 2)) * SLOT_SPACING;
 }
 
-function getHandTransform(index: number, handCount: number) {
+function getHandTransform(side: "my" | "opponent", index: number, handCount: number) {
   const centerOffset = (handCount - 1) / 2;
   const normalizedIndex = index - centerOffset;
   const x = normalizedIndex * (SLOT_SPACING * 0.7);
   const y = 0.05 + index * 0.01;
-  const z = MY_HAND_Z + Math.abs(normalizedIndex) * 0.1;
+  const zBase = side === "my" ? MY_HAND_Z : -MY_HAND_Z;
+  const zDirection = side === "my" ? 1 : -1;
+  const z = zBase + Math.abs(normalizedIndex) * 0.1 * zDirection;
   const rotation: [number, number, number] = [0, normalizedIndex * -0.05, 0];
 
   return {
@@ -95,7 +97,7 @@ function getHandTransform(index: number, handCount: number) {
 function getAnchorTransform(anchor: BoardAnimationAnchor) {
   switch (anchor.zone) {
     case "HAND":
-      return getHandTransform(anchor.index, anchor.handCount);
+      return getHandTransform(anchor.side, anchor.index, anchor.handCount);
 
     case "DECK": {
       const z = anchor.side === "my" ? MY_IKZ_Z : OPP_IKZ_Z;

@@ -18,7 +18,7 @@ interface DiscardAnimationAnchor {
 
 interface HandAnimationAnchor {
   zone: "HAND";
-  side: "my";
+  side: BoardAnimationSide;
   index: number;
   handCount: number;
 }
@@ -200,10 +200,14 @@ function buildAnimationCard(
   return null;
 }
 
-function buildHandAnchor(index: number, handCount: number): HandAnimationAnchor {
+function buildHandAnchor(
+  side: BoardAnimationSide,
+  index: number,
+  handCount: number
+): HandAnimationAnchor {
   return {
     zone: "HAND",
-    side: "my",
+    side,
     index,
     handCount,
   };
@@ -252,7 +256,7 @@ function buildZoneMoveAnimation(
 
     const destinationIndex =
       data.toIndex >= 0 && data.toIndex < state.myHand.length ? data.toIndex : state.myHand.length;
-    const destination = buildHandAnchor(destinationIndex, state.myHand.length + 1);
+    const destination = buildHandAnchor(side, destinationIndex, state.myHand.length + 1);
 
     return {
       id: `anim:${data.card.player}:${data.fromZone}:${data.fromIndex}:${data.toZone}:${data.toIndex}:${Date.now()}`,
@@ -261,6 +265,31 @@ function buildZoneMoveAnimation(
       from: buildDeckAnchor(side),
       to: destination,
       durationMs: DRAW_ANIMATION_MS,
+      hiddenTargetKey: getBoardAnimationKeyForAnchor(destination),
+      startedAtMs: performance.now(),
+    };
+  }
+
+  if (
+    data.fromZone === "HAND" &&
+    !isMyCard &&
+    (data.toZone === "GARDEN" || data.toZone === "ALLEY")
+  ) {
+    const card = buildAnimationCard(state, data, isMyCard, cardDefIdMap, true);
+    if (!card) {
+      return null;
+    }
+
+    const source = buildHandAnchor(side, data.fromIndex, Math.max(data.fromIndex + 1, 1));
+    const destination = buildBoardAnchor(data.toZone, side, data.toIndex);
+
+    return {
+      id: `anim:${data.card.player}:${data.fromZone}:${data.fromIndex}:${data.toZone}:${data.toIndex}:${Date.now()}`,
+      kind: "play",
+      card,
+      from: source,
+      to: destination,
+      durationMs: ZONE_MOVE_ANIMATION_MS,
       hiddenTargetKey: getBoardAnimationKeyForAnchor(destination),
       startedAtMs: performance.now(),
     };
@@ -280,7 +309,7 @@ function buildZoneMoveAnimation(
 
     const source =
       data.fromZone === "HAND"
-        ? buildHandAnchor(data.fromIndex, state.myHand.length)
+        ? buildHandAnchor(side, data.fromIndex, state.myHand.length)
         : buildBoardAnchor(data.fromZone, side, data.fromIndex);
 
     return {
