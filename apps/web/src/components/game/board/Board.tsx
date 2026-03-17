@@ -23,6 +23,7 @@ import {
   type BoardAnimationAnchor,
   type BoardCombatAnimation,
   type BoardDamageNumberAnimation,
+  type BoardDissolveAnimation,
   type BoardMoveAnimation,
 } from "@/lib/game/boardAnimations";
 import {
@@ -227,6 +228,68 @@ function BoardMoveAnimationCard({ animation }: { animation: BoardMoveAnimation }
         showStats={animation.card.showStats}
         canPreview={false}
         interactive={false}
+      />
+    </group>
+  );
+}
+
+function BoardDissolveAnimationCard({ animation }: { animation: BoardDissolveAnimation }) {
+  const groupRef = useRef<THREE.Group>(null!);
+  const dissolveProgressRef = useRef(0);
+  const [dissolveProgress, setDissolveProgress] = useState(0);
+  const anchorTransform = useMemo(() => getAnchorTransform(animation.anchor), [animation.anchor]);
+
+  useFrame(() => {
+    if (!groupRef.current) {
+      return;
+    }
+
+    const elapsedMs = performance.now() - animation.startedAtMs;
+    const rawProgress = Math.min(1, elapsedMs / animation.durationMs);
+    const easedProgress = easeInOutCubic(rawProgress);
+    const scale = 1 - rawProgress * 0.08;
+
+    if (Math.abs(rawProgress - dissolveProgressRef.current) >= 0.02 || rawProgress === 1) {
+      dissolveProgressRef.current = rawProgress;
+      setDissolveProgress(rawProgress);
+    }
+
+    groupRef.current.position.set(
+      anchorTransform.position[0],
+      anchorTransform.position[1] + easedProgress * 0.18,
+      anchorTransform.position[2]
+    );
+    groupRef.current.rotation.set(
+      anchorTransform.rotation[0],
+      anchorTransform.rotation[1],
+      anchorTransform.rotation[2]
+    );
+    groupRef.current.scale.setScalar(scale);
+  });
+
+  return (
+    <group ref={groupRef}>
+      <Card3D
+        cardCode={animation.card.cardCode}
+        imageUrl={animation.card.imageUrl}
+        name={animation.card.name}
+        attack={animation.card.attack}
+        health={animation.card.health}
+        position={[0, 0, 0]}
+        tapped={animation.card.tapped}
+        cooldown={animation.card.cooldown}
+        isFrozen={animation.card.isFrozen}
+        isShocked={animation.card.isShocked}
+        isEffectImmune={animation.card.isEffectImmune}
+        hasCharge={animation.card.hasCharge}
+        hasDefender={animation.card.hasDefender}
+        hasInfiltrate={animation.card.hasInfiltrate}
+        showStats={false}
+        canPreview={false}
+        interactive={false}
+        snapTapRotationOnMount={animation.card.tapped}
+        dissolveProgress={dissolveProgress}
+        renderMode="baseOnly"
       />
     </group>
   );
@@ -1838,6 +1901,8 @@ export function Board() {
       {activeBoardAnimation ? (
         activeBoardAnimation.kind === "combat" ? (
           <BoardCombatAnimationCard animation={activeBoardAnimation} />
+        ) : activeBoardAnimation.kind === "dissolve" ? (
+          <BoardDissolveAnimationCard animation={activeBoardAnimation} />
         ) : (
           <BoardMoveAnimationCard animation={activeBoardAnimation} />
         )

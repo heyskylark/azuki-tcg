@@ -15,6 +15,49 @@ export const CARD_DEPTH = 0.05;
 
 const PREVIEW_HOLD_MS = 250;
 const PREVIEW_MOVE_THRESHOLD = 8;
+const DISSOLVE_NOISE_SIZE = 64;
+
+let dissolveNoiseTexture: THREE.DataTexture | null = null;
+
+function sampleNoise(x: number, y: number): number {
+  const value = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453123;
+  return value - Math.floor(value);
+}
+
+function getDissolveNoiseTexture(): THREE.DataTexture {
+  if (dissolveNoiseTexture) {
+    return dissolveNoiseTexture;
+  }
+
+  const data = new Uint8Array(DISSOLVE_NOISE_SIZE * DISSOLVE_NOISE_SIZE * 4);
+
+  for (let y = 0; y < DISSOLVE_NOISE_SIZE; y += 1) {
+    for (let x = 0; x < DISSOLVE_NOISE_SIZE; x += 1) {
+      const index = (y * DISSOLVE_NOISE_SIZE + x) * 4;
+      const noise = Math.floor(sampleNoise(x, y) * 255);
+
+      data[index] = noise;
+      data[index + 1] = noise;
+      data[index + 2] = noise;
+      data[index + 3] = 255;
+    }
+  }
+
+  dissolveNoiseTexture = new THREE.DataTexture(
+    data,
+    DISSOLVE_NOISE_SIZE,
+    DISSOLVE_NOISE_SIZE,
+    THREE.RGBAFormat
+  );
+  dissolveNoiseTexture.wrapS = THREE.RepeatWrapping;
+  dissolveNoiseTexture.wrapT = THREE.RepeatWrapping;
+  dissolveNoiseTexture.magFilter = THREE.LinearFilter;
+  dissolveNoiseTexture.minFilter = THREE.LinearFilter;
+  dissolveNoiseTexture.generateMipmaps = false;
+  dissolveNoiseTexture.needsUpdate = true;
+
+  return dissolveNoiseTexture;
+}
 
 interface Card3DProps {
   cardCode: string;
@@ -56,6 +99,8 @@ interface Card3DProps {
   onPointerUp?: (event: ThreeEvent<PointerEvent>) => void;
   interactive?: boolean;
   snapTapRotationOnMount?: boolean;
+  dissolveProgress?: number;
+  renderMode?: "full" | "baseOnly";
 }
 
 /**
@@ -95,6 +140,8 @@ export function Card3D({
   onPointerUp,
   interactive = true,
   snapTapRotationOnMount = false,
+  dissolveProgress,
+  renderMode = "full",
 }: Card3DProps) {
   const groupRef = useRef<THREE.Group>(null!);
   const previewCleanupRef = useRef<(() => void) | null>(null);
@@ -105,6 +152,22 @@ export function Card3D({
   const activePreviewCardId = useDragStore((state) => state.previewCardId);
   const startPreview = useDragStore((state) => state.startPreview);
   const startReturning = useDragStore((state) => state.startReturning);
+  const isDissolving = dissolveProgress !== undefined;
+  const clampedDissolveProgress = THREE.MathUtils.clamp(dissolveProgress ?? 0, 0, 1);
+  const dissolveAlphaTest = isDissolving
+    ? THREE.MathUtils.lerp(0, 0.92, clampedDissolveProgress)
+    : 0;
+  const dissolveOpacity = isDissolving ? Math.max(0, 1 - clampedDissolveProgress * 1.1) : 1;
+  const dissolveTexture = isDissolving ? getDissolveNoiseTexture() : null;
+  const materialDissolveProps = isDissolving
+    ? {
+        transparent: true,
+        alphaMap: dissolveTexture ?? undefined,
+        alphaTest: dissolveAlphaTest,
+        opacity: dissolveOpacity,
+        depthWrite: clampedDissolveProgress < 0.98,
+      }
+    : {};
 
   // Get texture from cache or use placeholder
   const texture = getCardTexture(cardCode);
@@ -325,74 +388,100 @@ export function Card3D({
           {texture ? (
             <>
               {/* Side faces (edges) */}
-              <meshStandardMaterial attach="material-0" color="#2a2a4e" />
-              <meshStandardMaterial attach="material-1" color="#2a2a4e" />
+              <meshStandardMaterial
+                attach="material-0"
+                color="#2a2a4e"
+                {...materialDissolveProps}
+              />
+              <meshStandardMaterial
+                attach="material-1"
+                color="#2a2a4e"
+                {...materialDissolveProps}
+              />
               {/* Top face (card art) - faces up after X rotation */}
-              <meshStandardMaterial attach="material-2" map={texture} color={getCardColor()} />
+              <meshStandardMaterial
+                attach="material-2"
+                map={texture}
+                color={getCardColor()}
+                {...materialDissolveProps}
+              />
               {/* Bottom face (card back) - faces down after X rotation */}
               <meshStandardMaterial
                 attach="material-3"
                 map={cardBackTexture ?? undefined}
                 color="#1a1a2e"
+                {...materialDissolveProps}
               />
               {/* Front/back edges */}
-              <meshStandardMaterial attach="material-4" color="#2a2a4e" />
-              <meshStandardMaterial attach="material-5" color="#2a2a4e" />
+              <meshStandardMaterial
+                attach="material-4"
+                color="#2a2a4e"
+                {...materialDissolveProps}
+              />
+              <meshStandardMaterial
+                attach="material-5"
+                color="#2a2a4e"
+                {...materialDissolveProps}
+              />
             </>
           ) : (
             // Placeholder material when texture not loaded
-            <meshStandardMaterial color={getCardColor()} />
+            <meshStandardMaterial color={getCardColor()} {...materialDissolveProps} />
           )}
         </mesh>
 
-        {/* Status effect overlays */}
-        {isFrozen && <FrozenOverlay />}
-        {isShocked && <ShockedOverlay />}
-        {isEffectImmune && <EffectImmuneOverlay />}
-        {cooldown && <CooldownOverlay />}
+        {renderMode === "full" ? (
+          <>
+            {/* Status effect overlays */}
+            {isFrozen && <FrozenOverlay />}
+            {isShocked && <ShockedOverlay />}
+            {isEffectImmune && <EffectImmuneOverlay />}
+            {cooldown && <CooldownOverlay />}
 
-        {/* Keyword badges */}
-        {keywordBadges.length > 0 && <KeywordBadges badges={keywordBadges} />}
+            {/* Keyword badges */}
+            {keywordBadges.length > 0 && <KeywordBadges badges={keywordBadges} />}
 
-        {/* Ability activation badge */}
-        {isAbilityActivatable && onAbilityActivate && (
-          <AbilityActivateBadge onActivate={onAbilityActivate} />
-        )}
+            {/* Ability activation badge */}
+            {isAbilityActivatable && onAbilityActivate && (
+              <AbilityActivateBadge onActivate={onAbilityActivate} />
+            )}
 
-        {/* Ability activation highlight */}
-        {isAbilityActivatable && <AbilityActivateOverlay />}
+            {/* Ability activation highlight */}
+            {isAbilityActivatable && <AbilityActivateOverlay />}
 
-        {/* Ability target highlight */}
-        {isAbilityTarget && <AbilityTargetOverlay />}
+            {/* Ability target highlight */}
+            {isAbilityTarget && <AbilityTargetOverlay />}
 
-        {/* Weapon target highlight */}
-        {isWeaponTarget && <WeaponTargetOverlay />}
+            {/* Weapon target highlight */}
+            {isWeaponTarget && <WeaponTargetOverlay />}
 
-        {/* Attack target highlight */}
-        {isAttackTarget && <AttackTargetOverlay />}
+            {/* Attack target highlight */}
+            {isAttackTarget && <AttackTargetOverlay />}
 
-        {/* Placement drop target highlight */}
-        {isDropTarget && <DropTargetOverlay />}
+            {/* Placement drop target highlight */}
+            {isDropTarget && <DropTargetOverlay />}
 
-        {/* Defender target highlight */}
-        {isDefenderTarget && <DefenderTargetOverlay />}
+            {/* Defender target highlight */}
+            {isDefenderTarget && <DefenderTargetOverlay />}
 
-        {/* Stats display */}
-        {showStats &&
-          attack !== null &&
-          attack !== undefined &&
-          health !== null &&
-          health !== undefined && (
-            <CardStats
-              attack={attack}
-              health={health}
-              position={[0, CARD_DEPTH + 0.01, 0]}
-              tapped={tapped}
-            />
-          )}
+            {/* Stats display */}
+            {showStats &&
+              attack !== null &&
+              attack !== undefined &&
+              health !== null &&
+              health !== undefined && (
+                <CardStats
+                  attack={attack}
+                  health={health}
+                  position={[0, CARD_DEPTH + 0.01, 0]}
+                  tapped={tapped}
+                />
+              )}
 
-        {/* Additional elements passed as children */}
-        {children}
+            {/* Additional elements passed as children */}
+            {children}
+          </>
+        ) : null}
       </group>
     </group>
   );

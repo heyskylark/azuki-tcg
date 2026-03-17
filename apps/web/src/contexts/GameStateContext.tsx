@@ -15,7 +15,12 @@ import type {
   SnapshotActionMask,
 } from "@tcg/backend-core/types/ws";
 import type { GameState, CardMapping } from "@/types/game";
-import type { ProcessedGameLog } from "@/types/gameLogs";
+import type {
+  CardZoneMovedData,
+  DeathCause,
+  EntityDiedData,
+  ProcessedGameLog,
+} from "@/types/gameLogs";
 import type { BoardAnimation } from "@/lib/game/boardAnimations";
 import { buildBoardAnimationForLog } from "@/lib/game/boardAnimations";
 import { applySingleLog, createBatchIndexRebaseContext } from "@/lib/game/logProcessor";
@@ -75,6 +80,18 @@ interface BatchStateContext {
 interface QueuedLogBatch {
   batch: GameLogBatchMessage;
   playerSlot: 0 | 1;
+}
+
+function buildDeathSourceKey(player: 0 | 1, zone: string, zoneIndex: number): string {
+  return `${player}:${zone}:${zoneIndex}`;
+}
+
+function buildEntityDiedKey(data: EntityDiedData): string {
+  return buildDeathSourceKey(data.card.player, data.card.zone, data.card.zoneIndex);
+}
+
+function buildZoneMovedSourceKey(data: CardZoneMovedData): string {
+  return buildDeathSourceKey(data.card.player, data.fromZone, data.fromIndex);
 }
 
 function resolveSelectionCards(
@@ -235,6 +252,7 @@ export function GameStateProvider({ children, initialState = null }: GameStatePr
         const { batch, playerSlot } = queuedBatch;
         const logs = batch.logs as ProcessedGameLog[];
         const batchIndexRebaseContext = createBatchIndexRebaseContext();
+        const pendingDeathCauses = new Map<string, DeathCause>();
 
         if (logs.length === 0) {
           const currentState = gameStateRef.current;
@@ -264,11 +282,28 @@ export function GameStateProvider({ children, initialState = null }: GameStatePr
           }
 
           const log = logs[logIndex];
+          let useDissolveForDiscard = false;
+
+          if (log.type === "ENTITY_DIED") {
+            pendingDeathCauses.set(buildEntityDiedKey(log.data), log.data.cause);
+          } else if (log.type === "ZONE_MOVED") {
+            const deathKey = buildZoneMovedSourceKey(log.data);
+            const deathCause = pendingDeathCauses.get(deathKey);
+            useDissolveForDiscard =
+              deathCause === "COMBAT" &&
+              log.data.toZone === "DISCARD" &&
+              (log.data.fromZone === "GARDEN" || log.data.fromZone === "ALLEY");
+            if (deathCause) {
+              pendingDeathCauses.delete(deathKey);
+            }
+          }
+
           const animation = buildBoardAnimationForLog(
             currentState,
             log,
             playerSlot,
-            cardDefIdMapRef.current
+            cardDefIdMapRef.current,
+            { useDissolveForDiscard }
           );
 
           let nextState = applySingleLog(

@@ -103,11 +103,22 @@ export interface BoardCombatAnimation {
   startedAtMs: number;
 }
 
-export type BoardAnimation = BoardMoveAnimation | BoardCombatAnimation;
+export interface BoardDissolveAnimation {
+  kind: "dissolve";
+  id: string;
+  card: BoardAnimationCard;
+  anchor: BoardAnimationAnchor;
+  durationMs: number;
+  hiddenSlotKeys: string[];
+  startedAtMs: number;
+}
+
+export type BoardAnimation = BoardMoveAnimation | BoardCombatAnimation | BoardDissolveAnimation;
 
 const DRAW_ANIMATION_MS = 420;
 const ZONE_MOVE_ANIMATION_MS = 360;
 const COMBAT_ANIMATION_MS = 700;
+const DISSOLVE_ANIMATION_MS = 520;
 
 export function buildBoardAnimationKey(
   side: BoardAnimationSide,
@@ -550,14 +561,62 @@ function buildCombatAnimation(
   };
 }
 
+function buildCombatDeathDissolveAnimation(
+  state: GameState,
+  data: CardZoneMovedData,
+  playerSlot: 0 | 1,
+  cardDefIdMap: Map<number, CardMapping>
+): BoardDissolveAnimation | null {
+  const isMyCard = data.card.player === playerSlot;
+  const side: BoardAnimationSide = isMyCard ? "my" : "opponent";
+  const sourceBoard = isMyCard ? state.myBoard : state.opponentBoard;
+
+  if (data.fromZone !== "GARDEN" && data.fromZone !== "ALLEY") {
+    return null;
+  }
+
+  const sourceCard =
+    data.fromZone === "GARDEN"
+      ? sourceBoard.garden[data.fromIndex]
+      : sourceBoard.alley[data.fromIndex];
+  const card = sourceCard
+    ? buildCardFromResolvedBoardCard(sourceCard, null, true)
+    : buildAnimationCard(state, data, isMyCard, cardDefIdMap, true);
+  if (!card) {
+    return null;
+  }
+
+  const anchor = buildBoardAnchor(data.fromZone, side, data.fromIndex);
+
+  return {
+    kind: "dissolve",
+    id: createAnimationId(
+      `dissolve:${data.card.player}:${data.fromZone}:${data.fromIndex}:${data.toZone}:${data.toIndex}`
+    ),
+    card,
+    anchor,
+    durationMs: DISSOLVE_ANIMATION_MS,
+    hiddenSlotKeys: [],
+    startedAtMs: performance.now(),
+  };
+}
+
+interface BuildBoardAnimationOptions {
+  useDissolveForDiscard?: boolean;
+}
+
 export function buildBoardAnimationForLog(
   state: GameState,
   log: ProcessedGameLog,
   playerSlot: 0 | 1,
-  cardDefIdMap: Map<number, CardMapping>
+  cardDefIdMap: Map<number, CardMapping>,
+  options: BuildBoardAnimationOptions = {}
 ): BoardAnimation | null {
   switch (log.type) {
     case "ZONE_MOVED":
+      if (options.useDissolveForDiscard) {
+        return buildCombatDeathDissolveAnimation(state, log.data, playerSlot, cardDefIdMap);
+      }
       return buildZoneMoveAnimation(state, log.data, playerSlot, cardDefIdMap);
 
     case "COMBAT_DAMAGE":
