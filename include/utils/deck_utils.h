@@ -2,6 +2,14 @@
 #define AZUKI_UTILS_DECK_UTILS_H
 
 #include <flecs.h>
+#include "generated/card_defs.h"
+
+typedef enum {
+  AZK_DEBUG_DRAW_OK = 0,
+  AZK_DEBUG_DRAW_CARD_NOT_FOUND,
+  AZK_DEBUG_DRAW_INVALID_PLAYER,
+  AZK_DEBUG_DRAW_INVALID_STATE,
+} AzkDebugDrawResult;
 
 void shuffle_deck(ecs_world_t *world, ecs_entity_t deck_zone);
 bool move_cards_to_zone(ecs_world_t *world, ecs_entity_t from_zone,
@@ -18,6 +26,14 @@ bool move_cards_to_zone(ecs_world_t *world, ecs_entity_t from_zone,
  * @return true if all cards were drawn successfully, false if deck-out occurred
  */
 bool draw_cards_with_deckout_check(ecs_world_t *world, ecs_entity_t player, int draw_count, ecs_entity_t *out_cards);
+
+/**
+ * Draw a specific card from the player's current deck into hand.
+ * Only succeeds if a matching card instance is still present in the deck.
+ */
+AzkDebugDrawResult azk_debug_draw_card_from_deck(ecs_world_t *world,
+                                                 ecs_entity_t player,
+                                                 CardDefId card_def_id);
 
 /**
  * Mill cards from deck to discard pile with deck-out check after the mill.

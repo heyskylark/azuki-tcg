@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { GameScene } from "@/components/game/GameScene";
+import { GameConsoleCommands } from "@/components/game/GameConsoleCommands";
 import { LoadingScreen } from "@/components/game/LoadingScreen";
 import { DevDebugOverlay } from "@/components/game/DevDebugOverlay";
 import { Button } from "@/components/ui/button";
@@ -140,6 +141,7 @@ export function InMatchView() {
         />
       ) : (
         <>
+          <GameConsoleCommands />
           <GameScene />
           <div className="absolute top-4 right-4 z-50 pointer-events-auto flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={handleReturnToDashboard}>

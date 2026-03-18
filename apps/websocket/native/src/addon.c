@@ -12,6 +12,7 @@
 #include "azuki/engine.h"
 #include "components/game_log.h"
 #include "constants/game.h"
+#include "utils/deck_utils.h"
 #include "utils/observation_util.h"
 #include "utils/training_observation_util.h"
 #include "utils/game_log_util.h"
@@ -90,6 +91,9 @@ static const char *ability_phase_to_string(AbilityPhase phase) {
     default: return "NONE";
   }
 }
+
+static const char *phase_to_string(Phase phase);
+static napi_value serialize_game_log(napi_env env, const GameStateLog *log);
 
 static uint8_t get_pending_confirmation_count(AzkEngine *engine) {
   const GameState *state = azk_engine_game_state(engine);
@@ -172,6 +176,74 @@ static void append_ability_context_metadata(napi_env env,
   napi_create_int32(env, (int32_t)def->effect_req.type, &effect_type_val);
   napi_set_named_property(env, state_context, "abilityEffectTargetType",
                           effect_type_val);
+}
+
+static napi_value build_action_result(napi_env env, AzkEngine *engine) {
+  const GameState *state = azk_engine_game_state(engine);
+  bool game_over = azk_engine_is_game_over(engine);
+
+  napi_value result, success_val, invalid_val, game_over_val, winner_val;
+  napi_value state_context, logs_arr;
+  napi_create_object(env, &result);
+  napi_get_boolean(env, true, &success_val);
+  napi_get_boolean(env, false, &invalid_val);
+  napi_get_boolean(env, game_over, &game_over_val);
+
+  if (game_over && state != NULL && state->winner >= 0) {
+    napi_create_int32(env, state->winner, &winner_val);
+  } else {
+    napi_get_null(env, &winner_val);
+  }
+
+  napi_create_object(env, &state_context);
+  if (state != NULL) {
+    napi_value phase_val, active_player_val, turn_val, ability_phase_val;
+    AbilityPhase ability_phase = azk_engine_get_ability_phase(engine);
+    const char *ability_phase_str = ability_phase_to_string(ability_phase);
+
+    napi_create_string_utf8(env, phase_to_string(state->phase), NAPI_AUTO_LENGTH,
+                            &phase_val);
+    napi_create_int32(env, state->active_player_index, &active_player_val);
+    napi_create_int32(env, state->turn_number, &turn_val);
+    napi_create_string_utf8(env, ability_phase_str, NAPI_AUTO_LENGTH,
+                            &ability_phase_val);
+
+    napi_set_named_property(env, state_context, "phase", phase_val);
+    napi_set_named_property(env, state_context, "activePlayer",
+                            active_player_val);
+    napi_set_named_property(env, state_context, "turnNumber", turn_val);
+    napi_set_named_property(env, state_context, "abilityPhase",
+                            ability_phase_val);
+    napi_set_named_property(env, state_context, "abilitySubphase",
+                            ability_phase_val);
+    append_ability_context_metadata(env, state_context, engine);
+
+    uint8_t pending_confirmation_count = get_pending_confirmation_count(engine);
+    if (pending_confirmation_count > 0) {
+      napi_value pending_confirmation_count_val;
+      napi_create_uint32(env, pending_confirmation_count,
+                         &pending_confirmation_count_val);
+      napi_set_named_property(env, state_context, "pendingConfirmationCount",
+                              pending_confirmation_count_val);
+    }
+  }
+
+  uint8_t log_count = 0;
+  const GameStateLog *logs = azk_get_game_logs(engine, &log_count);
+  napi_create_array_with_length(env, log_count, &logs_arr);
+  for (uint8_t i = 0; i < log_count; i++) {
+    napi_value log_obj = serialize_game_log(env, &logs[i]);
+    napi_set_element(env, logs_arr, i, log_obj);
+  }
+
+  napi_set_named_property(env, result, "success", success_val);
+  napi_set_named_property(env, result, "invalid", invalid_val);
+  napi_set_named_property(env, result, "gameOver", game_over_val);
+  napi_set_named_property(env, result, "winner", winner_val);
+  napi_set_named_property(env, result, "stateContext", state_context);
+  napi_set_named_property(env, result, "logs", logs_arr);
+
+  return result;
 }
 
 // createWorld(seed: number) -> { worldId: string, success: boolean }
@@ -792,82 +864,102 @@ static napi_value SubmitAction(napi_env env, napi_callback_info info) {
     azk_engine_tick(engine);
   }
 
-  // Build result
+  return build_action_result(env, engine);
+}
+
+// debugDrawCard(worldId: string, playerIndex: number, cardDefId: number)
+static napi_value DebugDrawCard(napi_env env, napi_callback_info info) {
+  size_t argc = 3;
+  napi_value args[3];
+  napi_get_cb_info(env, info, &argc, args, NULL, NULL);
+
+  char world_id[32];
+  size_t len;
+  napi_get_value_string_utf8(env, args[0], world_id, sizeof(world_id), &len);
+
+  int32_t player_index;
+  napi_get_value_int32(env, args[1], &player_index);
+
+  int32_t card_def_id_raw;
+  napi_get_value_int32(env, args[2], &card_def_id_raw);
+
+  AzkEngine *engine = find_world(world_id);
+  if (!engine) {
+    napi_value result, success_val, error_val;
+    napi_create_object(env, &result);
+    napi_get_boolean(env, false, &success_val);
+    napi_create_string_utf8(env, "World not found", NAPI_AUTO_LENGTH,
+                            &error_val);
+    napi_set_named_property(env, result, "success", success_val);
+    napi_set_named_property(env, result, "error", error_val);
+    return result;
+  }
+
+  if (player_index < 0 || player_index >= MAX_PLAYERS_PER_MATCH) {
+    napi_value result, success_val, error_val;
+    napi_create_object(env, &result);
+    napi_get_boolean(env, false, &success_val);
+    napi_create_string_utf8(env, "Invalid player index", NAPI_AUTO_LENGTH,
+                            &error_val);
+    napi_set_named_property(env, result, "success", success_val);
+    napi_set_named_property(env, result, "error", error_val);
+    return result;
+  }
+
   const GameState *state = azk_engine_game_state(engine);
-  bool game_over = azk_engine_is_game_over(engine);
-
-  napi_value result, success_val, invalid_val, game_over_val, winner_val;
-  napi_value state_context, logs_arr;
-
-  napi_create_object(env, &result);
-  napi_get_boolean(env, true, &success_val);
-  napi_get_boolean(env, false, &invalid_val);
-  napi_get_boolean(env, game_over, &game_over_val);
-
-  if (game_over && state->winner >= 0) {
-    napi_create_int32(env, state->winner, &winner_val);
-  } else {
-    napi_get_null(env, &winner_val);
+  if (state == NULL) {
+    napi_value result, success_val, error_val;
+    napi_create_object(env, &result);
+    napi_get_boolean(env, false, &success_val);
+    napi_create_string_utf8(env, "Game state not available", NAPI_AUTO_LENGTH,
+                            &error_val);
+    napi_set_named_property(env, result, "success", success_val);
+    napi_set_named_property(env, result, "error", error_val);
+    return result;
   }
 
-  // Build state context
-  napi_create_object(env, &state_context);
-  napi_value phase_val, active_player_val, turn_val, ability_phase_val;
-
-  const char *phase_str = "UNKNOWN";
-  switch (state->phase) {
-    case PHASE_PREGAME_MULLIGAN: phase_str = "PREGAME_MULLIGAN"; break;
-    case PHASE_START_OF_TURN: phase_str = "START_OF_TURN"; break;
-    case PHASE_MAIN: phase_str = "MAIN"; break;
-    case PHASE_RESPONSE_WINDOW: phase_str = "RESPONSE_WINDOW"; break;
-    case PHASE_COMBAT_RESOLVE: phase_str = "COMBAT_RESOLVE"; break;
-    case PHASE_END_TURN_ACTION: phase_str = "END_TURN_ACTION"; break;
-    case PHASE_END_TURN: phase_str = "END_TURN"; break;
-    case PHASE_END_MATCH: phase_str = "END_MATCH"; break;
-    default: break;
-  }
-  napi_create_string_utf8(env, phase_str, NAPI_AUTO_LENGTH, &phase_val);
-  napi_create_int32(env, state->active_player_index, &active_player_val);
-  napi_create_int32(env, state->turn_number, &turn_val);
-
-  // Get ability phase
-  AbilityPhase ability_phase = azk_engine_get_ability_phase(engine);
-  const char *ability_phase_str = ability_phase_to_string(ability_phase);
-  napi_create_string_utf8(env, ability_phase_str, NAPI_AUTO_LENGTH, &ability_phase_val);
-
-  napi_set_named_property(env, state_context, "phase", phase_val);
-  napi_set_named_property(env, state_context, "activePlayer", active_player_val);
-  napi_set_named_property(env, state_context, "turnNumber", turn_val);
-  napi_set_named_property(env, state_context, "abilityPhase", ability_phase_val);
-  // Also set abilitySubphase for client compatibility
-  napi_set_named_property(env, state_context, "abilitySubphase", ability_phase_val);
-  append_ability_context_metadata(env, state_context, engine);
-  uint8_t pending_confirmation_count = get_pending_confirmation_count(engine);
-  if (pending_confirmation_count > 0) {
-    napi_value pending_confirmation_count_val;
-    napi_create_uint32(env, pending_confirmation_count,
-                       &pending_confirmation_count_val);
-    napi_set_named_property(env, state_context, "pendingConfirmationCount",
-                            pending_confirmation_count_val);
+  ecs_entity_t player = state->players[player_index];
+  if (player == 0) {
+    napi_value result, success_val, error_val;
+    napi_create_object(env, &result);
+    napi_get_boolean(env, false, &success_val);
+    napi_create_string_utf8(env, "Player entity not found", NAPI_AUTO_LENGTH,
+                            &error_val);
+    napi_set_named_property(env, result, "success", success_val);
+    napi_set_named_property(env, result, "error", error_val);
+    return result;
   }
 
-  // Extract game logs
-  uint8_t log_count = 0;
-  const GameStateLog *logs = azk_get_game_logs(engine, &log_count);
-  napi_create_array_with_length(env, log_count, &logs_arr);
-  for (uint8_t i = 0; i < log_count; i++) {
-    napi_value log_obj = serialize_game_log(env, &logs[i]);
-    napi_set_element(env, logs_arr, i, log_obj);
+  azk_clear_game_logs(engine);
+  AzkDebugDrawResult draw_result =
+      azk_debug_draw_card_from_deck(engine, player, (CardDefId)card_def_id_raw);
+  if (draw_result != AZK_DEBUG_DRAW_OK) {
+    const char *message = "Debug draw failed";
+    switch (draw_result) {
+      case AZK_DEBUG_DRAW_CARD_NOT_FOUND:
+        message = "Card is not currently in the deck";
+        break;
+      case AZK_DEBUG_DRAW_INVALID_PLAYER:
+        message = "Invalid player";
+        break;
+      case AZK_DEBUG_DRAW_INVALID_STATE:
+        message = "Match is not in a drawable state";
+        break;
+      default:
+        break;
+    }
+
+    napi_value result, success_val, error_val;
+    napi_create_object(env, &result);
+    napi_get_boolean(env, false, &success_val);
+    napi_create_string_utf8(env, message, NAPI_AUTO_LENGTH, &error_val);
+    napi_set_named_property(env, result, "success", success_val);
+    napi_set_named_property(env, result, "error", error_val);
+    return result;
   }
 
-  napi_set_named_property(env, result, "success", success_val);
-  napi_set_named_property(env, result, "invalid", invalid_val);
-  napi_set_named_property(env, result, "gameOver", game_over_val);
-  napi_set_named_property(env, result, "winner", winner_val);
-  napi_set_named_property(env, result, "stateContext", state_context);
-  napi_set_named_property(env, result, "logs", logs_arr);
-
-  return result;
+  azk_finalize_pending_zone_move_logs(engine);
+  return build_action_result(env, engine);
 }
 
 // getGameState(worldId: string) -> StateContext
@@ -1656,6 +1748,9 @@ static napi_value Init(napi_env env, napi_value exports) {
 
   status = napi_create_function(env, "submitAction", NAPI_AUTO_LENGTH, SubmitAction, NULL, &fn);
   if (status == napi_ok) napi_set_named_property(env, exports, "submitAction", fn);
+
+  status = napi_create_function(env, "debugDrawCard", NAPI_AUTO_LENGTH, DebugDrawCard, NULL, &fn);
+  if (status == napi_ok) napi_set_named_property(env, exports, "debugDrawCard", fn);
 
   status = napi_create_function(env, "getObservation", NAPI_AUTO_LENGTH, GetObservation, NULL, &fn);
   if (status == napi_ok) napi_set_named_property(env, exports, "getObservation", fn);
