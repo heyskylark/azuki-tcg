@@ -129,6 +129,10 @@ export type SubmitActionResult =
   | ActionResult
   | { error: string; code: "NOT_FOUND" | "NOT_YOUR_TURN" | "NOT_AWAITING_ACTION" | "INVALID_ACTION" };
 
+export type DebugDrawActionResult =
+  | ActionResult
+  | { error: string; code: "NOT_FOUND" | "DRAW_FAILED" };
+
 /**
  * Submit a player action to the game world.
  * Validates that it's the player's turn and the game is expecting input.
@@ -166,6 +170,37 @@ export function submitPlayerAction(
 
   if (!result.success && result.invalid) {
     return { error: result.error ?? "Invalid action", code: "INVALID_ACTION" };
+  }
+
+  return result;
+}
+
+/**
+ * Draw a specific card that currently exists in the requesting player's deck.
+ * This bypasses normal action-mask validation and is intended for debug flows.
+ */
+export function debugDrawPlayerCard(
+  roomId: string,
+  userId: string,
+  cardDefId: number
+): DebugDrawActionResult {
+  const world = activeWorlds.get(roomId);
+  if (!world) {
+    return { error: "World not found", code: "NOT_FOUND" };
+  }
+
+  const playerSlot = getUserPlayerSlot(roomId, userId);
+  if (playerSlot === -1) {
+    return { error: "User is not a player in this game", code: "NOT_FOUND" };
+  }
+
+  const binding = getNativeBinding();
+  const result = binding.debugDrawCard(world.worldId, playerSlot, cardDefId);
+  if (!result.success) {
+    return {
+      error: result.error ?? "Debug draw failed",
+      code: "DRAW_FAILED",
+    };
   }
 
   return result;

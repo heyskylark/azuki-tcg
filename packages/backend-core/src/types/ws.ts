@@ -4,6 +4,7 @@ export interface ClientMessage {
     | "SELECT_DECK"
     | "READY"
     | "GAME_ACTION"
+    | "DEBUG_DRAW"
     | "FORFEIT"
     | "PING"
     | "LEAVE_ROOM"
@@ -24,6 +25,11 @@ export interface ReadyMessage extends ClientMessage {
 export interface GameActionMessage extends ClientMessage {
   type: "GAME_ACTION";
   action: [number, number, number, number];
+}
+
+export interface DebugDrawMessage extends ClientMessage {
+  type: "DEBUG_DRAW";
+  cardCode: string;
 }
 
 export interface ForfeitMessage extends ClientMessage {

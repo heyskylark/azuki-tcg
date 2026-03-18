@@ -119,6 +119,21 @@ bool move_cards_to_zone(ecs_world_t *world, ecs_entity_t from_zone,
   return to_draw == draw_count;
 }
 
+static const CardId *get_card_id_component(ecs_world_t *world,
+                                           ecs_entity_t card) {
+  const CardId *card_id = ecs_get(world, card, CardId);
+  if (card_id != NULL) {
+    return card_id;
+  }
+
+  ecs_entity_t prefab = ecs_get_target(world, card, EcsIsA, 0);
+  if (prefab == 0) {
+    return NULL;
+  }
+
+  return ecs_get(world, prefab, CardId);
+}
+
 bool draw_cards_with_deckout_check(ecs_world_t *world, ecs_entity_t player,
                                    int draw_count, ecs_entity_t *out_cards) {
   GameState *gs = ecs_singleton_get_mut(world, GameState);
@@ -162,6 +177,51 @@ bool draw_cards_with_deckout_check(ecs_world_t *world, ecs_entity_t player,
     }
   }
   return true;
+}
+
+AzkDebugDrawResult azk_debug_draw_card_from_deck(ecs_world_t *world,
+                                                 ecs_entity_t player,
+                                                 CardDefId card_def_id) {
+  if (world == NULL || player == 0) {
+    return AZK_DEBUG_DRAW_INVALID_PLAYER;
+  }
+
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  if (gs == NULL || gs->winner >= 0 || gs->phase == PHASE_END_MATCH) {
+    return AZK_DEBUG_DRAW_INVALID_STATE;
+  }
+
+  uint8_t player_num = get_player_number(world, player);
+  ecs_entity_t deck = gs->zones[player_num].deck;
+  ecs_entity_t hand = gs->zones[player_num].hand;
+  if (deck == 0 || hand == 0) {
+    return AZK_DEBUG_DRAW_INVALID_STATE;
+  }
+
+  ecs_entities_t deck_cards = ecs_get_ordered_children(world, deck);
+  int32_t deck_count = deck_cards.count;
+  int32_t hand_index = ecs_get_ordered_children(world, hand).count;
+
+  for (int32_t index = deck_count - 1; index >= 0; --index) {
+    ecs_entity_t card = deck_cards.ids[index];
+    const CardId *card_id = get_card_id_component(world, card);
+    if (card_id == NULL || card_id->id != card_def_id) {
+      continue;
+    }
+
+    ecs_add_pair(world, card, EcsChildOf, hand);
+    azk_log_card_zone_moved(world, card, GLOG_ZONE_DECK, (int8_t)index,
+                            GLOG_ZONE_HAND, (int8_t)hand_index);
+
+    if (deck_count == 1) {
+      bool draw_ok = set_deck_out_loss(world, gs, player_num);
+      (void)draw_ok;
+    }
+
+    return AZK_DEBUG_DRAW_OK;
+  }
+
+  return AZK_DEBUG_DRAW_CARD_NOT_FOUND;
 }
 
 bool mill_cards_with_deckout_check(ecs_world_t *world, ecs_entity_t player,

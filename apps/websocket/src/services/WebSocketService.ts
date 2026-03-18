@@ -48,6 +48,7 @@ import {
   handleCloseRoom,
   handleStartGame,
 } from "@/handlers/roomMessageHandler";
+import { handleDebugDraw } from "@/engine/debugDrawHandler";
 
 const INACTIVE_ROOM_STATUSES = [
   RoomStatus.COMPLETED,
@@ -312,6 +313,14 @@ export class WebSocketService {
           return;
         }
         await handleGameAction(ws, parsed as GameActionMessage, connectionInfo);
+        break;
+
+      case "DEBUG_DRAW":
+        if (!connectionInfo) {
+          sendJson(ws, { type: "ERROR", code: "NOT_AUTHENTICATED", message: "Not authenticated" });
+          return;
+        }
+        await handleDebugDraw(ws, parsed, connectionInfo);
         break;
 
       case "FORFEIT":

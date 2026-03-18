@@ -9,6 +9,7 @@ import type {
   ActionTuple,
   CreateWorldResult,
   DeckCardEntry,
+  DebugDrawResult,
   GameLog,
   ObservationData,
   StateContext,
@@ -34,6 +35,11 @@ interface NativeBinding {
     playerIndex: number,
     action: ActionTuple
   ): ActionResult;
+  debugDrawCard(
+    worldId: string,
+    playerIndex: number,
+    cardDefId: number
+  ): DebugDrawResult;
   getObservation(worldId: string, playerIndex: number): ObservationData;
   getTrainingObservationPacked(worldId: string, playerIndex: number): Buffer | null;
   getGameState(worldId: string): StateContext;
@@ -101,6 +107,7 @@ export type {
   ActionTuple,
   CreateWorldResult,
   DeckCardEntry,
+  DebugDrawResult,
   GameLog,
   ObservationData,
   StateContext,

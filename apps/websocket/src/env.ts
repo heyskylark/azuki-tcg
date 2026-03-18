@@ -11,6 +11,10 @@ const envSchema = z.object({
   DATABASE_URL: z.string().optional(),
   JWT_SECRET: z.string(),
   JWT_ISSUER: z.string().default("azuki-tcg"),
+  AZK_DEBUG_ACTIONS_ENABLED: z
+    .enum(["true", "false", "1", "0"])
+    .optional()
+    .transform((val) => val === "true" || val === "1"),
   ENGINE_DEBUG: z
     .enum(["true", "false", "1", "0"])
     .optional()
