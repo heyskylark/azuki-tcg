@@ -1,5 +1,6 @@
 #include "abilities/cards/stt01_008.h"
 
+#include "abilities/passive/passive_runtime.h"
 #include "components/abilities.h"
 #include "components/components.h"
 #include "generated/card_defs.h"
@@ -67,43 +68,31 @@ static void stt01_008_weapon_observer(ecs_iter_t *it) {
 }
 
 void stt01_008_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
-  // Create observer watching for TWeapon entities with ChildOf relationship to
-  // this card
-  ecs_entity_t observer = ecs_observer(
-      world,
-      {.query.terms = {{.id = ecs_pair(EcsChildOf, card)}, {.id = TWeapon}},
-       .events = {EcsOnAdd, EcsOnRemove},
-       .callback = stt01_008_weapon_observer});
+  azk_init_passive_observer_context(world, card, NULL);
 
-  // Store observer ID in PassiveObserverContext for cleanup
-  ecs_set(world, card, PassiveObserverContext,
-          {.observers = {observer, 0, 0, 0}, .observer_count = 1});
+  ecs_entity_t observer = azk_create_tracked_passive_observer(
+      world, card,
+      &(ecs_observer_desc_t){
+          .query.terms = {{.id = ecs_pair(EcsChildOf, card)}, {.id = TWeapon}},
+          .events = {EcsOnAdd, EcsOnRemove},
+          .callback = stt01_008_weapon_observer,
+      });
+  if (observer == 0) {
+    azk_cleanup_passive_observer_context(world, card, NULL);
+    cli_render_logf("[STT01-008] Failed to initialize weapon observer");
+    return;
+  }
 
   cli_render_logf("[STT01-008] Initialized weapon observer for card");
 }
 
 void stt01_008_cleanup_passive_observers(ecs_world_t *world,
                                          ecs_entity_t card) {
-  const PassiveObserverContext *ctx =
-      ecs_get(world, card, PassiveObserverContext);
-  if (!ctx) {
-    return;
-  }
-
-  // Delete all observers
-  for (uint8_t i = 0; i < ctx->observer_count; i++) {
-    if (ctx->observers[i] != 0) {
-      ecs_delete(world, ctx->observers[i]);
-    }
-  }
-
-  // Remove any attack buff from this card's passive effect
-  if (ecs_has_pair(world, card, ecs_id(AttackBuff), card)) {
-    remove_attack_modifier(world, card, card);
-  }
-
-  // Remove the PassiveObserverContext component
-  ecs_remove(world, card, PassiveObserverContext);
+  azk_cleanup_passive_observer_context(
+      world, card,
+      &(PassiveObserverCleanupOptions){
+          .attack_buff_source = card,
+      });
 
   cli_render_logf("[STT01-008] Cleaned up weapon observer for card");
 }

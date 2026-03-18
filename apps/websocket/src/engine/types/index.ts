@@ -333,12 +333,13 @@ export interface ActionResult {
   stateContext: StateContext;
 }
 
-export interface DebugDrawErrorResult {
+export interface DebugActionErrorResult {
   success: false;
   error: string;
 }
 
-export type DebugDrawResult = ActionResult | DebugDrawErrorResult;
+export type DebugDrawResult = ActionResult | DebugActionErrorResult;
+export type DebugGrantIkzResult = ActionResult | DebugActionErrorResult;
 
 export interface DeckCardEntry {
   cardId: number;

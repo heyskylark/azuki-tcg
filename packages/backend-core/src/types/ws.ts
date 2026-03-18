@@ -5,6 +5,7 @@ export interface ClientMessage {
     | "READY"
     | "GAME_ACTION"
     | "DEBUG_DRAW"
+    | "DEBUG_IKZ"
     | "FORFEIT"
     | "PING"
     | "LEAVE_ROOM"
@@ -30,6 +31,11 @@ export interface GameActionMessage extends ClientMessage {
 export interface DebugDrawMessage extends ClientMessage {
   type: "DEBUG_DRAW";
   cardCode: string;
+}
+
+export interface DebugIkzMessage extends ClientMessage {
+  type: "DEBUG_IKZ";
+  count: number;
 }
 
 export interface ForfeitMessage extends ClientMessage {

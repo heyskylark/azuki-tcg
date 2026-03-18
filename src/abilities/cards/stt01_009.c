@@ -1,5 +1,6 @@
 #include "abilities/cards/stt01_009.h"
 
+#include "abilities/passive/passive_runtime.h"
 #include "components/abilities.h"
 #include "components/components.h"
 #include "generated/card_defs.h"
@@ -166,32 +167,45 @@ void stt01_009_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
   ecs_entity_t garden = gs->zones[player_num].garden;
 
   // Allocate context (will be freed in cleanup)
-  Stt01009ObserverCtx *ctx = ecs_os_malloc(sizeof(Stt01009ObserverCtx));
+  Stt01009ObserverCtx *ctx =
+      azk_alloc_passive_observer_ctx(sizeof(Stt01009ObserverCtx));
+  if (!ctx) {
+    cli_render_logf("[STT01-009] Error: failed to allocate observer context");
+    return;
+  }
   ctx->card = card;
 
-  // Observer 1: Watch for weapons entering/leaving the discard zone
-  ecs_entity_t obs_discard = ecs_observer(
-      world,
-      {.query.terms = {{.id = ecs_pair(EcsChildOf, discard)}, {.id = TWeapon}},
-       .events = {EcsOnAdd, EcsOnRemove},
-       .callback = stt01_009_discard_observer,
-       .ctx = ctx});
+  azk_init_passive_observer_context(world, card, ctx);
 
-  // Observer 2: Watch for cards entering the owner's garden specifically
-  // This fires when any card with CardId enters this player's garden
-  ecs_entity_t obs_zone = ecs_observer(
-      world,
-      {.query.terms = {{.id = ecs_pair(EcsChildOf, garden)},
-                       {.id = ecs_id(CardId)}},
-       .events = {EcsOnAdd},
-       .callback = stt01_009_zone_change_observer,
-       .ctx = ctx});
+  ecs_entity_t obs_discard = azk_create_tracked_passive_observer(
+      world, card,
+      &(ecs_observer_desc_t){
+          .query.terms = {{.id = ecs_pair(EcsChildOf, discard)},
+                          {.id = TWeapon}},
+          .events = {EcsOnAdd, EcsOnRemove},
+          .callback = stt01_009_discard_observer,
+          .ctx = ctx,
+      });
 
-  // Store observer IDs and context in PassiveObserverContext for cleanup
-  ecs_set(world, card, PassiveObserverContext,
-          {.observers = {obs_discard, obs_zone, 0, 0},
-           .observer_count = 2,
-           .ctx = ctx});
+  ecs_entity_t obs_zone = azk_create_tracked_passive_observer(
+      world, card,
+      &(ecs_observer_desc_t){
+          .query.terms = {{.id = ecs_pair(EcsChildOf, garden)},
+                          {.id = ecs_id(CardId)}},
+          .events = {EcsOnAdd},
+          .callback = stt01_009_zone_change_observer,
+          .ctx = ctx,
+      });
+
+  if (obs_discard == 0 || obs_zone == 0) {
+    azk_cleanup_passive_observer_context(
+        world, card,
+        &(PassiveObserverCleanupOptions){
+            .free_ctx = true,
+        });
+    cli_render_logf("[STT01-009] Failed to initialize observers for card");
+    return;
+  }
 
   cli_render_logf("[STT01-009] Initialized observers for card %lu (discard=%lu, garden=%lu)",
                   (unsigned long)card, (unsigned long)discard, (unsigned long)garden);
@@ -199,31 +213,12 @@ void stt01_009_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
 
 void stt01_009_cleanup_passive_observers(ecs_world_t *world,
                                          ecs_entity_t card) {
-  const PassiveObserverContext *ctx =
-      ecs_get(world, card, PassiveObserverContext);
-  if (!ctx) {
-    return;
-  }
-
-  // Delete all observers
-  for (uint8_t i = 0; i < ctx->observer_count; i++) {
-    if (ctx->observers[i] != 0) {
-      ecs_delete(world, ctx->observers[i]);
-    }
-  }
-
-  // Free the allocated context
-  if (ctx->ctx) {
-    ecs_os_free(ctx->ctx);
-  }
-
-  // Remove any attack buff from this card's passive effect
-  if (ecs_has_pair(world, card, ecs_id(AttackBuff), card)) {
-    remove_attack_modifier(world, card, card);
-  }
-
-  // Remove the PassiveObserverContext component
-  ecs_remove(world, card, PassiveObserverContext);
+  azk_cleanup_passive_observer_context(
+      world, card,
+      &(PassiveObserverCleanupOptions){
+          .free_ctx = true,
+          .attack_buff_source = card,
+      });
 
   cli_render_logf("[STT01-009] Cleaned up observers for card");
 }

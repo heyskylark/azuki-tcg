@@ -31,6 +31,7 @@ interface GameStateContextValue {
   error: string | null;
   activeBoardAnimation: BoardAnimation | null;
   hiddenBoardSlotKeys: ReadonlySet<string>;
+  isLogPlaybackActive: boolean;
 
   // Card mappings for resolving cardCode -> imageUrl
   cardMappings: Map<string, CardMapping>;
@@ -149,6 +150,7 @@ export function GameStateProvider({ children, initialState = null }: GameStatePr
   const [error, setError] = useState<string | null>(null);
   const [activeBoardAnimation, setActiveBoardAnimation] = useState<BoardAnimation | null>(null);
   const [hiddenBoardSlotKeys, setHiddenBoardSlotKeys] = useState<Set<string>>(new Set());
+  const [isLogPlaybackActive, setIsLogPlaybackActive] = useState(false);
   const [cardMappings, setCardMappingsState] = useState<Map<string, CardMapping>>(new Map());
   const [cardDefIdMap, setCardDefIdMap] = useState<Map<number, CardMapping>>(new Map());
   const gameStateRef = useRef<GameState | null>(initialState);
@@ -163,6 +165,10 @@ export function GameStateProvider({ children, initialState = null }: GameStatePr
   const commitGameState = useCallback((nextState: GameState | null) => {
     gameStateRef.current = nextState;
     setGameStateState(nextState);
+  }, []);
+
+  const updateLogPlaybackState = useCallback((isActive: boolean) => {
+    setIsLogPlaybackActive((current) => current === isActive ? current : isActive);
   }, []);
 
   const clearPendingAnimation = useCallback(() => {
@@ -185,7 +191,8 @@ export function GameStateProvider({ children, initialState = null }: GameStatePr
     queueGenerationRef.current += 1;
     logBatchQueueRef.current = [];
     clearPendingAnimation();
-  }, [clearPendingAnimation]);
+    updateLogPlaybackState(false);
+  }, [clearPendingAnimation, updateLogPlaybackState]);
 
   const waitForAnimation = useCallback(
     (durationMs: number, expectedGeneration: number) =>
@@ -362,9 +369,12 @@ export function GameStateProvider({ children, initialState = null }: GameStatePr
 
       if (logBatchQueueRef.current.length > 0) {
         void drainQueuedLogBatches();
+        return;
       }
+
+      updateLogPlaybackState(false);
     }
-  }, [clearPendingAnimation, commitGameState, waitForAnimation]);
+  }, [clearPendingAnimation, commitGameState, updateLogPlaybackState, waitForAnimation]);
 
   const processSnapshot = useCallback(
     (
@@ -410,10 +420,11 @@ export function GameStateProvider({ children, initialState = null }: GameStatePr
         return;
       }
 
+      updateLogPlaybackState(true);
       logBatchQueueRef.current.push({ batch, playerSlot });
       void drainQueuedLogBatches();
     },
-    [drainQueuedLogBatches]
+    [drainQueuedLogBatches, updateLogPlaybackState]
   );
 
   const clearGameState = useCallback(() => {
@@ -437,6 +448,7 @@ export function GameStateProvider({ children, initialState = null }: GameStatePr
         error,
         activeBoardAnimation,
         hiddenBoardSlotKeys,
+        isLogPlaybackActive,
         cardMappings,
         setCardMappings,
         cardDefIdMap,

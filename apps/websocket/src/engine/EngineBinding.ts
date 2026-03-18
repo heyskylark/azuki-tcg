@@ -9,6 +9,7 @@ import type {
   ActionTuple,
   CreateWorldResult,
   DeckCardEntry,
+  DebugGrantIkzResult,
   DebugDrawResult,
   GameLog,
   ObservationData,
@@ -30,16 +31,9 @@ interface NativeBinding {
     player1Deck: DeckCardEntry[]
   ): CreateWorldResult;
   destroyWorld(worldId: string): void;
-  submitAction(
-    worldId: string,
-    playerIndex: number,
-    action: ActionTuple
-  ): ActionResult;
-  debugDrawCard(
-    worldId: string,
-    playerIndex: number,
-    cardDefId: number
-  ): DebugDrawResult;
+  submitAction(worldId: string, playerIndex: number, action: ActionTuple): ActionResult;
+  debugDrawCard(worldId: string, playerIndex: number, cardDefId: number): DebugDrawResult;
+  debugGrantIkz(worldId: string, playerIndex: number, count: number): DebugGrantIkzResult;
   getObservation(worldId: string, playerIndex: number): ObservationData;
   getTrainingObservationPacked(worldId: string, playerIndex: number): Buffer | null;
   getGameState(worldId: string): StateContext;
@@ -107,6 +101,7 @@ export type {
   ActionTuple,
   CreateWorldResult,
   DeckCardEntry,
+  DebugGrantIkzResult,
   DebugDrawResult,
   GameLog,
   ObservationData,

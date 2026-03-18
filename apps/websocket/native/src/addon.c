@@ -962,6 +962,111 @@ static napi_value DebugDrawCard(napi_env env, napi_callback_info info) {
   return build_action_result(env, engine);
 }
 
+// debugGrantIkz(worldId: string, playerIndex: number, count: number)
+static napi_value DebugGrantIkz(napi_env env, napi_callback_info info) {
+  size_t argc = 3;
+  napi_value args[3];
+  napi_get_cb_info(env, info, &argc, args, NULL, NULL);
+
+  char world_id[32];
+  size_t len;
+  napi_get_value_string_utf8(env, args[0], world_id, sizeof(world_id), &len);
+
+  int32_t player_index;
+  napi_get_value_int32(env, args[1], &player_index);
+
+  int32_t grant_count;
+  napi_get_value_int32(env, args[2], &grant_count);
+
+  AzkEngine *engine = find_world(world_id);
+  if (!engine) {
+    napi_value result, success_val, error_val;
+    napi_create_object(env, &result);
+    napi_get_boolean(env, false, &success_val);
+    napi_create_string_utf8(env, "World not found", NAPI_AUTO_LENGTH,
+                            &error_val);
+    napi_set_named_property(env, result, "success", success_val);
+    napi_set_named_property(env, result, "error", error_val);
+    return result;
+  }
+
+  if (player_index < 0 || player_index >= MAX_PLAYERS_PER_MATCH) {
+    napi_value result, success_val, error_val;
+    napi_create_object(env, &result);
+    napi_get_boolean(env, false, &success_val);
+    napi_create_string_utf8(env, "Invalid player index", NAPI_AUTO_LENGTH,
+                            &error_val);
+    napi_set_named_property(env, result, "success", success_val);
+    napi_set_named_property(env, result, "error", error_val);
+    return result;
+  }
+
+  if (grant_count < 0) {
+    napi_value result, success_val, error_val;
+    napi_create_object(env, &result);
+    napi_get_boolean(env, false, &success_val);
+    napi_create_string_utf8(env, "IKZ grant count must be non-negative",
+                            NAPI_AUTO_LENGTH, &error_val);
+    napi_set_named_property(env, result, "success", success_val);
+    napi_set_named_property(env, result, "error", error_val);
+    return result;
+  }
+
+  const GameState *state = azk_engine_game_state(engine);
+  if (state == NULL) {
+    napi_value result, success_val, error_val;
+    napi_create_object(env, &result);
+    napi_get_boolean(env, false, &success_val);
+    napi_create_string_utf8(env, "Game state not available", NAPI_AUTO_LENGTH,
+                            &error_val);
+    napi_set_named_property(env, result, "success", success_val);
+    napi_set_named_property(env, result, "error", error_val);
+    return result;
+  }
+
+  if (state->winner >= 0 || state->phase == PHASE_END_MATCH) {
+    napi_value result, success_val, error_val;
+    napi_create_object(env, &result);
+    napi_get_boolean(env, false, &success_val);
+    napi_create_string_utf8(env, "Match is not in a mutable state",
+                            NAPI_AUTO_LENGTH, &error_val);
+    napi_set_named_property(env, result, "success", success_val);
+    napi_set_named_property(env, result, "error", error_val);
+    return result;
+  }
+
+  ecs_entity_t ikz_pile = state->zones[player_index].ikz_pile;
+  ecs_entity_t ikz_area = state->zones[player_index].ikz_area;
+  if (ikz_pile == 0 || ikz_area == 0) {
+    napi_value result, success_val, error_val;
+    napi_create_object(env, &result);
+    napi_get_boolean(env, false, &success_val);
+    napi_create_string_utf8(env, "IKZ zones not available", NAPI_AUTO_LENGTH,
+                            &error_val);
+    napi_set_named_property(env, result, "success", success_val);
+    napi_set_named_property(env, result, "error", error_val);
+    return result;
+  }
+
+  azk_clear_game_logs(engine);
+
+  int32_t current_ikz_count = ecs_get_ordered_children(engine, ikz_area).count;
+  if (grant_count > 0 && current_ikz_count < IKZ_AREA_SIZE) {
+    int32_t available_slots = IKZ_AREA_SIZE - current_ikz_count;
+    int32_t to_grant = grant_count;
+    if (to_grant > available_slots) {
+      to_grant = available_slots;
+    }
+
+    if (to_grant > 0) {
+      move_cards_to_zone(engine, ikz_pile, ikz_area, to_grant, NULL);
+    }
+  }
+
+  azk_finalize_pending_zone_move_logs(engine);
+  return build_action_result(env, engine);
+}
+
 // getGameState(worldId: string) -> StateContext
 static napi_value GetGameState(napi_env env, napi_callback_info info) {
   size_t argc = 1;
@@ -1751,6 +1856,9 @@ static napi_value Init(napi_env env, napi_value exports) {
 
   status = napi_create_function(env, "debugDrawCard", NAPI_AUTO_LENGTH, DebugDrawCard, NULL, &fn);
   if (status == napi_ok) napi_set_named_property(env, exports, "debugDrawCard", fn);
+
+  status = napi_create_function(env, "debugGrantIkz", NAPI_AUTO_LENGTH, DebugGrantIkz, NULL, &fn);
+  if (status == napi_ok) napi_set_named_property(env, exports, "debugGrantIkz", fn);
 
   status = napi_create_function(env, "getObservation", NAPI_AUTO_LENGTH, GetObservation, NULL, &fn);
   if (status == napi_ok) napi_set_named_property(env, exports, "getObservation", fn);

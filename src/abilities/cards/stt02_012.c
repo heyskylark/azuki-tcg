@@ -1,5 +1,6 @@
 #include "abilities/cards/stt02_012.h"
 
+#include "abilities/passive/passive_runtime.h"
 #include "components/abilities.h"
 #include "components/components.h"
 #include "generated/card_defs.h"
@@ -178,34 +179,46 @@ void stt02_012_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
   ecs_entity_t opponent_garden = gs->zones[opponent_num].garden;
 
   // Allocate context (will be freed in cleanup)
-  Stt02012ObserverCtx *ctx = ecs_os_malloc(sizeof(Stt02012ObserverCtx));
+  Stt02012ObserverCtx *ctx =
+      azk_alloc_passive_observer_ctx(sizeof(Stt02012ObserverCtx));
+  if (!ctx) {
+    cli_render_logf("[STT02-012] Error: failed to allocate observer context");
+    return;
+  }
   ctx->card = card;
   ctx->owner_player_num = owner_player_num;
 
-  // Observer 1: Watch for entities entering/leaving the player's garden
-  // Use ecs_id(CardId) to match all cards, filter by TEntity in callback
-  ecs_entity_t obs_player = ecs_observer(
-      world,
-      {.query.terms = {{.id = ecs_pair(EcsChildOf, player_garden)},
-                       {.id = ecs_id(CardId)}},
-       .events = {EcsOnAdd, EcsOnRemove},
-       .callback = stt02_012_player_garden_observer,
-       .ctx = ctx});
+  azk_init_passive_observer_context(world, card, ctx);
 
-  // Observer 2: Watch for entities entering/leaving the opponent's garden
-  ecs_entity_t obs_opponent = ecs_observer(
-      world,
-      {.query.terms = {{.id = ecs_pair(EcsChildOf, opponent_garden)},
-                       {.id = ecs_id(CardId)}},
-       .events = {EcsOnAdd, EcsOnRemove},
-       .callback = stt02_012_opponent_garden_observer,
-       .ctx = ctx});
+  ecs_entity_t obs_player = azk_create_tracked_passive_observer(
+      world, card,
+      &(ecs_observer_desc_t){
+          .query.terms = {{.id = ecs_pair(EcsChildOf, player_garden)},
+                          {.id = ecs_id(CardId)}},
+          .events = {EcsOnAdd, EcsOnRemove},
+          .callback = stt02_012_player_garden_observer,
+          .ctx = ctx,
+      });
 
-  // Store observer IDs and context in PassiveObserverContext for cleanup
-  ecs_set(world, card, PassiveObserverContext,
-          {.observers = {obs_player, obs_opponent, 0, 0},
-           .observer_count = 2,
-           .ctx = ctx});
+  ecs_entity_t obs_opponent = azk_create_tracked_passive_observer(
+      world, card,
+      &(ecs_observer_desc_t){
+          .query.terms = {{.id = ecs_pair(EcsChildOf, opponent_garden)},
+                          {.id = ecs_id(CardId)}},
+          .events = {EcsOnAdd, EcsOnRemove},
+          .callback = stt02_012_opponent_garden_observer,
+          .ctx = ctx,
+      });
+
+  if (obs_player == 0 || obs_opponent == 0) {
+    azk_cleanup_passive_observer_context(
+        world, card,
+        &(PassiveObserverCleanupOptions){
+            .free_ctx = true,
+        });
+    cli_render_logf("[STT02-012] Failed to initialize observers for card");
+    return;
+  }
 
   cli_render_logf("[STT02-012] Initialized observers for card %lu "
                   "(player_garden=%lu, opponent_garden=%lu)",
@@ -218,36 +231,13 @@ void stt02_012_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
 
 void stt02_012_cleanup_passive_observers(ecs_world_t *world,
                                          ecs_entity_t card) {
-  const PassiveObserverContext *ctx =
-      ecs_get(world, card, PassiveObserverContext);
-  if (!ctx) {
-    return;
-  }
-
-  // Delete all observers
-  for (uint8_t i = 0; i < ctx->observer_count; i++) {
-    if (ctx->observers[i] != 0) {
-      ecs_delete(world, ctx->observers[i]);
-    }
-  }
-
-  // Free the allocated context
-  if (ctx->ctx) {
-    ecs_os_free(ctx->ctx);
-  }
-
-  // Remove any attack buff from this card's passive effect
-  if (ecs_has_pair(world, card, ecs_id(AttackBuff), card)) {
-    remove_attack_modifier(world, card, card);
-  }
-
-  // Remove any health buff from this card's passive effect
-  if (ecs_has_pair(world, card, ecs_id(HealthBuff), card)) {
-    remove_health_modifier(world, card, card);
-  }
-
-  // Remove the PassiveObserverContext component
-  ecs_remove(world, card, PassiveObserverContext);
+  azk_cleanup_passive_observer_context(
+      world, card,
+      &(PassiveObserverCleanupOptions){
+          .free_ctx = true,
+          .attack_buff_source = card,
+          .health_buff_source = card,
+      });
 
   cli_render_logf("[STT02-012] Cleaned up observers for card");
 }

@@ -1,9 +1,4 @@
-import type {
-  HttpRequest,
-  HttpResponse,
-  us_socket_context_t,
-  WebSocket,
-} from "uWebSockets.js";
+import type { HttpRequest, HttpResponse, us_socket_context_t, WebSocket } from "uWebSockets.js";
 
 import { RoomStatus, UserType } from "@tcg/backend-core/types";
 import { verifyJoinToken } from "@tcg/backend-core/services/authService";
@@ -35,10 +30,7 @@ import {
   getRoomChannel,
   updateRoomChannelStatus,
 } from "@/state/RoomRegistry";
-import {
-  startDisconnectGrace,
-  cancelDisconnectGrace,
-} from "@/state/TimerManager";
+import { startDisconnectGrace, cancelDisconnectGrace } from "@/state/TimerManager";
 import { broadcastRoomState } from "@/utils/broadcast";
 import { transitionToDeckSelection, transitionToAborted } from "@/handlers/stateTransitionHandler";
 import {
@@ -49,12 +41,10 @@ import {
   handleStartGame,
 } from "@/handlers/roomMessageHandler";
 import { handleDebugDraw } from "@/engine/debugDrawHandler";
+import { handleDebugIkz } from "@/engine/debugIkzHandler";
+import { getWorldByRoomId } from "@/engine/WorldManager";
 
-const INACTIVE_ROOM_STATUSES = [
-  RoomStatus.COMPLETED,
-  RoomStatus.ABORTED,
-  RoomStatus.CLOSED,
-];
+const INACTIVE_ROOM_STATUSES = [RoomStatus.COMPLETED, RoomStatus.ABORTED, RoomStatus.CLOSED];
 
 const authConfig: AuthConfig = {
   jwtSecret: env.JWT_SECRET,
@@ -114,7 +104,10 @@ export class WebSocketService {
         }
 
         if (INACTIVE_ROOM_STATUSES.includes(room.status)) {
-          logger.warn("WebSocket upgrade rejected: room not active", { roomId, status: room.status });
+          logger.warn("WebSocket upgrade rejected: room not active", {
+            roomId,
+            status: room.status,
+          });
           res.cork(() => {
             res.writeStatus("410 Gone").end("Room is no longer active");
           });
@@ -164,7 +157,9 @@ export class WebSocketService {
       })
       .catch((error) => {
         if (isAborted) return;
-        logger.warn("WebSocket upgrade rejected: token validation failed", { error: String(error) });
+        logger.warn("WebSocket upgrade rejected: token validation failed", {
+          error: String(error),
+        });
         res.cork(() => {
           res.writeStatus("401 Unauthorized").end("Invalid or expired token");
         });
@@ -249,6 +244,16 @@ export class WebSocketService {
     };
     sendJson(ws, ackMessage);
 
+    if (room.status === RoomStatus.IN_MATCH && !getWorldByRoomId(roomId)) {
+      logger.error("Aborting IN_MATCH room on websocket open: world not found", {
+        roomId,
+        playerSlot,
+        userId,
+      });
+      await transitionToAborted(roomId, "Game world not found");
+      return;
+    }
+
     // Broadcast room state to all connected players
     // Note: Transition to DECK_SELECTION is now triggered by owner via START_GAME message
     broadcastRoomState(channel);
@@ -321,6 +326,14 @@ export class WebSocketService {
           return;
         }
         await handleDebugDraw(ws, parsed, connectionInfo);
+        break;
+
+      case "DEBUG_IKZ":
+        if (!connectionInfo) {
+          sendJson(ws, { type: "ERROR", code: "NOT_AUTHENTICATED", message: "Not authenticated" });
+          return;
+        }
+        await handleDebugIkz(ws, parsed, connectionInfo);
         break;
 
       case "FORFEIT":

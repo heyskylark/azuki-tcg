@@ -3,7 +3,15 @@
  * Manages the lifecycle of game worlds and provides access control.
  */
 
-import { getNativeBinding, type ActionResult, type ActionTuple, type DeckCardEntry, type ObservationData, type StateContext, type GameLog } from "@/engine/EngineBinding";
+import {
+  getNativeBinding,
+  type ActionResult,
+  type ActionTuple,
+  type DeckCardEntry,
+  type ObservationData,
+  type StateContext,
+  type GameLog,
+} from "@/engine/EngineBinding";
 import logger from "@/logger";
 
 export interface ActiveWorld {
@@ -127,11 +135,18 @@ export function getPlayerUserId(roomId: string, playerSlot: 0 | 1): string | nul
 
 export type SubmitActionResult =
   | ActionResult
-  | { error: string; code: "NOT_FOUND" | "NOT_YOUR_TURN" | "NOT_AWAITING_ACTION" | "INVALID_ACTION" };
+  | {
+      error: string;
+      code: "NOT_FOUND" | "NOT_YOUR_TURN" | "NOT_AWAITING_ACTION" | "INVALID_ACTION";
+    };
 
 export type DebugDrawActionResult =
   | ActionResult
   | { error: string; code: "NOT_FOUND" | "DRAW_FAILED" };
+
+export type DebugIkzActionResult =
+  | ActionResult
+  | { error: string; code: "NOT_FOUND" | "IKZ_FAILED" };
 
 /**
  * Submit a player action to the game world.
@@ -207,6 +222,37 @@ export function debugDrawPlayerCard(
 }
 
 /**
+ * Grant IKZ from the requesting player's IKZ pile into their IKZ area.
+ * This bypasses normal action validation and is intended for debug flows.
+ */
+export function debugGrantPlayerIkz(
+  roomId: string,
+  userId: string,
+  count: number
+): DebugIkzActionResult {
+  const world = activeWorlds.get(roomId);
+  if (!world) {
+    return { error: "World not found", code: "NOT_FOUND" };
+  }
+
+  const playerSlot = getUserPlayerSlot(roomId, userId);
+  if (playerSlot === -1) {
+    return { error: "User is not a player in this game", code: "NOT_FOUND" };
+  }
+
+  const binding = getNativeBinding();
+  const result = binding.debugGrantIkz(world.worldId, playerSlot, count);
+  if (!result.success) {
+    return {
+      error: result.error ?? "Debug IKZ grant failed",
+      code: "IKZ_FAILED",
+    };
+  }
+
+  return result;
+}
+
+/**
  * Get the observation for a player.
  */
 export function getPlayerObservation(roomId: string, userId: string): ObservationData | null {
@@ -227,7 +273,10 @@ export function getPlayerObservation(roomId: string, userId: string): Observatio
 /**
  * Get the observation for a player by slot.
  */
-export function getPlayerObservationBySlot(roomId: string, playerSlot: 0 | 1): ObservationData | null {
+export function getPlayerObservationBySlot(
+  roomId: string,
+  playerSlot: 0 | 1
+): ObservationData | null {
   const world = activeWorlds.get(roomId);
   if (!world) {
     return null;

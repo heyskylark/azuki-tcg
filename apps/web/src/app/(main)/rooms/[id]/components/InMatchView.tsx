@@ -42,22 +42,30 @@ export function InMatchView() {
   const [deckLoadError, setDeckLoadError] = useState<string | null>(null);
 
   const isDevMode = searchParams.get("dev") === "true";
+  const isInMatch = roomState?.status === "IN_MATCH";
+  const player0DeckId = roomState?.players[0]?.deckId ?? null;
+  const player1DeckId = roomState?.players[1]?.deckId ?? null;
 
   // Fetch both decks and preload assets when entering match
   useEffect(() => {
+    if (!isInMatch) {
+      return;
+    }
+
+    if (!player0DeckId || !player1DeckId) {
+      console.error("Missing deck IDs in IN_MATCH state");
+      setDeckLoadError("Missing deck information");
+      setIsDeckLoading(false);
+      return;
+    }
+
+    let isCancelled = false;
+
     async function loadGameAssets() {
-      // In IN_MATCH status, both deckIds are guaranteed to exist
-      const player0DeckId = roomState?.players[0]?.deckId;
-      const player1DeckId = roomState?.players[1]?.deckId;
-
-      if (!player0DeckId || !player1DeckId) {
-        console.error("Missing deck IDs in IN_MATCH state");
-        setDeckLoadError("Missing deck information");
-        setIsDeckLoading(false);
-        return;
-      }
-
       try {
+        setDeckLoadError(null);
+        setIsDeckLoading(true);
+
         // Fetch both decks in parallel
         const [deck0Res, deck1Res] = await Promise.all([
           authenticatedFetch(`/api/decks/${player0DeckId}`),
@@ -79,6 +87,9 @@ export function InMatchView() {
 
         // Preload card textures (shows loading progress)
         const mappings = await preloadDeckCards(allCards);
+        if (isCancelled) {
+          return;
+        }
         setCardMappings(mappings);
 
         // Build cardDefIdMap from complete deck data
@@ -87,14 +98,28 @@ export function InMatchView() {
 
         setIsDeckLoading(false);
       } catch (err) {
+        if (isCancelled) {
+          return;
+        }
         console.error("Failed to load game assets:", err);
         setDeckLoadError(err instanceof Error ? err.message : "Failed to load game assets");
         setIsDeckLoading(false);
       }
     }
 
-    loadGameAssets();
-  }, [roomState, preloadDeckCards, setCardMappings, setCardDefIdMap]);
+    void loadGameAssets();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [
+    isInMatch,
+    player0DeckId,
+    player1DeckId,
+    preloadDeckCards,
+    setCardMappings,
+    setCardDefIdMap,
+  ]);
 
   const isBusy = isDeckLoading || loadingState.isLoading || isLoading || !gameState;
   const turnPlayerLabel = !gameState

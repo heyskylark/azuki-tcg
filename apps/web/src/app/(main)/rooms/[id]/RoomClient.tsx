@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRoom } from "@/contexts/RoomContext";
 import { AssetProvider } from "@/contexts/AssetContext";
-import { GameStateProvider } from "@/contexts/GameStateContext";
+import { GameStateProvider, useGameState } from "@/contexts/GameStateContext";
 import { GameBridge } from "@/components/game/GameBridge";
 import { GameOverScreen } from "@/components/game/GameOverScreen";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,6 +38,45 @@ interface RoomClientProps {
 
 const INACTIVE_ROOM_STATUSES = ["COMPLETED", "CLOSED", "ABORTED"];
 
+interface MatchSessionViewProps {
+  onReturnHome: () => void;
+  playerSlot: 0 | 1;
+  userId: string;
+}
+
+function MatchSessionView({ onReturnHome, playerSlot, userId }: MatchSessionViewProps) {
+  const { gameOver } = useRoom();
+  const { isLogPlaybackActive } = useGameState();
+
+  const gameOverOutcome = (() => {
+    if (!gameOver) {
+      return null;
+    }
+    if (gameOver.winnerId === null && gameOver.winnerSlot === null) {
+      return "draw";
+    }
+    if (gameOver.winnerId && gameOver.winnerId === userId) {
+      return "win";
+    }
+    if (gameOver.winnerSlot !== null && gameOver.winnerSlot === playerSlot) {
+      return "win";
+    }
+    return "lose";
+  })();
+
+  if (gameOverOutcome && !isLogPlaybackActive) {
+    return (
+      <GameOverScreen
+        outcome={gameOverOutcome}
+        reason={gameOver?.reason}
+        onReturnHome={onReturnHome}
+      />
+    );
+  }
+
+  return <InMatchView />;
+}
+
 export function RoomClient({ initialRoom, user }: RoomClientProps) {
   const {
     activeRoom,
@@ -60,28 +99,13 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
 
   const [needsPassword, setNeedsPassword] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
+  const [matchPlayerSlot, setMatchPlayerSlot] = useState<0 | 1 | null>(null);
   const hasAttemptedJoin = useRef(false);
 
   const handleReturnHome = useCallback(() => {
     clearActiveRoom();
     router.push("/");
   }, [clearActiveRoom, router]);
-
-  const gameOverOutcome = (() => {
-    if (!gameOver) {
-      return null;
-    }
-    if (gameOver.winnerId === null && gameOver.winnerSlot === null) {
-      return "draw";
-    }
-    if (gameOver.winnerId && gameOver.winnerId === user.id) {
-      return "win";
-    }
-    if (gameOver.winnerSlot !== null && gameOver.winnerSlot === playerSlot) {
-      return "win";
-    }
-    return "lose";
-  })();
 
   // Auto-join on mount if conditions are right
   useEffect(() => {
@@ -131,6 +155,12 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
     doJoin();
   }, [isInRoom, initialRoom.hasPassword, initialRoom.id, join, connectionStatus, activeRoom?.id, isRoomInactive, isJoining, needsPassword]);
 
+  useEffect(() => {
+    if (roomState?.status === "IN_MATCH" && playerSlot !== null) {
+      setMatchPlayerSlot(playerSlot);
+    }
+  }, [playerSlot, roomState?.status]);
+
   // Derive connection state for UI
   type ConnectionState = "idle" | "joining" | "connecting" | "connected" | "error" | "inactive";
   const connectionState: ConnectionState = isRoomInactive
@@ -175,20 +205,14 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
     [join, initialRoom.id]
   );
 
-  if (gameOverOutcome) {
-    return (
-      <GameOverScreen
-        outcome={gameOverOutcome}
-        reason={gameOver?.reason}
-        onReturnHome={handleReturnHome}
-      />
-    );
-  }
-
   // Determine current display status
   const displayStatus = roomState?.status ?? initialRoom.status;
   const isClosedOrAborted =
     displayStatus === "ABORTED" || displayStatus === "CLOSED";
+  const activeMatchPlayerSlot = matchPlayerSlot ?? playerSlot;
+  const shouldRenderMatchSession =
+    activeMatchPlayerSlot !== null &&
+    (displayStatus === "IN_MATCH" || gameOver !== null);
 
   // Render password prompt if needed
   if (needsPassword) {
@@ -214,6 +238,23 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
         </CardContent>
       </Card>
+    );
+  }
+
+  // Keep the match shell mounted until any queued log playback completes.
+  if (shouldRenderMatchSession && activeMatchPlayerSlot !== null) {
+    return (
+      <AssetProvider>
+        <GameStateProvider>
+          <GameBridge playerSlot={activeMatchPlayerSlot}>
+            <MatchSessionView
+              onReturnHome={handleReturnHome}
+              playerSlot={activeMatchPlayerSlot}
+              userId={user.id}
+            />
+          </GameBridge>
+        </GameStateProvider>
+      </AssetProvider>
     );
   }
 
@@ -377,22 +418,6 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
         );
     }
   };
-
-  // For IN_MATCH status, render full-screen view without Card wrapper
-  if (displayStatus === "IN_MATCH" && roomState) {
-    if (playerSlot === null) {
-      return <div>Loading player info...</div>;
-    }
-    return (
-      <AssetProvider>
-        <GameStateProvider>
-          <GameBridge playerSlot={playerSlot}>
-            <InMatchView />
-          </GameBridge>
-        </GameStateProvider>
-      </AssetProvider>
-    );
-  }
 
   return (
     <Card className="max-w-4xl mx-auto">
