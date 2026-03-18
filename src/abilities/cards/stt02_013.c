@@ -1,11 +1,11 @@
 #include "abilities/cards/stt02_013.h"
 
+#include "abilities/cards/common/reveal_selection.h"
+#include "abilities/selection/ability_selection_helpers.h"
 #include "components/components.h"
-#include "constants/game.h"
 #include "generated/card_defs.h"
 #include "utils/card_utils.h"
 #include "utils/cli_rendering_util.h"
-#include "utils/deck_utils.h"
 #include "utils/player_util.h"
 
 // STT02-013: "[On Play] Look at the top 3 cards of your deck, reveal up to 1
@@ -22,6 +22,13 @@ static bool is_valid_selection(ecs_world_t *world, ecs_entity_t card) {
 
   // Check water element
   return is_water_element_card(world, card);
+}
+
+static bool is_valid_reveal_selection_card(ecs_world_t *world,
+                                           ecs_entity_t card,
+                                           const void *user_ctx) {
+  (void)user_ctx;
+  return is_valid_selection(world, card);
 }
 
 // Validate if ability can be activated
@@ -47,49 +54,24 @@ bool stt02_013_validate(ecs_world_t *world, ecs_entity_t card,
 // Called after the ability is accepted: move top 3 cards from deck to
 // selection zone
 void stt02_013_on_cost_paid(ecs_world_t *world, AbilityContext *ctx) {
-  // Look at top 3 cards
-  ecs_entity_t cards[MAX_SELECTION_ZONE_SIZE];
-  int count = look_at_top_n_cards(world, ctx->runtime.owner, 3, cards);
+  const AbilityRevealSelectionResult result = azk_setup_reveal_top_cards_selection(
+      world, ctx, 3, 1, is_valid_reveal_selection_card, NULL);
 
-  if (count == 0) {
+  if (result.revealed_count == 0) {
     cli_render_logf("[STT02-013] No cards in deck to look at");
-    // Skip directly to done - no cards to process
     return;
   }
 
-  // Store cards in selection context
-  ctx->selection.count = count;
-  for (int i = 0; i < count; i++) {
-    ctx->selection.cards[i] = cards[i];
-  }
-
-  // Set up selection pick phase - "up to 1" valid card
-  ctx->selection.pick_max = 1;
-  ctx->selection.picked_count = 0;
-
-  // Count how many valid cards (<=2 cost AND water element) are in the selection
-  int valid_count = 0;
-  for (int i = 0; i < count; i++) {
-    if (is_valid_selection(world, cards[i])) {
-      valid_count++;
-    }
-  }
-
-  if (valid_count > 0) {
-    ctx->runtime.phase = ABILITY_PHASE_SELECTION_PICK;
+  if (result.matching_count > 0) {
     cli_render_logf(
         "[STT02-013] Looking at top %d cards, found %d valid card(s) "
         "(<=2 cost water type)",
-        count, valid_count);
+        result.revealed_count, result.matching_count);
   } else {
-    // No valid cards to pick - go directly to bottom deck phase
-    ctx->runtime.phase = ABILITY_PHASE_BOTTOM_DECK;
     cli_render_logf("[STT02-013] Looking at top %d cards, no valid cards "
                     "found - bottom decking",
-                    count);
+                    result.revealed_count);
   }
-
-  ecs_singleton_modified(world, AbilityContext);
 }
 
 // Validate selection target - must be <=2 cost AND water element
@@ -110,38 +92,15 @@ bool stt02_013_validate_selection_target(ecs_world_t *world, ecs_entity_t card,
 // ACT_SELECT_TO_ALLEY moves the card to alley, but ACT_SELECT_FROM_SELECTION
 // only stores it in selection.picked_cards - we need to move it to hand here
 void stt02_013_on_selection_complete(ecs_world_t *world, AbilityContext *ctx) {
-  const GameState *gs = ecs_singleton_get(world, GameState);
-  uint8_t player_num = get_player_number(world, ctx->runtime.owner);
-  ecs_entity_t selection_zone = gs->zones[player_num].selection;
-
-  // Move any picked cards to hand if still in selection zone
-  // (ACT_SELECT_TO_ALLEY already moved to alley, so skip those)
-  for (int i = 0;
-       i < ctx->selection.picked_count && i < MAX_ABILITY_SELECTION; i++) {
-    ecs_entity_t picked = ctx->selection.picked_cards[i];
-    if (picked != 0) {
-      ecs_entity_t parent = ecs_get_target(world, picked, EcsChildOf, 0);
-      if (parent == selection_zone) {
-        move_selection_to_hand(world, picked);
-        cli_render_logf("[STT02-013] Added card to hand");
-      }
-    }
+  if (azk_move_picked_selection_cards_to_hand_if_still_in_selection(world,
+                                                                     ctx) > 0) {
+    cli_render_logf("[STT02-013] Added card to hand");
   }
 
-  // Count remaining cards to bottom deck
-  int remaining = 0;
-  for (int i = 0; i < ctx->selection.count; i++) {
-    if (ctx->selection.cards[i] != 0) {
-      remaining++;
-    }
-  }
-
+  const uint8_t remaining = azk_begin_bottom_deck_for_remaining_selection(ctx);
   if (remaining > 0) {
-    ctx->runtime.phase = ABILITY_PHASE_BOTTOM_DECK;
     cli_render_logf("[STT02-013] %d cards remaining to bottom deck", remaining);
   } else {
     cli_render_logf("[STT02-013] Ability complete");
   }
-
-  ecs_singleton_modified(world, AbilityContext);
 }

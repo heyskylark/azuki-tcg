@@ -3,6 +3,8 @@
 #include "abilities/core/ability_context.h"
 #include "abilities/core/ability_flow.h"
 #include "abilities/core/ability_runtime.h"
+#include "abilities/selection/ability_selection.h"
+#include "abilities/selection/ability_selection_helpers.h"
 #include "abilities/ability_registry.h"
 #include "abilities/targeting/ability_targeting.h"
 #include "components/abilities.h"
@@ -10,7 +12,6 @@
 #include "generated/card_defs.h"
 #include "utils/card_utils.h"
 #include "utils/cli_rendering_util.h"
-#include "utils/deck_utils.h"
 #include "utils/game_log_util.h"
 #include "utils/player_util.h"
 #include "utils/weapon_util.h"
@@ -18,10 +19,6 @@
 
 // Forward declaration of timing tag constant
 #define TIMING_TAG_ON_PLAY_FWD 0
-
-static uint8_t ability_selection_remaining_count(const AbilityContext *ctx) {
-  return azk_count_remaining_selection_cards(ctx);
-}
 
 bool azk_trigger_on_play_ability(ecs_world_t *world, ecs_entity_t card,
                                  ecs_entity_t owner) {
@@ -381,38 +378,15 @@ bool azk_process_selection_pick(ecs_world_t *world, int selection_index) {
     return false;
   }
 
-  // Store hand-bound selection picks separately from effect targets.
-  if (ctx->selection.picked_count < MAX_ABILITY_SELECTION) {
-    ctx->selection.picked_cards[ctx->selection.picked_count] = target;
-  }
-  ctx->selection.picked_count++;
-
-  // Mark this slot as picked by setting to 0
-  ctx->selection.cards[selection_index] = 0;
+  azk_record_selection_pick(ctx, selection_index, target);
 
   cli_render_logf("[Ability] Picked selection %d (%d/%d)", selection_index,
                   ctx->selection.picked_count, ctx->selection.pick_max);
 
   // Check if we've picked enough
   if (ctx->selection.picked_count >= ctx->selection.pick_max) {
-    // Call on_selection_complete callback
-    if (def->on_selection_complete) {
-      def->on_selection_complete(world, ctx);
-      cli_render_logf("[Ability] Called on_selection_complete callback");
-    }
-
-    // After selection complete, should be in BOTTOM_DECK or done
-    if (ctx->runtime.phase != ABILITY_PHASE_BOTTOM_DECK &&
-        ctx->runtime.phase != ABILITY_PHASE_NONE) {
-      // Move to bottom deck phase if there are remaining cards
-      uint8_t remaining = ability_selection_remaining_count(ctx);
-      if (remaining > 0) {
-        ctx->runtime.phase = ABILITY_PHASE_BOTTOM_DECK;
-      } else {
-        azk_clear_ability_context(world);
-        return true;
-      }
-    }
+    return azk_finish_selection_resolution(
+        world, ctx, def, AZK_SELECTION_COMPLETION_ALLOW_BOTTOM_DECK);
   }
 
   ecs_singleton_modified(world, AbilityContext);
@@ -539,35 +513,12 @@ bool azk_process_selection_to_alley(ecs_world_t *world, int selection_index,
 
   cli_render_logf("[Ability] Selected card to alley slot %d", alley_slot_index);
 
-  // Preserve pick index progression while keeping hand-bound picks separate.
-  if (ctx->selection.picked_count < MAX_ABILITY_SELECTION) {
-    ctx->selection.picked_cards[ctx->selection.picked_count] = 0;
-  }
-  ctx->selection.picked_count++;
-
-  // Mark this slot as picked by setting to 0
-  ctx->selection.cards[selection_index] = 0;
+  azk_record_selection_pick(ctx, selection_index, 0);
 
   // Check if we've picked enough
   if (ctx->selection.picked_count >= ctx->selection.pick_max) {
-    // Call on_selection_complete callback
-    if (def->on_selection_complete) {
-      def->on_selection_complete(world, ctx);
-      cli_render_logf("[Ability] Called on_selection_complete callback");
-    }
-
-    // After selection complete, should be in BOTTOM_DECK or done
-    if (ctx->runtime.phase != ABILITY_PHASE_BOTTOM_DECK &&
-        ctx->runtime.phase != ABILITY_PHASE_NONE) {
-      // Move to bottom deck phase if there are remaining cards
-      uint8_t remaining = ability_selection_remaining_count(ctx);
-      if (remaining > 0) {
-        ctx->runtime.phase = ABILITY_PHASE_BOTTOM_DECK;
-      } else {
-        azk_clear_ability_context(world);
-        return true;
-      }
-    }
+    return azk_finish_selection_resolution(
+        world, ctx, def, AZK_SELECTION_COMPLETION_ALLOW_BOTTOM_DECK);
   }
 
   ecs_singleton_modified(world, AbilityContext);
@@ -682,27 +633,12 @@ bool azk_process_selection_to_equip(ecs_world_t *world, int selection_index,
   azk_trigger_on_play_ability(world, weapon, ctx->runtime.owner);
   azk_trigger_when_equipped_ability(world, weapon, ctx->runtime.owner);
 
-  // Mark this slot as picked by setting to 0
-  ctx->selection.cards[selection_index] = 0;
-  if (ctx->selection.picked_count < MAX_ABILITY_SELECTION) {
-    ctx->selection.picked_cards[ctx->selection.picked_count] = 0;
-  }
-  ctx->selection.picked_count++;
+  azk_record_selection_pick(ctx, selection_index, 0);
 
   // Check if we've picked enough
   if (ctx->selection.picked_count >= ctx->selection.pick_max) {
-    // Call on_selection_complete callback
-    if (def->on_selection_complete) {
-      def->on_selection_complete(world, ctx);
-      cli_render_logf("[Ability] Called on_selection_complete callback");
-    }
-
-    // For discard-based selection, no bottom deck phase needed
-    // Just clear the ability context
-    if (ctx->runtime.phase != ABILITY_PHASE_NONE) {
-      azk_clear_ability_context(world);
-      return true;
-    }
+    return azk_finish_selection_resolution(
+        world, ctx, def, AZK_SELECTION_COMPLETION_CLEAR_IF_STILL_ACTIVE);
   }
 
   ecs_singleton_modified(world, AbilityContext);
@@ -732,24 +668,8 @@ bool azk_process_skip_selection(ecs_world_t *world) {
   }
 
   cli_render_logf("[Ability] Skipped selection pick");
-
-  // Call on_selection_complete callback (even with no picks)
-  if (def->on_selection_complete) {
-    def->on_selection_complete(world, ctx);
-    cli_render_logf("[Ability] Called on_selection_complete callback");
-  }
-
-  // Check if there are remaining cards to bottom deck
-  uint8_t remaining = ability_selection_remaining_count(ctx);
-
-  if (remaining > 0) {
-    ctx->runtime.phase = ABILITY_PHASE_BOTTOM_DECK;
-    ecs_singleton_modified(world, AbilityContext);
-  } else {
-    azk_clear_ability_context(world);
-  }
-
-  return true;
+  return azk_finish_selection_resolution(
+      world, ctx, def, AZK_SELECTION_COMPLETION_ALLOW_BOTTOM_DECK);
 }
 
 bool azk_process_bottom_deck(ecs_world_t *world, int selection_index) {
@@ -759,38 +679,7 @@ bool azk_process_bottom_deck(ecs_world_t *world, int selection_index) {
     return false;
   }
 
-  // Validate index is in range
-  if (selection_index < 0 || selection_index >= ctx->selection.count) {
-    cli_render_logf("[Ability] Invalid bottom deck index %d", selection_index);
-    return false;
-  }
-
-  ecs_entity_t card = ctx->selection.cards[selection_index];
-  if (card == 0) {
-    cli_render_logf("[Ability] Selection slot %d already empty",
-                    selection_index);
-    return false;
-  }
-
-  // Move card from selection zone to bottom of deck (with log emission)
-  move_selection_to_deck_bottom(world, ctx->runtime.owner, card);
-
-  // Mark slot as empty
-  ctx->selection.cards[selection_index] = 0;
-
-  cli_render_logf("[Ability] Bottom decked card from slot %d", selection_index);
-
-  // Check if there are remaining cards
-  uint8_t remaining = ability_selection_remaining_count(ctx);
-
-  if (remaining == 0) {
-    cli_render_logf("[Ability] All cards bottom decked, ability complete");
-    azk_clear_ability_context(world);
-  } else {
-    ecs_singleton_modified(world, AbilityContext);
-  }
-
-  return true;
+  return azk_bottom_deck_selection_card(world, ctx, selection_index);
 }
 
 bool azk_process_bottom_deck_all(ecs_world_t *world) {
@@ -800,23 +689,7 @@ bool azk_process_bottom_deck_all(ecs_world_t *world) {
     return false;
   }
 
-  // Bottom deck all remaining cards in order (0, 1, 2, ...)
-  for (int i = 0; i < ctx->selection.count; i++) {
-    ecs_entity_t card = ctx->selection.cards[i];
-    if (card == 0) {
-      continue;
-    }
-
-    // Move card to bottom of deck (with log emission)
-    move_selection_to_deck_bottom(world, ctx->runtime.owner, card);
-
-    ctx->selection.cards[i] = 0;
-  }
-
-  cli_render_logf(
-      "[Ability] Bottom decked all remaining cards, ability complete");
-  azk_clear_ability_context(world);
-  return true;
+  return azk_bottom_deck_all_selection_cards(world, ctx);
 }
 
 bool azk_is_in_ability_phase(ecs_world_t *world) {

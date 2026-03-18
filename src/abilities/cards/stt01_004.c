@@ -1,7 +1,8 @@
 #include "abilities/cards/stt01_004.h"
 
+#include "abilities/cards/common/reveal_selection.h"
+#include "abilities/selection/ability_selection_helpers.h"
 #include "components/components.h"
-#include "constants/game.h"
 #include "generated/card_defs.h"
 #include "utils/card_utils.h"
 #include "utils/cli_rendering_util.h"
@@ -11,6 +12,12 @@
 // STT01-004: "On Play; You may discard a weapon card: look at the top 5 cards
 // of your deck, reveal up to 1 weapon card and add it to your hand, then
 // bottom deck the rest in any order"
+
+static bool is_weapon_selection_card(ecs_world_t *world, ecs_entity_t card,
+                                     const void *user_ctx) {
+  (void)user_ctx;
+  return is_weapon_card(world, card);
+}
 
 // Validate if ability can be activated
 // Returns true if player has at least one weapon card in hand
@@ -65,47 +72,22 @@ void stt01_004_apply_costs(ecs_world_t *world, const AbilityContext *ctx) {
 
 // Called after cost is paid: move top 5 cards from deck to selection zone
 void stt01_004_on_cost_paid(ecs_world_t *world, AbilityContext *ctx) {
-  // Look at top 5 cards
-  ecs_entity_t cards[MAX_SELECTION_ZONE_SIZE];
-  int count = look_at_top_n_cards(world, ctx->runtime.owner, 5, cards);
+  const AbilityRevealSelectionResult result = azk_setup_reveal_top_cards_selection(
+      world, ctx, 5, 1, is_weapon_selection_card, NULL);
 
-  if (count == 0) {
+  if (result.revealed_count == 0) {
     cli_render_logf("[STT01-004] No cards in deck to look at");
-    // Skip directly to done - no cards to process
     return;
   }
 
-  // Store cards in selection context
-  ctx->selection.count = count;
-  for (int i = 0; i < count; i++) {
-    ctx->selection.cards[i] = cards[i];
-  }
-
-  // Set up selection pick phase - "up to 1" weapon
-  ctx->selection.pick_max = 1;
-  ctx->selection.picked_count = 0;
-
-  // Count how many weapons are in the selection
-  int weapon_count = 0;
-  for (int i = 0; i < count; i++) {
-    if (is_weapon_card(world, cards[i])) {
-      weapon_count++;
-    }
-  }
-
-  if (weapon_count > 0) {
-    ctx->runtime.phase = ABILITY_PHASE_SELECTION_PICK;
+  if (result.matching_count > 0) {
     cli_render_logf("[STT01-004] Looking at top %d cards, found %d weapon(s)",
-                    count, weapon_count);
+                    result.revealed_count, result.matching_count);
   } else {
-    // No weapons to pick - go directly to bottom deck phase
-    ctx->runtime.phase = ABILITY_PHASE_BOTTOM_DECK;
     cli_render_logf("[STT01-004] Looking at top %d cards, no weapons found - "
                     "bottom decking",
-                    count);
+                    result.revealed_count);
   }
-
-  ecs_singleton_modified(world, AbilityContext);
 }
 
 // Validate selection target - must be a weapon card
@@ -125,30 +107,14 @@ bool stt01_004_validate_selection_target(ecs_world_t *world, ecs_entity_t card,
 
 // Called after selection pick is complete: move picked weapon to hand
 void stt01_004_on_selection_complete(ecs_world_t *world, AbilityContext *ctx) {
-  // Move any picked weapons to hand
-  for (int i = 0;
-       i < ctx->selection.picked_count && i < MAX_ABILITY_SELECTION; i++) {
-    ecs_entity_t picked = ctx->selection.picked_cards[i];
-    if (picked != 0) {
-      move_selection_to_hand(world, picked);
-      cli_render_logf("[STT01-004] Added weapon card to hand");
-    }
+  if (azk_move_picked_selection_cards_to_hand(world, ctx) > 0) {
+    cli_render_logf("[STT01-004] Added weapon card to hand");
   }
 
-  // Count remaining cards to bottom deck
-  int remaining = 0;
-  for (int i = 0; i < ctx->selection.count; i++) {
-    if (ctx->selection.cards[i] != 0) {
-      remaining++;
-    }
-  }
-
+  const uint8_t remaining = azk_begin_bottom_deck_for_remaining_selection(ctx);
   if (remaining > 0) {
-    ctx->runtime.phase = ABILITY_PHASE_BOTTOM_DECK;
     cli_render_logf("[STT01-004] %d cards remaining to bottom deck", remaining);
   } else {
     cli_render_logf("[STT01-004] Ability complete");
   }
-
-  ecs_singleton_modified(world, AbilityContext);
 }
