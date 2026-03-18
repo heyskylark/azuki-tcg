@@ -39,13 +39,13 @@ bool stt02_010_validate(ecs_world_t *world, ecs_entity_t card,
 
 void stt02_010_apply_costs(ecs_world_t *world, const AbilityContext *ctx) {
   // Tap this card
-  tap_card(world, ctx->source_card);
+  tap_card(world, ctx->runtime.source_card);
   cli_render_logf("[STT02-010] Tapped card as cost");
 }
 
 void stt02_010_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
   // Draw 1 card
-  if (draw_cards_with_deckout_check(world, ctx->owner, 1, NULL)) {
+  if (draw_cards_with_deckout_check(world, ctx->runtime.owner, 1, NULL)) {
     cli_render_logf("[STT02-010] Drew 1 card");
   } else {
     cli_render_logf("[STT02-010] Could not draw (deck empty - deckout)");

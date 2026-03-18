@@ -37,13 +37,13 @@ bool stt01_014_validate_effect_target(ecs_world_t *world, ecs_entity_t card,
 }
 
 void stt01_014_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
-  // For "up to" effects, player can skip target selection (effect_filled == 0)
-  if (ctx->effect_filled == 0) {
+  // For "up to" effects, player can skip target selection (selected_count == 0)
+  if (ctx->effect.selected_count == 0) {
     cli_render_logf("[STT01-014] Skipped damage (chose not to damage leader)");
     return;
   }
 
-  ecs_entity_t target = ctx->effect_targets[0];
+  ecs_entity_t target = ctx->effect.entities[0];
 
   if (target == 0) {
     cli_render_logf("[STT01-014] No target for damage");

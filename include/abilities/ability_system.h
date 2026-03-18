@@ -68,9 +68,8 @@ bool azk_process_selection_to_alley(ecs_world_t *world, int selection_index,
 bool azk_process_selection_to_equip(ecs_world_t *world, int selection_index,
                                     int entity_index);
 
-// Skip selection pick (ACT_NOOP during selection pick when selection_pick_max >
-// 0 allows) For "up to" effects where the player can choose to not select any
-// cards Returns true if skipping is valid, false otherwise
+// Skip selection pick (ACT_NOOP during an optional selection flow)
+// Returns true if skipping is valid, false otherwise
 bool azk_process_skip_selection(ecs_world_t *world);
 
 // Process bottom deck action (ACT_BOTTOM_DECK_CARD)

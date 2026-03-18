@@ -75,7 +75,7 @@ bool stt02_015_validate_effect_target(ecs_world_t* world, ecs_entity_t card, ecs
 
 void stt02_015_apply_effects(ecs_world_t* world, const AbilityContext* ctx) {
     // Return the target entity to its owner's hand
-    ecs_entity_t target = ctx->effect_targets[0];
+    ecs_entity_t target = ctx->effect.entities[0];
 
     if (target == 0) {
         cli_render_logf("[STT02-015] No target to bounce");

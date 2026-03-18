@@ -314,8 +314,9 @@ static void get_selection_from_ability_context(ecs_world_t *world,
                                                const AbilityContext *ctx,
                                                CardObservationData *observation_data,
                                                uint8_t *out_count) {
-  for (int i = 0; i < ctx->selection_count && i < MAX_SELECTION_ZONE_SIZE; i++) {
-    ecs_entity_t card = ctx->selection_cards[i];
+  for (int i = 0;
+       i < ctx->selection.count && i < MAX_SELECTION_ZONE_SIZE; i++) {
+    ecs_entity_t card = ctx->selection.cards[i];
     if (card != 0) {
       observation_data[i] = get_card_observation(world, card, (uint8_t)i);
       observation_data[i].zone_index = (uint8_t)i;  // Preserve original index
@@ -326,7 +327,7 @@ static void get_selection_from_ability_context(ecs_world_t *world,
     }
   }
   // Preserve original selection_count so clients can align action indices
-  *out_count = ctx->selection_count;
+  *out_count = ctx->selection.count;
 }
 
 static bool player_has_ready_ikz_token(ecs_world_t *world,
@@ -382,9 +383,9 @@ ObservationData create_observation_data(ecs_world_t *world,
   // If so, read from AbilityContext to preserve original indices (with gaps for picked cards)
   const AbilityContext *ctx = ecs_singleton_get(world, AbilityContext);
   bool use_ability_context_selection =
-      ctx && ctx->selection_count > 0 &&
-      (ctx->phase == ABILITY_PHASE_SELECTION_PICK ||
-       ctx->phase == ABILITY_PHASE_BOTTOM_DECK);
+      ctx && ctx->selection.count > 0 &&
+      (ctx->runtime.phase == ABILITY_PHASE_SELECTION_PICK ||
+       ctx->runtime.phase == ABILITY_PHASE_BOTTOM_DECK);
 
   if (use_ability_context_selection) {
     get_selection_from_ability_context(world, ctx, my_observation_data.selection,

@@ -21,11 +21,15 @@ bool stt02_002_validate(ecs_world_t *world, ecs_entity_t card,
 
 void stt02_002_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
   const GameState *gs = ecs_singleton_get(world, GameState);
-  uint8_t player_num = get_player_number(world, ctx->owner);
+  uint8_t player_num = get_player_number(world, ctx->runtime.owner);
   ecs_entity_t ikz_area = gs->zones[player_num].ikz_area;
 
-  // Get gate points from the portaled card (stored in ctx->effect_targets[0])
-  ecs_entity_t portaled_card = ctx->effect_targets[0];
+  if (ctx->scratch.kind != ABILITY_SCRATCH_GATE_PORTAL) {
+    cli_render_logf("[GatePortal] Hydromancy missing gate portal scratch state");
+    return;
+  }
+
+  ecs_entity_t portaled_card = ctx->scratch.data.gate_portal.portaled_card;
   const GatePoints *gp = ecs_get(world, portaled_card, GatePoints);
 
   if (gp && gp->gate_points > 0) {

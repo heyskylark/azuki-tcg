@@ -110,7 +110,7 @@ bool stt02_009_validate_effect_target(ecs_world_t *world, ecs_entity_t card,
 
 void stt02_009_apply_costs(ecs_world_t *world, const AbilityContext *ctx) {
   // Return the cost target to owner's hand
-  ecs_entity_t target = ctx->cost_targets[0];
+  ecs_entity_t target = ctx->cost.entities[0];
 
   if (target == 0) {
     cli_render_logf("[STT02-009] No cost target to bounce");
@@ -124,7 +124,7 @@ void stt02_009_apply_costs(ecs_world_t *world, const AbilityContext *ctx) {
 void stt02_009_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
   // Return the effect target to its owner's hand (if any - this is an "up to 1"
   // effect)
-  ecs_entity_t target = ctx->effect_targets[0];
+  ecs_entity_t target = ctx->effect.entities[0];
 
   if (target == 0) {
     cli_render_logf("[STT02-009] No effect target selected (skipped)");

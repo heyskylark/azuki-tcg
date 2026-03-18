@@ -552,13 +552,13 @@ static void get_selection_from_ability_context(
     observation_data[i] = empty_board_card_observation((uint8_t)i);
   }
 
-  int selection_count = ctx->selection_count;
+  int selection_count = ctx->selection.count;
   if (selection_count > MAX_SELECTION_ZONE_SIZE) {
     selection_count = MAX_SELECTION_ZONE_SIZE;
   }
 
   for (int i = 0; i < selection_count; ++i) {
-    ecs_entity_t card = ctx->selection_cards[i];
+    ecs_entity_t card = ctx->selection.cards[i];
     if (card != 0) {
       observation_data[i] =
           get_board_card_observation(world, card, (uint8_t)i, false);
@@ -593,8 +593,8 @@ static uint8_t get_pending_confirmation_count(ecs_world_t *world,
   ecs_entity_t active_player = state->players[state->active_player_index];
 
   const AbilityContext *ctx = ecs_singleton_get(world, AbilityContext);
-  if (ctx != NULL && ctx->phase == ABILITY_PHASE_CONFIRMATION &&
-      ctx->is_optional && ctx->owner == active_player) {
+  if (ctx != NULL && ctx->runtime.phase == ABILITY_PHASE_CONFIRMATION &&
+      ctx->runtime.is_optional && ctx->runtime.owner == active_player) {
     pending_count++;
   }
 
@@ -636,23 +636,25 @@ static TrainingAbilityContextObservationData build_ability_context_observation(
   }
 
   const AbilityContext *ctx = ecs_singleton_get(world, AbilityContext);
-  if (ctx == NULL || ctx->phase == ABILITY_PHASE_NONE) {
+  if (ctx == NULL || ctx->runtime.phase == ABILITY_PHASE_NONE) {
     return observation;
   }
 
-  observation.phase = ctx->phase;
-  observation.selection_count = ctx->selection_count <= MAX_SELECTION_ZONE_SIZE
-                                    ? ctx->selection_count
-                                    : MAX_SELECTION_ZONE_SIZE;
-  observation.selection_picked = ctx->selection_picked <= MAX_SELECTION_ZONE_SIZE
-                                     ? ctx->selection_picked
-                                     : MAX_SELECTION_ZONE_SIZE;
+  observation.phase = ctx->runtime.phase;
+  observation.selection_count =
+      ctx->selection.count <= MAX_SELECTION_ZONE_SIZE
+          ? ctx->selection.count
+          : MAX_SELECTION_ZONE_SIZE;
+  observation.selection_picked =
+      ctx->selection.picked_count <= MAX_SELECTION_ZONE_SIZE
+          ? ctx->selection.picked_count
+          : MAX_SELECTION_ZONE_SIZE;
   observation.selection_pick_max =
-      ctx->selection_pick_max <= MAX_SELECTION_ZONE_SIZE
-          ? ctx->selection_pick_max
+      ctx->selection.pick_max <= MAX_SELECTION_ZONE_SIZE
+          ? ctx->selection.pick_max
           : MAX_SELECTION_ZONE_SIZE;
 
-  const CardId *card_id = ecs_get(world, ctx->source_card, CardId);
+  const CardId *card_id = ecs_get(world, ctx->runtime.source_card, CardId);
   if (card_id == NULL) {
     return observation;
   }
@@ -730,9 +732,9 @@ static TrainingMyObservationData build_training_my_observation(
   }
 
   const AbilityContext *ctx = ecs_singleton_get(world, AbilityContext);
-  bool use_ctx_selection = ctx != NULL && ctx->selection_count > 0 &&
-                           (ctx->phase == ABILITY_PHASE_SELECTION_PICK ||
-                            ctx->phase == ABILITY_PHASE_BOTTOM_DECK);
+  bool use_ctx_selection = ctx != NULL && ctx->selection.count > 0 &&
+                           (ctx->runtime.phase == ABILITY_PHASE_SELECTION_PICK ||
+                            ctx->runtime.phase == ABILITY_PHASE_BOTTOM_DECK);
   section_start_ns = profile_enabled ? obs_now_ns() : 0;
   if (use_ctx_selection) {
     get_selection_from_ability_context(world, ctx, my_observation.selection,
@@ -829,9 +831,9 @@ TrainingObservationData create_training_observation_data(ecs_world_t *world,
       world, my_zones->discard, my_observation.discard, MAX_DECK_SIZE);
 
   const AbilityContext *ctx = ecs_singleton_get(world, AbilityContext);
-  bool use_ctx_selection = ctx != NULL && ctx->selection_count > 0 &&
-                           (ctx->phase == ABILITY_PHASE_SELECTION_PICK ||
-                            ctx->phase == ABILITY_PHASE_BOTTOM_DECK);
+  bool use_ctx_selection = ctx != NULL && ctx->selection.count > 0 &&
+                           (ctx->runtime.phase == ABILITY_PHASE_SELECTION_PICK ||
+                            ctx->runtime.phase == ABILITY_PHASE_BOTTOM_DECK);
   if (use_ctx_selection) {
     get_selection_from_ability_context(world, ctx, my_observation.selection,
                                        &my_observation.selection_count);

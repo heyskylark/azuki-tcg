@@ -60,12 +60,12 @@ bool stt02_011_validate_effect_target(ecs_world_t *world, ecs_entity_t card,
 
 void stt02_011_apply_costs(ecs_world_t *world, const AbilityContext *ctx) {
   // Sacrifice this card (move to discard)
-  discard_card(world, ctx->source_card);
+  discard_card(world, ctx->runtime.source_card);
   cli_render_logf("[STT02-011] Sacrificed card");
 }
 
 void stt02_011_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
-  ecs_entity_t target = ctx->effect_targets[0];
+  ecs_entity_t target = ctx->effect.entities[0];
 
   if (target == 0) {
     cli_render_logf("[STT02-011] No target to apply EffectImmune");

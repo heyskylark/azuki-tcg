@@ -30,7 +30,7 @@ bool stt01_013_validate(ecs_world_t *world, ecs_entity_t card,
 
 void stt01_013_apply_costs(ecs_world_t *world, const AbilityContext *ctx) {
   const GameState *gs = ecs_singleton_get(world, GameState);
-  uint8_t player_num = get_player_number(world, ctx->owner);
+  uint8_t player_num = get_player_number(world, ctx->runtime.owner);
   ecs_entity_t leader =
       find_leader_card_in_zone(world, gs->zones[player_num].leader);
 
@@ -48,21 +48,23 @@ void stt01_013_apply_costs(ecs_world_t *world, const AbilityContext *ctx) {
 
 void stt01_013_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
   // Find the attached target (weapon is child of target entity)
-  ecs_entity_t target = ecs_get_target(world, ctx->source_card, EcsChildOf, 0);
+  ecs_entity_t target =
+      ecs_get_target(world, ctx->runtime.source_card, EcsChildOf, 0);
   ecs_assert(target != 0, ECS_INVALID_PARAMETER,
              "Weapon is not attached to any entity");
 
   // Update weapon's CurStats.cur_atk (+1)
-  CurStats *weapon_stats = ecs_get_mut(world, ctx->source_card, CurStats);
+  CurStats *weapon_stats =
+      ecs_get_mut(world, ctx->runtime.source_card, CurStats);
   ecs_assert(weapon_stats != NULL, ECS_INVALID_PARAMETER,
              "CurStats not found for weapon");
 
   weapon_stats->cur_atk += 1;
-  ecs_modified(world, ctx->source_card, CurStats);
+  ecs_modified(world, ctx->runtime.source_card, CurStats);
 
   // Log weapon attack increase
-  azk_log_card_stat_change(world, ctx->source_card, 1, 0, weapon_stats->cur_atk,
-                           weapon_stats->cur_hp);
+  azk_log_card_stat_change(world, ctx->runtime.source_card, 1, 0,
+                           weapon_stats->cur_atk, weapon_stats->cur_hp);
 
   // Update target entity's CurStats.cur_atk (+1)
   CurStats *target_stats = ecs_get_mut(world, target, CurStats);

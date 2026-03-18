@@ -88,17 +88,47 @@ typedef struct {
   bool is_optional;
   bool restores_active_player;
   int8_t saved_active_player_index;
-  uint8_t cost_min, effect_min;
-  uint8_t cost_expected, effect_expected;
-  uint8_t cost_filled, effect_filled;
-  ecs_entity_t cost_targets[MAX_ABILITY_SELECTION];
-  ecs_entity_t effect_targets[MAX_ABILITY_SELECTION];
+} AbilityRuntimeState;
 
-  // Selection zone tracking for reveal/examine effects
-  uint8_t selection_count;    // Cards currently in selection zone
-  uint8_t selection_picked;   // Cards picked from selection zone
-  uint8_t selection_pick_max; // Max cards to pick (e.g., 1 for "up to 1")
-  ecs_entity_t selection_cards[MAX_SELECTION_ZONE_SIZE];
+typedef struct {
+  uint8_t min_required;
+  uint8_t max_allowed;
+  uint8_t selected_count;
+  ecs_entity_t entities[MAX_ABILITY_SELECTION];
+} AbilityTargetState;
+
+typedef struct {
+  uint8_t count;
+  uint8_t picked_count;
+  uint8_t pick_max;
+  ecs_entity_t cards[MAX_SELECTION_ZONE_SIZE];
+  ecs_entity_t picked_cards[MAX_ABILITY_SELECTION];
+} AbilitySelectionState;
+
+typedef enum {
+  ABILITY_SCRATCH_NONE = 0,
+  ABILITY_SCRATCH_GATE_PORTAL = 1,
+  ABILITY_SCRATCH_DISCARD_SELECTION = 2,
+} AbilityScratchKind;
+
+typedef struct {
+  AbilityScratchKind kind;
+  union {
+    struct {
+      ecs_entity_t portaled_card;
+    } gate_portal;
+    struct {
+      uint8_t max_cost;
+    } discard_selection;
+  } data;
+} AbilityScratchState;
+
+typedef struct {
+  AbilityRuntimeState runtime;
+  AbilityTargetState cost;
+  AbilityTargetState effect;
+  AbilitySelectionState selection;
+  AbilityScratchState scratch;
 } AbilityContext;
 
 typedef struct {

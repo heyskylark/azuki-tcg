@@ -19,6 +19,10 @@
 // Forward declaration of timing tag constant
 #define TIMING_TAG_ON_PLAY_FWD 0
 
+static uint8_t ability_selection_remaining_count(const AbilityContext *ctx) {
+  return azk_count_remaining_selection_cards(ctx);
+}
+
 bool azk_trigger_on_play_ability(ecs_world_t *world, ecs_entity_t card,
                                  ecs_entity_t owner) {
   // Get card ID
@@ -77,11 +81,11 @@ bool azk_trigger_when_equipped_ability(ecs_world_t *world, ecs_entity_t card,
 bool azk_process_ability_confirmation(ecs_world_t *world) {
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
 
-  if (ctx->phase != ABILITY_PHASE_CONFIRMATION) {
+  if (ctx->runtime.phase != ABILITY_PHASE_CONFIRMATION) {
     return false;
   }
 
-  const CardId *card_id = ecs_get(world, ctx->source_card, CardId);
+  const CardId *card_id = ecs_get(world, ctx->runtime.source_card, CardId);
   if (!card_id) {
     azk_clear_ability_context(world);
     return false;
@@ -95,7 +99,8 @@ bool azk_process_ability_confirmation(ecs_world_t *world) {
 
   if (def->cost_req.min > 0) {
     uint8_t available_cost_targets = azk_count_ability_target_choices(
-        world, def, ABILITY_TARGET_SCOPE_COST, ctx->source_card, ctx->owner);
+        world, def, ABILITY_TARGET_SCOPE_COST, ctx->runtime.source_card,
+        ctx->runtime.owner);
     if (available_cost_targets < def->cost_req.min) {
       cli_render_logf("[Ability] Confirmed ability has no valid cost targets "
                       "(available=%u, required_min=%u), skipping",
@@ -104,8 +109,8 @@ bool azk_process_ability_confirmation(ecs_world_t *world) {
       azk_clear_ability_context(world);
       return true;
     }
-    if (ctx->cost_expected > available_cost_targets) {
-      ctx->cost_expected = available_cost_targets;
+    if (ctx->cost.max_allowed > available_cost_targets) {
+      ctx->cost.max_allowed = available_cost_targets;
     }
   }
 
@@ -120,7 +125,7 @@ bool azk_process_ability_confirmation(ecs_world_t *world) {
   }
 
   azk_log_ability_initial_phase_entry(
-      ctx->phase, "[Ability] Confirmed, selecting cost targets",
+      ctx->runtime.phase, "[Ability] Confirmed, selecting cost targets",
       "[Ability] Confirmed, selecting effect targets",
       "[Ability] Confirmed, started selection flow");
 
@@ -131,11 +136,11 @@ bool azk_process_ability_confirmation(ecs_world_t *world) {
 bool azk_process_ability_decline(ecs_world_t *world) {
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
 
-  if (ctx->phase != ABILITY_PHASE_CONFIRMATION) {
+  if (ctx->runtime.phase != ABILITY_PHASE_CONFIRMATION) {
     return false;
   }
 
-  if (!ctx->is_optional) {
+  if (!ctx->runtime.is_optional) {
     // Can't decline non-optional abilities
     return false;
   }
@@ -148,11 +153,11 @@ bool azk_process_ability_decline(ecs_world_t *world) {
 bool azk_process_cost_selection(ecs_world_t *world, int target_index) {
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
 
-  if (ctx->phase != ABILITY_PHASE_COST_SELECTION) {
+  if (ctx->runtime.phase != ABILITY_PHASE_COST_SELECTION) {
     return false;
   }
 
-  const CardId *card_id = ecs_get(world, ctx->source_card, CardId);
+  const CardId *card_id = ecs_get(world, ctx->runtime.source_card, CardId);
   if (!card_id) {
     return false;
   }
@@ -163,7 +168,7 @@ bool azk_process_cost_selection(ecs_world_t *world, int target_index) {
   }
 
   ecs_entity_t target = azk_resolve_ability_target_choice_entity(
-      world, def, ABILITY_TARGET_SCOPE_COST, ctx->owner, target_index);
+      world, def, ABILITY_TARGET_SCOPE_COST, ctx->runtime.owner, target_index);
 
   if (target == 0) {
     cli_render_logf("[Ability] Invalid cost target index %d", target_index);
@@ -172,25 +177,26 @@ bool azk_process_cost_selection(ecs_world_t *world, int target_index) {
 
   // Validate the target
   if (def->validate_cost_target &&
-      !def->validate_cost_target(world, ctx->source_card, ctx->owner, target)) {
+      !def->validate_cost_target(world, ctx->runtime.source_card,
+                                 ctx->runtime.owner, target)) {
     cli_render_logf("[Ability] Cost target validation failed");
     return false;
   }
 
   // Add target to context
-  if (ctx->cost_filled >= MAX_ABILITY_SELECTION) {
+  if (ctx->cost.selected_count >= MAX_ABILITY_SELECTION) {
     cli_render_logf("[Ability] Too many cost targets");
     return false;
   }
 
-  ctx->cost_targets[ctx->cost_filled] = target;
-  ctx->cost_filled++;
+  ctx->cost.entities[ctx->cost.selected_count] = target;
+  ctx->cost.selected_count++;
 
   cli_render_logf("[Ability] Added cost target %d (%d/%d)", target_index,
-                  ctx->cost_filled, ctx->cost_expected);
+                  ctx->cost.selected_count, ctx->cost.max_allowed);
 
   // Check if we have enough targets
-  if (ctx->cost_filled >= ctx->cost_expected) {
+  if (ctx->cost.selected_count >= ctx->cost.max_allowed) {
     // Apply costs
     if (def->apply_costs) {
       def->apply_costs(world, ctx);
@@ -203,8 +209,8 @@ bool azk_process_cost_selection(ecs_world_t *world, int target_index) {
       cli_render_logf("[Ability] Called on_cost_paid callback");
       // on_cost_paid may have set up selection phase - check if we should
       // continue
-      if (ctx->phase == ABILITY_PHASE_SELECTION_PICK ||
-          ctx->phase == ABILITY_PHASE_BOTTOM_DECK) {
+      if (ctx->runtime.phase == ABILITY_PHASE_SELECTION_PICK ||
+          ctx->runtime.phase == ABILITY_PHASE_BOTTOM_DECK) {
         ecs_singleton_modified(world, AbilityContext);
         return true;
       }
@@ -213,7 +219,7 @@ bool azk_process_cost_selection(ecs_world_t *world, int target_index) {
     // Move to effect selection or apply effects
     // Use max > 0 (not min > 0) to enter effect selection for "up to" effects
     if (def->effect_req.max > 0) {
-      ctx->phase = ABILITY_PHASE_EFFECT_SELECTION;
+      ctx->runtime.phase = ABILITY_PHASE_EFFECT_SELECTION;
       cli_render_logf("[Ability] Moving to effect selection");
     } else {
       // No effect targets possible - apply effects and finish
@@ -233,11 +239,11 @@ bool azk_process_cost_selection(ecs_world_t *world, int target_index) {
 bool azk_process_effect_selection(ecs_world_t *world, int target_index) {
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
 
-  if (ctx->phase != ABILITY_PHASE_EFFECT_SELECTION) {
+  if (ctx->runtime.phase != ABILITY_PHASE_EFFECT_SELECTION) {
     return false;
   }
 
-  const CardId *card_id = ecs_get(world, ctx->source_card, CardId);
+  const CardId *card_id = ecs_get(world, ctx->runtime.source_card, CardId);
   if (!card_id) {
     return false;
   }
@@ -248,7 +254,8 @@ bool azk_process_effect_selection(ecs_world_t *world, int target_index) {
   }
 
   ecs_entity_t target = azk_resolve_ability_target_choice_entity(
-      world, def, ABILITY_TARGET_SCOPE_EFFECT, ctx->owner, target_index);
+      world, def, ABILITY_TARGET_SCOPE_EFFECT, ctx->runtime.owner,
+      target_index);
 
   if (target == 0) {
     cli_render_logf("[Ability] Invalid effect target index %d", target_index);
@@ -257,26 +264,26 @@ bool azk_process_effect_selection(ecs_world_t *world, int target_index) {
 
   // Validate the target
   if (def->validate_effect_target &&
-      !def->validate_effect_target(world, ctx->source_card, ctx->owner,
-                                   target)) {
+      !def->validate_effect_target(world, ctx->runtime.source_card,
+                                   ctx->runtime.owner, target)) {
     cli_render_logf("[Ability] Effect target validation failed");
     return false;
   }
 
   // Add target to context
-  if (ctx->effect_filled >= MAX_ABILITY_SELECTION) {
+  if (ctx->effect.selected_count >= MAX_ABILITY_SELECTION) {
     cli_render_logf("[Ability] Too many effect targets");
     return false;
   }
 
-  ctx->effect_targets[ctx->effect_filled] = target;
-  ctx->effect_filled++;
+  ctx->effect.entities[ctx->effect.selected_count] = target;
+  ctx->effect.selected_count++;
 
   cli_render_logf("[Ability] Added effect target %d (%d/%d)", target_index,
-                  ctx->effect_filled, ctx->effect_expected);
+                  ctx->effect.selected_count, ctx->effect.max_allowed);
 
   // Check if we have enough targets
-  if (ctx->effect_filled >= ctx->effect_expected) {
+  if (ctx->effect.selected_count >= ctx->effect.max_allowed) {
     // Apply effects and finish
     if (def->apply_effects) {
       def->apply_effects(world, ctx);
@@ -293,18 +300,18 @@ bool azk_process_effect_selection(ecs_world_t *world, int target_index) {
 bool azk_process_effect_skip(ecs_world_t *world) {
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
 
-  if (ctx->phase != ABILITY_PHASE_EFFECT_SELECTION) {
+  if (ctx->runtime.phase != ABILITY_PHASE_EFFECT_SELECTION) {
     return false;
   }
 
   // Can only skip if minimum is 0 ("up to" effects)
-  if (ctx->effect_min > 0) {
+  if (ctx->effect.min_required > 0) {
     cli_render_logf(
         "[Ability] Cannot skip effect selection - minimum targets required");
     return false;
   }
 
-  const CardId *card_id = ecs_get(world, ctx->source_card, CardId);
+  const CardId *card_id = ecs_get(world, ctx->runtime.source_card, CardId);
   if (!card_id) {
     azk_clear_ability_context(world);
     return false;
@@ -316,7 +323,7 @@ bool azk_process_effect_skip(ecs_world_t *world) {
     return false;
   }
 
-  // Apply effects with no targets (effect_filled == 0)
+  // Apply effects with no targets (effect.selected_count == 0)
   if (def->apply_effects) {
     def->apply_effects(world, ctx);
     cli_render_logf("[Ability] Applied effects (skipped target selection)");
@@ -329,24 +336,24 @@ bool azk_process_effect_skip(ecs_world_t *world) {
 bool azk_process_selection_pick(ecs_world_t *world, int selection_index) {
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
 
-  if (ctx->phase != ABILITY_PHASE_SELECTION_PICK) {
+  if (ctx->runtime.phase != ABILITY_PHASE_SELECTION_PICK) {
     return false;
   }
 
   // Validate index is in range
-  if (selection_index < 0 || selection_index >= ctx->selection_count) {
+  if (selection_index < 0 || selection_index >= ctx->selection.count) {
     cli_render_logf("[Ability] Invalid selection index %d (count=%d)",
-                    selection_index, ctx->selection_count);
+                    selection_index, ctx->selection.count);
     return false;
   }
 
-  ecs_entity_t target = ctx->selection_cards[selection_index];
+  ecs_entity_t target = ctx->selection.cards[selection_index];
   if (target == 0) {
     cli_render_logf("[Ability] Selection slot %d is empty", selection_index);
     return false;
   }
 
-  const CardId *card_id = ecs_get(world, ctx->source_card, CardId);
+  const CardId *card_id = ecs_get(world, ctx->runtime.source_card, CardId);
   if (!card_id) {
     azk_clear_ability_context(world);
     return false;
@@ -368,26 +375,26 @@ bool azk_process_selection_pick(ecs_world_t *world, int selection_index) {
 
   // Validate the selection target if validation function exists
   if (def->validate_selection_target &&
-      !def->validate_selection_target(world, ctx->source_card, ctx->owner,
-                                      target)) {
+      !def->validate_selection_target(world, ctx->runtime.source_card,
+                                      ctx->runtime.owner, target)) {
     cli_render_logf("[Ability] Selection target validation failed");
     return false;
   }
 
-  // Store the picked card in effect_targets (reusing the array)
-  if (ctx->selection_picked < MAX_ABILITY_SELECTION) {
-    ctx->effect_targets[ctx->selection_picked] = target;
+  // Store hand-bound selection picks separately from effect targets.
+  if (ctx->selection.picked_count < MAX_ABILITY_SELECTION) {
+    ctx->selection.picked_cards[ctx->selection.picked_count] = target;
   }
-  ctx->selection_picked++;
+  ctx->selection.picked_count++;
 
   // Mark this slot as picked by setting to 0
-  ctx->selection_cards[selection_index] = 0;
+  ctx->selection.cards[selection_index] = 0;
 
   cli_render_logf("[Ability] Picked selection %d (%d/%d)", selection_index,
-                  ctx->selection_picked, ctx->selection_pick_max);
+                  ctx->selection.picked_count, ctx->selection.pick_max);
 
   // Check if we've picked enough
-  if (ctx->selection_picked >= ctx->selection_pick_max) {
+  if (ctx->selection.picked_count >= ctx->selection.pick_max) {
     // Call on_selection_complete callback
     if (def->on_selection_complete) {
       def->on_selection_complete(world, ctx);
@@ -395,17 +402,12 @@ bool azk_process_selection_pick(ecs_world_t *world, int selection_index) {
     }
 
     // After selection complete, should be in BOTTOM_DECK or done
-    if (ctx->phase != ABILITY_PHASE_BOTTOM_DECK &&
-        ctx->phase != ABILITY_PHASE_NONE) {
+    if (ctx->runtime.phase != ABILITY_PHASE_BOTTOM_DECK &&
+        ctx->runtime.phase != ABILITY_PHASE_NONE) {
       // Move to bottom deck phase if there are remaining cards
-      int remaining = 0;
-      for (int i = 0; i < ctx->selection_count; i++) {
-        if (ctx->selection_cards[i] != 0) {
-          remaining++;
-        }
-      }
+      uint8_t remaining = ability_selection_remaining_count(ctx);
       if (remaining > 0) {
-        ctx->phase = ABILITY_PHASE_BOTTOM_DECK;
+        ctx->runtime.phase = ABILITY_PHASE_BOTTOM_DECK;
       } else {
         azk_clear_ability_context(world);
         return true;
@@ -421,14 +423,14 @@ bool azk_process_selection_to_alley(ecs_world_t *world, int selection_index,
                                     int alley_slot_index) {
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
 
-  if (ctx->phase != ABILITY_PHASE_SELECTION_PICK) {
+  if (ctx->runtime.phase != ABILITY_PHASE_SELECTION_PICK) {
     return false;
   }
 
   // Validate selection index is in range
-  if (selection_index < 0 || selection_index >= ctx->selection_count) {
+  if (selection_index < 0 || selection_index >= ctx->selection.count) {
     cli_render_logf("[Ability] Invalid selection index %d (count=%d)",
-                    selection_index, ctx->selection_count);
+                    selection_index, ctx->selection.count);
     return false;
   }
 
@@ -438,13 +440,13 @@ bool azk_process_selection_to_alley(ecs_world_t *world, int selection_index,
     return false;
   }
 
-  ecs_entity_t target = ctx->selection_cards[selection_index];
+  ecs_entity_t target = ctx->selection.cards[selection_index];
   if (target == 0) {
     cli_render_logf("[Ability] Selection slot %d is empty", selection_index);
     return false;
   }
 
-  const CardId *card_id = ecs_get(world, ctx->source_card, CardId);
+  const CardId *card_id = ecs_get(world, ctx->runtime.source_card, CardId);
   if (!card_id) {
     azk_clear_ability_context(world);
     return false;
@@ -471,15 +473,15 @@ bool azk_process_selection_to_alley(ecs_world_t *world, int selection_index,
 
   // Validate the selection target if validation function exists
   if (def->validate_selection_target &&
-      !def->validate_selection_target(world, ctx->source_card, ctx->owner,
-                                      target)) {
+      !def->validate_selection_target(world, ctx->runtime.source_card,
+                                      ctx->runtime.owner, target)) {
     cli_render_logf("[Ability] Selection target validation failed");
     return false;
   }
 
   // Get game state and zones
   const GameState *gs = ecs_singleton_get(world, GameState);
-  uint8_t player_num = get_player_number(world, ctx->owner);
+  uint8_t player_num = get_player_number(world, ctx->runtime.owner);
   ecs_entity_t alley = gs->zones[player_num].alley;
   ecs_entity_t selection_zone = gs->zones[player_num].selection;
 
@@ -533,21 +535,21 @@ bool azk_process_selection_to_alley(ecs_world_t *world, int selection_index,
 
   // Queue on-play ability for the played entity (if it has one)
   // Will be processed after current ability completes (including bottom deck)
-  azk_trigger_on_play_ability(world, target, ctx->owner);
+  azk_trigger_on_play_ability(world, target, ctx->runtime.owner);
 
   cli_render_logf("[Ability] Selected card to alley slot %d", alley_slot_index);
 
-  // Don't store in effect_targets - the card is already moved to alley.
-  // Storing it would cause on_selection_complete to incorrectly move it to hand
-  // due to Flecs deferred operations (parent check sees old value).
-  // Just increment the pick count.
-  ctx->selection_picked++;
+  // Preserve pick index progression while keeping hand-bound picks separate.
+  if (ctx->selection.picked_count < MAX_ABILITY_SELECTION) {
+    ctx->selection.picked_cards[ctx->selection.picked_count] = 0;
+  }
+  ctx->selection.picked_count++;
 
   // Mark this slot as picked by setting to 0
-  ctx->selection_cards[selection_index] = 0;
+  ctx->selection.cards[selection_index] = 0;
 
   // Check if we've picked enough
-  if (ctx->selection_picked >= ctx->selection_pick_max) {
+  if (ctx->selection.picked_count >= ctx->selection.pick_max) {
     // Call on_selection_complete callback
     if (def->on_selection_complete) {
       def->on_selection_complete(world, ctx);
@@ -555,17 +557,12 @@ bool azk_process_selection_to_alley(ecs_world_t *world, int selection_index,
     }
 
     // After selection complete, should be in BOTTOM_DECK or done
-    if (ctx->phase != ABILITY_PHASE_BOTTOM_DECK &&
-        ctx->phase != ABILITY_PHASE_NONE) {
+    if (ctx->runtime.phase != ABILITY_PHASE_BOTTOM_DECK &&
+        ctx->runtime.phase != ABILITY_PHASE_NONE) {
       // Move to bottom deck phase if there are remaining cards
-      int remaining = 0;
-      for (int i = 0; i < ctx->selection_count; i++) {
-        if (ctx->selection_cards[i] != 0) {
-          remaining++;
-        }
-      }
+      uint8_t remaining = ability_selection_remaining_count(ctx);
       if (remaining > 0) {
-        ctx->phase = ABILITY_PHASE_BOTTOM_DECK;
+        ctx->runtime.phase = ABILITY_PHASE_BOTTOM_DECK;
       } else {
         azk_clear_ability_context(world);
         return true;
@@ -581,14 +578,14 @@ bool azk_process_selection_to_equip(ecs_world_t *world, int selection_index,
                                     int entity_index) {
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
 
-  if (ctx->phase != ABILITY_PHASE_SELECTION_PICK) {
+  if (ctx->runtime.phase != ABILITY_PHASE_SELECTION_PICK) {
     return false;
   }
 
   // Validate selection index is in range
-  if (selection_index < 0 || selection_index >= ctx->selection_count) {
+  if (selection_index < 0 || selection_index >= ctx->selection.count) {
     cli_render_logf("[Ability] Invalid selection index %d (count=%d)",
-                    selection_index, ctx->selection_count);
+                    selection_index, ctx->selection.count);
     return false;
   }
 
@@ -598,13 +595,13 @@ bool azk_process_selection_to_equip(ecs_world_t *world, int selection_index,
     return false;
   }
 
-  ecs_entity_t weapon = ctx->selection_cards[selection_index];
+  ecs_entity_t weapon = ctx->selection.cards[selection_index];
   if (weapon == 0) {
     cli_render_logf("[Ability] Selection slot %d is empty", selection_index);
     return false;
   }
 
-  const CardId *card_id = ecs_get(world, ctx->source_card, CardId);
+  const CardId *card_id = ecs_get(world, ctx->runtime.source_card, CardId);
   if (!card_id) {
     azk_clear_ability_context(world);
     return false;
@@ -631,15 +628,15 @@ bool azk_process_selection_to_equip(ecs_world_t *world, int selection_index,
 
   // Validate the selection target if validation function exists
   if (def->validate_selection_target &&
-      !def->validate_selection_target(world, ctx->source_card, ctx->owner,
-                                      weapon)) {
+      !def->validate_selection_target(world, ctx->runtime.source_card,
+                                      ctx->runtime.owner, weapon)) {
     cli_render_logf("[Ability] Selection target validation failed");
     return false;
   }
 
   // Get game state and find target entity
   const GameState *gs = ecs_singleton_get(world, GameState);
-  uint8_t player_num = get_player_number(world, ctx->owner);
+  uint8_t player_num = get_player_number(world, ctx->runtime.owner);
   ecs_entity_t selection_zone = gs->zones[player_num].selection;
   ecs_entity_t target_entity = 0;
 
@@ -682,15 +679,18 @@ bool azk_process_selection_to_equip(ecs_world_t *world, int selection_index,
                   weapon_stats->cur_atk, entity_index);
 
   // Trigger weapon abilities (on-play and when-equipped)
-  azk_trigger_on_play_ability(world, weapon, ctx->owner);
-  azk_trigger_when_equipped_ability(world, weapon, ctx->owner);
+  azk_trigger_on_play_ability(world, weapon, ctx->runtime.owner);
+  azk_trigger_when_equipped_ability(world, weapon, ctx->runtime.owner);
 
   // Mark this slot as picked by setting to 0
-  ctx->selection_cards[selection_index] = 0;
-  ctx->selection_picked++;
+  ctx->selection.cards[selection_index] = 0;
+  if (ctx->selection.picked_count < MAX_ABILITY_SELECTION) {
+    ctx->selection.picked_cards[ctx->selection.picked_count] = 0;
+  }
+  ctx->selection.picked_count++;
 
   // Check if we've picked enough
-  if (ctx->selection_picked >= ctx->selection_pick_max) {
+  if (ctx->selection.picked_count >= ctx->selection.pick_max) {
     // Call on_selection_complete callback
     if (def->on_selection_complete) {
       def->on_selection_complete(world, ctx);
@@ -699,7 +699,7 @@ bool azk_process_selection_to_equip(ecs_world_t *world, int selection_index,
 
     // For discard-based selection, no bottom deck phase needed
     // Just clear the ability context
-    if (ctx->phase != ABILITY_PHASE_NONE) {
+    if (ctx->runtime.phase != ABILITY_PHASE_NONE) {
       azk_clear_ability_context(world);
       return true;
     }
@@ -712,14 +712,14 @@ bool azk_process_selection_to_equip(ecs_world_t *world, int selection_index,
 bool azk_process_skip_selection(ecs_world_t *world) {
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
 
-  if (ctx->phase != ABILITY_PHASE_SELECTION_PICK) {
+  if (ctx->runtime.phase != ABILITY_PHASE_SELECTION_PICK) {
     return false;
   }
 
   // For "up to" effects - allow skipping even if we haven't picked any
   // This is different from effect selection where min determines if we can skip
 
-  const CardId *card_id = ecs_get(world, ctx->source_card, CardId);
+  const CardId *card_id = ecs_get(world, ctx->runtime.source_card, CardId);
   if (!card_id) {
     azk_clear_ability_context(world);
     return false;
@@ -740,15 +740,10 @@ bool azk_process_skip_selection(ecs_world_t *world) {
   }
 
   // Check if there are remaining cards to bottom deck
-  int remaining = 0;
-  for (int i = 0; i < ctx->selection_count; i++) {
-    if (ctx->selection_cards[i] != 0) {
-      remaining++;
-    }
-  }
+  uint8_t remaining = ability_selection_remaining_count(ctx);
 
   if (remaining > 0) {
-    ctx->phase = ABILITY_PHASE_BOTTOM_DECK;
+    ctx->runtime.phase = ABILITY_PHASE_BOTTOM_DECK;
     ecs_singleton_modified(world, AbilityContext);
   } else {
     azk_clear_ability_context(world);
@@ -760,17 +755,17 @@ bool azk_process_skip_selection(ecs_world_t *world) {
 bool azk_process_bottom_deck(ecs_world_t *world, int selection_index) {
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
 
-  if (ctx->phase != ABILITY_PHASE_BOTTOM_DECK) {
+  if (ctx->runtime.phase != ABILITY_PHASE_BOTTOM_DECK) {
     return false;
   }
 
   // Validate index is in range
-  if (selection_index < 0 || selection_index >= ctx->selection_count) {
+  if (selection_index < 0 || selection_index >= ctx->selection.count) {
     cli_render_logf("[Ability] Invalid bottom deck index %d", selection_index);
     return false;
   }
 
-  ecs_entity_t card = ctx->selection_cards[selection_index];
+  ecs_entity_t card = ctx->selection.cards[selection_index];
   if (card == 0) {
     cli_render_logf("[Ability] Selection slot %d already empty",
                     selection_index);
@@ -778,20 +773,15 @@ bool azk_process_bottom_deck(ecs_world_t *world, int selection_index) {
   }
 
   // Move card from selection zone to bottom of deck (with log emission)
-  move_selection_to_deck_bottom(world, ctx->owner, card);
+  move_selection_to_deck_bottom(world, ctx->runtime.owner, card);
 
   // Mark slot as empty
-  ctx->selection_cards[selection_index] = 0;
+  ctx->selection.cards[selection_index] = 0;
 
   cli_render_logf("[Ability] Bottom decked card from slot %d", selection_index);
 
   // Check if there are remaining cards
-  int remaining = 0;
-  for (int i = 0; i < ctx->selection_count; i++) {
-    if (ctx->selection_cards[i] != 0) {
-      remaining++;
-    }
-  }
+  uint8_t remaining = ability_selection_remaining_count(ctx);
 
   if (remaining == 0) {
     cli_render_logf("[Ability] All cards bottom decked, ability complete");
@@ -806,21 +796,21 @@ bool azk_process_bottom_deck(ecs_world_t *world, int selection_index) {
 bool azk_process_bottom_deck_all(ecs_world_t *world) {
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
 
-  if (ctx->phase != ABILITY_PHASE_BOTTOM_DECK) {
+  if (ctx->runtime.phase != ABILITY_PHASE_BOTTOM_DECK) {
     return false;
   }
 
   // Bottom deck all remaining cards in order (0, 1, 2, ...)
-  for (int i = 0; i < ctx->selection_count; i++) {
-    ecs_entity_t card = ctx->selection_cards[i];
+  for (int i = 0; i < ctx->selection.count; i++) {
+    ecs_entity_t card = ctx->selection.cards[i];
     if (card == 0) {
       continue;
     }
 
     // Move card to bottom of deck (with log emission)
-    move_selection_to_deck_bottom(world, ctx->owner, card);
+    move_selection_to_deck_bottom(world, ctx->runtime.owner, card);
 
-    ctx->selection_cards[i] = 0;
+    ctx->selection.cards[i] = 0;
   }
 
   cli_render_logf(
@@ -831,12 +821,12 @@ bool azk_process_bottom_deck_all(ecs_world_t *world) {
 
 bool azk_is_in_ability_phase(ecs_world_t *world) {
   const AbilityContext *ctx = ecs_singleton_get(world, AbilityContext);
-  return ctx && ctx->phase != ABILITY_PHASE_NONE;
+  return ctx && ctx->runtime.phase != ABILITY_PHASE_NONE;
 }
 
 AbilityPhase azk_get_ability_phase(ecs_world_t *world) {
   const AbilityContext *ctx = ecs_singleton_get(world, AbilityContext);
-  return ctx ? ctx->phase : ABILITY_PHASE_NONE;
+  return ctx ? ctx->runtime.phase : ABILITY_PHASE_NONE;
 }
 
 bool azk_trigger_main_ability(ecs_world_t *world, ecs_entity_t card,
@@ -1226,8 +1216,14 @@ void azk_trigger_gate_portal_ability(ecs_world_t *world, ecs_entity_t gate_card,
           .enter_confirmation_when_optional = true,
           .available_cost_targets = azk_count_ability_target_choices(
               world, def, ABILITY_TARGET_SCOPE_COST, gate_card, owner),
-          .initial_effect_target = portaled_card,
-          .initial_effect_filled = 1,
+          .initial_scratch =
+              {
+                  .kind = ABILITY_SCRATCH_GATE_PORTAL,
+                  .data.gate_portal =
+                      {
+                          .portaled_card = portaled_card,
+                      },
+              },
           .confirmation_log =
               "[Ability] Gate portal triggered optional ability, waiting for "
               "confirmation",

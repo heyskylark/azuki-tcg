@@ -20,10 +20,10 @@ bool azk_enter_initial_phase(ecs_world_t *world, AbilityContext *ctx,
   const AbilityInitialPhaseOptions *phase_options =
       options ? options : &default_options;
 
-  ctx->phase = ABILITY_PHASE_NONE;
+  ctx->runtime.phase = ABILITY_PHASE_NONE;
 
   if (def->cost_req.min > 0) {
-    ctx->phase = ABILITY_PHASE_COST_SELECTION;
+    ctx->runtime.phase = ABILITY_PHASE_COST_SELECTION;
     return true;
   }
 
@@ -32,14 +32,14 @@ bool azk_enter_initial_phase(ecs_world_t *world, AbilityContext *ctx,
       def->apply_costs(world, ctx);
     }
     def->on_cost_paid(world, ctx);
-    return ctx->phase != ABILITY_PHASE_NONE;
+    return ctx->runtime.phase != ABILITY_PHASE_NONE;
   }
 
   if (should_enter_effect_selection(def, phase_options)) {
     if (phase_options->apply_costs_before_effect_selection && def->apply_costs) {
       def->apply_costs(world, ctx);
     }
-    ctx->phase = ABILITY_PHASE_EFFECT_SELECTION;
+    ctx->runtime.phase = ABILITY_PHASE_EFFECT_SELECTION;
     return true;
   }
 

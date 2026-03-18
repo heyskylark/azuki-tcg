@@ -91,13 +91,13 @@ bool stt02_016_validate_effect_target(ecs_world_t *world, ecs_entity_t card,
 }
 
 void stt02_016_apply_costs(ecs_world_t *world, const AbilityContext *ctx) {
-  ecs_entity_t to_discard = ctx->cost_targets[0];
+  ecs_entity_t to_discard = ctx->cost.entities[0];
   discard_card(world, to_discard);
   cli_render_logf("[STT02-016] Discarded a card as cost");
 }
 
 void stt02_016_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
-  ecs_entity_t target = ctx->effect_targets[0];
+  ecs_entity_t target = ctx->effect.entities[0];
 
   if (target == 0) {
     cli_render_logf("[STT02-016] No target for attack debuff");
@@ -106,6 +106,6 @@ void stt02_016_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
 
   // Apply -2 attack modifier that expires at end of turn
   // Source is the spell card applying the debuff
-  apply_attack_modifier(world, target, ctx->source_card, -2, true);
+  apply_attack_modifier(world, target, ctx->runtime.source_card, -2, true);
   cli_render_logf("[STT02-016] Reduced target's attack by 2 until end of turn");
 }

@@ -21,7 +21,7 @@ bool stt01_003_validate(ecs_world_t *world, ecs_entity_t card,
 }
 
 void stt01_003_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
-  uint8_t player_num = get_player_number(world, ctx->owner);
+  uint8_t player_num = get_player_number(world, ctx->runtime.owner);
   const GameState *gs = ecs_singleton_get(world, GameState);
 
   ecs_entity_t discard_zone = gs->zones[player_num].discard;
@@ -30,5 +30,5 @@ void stt01_003_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
   int weapon_count = count_weapons_in_zone(world, discard_zone);
   int mill_count = (weapon_count == 0) ? 5 : 3;
 
-  mill_cards_with_deckout_check(world, ctx->owner, mill_count, NULL);
+  mill_cards_with_deckout_check(world, ctx->runtime.owner, mill_count, NULL);
 }

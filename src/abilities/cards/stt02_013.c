@@ -49,7 +49,7 @@ bool stt02_013_validate(ecs_world_t *world, ecs_entity_t card,
 void stt02_013_on_cost_paid(ecs_world_t *world, AbilityContext *ctx) {
   // Look at top 3 cards
   ecs_entity_t cards[MAX_SELECTION_ZONE_SIZE];
-  int count = look_at_top_n_cards(world, ctx->owner, 3, cards);
+  int count = look_at_top_n_cards(world, ctx->runtime.owner, 3, cards);
 
   if (count == 0) {
     cli_render_logf("[STT02-013] No cards in deck to look at");
@@ -58,14 +58,14 @@ void stt02_013_on_cost_paid(ecs_world_t *world, AbilityContext *ctx) {
   }
 
   // Store cards in selection context
-  ctx->selection_count = count;
+  ctx->selection.count = count;
   for (int i = 0; i < count; i++) {
-    ctx->selection_cards[i] = cards[i];
+    ctx->selection.cards[i] = cards[i];
   }
 
   // Set up selection pick phase - "up to 1" valid card
-  ctx->selection_pick_max = 1;
-  ctx->selection_picked = 0;
+  ctx->selection.pick_max = 1;
+  ctx->selection.picked_count = 0;
 
   // Count how many valid cards (<=2 cost AND water element) are in the selection
   int valid_count = 0;
@@ -76,14 +76,14 @@ void stt02_013_on_cost_paid(ecs_world_t *world, AbilityContext *ctx) {
   }
 
   if (valid_count > 0) {
-    ctx->phase = ABILITY_PHASE_SELECTION_PICK;
+    ctx->runtime.phase = ABILITY_PHASE_SELECTION_PICK;
     cli_render_logf(
         "[STT02-013] Looking at top %d cards, found %d valid card(s) "
         "(<=2 cost water type)",
         count, valid_count);
   } else {
     // No valid cards to pick - go directly to bottom deck phase
-    ctx->phase = ABILITY_PHASE_BOTTOM_DECK;
+    ctx->runtime.phase = ABILITY_PHASE_BOTTOM_DECK;
     cli_render_logf("[STT02-013] Looking at top %d cards, no valid cards "
                     "found - bottom decking",
                     count);
@@ -108,16 +108,17 @@ bool stt02_013_validate_selection_target(ecs_world_t *world, ecs_entity_t card,
 
 // Called after selection pick is complete
 // ACT_SELECT_TO_ALLEY moves the card to alley, but ACT_SELECT_FROM_SELECTION
-// only stores it in effect_targets - we need to move it to hand here
+// only stores it in selection.picked_cards - we need to move it to hand here
 void stt02_013_on_selection_complete(ecs_world_t *world, AbilityContext *ctx) {
   const GameState *gs = ecs_singleton_get(world, GameState);
-  uint8_t player_num = get_player_number(world, ctx->owner);
+  uint8_t player_num = get_player_number(world, ctx->runtime.owner);
   ecs_entity_t selection_zone = gs->zones[player_num].selection;
 
   // Move any picked cards to hand if still in selection zone
   // (ACT_SELECT_TO_ALLEY already moved to alley, so skip those)
-  for (int i = 0; i < ctx->selection_picked && i < MAX_ABILITY_SELECTION; i++) {
-    ecs_entity_t picked = ctx->effect_targets[i];
+  for (int i = 0;
+       i < ctx->selection.picked_count && i < MAX_ABILITY_SELECTION; i++) {
+    ecs_entity_t picked = ctx->selection.picked_cards[i];
     if (picked != 0) {
       ecs_entity_t parent = ecs_get_target(world, picked, EcsChildOf, 0);
       if (parent == selection_zone) {
@@ -129,14 +130,14 @@ void stt02_013_on_selection_complete(ecs_world_t *world, AbilityContext *ctx) {
 
   // Count remaining cards to bottom deck
   int remaining = 0;
-  for (int i = 0; i < ctx->selection_count; i++) {
-    if (ctx->selection_cards[i] != 0) {
+  for (int i = 0; i < ctx->selection.count; i++) {
+    if (ctx->selection.cards[i] != 0) {
       remaining++;
     }
   }
 
   if (remaining > 0) {
-    ctx->phase = ABILITY_PHASE_BOTTOM_DECK;
+    ctx->runtime.phase = ABILITY_PHASE_BOTTOM_DECK;
     cli_render_logf("[STT02-013] %d cards remaining to bottom deck", remaining);
   } else {
     cli_render_logf("[STT02-013] Ability complete");

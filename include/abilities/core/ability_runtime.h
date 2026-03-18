@@ -17,8 +17,7 @@ typedef struct {
   bool clear_context_on_immediate_resolve;
   uint8_t available_cost_targets;
   uint8_t available_effect_targets;
-  ecs_entity_t initial_effect_target;
-  uint8_t initial_effect_filled;
+  AbilityScratchState initial_scratch;
   const char *confirmation_log;
   const char *applied_log;
   const char *cost_selection_log;

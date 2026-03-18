@@ -27,7 +27,7 @@ bool stt02_017_validate(ecs_world_t *world, ecs_entity_t card,
 
 void stt02_017_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
   const GameState *gs = ecs_singleton_get(world, GameState);
-  uint8_t owner_num = get_player_number(world, ctx->owner);
+  uint8_t owner_num = get_player_number(world, ctx->runtime.owner);
   uint8_t opponent_num = (owner_num + 1) % MAX_PLAYERS_PER_MATCH;
 
   // Get opponent's garden zone

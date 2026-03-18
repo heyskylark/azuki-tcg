@@ -22,5 +22,5 @@ bool stt02_005_validate(ecs_world_t* world, ecs_entity_t card, ecs_entity_t owne
 
 void stt02_005_apply_effects(ecs_world_t* world, const AbilityContext* ctx) {
     // Draw 1 card (with deck-out check)
-    draw_cards_with_deckout_check(world, ctx->owner, 1, NULL);
+    draw_cards_with_deckout_check(world, ctx->runtime.owner, 1, NULL);
 }

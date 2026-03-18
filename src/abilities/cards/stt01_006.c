@@ -71,7 +71,7 @@ bool stt01_006_validate_effect_target(ecs_world_t *world, ecs_entity_t card,
 }
 
 void stt01_006_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
-  ecs_entity_t target = ctx->effect_targets[0];
+  ecs_entity_t target = ctx->effect.entities[0];
 
   if (target == 0) {
     cli_render_logf("[STT01-006] No target for damage");

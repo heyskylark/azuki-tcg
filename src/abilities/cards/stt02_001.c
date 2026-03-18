@@ -64,7 +64,7 @@ bool stt02_001_validate_effect_target(ecs_world_t *world, ecs_entity_t card,
 }
 
 void stt02_001_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
-  ecs_entity_t target = ctx->effect_targets[0];
+  ecs_entity_t target = ctx->effect.entities[0];
 
   if (target == 0) {
     cli_render_logf("[STT02-001] No target for attack debuff");
@@ -73,6 +73,6 @@ void stt02_001_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
 
   // Apply -1 attack modifier that expires at end of turn
   // Source is the card applying the debuff (Shao)
-  apply_attack_modifier(world, target, ctx->source_card, -1, true);
+  apply_attack_modifier(world, target, ctx->runtime.source_card, -1, true);
   cli_render_logf("[STT02-001] Reduced target's attack by 1 until end of turn");
 }

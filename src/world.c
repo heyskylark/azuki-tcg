@@ -247,7 +247,12 @@ ecs_world_t *azk_world_init_with_starting_player(uint32_t seed,
   ecs_singleton_set_ptr(world, GameState, &gs);
 
   ecs_add_id(world, ecs_id(AbilityContext), EcsSingleton);
-  AbilityContext ac = {0};
+  AbilityContext ac = {
+      .runtime =
+          {
+              .saved_active_player_index = -1,
+          },
+  };
   ecs_singleton_set_ptr(world, AbilityContext, &ac);
 
   ecs_entity_t players[MAX_PLAYERS_PER_MATCH];
@@ -478,7 +483,12 @@ ecs_world_t *azk_world_init_with_decks(uint32_t seed,
   ecs_singleton_set_ptr(world, GameState, &gs);
 
   ecs_add_id(world, ecs_id(AbilityContext), EcsSingleton);
-  AbilityContext ac = {0};
+  AbilityContext ac = {
+      .runtime =
+          {
+              .saved_active_player_index = -1,
+          },
+  };
   ecs_singleton_set_ptr(world, AbilityContext, &ac);
 
   // First pass: Create all players and zones

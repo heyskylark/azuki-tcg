@@ -22,7 +22,8 @@ bool stt01_015_validate(ecs_world_t *world, ecs_entity_t card,
 
 void stt01_015_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
   // Get the attached target (weapon is child of target entity)
-  ecs_entity_t target = ecs_get_target(world, ctx->source_card, EcsChildOf, 0);
+  ecs_entity_t target =
+      ecs_get_target(world, ctx->runtime.source_card, EcsChildOf, 0);
   if (target == 0) {
     cli_render_logf("[STT01-015] Weapon is not attached to any entity");
     return;
@@ -30,7 +31,7 @@ void stt01_015_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
 
   // Get player's discard pile count
   const GameState *gs = ecs_singleton_get(world, GameState);
-  uint8_t player_num = get_player_number(world, ctx->owner);
+  uint8_t player_num = get_player_number(world, ctx->runtime.owner);
   ecs_entity_t discard = gs->zones[player_num].discard;
 
   ecs_entities_t discard_cards = ecs_get_ordered_children(world, discard);
@@ -45,14 +46,16 @@ void stt01_015_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
   }
 
   // Condition met - apply +1 attack to weapon's CurStats
-  CurStats *weapon_stats = ecs_get_mut(world, ctx->source_card, CurStats);
+  CurStats *weapon_stats =
+      ecs_get_mut(world, ctx->runtime.source_card, CurStats);
   ecs_assert(weapon_stats != NULL, ECS_INVALID_PARAMETER,
              "CurStats not found for weapon");
 
   weapon_stats->cur_atk += STT01_015_BONUS_ATTACK;
-  ecs_modified(world, ctx->source_card, CurStats);
-  azk_log_card_stat_change(world, ctx->source_card, STT01_015_BONUS_ATTACK, 0,
-                           weapon_stats->cur_atk, weapon_stats->cur_hp);
+  ecs_modified(world, ctx->runtime.source_card, CurStats);
+  azk_log_card_stat_change(world, ctx->runtime.source_card,
+                           STT01_015_BONUS_ATTACK, 0, weapon_stats->cur_atk,
+                           weapon_stats->cur_hp);
 
   // Update target entity's CurStats.cur_atk (+1)
   CurStats *target_stats = ecs_get_mut(world, target, CurStats);

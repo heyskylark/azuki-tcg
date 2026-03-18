@@ -2079,9 +2079,9 @@ static void test_leader_response_enters_effect_selection(void) {
 
   const AbilityContext *ctx = ecs_singleton_get(world, AbilityContext);
   assert(ctx != NULL);
-  assert(ctx->source_card == shao);
-  assert(ctx->owner == player0);
-  assert(ctx->effect_expected == 1);
+  assert(ctx->runtime.source_card == shao);
+  assert(ctx->runtime.owner == player0);
+  assert(ctx->effect.max_allowed == 1);
 
   ecs_fini(world);
 }
@@ -2129,11 +2129,12 @@ static void test_gate_portal_enters_selection_flow_stt01_002(void) {
 
   const AbilityContext *ctx = ecs_singleton_get(world, AbilityContext);
   assert(ctx != NULL);
-  assert(ctx->source_card == gate_card);
-  assert(ctx->owner == player0);
-  assert(ctx->effect_targets[0] == portaled_card);
-  assert(ctx->selection_count == 1);
-  assert(ctx->selection_cards[0] == weapon);
+  assert(ctx->runtime.source_card == gate_card);
+  assert(ctx->runtime.owner == player0);
+  assert(ctx->scratch.kind == ABILITY_SCRATCH_DISCARD_SELECTION);
+  assert(ctx->scratch.data.discard_selection.max_cost == 2);
+  assert(ctx->selection.count == 1);
+  assert(ctx->selection.cards[0] == weapon);
   assert(ecs_get_target(world, weapon, EcsChildOf, 0) == selection);
 
   ecs_fini(world);

@@ -27,12 +27,9 @@ bool stt02_003_validate(ecs_world_t *world, ecs_entity_t card,
 // Called after the ability is accepted: move top 5 cards from deck to
 // selection zone
 void stt02_003_on_cost_paid(ecs_world_t *world, AbilityContext *ctx) {
-  const GameState *gs = ecs_singleton_get(world, GameState);
-  uint8_t player_num = get_player_number(world, ctx->owner);
-
   // Look at top 5 cards
   ecs_entity_t cards[MAX_SELECTION_ZONE_SIZE];
-  int count = look_at_top_n_cards(world, ctx->owner, 5, cards);
+  int count = look_at_top_n_cards(world, ctx->runtime.owner, 5, cards);
 
   if (count == 0) {
     cli_render_logf("[STT02-003] No cards in deck to look at");
@@ -41,14 +38,14 @@ void stt02_003_on_cost_paid(ecs_world_t *world, AbilityContext *ctx) {
   }
 
   // Store cards in selection context
-  ctx->selection_count = count;
+  ctx->selection.count = count;
   for (int i = 0; i < count; i++) {
-    ctx->selection_cards[i] = cards[i];
+    ctx->selection.cards[i] = cards[i];
   }
 
   // Set up selection pick phase - "up to 1" watercrafting
-  ctx->selection_pick_max = 1;
-  ctx->selection_picked = 0;
+  ctx->selection.pick_max = 1;
+  ctx->selection.picked_count = 0;
 
   // Count how many watercrafting cards are in the selection
   int watercrafting_count = 0;
@@ -59,13 +56,13 @@ void stt02_003_on_cost_paid(ecs_world_t *world, AbilityContext *ctx) {
   }
 
   if (watercrafting_count > 0) {
-    ctx->phase = ABILITY_PHASE_SELECTION_PICK;
+    ctx->runtime.phase = ABILITY_PHASE_SELECTION_PICK;
     cli_render_logf(
         "[STT02-003] Looking at top %d cards, found %d Watercrafting card(s)",
         count, watercrafting_count);
   } else {
     // No watercrafting cards to pick - go directly to bottom deck phase
-    ctx->phase = ABILITY_PHASE_BOTTOM_DECK;
+    ctx->runtime.phase = ABILITY_PHASE_BOTTOM_DECK;
     cli_render_logf("[STT02-003] Looking at top %d cards, no Watercrafting "
                     "cards found - bottom decking",
                     count);
@@ -93,8 +90,9 @@ bool stt02_003_validate_selection_target(ecs_world_t *world, ecs_entity_t card,
 // hand
 void stt02_003_on_selection_complete(ecs_world_t *world, AbilityContext *ctx) {
   // Move any picked watercrafting cards to hand
-  for (int i = 0; i < ctx->selection_picked && i < MAX_ABILITY_SELECTION; i++) {
-    ecs_entity_t picked = ctx->effect_targets[i];
+  for (int i = 0;
+       i < ctx->selection.picked_count && i < MAX_ABILITY_SELECTION; i++) {
+    ecs_entity_t picked = ctx->selection.picked_cards[i];
     if (picked != 0) {
       move_selection_to_hand(world, picked);
       cli_render_logf("[STT02-003] Added Watercrafting card to hand");
@@ -103,14 +101,14 @@ void stt02_003_on_selection_complete(ecs_world_t *world, AbilityContext *ctx) {
 
   // Count remaining cards to bottom deck
   int remaining = 0;
-  for (int i = 0; i < ctx->selection_count; i++) {
-    if (ctx->selection_cards[i] != 0) {
+  for (int i = 0; i < ctx->selection.count; i++) {
+    if (ctx->selection.cards[i] != 0) {
       remaining++;
     }
   }
 
   if (remaining > 0) {
-    ctx->phase = ABILITY_PHASE_BOTTOM_DECK;
+    ctx->runtime.phase = ABILITY_PHASE_BOTTOM_DECK;
     cli_render_logf("[STT02-003] %d cards remaining to bottom deck", remaining);
   } else {
     cli_render_logf("[STT02-003] Ability complete");

@@ -25,7 +25,7 @@ bool stt01_012_validate(ecs_world_t *world, ecs_entity_t card,
 
 void stt01_012_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
   ecs_entity_t milled_card = 0;
-  mill_cards_with_deckout_check(world, ctx->owner, 1, &milled_card);
+  mill_cards_with_deckout_check(world, ctx->runtime.owner, 1, &milled_card);
 
   if (milled_card == 0) {
     cli_render_logf("[STT01-012] No cards in deck to discard");

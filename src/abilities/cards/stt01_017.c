@@ -48,8 +48,8 @@ bool stt01_017_validate_effect_target(ecs_world_t *world, ecs_entity_t card,
   // This card requires selecting DIFFERENT entities ("another entity")
   // Check if target is already selected
   const AbilityContext *ctx = ecs_singleton_get(world, AbilityContext);
-  for (int i = 0; i < ctx->effect_filled; i++) {
-    if (ctx->effect_targets[i] == target) {
+  for (int i = 0; i < ctx->effect.selected_count; i++) {
+    if (ctx->effect.entities[i] == target) {
       return false;
     }
   }
@@ -59,8 +59,8 @@ bool stt01_017_validate_effect_target(ecs_world_t *world, ecs_entity_t card,
 
 void stt01_017_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
   // Deal 1 damage to each selected target (1 or 2 targets)
-  for (int i = 0; i < ctx->effect_filled; i++) {
-    ecs_entity_t target = ctx->effect_targets[i];
+  for (int i = 0; i < ctx->effect.selected_count; i++) {
+    ecs_entity_t target = ctx->effect.entities[i];
 
     if (target == 0) {
       continue;

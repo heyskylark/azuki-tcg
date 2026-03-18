@@ -103,8 +103,8 @@ static uint8_t get_pending_confirmation_count(AzkEngine *engine) {
 
   // Count the currently visible confirmation prompt, if any.
   const AbilityContext *ctx = ecs_singleton_get(engine, AbilityContext);
-  if (ctx && ctx->phase == ABILITY_PHASE_CONFIRMATION && ctx->is_optional &&
-      ctx->owner == active_player) {
+  if (ctx && ctx->runtime.phase == ABILITY_PHASE_CONFIRMATION &&
+      ctx->runtime.is_optional && ctx->runtime.owner == active_player) {
     pending_count++;
   }
 
@@ -146,11 +146,11 @@ static void append_ability_context_metadata(napi_env env,
   }
 
   const AbilityContext *ctx = ecs_singleton_get(engine, AbilityContext);
-  if (!ctx || ctx->source_card == 0) {
+  if (!ctx || ctx->runtime.source_card == 0) {
     return;
   }
 
-  const CardId *card_id = ecs_get(engine, ctx->source_card, CardId);
+  const CardId *card_id = ecs_get(engine, ctx->runtime.source_card, CardId);
   if (!card_id) {
     return;
   }

@@ -11,11 +11,12 @@ typedef struct {
   bool is_optional;
   bool clamp_effect_expected_to_available;
   uint8_t available_effect_targets;
-  ecs_entity_t initial_effect_target;
-  uint8_t initial_effect_filled;
+  AbilityScratchState initial_scratch;
 } AbilityContextInitOptions;
 
 void azk_reset_ability_context_state(AbilityContext *ctx);
+
+uint8_t azk_count_remaining_selection_cards(const AbilityContext *ctx);
 
 void azk_init_ability_context(AbilityContext *ctx, ecs_entity_t source_card,
                               ecs_entity_t owner, const AbilityDef *def,

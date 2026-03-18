@@ -56,14 +56,13 @@ bool azk_begin_ability(ecs_world_t *world, ecs_entity_t source_card,
                                        ->clamp_effect_expected_to_available,
                                .available_effect_targets =
                                    begin_options->available_effect_targets,
-                               .initial_effect_target =
-                                   begin_options->initial_effect_target,
-                               .initial_effect_filled =
-                                   begin_options->initial_effect_filled,
+                               .initial_scratch =
+                                   begin_options->initial_scratch,
                            });
 
-  if (begin_options->enter_confirmation_when_optional && ctx->is_optional) {
-    ctx->phase = ABILITY_PHASE_CONFIRMATION;
+  if (begin_options->enter_confirmation_when_optional &&
+      ctx->runtime.is_optional) {
+    ctx->runtime.phase = ABILITY_PHASE_CONFIRMATION;
 
     if (begin_options->transfer_control_on_user_input) {
       azk_maybe_transfer_triggered_ability_control(world, ctx);
@@ -105,7 +104,7 @@ bool azk_begin_ability(ecs_world_t *world, ecs_entity_t source_card,
   }
 
   azk_log_ability_initial_phase_entry(
-      ctx->phase, begin_options->cost_selection_log,
+      ctx->runtime.phase, begin_options->cost_selection_log,
       begin_options->effect_selection_log, begin_options->selection_log);
   ecs_singleton_modified(world, AbilityContext);
   return true;
@@ -117,10 +116,10 @@ void azk_maybe_transfer_triggered_ability_control(ecs_world_t *world,
     return;
   }
 
-  ctx->restores_active_player = false;
-  ctx->saved_active_player_index = -1;
+  ctx->runtime.restores_active_player = false;
+  ctx->runtime.saved_active_player_index = -1;
 
-  if (ctx->phase == ABILITY_PHASE_NONE) {
+  if (ctx->runtime.phase == ABILITY_PHASE_NONE) {
     return;
   }
 
@@ -129,13 +128,13 @@ void azk_maybe_transfer_triggered_ability_control(ecs_world_t *world,
     return;
   }
 
-  uint8_t owner_player_num = get_player_number(world, ctx->owner);
+  uint8_t owner_player_num = get_player_number(world, ctx->runtime.owner);
   if (gs->active_player_index == owner_player_num) {
     return;
   }
 
-  ctx->restores_active_player = true;
-  ctx->saved_active_player_index = gs->active_player_index;
+  ctx->runtime.restores_active_player = true;
+  ctx->runtime.saved_active_player_index = gs->active_player_index;
 
   cli_render_logf("[Ability] Switching control to player %d for triggered ability",
                   owner_player_num);
@@ -145,7 +144,7 @@ void azk_maybe_transfer_triggered_ability_control(ecs_world_t *world,
 
 void azk_restore_triggered_ability_control(ecs_world_t *world,
                                            const AbilityContext *ctx) {
-  if (!ctx || !ctx->restores_active_player) {
+  if (!ctx || !ctx->runtime.restores_active_player) {
     return;
   }
 
@@ -154,14 +153,14 @@ void azk_restore_triggered_ability_control(ecs_world_t *world,
     return;
   }
 
-  if (ctx->saved_active_player_index < 0 ||
-      ctx->saved_active_player_index >= MAX_PLAYERS_PER_MATCH ||
-      gs->active_player_index == ctx->saved_active_player_index) {
+  if (ctx->runtime.saved_active_player_index < 0 ||
+      ctx->runtime.saved_active_player_index >= MAX_PLAYERS_PER_MATCH ||
+      gs->active_player_index == ctx->runtime.saved_active_player_index) {
     return;
   }
 
   cli_render_logf("[Ability] Restoring control to player %d",
-                  ctx->saved_active_player_index);
-  gs->active_player_index = ctx->saved_active_player_index;
+                  ctx->runtime.saved_active_player_index);
+  gs->active_player_index = ctx->runtime.saved_active_player_index;
   ecs_singleton_modified(world, GameState);
 }

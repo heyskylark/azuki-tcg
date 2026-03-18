@@ -222,7 +222,7 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
                                       ecs_entity_t player,
                                       AzkActionMaskSet *out_mask) {
   const AbilityContext *ctx = ecs_singleton_get(world, AbilityContext);
-  if (!ctx || ctx->phase == ABILITY_PHASE_NONE) {
+  if (!ctx || ctx->runtime.phase == ABILITY_PHASE_NONE) {
     return;
   }
 
@@ -232,7 +232,7 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
                        .subaction_2 = 0,
                        .subaction_3 = 0};
 
-  switch (ctx->phase) {
+  switch (ctx->runtime.phase) {
   case ABILITY_PHASE_CONFIRMATION:
     // Can confirm or decline (NOOP)
     action.type = ACT_CONFIRM_ABILITY;
@@ -243,7 +243,7 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
     break;
 
   case ABILITY_PHASE_COST_SELECTION: {
-    const CardId *card_id = ecs_get(world, ctx->source_card, CardId);
+    const CardId *card_id = ecs_get(world, ctx->runtime.source_card, CardId);
     if (!card_id)
       break;
 
@@ -255,8 +255,8 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
 
     AbilityTargetChoice choices[AZK_MAX_ABILITY_TARGET_CHOICES];
     int choice_count = azk_collect_ability_target_choices(
-        world, def, ABILITY_TARGET_SCOPE_COST, ctx->source_card, ctx->owner,
-        choices, AZK_MAX_ABILITY_TARGET_CHOICES);
+        world, def, ABILITY_TARGET_SCOPE_COST, ctx->runtime.source_card,
+        ctx->runtime.owner, choices, AZK_MAX_ABILITY_TARGET_CHOICES);
     for (int i = 0; i < choice_count; i++) {
       action.subaction_1 = choices[i].action_index;
       add_valid_action(out_mask, &action);
@@ -265,7 +265,7 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
   }
 
   case ABILITY_PHASE_EFFECT_SELECTION: {
-    const CardId *card_id = ecs_get(world, ctx->source_card, CardId);
+    const CardId *card_id = ecs_get(world, ctx->runtime.source_card, CardId);
     if (!card_id)
       break;
 
@@ -274,7 +274,7 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
       break;
 
     // Allow skipping effect selection if min is 0 ("up to" effects)
-    if (ctx->effect_min == 0 && ctx->effect_filled == 0) {
+    if (ctx->effect.min_required == 0 && ctx->effect.selected_count == 0) {
       action.type = ACT_NOOP;
       add_valid_action(out_mask, &action);
     }
@@ -283,8 +283,8 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
 
     AbilityTargetChoice choices[AZK_MAX_ABILITY_TARGET_CHOICES];
     int choice_count = azk_collect_ability_target_choices(
-        world, def, ABILITY_TARGET_SCOPE_EFFECT, ctx->source_card, ctx->owner,
-        choices, AZK_MAX_ABILITY_TARGET_CHOICES);
+        world, def, ABILITY_TARGET_SCOPE_EFFECT, ctx->runtime.source_card,
+        ctx->runtime.owner, choices, AZK_MAX_ABILITY_TARGET_CHOICES);
     for (int i = 0; i < choice_count; i++) {
       action.subaction_1 = choices[i].action_index;
       add_valid_action(out_mask, &action);
@@ -294,7 +294,7 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
 
   case ABILITY_PHASE_SELECTION_PICK: {
     // Get ability def for validation
-    const CardId *card_id = ecs_get(world, ctx->source_card, CardId);
+    const CardId *card_id = ecs_get(world, ctx->runtime.source_card, CardId);
     if (!card_id)
       break;
 
@@ -302,7 +302,7 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
     if (!def)
       break;
 
-    uint8_t owner_player_num = get_player_number(world, ctx->owner);
+    uint8_t owner_player_num = get_player_number(world, ctx->runtime.owner);
     bool alley_slot_occupied[ALLEY_SIZE] = {false};
     bool alley_full = false;
     if (def->can_select_to_alley) {
@@ -322,15 +322,15 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
     add_valid_action(out_mask, &action);
 
     // Enumerate valid selection targets
-    for (int i = 0; i < ctx->selection_count; i++) {
-      ecs_entity_t target = ctx->selection_cards[i];
+    for (int i = 0; i < ctx->selection.count; i++) {
+      ecs_entity_t target = ctx->selection.cards[i];
       if (target == 0)
         continue; // Already picked or empty
 
       // Validate against selection target validator if defined
       if (def->validate_selection_target &&
-          !def->validate_selection_target(world, ctx->source_card, ctx->owner,
-                                          target)) {
+          !def->validate_selection_target(world, ctx->runtime.source_card,
+                                          ctx->runtime.owner, target)) {
         continue;
       }
 
@@ -363,7 +363,7 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
       // If can_select_to_equip and target is a weapon, enumerate garden/leader
       if (def->can_select_to_equip &&
           is_card_type(world, target, CARD_TYPE_WEAPON)) {
-        uint8_t pnum = get_player_number(world, ctx->owner);
+        uint8_t pnum = get_player_number(world, ctx->runtime.owner);
         action.type = ACT_SELECT_TO_EQUIP;
         action.subaction_1 = i; // selection index
         // Enumerate garden entities (slots 0-4)
@@ -390,8 +390,8 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
   case ABILITY_PHASE_BOTTOM_DECK: {
     // Enumerate remaining selection cards for bottom decking
     action.type = ACT_BOTTOM_DECK_CARD;
-    for (int i = 0; i < ctx->selection_count; i++) {
-      ecs_entity_t card = ctx->selection_cards[i];
+    for (int i = 0; i < ctx->selection.count; i++) {
+      ecs_entity_t card = ctx->selection.cards[i];
       if (card == 0)
         continue; // Already bottom decked
 
