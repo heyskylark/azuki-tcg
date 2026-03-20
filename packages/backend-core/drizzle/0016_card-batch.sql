@@ -59,4 +59,22 @@ INSERT INTO "cards" (
   '[On Play] Look at the top 5 cards of your deck, reveal up to 1 Black Jade subtype card other than Black Jade Courier and add it to your hand, then bottom deck the rest in any order.',
   NULL,
   'S1-AZK01-003_Black-Jade-Courier_E_C_die.jpg'
+),
+(
+  gen_random_uuid()::uuid,
+  'AZK01-004',
+  'Alley Thug',
+  'C',
+  NULL,
+  'NORMAL',
+  'ENTITY',
+  1,
+  1,
+  0,
+  1,
+  ARRAY[]::text[],
+  ARRAY['Alley Dweller', 'Dawnling'],
+  '[When Attacking] This card gets +1 attack until the end of the turn.',
+  NULL,
+  'S1-AZK01-004_Alley-Thug_E_C_die.jpg'
 );

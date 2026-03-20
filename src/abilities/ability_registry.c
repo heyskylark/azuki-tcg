@@ -2,6 +2,7 @@
 
 #include "abilities/cards/azk01_002.h"
 #include "abilities/cards/azk01_003.h"
+#include "abilities/cards/azk01_004.h"
 #include "abilities/cards/st01_007.h"
 #include "abilities/cards/stt01_001.h"
 #include "abilities/cards/stt01_002.h"
@@ -471,6 +472,21 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .validate_effect_target = stt01_006_validate_effect_target,
       .apply_costs = NULL,
       .apply_effects = stt01_006_apply_effects,
+  };
+
+  // AZK01-004 "Alley Thug": [When Attacking] This card gets +1 attack until
+  // the end of the turn.
+  kAbilityRegistry[CARD_DEF_AZK01_004] = (AbilityDef){
+      .has_ability = true,
+      .is_optional = false,
+      .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .effect_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .timing_tag = ecs_id(AWhenAttacking),
+      .validate = azk01_004_validate,
+      .validate_cost_target = NULL,
+      .validate_effect_target = NULL,
+      .apply_costs = NULL,
+      .apply_effects = azk01_004_apply_effects,
   };
 
   // STT01-012 "Lightning Shuriken": [When Attacking] Put the top card of your

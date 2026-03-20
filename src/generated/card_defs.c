@@ -557,6 +557,19 @@ static const CardDef kGeneratedCardDefs[CARD_DEF_COUNT] = {
         .has_ikz_cost = true,
         .ikz_cost = { .ikz_cost = 1 },
     },
+    {
+        .card_id = "AZK01-004",
+        .name = "Alley Thug",
+        .rarity = CARD_RARITY_C,
+        .element = CARD_ELEMENT_NORMAL,
+        .type = CARD_TYPE_ENTITY,
+        .has_base_stats = true,
+        .base_stats = { .attack = 1, .health = 1 },
+        .has_gate_points = true,
+        .gate_points = { .gate_points = 0 },
+        .has_ikz_cost = true,
+        .ikz_cost = { .ikz_cost = 1 },
+    },
 };
 
 static ecs_entity_t kGeneratedPrefabs[CARD_DEF_COUNT];
@@ -612,6 +625,7 @@ static const CardDefLookupEntry kGeneratedCardLookup[CARD_DEF_COUNT] = {
     { .card_id = "AZK01-001", .def = &kGeneratedCardDefs[CARD_DEF_AZK01_001] },
     { .card_id = "AZK01-002", .def = &kGeneratedCardDefs[CARD_DEF_AZK01_002] },
     { .card_id = "AZK01-003", .def = &kGeneratedCardDefs[CARD_DEF_AZK01_003] },
+    { .card_id = "AZK01-004", .def = &kGeneratedCardDefs[CARD_DEF_AZK01_004] },
 };
 
 const CardDefLookupEntry *azk_card_def_lookup_table(size_t *out_count) {
@@ -1403,6 +1417,26 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 1 });
         ecs_add(world, prefab, TSubtype_BlackJade);
         ecs_add(world, prefab, TSubtype_Strider);
+    }
+    {
+        ecs_entity_desc_t desc = {
+            .name = "CardPrefab::AZK01-004",
+            .add = (ecs_id_t[]){ EcsPrefab, TEntity, 0 }
+        };
+        ecs_entity_t prefab = ecs_entity_init(world, &desc);
+        ecs_assert(prefab != 0, ECS_INVALID_PARAMETER, "failed to create prefab for card AZK01-004");
+        kGeneratedPrefabs[CARD_DEF_AZK01_004] = prefab;
+        ecs_set(world, prefab, CardId, { .id = CARD_DEF_AZK01_004, .code = "AZK01-004" });
+        ecs_set(world, prefab, Name, { .value = "Alley Thug" });
+        ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_NORMAL });
+        ecs_set(world, prefab, Type, { .value = CARD_TYPE_ENTITY });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
+        ecs_set(world, prefab, BaseStats, { .attack = 1, .health = 1 });
+        ecs_set(world, prefab, CurStats, { .cur_atk = 1, .cur_hp = 1 });
+        ecs_set(world, prefab, GatePoints, { .gate_points = 0 });
+        ecs_set(world, prefab, IKZCost, { .ikz_cost = 1 });
+        ecs_add(world, prefab, TSubtype_AlleyDweller);
+        ecs_add(world, prefab, TSubtype_Dawnling);
     }
 }
 
