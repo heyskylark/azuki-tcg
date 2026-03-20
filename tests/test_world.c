@@ -19,6 +19,7 @@
 #include "utils/deck_utils.h"
 #include "utils/game_log_util.h"
 #include "utils/observation_util.h"
+#include "utils/status_util.h"
 #include "validation/action_enumerator.h"
 #include "generated/card_defs.h"
 
@@ -2058,6 +2059,60 @@ static void test_triggered_mandatory_target_selection_skips_confirmation(void) {
   ecs_fini(world);
 }
 
+static void test_azk01_004_when_attacking_buff_expires_end_of_turn(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  ecs_set(world, ecs_id(GameState), GameState, {0});
+  ecs_set(world, ecs_id(AbilityContext), AbilityContext, {0});
+
+  ecs_entity_t player0 = ecs_new(world);
+  ecs_set(world, player0, PlayerId, {.pid = 0});
+  ecs_set(world, player0, PlayerNumber, {.player_number = 0});
+
+  ecs_entity_t garden0 = create_zone(world, player0, ZGarden, "Garden_P0");
+
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->players[0] = player0;
+  gs->zones[0].garden = garden0;
+  gs->active_player_index = 0;
+  ecs_singleton_modified(world, GameState);
+
+  ecs_entity_t alley_thug = ecs_new(world);
+  ecs_set(world, alley_thug, CardId,
+          {.id = CARD_DEF_AZK01_004, .code = "AZK01-004"});
+  ecs_set(world, alley_thug, Type, {.value = CARD_TYPE_ENTITY});
+  ecs_set(world, alley_thug, BaseStats, {.attack = 1, .health = 1});
+  ecs_set(world, alley_thug, CurStats, {.cur_atk = 1, .cur_hp = 1});
+  ecs_add_pair(world, alley_thug, Rel_OwnedBy, player0);
+  ecs_add_pair(world, alley_thug, EcsChildOf, garden0);
+  ecs_set(world, alley_thug, ZoneIndex, {.index = 0});
+
+  bool queued = azk_queue_triggered_effect(world, alley_thug, player0,
+                                           TIMING_TAG_WHEN_ATTACKING);
+  assert(queued);
+
+  bool processed = azk_process_triggered_effect_queue(world);
+  // Immediate no-target triggered abilities resolve synchronously and do not
+  // leave the engine in an active ability phase.
+  assert(!processed);
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_NONE);
+
+  const CurStats *buffed_stats = ecs_get(world, alley_thug, CurStats);
+  assert(buffed_stats != NULL);
+  assert(buffed_stats->cur_atk == 2);
+  assert(ecs_has_pair(world, alley_thug, ecs_id(AttackBuff), alley_thug));
+
+  expire_eot_attack_modifiers_in_zone(world, garden0);
+
+  const CurStats *reset_stats = ecs_get(world, alley_thug, CurStats);
+  assert(reset_stats != NULL);
+  assert(reset_stats->cur_atk == 1);
+  assert(!ecs_has_pair(world, alley_thug, ecs_id(AttackBuff), alley_thug));
+
+  ecs_fini(world);
+}
+
 static void test_triggered_mandatory_up_to_effect_skips_confirmation(void) {
   ecs_world_t *world = ecs_init();
   azk_register_components(world);
@@ -2847,6 +2902,7 @@ int main(void) {
   test_triggered_ability_confirmation_restores_active_player();
   test_triggered_ability_decline_restores_active_player();
   test_triggered_mandatory_target_selection_skips_confirmation();
+  test_azk01_004_when_attacking_buff_expires_end_of_turn();
   test_triggered_mandatory_up_to_effect_skips_confirmation();
   test_triggered_selection_pick_skips_confirmation_stt02_003();
   test_triggered_selection_pick_skips_confirmation_stt02_013();

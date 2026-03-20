@@ -49,6 +49,7 @@ export enum CardDefId {
   AZK01_001 = 36,
   AZK01_002 = 37,
   AZK01_003 = 38,
+  AZK01_004 = 39,
 }
 
 /**
@@ -95,6 +96,7 @@ const CARD_CODE_TO_DEF_ID: Record<string, CardDefId> = {
   "AZK01-001": CardDefId.AZK01_001,
   "AZK01-002": CardDefId.AZK01_002,
   "AZK01-003": CardDefId.AZK01_003,
+  "AZK01-004": CardDefId.AZK01_004,
 };
 
 /**
