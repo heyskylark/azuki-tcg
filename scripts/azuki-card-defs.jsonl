@@ -36,3 +36,4 @@
 {"card_id": "STT02-017", "name": "Shao's Perseverance", "rarity": "SR", "element": "WATER", "type": "SPELL", "ikz_cost": 6, "subtypes": ["Watercrafting", "Shao"]}
 {"card_id": "AZK01-001", "name": "Penny", "rarity": "C", "element": "NORMAL", "type": "ENTITY", "ikz_cost": 1, "attack": 0, "health": 1, "gate_points": 0, "subtypes": ["Beanz"], "keywords": ["defender"]}
 {"card_id": "AZK01-002", "name": "Healing Flutter", "rarity": "UC", "element": "NORMAL", "type": "SPELL", "ikz_cost": 1, "subtypes": ["Beanz"]}
+{"card_id": "AZK01-003", "name": "Black Jade Courier", "rarity": "C", "element": "NORMAL", "type": "ENTITY", "ikz_cost": 1, "attack": 1, "health": 1, "gate_points": 0, "subtypes": ["Black Jade", "Strider"]}

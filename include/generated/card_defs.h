@@ -112,7 +112,8 @@ typedef enum {
     CARD_DEF_STT02_017 = 35,
     CARD_DEF_AZK01_001 = 36,
     CARD_DEF_AZK01_002 = 37,
-    CARD_DEF_COUNT = 38
+    CARD_DEF_AZK01_003 = 38,
+    CARD_DEF_COUNT = 39
 } CardDefId;
 
 typedef struct {
@@ -170,6 +171,7 @@ extern ECS_TAG_DECLARE(TSubtype_Shao);
 extern ECS_TAG_DECLARE(TSubtype_Shuriken);
 extern ECS_TAG_DECLARE(TSubtype_Steelborn);
 extern ECS_TAG_DECLARE(TSubtype_Stormcaller);
+extern ECS_TAG_DECLARE(TSubtype_Strider);
 extern ECS_TAG_DECLARE(TSubtype_Subzero);
 extern ECS_TAG_DECLARE(TSubtype_SushiChef);
 extern ECS_TAG_DECLARE(TSubtype_Sword);

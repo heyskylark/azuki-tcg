@@ -1,6 +1,7 @@
 #include "abilities/ability_registry.h"
 
 #include "abilities/cards/azk01_002.h"
+#include "abilities/cards/azk01_003.h"
 #include "abilities/cards/st01_007.h"
 #include "abilities/cards/stt01_001.h"
 #include "abilities/cards/stt01_002.h"
@@ -244,6 +245,25 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .validate_effect_target = stt02_015_validate_effect_target,
       .apply_costs = NULL,
       .apply_effects = stt02_015_apply_effects,
+  };
+
+  // AZK01-003 "Black Jade Courier": [On Play] Look at the top 5 cards of your
+  // deck, reveal up to 1 Black Jade subtype card other than Black Jade Courier
+  // and add it to your hand, then bottom deck the rest in any order.
+  kAbilityRegistry[CARD_DEF_AZK01_003] = (AbilityDef){
+      .has_ability = true,
+      .is_optional = false,
+      .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .effect_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .timing_tag = ecs_id(AOnPlay),
+      .validate = azk01_003_validate,
+      .validate_cost_target = NULL,
+      .validate_effect_target = NULL,
+      .apply_costs = NULL,
+      .on_cost_paid = azk01_003_on_cost_paid,
+      .validate_selection_target = azk01_003_validate_selection_target,
+      .on_selection_complete = azk01_003_on_selection_complete,
+      .apply_effects = NULL,
   };
 
   // STT01-005: "Main; Alley Only; You may sacrifice this card: Draw 3 cards and
