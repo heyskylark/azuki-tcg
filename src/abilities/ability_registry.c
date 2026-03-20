@@ -1,5 +1,6 @@
 #include "abilities/ability_registry.h"
 
+#include "abilities/cards/azk01_002.h"
 #include "abilities/cards/st01_007.h"
 #include "abilities/cards/stt01_001.h"
 #include "abilities/cards/stt01_002.h"
@@ -543,6 +544,20 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .validate_effect_target = stt01_017_validate_effect_target,
       .apply_costs = NULL,
       .apply_effects = stt01_017_apply_effects,
+  };
+
+  // AZK01-002 "Healing Flutter": [Main] Heal 2 to your leader.
+  kAbilityRegistry[CARD_DEF_AZK01_002] = (AbilityDef){
+      .has_ability = true,
+      .is_optional = false,
+      .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .effect_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .timing_tag = ecs_id(AMain),
+      .validate = azk01_002_validate,
+      .validate_cost_target = NULL,
+      .validate_effect_target = NULL,
+      .apply_costs = NULL,
+      .apply_effects = azk01_002_apply_effects,
   };
 
   kRegistryInitialized = true;

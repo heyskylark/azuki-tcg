@@ -47,6 +47,7 @@ export enum CardDefId {
   STT02_016 = 34,
   STT02_017 = 35,
   AZK01_001 = 36,
+  AZK01_002 = 37,
 }
 
 /**
@@ -91,6 +92,7 @@ const CARD_CODE_TO_DEF_ID: Record<string, CardDefId> = {
   "STT02-016": CardDefId.STT02_016,
   "STT02-017": CardDefId.STT02_017,
   "AZK01-001": CardDefId.AZK01_001,
+  "AZK01-002": CardDefId.AZK01_002,
 };
 
 /**

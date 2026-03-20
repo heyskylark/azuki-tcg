@@ -5,7 +5,8 @@ INSERT INTO "cards" (
   "id", "card_code", "name", "rarity", "special_rarity", "element", "card_type",
   "attack", "health", "gate_points", "ikz_cost", "keywords", "subtypes",
   "effect_text", "flavor_text", "image_url"
-) VALUES (
+) VALUES
+(
   gen_random_uuid()::uuid,
   'AZK01-001',
   'Penny',
@@ -22,4 +23,22 @@ INSERT INTO "cards" (
   '[Defender] (If this card is in the Garden, you may tap it to redirect an attack to this card)',
   NULL,
   'S1-AZK01-001_Penny_E_C_die.jpg'
+),
+(
+  gen_random_uuid()::uuid,
+  'AZK01-002',
+  'Healing Flutter',
+  'UC',
+  NULL,
+  'NORMAL',
+  'SPELL',
+  NULL,
+  NULL,
+  NULL,
+  1,
+  ARRAY[]::text[],
+  ARRAY['Beanz'],
+  '[Main] Heal 2 to your leader',
+  NULL,
+  'S1-AZK01-002_Healing-Flutter_S_UC_die.jpg'
 );
