@@ -470,6 +470,52 @@ static void test_init_player_deck_raizen(void) {
   ecs_fini(world);
 }
 
+static void test_azk01_001_card_def_and_instantiation(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  const CardDef *def = azk_card_def_from_id(CARD_DEF_AZK01_001);
+  assert(def != NULL);
+  assert(strcmp(def->card_id, "AZK01-001") == 0);
+  assert(strcmp(def->name, "Penny") == 0);
+  assert(def->rarity == CARD_RARITY_C);
+  assert(def->element == CARD_ELEMENT_NORMAL);
+  assert(def->type == CARD_TYPE_ENTITY);
+  assert(def->has_base_stats);
+  assert(def->base_stats.attack == 0);
+  assert(def->base_stats.health == 1);
+  assert(def->has_gate_points);
+  assert(def->gate_points.gate_points == 0);
+  assert(def->has_ikz_cost);
+  assert(def->ikz_cost.ikz_cost == 1);
+  assert(!azk_has_ability(CARD_DEF_AZK01_001));
+
+  ecs_entity_t prefab = azk_prefab_from_id(CARD_DEF_AZK01_001);
+  assert(prefab != 0);
+  assert(ecs_has(world, prefab, TEntity));
+  assert(ecs_has(world, prefab, Defender));
+  assert(ecs_has(world, prefab, TSubtype_Beanz));
+
+  ecs_entity_t player = ecs_new(world);
+  ecs_set(world, player, PlayerId, {.pid = 0});
+  ecs_set(world, player, PlayerNumber, {.player_number = 0});
+
+  PlayerZones zones = {0};
+  zones.deck = create_zone(world, player, ZDeck, "Deck_P0");
+
+  ecs_entity_t card = ecs_new_w_pair(world, EcsIsA, prefab);
+  ecs_set_name(world, card, "AZK01-001_P0_1");
+  ecs_add_pair(world, card, EcsChildOf, zones.deck);
+  ecs_add_pair(world, card, Rel_OwnedBy, player);
+  attach_ability_components(world, card);
+
+  assert_card_components(world, card, def, &zones, player);
+  assert(ecs_has(world, card, Defender));
+  assert(ecs_has(world, card, TSubtype_Beanz));
+
+  ecs_fini(world);
+}
+
 static void test_ability_registry_lookup(void) {
   ecs_world_t *world = ecs_init();
   azk_register_components(world);
@@ -2557,6 +2603,7 @@ int main(void) {
   test_azk_world_init_sets_game_state();
   test_world_init_creates_player_zones();
   test_init_player_deck_raizen();
+  test_azk01_001_card_def_and_instantiation();
   test_ability_registry_lookup();
   test_st01_007_validate_needs_hand_and_deck();
   test_st01_007_validate_cost_target();

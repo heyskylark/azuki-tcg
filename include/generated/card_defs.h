@@ -110,7 +110,8 @@ typedef enum {
     CARD_DEF_STT02_015 = 33,
     CARD_DEF_STT02_016 = 34,
     CARD_DEF_STT02_017 = 35,
-    CARD_DEF_COUNT = 36
+    CARD_DEF_AZK01_001 = 36,
+    CARD_DEF_COUNT = 37
 } CardDefId;
 
 typedef struct {
@@ -152,6 +153,7 @@ extern ECS_TAG_DECLARE(TExtraIKZCard);
 /* Subtype Tags (auto-generated from JSONL) */
 extern ECS_TAG_DECLARE(TSubtype_AlleyDweller);
 extern ECS_TAG_DECLARE(TSubtype_Bandit);
+extern ECS_TAG_DECLARE(TSubtype_Beanz);
 extern ECS_TAG_DECLARE(TSubtype_BlackJade);
 extern ECS_TAG_DECLARE(TSubtype_Crab);
 extern ECS_TAG_DECLARE(TSubtype_Dawnling);
