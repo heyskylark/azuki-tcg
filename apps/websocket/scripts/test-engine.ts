@@ -52,6 +52,7 @@ const CardDefId = {
   STT02_017: 35,
   AZK01_001: 36,
   AZK01_002: 37,
+  AZK01_003: 38,
 } as const;
 
 // DeckCardEntry format matching the native binding

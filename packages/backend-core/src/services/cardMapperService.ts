@@ -48,6 +48,7 @@ export enum CardDefId {
   STT02_017 = 35,
   AZK01_001 = 36,
   AZK01_002 = 37,
+  AZK01_003 = 38,
 }
 
 /**
@@ -93,6 +94,7 @@ const CARD_CODE_TO_DEF_ID: Record<string, CardDefId> = {
   "STT02-017": CardDefId.STT02_017,
   "AZK01-001": CardDefId.AZK01_001,
   "AZK01-002": CardDefId.AZK01_002,
+  "AZK01-003": CardDefId.AZK01_003,
 };
 
 /**
@@ -143,7 +145,10 @@ interface CardWithType {
 function selectLeastRareCards(
   cards: Array<{ id: string; cardCode: string; rarity: CardRarity }>
 ): Map<string, string> {
-  const cardsByCode = new Map<string, Array<{ id: string; cardCode: string; rarity: CardRarity }>>();
+  const cardsByCode = new Map<
+    string,
+    Array<{ id: string; cardCode: string; rarity: CardRarity }>
+  >();
   for (const card of cards) {
     const existing = cardsByCode.get(card.cardCode) ?? [];
     existing.push(card);

@@ -598,6 +598,16 @@ static void test_ability_registry_lookup(void) {
   assert(azk01_002_def->validate != NULL);
   assert(azk01_002_def->apply_effects != NULL);
 
+  const AbilityDef *azk01_003_def = azk_get_ability_def(CARD_DEF_AZK01_003);
+  assert(azk01_003_def != NULL);
+  assert(azk01_003_def->has_ability);
+  assert(!azk01_003_def->is_optional);
+  assert(azk01_003_def->timing_tag == ecs_id(AOnPlay));
+  assert(azk01_003_def->validate != NULL);
+  assert(azk01_003_def->on_cost_paid != NULL);
+  assert(azk01_003_def->validate_selection_target != NULL);
+  assert(azk01_003_def->on_selection_complete != NULL);
+
   // A card without ability should return NULL or has_ability=false
   const AbilityDef *no_ability = azk_get_ability_def(CARD_DEF_IKZ_001);
   assert(no_ability == NULL || !no_ability->has_ability);
@@ -2193,6 +2203,99 @@ static void test_triggered_selection_pick_skips_confirmation_stt02_013(void) {
   ecs_fini(world);
 }
 
+static void test_azk01_003_ability_flow_excludes_self_and_adds_black_jade_card(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  ecs_set(world, ecs_id(GameState), GameState, {0});
+  ecs_set(world, ecs_id(AbilityContext), AbilityContext, {0});
+
+  ecs_entity_t player = ecs_new(world);
+  ecs_set(world, player, PlayerId, {.pid = 0});
+  ecs_set(world, player, PlayerNumber, {.player_number = 0});
+
+  ecs_entity_t deck = create_zone(world, player, ZDeck, "Deck_P0");
+  ecs_entity_t hand = create_zone(world, player, ZHand, "Hand_P0");
+  ecs_entity_t selection = create_zone(world, player, ZSelection, "Selection_P0");
+
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->players[0] = player;
+  gs->zones[0].deck = deck;
+  gs->zones[0].hand = hand;
+  gs->zones[0].selection = selection;
+  gs->active_player_index = 0;
+  ecs_singleton_modified(world, GameState);
+
+  ecs_entity_t filler0 = ecs_new(world);
+  ecs_add_pair(world, filler0, EcsChildOf, deck);
+  ecs_add_pair(world, filler0, Rel_OwnedBy, player);
+  ecs_set(world, filler0, CardId, {.id = CARD_DEF_STT02_004, .code = "FILLER0"});
+  ecs_set(world, filler0, Type, {.value = CARD_TYPE_ENTITY});
+
+  ecs_entity_t filler1 = ecs_new(world);
+  ecs_add_pair(world, filler1, EcsChildOf, deck);
+  ecs_add_pair(world, filler1, Rel_OwnedBy, player);
+  ecs_set(world, filler1, CardId, {.id = CARD_DEF_STT02_007, .code = "FILLER1"});
+  ecs_set(world, filler1, Type, {.value = CARD_TYPE_ENTITY});
+
+  ecs_entity_t courier_in_deck = ecs_new(world);
+  ecs_add_pair(world, courier_in_deck, EcsChildOf, deck);
+  ecs_add_pair(world, courier_in_deck, Rel_OwnedBy, player);
+  ecs_set(world, courier_in_deck, CardId,
+          {.id = CARD_DEF_AZK01_003, .code = "AZK01-003"});
+  ecs_set(world, courier_in_deck, Type, {.value = CARD_TYPE_ENTITY});
+  ecs_add_id(world, courier_in_deck, ecs_id(TSubtype_BlackJade));
+  ecs_add_id(world, courier_in_deck, ecs_id(TSubtype_Strider));
+
+  ecs_entity_t filler2 = ecs_new(world);
+  ecs_add_pair(world, filler2, EcsChildOf, deck);
+  ecs_add_pair(world, filler2, Rel_OwnedBy, player);
+  ecs_set(world, filler2, CardId, {.id = CARD_DEF_STT01_005, .code = "FILLER2"});
+  ecs_set(world, filler2, Type, {.value = CARD_TYPE_ENTITY});
+
+  ecs_entity_t black_jade_target = ecs_new(world);
+  ecs_add_pair(world, black_jade_target, EcsChildOf, deck);
+  ecs_add_pair(world, black_jade_target, Rel_OwnedBy, player);
+  ecs_set(world, black_jade_target, CardId,
+          {.id = CARD_DEF_STT01_004, .code = "STT01-004"});
+  ecs_set(world, black_jade_target, Type, {.value = CARD_TYPE_ENTITY});
+  ecs_add_id(world, black_jade_target, ecs_id(TSubtype_BlackJade));
+  ecs_add_id(world, black_jade_target, ecs_id(TSubtype_Dawnling));
+
+  ecs_entity_t courier = ecs_new(world);
+  ecs_set(world, courier, CardId, {.id = CARD_DEF_AZK01_003, .code = "AZK01-003"});
+
+  bool queued = azk_trigger_on_play_ability(world, courier, player);
+  assert(queued);
+
+  bool processed = azk_process_triggered_effect_queue(world);
+  assert(processed);
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_SELECTION_PICK);
+
+  bool rejected = azk_process_selection_pick(world, 2);
+  assert(!rejected);
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_SELECTION_PICK);
+
+  bool selected = azk_process_selection_pick(world, 0);
+  assert(selected);
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_BOTTOM_DECK);
+
+  ecs_entities_t hand_cards = ecs_get_ordered_children(world, hand);
+  assert(hand_cards.count == 1);
+  assert(hand_cards.ids[0] == black_jade_target);
+
+  bool bottom_decked = azk_process_bottom_deck_all(world);
+  assert(bottom_decked);
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_NONE);
+
+  ecs_entities_t final_deck = ecs_get_ordered_children(world, deck);
+  ecs_entities_t final_selection = ecs_get_ordered_children(world, selection);
+  assert(final_deck.count == 4);
+  assert(final_selection.count == 0);
+
+  ecs_fini(world);
+}
+
 static void test_leader_response_enters_effect_selection(void) {
   ecs_world_t *world = ecs_init();
   azk_register_components(world);
@@ -2747,6 +2850,7 @@ int main(void) {
   test_triggered_mandatory_up_to_effect_skips_confirmation();
   test_triggered_selection_pick_skips_confirmation_stt02_003();
   test_triggered_selection_pick_skips_confirmation_stt02_013();
+  test_azk01_003_ability_flow_excludes_self_and_adds_black_jade_card();
   test_leader_response_enters_effect_selection();
   test_gate_portal_enters_selection_flow_stt01_002();
   test_start_phase_skips_opening_draw_for_starting_player();
