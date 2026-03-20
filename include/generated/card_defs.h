@@ -111,7 +111,8 @@ typedef enum {
     CARD_DEF_STT02_016 = 34,
     CARD_DEF_STT02_017 = 35,
     CARD_DEF_AZK01_001 = 36,
-    CARD_DEF_COUNT = 37
+    CARD_DEF_AZK01_002 = 37,
+    CARD_DEF_COUNT = 38
 } CardDefId;
 
 typedef struct {

@@ -588,6 +588,16 @@ static void test_ability_registry_lookup(void) {
   assert(stt02_013_def->has_ability);
   assert(!stt02_013_def->is_optional);
 
+  const AbilityDef *azk01_002_def = azk_get_ability_def(CARD_DEF_AZK01_002);
+  assert(azk01_002_def != NULL);
+  assert(azk01_002_def->has_ability);
+  assert(!azk01_002_def->is_optional);
+  assert(azk01_002_def->timing_tag == ecs_id(AMain));
+  assert(azk01_002_def->cost_req.type == ABILITY_TARGET_NONE);
+  assert(azk01_002_def->effect_req.type == ABILITY_TARGET_NONE);
+  assert(azk01_002_def->validate != NULL);
+  assert(azk01_002_def->apply_effects != NULL);
+
   // A card without ability should return NULL or has_ability=false
   const AbilityDef *no_ability = azk_get_ability_def(CARD_DEF_IKZ_001);
   assert(no_ability == NULL || !no_ability->has_ability);
@@ -1797,6 +1807,109 @@ static void test_stt02_014_action_mask_uses_zone_index(void) {
   ecs_fini(world);
 }
 
+static void test_azk01_002_validate_rejects_dead_leader(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  ecs_set(world, ecs_id(GameState), GameState, {0});
+  ecs_set(world, ecs_id(AbilityContext), AbilityContext, {0});
+
+  ecs_entity_t player0 = ecs_new(world);
+  ecs_set(world, player0, PlayerId, {.pid = 0});
+  ecs_set(world, player0, PlayerNumber, {.player_number = 0});
+
+  ecs_entity_t leader0 = create_zone(world, player0, ZLeader, "Leader_P0");
+
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->players[0] = player0;
+  gs->zones[0].leader = leader0;
+  ecs_singleton_modified(world, GameState);
+
+  ecs_entity_t leader_card = ecs_new(world);
+  ecs_set(world, leader_card, CardId, {.id = CARD_DEF_STT01_001, .code = "STT01-001"});
+  ecs_set(world, leader_card, Type, {.value = CARD_TYPE_LEADER});
+  ecs_set(world, leader_card, BaseStats, {.attack = 0, .health = 20});
+  ecs_set(world, leader_card, CurStats, {.cur_atk = 0, .cur_hp = 20});
+  ecs_add_pair(world, leader_card, Rel_OwnedBy, player0);
+  ecs_add_pair(world, leader_card, EcsChildOf, leader0);
+
+  ecs_entity_t spell_card = ecs_new(world);
+  ecs_set(world, spell_card, CardId,
+          {.id = CARD_DEF_AZK01_002, .code = "AZK01-002"});
+  ecs_set(world, spell_card, Type, {.value = CARD_TYPE_SPELL});
+  ecs_add_pair(world, spell_card, Rel_OwnedBy, player0);
+
+  const AbilityDef *def = azk_get_ability_def(CARD_DEF_AZK01_002);
+  assert(def != NULL);
+  assert(def->validate != NULL);
+  assert(def->validate(world, spell_card, player0));
+
+  ecs_set(world, leader_card, CurStats, {.cur_atk = 0, .cur_hp = 18});
+  assert(def->validate(world, spell_card, player0));
+
+  ecs_set(world, leader_card, CurStats, {.cur_atk = 0, .cur_hp = 0});
+  assert(!def->validate(world, spell_card, player0));
+
+  ecs_fini(world);
+}
+
+static void test_azk01_002_spell_heals_owner_leader(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  ecs_set(world, ecs_id(GameState), GameState, {0});
+  ecs_set(world, ecs_id(AbilityContext), AbilityContext, {0});
+
+  ecs_entity_t player0 = ecs_new(world);
+  ecs_set(world, player0, PlayerId, {.pid = 0});
+  ecs_set(world, player0, PlayerNumber, {.player_number = 0});
+
+  ecs_entity_t leader0 = create_zone(world, player0, ZLeader, "Leader_P0");
+
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->phase = PHASE_MAIN;
+  gs->active_player_index = 0;
+  gs->players[0] = player0;
+  gs->zones[0].leader = leader0;
+  ecs_singleton_modified(world, GameState);
+
+  ecs_entity_t leader_card = ecs_new(world);
+  ecs_set(world, leader_card, CardId, {.id = CARD_DEF_STT01_001, .code = "STT01-001"});
+  ecs_set(world, leader_card, Type, {.value = CARD_TYPE_LEADER});
+  ecs_set(world, leader_card, BaseStats, {.attack = 0, .health = 20});
+  ecs_set(world, leader_card, CurStats, {.cur_atk = 0, .cur_hp = 17});
+  ecs_add_pair(world, leader_card, Rel_OwnedBy, player0);
+  ecs_add_pair(world, leader_card, EcsChildOf, leader0);
+
+  ecs_entity_t spell_card = ecs_new(world);
+  ecs_set(world, spell_card, CardId,
+          {.id = CARD_DEF_AZK01_002, .code = "AZK01-002"});
+  ecs_set(world, spell_card, Type, {.value = CARD_TYPE_SPELL});
+  ecs_add_pair(world, spell_card, Rel_OwnedBy, player0);
+
+  bool entered_selection = azk_trigger_spell_ability(world, spell_card, player0);
+  assert(!entered_selection);
+  const CurStats *leader_stats = ecs_get(world, leader_card, CurStats);
+  assert(leader_stats != NULL);
+  assert(leader_stats->cur_hp == 19);
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_NONE);
+
+  ecs_set(world, leader_card, CurStats, {.cur_atk = 0, .cur_hp = 19});
+  entered_selection = azk_trigger_spell_ability(world, spell_card, player0);
+  assert(!entered_selection);
+  leader_stats = ecs_get(world, leader_card, CurStats);
+  assert(leader_stats != NULL);
+  assert(leader_stats->cur_hp == 20);
+
+  entered_selection = azk_trigger_spell_ability(world, spell_card, player0);
+  assert(!entered_selection);
+  leader_stats = ecs_get(world, leader_card, CurStats);
+  assert(leader_stats != NULL);
+  assert(leader_stats->cur_hp == 20);
+
+  ecs_fini(world);
+}
+
 static void test_triggered_ability_confirmation_restores_active_player(void) {
   ecs_world_t *world = ecs_init();
   azk_register_components(world);
@@ -2626,6 +2739,8 @@ int main(void) {
   test_draw_cards_with_deckout_check_success();
   test_stt02_014_effect_target_uses_zone_index();
   test_stt02_014_action_mask_uses_zone_index();
+  test_azk01_002_validate_rejects_dead_leader();
+  test_azk01_002_spell_heals_owner_leader();
   test_triggered_ability_confirmation_restores_active_player();
   test_triggered_ability_decline_restores_active_player();
   test_triggered_mandatory_target_selection_skips_confirmation();
