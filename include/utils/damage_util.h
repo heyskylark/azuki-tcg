@@ -5,6 +5,8 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "components/components.h"
+
 /**
  * Deal damage from a card effect (spell, ability, weapon) to an entity.
  * This checks for EffectImmune status and prevents damage if the target
@@ -16,5 +18,18 @@
  * @return true if damage was dealt, false if blocked by EffectImmune
  */
 bool deal_effect_damage(ecs_world_t *world, ecs_entity_t target, int8_t damage);
+bool deal_effect_damage_from_source(ecs_world_t *world, ecs_entity_t source,
+                                    ecs_entity_t target, int8_t damage);
+void azk_record_damage_event(ecs_world_t *world, ecs_entity_t source,
+                             ecs_entity_t target, int8_t actual_damage,
+                             bool from_effect);
+bool azk_enqueue_pending_damage_redirect(ecs_world_t *world, ecs_entity_t source,
+                                         ecs_entity_t original_target,
+                                         ecs_entity_t owner, int8_t damage);
+bool azk_has_pending_damage_redirect_for_target(ecs_world_t *world,
+                                                ecs_entity_t target);
+bool azk_consume_pending_damage_redirect(ecs_world_t *world,
+                                         ecs_entity_t target,
+                                         PendingDamageRedirect *out_redirect);
 
 #endif

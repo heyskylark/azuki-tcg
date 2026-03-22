@@ -9,6 +9,18 @@ Charge:
 Defender:
 - can be tapped to redirect an attack to the defender during the response window.
 
+Infiltrate:
+- when this card attacks, the defending player cannot activate Defender during that attack.
+
+Carapace N:
+- reduces damage from all sources by N.
+- stacks with additional Carapace granted later.
+
+Godmode:
+- cannot leave the field from damage or card effects.
+- can still be targeted.
+- can still be replaced when a row is full.
+
 Immune to Effects
 - cannot be damaged by card effects
 
@@ -25,10 +37,12 @@ typedef struct {
 ## Card Conditions
 
 Frozen:
-Card cannot attack or be damaged
+- abilities are disabled.
+- card cannot attack.
+- card cannot be damaged.
 
 Shocked:
-Card cannot be untapped while this effect is active.
+- card skips its next untap step.
 
 Applied as a tag FROZEN or SHOCKED.
 If it is short lived, we'll apply a card condition countdown component:
@@ -171,5 +185,4 @@ Can only be played during the main phase.
 Can only be played during the response window.
 
 ## Effects
-
 

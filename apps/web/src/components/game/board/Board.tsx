@@ -81,6 +81,8 @@ const DECK_X = RIGHT_SIDE_X;
 const DISCARD_X = RIGHT_SIDE_X + 1.8;
 const IKZ_PILE_X = -6;
 const ATTACK_DRAG_THRESHOLD = 6;
+const ATTACK_TARGET_OPP_LEADER = 5;
+const ATTACK_TARGET_OPP_ALLEY_OFFSET = 6;
 const PHASE_TRACK_Y = -0.04;
 const MAIN_PHASE_TRACK_Z = -0.34;
 const SUBPHASE_TRACK_Z = 0.34;
@@ -887,7 +889,11 @@ function CardRow({
 
           const isAttackSource = !isOpponent && zone === "garden" && attackableSlots?.has(index);
 
-          const isAttackTarget = isOpponent && zone === "garden" && attackTargets?.has(index);
+          const isAttackTarget =
+            isOpponent &&
+            ((zone === "garden" && attackTargets?.has(index)) ||
+              (zone === "alley" &&
+                attackTargets?.has(index + ATTACK_TARGET_OPP_ALLEY_OFFSET)));
 
           const isDefenderTarget = !isOpponent && zone === "garden" && defenderTargets?.has(index);
 

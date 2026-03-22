@@ -20,6 +20,15 @@
 // Forward declaration of timing tag constant
 #define TIMING_TAG_ON_PLAY_FWD 0
 
+static AbilitySelectionCompletionMode get_selection_completion_mode(
+    const AbilityDef *def) {
+  if (def && def->clear_selection_if_still_active) {
+    return AZK_SELECTION_COMPLETION_CLEAR_IF_STILL_ACTIVE;
+  }
+
+  return AZK_SELECTION_COMPLETION_ALLOW_BOTTOM_DECK;
+}
+
 bool azk_trigger_on_play_ability(ecs_world_t *world, ecs_entity_t card,
                                  ecs_entity_t owner) {
   // Get card ID
@@ -73,6 +82,123 @@ bool azk_trigger_when_equipped_ability(ecs_world_t *world, ecs_entity_t card,
 
   // Queue for processing after deferred ops (ChildOf) flush
   return azk_queue_triggered_effect(world, card, owner, TIMING_TAG_WHEN_EQUIPPED);
+}
+
+bool azk_trigger_enter_garden_ability(ecs_world_t *world, ecs_entity_t card,
+                                      ecs_entity_t owner) {
+  const CardId *card_id = ecs_get(world, card, CardId);
+  if (!card_id || !azk_has_ability(card_id->id)) {
+    return false;
+  }
+
+  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  if (def == NULL || !def->has_ability ||
+      def->timing_tag != ecs_id(AWhenEntersGarden)) {
+    return false;
+  }
+
+  return azk_queue_triggered_effect(world, card, owner,
+                                    TIMING_TAG_WHEN_ENTERS_GARDEN);
+}
+
+static bool queue_timing_abilities_in_zone(ecs_world_t *world,
+                                           ecs_entity_t owner,
+                                           ecs_entity_t zone,
+                                           uint8_t timing_tag,
+                                           ecs_id_t timing_tag_id) {
+  bool queued_any = false;
+  ecs_entities_t cards = ecs_get_ordered_children(world, zone);
+
+  for (int32_t i = 0; i < cards.count; i++) {
+    ecs_entity_t card = cards.ids[i];
+    if (!ecs_has_id(world, card, timing_tag_id)) {
+      continue;
+    }
+
+    const CardId *card_id = ecs_get(world, card, CardId);
+    if (!card_id ||
+        !azk_has_ability_with_timing(card_id->id, timing_tag_id)) {
+      continue;
+    }
+
+    if (azk_queue_triggered_effect(world, card, owner, timing_tag)) {
+      queued_any = true;
+    }
+  }
+
+  return queued_any;
+}
+
+bool azk_trigger_end_of_turn_abilities(ecs_world_t *world) {
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  if (!gs) {
+    return false;
+  }
+
+  const uint8_t active_player_index = gs->active_player_index;
+  const ecs_entity_t owner = gs->players[active_player_index];
+  const ecs_id_t timing_tag_id = ecs_id(AEndOfTurn);
+  bool queued_any = false;
+
+  queued_any |= queue_timing_abilities_in_zone(
+      world, owner, gs->zones[active_player_index].garden,
+      TIMING_TAG_END_OF_TURN, timing_tag_id);
+  queued_any |= queue_timing_abilities_in_zone(
+      world, owner, gs->zones[active_player_index].leader,
+      TIMING_TAG_END_OF_TURN, timing_tag_id);
+  queued_any |= queue_timing_abilities_in_zone(
+      world, owner, gs->zones[active_player_index].alley,
+      TIMING_TAG_END_OF_TURN, timing_tag_id);
+
+  return queued_any;
+}
+
+bool azk_trigger_start_of_turn_abilities(ecs_world_t *world) {
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  if (!gs) {
+    return false;
+  }
+
+  const uint8_t active_player_index = gs->active_player_index;
+  const ecs_entity_t owner = gs->players[active_player_index];
+  const ecs_id_t timing_tag_id = ecs_id(AStartOfTurn);
+  bool queued_any = false;
+
+  queued_any |= queue_timing_abilities_in_zone(
+      world, owner, gs->zones[active_player_index].garden,
+      TIMING_TAG_START_OF_TURN, timing_tag_id);
+  queued_any |= queue_timing_abilities_in_zone(
+      world, owner, gs->zones[active_player_index].leader,
+      TIMING_TAG_START_OF_TURN, timing_tag_id);
+  queued_any |= queue_timing_abilities_in_zone(
+      world, owner, gs->zones[active_player_index].alley,
+      TIMING_TAG_START_OF_TURN, timing_tag_id);
+
+  return queued_any;
+}
+
+bool azk_trigger_start_of_each_turn_abilities(ecs_world_t *world) {
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  if (!gs) {
+    return false;
+  }
+
+  bool queued_any = false;
+  const ecs_id_t timing_tag_id = ecs_id(AStartOfEachTurn);
+  for (uint8_t player_num = 0; player_num < MAX_PLAYERS_PER_MATCH; ++player_num) {
+    ecs_entity_t owner = gs->players[player_num];
+    queued_any |= queue_timing_abilities_in_zone(
+        world, owner, gs->zones[player_num].garden,
+        TIMING_TAG_START_OF_EACH_TURN, timing_tag_id);
+    queued_any |= queue_timing_abilities_in_zone(
+        world, owner, gs->zones[player_num].leader,
+        TIMING_TAG_START_OF_EACH_TURN, timing_tag_id);
+    queued_any |= queue_timing_abilities_in_zone(
+        world, owner, gs->zones[player_num].alley,
+        TIMING_TAG_START_OF_EACH_TURN, timing_tag_id);
+  }
+
+  return queued_any;
 }
 
 bool azk_process_ability_confirmation(ecs_world_t *world) {
@@ -147,6 +273,43 @@ bool azk_process_ability_decline(ecs_world_t *world) {
   return true;
 }
 
+static bool finish_cost_selection(ecs_world_t *world, AbilityContext *ctx,
+                                  const AbilityDef *def) {
+  if (!ctx || !def) {
+    return false;
+  }
+
+  if (def->apply_costs) {
+    def->apply_costs(world, ctx);
+    cli_render_logf("[Ability] Applied costs");
+  }
+
+  if (def->on_cost_paid) {
+    def->on_cost_paid(world, ctx);
+    cli_render_logf("[Ability] Called on_cost_paid callback");
+    if (ctx->runtime.phase == ABILITY_PHASE_SELECTION_PICK ||
+        ctx->runtime.phase == ABILITY_PHASE_BOTTOM_DECK) {
+      ecs_singleton_modified(world, AbilityContext);
+      return true;
+    }
+  }
+
+  if (def->effect_req.max > 0) {
+    ctx->runtime.phase = ABILITY_PHASE_EFFECT_SELECTION;
+    cli_render_logf("[Ability] Moving to effect selection");
+    ecs_singleton_modified(world, AbilityContext);
+    return true;
+  }
+
+  if (def->apply_effects) {
+    def->apply_effects(world, ctx);
+    cli_render_logf("[Ability] Applied effects");
+  }
+
+  azk_clear_ability_context(world);
+  return true;
+}
+
 bool azk_process_cost_selection(ecs_world_t *world, int target_index) {
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
 
@@ -192,45 +355,40 @@ bool azk_process_cost_selection(ecs_world_t *world, int target_index) {
   cli_render_logf("[Ability] Added cost target %d (%d/%d)", target_index,
                   ctx->cost.selected_count, ctx->cost.max_allowed);
 
-  // Check if we have enough targets
   if (ctx->cost.selected_count >= ctx->cost.max_allowed) {
-    // Apply costs
-    if (def->apply_costs) {
-      def->apply_costs(world, ctx);
-      cli_render_logf("[Ability] Applied costs");
-    }
-
-    // Call on_cost_paid callback if defined (for multi-step abilities)
-    if (def->on_cost_paid) {
-      def->on_cost_paid(world, ctx);
-      cli_render_logf("[Ability] Called on_cost_paid callback");
-      // on_cost_paid may have set up selection phase - check if we should
-      // continue
-      if (ctx->runtime.phase == ABILITY_PHASE_SELECTION_PICK ||
-          ctx->runtime.phase == ABILITY_PHASE_BOTTOM_DECK) {
-        ecs_singleton_modified(world, AbilityContext);
-        return true;
-      }
-    }
-
-    // Move to effect selection or apply effects
-    // Use max > 0 (not min > 0) to enter effect selection for "up to" effects
-    if (def->effect_req.max > 0) {
-      ctx->runtime.phase = ABILITY_PHASE_EFFECT_SELECTION;
-      cli_render_logf("[Ability] Moving to effect selection");
-    } else {
-      // No effect targets possible - apply effects and finish
-      if (def->apply_effects) {
-        def->apply_effects(world, ctx);
-        cli_render_logf("[Ability] Applied effects");
-      }
-      azk_clear_ability_context(world);
-      return true;
-    }
+    return finish_cost_selection(world, ctx, def);
   }
 
   ecs_singleton_modified(world, AbilityContext);
   return true;
+}
+
+bool azk_process_cost_skip(ecs_world_t *world) {
+  AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
+
+  if (ctx->runtime.phase != ABILITY_PHASE_COST_SELECTION) {
+    return false;
+  }
+
+  const CardId *card_id = ecs_get(world, ctx->runtime.source_card, CardId);
+  if (!card_id) {
+    azk_clear_ability_context(world);
+    return false;
+  }
+
+  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  if (!def) {
+    azk_clear_ability_context(world);
+    return false;
+  }
+
+  if (ctx->cost.selected_count < ctx->cost.min_required) {
+    cli_render_logf(
+        "[Ability] Cannot finish cost selection before minimum is reached");
+    return false;
+  }
+
+  return finish_cost_selection(world, ctx, def);
 }
 
 bool azk_process_effect_selection(ecs_world_t *world, int target_index) {
@@ -282,11 +440,17 @@ bool azk_process_effect_selection(ecs_world_t *world, int target_index) {
   // Check if we have enough targets
   if (ctx->effect.selected_count >= ctx->effect.max_allowed) {
     // Apply effects and finish
+    AbilityPhase phase_before_effects = ctx->runtime.phase;
     if (def->apply_effects) {
       def->apply_effects(world, ctx);
       cli_render_logf("[Ability] Applied effects");
     }
-    azk_clear_ability_context(world);
+    if (ctx->runtime.phase != phase_before_effects &&
+        ctx->runtime.phase != ABILITY_PHASE_NONE) {
+      ecs_singleton_modified(world, AbilityContext);
+    } else {
+      azk_clear_ability_context(world);
+    }
   } else {
     ecs_singleton_modified(world, AbilityContext);
   }
@@ -301,10 +465,9 @@ bool azk_process_effect_skip(ecs_world_t *world) {
     return false;
   }
 
-  // Can only skip if minimum is 0 ("up to" effects)
-  if (ctx->effect.min_required > 0) {
+  if (ctx->effect.selected_count < ctx->effect.min_required) {
     cli_render_logf(
-        "[Ability] Cannot skip effect selection - minimum targets required");
+        "[Ability] Cannot finish effect selection before minimum is reached");
     return false;
   }
 
@@ -320,10 +483,15 @@ bool azk_process_effect_skip(ecs_world_t *world) {
     return false;
   }
 
-  // Apply effects with no targets (effect.selected_count == 0)
   if (def->apply_effects) {
+    AbilityPhase phase_before_effects = ctx->runtime.phase;
     def->apply_effects(world, ctx);
-    cli_render_logf("[Ability] Applied effects (skipped target selection)");
+    cli_render_logf("[Ability] Applied effects (finished target selection)");
+    if (ctx->runtime.phase != phase_before_effects &&
+        ctx->runtime.phase != ABILITY_PHASE_NONE) {
+      ecs_singleton_modified(world, AbilityContext);
+      return true;
+    }
   }
 
   azk_clear_ability_context(world);
@@ -364,7 +532,9 @@ bool azk_process_selection_pick(ecs_world_t *world, int selection_index) {
 
   // Safety check: verify ability allows adding to hand
   // If ability has special selection modes but can_select_to_hand is false, reject
-  bool has_special_selection = def->can_select_to_alley || def->can_select_to_equip;
+  bool has_special_selection = def->can_select_to_garden ||
+                               def->can_select_to_alley ||
+                               def->can_select_to_equip;
   if (has_special_selection && !def->can_select_to_hand) {
     cli_render_logf("[Ability] Selection pick not allowed - must use equip or alley action");
     return false;
@@ -386,7 +556,111 @@ bool azk_process_selection_pick(ecs_world_t *world, int selection_index) {
   // Check if we've picked enough
   if (ctx->selection.picked_count >= ctx->selection.pick_max) {
     return azk_finish_selection_resolution(
-        world, ctx, def, AZK_SELECTION_COMPLETION_ALLOW_BOTTOM_DECK);
+        world, ctx, def, get_selection_completion_mode(def));
+  }
+
+  ecs_singleton_modified(world, AbilityContext);
+  return true;
+}
+
+bool azk_process_selection_to_garden(ecs_world_t *world, int selection_index,
+                                     int garden_slot_index) {
+  AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
+
+  if (ctx->runtime.phase != ABILITY_PHASE_SELECTION_PICK) {
+    return false;
+  }
+
+  if (selection_index < 0 || selection_index >= ctx->selection.count) {
+    cli_render_logf("[Ability] Invalid selection index %d (count=%d)",
+                    selection_index, ctx->selection.count);
+    return false;
+  }
+
+  if (garden_slot_index < 0 || garden_slot_index >= GARDEN_SIZE) {
+    cli_render_logf("[Ability] Invalid garden slot index %d", garden_slot_index);
+    return false;
+  }
+
+  ecs_entity_t target = ctx->selection.cards[selection_index];
+  if (target == 0) {
+    cli_render_logf("[Ability] Selection slot %d is empty", selection_index);
+    return false;
+  }
+
+  const CardId *card_id = ecs_get(world, ctx->runtime.source_card, CardId);
+  if (!card_id) {
+    azk_clear_ability_context(world);
+    return false;
+  }
+
+  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  if (!def) {
+    azk_clear_ability_context(world);
+    return false;
+  }
+
+  if (!def->can_select_to_garden) {
+    cli_render_logf("[Ability] This ability does not allow selecting to garden");
+    return false;
+  }
+
+  const Type *target_type = ecs_get(world, target, Type);
+  if (!target_type || target_type->value != CARD_TYPE_ENTITY) {
+    cli_render_logf("[Ability] Only entity cards can be selected to garden");
+    return false;
+  }
+
+  if (def->validate_selection_target &&
+      !def->validate_selection_target(world, ctx->runtime.source_card,
+                                      ctx->runtime.owner, target)) {
+    cli_render_logf("[Ability] Selection target validation failed");
+    return false;
+  }
+
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  const uint8_t player_num = get_player_number(world, ctx->runtime.owner);
+  const ecs_entity_t garden = gs->zones[player_num].garden;
+  ecs_entity_t displaced_card =
+      find_card_in_zone_index(world, garden, garden_slot_index);
+  const ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
+
+  if (displaced_card != 0 && garden_cards.count < GARDEN_SIZE) {
+    cli_render_logf("[Ability] Garden slot %d is already occupied",
+                    garden_slot_index);
+    return false;
+  }
+
+  PlayEntityIntent intent = {
+      .player = ctx->runtime.owner,
+      .card = target,
+      .placement_type = ZONE_GARDEN,
+      .target_zone = garden,
+      .zone_index = garden_slot_index,
+      .displaced_card = displaced_card,
+  };
+
+  if (summon_card_into_zone_index(world, &intent) < 0) {
+    cli_render_logf("[Ability] Failed to place selected card into garden");
+    return false;
+  }
+
+  GameState *gs_mut = ecs_singleton_get_mut(world, GameState);
+  gs_mut->entities_played_garden_this_turn[player_num]++;
+  gs_mut->cards_played_this_turn[player_num]++;
+  gs_mut->next_card_play_cost_reduction[player_num] = 0;
+  ecs_singleton_modified(world, GameState);
+
+  azk_trigger_on_play_ability(world, target, ctx->runtime.owner);
+
+  cli_render_logf("[Ability] Selected card to garden slot %d",
+                  garden_slot_index);
+
+  azk_record_selection_pick(ctx, selection_index, target);
+
+  if (ctx->selection.picked_count >= ctx->selection.pick_max) {
+    return azk_finish_selection_resolution(
+        world, ctx, def, get_selection_completion_mode(def));
   }
 
   ecs_singleton_modified(world, AbilityContext);
@@ -483,7 +757,7 @@ bool azk_process_selection_to_alley(ecs_world_t *world, int selection_index,
       return false;
     }
     // Alley is full - forced replacement allowed
-    discard_card(world, displaced_card);
+    discard_card_for_replacement(world, displaced_card);
     cli_render_logf("[Ability] Displaced card from alley slot %d",
                     alley_slot_index);
   }
@@ -505,6 +779,8 @@ bool azk_process_selection_to_alley(ecs_world_t *world, int selection_index,
   // STT02-005)
   GameState *gs_mut = ecs_singleton_get_mut(world, GameState);
   gs_mut->entities_played_alley_this_turn[player_num]++;
+  gs_mut->cards_played_this_turn[player_num]++;
+  gs_mut->next_card_play_cost_reduction[player_num] = 0;
   ecs_singleton_modified(world, GameState);
 
   // Queue on-play ability for the played entity (if it has one)
@@ -513,12 +789,12 @@ bool azk_process_selection_to_alley(ecs_world_t *world, int selection_index,
 
   cli_render_logf("[Ability] Selected card to alley slot %d", alley_slot_index);
 
-  azk_record_selection_pick(ctx, selection_index, 0);
+  azk_record_selection_pick(ctx, selection_index, target);
 
   // Check if we've picked enough
   if (ctx->selection.picked_count >= ctx->selection.pick_max) {
     return azk_finish_selection_resolution(
-        world, ctx, def, AZK_SELECTION_COMPLETION_ALLOW_BOTTOM_DECK);
+        world, ctx, def, get_selection_completion_mode(def));
   }
 
   ecs_singleton_modified(world, AbilityContext);
@@ -613,6 +889,14 @@ bool azk_process_selection_to_equip(ecs_world_t *world, int selection_index,
     return false;
   }
 
+  const ReequipOrigin *reequip_origin =
+      ecs_get(world, weapon, ReequipOrigin);
+  if (def->selection_to_equip_is_reequip && reequip_origin != NULL &&
+      reequip_origin->previous_host == target_entity) {
+    cli_render_logf("[Ability] Re-equipped weapon must move to a different host");
+    return false;
+  }
+
   int8_t from_index = azk_get_card_index_in_zone(world, weapon, selection_zone);
 
   // Log selection -> equipped movement before the deferred reparent changes
@@ -625,15 +909,27 @@ bool azk_process_selection_to_equip(ecs_world_t *world, int selection_index,
 
   // Apply weapon attack bonus directly (because ChildOf is deferred)
   apply_weapon_attack_bonus(world, target_entity, weapon_stats->cur_atk);
+  apply_weapon_combat_modifier_if_any(world, weapon, target_entity);
 
   cli_render_logf("[Ability] Equipped weapon (+%d attack) to entity at slot %d",
                   weapon_stats->cur_atk, entity_index);
 
-  // Trigger weapon abilities (on-play and when-equipped)
-  azk_trigger_on_play_ability(world, weapon, ctx->runtime.owner);
+  // Trigger weapon abilities (when-equipped always, on-play only for new equips)
+  if (!def->selection_to_equip_is_reequip) {
+    azk_trigger_on_play_ability(world, weapon, ctx->runtime.owner);
+  }
   azk_trigger_when_equipped_ability(world, weapon, ctx->runtime.owner);
 
-  azk_record_selection_pick(ctx, selection_index, 0);
+  if (def->selection_to_equip_is_reequip) {
+    ecs_remove(world, weapon, ReequipOrigin);
+  } else {
+    GameState *gs_mut = ecs_singleton_get_mut(world, GameState);
+    gs_mut->cards_played_this_turn[player_num]++;
+    gs_mut->next_card_play_cost_reduction[player_num] = 0;
+    ecs_singleton_modified(world, GameState);
+  }
+
+  azk_record_selection_pick(ctx, selection_index, weapon);
 
   // Check if we've picked enough
   if (ctx->selection.picked_count >= ctx->selection.pick_max) {
@@ -667,9 +963,14 @@ bool azk_process_skip_selection(ecs_world_t *world) {
     return false;
   }
 
+  if (!def->selection_pick_is_optional) {
+    cli_render_logf("[Ability] Selection pick cannot be skipped");
+    return false;
+  }
+
   cli_render_logf("[Ability] Skipped selection pick");
   return azk_finish_selection_resolution(
-      world, ctx, def, AZK_SELECTION_COMPLETION_ALLOW_BOTTOM_DECK);
+      world, ctx, def, get_selection_completion_mode(def));
 }
 
 bool azk_process_bottom_deck(ecs_world_t *world, int selection_index) {
@@ -680,6 +981,16 @@ bool azk_process_bottom_deck(ecs_world_t *world, int selection_index) {
   }
 
   return azk_bottom_deck_selection_card(world, ctx, selection_index);
+}
+
+bool azk_process_top_deck(ecs_world_t *world, int selection_index) {
+  AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
+
+  if (ctx->runtime.phase != ABILITY_PHASE_BOTTOM_DECK) {
+    return false;
+  }
+
+  return azk_top_deck_selection_card(world, ctx, selection_index);
 }
 
 bool azk_process_bottom_deck_all(ecs_world_t *world) {
@@ -860,6 +1171,14 @@ bool azk_trigger_leader_response_ability(ecs_world_t *world, ecs_entity_t card,
 
 bool azk_queue_triggered_effect(ecs_world_t *world, ecs_entity_t card,
                                 ecs_entity_t owner, uint8_t timing_tag) {
+  if (ecs_has(world, card, AOnceTurn)) {
+    const AbilityRepeatContext *repeat_ctx =
+        ecs_get(world, card, AbilityRepeatContext);
+    if (repeat_ctx && repeat_ctx->was_applied) {
+      return false;
+    }
+  }
+
   TriggeredEffectQueue *queue =
       ecs_singleton_get_mut(world, TriggeredEffectQueue);
 
@@ -895,6 +1214,8 @@ static ecs_id_t get_timing_tag_id(uint8_t tag_index) {
     return ecs_id(AOnPlay);
   case TIMING_TAG_START_OF_TURN:
     return ecs_id(AStartOfTurn);
+  case TIMING_TAG_START_OF_EACH_TURN:
+    return ecs_id(AStartOfEachTurn);
   case TIMING_TAG_END_OF_TURN:
     return ecs_id(AEndOfTurn);
   case TIMING_TAG_WHEN_EQUIPPING:
@@ -903,12 +1224,24 @@ static ecs_id_t get_timing_tag_id(uint8_t tag_index) {
     return ecs_id(AWhenEquipped);
   case TIMING_TAG_WHEN_ATTACKING:
     return ecs_id(AWhenAttacking);
+  case TIMING_TAG_AFTER_ATTACKING:
+    return ecs_id(AAfterAttacking);
   case TIMING_TAG_WHEN_ATTACKED:
     return ecs_id(AWhenAttacked);
+  case TIMING_TAG_WHEN_TAKES_DAMAGE:
+    return ecs_id(AWhenTakesDamage);
+  case TIMING_TAG_WHEN_DEALS_DAMAGE:
+    return ecs_id(AWhenDealsDamage);
   case TIMING_TAG_WHEN_RETURNED_TO_HAND:
     return ecs_id(AWhenReturnedToHand);
+  case TIMING_TAG_WHEN_DESTROYED:
+    return ecs_id(AWhenDestroyed);
+  case TIMING_TAG_WHEN_SACRIFICED:
+    return ecs_id(AWhenSacrificed);
   case TIMING_TAG_ON_GATE_PORTAL:
     return ecs_id(AOnGatePortal);
+  case TIMING_TAG_WHEN_ENTERS_GARDEN:
+    return ecs_id(AWhenEntersGarden);
   default:
     return 0;
   }
@@ -962,6 +1295,15 @@ bool azk_process_triggered_effect_queue(ecs_world_t *world) {
     return false;
   }
 
+  if (ecs_has(world, card, AOnceTurn)) {
+    const AbilityRepeatContext *repeat_ctx =
+        ecs_get(world, card, AbilityRepeatContext);
+    if (repeat_ctx && repeat_ctx->was_applied) {
+      cli_render_logf("[Ability] Queued effect: once-per-turn already used");
+      return false;
+    }
+  }
+
   uint8_t available_cost_targets = azk_count_ability_target_choices(
       world, def, ABILITY_TARGET_SCOPE_COST, card, owner);
   if (def->cost_req.min > 0 && available_cost_targets < def->cost_req.min) {
@@ -974,7 +1316,8 @@ bool azk_process_triggered_effect_queue(ecs_world_t *world) {
 
   // Check if it's the correct timing tag
   ecs_id_t expected_tag = get_timing_tag_id(effect.timing_tag);
-  if (def->timing_tag != expected_tag) {
+  if (expected_tag == 0 ||
+      !azk_has_ability_with_timing(card_id->id, expected_tag)) {
     cli_render_logf("[Ability] Queued effect: timing tag mismatch");
     return false;
   }

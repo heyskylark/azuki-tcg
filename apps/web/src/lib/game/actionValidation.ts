@@ -25,6 +25,8 @@ export const ACTION_BOTTOM_DECK_CARD = 19;
 export const ACTION_BOTTOM_DECK_ALL = 20;
 export const ACTION_SELECT_TO_ALLEY = 21;
 export const ACTION_SELECT_TO_EQUIP = 22;
+export const ACTION_SELECT_TO_GARDEN = 23;
+export const ACTION_TOP_DECK_CARD = 24;
 
 /**
  * Get valid garden and alley slots for playing a specific hand card.
@@ -592,6 +594,7 @@ export function getValidSelectionTargets(
     const actionType = actionMask.legalPrimary[i];
     if (
       actionType === ACTION_SELECT_FROM_SELECTION ||
+      actionType === ACTION_SELECT_TO_GARDEN ||
       actionType === ACTION_SELECT_TO_ALLEY ||
       actionType === ACTION_SELECT_TO_EQUIP
     ) {
@@ -607,6 +610,8 @@ export function getValidSelectionTargets(
 export interface SelectionActionInfo {
   selectionIndex: number;
   canAddToHand: boolean;
+  canSelectToGarden: boolean;
+  gardenSlots: number[]; // Valid garden slots if canSelectToGarden
   canSelectToAlley: boolean;
   alleySlots: number[]; // Valid alley slots if canSelectToAlley
   canSelectToEquip: boolean;
@@ -633,6 +638,7 @@ export function getSelectionActionInfo(
     // Skip non-selection actions
     if (
       actionType !== ACTION_SELECT_FROM_SELECTION &&
+      actionType !== ACTION_SELECT_TO_GARDEN &&
       actionType !== ACTION_SELECT_TO_ALLEY &&
       actionType !== ACTION_SELECT_TO_EQUIP
     ) {
@@ -645,6 +651,8 @@ export function getSelectionActionInfo(
       info = {
         selectionIndex,
         canAddToHand: false,
+        canSelectToGarden: false,
+        gardenSlots: [],
         canSelectToAlley: false,
         alleySlots: [],
         canSelectToEquip: false,
@@ -656,6 +664,11 @@ export function getSelectionActionInfo(
     // Populate based on action type
     if (actionType === ACTION_SELECT_FROM_SELECTION) {
       info.canAddToHand = true;
+    } else if (actionType === ACTION_SELECT_TO_GARDEN) {
+      info.canSelectToGarden = true;
+      if (!info.gardenSlots.includes(sub2)) {
+        info.gardenSlots.push(sub2);
+      }
     } else if (actionType === ACTION_SELECT_TO_ALLEY) {
       info.canSelectToAlley = true;
       if (!info.alleySlots.includes(sub2)) {
@@ -716,6 +729,23 @@ export function getValidBottomDeckTargets(
   const targets: number[] = [];
   for (let i = 0; i < actionMask.legalPrimary.length; i++) {
     if (actionMask.legalPrimary[i] === ACTION_BOTTOM_DECK_CARD) {
+      targets.push(actionMask.legalSub1[i]);
+    }
+  }
+  return targets;
+}
+
+/**
+ * Get valid top deck card indices from the action mask.
+ */
+export function getValidTopDeckTargets(
+  actionMask: SnapshotActionMask | null
+): number[] {
+  if (!actionMask) return [];
+
+  const targets: number[] = [];
+  for (let i = 0; i < actionMask.legalPrimary.length; i++) {
+    if (actionMask.legalPrimary[i] === ACTION_TOP_DECK_CARD) {
       targets.push(actionMask.legalSub1[i]);
     }
   }
@@ -790,6 +820,18 @@ export function buildSelectToAlleyAction(
 }
 
 /**
+ * Build a SELECT_TO_GARDEN action tuple.
+ * @param selectionIndex - The index in the selection zone
+ * @param gardenSlot - The target garden slot (0-4)
+ */
+export function buildSelectToGardenAction(
+  selectionIndex: number,
+  gardenSlot: number
+): [number, number, number, number] {
+  return [ACTION_SELECT_TO_GARDEN, selectionIndex, gardenSlot, 0];
+}
+
+/**
  * Build a SELECT_TO_EQUIP action tuple.
  * @param selectionIndex - The index in the selection zone
  * @param entitySlot - The target entity slot (0-4 = garden slots, 5 = leader)
@@ -808,6 +850,15 @@ export function buildBottomDeckCardAction(
   selectionIndex: number
 ): [number, number, number, number] {
   return [ACTION_BOTTOM_DECK_CARD, selectionIndex, 0, 0];
+}
+
+/**
+ * Build a TOP_DECK_CARD action tuple.
+ */
+export function buildTopDeckCardAction(
+  selectionIndex: number
+): [number, number, number, number] {
+  return [ACTION_TOP_DECK_CARD, selectionIndex, 0, 0];
 }
 
 /**

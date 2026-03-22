@@ -73,6 +73,12 @@ void HandleAbilityResolution(ecs_iter_t *it) {
       } else {
         check_post_ability_transition(world, gs);
       }
+    } else if (ability_phase == ABILITY_PHASE_COST_SELECTION) {
+      if (!azk_process_cost_skip(world)) {
+        ac->invalid_action = true;
+      } else {
+        check_post_ability_transition(world, gs);
+      }
     } else if (ability_phase == ABILITY_PHASE_EFFECT_SELECTION) {
       if (!azk_process_effect_skip(world)) {
         ac->invalid_action = true;
@@ -154,6 +160,22 @@ void HandleAbilityResolution(ecs_iter_t *it) {
     }
     break;
 
+  case ACT_SELECT_TO_GARDEN:
+    if (ability_phase == ABILITY_PHASE_SELECTION_PICK) {
+      if (!azk_process_selection_to_garden(world, ac->user_action.subaction_1,
+                                           ac->user_action.subaction_2)) {
+        ac->invalid_action = true;
+      } else {
+        check_post_ability_transition(world, gs);
+      }
+    } else {
+      cli_render_logf("[AbilityResolution] ACT_SELECT_TO_GARDEN not valid in "
+                      "ability phase %d",
+                      ability_phase);
+      ac->invalid_action = true;
+    }
+    break;
+
   case ACT_SELECT_TO_EQUIP:
     if (ability_phase == ABILITY_PHASE_SELECTION_PICK) {
       if (!azk_process_selection_to_equip(world, ac->user_action.subaction_1,
@@ -164,6 +186,21 @@ void HandleAbilityResolution(ecs_iter_t *it) {
       }
     } else {
       cli_render_logf("[AbilityResolution] ACT_SELECT_TO_EQUIP not valid in "
+                      "ability phase %d",
+                      ability_phase);
+      ac->invalid_action = true;
+    }
+    break;
+
+  case ACT_TOP_DECK_CARD:
+    if (ability_phase == ABILITY_PHASE_BOTTOM_DECK) {
+      if (!azk_process_top_deck(world, ac->user_action.subaction_1)) {
+        ac->invalid_action = true;
+      } else {
+        check_post_ability_transition(world, gs);
+      }
+    } else {
+      cli_render_logf("[AbilityResolution] ACT_TOP_DECK_CARD not valid in "
                       "ability phase %d",
                       ability_phase);
       ac->invalid_action = true;

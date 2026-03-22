@@ -21,6 +21,10 @@ int get_tappable_ikz_cards(
   bool use_ikz_token
 );
 
+uint8_t azk_count_tappable_ikz_sources(ecs_world_t *world,
+                                       ecs_entity_t ikz_area_zone,
+                                       bool include_ikz_token);
+
 void untap_all_cards_in_zone(ecs_world_t *world, ecs_entity_t zone);
 
 /**

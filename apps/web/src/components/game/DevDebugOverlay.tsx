@@ -25,7 +25,9 @@ const ACTION_NAMES: Record<number, string> = {
   20: "BOTTOM_DECK_ALL",
   21: "SELECT_TO_ALLEY",
   22: "SELECT_TO_EQUIP",
-  23: "MULLIGAN_SHUFFLE",
+  23: "SELECT_TO_GARDEN",
+  24: "TOP_DECK_CARD",
+  25: "MULLIGAN_SHUFFLE",
 };
 
 function getActionName(index: number): string {

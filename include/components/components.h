@@ -47,7 +47,9 @@ typedef enum {
   ACT_BOTTOM_DECK_ALL = 20,       // Bottom deck all remaining cards in order
   ACT_SELECT_TO_ALLEY = 21,       // Select card from selection zone to alley
   ACT_SELECT_TO_EQUIP = 22,       // Select weapon from selection to equip to entity
-  ACT_MULLIGAN_SHUFFLE = 23 // Must always be highest for AZK_ACTION_TYPE_COUNT
+  ACT_SELECT_TO_GARDEN = 23,      // Select card from selection zone to garden
+  ACT_TOP_DECK_CARD = 24,         // Put a selection card on top of the deck
+  ACT_MULLIGAN_SHUFFLE = 25 // Must always be highest for AZK_ACTION_TYPE_COUNT
 } ActionType;
 
 #define AZK_ACTION_TYPE_COUNT (ACT_MULLIGAN_SHUFFLE + 1)
@@ -82,6 +84,17 @@ typedef struct {
 } CombatState;
 
 typedef struct {
+  ecs_entity_t attacker;
+  ecs_entity_t defender;
+  bool defender_was_leader;
+  bool defender_was_garden_entity;
+  bool defender_destroyed;
+  bool attacker_destroyed;
+  int8_t damage_to_defender;
+  int8_t damage_to_attacker;
+} LastCombatResult;
+
+typedef struct {
   AbilityPhase phase;
   ecs_entity_t source_card;
   ecs_entity_t owner;
@@ -109,6 +122,7 @@ typedef enum {
   ABILITY_SCRATCH_NONE = 0,
   ABILITY_SCRATCH_GATE_PORTAL = 1,
   ABILITY_SCRATCH_DISCARD_SELECTION = 2,
+  ABILITY_SCRATCH_SACRIFICE_VALUE = 3,
 } AbilityScratchKind;
 
 typedef struct {
@@ -120,6 +134,10 @@ typedef struct {
     struct {
       uint8_t max_cost;
     } discard_selection;
+    struct {
+      int8_t damage;
+      bool draw_after_effect;
+    } sacrifice_value;
   } data;
 } AbilityScratchState;
 
@@ -139,14 +157,19 @@ typedef struct {
   uint8_t mulligan_actions_completed;
   Phase phase;
   uint8_t response_window;
+  bool end_of_turn_abilities_queued;
   int8_t winner; // -1 if no winner, 0 if player 0, 1 if player 1, 2 if draw
   uint16_t turn_number; // Current turn number (increments at start of each turn)
   ecs_entity_t players[MAX_PLAYERS_PER_MATCH];
   PlayerZones zones[MAX_PLAYERS_PER_MATCH];
   CombatState combat_state;
+  LastCombatResult last_combat;
   uint8_t entities_played_garden_this_turn[MAX_PLAYERS_PER_MATCH];
   uint8_t entities_played_alley_this_turn[MAX_PLAYERS_PER_MATCH];
+  uint8_t cards_played_this_turn[MAX_PLAYERS_PER_MATCH];
+  uint8_t discarded_cards_this_turn[MAX_PLAYERS_PER_MATCH];
   uint8_t entities_returned_to_hand_this_turn[MAX_PLAYERS_PER_MATCH];
+  int8_t next_card_play_cost_reduction[MAX_PLAYERS_PER_MATCH];
 } GameState;
 typedef struct {
   uint8_t player_number;
@@ -156,7 +179,38 @@ typedef struct {
 } PlayerId;
 typedef struct {
   ecs_entity_t ikz_token;
+  bool expires_eot;
 } IKZToken;
+
+typedef struct {
+  ecs_entity_t previous_host;
+} ReequipOrigin;
+
+typedef struct {
+  ecs_entity_t source_card;
+  ecs_entity_t original_target;
+  ecs_entity_t owner;
+  int8_t damage;
+} PendingDamageRedirect;
+
+#define MAX_PENDING_DAMAGE_REDIRECTS 8
+
+typedef struct {
+  PendingDamageRedirect entries[MAX_PENDING_DAMAGE_REDIRECTS];
+  uint8_t count;
+} PendingDamageRedirectQueue;
+
+typedef struct {
+  uint16_t expires_turn;
+} STT03BobuState;
+
+typedef struct {
+  uint16_t last_heal_turn;
+} STT03MiharuState;
+
+typedef struct {
+  uint16_t last_untap_turn;
+} STT04KuraiState;
 /*
 ZoneIndex must exist (even with ordered children) because cards can be placed in
 gaps in the zone.
@@ -172,7 +226,7 @@ typedef struct {
   uint8_t timing_tag; // Index into timing tag array (AOnPlay, etc.)
 } PendingTriggeredEffect;
 
-#define MAX_TRIGGERED_EFFECT_QUEUE 8
+#define MAX_TRIGGERED_EFFECT_QUEUE 16
 
 typedef struct {
   PendingTriggeredEffect effects[MAX_TRIGGERED_EFFECT_QUEUE];
@@ -199,6 +253,7 @@ typedef struct {
 typedef struct {
   ecs_entity_t deck;
   ecs_entity_t card;
+  bool to_top;
 } PendingDeckReorder;
 
 #define MAX_DECK_REORDER_QUEUE 16
@@ -227,6 +282,11 @@ extern ECS_COMPONENT_DECLARE(GameState);
 extern ECS_COMPONENT_DECLARE(PlayerNumber);
 extern ECS_COMPONENT_DECLARE(PlayerId);
 extern ECS_COMPONENT_DECLARE(IKZToken);
+extern ECS_COMPONENT_DECLARE(ReequipOrigin);
+extern ECS_COMPONENT_DECLARE(PendingDamageRedirectQueue);
+extern ECS_COMPONENT_DECLARE(STT03BobuState);
+extern ECS_COMPONENT_DECLARE(STT03MiharuState);
+extern ECS_COMPONENT_DECLARE(STT04KuraiState);
 extern ECS_COMPONENT_DECLARE(ZoneIndex);
 extern ECS_COMPONENT_DECLARE(TriggeredEffectQueue);
 extern ECS_COMPONENT_DECLARE(PassiveBuffQueue);

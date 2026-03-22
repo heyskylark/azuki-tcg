@@ -4,6 +4,7 @@
 #include "utils/cli_rendering_util.h"
 #include "utils/game_log_util.h"
 #include "utils/status_util.h"
+#include "utils/weapon_util.h"
 
 void reset_entity_health(ecs_world_t *world, ecs_entity_t entity) {
   const CurStats *before_reset = ecs_get(world, entity, CurStats);
@@ -45,6 +46,8 @@ static void discard_weapon_card(ecs_world_t *world, ecs_entity_t entity,
   // Get weapon attack BEFORE discarding (entity will be deleted/moved)
   const CurStats *weapon_stats = ecs_get(world, weapon_card, CurStats);
   int8_t weapon_atk = weapon_stats ? weapon_stats->cur_atk : 0;
+
+  remove_weapon_combat_modifier_if_any(world, weapon_card, entity);
 
   // Discard the weapon card (removes ChildOf relationship, observers will fire)
   discard_card(world, weapon_card);

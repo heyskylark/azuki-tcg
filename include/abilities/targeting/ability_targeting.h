@@ -7,7 +7,9 @@
 #include "abilities/ability_registry.h"
 #include "constants/game.h"
 
-#define AZK_MAX_ABILITY_TARGET_CHOICES (MAX_HAND_SIZE + GARDEN_SIZE + 1)
+#define AZK_MAX_ABILITY_TARGET_CHOICES                                           \
+  ((MAX_HAND_SIZE > (GARDEN_SIZE * 2 + 2)) ? MAX_HAND_SIZE                       \
+                                            : (GARDEN_SIZE * 2 + 2))
 
 typedef enum {
   ABILITY_TARGET_SCOPE_COST = 0,

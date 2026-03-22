@@ -7,7 +7,7 @@ import { useRoom } from "@/contexts/RoomContext";
 
 // Action type constants (from action space head 0)
 const ACTION_NOOP = 0;
-const ACTION_MULLIGAN = 23;
+const ACTION_MULLIGAN = 25;
 
 export function ActionPanel() {
   const { gameState } = useGameState();
@@ -15,10 +15,20 @@ export function ActionPanel() {
 
   const actionMask = gameState?.actionMask;
   const legalPrimary = actionMask?.legalPrimary ?? [];
+  const abilitySubphase = gameState?.abilitySubphase ?? "NONE";
 
   const canNoop = legalPrimary.includes(ACTION_NOOP);
   const canMulligan = legalPrimary.includes(ACTION_MULLIGAN);
-  const isMulliganPhase = gameState?.phase === "PREGAME_MULLIGAN"
+  const isMulliganPhase = gameState?.phase === "PREGAME_MULLIGAN";
+
+  let noopLabel = isMulliganPhase ? "Keep Hand" : "Pass";
+  if (abilitySubphase === "COST_SELECTION") {
+    noopLabel = "Done Selecting";
+  } else if (abilitySubphase === "EFFECT_SELECTION") {
+    noopLabel = "Skip Target Selection";
+  } else if (abilitySubphase === "SELECTION_PICK") {
+    noopLabel = "Skip Selection";
+  }
 
   const handleAction = useCallback(
     (actionType: number) => {
@@ -56,7 +66,7 @@ export function ActionPanel() {
           onClick={() => handleAction(ACTION_NOOP)}
           className="min-w-32 text-lg font-semibold"
         >
-          {isMulliganPhase ? "Keep Hand" : "Pass"}
+          {noopLabel}
         </Button>
       )}
     </div>

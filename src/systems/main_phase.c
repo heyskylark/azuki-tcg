@@ -35,6 +35,8 @@ static int play_entity_to_garden_or_alley(ecs_world_t *world, GameState *gs,
     } else {
       gs->entities_played_alley_this_turn[gs->active_player_index]++;
     }
+    gs->cards_played_this_turn[gs->active_player_index]++;
+    gs->next_card_play_cost_reduction[gs->active_player_index] = 0;
 
     // Queue on-play ability for processing on next loop iteration.
     // This allows deferred zone operations to flush first.
@@ -42,6 +44,30 @@ static int play_entity_to_garden_or_alley(ecs_world_t *world, GameState *gs,
   }
 
   return result;
+}
+
+static void queue_kira_attack_redirect_if_present(ecs_world_t *world,
+                                                  const GameState *gs,
+                                                  ecs_entity_t defender_player,
+                                                  ecs_entity_t defending_card) {
+  const uint8_t defender_num = get_player_number(world, defender_player);
+  if (ecs_get_target(world, defending_card, EcsChildOf, 0) !=
+      gs->zones[defender_num].garden) {
+    return;
+  }
+
+  ecs_entities_t alley_cards =
+      ecs_get_ordered_children(world, gs->zones[defender_num].alley);
+  for (int32_t i = 0; i < alley_cards.count; ++i) {
+    ecs_entity_t alley_card = alley_cards.ids[i];
+    const CardId *card_id = ecs_get(world, alley_card, CardId);
+    if (card_id == NULL || card_id->id != CARD_DEF_AZK01_034) {
+      continue;
+    }
+
+    azk_queue_triggered_effect(world, alley_card, defender_player,
+                               TIMING_TAG_WHEN_ATTACKED);
+  }
 }
 
 /**
@@ -135,6 +161,9 @@ static void handle_attack(ecs_world_t *world, GameState *gs,
   }
 
   int result = attack(world, &intent);
+  uint8_t defender_index =
+      (gs->active_player_index + 1) % MAX_PLAYERS_PER_MATCH;
+  ecs_entity_t defender_player = gs->players[defender_index];
 
   if (result < 0) {
     ac->invalid_action = true;
@@ -171,6 +200,17 @@ static void handle_attack(ecs_world_t *world, GameState *gs,
     }
   }
 
+  // Check if the defending card has a "when attacked" ability.
+  const CardId *defender_card_id = ecs_get(world, intent.defending_card, CardId);
+  if (defender_card_id &&
+      azk_has_ability_with_timing(defender_card_id->id, ecs_id(AWhenAttacked))) {
+    azk_queue_triggered_effect(world, intent.defending_card, defender_player,
+                               TIMING_TAG_WHEN_ATTACKED);
+  }
+
+  queue_kira_attack_redirect_if_present(world, gs, defender_player,
+                                        intent.defending_card);
+
   // Stay in MAIN phase to let effects resolve. The transition to response
   // window will happen after effects are processed (handled by phase gate).
   if (azk_has_queued_triggered_effects(world)) {
@@ -180,8 +220,6 @@ static void handle_attack(ecs_world_t *world, GameState *gs,
   }
 
   // No when-attacking ability or queue empty, proceed with normal flow
-  uint8_t defender_index =
-      (gs->active_player_index + 1) % MAX_PLAYERS_PER_MATCH;
   if (defender_can_respond(world, gs, defender_index)) {
     gs->phase = PHASE_RESPONSE_WINDOW;
     gs->active_player_index = defender_index;
@@ -277,6 +315,8 @@ static void handle_play_spell_from_hand(ecs_world_t *world, GameState *gs,
 
   // Move spell card to discard
   discard_card(world, intent.spell_card);
+  gs->cards_played_this_turn[gs->active_player_index]++;
+  gs->next_card_play_cost_reduction[gs->active_player_index] = 0;
 
   cli_render_logf("[MainAction] Played spell from hand");
 
@@ -308,6 +348,9 @@ static void handle_attach_weapon_from_hand(ecs_world_t *world, GameState *gs,
     ac->invalid_action = true;
     return;
   }
+
+  gs->cards_played_this_turn[gs->active_player_index]++;
+  gs->next_card_play_cost_reduction[gs->active_player_index] = 0;
 
   // Trigger on-play abilities for weapons (like entities)
   azk_trigger_on_play_ability(world, intent.weapon_card, intent.player);

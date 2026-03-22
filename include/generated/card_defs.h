@@ -114,7 +114,160 @@ typedef enum {
     CARD_DEF_AZK01_002 = 37,
     CARD_DEF_AZK01_003 = 38,
     CARD_DEF_AZK01_004 = 39,
-    CARD_DEF_COUNT = 40
+    CARD_DEF_AZK01_005 = 40,
+    CARD_DEF_AZK01_006 = 41,
+    CARD_DEF_AZK01_007 = 42,
+    CARD_DEF_AZK01_008 = 43,
+    CARD_DEF_AZK01_009 = 44,
+    CARD_DEF_AZK01_010 = 45,
+    CARD_DEF_AZK01_011 = 46,
+    CARD_DEF_AZK01_012 = 47,
+    CARD_DEF_AZK01_014 = 48,
+    CARD_DEF_AZK01_015 = 49,
+    CARD_DEF_AZK01_016 = 50,
+    CARD_DEF_AZK01_017 = 51,
+    CARD_DEF_AZK01_018 = 52,
+    CARD_DEF_AZK01_019 = 53,
+    CARD_DEF_AZK01_020 = 54,
+    CARD_DEF_AZK01_021 = 55,
+    CARD_DEF_AZK01_022 = 56,
+    CARD_DEF_AZK01_023 = 57,
+    CARD_DEF_AZK01_024 = 58,
+    CARD_DEF_AZK01_025 = 59,
+    CARD_DEF_AZK01_026 = 60,
+    CARD_DEF_AZK01_027 = 61,
+    CARD_DEF_AZK01_028 = 62,
+    CARD_DEF_AZK01_029 = 63,
+    CARD_DEF_AZK01_030 = 64,
+    CARD_DEF_AZK01_031 = 65,
+    CARD_DEF_AZK01_032 = 66,
+    CARD_DEF_AZK01_033 = 67,
+    CARD_DEF_AZK01_034 = 68,
+    CARD_DEF_AZK01_035 = 69,
+    CARD_DEF_AZK01_036 = 70,
+    CARD_DEF_AZK01_037 = 71,
+    CARD_DEF_AZK01_038 = 72,
+    CARD_DEF_AZK01_039 = 73,
+    CARD_DEF_AZK01_040 = 74,
+    CARD_DEF_AZK01_041 = 75,
+    CARD_DEF_AZK01_042 = 76,
+    CARD_DEF_AZK01_043 = 77,
+    CARD_DEF_AZK01_044 = 78,
+    CARD_DEF_AZK01_045 = 79,
+    CARD_DEF_AZK01_046 = 80,
+    CARD_DEF_AZK01_047 = 81,
+    CARD_DEF_AZK01_048 = 82,
+    CARD_DEF_AZK01_049 = 83,
+    CARD_DEF_AZK01_050 = 84,
+    CARD_DEF_AZK01_051 = 85,
+    CARD_DEF_AZK01_052 = 86,
+    CARD_DEF_AZK01_053 = 87,
+    CARD_DEF_AZK01_054 = 88,
+    CARD_DEF_AZK01_055 = 89,
+    CARD_DEF_AZK01_056 = 90,
+    CARD_DEF_AZK01_057 = 91,
+    CARD_DEF_AZK01_058 = 92,
+    CARD_DEF_AZK01_059 = 93,
+    CARD_DEF_AZK01_060 = 94,
+    CARD_DEF_AZK01_061 = 95,
+    CARD_DEF_AZK01_062 = 96,
+    CARD_DEF_AZK01_063 = 97,
+    CARD_DEF_AZK01_064 = 98,
+    CARD_DEF_AZK01_065 = 99,
+    CARD_DEF_AZK01_066 = 100,
+    CARD_DEF_AZK01_067 = 101,
+    CARD_DEF_AZK01_068 = 102,
+    CARD_DEF_AZK01_069 = 103,
+    CARD_DEF_AZK01_070 = 104,
+    CARD_DEF_AZK01_071 = 105,
+    CARD_DEF_AZK01_072 = 106,
+    CARD_DEF_AZK01_073 = 107,
+    CARD_DEF_AZK01_074 = 108,
+    CARD_DEF_AZK01_075 = 109,
+    CARD_DEF_AZK01_077 = 110,
+    CARD_DEF_AZK01_078 = 111,
+    CARD_DEF_AZK01_080 = 112,
+    CARD_DEF_AZK01_081 = 113,
+    CARD_DEF_AZK01_082 = 114,
+    CARD_DEF_AZK01_084 = 115,
+    CARD_DEF_AZK01_085 = 116,
+    CARD_DEF_AZK01_086 = 117,
+    CARD_DEF_AZK01_087 = 118,
+    CARD_DEF_AZK01_088 = 119,
+    CARD_DEF_AZK01_089 = 120,
+    CARD_DEF_AZK01_090 = 121,
+    CARD_DEF_AZK01_091 = 122,
+    CARD_DEF_AZK01_092 = 123,
+    CARD_DEF_AZK01_093 = 124,
+    CARD_DEF_AZK01_094 = 125,
+    CARD_DEF_AZK01_095 = 126,
+    CARD_DEF_AZK01_096 = 127,
+    CARD_DEF_AZK01_097 = 128,
+    CARD_DEF_AZK01_098 = 129,
+    CARD_DEF_AZK01_100 = 130,
+    CARD_DEF_AZK01_101 = 131,
+    CARD_DEF_AZK01_102 = 132,
+    CARD_DEF_AZK01_103 = 133,
+    CARD_DEF_AZK01_104 = 134,
+    CARD_DEF_AZK01_105 = 135,
+    CARD_DEF_AZK01_106 = 136,
+    CARD_DEF_AZK01_107 = 137,
+    CARD_DEF_AZK01_108 = 138,
+    CARD_DEF_AZK01_109 = 139,
+    CARD_DEF_AZK01_110 = 140,
+    CARD_DEF_AZK01_111 = 141,
+    CARD_DEF_AZK01_112 = 142,
+    CARD_DEF_AZK01_113 = 143,
+    CARD_DEF_AZK01_114 = 144,
+    CARD_DEF_AZK01_115 = 145,
+    CARD_DEF_AZK01_116 = 146,
+    CARD_DEF_AZK01_117 = 147,
+    CARD_DEF_AZK01_118 = 148,
+    CARD_DEF_AZK01_119 = 149,
+    CARD_DEF_AZK01_120 = 150,
+    CARD_DEF_AZK01_121 = 151,
+    CARD_DEF_AZK01_122 = 152,
+    CARD_DEF_AZK01_123 = 153,
+    CARD_DEF_AZK01_124 = 154,
+    CARD_DEF_AZK01_125 = 155,
+    CARD_DEF_AZK01_126 = 156,
+    CARD_DEF_AZK01_127 = 157,
+    CARD_DEF_AZK01_128 = 158,
+    CARD_DEF_AZK01_129 = 159,
+    CARD_DEF_STT03_001 = 160,
+    CARD_DEF_STT03_002 = 161,
+    CARD_DEF_STT03_003 = 162,
+    CARD_DEF_STT03_004 = 163,
+    CARD_DEF_STT03_005 = 164,
+    CARD_DEF_STT03_006 = 165,
+    CARD_DEF_STT03_007 = 166,
+    CARD_DEF_STT03_008 = 167,
+    CARD_DEF_STT03_009 = 168,
+    CARD_DEF_STT03_010 = 169,
+    CARD_DEF_STT03_011 = 170,
+    CARD_DEF_STT03_012 = 171,
+    CARD_DEF_STT03_013 = 172,
+    CARD_DEF_STT03_014 = 173,
+    CARD_DEF_STT03_015 = 174,
+    CARD_DEF_STT03_016 = 175,
+    CARD_DEF_STT04_001 = 176,
+    CARD_DEF_STT04_002 = 177,
+    CARD_DEF_STT04_003 = 178,
+    CARD_DEF_STT04_004 = 179,
+    CARD_DEF_STT04_005 = 180,
+    CARD_DEF_STT04_006 = 181,
+    CARD_DEF_STT04_007 = 182,
+    CARD_DEF_STT04_008 = 183,
+    CARD_DEF_STT04_009 = 184,
+    CARD_DEF_STT04_010 = 185,
+    CARD_DEF_STT04_011 = 186,
+    CARD_DEF_STT04_012 = 187,
+    CARD_DEF_STT04_013 = 188,
+    CARD_DEF_STT04_014 = 189,
+    CARD_DEF_STT04_015 = 190,
+    CARD_DEF_STT04_016 = 191,
+    CARD_DEF_STT04_017 = 192,
+    CARD_DEF_COUNT = 193
 } CardDefId;
 
 typedef struct {
@@ -155,30 +308,87 @@ extern ECS_TAG_DECLARE(TExtraIKZCard);
 
 /* Subtype Tags (auto-generated from JSONL) */
 extern ECS_TAG_DECLARE(TSubtype_AlleyDweller);
+extern ECS_TAG_DECLARE(TSubtype_Aquashield);
+extern ECS_TAG_DECLARE(TSubtype_Artisan);
+extern ECS_TAG_DECLARE(TSubtype_Ashveil);
+extern ECS_TAG_DECLARE(TSubtype_Assassin);
 extern ECS_TAG_DECLARE(TSubtype_Bandit);
+extern ECS_TAG_DECLARE(TSubtype_Bat);
 extern ECS_TAG_DECLARE(TSubtype_Beanz);
+extern ECS_TAG_DECLARE(TSubtype_Bird);
 extern ECS_TAG_DECLARE(TSubtype_BlackJade);
+extern ECS_TAG_DECLARE(TSubtype_Blazerker);
+extern ECS_TAG_DECLARE(TSubtype_Bobu);
+extern ECS_TAG_DECLARE(TSubtype_Brawler);
+extern ECS_TAG_DECLARE(TSubtype_Brewmaster);
+extern ECS_TAG_DECLARE(TSubtype_Cat);
+extern ECS_TAG_DECLARE(TSubtype_Chef);
+extern ECS_TAG_DECLARE(TSubtype_Cinderwake);
+extern ECS_TAG_DECLARE(TSubtype_Colossal);
 extern ECS_TAG_DECLARE(TSubtype_Crab);
+extern ECS_TAG_DECLARE(TSubtype_Crimsondrift);
+extern ECS_TAG_DECLARE(TSubtype_Dagger);
 extern ECS_TAG_DECLARE(TSubtype_Dawnling);
+extern ECS_TAG_DECLARE(TSubtype_Downcurrent);
 extern ECS_TAG_DECLARE(TSubtype_Driftward);
+extern ECS_TAG_DECLARE(TSubtype_Dusttracker);
+extern ECS_TAG_DECLARE(TSubtype_Earthfury);
+extern ECS_TAG_DECLARE(TSubtype_Earthwarden);
 extern ECS_TAG_DECLARE(TSubtype_Elder);
+extern ECS_TAG_DECLARE(TSubtype_Farmer);
+extern ECS_TAG_DECLARE(TSubtype_Firemancer);
+extern ECS_TAG_DECLARE(TSubtype_FoxFire);
 extern ECS_TAG_DECLARE(TSubtype_Frog);
+extern ECS_TAG_DECLARE(TSubtype_Gurijutsu);
+extern ECS_TAG_DECLARE(TSubtype_Invigorate);
+extern ECS_TAG_DECLARE(TSubtype_Jd);
+extern ECS_TAG_DECLARE(TSubtype_LegendaryBean);
+extern ECS_TAG_DECLARE(TSubtype_Loneflame);
+extern ECS_TAG_DECLARE(TSubtype_Lotus);
+extern ECS_TAG_DECLARE(TSubtype_Merchant);
+extern ECS_TAG_DECLARE(TSubtype_Mizuryuu);
 extern ECS_TAG_DECLARE(TSubtype_Monk);
+extern ECS_TAG_DECLARE(TSubtype_Ninja);
+extern ECS_TAG_DECLARE(TSubtype_Obsidian);
 extern ECS_TAG_DECLARE(TSubtype_Orb);
+extern ECS_TAG_DECLARE(TSubtype_Painter);
+extern ECS_TAG_DECLARE(TSubtype_Priestess);
+extern ECS_TAG_DECLARE(TSubtype_Pyreskin);
 extern ECS_TAG_DECLARE(TSubtype_Raizan);
+extern ECS_TAG_DECLARE(TSubtype_RedPanda);
+extern ECS_TAG_DECLARE(TSubtype_Riftwalk);
 extern ECS_TAG_DECLARE(TSubtype_Rippleborn);
+extern ECS_TAG_DECLARE(TSubtype_Rootbane);
+extern ECS_TAG_DECLARE(TSubtype_Samurai);
+extern ECS_TAG_DECLARE(TSubtype_Sandstrider);
+extern ECS_TAG_DECLARE(TSubtype_Scorchweaver);
+extern ECS_TAG_DECLARE(TSubtype_Scout);
 extern ECS_TAG_DECLARE(TSubtype_Shadowfang);
 extern ECS_TAG_DECLARE(TSubtype_Shao);
+extern ECS_TAG_DECLARE(TSubtype_Shikigami);
+extern ECS_TAG_DECLARE(TSubtype_Shockcoil);
 extern ECS_TAG_DECLARE(TSubtype_Shuriken);
+extern ECS_TAG_DECLARE(TSubtype_Sirencall);
+extern ECS_TAG_DECLARE(TSubtype_Sloth);
+extern ECS_TAG_DECLARE(TSubtype_Staff);
+extern ECS_TAG_DECLARE(TSubtype_Statue);
 extern ECS_TAG_DECLARE(TSubtype_Steelborn);
+extern ECS_TAG_DECLARE(TSubtype_Stonemend);
 extern ECS_TAG_DECLARE(TSubtype_Stormcaller);
 extern ECS_TAG_DECLARE(TSubtype_Strider);
 extern ECS_TAG_DECLARE(TSubtype_Subzero);
 extern ECS_TAG_DECLARE(TSubtype_SushiChef);
 extern ECS_TAG_DECLARE(TSubtype_Sword);
+extern ECS_TAG_DECLARE(TSubtype_Tiger);
+extern ECS_TAG_DECLARE(TSubtype_TrainingDummy);
+extern ECS_TAG_DECLARE(TSubtype_Trickster);
+extern ECS_TAG_DECLARE(TSubtype_Verdant);
+extern ECS_TAG_DECLARE(TSubtype_Voltguard);
 extern ECS_TAG_DECLARE(TSubtype_WaterPainter);
 extern ECS_TAG_DECLARE(TSubtype_Watercrafting);
 extern ECS_TAG_DECLARE(TSubtype_Wavecaller);
+extern ECS_TAG_DECLARE(TSubtype_Wildfire);
+extern ECS_TAG_DECLARE(TSubtype_Wolf);
 
 #ifdef __cplusplus
 extern "C" {

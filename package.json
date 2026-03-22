@@ -15,6 +15,7 @@
     "dev:clean": "COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$(basename \"$PWD\")} docker compose down -v",
     "ws": "bun --filter '@azuki/websocket'",
     "ws:debug:nosan": "NODE_ENV=${NODE_ENV:-development} AZK_DEBUG_ACTIONS_ENABLED=${AZK_DEBUG_ACTIONS_ENABLED:-true} bun run ws debug:nosan",
+    "ws:debug:nosan:bt": "NODE_ENV=${NODE_ENV:-development} AZK_DEBUG_ACTIONS_ENABLED=${AZK_DEBUG_ACTIONS_ENABLED:-true} bun run ws debug:nosan:bt",
     "ws:debug:nosan:build": "bun run ws debug:nosan:build",
     "web": "bun --filter '@azuki/web'",
     "core": "bun --filter '@tcg/backend-core'",

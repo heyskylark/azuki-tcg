@@ -7,22 +7,102 @@
 #include "utils/cli_rendering_util.h"
 #include "utils/game_log_util.h"
 
+static CardConditionCountdown
+default_condition_countdown(ecs_world_t *world, ecs_entity_t entity) {
+  ecs_entity_t prefab = ecs_get_target(world, entity, EcsIsA, 0);
+  bool has_innate_effect_immune =
+      prefab != 0 && ecs_has_id(world, prefab, ecs_id(EffectImmune));
+  return (CardConditionCountdown){
+      .frozen_duration = 0,
+      .shocked_duration = 0,
+      .effect_immune_duration = has_innate_effect_immune ? -1 : 0,
+      .timed_tag_grant_count = 0,
+  };
+}
+
+static CardConditionCountdown *ensure_condition_countdown(ecs_world_t *world,
+                                                          ecs_entity_t entity) {
+  const CardConditionCountdown *existing =
+      ecs_get(world, entity, CardConditionCountdown);
+  CardConditionCountdown *countdown =
+      ecs_ensure(world, entity, CardConditionCountdown);
+  if (existing == NULL) {
+    *countdown = default_condition_countdown(world, entity);
+  }
+  return countdown;
+}
+
+static bool prefab_has_tag(ecs_world_t *world, ecs_entity_t entity, ecs_id_t tag) {
+  ecs_entity_t prefab = ecs_get_target(world, entity, EcsIsA, 0);
+  return prefab != 0 && ecs_has_id(world, prefab, tag);
+}
+
+void remove_all_combat_damage_modifiers(ecs_world_t *world,
+                                        ecs_entity_t entity);
+
+static bool is_keyword_tag(ecs_id_t tag) {
+  return tag == ecs_id(Charge) || tag == ecs_id(Defender) ||
+         tag == ecs_id(Infiltrate) || tag == ecs_id(Godmode);
+}
+
+static void log_tag_change_if_keyword(ecs_world_t *world, ecs_entity_t entity,
+                                      ecs_id_t tag) {
+  if (is_keyword_tag(tag)) {
+    azk_log_card_keywords_changed(world, entity);
+  }
+}
+
+static bool countdown_has_active_tag_grant(const CardConditionCountdown *countdown,
+                                           ecs_id_t tag) {
+  if (countdown == NULL) {
+    return false;
+  }
+
+  for (uint8_t i = 0; i < countdown->timed_tag_grant_count; i++) {
+    if (countdown->timed_tag_grants[i].tag == tag) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+static void maybe_remove_unbacked_tag(ecs_world_t *world, ecs_entity_t entity,
+                                      ecs_id_t tag) {
+  const CardConditionCountdown *countdown =
+      ecs_get(world, entity, CardConditionCountdown);
+  if (prefab_has_tag(world, entity, tag) ||
+      countdown_has_active_tag_grant(countdown, tag) ||
+      !ecs_has_id(world, entity, tag)) {
+    return;
+  }
+
+  ecs_remove_id(world, entity, tag);
+  log_tag_change_if_keyword(world, entity, tag);
+}
+
+static void remove_tag_grant_at(CardConditionCountdown *countdown, uint8_t index) {
+  if (countdown == NULL || index >= countdown->timed_tag_grant_count) {
+    return;
+  }
+
+  for (uint8_t i = index; i + 1 < countdown->timed_tag_grant_count; i++) {
+    countdown->timed_tag_grants[i] = countdown->timed_tag_grants[i + 1];
+  }
+
+  countdown->timed_tag_grant_count--;
+  countdown->timed_tag_grants[countdown->timed_tag_grant_count] =
+      (TimedTagGrant){0};
+}
+
 void apply_frozen(ecs_world_t *world, ecs_entity_t entity, int8_t duration) {
   // Add the Frozen tag
   ecs_add(world, entity, Frozen);
 
   // Set or update CardConditionCountdown component
-  CardConditionCountdown *countdown =
-      ecs_get_mut(world, entity, CardConditionCountdown);
-  if (!countdown) {
-    ecs_set(world, entity, CardConditionCountdown,
-            {.frozen_duration = duration,
-             .shocked_duration = 0,
-             .effect_immune_duration = 0});
-  } else {
-    countdown->frozen_duration = duration;
-    ecs_modified(world, entity, CardConditionCountdown);
-  }
+  CardConditionCountdown *countdown = ensure_condition_countdown(world, entity);
+  countdown->frozen_duration = duration;
+  ecs_modified(world, entity, CardConditionCountdown);
 
   // Log status effect applied
   azk_log_status_effect_applied(world, entity, GLOG_STATUS_FROZEN, duration);
@@ -50,26 +130,48 @@ bool is_frozen(ecs_world_t *world, ecs_entity_t entity) {
   return ecs_has(world, entity, Frozen);
 }
 
+void apply_shocked(ecs_world_t *world, ecs_entity_t entity, int8_t duration) {
+  ecs_add(world, entity, Shocked);
+
+  CardConditionCountdown *countdown = ensure_condition_countdown(world, entity);
+  countdown->shocked_duration = duration;
+  ecs_modified(world, entity, CardConditionCountdown);
+
+  azk_log_status_effect_applied(world, entity, GLOG_STATUS_SHOCKED, duration);
+  cli_render_logf("[Status] Applied Shocked (duration=%d) to entity",
+                  duration);
+}
+
+void remove_shocked(ecs_world_t *world, ecs_entity_t entity) {
+  ecs_remove(world, entity, Shocked);
+
+  CardConditionCountdown *countdown =
+      ecs_get_mut(world, entity, CardConditionCountdown);
+  if (countdown) {
+    countdown->shocked_duration = 0;
+    ecs_modified(world, entity, CardConditionCountdown);
+  }
+
+  azk_log_status_effect_expired(world, entity, GLOG_STATUS_SHOCKED);
+  cli_render_logf("[Status] Removed Shocked from entity");
+}
+
+bool is_shocked(ecs_world_t *world, ecs_entity_t entity) {
+  return ecs_has(world, entity, Shocked);
+}
+
 void apply_effect_immune(ecs_world_t *world, ecs_entity_t entity,
                          int8_t duration) {
   // Add the EffectImmune tag
   ecs_add(world, entity, EffectImmune);
 
   // Set or update CardConditionCountdown component
-  CardConditionCountdown *countdown =
-      ecs_get_mut(world, entity, CardConditionCountdown);
-  if (!countdown) {
-    ecs_set(world, entity, CardConditionCountdown,
-            {.frozen_duration = 0,
-             .shocked_duration = 0,
-             .effect_immune_duration = duration});
-  } else {
-    // Don't override permanent immunity (-1) with temporary
-    if (countdown->effect_immune_duration != -1) {
-      countdown->effect_immune_duration = duration;
-    }
-    ecs_modified(world, entity, CardConditionCountdown);
+  CardConditionCountdown *countdown = ensure_condition_countdown(world, entity);
+  // Don't override permanent immunity (-1) with temporary
+  if (countdown->effect_immune_duration != -1) {
+    countdown->effect_immune_duration = duration;
   }
+  ecs_modified(world, entity, CardConditionCountdown);
 
   // Log status effect applied
   azk_log_status_effect_applied(world, entity, GLOG_STATUS_EFFECT_IMMUNE,
@@ -99,8 +201,238 @@ bool is_effect_immune(ecs_world_t *world, ecs_entity_t entity) {
   return ecs_has(world, entity, EffectImmune);
 }
 
+int8_t get_total_carapace_value(ecs_world_t *world, ecs_entity_t entity) {
+  const CarapaceValue *value = ecs_get(world, entity, CarapaceValue);
+  int16_t total = value ? value->amount : 0;
+
+  const ecs_type_t *type = ecs_get_type(world, entity);
+  if (!type) {
+    return (int8_t)total;
+  }
+
+  for (int i = 0; i < type->count; i++) {
+    ecs_id_t id = type->array[i];
+    if (!ECS_IS_PAIR(id)) {
+      continue;
+    }
+
+    if (ecs_pair_first(world, id) != ecs_id(CarapaceBuff)) {
+      continue;
+    }
+
+    const CarapaceBuff *buff =
+        (const CarapaceBuff *)ecs_get_id(world, entity, id);
+    if (buff) {
+      total += buff->amount;
+    }
+  }
+
+  if (total < 0) {
+    total = 0;
+  }
+
+  return (int8_t)total;
+}
+
+void apply_carapace_modifier(ecs_world_t *world, ecs_entity_t entity,
+                             ecs_entity_t source, int8_t amount,
+                             bool expires_eot) {
+  if (amount == 0) {
+    return;
+  }
+
+  ecs_set_pair(world, entity, CarapaceBuff, source, {
+    .amount = amount,
+    .expires_eot = expires_eot,
+  });
+
+  cli_render_logf("[Status] Applied carapace modifier %+d from source "
+                  "(expires_eot=%d)",
+                  amount, expires_eot);
+}
+
+void remove_all_carapace_modifiers(ecs_world_t *world, ecs_entity_t entity) {
+  ecs_entity_t sources[32];
+  int source_count = 0;
+
+  const ecs_type_t *type = ecs_get_type(world, entity);
+  if (!type) {
+    return;
+  }
+
+  for (int i = 0; i < type->count && source_count < 32; i++) {
+    ecs_id_t id = type->array[i];
+    if (!ECS_IS_PAIR(id)) {
+      continue;
+    }
+
+    if (ecs_pair_first(world, id) == ecs_id(CarapaceBuff)) {
+      sources[source_count++] = ecs_pair_second(world, id);
+    }
+  }
+
+  for (int i = 0; i < source_count; i++) {
+    ecs_remove_pair(world, entity, ecs_id(CarapaceBuff), sources[i]);
+  }
+
+  if (source_count > 0) {
+    cli_render_logf("[Status] Removed all carapace modifiers (%d sources)",
+                    source_count);
+  }
+}
+
+bool apply_timed_tag_grant(ecs_world_t *world, ecs_entity_t entity, ecs_id_t tag,
+                           TagGrantTickPhase tick_phase,
+                           int8_t remaining_ticks) {
+  if (entity == 0 || tag == 0) {
+    return false;
+  }
+
+  bool valid_permanent =
+      tick_phase == TAG_GRANT_TICK_NONE && remaining_ticks == -1;
+  bool valid_timed =
+      tick_phase != TAG_GRANT_TICK_NONE && remaining_ticks > 0;
+  if (!valid_permanent && !valid_timed) {
+    cli_render_logf("[Status] Invalid timed tag grant request");
+    return false;
+  }
+
+  CardConditionCountdown *countdown = ensure_condition_countdown(world, entity);
+  for (uint8_t i = 0; i < countdown->timed_tag_grant_count; i++) {
+    TimedTagGrant *grant = &countdown->timed_tag_grants[i];
+    if (grant->tag == tag && grant->tick_phase == tick_phase &&
+        grant->remaining_ticks == remaining_ticks) {
+      return true;
+    }
+  }
+
+  if (countdown->timed_tag_grant_count >= MAX_TIMED_TAG_GRANTS) {
+    cli_render_logf("[Status] Timed tag grant buffer full");
+    return false;
+  }
+
+  bool already_had_tag = ecs_has_id(world, entity, tag);
+  countdown->timed_tag_grants[countdown->timed_tag_grant_count++] =
+      (TimedTagGrant){
+          .tag = tag,
+          .remaining_ticks = remaining_ticks,
+          .tick_phase = (uint8_t)tick_phase,
+      };
+  ecs_modified(world, entity, CardConditionCountdown);
+
+  if (!already_had_tag) {
+    ecs_add_id(world, entity, tag);
+    log_tag_change_if_keyword(world, entity, tag);
+  }
+
+  return true;
+}
+
+void apply_charge_grant(ecs_world_t *world, ecs_entity_t entity,
+                        TagGrantTickPhase tick_phase, int8_t remaining_ticks) {
+  if (entity == 0) {
+    return;
+  }
+
+  bool has_charge = ecs_has(world, entity, Charge);
+  bool grant_applied =
+      apply_timed_tag_grant(world, entity, ecs_id(Charge), tick_phase,
+                            remaining_ticks);
+  if (!grant_applied && !has_charge) {
+    return;
+  }
+
+  const TapState *tap = ecs_get(world, entity, TapState);
+  if (tap && tap->cooldown) {
+    ecs_set(world, entity, TapState,
+            {.tapped = tap->tapped, .cooldown = false});
+    azk_log_card_tap_state_changed(
+        world, entity,
+        tap->tapped ? GLOG_TAP_TAPPED : GLOG_TAP_UNTAPPED);
+  }
+
+  cli_render_logf("[Status] Applied Charge grant");
+}
+
+void clear_card_temporary_state(ecs_world_t *world, ecs_entity_t entity) {
+  if (entity == 0) {
+    return;
+  }
+
+  bool has_prefab_effect_immune =
+      prefab_has_tag(world, entity, ecs_id(EffectImmune));
+  if (ecs_has(world, entity, Frozen)) {
+    ecs_remove(world, entity, Frozen);
+  }
+  if (ecs_has(world, entity, Shocked)) {
+    ecs_remove(world, entity, Shocked);
+  }
+  if (!has_prefab_effect_immune && ecs_has(world, entity, EffectImmune)) {
+    ecs_remove(world, entity, EffectImmune);
+  }
+
+  remove_all_combat_damage_modifiers(world, entity);
+  remove_all_carapace_modifiers(world, entity);
+
+  if (ecs_has(world, entity, CardConditionCountdown)) {
+    CardConditionCountdown *countdown =
+        ecs_get_mut(world, entity, CardConditionCountdown);
+    ecs_id_t tags_to_recheck[MAX_TIMED_TAG_GRANTS] = {0};
+    uint8_t tags_to_recheck_count = 0;
+
+    for (uint8_t i = 0; i < countdown->timed_tag_grant_count; i++) {
+      ecs_id_t tag = countdown->timed_tag_grants[i].tag;
+      bool seen = false;
+      for (uint8_t j = 0; j < tags_to_recheck_count; j++) {
+        if (tags_to_recheck[j] == tag) {
+          seen = true;
+          break;
+        }
+      }
+      if (!seen && tags_to_recheck_count < MAX_TIMED_TAG_GRANTS) {
+        tags_to_recheck[tags_to_recheck_count++] = tag;
+      }
+    }
+
+    countdown->frozen_duration = 0;
+    countdown->shocked_duration = 0;
+    countdown->effect_immune_duration = has_prefab_effect_immune ? -1 : 0;
+    countdown->timed_tag_grant_count = 0;
+    for (uint8_t i = 0; i < MAX_TIMED_TAG_GRANTS; i++) {
+      countdown->timed_tag_grants[i] = (TimedTagGrant){0};
+    }
+    ecs_modified(world, entity, CardConditionCountdown);
+
+    for (uint8_t i = 0; i < tags_to_recheck_count; i++) {
+      maybe_remove_unbacked_tag(world, entity, tags_to_recheck[i]);
+    }
+  }
+}
+
+static void tick_timed_tag_grants(ecs_world_t *world, ecs_entity_t card,
+                                  CardConditionCountdown *countdown,
+                                  TagGrantTickPhase tick_phase) {
+  for (uint8_t i = 0; i < countdown->timed_tag_grant_count;) {
+    TimedTagGrant grant = countdown->timed_tag_grants[i];
+    if (grant.tick_phase != (uint8_t)tick_phase || grant.remaining_ticks <= 0) {
+      i++;
+      continue;
+    }
+
+    countdown->timed_tag_grants[i].remaining_ticks--;
+    if (countdown->timed_tag_grants[i].remaining_ticks > 0) {
+      i++;
+      continue;
+    }
+
+    remove_tag_grant_at(countdown, i);
+    maybe_remove_unbacked_tag(world, card, grant.tag);
+  }
+}
+
 // Helper to process a single zone's cards for status tick-down
-static void tick_zone_status_effects(ecs_world_t *world, ecs_entity_t zone) {
+static void tick_zone_status_effects(ecs_world_t *world, ecs_entity_t zone,
+                                     TagGrantTickPhase tick_phase) {
   ecs_entities_t cards = ecs_get_ordered_children(world, zone);
 
   for (int32_t i = 0; i < cards.count; i++) {
@@ -113,36 +445,37 @@ static void tick_zone_status_effects(ecs_world_t *world, ecs_entity_t zone) {
     CardConditionCountdown *countdown =
         ecs_get_mut(world, card, CardConditionCountdown);
 
-    // Process Frozen duration
-    if (countdown->frozen_duration > 0) {
-      countdown->frozen_duration--;
-      if (countdown->frozen_duration == 0) {
-        ecs_remove(world, card, Frozen);
-        azk_log_status_effect_expired(world, card, GLOG_STATUS_FROZEN);
-        cli_render_logf("[Status] Frozen expired on entity");
+    if (tick_phase == TAG_GRANT_TICK_START_OF_TURN) {
+      // Process Frozen duration
+      if (countdown->frozen_duration > 0) {
+        countdown->frozen_duration--;
+        if (countdown->frozen_duration == 0) {
+          ecs_remove(world, card, Frozen);
+          azk_log_status_effect_expired(world, card, GLOG_STATUS_FROZEN);
+          cli_render_logf("[Status] Frozen expired on entity");
+        }
+      }
+
+      // Process Shocked duration (for future use)
+      if (countdown->shocked_duration > 0) {
+        countdown->shocked_duration--;
+        if (countdown->shocked_duration == 0) {
+          remove_shocked(world, card);
+        }
+      }
+
+      // Process EffectImmune duration
+      if (countdown->effect_immune_duration > 0) {
+        countdown->effect_immune_duration--;
+        if (countdown->effect_immune_duration == 0) {
+          ecs_remove(world, card, EffectImmune);
+          azk_log_status_effect_expired(world, card, GLOG_STATUS_EFFECT_IMMUNE);
+          cli_render_logf("[Status] EffectImmune expired on entity");
+        }
       }
     }
 
-    // Process Shocked duration (for future use)
-    if (countdown->shocked_duration > 0) {
-      countdown->shocked_duration--;
-      if (countdown->shocked_duration == 0) {
-        ecs_remove(world, card, Shocked);
-        azk_log_status_effect_expired(world, card, GLOG_STATUS_SHOCKED);
-        cli_render_logf("[Status] Shocked expired on entity");
-      }
-    }
-
-    // Process EffectImmune duration
-    if (countdown->effect_immune_duration > 0) {
-      countdown->effect_immune_duration--;
-      if (countdown->effect_immune_duration == 0) {
-        ecs_remove(world, card, EffectImmune);
-        azk_log_status_effect_expired(world, card, GLOG_STATUS_EFFECT_IMMUNE);
-        cli_render_logf("[Status] EffectImmune expired on entity");
-      }
-    }
-
+    tick_timed_tag_grants(world, card, countdown, tick_phase);
     ecs_modified(world, card, CardConditionCountdown);
   }
 }
@@ -151,13 +484,28 @@ void tick_status_effects_for_player(ecs_world_t *world, uint8_t player_index) {
   const GameState *gs = ecs_singleton_get(world, GameState);
 
   // Tick status effects on garden entities
-  tick_zone_status_effects(world, gs->zones[player_index].garden);
+  tick_zone_status_effects(world, gs->zones[player_index].garden,
+                           TAG_GRANT_TICK_START_OF_TURN);
 
   // Tick status effects on alley entities
-  tick_zone_status_effects(world, gs->zones[player_index].alley);
+  tick_zone_status_effects(world, gs->zones[player_index].alley,
+                           TAG_GRANT_TICK_START_OF_TURN);
 
   // Tick status effects on leader
-  tick_zone_status_effects(world, gs->zones[player_index].leader);
+  tick_zone_status_effects(world, gs->zones[player_index].leader,
+                           TAG_GRANT_TICK_START_OF_TURN);
+}
+
+void tick_end_of_turn_effects_for_player(ecs_world_t *world,
+                                         uint8_t player_index) {
+  const GameState *gs = ecs_singleton_get(world, GameState);
+
+  tick_zone_status_effects(world, gs->zones[player_index].garden,
+                           TAG_GRANT_TICK_END_OF_TURN);
+  tick_zone_status_effects(world, gs->zones[player_index].alley,
+                           TAG_GRANT_TICK_END_OF_TURN);
+  tick_zone_status_effects(world, gs->zones[player_index].leader,
+                           TAG_GRANT_TICK_END_OF_TURN);
 }
 
 // Helper to iterate AttackBuff pairs on an entity and sum modifiers
@@ -615,8 +963,243 @@ void expire_eot_health_modifiers_in_zone(ecs_world_t *world, ecs_entity_t zone) 
           .cur_atk = cur->cur_atk,
           .cur_hp = (int8_t)new_hp,
         });
-        // Note: death handling for EOT health loss should be handled separately
+        azk_log_card_stat_change(world, card, 0, -total_modifier, cur->cur_atk,
+                                 (int8_t)new_hp);
+
+        if (new_hp <= 0) {
+          if (ecs_has(world, card, TLeader)) {
+            GameState *gs = ecs_singleton_get_mut(world, GameState);
+            ecs_entity_t parent = ecs_get_target(world, card, EcsChildOf, 0);
+            for (int p = 0; p < MAX_PLAYERS_PER_MATCH; p++) {
+              if (parent == gs->zones[p].leader) {
+                gs->winner = (p + 1) % MAX_PLAYERS_PER_MATCH;
+                ecs_singleton_modified(world, GameState);
+                azk_log_entity_died(world, card, GLOG_DEATH_EFFECT);
+                azk_log_game_ended(world, gs->winner, GLOG_END_LEADER_DEFEATED);
+                break;
+              }
+            }
+          } else {
+            azk_log_entity_died(world, card, GLOG_DEATH_EFFECT);
+            discard_card(world, card);
+          }
+        }
       }
+    }
+  }
+}
+
+void expire_eot_carapace_modifiers_in_zone(ecs_world_t *world, ecs_entity_t zone) {
+  ecs_entities_t cards = ecs_get_ordered_children(world, zone);
+
+  for (int32_t i = 0; i < cards.count; i++) {
+    ecs_entity_t card = cards.ids[i];
+    ecs_entity_t sources_to_remove[32];
+    int remove_count = 0;
+
+    const ecs_type_t *type = ecs_get_type(world, card);
+    if (!type) {
+      continue;
+    }
+
+    for (int j = 0; j < type->count && remove_count < 32; j++) {
+      ecs_id_t id = type->array[j];
+      if (!ECS_IS_PAIR(id)) {
+        continue;
+      }
+
+      if (ecs_pair_first(world, id) != ecs_id(CarapaceBuff)) {
+        continue;
+      }
+
+      const CarapaceBuff *buff =
+          (const CarapaceBuff *)ecs_get_id(world, card, id);
+      if (buff && buff->expires_eot) {
+        sources_to_remove[remove_count++] = ecs_pair_second(world, id);
+      }
+    }
+
+    for (int j = 0; j < remove_count; j++) {
+      ecs_remove_pair(world, card, ecs_id(CarapaceBuff), sources_to_remove[j]);
+    }
+
+    if (remove_count > 0) {
+      cli_render_logf("[Status] EOT: Expired %d carapace modifiers",
+                      remove_count);
+    }
+  }
+}
+
+static int16_t sum_incoming_combat_damage_modifiers(ecs_world_t *world,
+                                                    ecs_entity_t entity) {
+  int16_t total = 0;
+  const ecs_type_t *type = ecs_get_type(world, entity);
+  if (!type) {
+    return 0;
+  }
+
+  for (int i = 0; i < type->count; i++) {
+    ecs_id_t id = type->array[i];
+    if (!ECS_IS_PAIR(id)) {
+      continue;
+    }
+
+    ecs_entity_t first = ecs_pair_first(world, id);
+    if (first != ecs_id(CombatDamageModifier)) {
+      continue;
+    }
+
+    const CombatDamageModifier *modifier =
+        (const CombatDamageModifier *)ecs_get_id(world, entity, id);
+    if (modifier) {
+      total += modifier->incoming_modifier;
+    }
+  }
+
+  return total;
+}
+
+static int16_t sum_outgoing_combat_damage_modifiers(ecs_world_t *world,
+                                                    ecs_entity_t entity) {
+  int16_t total = 0;
+  const ecs_type_t *type = ecs_get_type(world, entity);
+  if (!type) {
+    return 0;
+  }
+
+  for (int i = 0; i < type->count; i++) {
+    ecs_id_t id = type->array[i];
+    if (!ECS_IS_PAIR(id)) {
+      continue;
+    }
+
+    ecs_entity_t first = ecs_pair_first(world, id);
+    if (first != ecs_id(CombatDamageModifier)) {
+      continue;
+    }
+
+    const CombatDamageModifier *modifier =
+        (const CombatDamageModifier *)ecs_get_id(world, entity, id);
+    if (modifier) {
+      total += modifier->outgoing_modifier;
+    }
+  }
+
+  return total;
+}
+
+int16_t get_total_incoming_combat_damage_modifier(ecs_world_t *world,
+                                                  ecs_entity_t entity) {
+  return sum_incoming_combat_damage_modifiers(world, entity);
+}
+
+int16_t get_total_outgoing_combat_damage_modifier(ecs_world_t *world,
+                                                  ecs_entity_t entity) {
+  return sum_outgoing_combat_damage_modifiers(world, entity);
+}
+
+void apply_combat_damage_modifier(ecs_world_t *world, ecs_entity_t entity,
+                                  ecs_entity_t source,
+                                  int8_t incoming_modifier,
+                                  int8_t outgoing_modifier,
+                                  bool expires_eot) {
+  ecs_set_pair(world, entity, CombatDamageModifier, source, {
+      .incoming_modifier = incoming_modifier,
+      .outgoing_modifier = outgoing_modifier,
+      .expires_eot = expires_eot,
+  });
+
+  cli_render_logf(
+      "[Status] Applied combat damage modifier (in=%+d, out=%+d, expires_eot=%d)",
+      incoming_modifier, outgoing_modifier, expires_eot);
+}
+
+bool remove_combat_damage_modifier(ecs_world_t *world, ecs_entity_t entity,
+                                   ecs_entity_t source) {
+  ecs_id_t pair_id = ecs_pair(ecs_id(CombatDamageModifier), source);
+  const CombatDamageModifier *modifier =
+      (const CombatDamageModifier *)ecs_get_id(world, entity, pair_id);
+  if (!modifier) {
+    return false;
+  }
+
+  ecs_remove_pair(world, entity, ecs_id(CombatDamageModifier), source);
+  cli_render_logf("[Status] Removed combat damage modifier from source");
+  return true;
+}
+
+void remove_all_combat_damage_modifiers(ecs_world_t *world,
+                                        ecs_entity_t entity) {
+  ecs_entity_t sources[32];
+  int source_count = 0;
+
+  const ecs_type_t *type = ecs_get_type(world, entity);
+  if (!type) {
+    return;
+  }
+
+  for (int i = 0; i < type->count && source_count < 32; i++) {
+    ecs_id_t id = type->array[i];
+    if (!ECS_IS_PAIR(id)) {
+      continue;
+    }
+
+    ecs_entity_t first = ecs_pair_first(world, id);
+    if (first == ecs_id(CombatDamageModifier)) {
+      sources[source_count++] = ecs_pair_second(world, id);
+    }
+  }
+
+  for (int i = 0; i < source_count; i++) {
+    ecs_remove_pair(world, entity, ecs_id(CombatDamageModifier), sources[i]);
+  }
+
+  if (source_count > 0) {
+    cli_render_logf("[Status] Removed all combat damage modifiers (%d sources)",
+                    source_count);
+  }
+}
+
+void expire_eot_combat_damage_modifiers_in_zone(ecs_world_t *world,
+                                                ecs_entity_t zone) {
+  ecs_entities_t cards = ecs_get_ordered_children(world, zone);
+
+  for (int32_t i = 0; i < cards.count; i++) {
+    ecs_entity_t card = cards.ids[i];
+    ecs_entity_t sources_to_remove[32];
+    int remove_count = 0;
+
+    const ecs_type_t *type = ecs_get_type(world, card);
+    if (!type) {
+      continue;
+    }
+
+    for (int j = 0; j < type->count && remove_count < 32; j++) {
+      ecs_id_t id = type->array[j];
+      if (!ECS_IS_PAIR(id)) {
+        continue;
+      }
+
+      ecs_entity_t first = ecs_pair_first(world, id);
+      if (first != ecs_id(CombatDamageModifier)) {
+        continue;
+      }
+
+      const CombatDamageModifier *modifier =
+          (const CombatDamageModifier *)ecs_get_id(world, card, id);
+      if (modifier && modifier->expires_eot) {
+        sources_to_remove[remove_count++] = ecs_pair_second(world, id);
+      }
+    }
+
+    for (int j = 0; j < remove_count; j++) {
+      ecs_remove_pair(world, card, ecs_id(CombatDamageModifier),
+                      sources_to_remove[j]);
+    }
+
+    if (remove_count > 0) {
+      cli_render_logf("[Status] EOT: Expired %d combat damage modifiers",
+                      remove_count);
     }
   }
 }

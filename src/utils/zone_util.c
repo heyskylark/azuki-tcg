@@ -72,6 +72,31 @@ ecs_entity_t find_card_in_zone_index(ecs_world_t *world, ecs_entity_t zone,
   return card_with_zone_index;
 }
 
+static ecs_entity_t get_ready_ikz_token(ecs_world_t *world,
+                                        ecs_entity_t ikz_token_owner) {
+  const IKZToken *ikz_token = ecs_get(world, ikz_token_owner, IKZToken);
+  if (ikz_token == NULL || ikz_token->ikz_token == 0) {
+    return 0;
+  }
+
+  const TapState *tap_state = ecs_get(world, ikz_token->ikz_token, TapState);
+  ecs_assert(tap_state != NULL, ECS_INVALID_PARAMETER,
+             "TapState component not found for IKZ token %d",
+             ikz_token->ikz_token);
+  if (tap_state->tapped) {
+    return 0;
+  }
+
+  ecs_assert(
+      is_card_type(world, ikz_token->ikz_token, CARD_TYPE_IKZ) ||
+          is_card_type(world, ikz_token->ikz_token, CARD_TYPE_EXTRA_IKZ),
+      ECS_INVALID_PARAMETER,
+      "IKZ token %d is not an IKZ card or extra IKZ card",
+      ikz_token->ikz_token);
+
+  return ikz_token->ikz_token;
+}
+
 int get_tappable_ikz_cards(ecs_world_t *world, ecs_entity_t ikz_area_zone,
                            uint8_t ikz_cost, uint8_t *out_ikz_count,
                            ecs_entity_t *out_ikz_cards, bool use_ikz_token) {
@@ -85,21 +110,13 @@ int get_tappable_ikz_cards(ecs_world_t *world, ecs_entity_t ikz_area_zone,
     ecs_assert(ikz_token_owner != 0, ECS_INVALID_PARAMETER,
                "IKZ area zone %d has no owner", ikz_area_zone);
 
-    const IKZToken *ikz_token = ecs_get(world, ikz_token_owner, IKZToken);
-    if (ikz_token == NULL) {
-      return -1;
-    } else if (is_card_tapped(world, ikz_token->ikz_token)) {
+    ecs_entity_t ready_ikz_token =
+        get_ready_ikz_token(world, ikz_token_owner);
+    if (ready_ikz_token == 0) {
       return -1;
     }
 
-    ecs_assert(
-        is_card_type(world, ikz_token->ikz_token, CARD_TYPE_IKZ) ||
-            is_card_type(world, ikz_token->ikz_token, CARD_TYPE_EXTRA_IKZ),
-        ECS_INVALID_PARAMETER,
-        "IKZ token %d is not an IKZ card or extra IKZ card",
-        ikz_token->ikz_token);
-
-    out_ikz_cards[*out_ikz_count] = ikz_token->ikz_token;
+    out_ikz_cards[*out_ikz_count] = ready_ikz_token;
     (*out_ikz_count)++;
 
     if (*out_ikz_count == ikz_cost) {
@@ -126,7 +143,88 @@ int get_tappable_ikz_cards(ecs_world_t *world, ecs_entity_t ikz_area_zone,
     }
   }
 
+  ecs_entity_t owner = ecs_get_target(world, ikz_area_zone, Rel_OwnedBy, 0);
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  if (owner != 0 && gs != NULL) {
+    uint8_t player_num = get_player_number(world, owner);
+    ecs_entities_t garden_cards =
+        ecs_get_ordered_children(world, gs->zones[player_num].garden);
+    for (int32_t i = 0;
+         i < garden_cards.count && *out_ikz_count < ikz_cost; ++i) {
+      ecs_entity_t card = garden_cards.ids[i];
+      if (!azk_card_counts_as_ikz_source(world, card)) {
+        continue;
+      }
+
+      const TapState *tap_state = ecs_get(world, card, TapState);
+      ecs_assert(tap_state != NULL, ECS_INVALID_PARAMETER,
+                 "TapState component not found for card %d", card);
+      if (!tap_state->tapped) {
+        out_ikz_cards[*out_ikz_count] = card;
+        (*out_ikz_count)++;
+      }
+    }
+  }
+
   return 0;
+}
+
+uint8_t azk_count_tappable_ikz_sources(ecs_world_t *world,
+                                       ecs_entity_t ikz_area_zone,
+                                       bool include_ikz_token) {
+  uint8_t count = 0;
+
+  ecs_entity_t owner = ecs_get_target(world, ikz_area_zone, Rel_OwnedBy, 0);
+  if (include_ikz_token) {
+    ecs_assert(owner != 0, ECS_INVALID_PARAMETER,
+               "IKZ area zone %d has no owner", ikz_area_zone);
+    if (get_ready_ikz_token(world, owner) != 0) {
+      count++;
+      if (count == AZK_MAX_IKZ_PAYMENT) {
+        return count;
+      }
+    }
+  }
+
+  ecs_entities_t ikz_area_cards = ecs_get_ordered_children(world, ikz_area_zone);
+  for (int32_t i = 0; i < ikz_area_cards.count && count < AZK_MAX_IKZ_PAYMENT;
+       i++) {
+    ecs_entity_t ikz_card = ikz_area_cards.ids[i];
+
+    ecs_assert(is_card_type(world, ikz_card, CARD_TYPE_IKZ) ||
+                   is_card_type(world, ikz_card, CARD_TYPE_EXTRA_IKZ),
+               ECS_INVALID_PARAMETER, "Card %d is not an IKZ card", ikz_card);
+
+    const TapState *tap_state = ecs_get(world, ikz_card, TapState);
+    ecs_assert(tap_state != NULL, ECS_INVALID_PARAMETER,
+               "TapState component not found for card %d", ikz_card);
+    if (!tap_state->tapped) {
+      count++;
+    }
+  }
+
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  if (owner != 0 && gs != NULL) {
+    uint8_t player_num = get_player_number(world, owner);
+    ecs_entities_t garden_cards =
+        ecs_get_ordered_children(world, gs->zones[player_num].garden);
+    for (int32_t i = 0;
+         i < garden_cards.count && count < AZK_MAX_IKZ_PAYMENT; ++i) {
+      ecs_entity_t card = garden_cards.ids[i];
+      if (!azk_card_counts_as_ikz_source(world, card)) {
+        continue;
+      }
+
+      const TapState *tap_state = ecs_get(world, card, TapState);
+      ecs_assert(tap_state != NULL, ECS_INVALID_PARAMETER,
+                 "TapState component not found for card %d", card);
+      if (!tap_state->tapped) {
+        count++;
+      }
+    }
+  }
+
+  return count;
 }
 
 static int insert_card_into_zone_index(ecs_world_t *world, ecs_entity_t card,
@@ -145,18 +243,24 @@ static int insert_card_into_zone_index(ecs_world_t *world, ecs_entity_t card,
              "Card %d and player %d have different owners", card, player);
 
   if (displaced_card != 0) {
-    discard_card(world, displaced_card);
+    discard_card_for_replacement(world, displaced_card);
   }
 
   ecs_add_pair(world, card, EcsChildOf, zone);
   ecs_set(world, card, ZoneIndex, {.index = index});
 
   if (placement_type == ZONE_GARDEN) {
-    if (!ecs_has(world, card, Charge)) {
-      // Set cooldown state (logging handled by caller after ZONE_MOVED)
-      const TapState *tap_state = ecs_get(world, card, TapState);
-      ecs_set(world, card, TapState,
-              {.tapped = tap_state ? tap_state->tapped : false, .cooldown = true});
+    const TapState *tap_state = ecs_get(world, card, TapState);
+    ecs_set(world, card, TapState,
+            {.tapped = azk_card_enters_garden_tapped(world, card) ||
+                       (tap_state ? tap_state->tapped : false),
+             .cooldown = !ecs_has(world, card, Charge)});
+
+    const CardId *card_id = ecs_get(world, card, CardId);
+    if (card_id != NULL && card_id->id == CARD_DEF_STT03_013 &&
+        !ecs_has(world, card, Taunt)) {
+      ecs_add(world, card, Taunt);
+      azk_log_card_keywords_changed(world, card);
     }
   }
 
@@ -205,6 +309,10 @@ int summon_card_into_zone_index(ecs_world_t *world,
     tap_card(world, intent->ikz_cards[i]);
   }
 
+  if (intent->placement_type == ZONE_GARDEN) {
+    azk_trigger_enter_garden_ability(world, intent->card, intent->player);
+  }
+
   return 0;
 }
 
@@ -212,6 +320,10 @@ void untap_all_cards_in_zone(ecs_world_t *world, ecs_entity_t zone) {
   ecs_entities_t cards = ecs_get_ordered_children(world, zone);
   for (int32_t i = 0; i < cards.count; i++) {
     ecs_entity_t card = cards.ids[i];
+    if (ecs_has(world, card, Shocked) ||
+        azk_card_cannot_be_untapped(world, card)) {
+      continue;
+    }
     const TapState *ts = ecs_get(world, card, TapState);
     // Only log if state actually changes
     if (ts && (ts->tapped || ts->cooldown)) {
@@ -291,6 +403,7 @@ int gate_card_into_garden(ecs_world_t *world, const GatePortalIntent *intent) {
   }
 
   tap_card(world, intent->gate_card);
+  azk_trigger_enter_garden_ability(world, intent->alley_card, intent->player);
 
   // Trigger gate card's portal ability (if any)
   azk_trigger_gate_portal_ability(world, intent->gate_card, intent->alley_card,

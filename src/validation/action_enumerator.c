@@ -251,6 +251,12 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
     if (!def)
       break;
 
+    if (ctx->cost.selected_count >= ctx->cost.min_required &&
+        ctx->cost.selected_count < ctx->cost.max_allowed) {
+      action.type = ACT_NOOP;
+      add_valid_action(out_mask, &action);
+    }
+
     action.type = ACT_SELECT_COST_TARGET;
 
     AbilityTargetChoice choices[AZK_MAX_ABILITY_TARGET_CHOICES];
@@ -273,8 +279,8 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
     if (!def)
       break;
 
-    // Allow skipping effect selection if min is 0 ("up to" effects)
-    if (ctx->effect.min_required == 0 && ctx->effect.selected_count == 0) {
+    if (ctx->effect.selected_count >= ctx->effect.min_required &&
+        ctx->effect.selected_count < ctx->effect.max_allowed) {
       action.type = ACT_NOOP;
       add_valid_action(out_mask, &action);
     }
@@ -303,6 +309,20 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
       break;
 
     uint8_t owner_player_num = get_player_number(world, ctx->runtime.owner);
+    bool garden_slot_occupied[GARDEN_SIZE] = {false};
+    bool garden_full = false;
+    if (def->can_select_to_garden) {
+      ecs_entity_t garden_zone = gs->zones[owner_player_num].garden;
+      ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden_zone);
+      garden_full = garden_cards.count >= GARDEN_SIZE;
+      for (int i = 0; i < garden_cards.count; i++) {
+        const ZoneIndex *zi = ecs_get(world, garden_cards.ids[i], ZoneIndex);
+        if (zi && zi->index < GARDEN_SIZE) {
+          garden_slot_occupied[zi->index] = true;
+        }
+      }
+    }
+
     bool alley_slot_occupied[ALLEY_SIZE] = {false};
     bool alley_full = false;
     if (def->can_select_to_alley) {
@@ -317,9 +337,10 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
       }
     }
 
-    // Always allow skipping selection pick for "up to" effects
-    action.type = ACT_NOOP;
-    add_valid_action(out_mask, &action);
+    if (def->selection_pick_is_optional) {
+      action.type = ACT_NOOP;
+      add_valid_action(out_mask, &action);
+    }
 
     // Enumerate valid selection targets
     for (int i = 0; i < ctx->selection.count; i++) {
@@ -337,12 +358,27 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
       // Add ACT_SELECT_FROM_SELECTION (add to hand) if allowed
       // If ability has special selection modes (alley/equip), only add if
       // can_select_to_hand is explicitly true. Otherwise, use default behavior.
-      bool has_special_selection = def->can_select_to_alley || def->can_select_to_equip;
+      bool has_special_selection = def->can_select_to_garden ||
+                                   def->can_select_to_alley ||
+                                   def->can_select_to_equip;
       if (!has_special_selection || def->can_select_to_hand) {
         action.type = ACT_SELECT_FROM_SELECTION;
         action.subaction_1 = i;
         action.subaction_2 = 0;
         add_valid_action(out_mask, &action);
+      }
+
+      if (def->can_select_to_garden &&
+          is_card_type(world, target, CARD_TYPE_ENTITY)) {
+        action.type = ACT_SELECT_TO_GARDEN;
+        action.subaction_1 = i;
+        for (int slot = 0; slot < GARDEN_SIZE; slot++) {
+          if (garden_slot_occupied[slot] && !garden_full) {
+            continue;
+          }
+          action.subaction_2 = slot;
+          add_valid_action(out_mask, &action);
+        }
       }
 
       // If can_select_to_alley and target is an entity, enumerate alley slots
@@ -388,6 +424,22 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
   }
 
   case ABILITY_PHASE_BOTTOM_DECK: {
+    const CardId *card_id = ecs_get(world, ctx->runtime.source_card, CardId);
+    const AbilityDef *def = card_id ? azk_get_ability_def(card_id->id) : NULL;
+
+    if (def && def->can_topdeck_selection) {
+      action.type = ACT_TOP_DECK_CARD;
+      for (int i = 0; i < ctx->selection.count; i++) {
+        ecs_entity_t card = ctx->selection.cards[i];
+        if (card == 0) {
+          continue;
+        }
+
+        action.subaction_1 = i;
+        add_valid_action(out_mask, &action);
+      }
+    }
+
     // Enumerate remaining selection cards for bottom decking
     action.type = ACT_BOTTOM_DECK_CARD;
     for (int i = 0; i < ctx->selection.count; i++) {

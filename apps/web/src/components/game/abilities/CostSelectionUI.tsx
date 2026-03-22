@@ -4,7 +4,9 @@ import { useCallback } from "react";
 import { useGameState } from "@/contexts/GameStateContext";
 import { useRoom } from "@/contexts/RoomContext";
 import {
+  buildNoopAction,
   getValidCostTargets,
+  hasNoopAction,
   buildCostTargetAction,
 } from "@/lib/game/actionValidation";
 import { isHandTargetType } from "@/lib/game/abilityTargeting";
@@ -20,6 +22,7 @@ export function CostSelectionUI() {
 
   const actionMask = gameState?.actionMask ?? null;
   const validTargets = getValidCostTargets(actionMask);
+  const canFinishSelection = hasNoopAction(actionMask);
   const myHand = gameState?.myHand ?? [];
   const costTargetType = gameState?.abilityCostTargetType;
   const isHandTarget = isHandTargetType(costTargetType);
@@ -34,6 +37,14 @@ export function CostSelectionUI() {
     },
     [validTargets, send]
   );
+
+  const handleDoneSelecting = useCallback(() => {
+    if (!canFinishSelection) return;
+    send({
+      type: "GAME_ACTION",
+      action: buildNoopAction(),
+    });
+  }, [canFinishSelection, send]);
 
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-end pb-32 pointer-events-none">
@@ -91,11 +102,31 @@ export function CostSelectionUI() {
                 );
               })}
             </div>
+            {canFinishSelection && (
+              <div className="mt-4 flex justify-center">
+                <button
+                  onClick={handleDoneSelecting}
+                  className="px-4 py-2 rounded-md bg-amber-500 hover:bg-amber-400 text-black font-semibold"
+                >
+                  Done Selecting
+                </button>
+              </div>
+            )}
           </>
         ) : (
-          <p className="text-slate-300 text-sm">
-            Select a highlighted target on the board to pay the cost.
-          </p>
+          <div className="flex flex-col items-center gap-3">
+            <p className="text-slate-300 text-sm">
+              Select a highlighted target on the board to pay the cost.
+            </p>
+            {canFinishSelection && (
+              <button
+                onClick={handleDoneSelecting}
+                className="px-4 py-2 rounded-md bg-amber-500 hover:bg-amber-400 text-black font-semibold"
+              >
+                Done Selecting
+              </button>
+            )}
+          </div>
         )}
       </div>
     </div>

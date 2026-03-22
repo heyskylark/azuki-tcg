@@ -41,7 +41,7 @@ KEYWORD_WITH_DATA = {
     "effect_immune": {
         "tag": "EffectImmune",
         "component": "CardConditionCountdown",
-        "init": ".frozen_duration = 0, .shocked_duration = 0, .effect_immune_duration = -1",
+        "init": ".frozen_duration = 0, .shocked_duration = 0, .effect_immune_duration = -1, .timed_tag_grant_count = 0",
     },
 }
 

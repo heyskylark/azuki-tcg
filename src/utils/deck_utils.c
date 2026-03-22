@@ -326,6 +326,29 @@ void add_card_to_bottom_of_deck(ecs_world_t *world, ecs_entity_t player,
                           0);
 }
 
+void add_card_to_top_of_deck(ecs_world_t *world, ecs_entity_t player,
+                             ecs_entity_t card) {
+  ecs_entity_t from_zone_entity = ecs_get_target(world, card, EcsChildOf, 0);
+  GameLogZone from_zone = azk_zone_entity_to_log_zone(world, from_zone_entity);
+  int8_t from_index =
+      azk_get_card_index_in_zone(world, card, from_zone_entity);
+
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  uint8_t player_num = get_player_number(world, player);
+  ecs_entity_t deck = gs->zones[player_num].deck;
+
+  ecs_add_pair(world, card, EcsChildOf, deck);
+
+  if (!azk_queue_deck_reorder_to_top(world, deck, card)) {
+    cli_render_logf("[Deck] Reorder queue full - top deck reorder skipped");
+  }
+
+  ecs_entities_t deck_cards = ecs_get_ordered_children(world, deck);
+  int8_t to_index = (int8_t)deck_cards.count;
+  azk_log_card_zone_moved(world, card, from_zone, from_index, GLOG_ZONE_DECK,
+                          to_index);
+}
+
 void move_selection_to_hand(ecs_world_t *world, ecs_entity_t card) {
   ecs_entity_t owner = ecs_get_target(world, card, Rel_OwnedBy, 0);
   ecs_assert(owner != 0, ECS_INVALID_PARAMETER, "Card has no owner");
@@ -360,8 +383,14 @@ void move_selection_to_deck_bottom(ecs_world_t *world, ecs_entity_t player,
   add_card_to_bottom_of_deck(world, player, card);
 }
 
-bool azk_queue_deck_reorder(ecs_world_t *world, ecs_entity_t deck,
-                            ecs_entity_t card) {
+void move_selection_to_deck_top(ecs_world_t *world, ecs_entity_t player,
+                                ecs_entity_t card) {
+  add_card_to_top_of_deck(world, player, card);
+}
+
+static bool azk_queue_deck_reorder_internal(ecs_world_t *world,
+                                            ecs_entity_t deck,
+                                            ecs_entity_t card, bool to_top) {
   ecs_assert(world != NULL, ECS_INVALID_PARAMETER, "World pointer is null");
 
   DeckReorderQueue *queue = ecs_singleton_get_mut(world, DeckReorderQueue);
@@ -375,10 +404,21 @@ bool azk_queue_deck_reorder(ecs_world_t *world, ecs_entity_t deck,
   queue->entries[queue->count++] = (PendingDeckReorder){
       .deck = deck,
       .card = card,
+      .to_top = to_top,
   };
 
   ecs_singleton_modified(world, DeckReorderQueue);
   return true;
+}
+
+bool azk_queue_deck_reorder(ecs_world_t *world, ecs_entity_t deck,
+                            ecs_entity_t card) {
+  return azk_queue_deck_reorder_internal(world, deck, card, false);
+}
+
+bool azk_queue_deck_reorder_to_top(ecs_world_t *world, ecs_entity_t deck,
+                                   ecs_entity_t card) {
+  return azk_queue_deck_reorder_internal(world, deck, card, true);
 }
 
 bool azk_has_pending_deck_reorders(ecs_world_t *world) {
@@ -418,14 +458,27 @@ void azk_process_deck_reorder_queue(ecs_world_t *world) {
 
     bool found = false;
     int32_t dest = 0;
-    new_order[dest++] = card;
-    for (int32_t j = 0; j < count; j++) {
-      if (deck_cards.ids[j] == card) {
-        found = true;
-        continue;
+    if (queue->entries[i].to_top) {
+      for (int32_t j = 0; j < count; j++) {
+        if (deck_cards.ids[j] == card) {
+          found = true;
+          continue;
+        }
+        if (dest < count - 1) {
+          new_order[dest++] = deck_cards.ids[j];
+        }
       }
-      if (dest < count) {
-        new_order[dest++] = deck_cards.ids[j];
+      new_order[dest++] = card;
+    } else {
+      new_order[dest++] = card;
+      for (int32_t j = 0; j < count; j++) {
+        if (deck_cards.ids[j] == card) {
+          found = true;
+          continue;
+        }
+        if (dest < count) {
+          new_order[dest++] = deck_cards.ids[j];
+        }
       }
     }
 

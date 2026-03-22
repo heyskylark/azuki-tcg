@@ -8,8 +8,12 @@ import { CARD_WIDTH, CARD_HEIGHT, CARD_DEPTH } from "@/components/game/cards/Car
 
 // Must match Board.tsx layout constants
 const SLOT_SPACING = 1.8;
+const CENTER_LANE_OFFSET = 0.6;
 const OPP_GARDEN_Z = -1.5;
+const OPP_ALLEY_Z = -(3.6 + CENTER_LANE_OFFSET);
 const RIGHT_SIDE_X = 6;
+const ATTACK_TARGET_OPP_LEADER = 5;
+const ATTACK_TARGET_OPP_ALLEY_OFFSET = 6;
 
 const RETICLE_SIZE = CARD_WIDTH;
 const RETICLE_Y = CARD_DEPTH + 0.08;
@@ -107,11 +111,11 @@ export function AttackDragOverlay({
       const halfWidth = CARD_WIDTH / 2 + TARGET_HIT_MARGIN;
       const halfHeight = CARD_HEIGHT / 2 + TARGET_HIT_MARGIN;
 
-      if (validTargets.has(5)) {
+      if (validTargets.has(ATTACK_TARGET_OPP_LEADER)) {
         const dx = Math.abs(pos.x - RIGHT_SIDE_X);
         const dz = Math.abs(pos.z - OPP_GARDEN_Z);
         if (dx <= halfWidth && dz <= halfHeight) {
-          return 5;
+          return ATTACK_TARGET_OPP_LEADER;
         }
       }
 
@@ -122,6 +126,17 @@ export function AttackDragOverlay({
         const dz = Math.abs(pos.z - OPP_GARDEN_Z);
         if (dx <= halfWidth && dz <= halfHeight) {
           return i;
+        }
+      }
+
+      for (let i = 0; i < 5; i++) {
+        const targetIndex = ATTACK_TARGET_OPP_ALLEY_OFFSET + i;
+        if (!validTargets.has(targetIndex)) continue;
+        const targetX = (i - 2) * SLOT_SPACING;
+        const dx = Math.abs(pos.x - targetX);
+        const dz = Math.abs(pos.z - OPP_ALLEY_Z);
+        if (dx <= halfWidth && dz <= halfHeight) {
+          return targetIndex;
         }
       }
 

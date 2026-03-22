@@ -48,7 +48,7 @@ bool stt01_005_validate_effect_target(ecs_world_t* world, ecs_entity_t card, ecs
 
 void stt01_005_apply_costs(ecs_world_t* world, const AbilityContext* ctx) {
     // 1. Sacrifice this card (move to discard)
-    discard_card(world, ctx->runtime.source_card);
+    sacrifice_card(world, ctx->runtime.source_card);
     cli_render_logf("[STT01-005] Sacrificed card");
 
     // 2. Draw 3 cards (with deck-out check after each draw)
@@ -64,7 +64,7 @@ void stt01_005_apply_costs(ecs_world_t* world, const AbilityContext* ctx) {
 void stt01_005_apply_effects(ecs_world_t* world, const AbilityContext* ctx) {
     // Discard the 2 selected cards
     for (int i = 0; i < ctx->effect.selected_count; i++) {
-        discard_card(world, ctx->effect.entities[i]);
+        sacrifice_card(world, ctx->effect.entities[i]);
     }
     cli_render_logf("[STT01-005] Discarded %d cards", ctx->effect.selected_count);
 }

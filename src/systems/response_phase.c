@@ -9,8 +9,69 @@
 #include "utils/cli_rendering_util.h"
 #include "utils/game_log_util.h"
 #include "utils/player_util.h"
+#include "utils/weapon_util.h"
 #include "utils/zone_util.h"
 #include "validation/action_validation.h"
+
+static int play_entity_to_garden_or_alley_response(ecs_world_t *world,
+                                                   GameState *gs,
+                                                   ActionContext *ac,
+                                                   ZonePlacementType placement_type) {
+  ecs_entity_t player = gs->players[gs->active_player_index];
+  PlayEntityIntent intent = {0};
+  if (!azk_validate_play_entity_action(world, gs, player, placement_type,
+                                       &ac->user_action, true, &intent)) {
+    return -1;
+  }
+
+  int result = summon_card_into_zone_index(world, &intent);
+  if (result < 0) {
+    return result;
+  }
+
+  if (placement_type == ZONE_GARDEN) {
+    gs->entities_played_garden_this_turn[gs->active_player_index]++;
+  } else {
+    gs->entities_played_alley_this_turn[gs->active_player_index]++;
+  }
+  gs->cards_played_this_turn[gs->active_player_index]++;
+  gs->next_card_play_cost_reduction[gs->active_player_index] = 0;
+
+  azk_trigger_on_play_ability(world, intent.card, intent.player);
+  return 0;
+}
+
+static void handle_play_response_entity_to_garden(ecs_world_t *world,
+                                                  GameState *gs,
+                                                  ActionContext *ac) {
+  if (ac->user_action.type != ACT_PLAY_ENTITY_TO_GARDEN) {
+    ac->invalid_action = true;
+    return;
+  }
+
+  if (play_entity_to_garden_or_alley_response(world, gs, ac, ZONE_GARDEN) < 0) {
+    ac->invalid_action = true;
+    return;
+  }
+
+  cli_render_logf("[ResponseAction] Played response entity to garden");
+}
+
+static void handle_play_response_entity_to_alley(ecs_world_t *world,
+                                                 GameState *gs,
+                                                 ActionContext *ac) {
+  if (ac->user_action.type != ACT_PLAY_ENTITY_TO_ALLEY) {
+    ac->invalid_action = true;
+    return;
+  }
+
+  if (play_entity_to_garden_or_alley_response(world, gs, ac, ZONE_ALLEY) < 0) {
+    ac->invalid_action = true;
+    return;
+  }
+
+  cli_render_logf("[ResponseAction] Played response entity to alley");
+}
 
 static void handle_declare_defender(ecs_world_t *world, GameState *gs,
                                     ActionContext *ac) {
@@ -38,18 +99,26 @@ static void handle_declare_defender(ecs_world_t *world, GameState *gs,
                   intent.garden_index);
 }
 
-static void handle_activate_leader_response_ability(ecs_world_t *world,
-                                                     GameState *gs,
-                                                     ActionContext *ac) {
-  if (ac->user_action.type != ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY) {
+static void handle_activate_response_ability(ecs_world_t *world, GameState *gs,
+                                             ActionContext *ac) {
+  if (ac->user_action.type != ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY &&
+      ac->user_action.type != ACT_ACTIVATE_ALLEY_ABILITY) {
     ac->invalid_action = true;
     return;
   }
 
   ecs_entity_t player = gs->players[gs->active_player_index];
   ActivateAbilityIntent intent = {0};
-  if (!azk_validate_activate_garden_or_leader_ability_action(
-          world, gs, player, &ac->user_action, true, &intent)) {
+  bool valid = false;
+  if (ac->user_action.type == ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY) {
+    valid = azk_validate_activate_garden_or_leader_ability_action(
+        world, gs, player, &ac->user_action, true, &intent);
+  } else {
+    valid = azk_validate_activate_alley_ability_action(
+        world, gs, player, &ac->user_action, true, &intent);
+  }
+
+  if (!valid) {
     ac->invalid_action = true;
     return;
   }
@@ -62,9 +131,9 @@ static void handle_activate_leader_response_ability(ecs_world_t *world,
   // Note: Once-per-turn marking is now handled in azk_clear_ability_context()
   // when the ability actually completes (not when it's triggered)
 
-  cli_render_logf("[ResponseAction] Activated leader response ability");
+  cli_render_logf("[ResponseAction] Activated response ability");
 
-  // Trigger the leader's response ability
+  // Trigger the selected card's response ability
   azk_trigger_leader_response_ability(world, intent.card, player);
 }
 
@@ -90,11 +159,43 @@ static void handle_play_spell_from_hand(ecs_world_t *world, GameState *gs,
 
   // Move spell card to discard
   discard_card(world, intent.spell_card);
+  gs->cards_played_this_turn[gs->active_player_index]++;
+  gs->next_card_play_cost_reduction[gs->active_player_index] = 0;
 
   cli_render_logf("[ResponseAction] Played spell from hand");
 
   // Trigger the spell's ability
   azk_trigger_spell_ability(world, intent.spell_card, player);
+}
+
+static void handle_attach_weapon_from_hand(ecs_world_t *world, GameState *gs,
+                                           ActionContext *ac) {
+  if (ac->user_action.type != ACT_ATTACH_WEAPON_FROM_HAND) {
+    ac->invalid_action = true;
+    return;
+  }
+
+  ecs_entity_t player = gs->players[gs->active_player_index];
+  AttachWeaponIntent intent = {0};
+  if (!azk_validate_attach_weapon_action(world, gs, player, &ac->user_action,
+                                         true, &intent)) {
+    ac->invalid_action = true;
+    return;
+  }
+
+  int result = attach_weapon_from_hand(world, &intent);
+  if (result < 0) {
+    ac->invalid_action = true;
+    return;
+  }
+
+  gs->cards_played_this_turn[gs->active_player_index]++;
+  gs->next_card_play_cost_reduction[gs->active_player_index] = 0;
+
+  azk_trigger_on_play_ability(world, intent.weapon_card, intent.player);
+  azk_trigger_when_equipped_ability(world, intent.weapon_card, intent.player);
+
+  cli_render_logf("[ResponseAction] Attached response weapon");
 }
 
 void HandleResponseAction(ecs_iter_t *it) {
@@ -121,6 +222,14 @@ void HandleResponseAction(ecs_iter_t *it) {
 
   // Normal response phase handling
   switch (ac->user_action.type) {
+  case ACT_PLAY_ENTITY_TO_GARDEN:
+    handle_play_response_entity_to_garden(world, gs, ac);
+    break;
+
+  case ACT_PLAY_ENTITY_TO_ALLEY:
+    handle_play_response_entity_to_alley(world, gs, ac);
+    break;
+
   case ACT_PLAY_SPELL_FROM_HAND:
     handle_play_spell_from_hand(world, gs, ac);
     // Spell ability triggers via azk_trigger_spell_ability.
@@ -128,9 +237,14 @@ void HandleResponseAction(ecs_iter_t *it) {
     // Auto-transition after ability completion is handled there.
     break;
 
+  case ACT_ATTACH_WEAPON_FROM_HAND:
+    handle_attach_weapon_from_hand(world, gs, ac);
+    break;
+
   case ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY:
-    handle_activate_leader_response_ability(world, gs, ac);
-    // Leader ability triggers via azk_trigger_leader_response_ability.
+  case ACT_ACTIVATE_ALLEY_ABILITY:
+    handle_activate_response_ability(world, gs, ac);
+    // Card response abilities trigger via azk_trigger_leader_response_ability.
     // If ability requires selection, AbilityResolutionPhaseSystem handles it.
     break;
 

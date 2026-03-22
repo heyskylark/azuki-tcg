@@ -15,6 +15,9 @@ static const bool PHASE_REQUIRES_USER_ACTION[PHASE_COUNT] = {
 
 bool phase_requires_user_action(ecs_world_t *world, Phase phase) {
   const GameState *gs = ecs_singleton_get(world, GameState);
+  if (azk_is_in_ability_phase(world)) {
+    return true;
+  }
 
   // If there's a queued triggered effect AND no ability is currently active,
   // no user input needed (we'll auto-process the queue this iteration).

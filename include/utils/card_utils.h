@@ -6,6 +6,7 @@
 
 bool is_card_type(ecs_world_t *world, ecs_entity_t card, CardType type);
 void discard_card(ecs_world_t *world, ecs_entity_t card);
+void sacrifice_card(ecs_world_t *world, ecs_entity_t card);
 void return_card_to_hand(ecs_world_t *world, ecs_entity_t card);
 /**
  * Check if a card can be tapped.
@@ -27,6 +28,15 @@ void tap_card(ecs_world_t *world, ecs_entity_t card);
 void set_card_to_cooldown(ecs_world_t *world, ecs_entity_t card);
 bool is_card_tapped(ecs_world_t *world, ecs_entity_t card);
 bool is_card_cooldown(ecs_world_t *world, ecs_entity_t card);
+bool azk_card_has_godmode_in_play(ecs_world_t *world, ecs_entity_t card);
+bool azk_card_enters_garden_tapped(ecs_world_t *world, ecs_entity_t card);
+bool azk_card_cannot_be_untapped(ecs_world_t *world, ecs_entity_t card);
+bool azk_card_can_only_attack_leaders(ecs_world_t *world, ecs_entity_t card);
+bool azk_card_can_attack_opponent_alley(ecs_world_t *world, ecs_entity_t card);
+bool azk_card_counts_as_ikz_source(ecs_world_t *world, ecs_entity_t card);
+int8_t azk_get_effective_card_play_cost(ecs_world_t *world, ecs_entity_t player,
+                                        ecs_entity_t card);
+void discard_card_for_replacement(ecs_world_t *world, ecs_entity_t card);
 
 /**
  * Check if a card is a weapon card.
@@ -68,6 +78,22 @@ bool is_watercrafting_card(ecs_world_t *world, ecs_entity_t card);
  * @return true if the card has the Water element
  */
 bool is_water_element_card(ecs_world_t *world, ecs_entity_t card);
+
+/**
+ * Check if a card has the Normal element.
+ * @param world The ECS world
+ * @param card The card to inspect
+ * @return true if the card has the Normal element
+ */
+bool is_normal_element_card(ecs_world_t *world, ecs_entity_t card);
+
+/**
+ * Get a card's element enum value.
+ * @param world The ECS world
+ * @param card The card to inspect
+ * @return The card element value, or CARD_ELEMENT_NORMAL if missing
+ */
+CardElement get_card_element(ecs_world_t *world, ecs_entity_t card);
 
 /**
  * Count cards with a specific subtype in a zone.

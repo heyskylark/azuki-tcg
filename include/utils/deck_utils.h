@@ -70,6 +70,15 @@ int look_at_top_n_cards(ecs_world_t *world, ecs_entity_t player, int count, ecs_
 void add_card_to_bottom_of_deck(ecs_world_t *world, ecs_entity_t player, ecs_entity_t card);
 
 /**
+ * Add a card to the top of a player's deck.
+ * @param world The ECS world
+ * @param player The player whose deck to modify
+ * @param card The card to add to the top
+ */
+void add_card_to_top_of_deck(ecs_world_t *world, ecs_entity_t player,
+                             ecs_entity_t card);
+
+/**
  * Move a card from the selection zone to the player's hand.
  * @param world The ECS world
  * @param card The card to move to hand
@@ -85,10 +94,26 @@ void move_selection_to_hand(ecs_world_t *world, ecs_entity_t card);
 void move_selection_to_deck_bottom(ecs_world_t *world, ecs_entity_t player, ecs_entity_t card);
 
 /**
+ * Move a card from the selection zone to the top of the deck.
+ * @param world The ECS world
+ * @param player The player whose deck to modify
+ * @param card The card to top deck
+ */
+void move_selection_to_deck_top(ecs_world_t *world, ecs_entity_t player,
+                                ecs_entity_t card);
+
+/**
  * Queue a deck reorder so it can be processed after deferred ops flush.
  * @return true if queued, false if queue is full.
  */
 bool azk_queue_deck_reorder(ecs_world_t *world, ecs_entity_t deck, ecs_entity_t card);
+
+/**
+ * Queue a deck reorder that moves the card to the top of the deck.
+ * @return true if queued, false if queue is full.
+ */
+bool azk_queue_deck_reorder_to_top(ecs_world_t *world, ecs_entity_t deck,
+                                   ecs_entity_t card);
 
 /**
  * Check for pending deck reorder operations.

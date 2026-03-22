@@ -1,4 +1,6 @@
 #include "systems/combat_resolve_phase.h"
+#include "abilities/ability_registry.h"
+#include "abilities/ability_system.h"
 #include "components/components.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/combat_util.h"
@@ -48,6 +50,18 @@ void HandleCombatResolution(ecs_iter_t *it) {
   }
 
   resolve_combat(world);
+
+  const ecs_entity_t attacker = gs->combat_state.attacking_card;
+  ecs_entity_t attacker_owner = 0;
+  if (attacker != 0) {
+    attacker_owner = ecs_get_target(world, attacker, Rel_OwnedBy, 0);
+    const CardId *attacker_id = ecs_get(world, attacker, CardId);
+    if (attacker_id != NULL &&
+        azk_has_ability_with_timing(attacker_id->id, ecs_id(AAfterAttacking))) {
+      azk_queue_triggered_effect(world, attacker, attacker_owner,
+                                 TIMING_TAG_AFTER_ATTACKING);
+    }
+  }
 
   // Reset combat state
   gs->combat_state.attacking_card = 0;

@@ -74,6 +74,39 @@ bool azk_bottom_deck_selection_card(ecs_world_t *world, AbilityContext *ctx,
   return true;
 }
 
+bool azk_top_deck_selection_card(ecs_world_t *world, AbilityContext *ctx,
+                                 int selection_index) {
+  if (!ctx) {
+    return false;
+  }
+
+  if (selection_index < 0 || selection_index >= ctx->selection.count) {
+    cli_render_logf("[Ability] Invalid top deck index %d", selection_index);
+    return false;
+  }
+
+  ecs_entity_t card = ctx->selection.cards[selection_index];
+  if (card == 0) {
+    cli_render_logf("[Ability] Selection slot %d already empty",
+                    selection_index);
+    return false;
+  }
+
+  move_selection_to_deck_top(world, ctx->runtime.owner, card);
+  ctx->selection.cards[selection_index] = 0;
+
+  cli_render_logf("[Ability] Top decked card from slot %d", selection_index);
+
+  if (azk_count_remaining_selection_cards(ctx) == 0) {
+    cli_render_logf("[Ability] All cards ordered, ability complete");
+    azk_clear_ability_context(world);
+    return true;
+  }
+
+  ecs_singleton_modified(world, AbilityContext);
+  return true;
+}
+
 bool azk_bottom_deck_all_selection_cards(ecs_world_t *world,
                                          AbilityContext *ctx) {
   if (!ctx) {

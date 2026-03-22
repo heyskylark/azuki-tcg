@@ -18,6 +18,9 @@ bool azk_finish_selection_resolution(ecs_world_t *world, AbilityContext *ctx,
 bool azk_bottom_deck_selection_card(ecs_world_t *world, AbilityContext *ctx,
                                     int selection_index);
 
+bool azk_top_deck_selection_card(ecs_world_t *world, AbilityContext *ctx,
+                                 int selection_index);
+
 bool azk_bottom_deck_all_selection_cards(ecs_world_t *world,
                                          AbilityContext *ctx);
 

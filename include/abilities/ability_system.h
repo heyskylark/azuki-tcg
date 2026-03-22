@@ -9,13 +9,20 @@
 // Timing tag constants for queue indexing
 #define TIMING_TAG_ON_PLAY 0
 #define TIMING_TAG_START_OF_TURN 1
-#define TIMING_TAG_END_OF_TURN 2
-#define TIMING_TAG_WHEN_EQUIPPING 3
-#define TIMING_TAG_WHEN_EQUIPPED 4
-#define TIMING_TAG_WHEN_ATTACKING 5
-#define TIMING_TAG_WHEN_ATTACKED 6
-#define TIMING_TAG_WHEN_RETURNED_TO_HAND 7
-#define TIMING_TAG_ON_GATE_PORTAL 8
+#define TIMING_TAG_START_OF_EACH_TURN 2
+#define TIMING_TAG_END_OF_TURN 3
+#define TIMING_TAG_WHEN_EQUIPPING 4
+#define TIMING_TAG_WHEN_EQUIPPED 5
+#define TIMING_TAG_WHEN_ATTACKING 6
+#define TIMING_TAG_WHEN_ATTACKED 7
+#define TIMING_TAG_WHEN_RETURNED_TO_HAND 8
+#define TIMING_TAG_ON_GATE_PORTAL 9
+#define TIMING_TAG_AFTER_ATTACKING 10
+#define TIMING_TAG_WHEN_TAKES_DAMAGE 11
+#define TIMING_TAG_WHEN_DEALS_DAMAGE 12
+#define TIMING_TAG_WHEN_DESTROYED 13
+#define TIMING_TAG_WHEN_SACRIFICED 14
+#define TIMING_TAG_WHEN_ENTERS_GARDEN 15
 
 // Trigger an on-play ability for a card that was just played
 // Returns true if an ability was triggered (player needs to confirm/decline)
@@ -38,6 +45,10 @@ bool azk_process_ability_decline(ecs_world_t *world);
 // Returns true if target is valid and added, false otherwise
 bool azk_process_cost_selection(ecs_world_t *world, int target_index);
 
+// Finish cost selection early with the current chosen targets.
+// Returns true if the minimum required costs have been chosen, false otherwise.
+bool azk_process_cost_skip(ecs_world_t *world);
+
 // Process effect target selection (ACT_SELECT_EFFECT_TARGET)
 // Returns true if target is valid and added, false otherwise
 bool azk_process_effect_selection(ecs_world_t *world, int target_index);
@@ -51,6 +62,14 @@ bool azk_process_effect_skip(ecs_world_t *world);
 // selection_index is the index into the selection zone
 // Returns true if selection is valid, false otherwise
 bool azk_process_selection_pick(ecs_world_t *world, int selection_index);
+
+// Process selection to alley (ACT_SELECT_TO_ALLEY)
+// selection_index is the index into the selection zone
+// alley_slot_index is the target alley slot (0-4)
+// Moves an entity card directly to alley without IKZ cost
+// Returns true if successful, false otherwise
+bool azk_process_selection_to_garden(ecs_world_t *world, int selection_index,
+                                     int garden_slot_index);
 
 // Process selection to alley (ACT_SELECT_TO_ALLEY)
 // selection_index is the index into the selection zone
@@ -71,6 +90,11 @@ bool azk_process_selection_to_equip(ecs_world_t *world, int selection_index,
 // Skip selection pick (ACT_NOOP during an optional selection flow)
 // Returns true if skipping is valid, false otherwise
 bool azk_process_skip_selection(ecs_world_t *world);
+
+// Process bottom deck action (ACT_BOTTOM_DECK_CARD)
+// selection_index is the index into the selection zone
+// Returns true if valid, false otherwise
+bool azk_process_top_deck(ecs_world_t *world, int selection_index);
 
 // Process bottom deck action (ACT_BOTTOM_DECK_CARD)
 // selection_index is the index into the selection zone
@@ -122,6 +146,19 @@ void azk_trigger_return_to_hand_observers(ecs_world_t *world,
 bool azk_trigger_when_equipped_ability(ecs_world_t *world, ecs_entity_t card,
                                        ecs_entity_t owner);
 
+// Queue all AStartOfTurn abilities for the active player's in-play cards.
+// Scans garden, leader, and alley in that order.
+// Returns true if at least one triggered effect was queued.
+bool azk_trigger_start_of_turn_abilities(ecs_world_t *world);
+
+// Queue all AStartOfEachTurn abilities for both players' in-play cards.
+bool azk_trigger_start_of_each_turn_abilities(ecs_world_t *world);
+
+// Queue all AEndOfTurn abilities for the active player's in-play cards.
+// Scans garden, leader, and alley in that order.
+// Returns true if at least one triggered effect was queued.
+bool azk_trigger_end_of_turn_abilities(ecs_world_t *world);
+
 // Trigger gate card's portal ability after successfully portaling an entity
 // gate_card: the gate card that was used to portal
 // portaled_card: the entity card that was moved from alley to garden
@@ -130,6 +167,10 @@ bool azk_trigger_when_equipped_ability(ecs_world_t *world, ecs_entity_t card,
 void azk_trigger_gate_portal_ability(ecs_world_t *world, ecs_entity_t gate_card,
                                      ecs_entity_t portaled_card,
                                      ecs_entity_t owner);
+
+// Trigger an enters-garden ability for a card that was just moved into Garden.
+bool azk_trigger_enter_garden_ability(ecs_world_t *world, ecs_entity_t card,
+                                      ecs_entity_t owner);
 
 // Queue a triggered effect for processing on next game loop
 // This is used for timing-based triggers (on play, on equip, etc.) where

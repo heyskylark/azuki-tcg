@@ -211,6 +211,21 @@ static void register_action_context_singleton(ecs_world_t *world) {
   ecs_singleton_set_ptr(world, ActionContext, &ac);
 }
 
+static void initialize_card_runtime_components(ecs_world_t *world,
+                                               ecs_entity_t card) {
+  if (!ecs_has(world, card, DamageTracker)) {
+    ecs_set(world, card, DamageTracker, {0});
+  }
+
+  if (!ecs_get(world, card, CardConditionCountdown)) {
+    ecs_set(world, card, CardConditionCountdown,
+            {.frozen_duration = 0,
+             .shocked_duration = 0,
+             .effect_immune_duration = 0,
+             .timed_tag_grant_count = 0});
+  }
+}
+
 static void grant_player_ikz_token(ecs_world_t *world, ecs_entity_t player) {
   const ecs_entity_t ikz_token_prefab = azk_prefab_from_id(CARD_DEF_IKZ_002);
   ecs_assert(ikz_token_prefab != 0, ECS_INVALID_PARAMETER,
@@ -218,7 +233,8 @@ static void grant_player_ikz_token(ecs_world_t *world, ecs_entity_t player) {
   const ecs_entity_t ikz_token =
       ecs_new_w_pair(world, EcsIsA, ikz_token_prefab);
   ecs_set_name(world, ikz_token, "IKZTokenCard");
-  ecs_set(world, player, IKZToken, {.ikz_token = ikz_token});
+  initialize_card_runtime_components(world, ikz_token);
+  ecs_set(world, player, IKZToken, {.ikz_token = ikz_token, .expires_eot = false});
 }
 
 ecs_world_t *azk_world_init_with_starting_player(uint32_t seed,
@@ -345,6 +361,10 @@ static void register_card(ecs_world_t *world, ecs_entity_t player,
                "Card zone not found for type %d", type->value);
     ecs_add_pair(world, card, EcsChildOf, placement.zone);
     ecs_add_pair(world, card, Rel_OwnedBy, player);
+    // Runtime-only mutable components are read during deferred resolution.
+    // Initialize them up front so first writes never need to add components
+    // mid-resolution.
+    initialize_card_runtime_components(world, card);
 
     // Attach ability timing tags (AOnPlay, AResponse, etc.) if card has an
     // ability. Must be after Rel_OwnedBy is set for passive observers that

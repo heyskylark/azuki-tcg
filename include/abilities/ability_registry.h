@@ -12,13 +12,20 @@ typedef struct {
   bool has_ability;
   bool is_optional;
   bool is_once_per_turn;    // If true, ability can only be used once per turn
+  bool can_play_as_response_from_hand; // If true, entity may be played during response window
+  bool can_select_to_garden; // If true, entity cards can be selected to garden
   bool can_select_to_alley; // If true, entity cards can be selected to alley
   bool can_select_to_equip; // If true, weapon cards can be selected to equip
+  bool selection_to_equip_is_reequip; // If true, selection equip moves an existing weapon
   bool can_select_to_hand;  // If true, cards can be selected to add to hand (default true)
+  bool selection_pick_is_optional; // If true, ACT_NOOP may skip selection pick
+  bool can_topdeck_selection; // If true, remaining selection cards may be placed on top
+  bool clear_selection_if_still_active; // If true, do not auto-bottom-deck leftovers
   int8_t ikz_cost;         // IKZ cost for activating ability (0 = no cost)
   AbilityCostRequirements cost_req;
   AbilityEffectRequirements effect_req;
   ecs_id_t timing_tag; // AOnPlay, AStartOfTurn, etc. (0 if none)
+  ecs_id_t secondary_timing_tag; // Optional second timing tag for dual-timing cards
 
   // Function pointers for ability logic
   bool (*validate)(ecs_world_t *, ecs_entity_t card, ecs_entity_t owner);

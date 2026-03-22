@@ -1,4 +1,5 @@
 #include "systems/start_phase.h"
+#include "abilities/ability_system.h"
 #include "components/abilities.h"
 #include "components/components.h"
 #include "utils/cli_rendering_util.h"
@@ -44,6 +45,21 @@ static void reset_once_per_turn_in_zone(ecs_world_t *world, ecs_entity_t zone) {
         .is_once_per_turn = true,
         .was_applied = false
       });
+    }
+
+    ecs_iter_t child_it = ecs_children(world, card);
+    while (ecs_children_next(&child_it)) {
+      for (int j = 0; j < child_it.count; j++) {
+        ecs_entity_t child = child_it.entities[j];
+        if (!ecs_has(world, child, AOnceTurn)) {
+          continue;
+        }
+
+        ecs_set(world, child, AbilityRepeatContext, {
+          .is_once_per_turn = true,
+          .was_applied = false
+        });
+      }
     }
   }
 }
@@ -103,7 +119,10 @@ void StartPhase(ecs_iter_t *it) {
   for (int i = 0; i < MAX_PLAYERS_PER_MATCH; i++) {
     gs->entities_played_garden_this_turn[i] = 0;
     gs->entities_played_alley_this_turn[i] = 0;
+    gs->cards_played_this_turn[i] = 0;
+    gs->discarded_cards_this_turn[i] = 0;
     gs->entities_returned_to_hand_this_turn[i] = 0;
+    gs->next_card_play_cost_reduction[i] = 0;
   }
 
   // Reset once-per-turn abilities for both players
@@ -116,6 +135,8 @@ void StartPhase(ecs_iter_t *it) {
     cli_render_log("[StartPhase] Skipping opening draw for the starting player");
   }
   GrantIKZ(world, gs);
+  azk_trigger_start_of_turn_abilities(world);
+  azk_trigger_start_of_each_turn_abilities(world);
 
   handle_phase_transition(world, gs);
 

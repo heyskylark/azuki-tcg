@@ -66,7 +66,7 @@ void stt01_004_apply_costs(ecs_world_t *world, const AbilityContext *ctx) {
     return;
   }
 
-  discard_card(world, target);
+  sacrifice_card(world, target);
   cli_render_logf("[STT01-004] Discarded weapon card as cost");
 }
 

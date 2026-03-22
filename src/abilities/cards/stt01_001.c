@@ -7,6 +7,7 @@
 #include "utils/cli_rendering_util.h"
 #include "utils/game_log_util.h"
 #include "utils/player_util.h"
+#include "utils/status_util.h"
 #include "utils/zone_util.h"
 
 // STT01-001: [Main] [Once/Turn] Pay 1 IKZ: Give a friendly garden entity
@@ -81,19 +82,6 @@ void stt01_001_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
     return;
   }
 
-  // Add Charge tag
-  ecs_add(world, target, Charge);
-  azk_log_card_keywords_changed(world, target);
-
-  // Clear cooldown but preserve tapped state
-  const TapState *tap = ecs_get(world, target, TapState);
-  ecs_set(world, target, TapState, {
-    .tapped = tap ? tap->tapped : false,
-    .cooldown = false
-  });
-  azk_log_card_tap_state_changed(
-      world, target,
-      (tap && tap->tapped) ? GLOG_TAP_TAPPED : GLOG_TAP_UNTAPPED);
-
-  cli_render_logf("[STT01-001] Granted Charge to target entity");
+  apply_charge_grant(world, target, TAG_GRANT_TICK_END_OF_TURN, 1);
+  cli_render_logf("[STT01-001] Granted end-of-turn Charge to target entity");
 }

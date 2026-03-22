@@ -60,7 +60,7 @@ bool stt02_011_validate_effect_target(ecs_world_t *world, ecs_entity_t card,
 
 void stt02_011_apply_costs(ecs_world_t *world, const AbilityContext *ctx) {
   // Sacrifice this card (move to discard)
-  discard_card(world, ctx->runtime.source_card);
+  sacrifice_card(world, ctx->runtime.source_card);
   cli_render_logf("[STT02-011] Sacrificed card");
 }
 

@@ -2,11 +2,36 @@
 
 Status: Working notes
 
-Last updated: 2026-03-19
+Last updated: 2026-03-20
 
 ## Scope
 
 This doc covers how to add new cards to the repo before and during implementation.
+
+## Required Rules References
+
+Before implementing new cards, keyword mechanics, or effect text semantics, check these docs first:
+
+- [game_rules.md](./game_rules.md) for the primary rules reference derived from `game_rules.pdf`
+- [azuki_tcg_guide.md](./azuki_tcg_guide.md) for the quick-start / field-layout reference derived from `azuki_tcg_guide.pdf`
+
+Use these docs to confirm:
+
+- targeting rules by zone
+- attack / response timing windows
+- cooldown, replacement, and combat timing behavior
+- card wording semantics like `cost : effect`, optional activation, and `MUST`
+- player-facing keyword/mechanic rules such as `Infiltrate`, `Carapace`, `Godmode`, `Frozen`, and `Shocked`
+
+For cards using those mechanics, verify the implementation matches these rules:
+
+- `Infiltrate`: attacking with this card disables the defending player's `Defender` response for that attack
+- `Carapace N`: reduce damage from all sources by `N`; Carapace stacks
+- `Godmode`: the card cannot leave the field from damage or card effects, but it can still be targeted and still be replaced when a row is full
+- `Frozen`: the card's abilities are disabled, and it cannot attack or be damaged
+- `Shocked`: the card does not untap during its next untap step
+
+If repo behavior appears to conflict with those references, call out the discrepancy before implementing the new card.
 
 Assumptions for this workflow:
 
@@ -51,6 +76,25 @@ Why this goes first:
 
 - `CardDefId` values are assigned by generated enum order
 - changing the JSONL order later will shift numeric IDs and force follow-up fixes in TS mappings, tests, and debug tools
+
+### Card Image Quick Read
+
+When a new card is coming from an unfinished image, read the frame carefully:
+
+- top-left number = IKZ cost
+- left-side badge number = gate power
+- black diamond at bottom right = attack
+- white diamond at bottom right = defence / health
+- top-right badge = card type
+- text box = effect text
+- subtype line sits above the artist / set footer
+
+Useful filename hints:
+
+- image keys often encode set, card code, display name, type shorthand, and rarity
+- example: `_E_UC_` usually means `ENTITY` + `UC`
+
+Use image-derived metadata only as a hint when the user has not provided the value explicitly. If the image and user input conflict, prefer the explicit user input and call out the mismatch.
 
 ### 2. Add raw engine card data
 

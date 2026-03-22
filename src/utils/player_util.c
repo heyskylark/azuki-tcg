@@ -4,6 +4,7 @@
 #include "components/components.h"
 #include "utils/card_utils.h"
 #include "utils/zone_util.h"
+#include "validation/action_validation.h"
 
 uint8_t get_player_number(ecs_world_t *world, ecs_entity_t player) {
   const PlayerNumber *player_number = ecs_get(world, player, PlayerNumber);
@@ -15,23 +16,8 @@ bool defender_can_respond(ecs_world_t *world, const GameState *gs,
                           uint8_t defender_index) {
   ecs_entity_t hand = gs->zones[defender_index].hand;
   ecs_entity_t ikz_area = gs->zones[defender_index].ikz_area;
-
-  // Count available untapped IKZ
-  ecs_entities_t ikz_cards = ecs_get_ordered_children(world, ikz_area);
-  uint8_t available_ikz = 0;
-  for (int i = 0; i < ikz_cards.count; i++) {
-    if (!is_card_tapped(world, ikz_cards.ids[i])) {
-      available_ikz++;
-    }
-  }
-
-  // Check IKZ token
-  ecs_entity_t defender_player = gs->players[defender_index];
-  const IKZToken *ikz_token = ecs_get(world, defender_player, IKZToken);
-  if (ikz_token && ikz_token->ikz_token != 0 &&
-      !is_card_tapped(world, ikz_token->ikz_token)) {
-    available_ikz++;
-  }
+  uint8_t available_ikz =
+      azk_count_tappable_ikz_sources(world, ikz_area, true);
 
   // Check if any card in hand is a response spell with affordable cost
   ecs_entities_t hand_cards = ecs_get_ordered_children(world, hand);
@@ -49,48 +35,123 @@ bool defender_can_respond(ecs_world_t *world, const GameState *gs,
     if (!card_id || !azk_has_ability(card_id->id))
       continue;
 
-    // Check IKZ cost
-    const IKZCost *ikz_cost = ecs_get(world, card, IKZCost);
-    if (!ikz_cost)
-      continue;
-
-    if (ikz_cost->ikz_cost <= available_ikz) {
+    if (azk_get_effective_card_play_cost(world, gs->players[defender_index],
+                                         card) <= available_ikz) {
       // Found at least one playable response spell
       return true;
     }
   }
 
-  // Check for leader response abilities
-  ecs_entity_t leader_zone = gs->zones[defender_index].leader;
-  ecs_entity_t leader = find_leader_card_in_zone(world, leader_zone);
-  if (leader != 0 && ecs_has(world, leader, AResponse)) {
-    // Check if leader is frozen
-    if (!ecs_has(world, leader, Frozen)) {
-      // Check once-per-turn
-      bool once_turn_blocked = false;
-      if (ecs_has(world, leader, AOnceTurn)) {
-        const AbilityRepeatContext *repeat_ctx = ecs_get(world, leader, AbilityRepeatContext);
-        if (repeat_ctx && repeat_ctx->was_applied) {
-          once_turn_blocked = true;
+  for (int i = 0; i < hand_cards.count; i++) {
+    ecs_entity_t card = hand_cards.ids[i];
+    if (!is_card_type(world, card, CARD_TYPE_ENTITY)) {
+      continue;
+    }
+
+    const CardId *card_id = ecs_get(world, card, CardId);
+    const AbilityDef *def =
+        card_id != NULL ? azk_get_ability_def(card_id->id) : NULL;
+    if (def == NULL || !def->can_play_as_response_from_hand) {
+      continue;
+    }
+
+    for (int use_token = 0; use_token <= 1; ++use_token) {
+      UserAction garden_action = {
+          .player = gs->players[defender_index],
+          .type = ACT_PLAY_ENTITY_TO_GARDEN,
+          .subaction_1 = i,
+          .subaction_3 = use_token,
+      };
+      for (int slot = 0; slot < GARDEN_SIZE; ++slot) {
+        garden_action.subaction_2 = slot;
+        if (azk_validate_play_entity_action(world, gs,
+                                            gs->players[defender_index],
+                                            ZONE_GARDEN, &garden_action, false,
+                                            NULL)) {
+          return true;
         }
       }
 
-      if (!once_turn_blocked) {
-        // Check if ability is registered and valid
-        const CardId *card_id = ecs_get(world, leader, CardId);
-        if (card_id && azk_has_ability(card_id->id)) {
-          const AbilityDef *def = azk_get_ability_def(card_id->id);
-          if (def && def->timing_tag == ecs_id(AResponse)) {
-            // Check IKZ cost from ability registry
-            if (def->ikz_cost <= available_ikz) {
-              // Check ability's own validation
-              if (!def->validate || def->validate(world, leader, gs->players[defender_index])) {
-                return true;
-              }
-            }
-          }
+      UserAction alley_action = {
+          .player = gs->players[defender_index],
+          .type = ACT_PLAY_ENTITY_TO_ALLEY,
+          .subaction_1 = i,
+          .subaction_3 = use_token,
+      };
+      for (int slot = 0; slot < ALLEY_SIZE; ++slot) {
+        alley_action.subaction_2 = slot;
+        if (azk_validate_play_entity_action(world, gs,
+                                            gs->players[defender_index],
+                                            ZONE_ALLEY, &alley_action, false,
+                                            NULL)) {
+          return true;
         }
       }
+    }
+  }
+
+  ecs_entity_t response_cards[GARDEN_SIZE + ALLEY_SIZE + 1] = {0};
+  int response_card_count = 0;
+
+  ecs_entity_t garden = gs->zones[defender_index].garden;
+  ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
+  for (int i = 0; i < garden_cards.count && response_card_count < GARDEN_SIZE;
+       i++) {
+    response_cards[response_card_count++] = garden_cards.ids[i];
+  }
+
+  ecs_entity_t alley = gs->zones[defender_index].alley;
+  ecs_entities_t alley_cards = ecs_get_ordered_children(world, alley);
+  for (int i = 0; i < alley_cards.count &&
+                  response_card_count < GARDEN_SIZE + ALLEY_SIZE;
+       i++) {
+    response_cards[response_card_count++] = alley_cards.ids[i];
+  }
+
+  ecs_entity_t leader_zone = gs->zones[defender_index].leader;
+  ecs_entity_t leader = find_leader_card_in_zone(world, leader_zone);
+  if (leader != 0 &&
+      response_card_count < GARDEN_SIZE + ALLEY_SIZE + 1) {
+    response_cards[response_card_count++] = leader;
+  }
+
+  for (int i = 0; i < response_card_count; i++) {
+    ecs_entity_t response_card = response_cards[i];
+    if (response_card == 0 || !ecs_has(world, response_card, AResponse) ||
+        ecs_has(world, response_card, Frozen)) {
+      continue;
+    }
+
+    bool once_turn_blocked = false;
+    if (ecs_has(world, response_card, AOnceTurn)) {
+      const AbilityRepeatContext *repeat_ctx =
+          ecs_get(world, response_card, AbilityRepeatContext);
+      if (repeat_ctx && repeat_ctx->was_applied) {
+        once_turn_blocked = true;
+      }
+    }
+    if (once_turn_blocked) {
+      continue;
+    }
+
+    const CardId *card_id = ecs_get(world, response_card, CardId);
+    if (!card_id || !azk_has_ability(card_id->id)) {
+      continue;
+    }
+
+    const AbilityDef *def = azk_get_ability_def(card_id->id);
+    if (!def || (def->timing_tag != ecs_id(AResponse) &&
+                 def->secondary_timing_tag != ecs_id(AResponse))) {
+      continue;
+    }
+
+    if (def->ikz_cost > available_ikz) {
+      continue;
+    }
+
+    if (!def->validate ||
+        def->validate(world, response_card, gs->players[defender_index])) {
+      return true;
     }
   }
 
@@ -99,8 +160,6 @@ bool defender_can_respond(ecs_world_t *world, const GameState *gs,
     // Check if attacker has Infiltrate
     if (!ecs_has(world, gs->combat_state.attacking_card, Infiltrate)) {
       // Check for untapped entities with Defender tag
-      ecs_entity_t garden = gs->zones[defender_index].garden;
-      ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
       for (int i = 0; i < garden_cards.count; i++) {
         ecs_entity_t card = garden_cards.ids[i];
         if (ecs_has(world, card, Defender) && !is_card_tapped(world, card)) {

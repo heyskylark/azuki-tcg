@@ -8,6 +8,8 @@ import {
   getSelectionActionInfoByIndex,
   hasNoopAction,
   buildSelectionPickAction,
+  buildSelectToAlleyAction,
+  buildSelectToGardenAction,
   buildSelectToEquipAction,
   buildNoopAction,
   type SelectionActionInfo,
@@ -18,9 +20,10 @@ import {
  * Shown during the SELECTION_PICK ability phase.
  * Displays revealed cards and allows the player to pick one.
  *
- * Supports two-step selection for equip actions:
- * 1. Select a weapon from the selection cards
- * 2. Select a target entity (garden slot or leader) to equip
+ * Supports follow-up placement flows for cards that can:
+ * 1. be added to hand
+ * 2. be played into the Garden or Alley
+ * 3. be equipped to a target entity
  */
 export function SelectionPickUI() {
   const { gameState } = useGameState();
@@ -34,9 +37,8 @@ export function SelectionPickUI() {
     (card) => card.cardCode !== "unknown" && card.cardDefId !== 0
   );
 
-  // State for two-step equip selection
-  const [selectedWeaponIndex, setSelectedWeaponIndex] = useState<number | null>(null);
-  const [selectedWeaponInfo, setSelectedWeaponInfo] = useState<SelectionActionInfo | null>(null);
+  const [selectedSelectionIndex, setSelectedSelectionIndex] = useState<number | null>(null);
+  const [selectedActionInfo, setSelectedActionInfo] = useState<SelectionActionInfo | null>(null);
 
   const handleSelectCard = useCallback(
     (selectionIndex: number) => {
@@ -46,14 +48,17 @@ export function SelectionPickUI() {
       const info = getSelectionActionInfoByIndex(actionMask, selectionIndex);
       if (!info) return;
 
-      // If only equip action is available (no add to hand), enter two-step flow
-      if (info.canSelectToEquip && !info.canAddToHand) {
-        setSelectedWeaponIndex(selectionIndex);
-        setSelectedWeaponInfo(info);
+      const needsFollowUp =
+        info.canSelectToEquip ||
+        info.canSelectToGarden ||
+        info.canSelectToAlley;
+
+      if (needsFollowUp) {
+        setSelectedSelectionIndex(selectionIndex);
+        setSelectedActionInfo(info);
         return;
       }
 
-      // Default: add to hand (action 18)
       if (info.canAddToHand) {
         send({
           type: "GAME_ACTION",
@@ -64,27 +69,68 @@ export function SelectionPickUI() {
     [validTargets, actionMask, send]
   );
 
+  const resetSelectionFlow = useCallback(() => {
+    setSelectedSelectionIndex(null);
+    setSelectedActionInfo(null);
+  }, []);
+
   const handleSelectEquipTarget = useCallback(
     (entitySlot: number) => {
-      if (selectedWeaponIndex === null) return;
-      if (!selectedWeaponInfo?.equipTargetSlots.includes(entitySlot)) return;
+      if (selectedSelectionIndex === null) return;
+      if (!selectedActionInfo?.equipTargetSlots.includes(entitySlot)) return;
 
       send({
         type: "GAME_ACTION",
-        action: buildSelectToEquipAction(selectedWeaponIndex, entitySlot),
+        action: buildSelectToEquipAction(selectedSelectionIndex, entitySlot),
       });
 
-      // Reset state
-      setSelectedWeaponIndex(null);
-      setSelectedWeaponInfo(null);
+      resetSelectionFlow();
     },
-    [selectedWeaponIndex, selectedWeaponInfo, send]
+    [selectedSelectionIndex, selectedActionInfo, send, resetSelectionFlow]
   );
 
-  const handleCancelEquip = useCallback(() => {
-    setSelectedWeaponIndex(null);
-    setSelectedWeaponInfo(null);
-  }, []);
+  const handleAddToHand = useCallback(() => {
+    if (selectedSelectionIndex === null || !selectedActionInfo?.canAddToHand) {
+      return;
+    }
+
+    send({
+      type: "GAME_ACTION",
+      action: buildSelectionPickAction(selectedSelectionIndex),
+    });
+
+    resetSelectionFlow();
+  }, [selectedSelectionIndex, selectedActionInfo, send, resetSelectionFlow]);
+
+  const handleSelectGardenTarget = useCallback(
+    (gardenSlot: number) => {
+      if (selectedSelectionIndex === null) return;
+      if (!selectedActionInfo?.gardenSlots.includes(gardenSlot)) return;
+
+      send({
+        type: "GAME_ACTION",
+        action: buildSelectToGardenAction(selectedSelectionIndex, gardenSlot),
+      });
+
+      resetSelectionFlow();
+    },
+    [selectedSelectionIndex, selectedActionInfo, send, resetSelectionFlow]
+  );
+
+  const handleSelectAlleyTarget = useCallback(
+    (alleySlot: number) => {
+      if (selectedSelectionIndex === null) return;
+      if (!selectedActionInfo?.alleySlots.includes(alleySlot)) return;
+
+      send({
+        type: "GAME_ACTION",
+        action: buildSelectToAlleyAction(selectedSelectionIndex, alleySlot),
+      });
+
+      resetSelectionFlow();
+    },
+    [selectedSelectionIndex, selectedActionInfo, send, resetSelectionFlow]
+  );
 
   const handleSkip = useCallback(() => {
     if (!canSkip) return;
@@ -94,13 +140,17 @@ export function SelectionPickUI() {
     });
   }, [canSkip, send]);
 
-  // If we're in the equip target selection step
-  if (selectedWeaponIndex !== null && selectedWeaponInfo) {
+  if (selectedSelectionIndex !== null && selectedActionInfo) {
     const selectedCard = selectionCards.find(
-      (card) => (card.zoneIndex ?? -1) === selectedWeaponIndex
+      (card) => (card.zoneIndex ?? -1) === selectedSelectionIndex
     );
     const garden = gameState?.myBoard?.garden ?? [];
+    const alley = gameState?.myBoard?.alley ?? [];
     const leader = gameState?.myBoard?.leader;
+    const isEquipFlow =
+      selectedActionInfo.canSelectToEquip &&
+      !selectedActionInfo.canSelectToGarden &&
+      !selectedActionInfo.canSelectToAlley;
 
     return (
       <div className="absolute inset-0 flex items-center justify-center pointer-events-auto">
@@ -109,20 +159,37 @@ export function SelectionPickUI() {
 
         {/* Target selection panel */}
         <div className="relative bg-slate-800 border border-slate-600 rounded-lg shadow-xl p-6 max-w-4xl w-full mx-4">
-          <h2 className="text-xl font-bold text-white mb-2">Select Equip Target</h2>
+          <h2 className="text-xl font-bold text-white mb-2">
+            {isEquipFlow ? "Select Equip Target" : "Choose a Destination"}
+          </h2>
           <p className="text-slate-300 mb-4">
-            Choose an entity to equip {selectedCard?.name ?? "the weapon"} to
+            {isEquipFlow
+              ? `Choose an entity to equip ${selectedCard?.name ?? "the weapon"} to`
+              : `Choose what to do with ${selectedCard?.name ?? "this card"}`}
           </p>
+
+          {!isEquipFlow && selectedActionInfo.canAddToHand && (
+            <div className="mb-4 flex justify-center">
+              <button
+                onClick={handleAddToHand}
+                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-md transition-colors"
+              >
+                Add To Hand
+              </button>
+            </div>
+          )}
 
           {/* Garden entities */}
           <div className="mb-4">
             <h3 className="text-sm font-semibold text-slate-400 mb-2">Garden</h3>
             <div className="flex gap-3 flex-wrap justify-center">
               {garden.map((entity, slot) => {
-                const isValid = selectedWeaponInfo.equipTargetSlots.includes(slot);
+                const isValid = isEquipFlow
+                  ? selectedActionInfo.equipTargetSlots.includes(slot)
+                  : selectedActionInfo.gardenSlots.includes(slot);
                 const isEmpty = entity === null;
 
-                if (isEmpty) {
+                if (isEmpty && isEquipFlow) {
                   return (
                     <div
                       key={`garden-slot-${slot}`}
@@ -136,7 +203,11 @@ export function SelectionPickUI() {
                 return (
                   <button
                     key={`garden-entity-${slot}-${entity?.cardCode}`}
-                    onClick={() => handleSelectEquipTarget(slot)}
+                    onClick={() =>
+                      isEquipFlow
+                        ? handleSelectEquipTarget(slot)
+                        : handleSelectGardenTarget(slot)
+                    }
                     disabled={!isValid}
                     className={`
                       relative p-2 rounded-md border-2 transition-all
@@ -156,12 +227,12 @@ export function SelectionPickUI() {
                         />
                       ) : (
                         <span className="text-xs text-slate-400 text-center px-1">
-                          {entity?.name ?? "Entity"}
+                          {entity?.name ?? "Empty"}
                         </span>
                       )}
                     </div>
                     <p className="text-xs text-white mt-1 text-center truncate max-w-20">
-                      {entity?.name ?? "Entity"}
+                      {entity?.name ?? `Slot ${slot + 1}`}
                     </p>
                   </button>
                 );
@@ -169,8 +240,51 @@ export function SelectionPickUI() {
             </div>
           </div>
 
+          {!isEquipFlow && selectedActionInfo.canSelectToAlley && (
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold text-slate-400 mb-2">Alley</h3>
+              <div className="flex gap-3 flex-wrap justify-center">
+                {alley.map((entity, slot) => {
+                  const isValid = selectedActionInfo.alleySlots.includes(slot);
+                  return (
+                    <button
+                      key={`alley-slot-${slot}-${entity?.cardCode ?? "empty"}`}
+                      onClick={() => handleSelectAlleyTarget(slot)}
+                      disabled={!isValid}
+                      className={`
+                        relative p-2 rounded-md border-2 transition-all
+                        ${
+                          isValid
+                            ? "border-cyan-400 bg-cyan-400/20 hover:bg-cyan-400/40 cursor-pointer"
+                            : "border-slate-600 bg-slate-700/50 opacity-50 cursor-not-allowed"
+                        }
+                      `}
+                    >
+                      <div className="w-20 h-28 bg-slate-700 rounded flex items-center justify-center overflow-hidden">
+                        {entity?.imageUrl ? (
+                          <img
+                            src={entity.imageUrl}
+                            alt={entity.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-xs text-slate-400 text-center px-1">
+                            Empty
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-white mt-1 text-center truncate max-w-20">
+                        {entity?.name ?? `Slot ${slot + 1}`}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Leader (slot 5) */}
-          {selectedWeaponInfo.equipTargetSlots.includes(5) && leader && (
+          {isEquipFlow && selectedActionInfo.equipTargetSlots.includes(5) && leader && (
             <div className="mb-4">
               <h3 className="text-sm font-semibold text-slate-400 mb-2">Leader</h3>
               <div className="flex justify-center">
@@ -202,7 +316,7 @@ export function SelectionPickUI() {
           {/* Cancel button */}
           <div className="flex justify-center">
             <button
-              onClick={handleCancelEquip}
+              onClick={resetSelectionFlow}
               className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-md transition-colors"
             >
               Cancel
@@ -236,8 +350,10 @@ export function SelectionPickUI() {
               );
               const isValid = info !== undefined;
 
-              // Show badge for equip-only cards
-              const isEquipOnly = info?.canSelectToEquip && !info?.canAddToHand;
+              const hasFollowUpOptions =
+                info?.canSelectToEquip ||
+                info?.canSelectToGarden ||
+                info?.canSelectToAlley;
 
               return (
                 <button
@@ -269,9 +385,9 @@ export function SelectionPickUI() {
                   <p className="text-xs text-white mt-1 text-center truncate max-w-20">
                     {card.name}
                   </p>
-                  {isEquipOnly && (
+                  {hasFollowUpOptions && (
                     <span className="absolute -top-1 -right-1 px-1.5 py-0.5 text-[10px] font-semibold bg-amber-500 text-black rounded">
-                      EQUIP
+                      PICK
                     </span>
                   )}
                 </button>

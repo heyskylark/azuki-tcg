@@ -24,6 +24,61 @@ void azk_init_selection_state(AbilityContext *ctx, const ecs_entity_t *cards,
   for (uint8_t i = 0; i < actual_count; ++i) {
     ctx->selection.cards[i] = cards[i];
   }
+
+  for (uint8_t i = actual_count; i < MAX_SELECTION_ZONE_SIZE; ++i) {
+    ctx->selection.cards[i] = 0;
+  }
+
+  ctx->selection.picked_count = 0;
+  for (uint8_t i = 0; i < MAX_ABILITY_SELECTION; ++i) {
+    ctx->selection.picked_cards[i] = 0;
+  }
+}
+
+uint8_t azk_move_matching_hand_cards_to_selection(
+    ecs_world_t *world, AbilityContext *ctx, uint8_t pick_max,
+    AbilitySelectionCardPredicate predicate, const void *user_ctx) {
+  if (!world || !ctx) {
+    return 0;
+  }
+
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  if (!gs) {
+    return 0;
+  }
+
+  const uint8_t player_num = get_player_number(world, ctx->runtime.owner);
+  const ecs_entity_t hand_zone = gs->zones[player_num].hand;
+  const ecs_entity_t selection_zone = gs->zones[player_num].selection;
+  ecs_entities_t hand_cards = ecs_get_ordered_children(world, hand_zone);
+
+  ecs_entity_t selection_cards[MAX_SELECTION_ZONE_SIZE] = {0};
+  int32_t selection_index =
+      ecs_get_ordered_children(world, selection_zone).count;
+  uint8_t selection_count = 0;
+
+  for (int32_t i = 0;
+       i < hand_cards.count && selection_count < MAX_SELECTION_ZONE_SIZE; ++i) {
+    ecs_entity_t card = hand_cards.ids[i];
+    if (card == 0) {
+      continue;
+    }
+
+    if (predicate && !predicate(world, card, user_ctx)) {
+      continue;
+    }
+
+    ecs_add_pair(world, card, EcsChildOf, selection_zone);
+    azk_log_card_zone_moved(world, card, GLOG_ZONE_HAND, (int8_t)i,
+                            GLOG_ZONE_SELECTION,
+                            (int8_t)(selection_index + selection_count));
+    selection_cards[selection_count++] = card;
+  }
+
+  azk_init_selection_state(ctx, selection_cards, selection_count, pick_max);
+  ctx->runtime.phase =
+      selection_count > 0 ? ABILITY_PHASE_SELECTION_PICK : ABILITY_PHASE_NONE;
+  return selection_count;
 }
 
 uint8_t azk_count_selection_cards_matching(
@@ -127,6 +182,41 @@ uint8_t azk_move_picked_selection_cards_to_hand_if_still_in_selection(
     }
 
     move_selection_to_hand(world, picked);
+    ++moved;
+  }
+
+  return moved;
+}
+
+uint8_t azk_return_remaining_selection_cards_to_hand(ecs_world_t *world,
+                                                     AbilityContext *ctx) {
+  if (!ctx) {
+    return 0;
+  }
+
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  if (!gs) {
+    return 0;
+  }
+
+  const uint8_t player_num = get_player_number(world, ctx->runtime.owner);
+  const ecs_entity_t selection_zone = gs->zones[player_num].selection;
+
+  uint8_t moved = 0;
+  for (uint8_t i = 0;
+       i < ctx->selection.count && i < MAX_SELECTION_ZONE_SIZE; ++i) {
+    ecs_entity_t card = ctx->selection.cards[i];
+    if (card == 0) {
+      continue;
+    }
+
+    if (ecs_get_target(world, card, EcsChildOf, 0) != selection_zone) {
+      ctx->selection.cards[i] = 0;
+      continue;
+    }
+
+    move_selection_to_hand(world, card);
+    ctx->selection.cards[i] = 0;
     ++moved;
   }
 

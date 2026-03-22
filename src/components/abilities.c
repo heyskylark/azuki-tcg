@@ -9,17 +9,24 @@ ECS_COMPONENT_DECLARE(AbilityFunctions);
 
 ECS_TAG_DECLARE(AOnPlay);
 ECS_TAG_DECLARE(AStartOfTurn);
+ECS_TAG_DECLARE(AStartOfEachTurn);
 ECS_TAG_DECLARE(AEndOfTurn);
 ECS_TAG_DECLARE(AWhenEquipping);
 ECS_TAG_DECLARE(AWhenEquipped);
 ECS_TAG_DECLARE(AMain);
 ECS_TAG_DECLARE(AWhenAttacking);
+ECS_TAG_DECLARE(AAfterAttacking);
 ECS_TAG_DECLARE(AWhenAttacked);
+ECS_TAG_DECLARE(AWhenTakesDamage);
+ECS_TAG_DECLARE(AWhenDealsDamage);
+ECS_TAG_DECLARE(AWhenEntersGarden);
 ECS_TAG_DECLARE(AResponse);
 ECS_TAG_DECLARE(AAlleyOnly);
 ECS_TAG_DECLARE(AGardenOnly);
 ECS_TAG_DECLARE(AOnceTurn);
 ECS_TAG_DECLARE(AWhenReturnedToHand);
+ECS_TAG_DECLARE(AWhenDestroyed);
+ECS_TAG_DECLARE(AWhenSacrificed);
 ECS_TAG_DECLARE(AIgnoresCooldown);
 ECS_TAG_DECLARE(AOnGatePortal);
 
@@ -27,16 +34,24 @@ ECS_TAG_DECLARE(Charge);
 ECS_TAG_DECLARE(Defender);
 ECS_TAG_DECLARE(Infiltrate);
 ECS_TAG_DECLARE(Godmode);
+ECS_TAG_DECLARE(SacrificeAtEndOfTurn);
+ECS_TAG_DECLARE(Taunt);
+ECS_TAG_DECLARE(Rooted);
 
 ECS_TAG_DECLARE(Frozen);
 ECS_TAG_DECLARE(Shocked);
 
 ECS_TAG_DECLARE(EffectImmune);
 
+ECS_COMPONENT_DECLARE(CarapaceValue);
+ECS_COMPONENT_DECLARE(CarapaceBuff);
 ECS_COMPONENT_DECLARE(CardConditionCountdown);
 ECS_COMPONENT_DECLARE(AttackBuff);
 ECS_COMPONENT_DECLARE(HealthBuff);
+ECS_COMPONENT_DECLARE(CombatDamageModifier);
+ECS_COMPONENT_DECLARE(EquippedCombatModifier);
 ECS_COMPONENT_DECLARE(PassiveObserverContext);
+ECS_COMPONENT_DECLARE(DamageTracker);
 
 void azk_register_ability_components(ecs_world_t *world) {
   ECS_COMPONENT_DEFINE(world, AbilityRepeatContext);
@@ -46,17 +61,24 @@ void azk_register_ability_components(ecs_world_t *world) {
 
   ECS_TAG_DEFINE(world, AOnPlay);
   ECS_TAG_DEFINE(world, AStartOfTurn);
+  ECS_TAG_DEFINE(world, AStartOfEachTurn);
   ECS_TAG_DEFINE(world, AEndOfTurn);
   ECS_TAG_DEFINE(world, AWhenEquipping);
   ECS_TAG_DEFINE(world, AWhenEquipped);
   ECS_TAG_DEFINE(world, AMain);
   ECS_TAG_DEFINE(world, AWhenAttacking);
+  ECS_TAG_DEFINE(world, AAfterAttacking);
   ECS_TAG_DEFINE(world, AWhenAttacked);
+  ECS_TAG_DEFINE(world, AWhenTakesDamage);
+  ECS_TAG_DEFINE(world, AWhenDealsDamage);
+  ECS_TAG_DEFINE(world, AWhenEntersGarden);
   ECS_TAG_DEFINE(world, AResponse);
   ECS_TAG_DEFINE(world, AAlleyOnly);
   ECS_TAG_DEFINE(world, AGardenOnly);
   ECS_TAG_DEFINE(world, AOnceTurn);
   ECS_TAG_DEFINE(world, AWhenReturnedToHand);
+  ECS_TAG_DEFINE(world, AWhenDestroyed);
+  ECS_TAG_DEFINE(world, AWhenSacrificed);
   ECS_TAG_DEFINE(world, AIgnoresCooldown);
   ECS_TAG_DEFINE(world, AOnGatePortal);
 
@@ -64,16 +86,24 @@ void azk_register_ability_components(ecs_world_t *world) {
   ECS_TAG_DEFINE(world, Defender);
   ECS_TAG_DEFINE(world, Infiltrate);
   ECS_TAG_DEFINE(world, Godmode);
+  ECS_TAG_DEFINE(world, SacrificeAtEndOfTurn);
+  ECS_TAG_DEFINE(world, Taunt);
+  ECS_TAG_DEFINE(world, Rooted);
 
   ECS_TAG_DEFINE(world, Frozen);
   ECS_TAG_DEFINE(world, Shocked);
 
   ECS_TAG_DEFINE(world, EffectImmune);
 
+  ECS_COMPONENT_DEFINE(world, CarapaceValue);
+  ECS_COMPONENT_DEFINE(world, CarapaceBuff);
   ECS_COMPONENT_DEFINE(world, CardConditionCountdown);
   ECS_COMPONENT_DEFINE(world, AttackBuff);
   ECS_COMPONENT_DEFINE(world, HealthBuff);
+  ECS_COMPONENT_DEFINE(world, CombatDamageModifier);
+  ECS_COMPONENT_DEFINE(world, EquippedCombatModifier);
   ECS_COMPONENT_DEFINE(world, PassiveObserverContext);
+  ECS_COMPONENT_DEFINE(world, DamageTracker);
 
   // Ensure CardConditionCountdown is copied to each instance on instantiation
   // (EcsOverride gives each instance its own mutable copy, unlike EcsInherit)
@@ -94,6 +124,9 @@ void attach_ability_components(ecs_world_t* world, ecs_entity_t card) {
   // Attach the timing tag if one is defined
   if (ability_def->timing_tag != 0) {
     ecs_add_id(world, card, ability_def->timing_tag);
+  }
+  if (ability_def->secondary_timing_tag != 0) {
+    ecs_add_id(world, card, ability_def->secondary_timing_tag);
   }
 
   // Attach once-per-turn tracking if needed

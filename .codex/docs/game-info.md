@@ -81,7 +81,7 @@ Combat is broken into 3 main phases.
    - You may activate "when attacking" effects if the attacking card has such an ability.
 2. Defending player can react by taking the below actions in this order (skipping any action is not applicable).
    a. You may activate "response" effect cards on the field or play "response" cards from your hand (by paying IKZ cost).
-   b. You may tap an untapped "Defender" card to make it become the new attack target.
+   b. If the attacker does not have `Infiltrate`, you may tap an untapped "Defender" card to make it become the new attack target.
    c. You may activate any "when attacking" effects of the leader or entity being attacked.
 3. Combat resolution. Damage resolves with 2 cards dealing damage equal to their attack to each other's health simultaneously. If an entity's health reaches 0, it is destroyed and goes to the discard pile. If your leader's health is reduced to 0 you lose the game. The active player must activate any "after attacking" effects.
 
@@ -153,15 +153,15 @@ These effects have location based requirements to activate
 These are unique words are phrases that represent a set of rules describing an ability present on a card. it is the replacement of a longer line of rules describing a specific game mechanic.
 - charge: cards with this ability can attack on the turn it enters the garden
 - defender: when an opponent declares an attack targeting a leader or another entity, you may tap an untapped entity in your garden with this defender ability to redirect the attack to that card instead.
-- carapace 1: cards with this ability will take reduced damage from all sources (the amount reduced is specified by the number shown on the tag)
+- carapace N: cards with this ability take reduced damage from all sources equal to the number shown on the tag. Carapace stacks.
 - infiltrate: when cards with this ability attack, the defending player cannot activate the defender ability.
-- godmode: cards with this ability cannot leave the field from taking damage or from card effects.
+- godmode: cards with this ability cannot leave the field from taking damage or from card effects. They can still be targeted, and they can still be replaced when a row is full.
 
 ## Negative conditions
 
 Unique effects that interfere with the card's performance:
 - frozen: a card with this condition has its abilities disabled and cannot attack or be damaged.
--  shocked: a card with this condition does not untap during its next untap step.
+- shocked: a card with this condition does not untap during its next untap step.
 
 # Phases of player turns
 
@@ -197,7 +197,7 @@ When ready, the active player declares the end-of-turn, passing play to their op
 
 #### Start of Turn Phase (Automatic with optional player choices)
 - **Requires user input**: Optional; decisions are only needed when multiple start-of-turn effects need ordering or when the player can decline optional effects.
-- **Guaranteed actions**: Untap all cards in play (cards with `shocked` stay tapped), draw 1 card from the deck (a deck-out loss replaces the draw if no cards remain), and attempt to draw 1 IKZ card (skip only when the IKZ pile is empty).
+- **Guaranteed actions**: Untap all cards in play, except cards whose next untap step is skipped by `shocked`, draw 1 card from the deck (a deck-out loss replaces the draw if no cards remain), and attempt to draw 1 IKZ card (skip only when the IKZ pile is empty).
 - **Conditional actions**: Resolve "start of turn" abilities printed on cards (follow each card's optional/mandatory text) and, on the second player's first turn, move the IKZ token into the IKZ area and exile it after use.
 
 #### Main Phase (Player-directed)
@@ -220,7 +220,7 @@ When ready, the active player declares the end-of-turn, passing play to their op
 #### Defender Response Window (Defending player)
 - **Requires user input**: Optional; the defending player may respond but can also pass priority.
 - **Guaranteed actions**: Present the defending player with a window to respond before damage resolves.
-- **Conditional actions**: Play "response" spells or abilities by paying their IKZ costs, tap an untapped entity with `defender` to redirect the attack, and activate any effects that can fire during this window (such as text on the card being attacked).
+- **Conditional actions**: Play "response" spells or abilities by paying their IKZ costs, tap an untapped entity with `defender` to redirect the attack if the attacker does not have `infiltrate`, and activate any effects that can fire during this window (such as text on the card being attacked).
 
 #### Combat Resolution (Automatic)
 - **Requires user input**: No; damage resolution proceeds automatically once both players pass.

@@ -17,4 +17,18 @@ bool apply_weapon_attack_bonus(
   int8_t weapon_atk
 );
 
+// Apply any non-stat combat modifiers granted by a weapon to its equipped host.
+void apply_weapon_combat_modifier_if_any(
+  ecs_world_t *world,
+  ecs_entity_t weapon_card,
+  ecs_entity_t target_card
+);
+
+// Remove any previously applied combat modifiers granted by a weapon.
+void remove_weapon_combat_modifier_if_any(
+  ecs_world_t *world,
+  ecs_entity_t weapon_card,
+  ecs_entity_t target_card
+);
+
 #endif

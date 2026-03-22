@@ -178,6 +178,50 @@ static int collect_any_garden_targets(ecs_world_t *world, const GameState *gs,
   return count;
 }
 
+static int collect_friendly_garden_or_alley_targets(
+    ecs_world_t *world, const GameState *gs, uint8_t player_num,
+    ecs_entity_t source_card, ecs_entity_t owner,
+    AbilityTargetValidatorFn validator, AbilityTargetChoice *out, int out_cap,
+    int count) {
+  ecs_entities_t garden_cards =
+      ecs_get_ordered_children(world, gs->zones[player_num].garden);
+  for (int32_t i = 0; i < garden_cards.count; i++) {
+    ecs_entity_t target = garden_cards.ids[i];
+    const ZoneIndex *zone_index = ecs_get(world, target, ZoneIndex);
+    if (!zone_index) {
+      continue;
+    }
+    if (!is_target_valid(world, source_card, owner, target, validator)) {
+      continue;
+    }
+    count = append_choice(
+        out, out_cap, count,
+        azk_encode_friendly_garden_or_alley_target_index(false,
+                                                         zone_index->index),
+        target);
+  }
+
+  ecs_entities_t alley_cards =
+      ecs_get_ordered_children(world, gs->zones[player_num].alley);
+  for (int32_t i = 0; i < alley_cards.count; i++) {
+    ecs_entity_t target = alley_cards.ids[i];
+    const ZoneIndex *zone_index = ecs_get(world, target, ZoneIndex);
+    if (!zone_index) {
+      continue;
+    }
+    if (!is_target_valid(world, source_card, owner, target, validator)) {
+      continue;
+    }
+    count = append_choice(
+        out, out_cap, count,
+        azk_encode_friendly_garden_or_alley_target_index(true,
+                                                         zone_index->index),
+        target);
+  }
+
+  return count;
+}
+
 static int collect_any_leader_targets(ecs_world_t *world, const GameState *gs,
                                       uint8_t player_num,
                                       ecs_entity_t source_card,
@@ -200,6 +244,36 @@ static int collect_any_leader_targets(ecs_world_t *world, const GameState *gs,
     count = append_choice(out, out_cap, count,
                           azk_encode_any_leader_target_index(true),
                           enemy_leader);
+  }
+
+  return count;
+}
+
+static int collect_any_leader_or_garden_targets(
+    ecs_world_t *world, const GameState *gs, uint8_t player_num,
+    ecs_entity_t source_card, ecs_entity_t owner,
+    AbilityTargetValidatorFn validator, AbilityTargetChoice *out, int out_cap,
+    int count) {
+  count = collect_any_garden_targets(world, gs, player_num, source_card, owner,
+                                     validator, out, out_cap, count);
+
+  ecs_entity_t friendly_leader =
+      find_leader_card_if_present(world, gs->zones[player_num].leader);
+  if (is_target_valid(world, source_card, owner, friendly_leader, validator)) {
+    count = append_choice(
+        out, out_cap, count,
+        azk_encode_any_leader_or_garden_target_index(true, false, -1),
+        friendly_leader);
+  }
+
+  const uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
+  ecs_entity_t enemy_leader =
+      find_leader_card_if_present(world, gs->zones[enemy_num].leader);
+  if (is_target_valid(world, source_card, owner, enemy_leader, validator)) {
+    count = append_choice(
+        out, out_cap, count,
+        azk_encode_any_leader_or_garden_target_index(true, true, -1),
+        enemy_leader);
   }
 
   return count;
@@ -239,9 +313,17 @@ static int collect_target_choices_internal(
     return collect_enemy_leader_or_garden_targets(
         world, gs, player_num, source_card, owner, validator, out, out_cap,
         count);
+  case ABILITY_TARGET_FRIENDLY_GARDEN_OR_ALLEY_ENTITY:
+    return collect_friendly_garden_or_alley_targets(
+        world, gs, player_num, source_card, owner, validator, out, out_cap,
+        count);
   case ABILITY_TARGET_ANY_GARDEN_ENTITY:
     return collect_any_garden_targets(world, gs, player_num, source_card,
                                       owner, validator, out, out_cap, count);
+  case ABILITY_TARGET_ANY_LEADER_OR_GARDEN_ENTITY:
+    return collect_any_leader_or_garden_targets(
+        world, gs, player_num, source_card, owner, validator, out, out_cap,
+        count);
   case ABILITY_TARGET_ANY_LEADER:
     return collect_any_leader_targets(world, gs, player_num, source_card,
                                       owner, validator, out, out_cap, count);
@@ -302,6 +384,20 @@ ecs_entity_t azk_resolve_ability_target_choice_entity(ecs_world_t *world,
     return find_card_in_zone_index(world, gs->zones[enemy_num].garden,
                                    action_index);
   }
+  case ABILITY_TARGET_FRIENDLY_GARDEN_OR_ALLEY_ENTITY: {
+    bool is_alley = false;
+    int zone_index = -1;
+    if (!azk_decode_friendly_garden_or_alley_target_index(action_index,
+                                                          &is_alley,
+                                                          &zone_index)) {
+      return 0;
+    }
+
+    return find_card_in_zone_index(
+        world, is_alley ? gs->zones[player_num].alley
+                        : gs->zones[player_num].garden,
+        zone_index);
+  }
   case ABILITY_TARGET_ENEMY_LEADER_OR_GARDEN_ENTITY: {
     bool is_leader = false;
     int zone_index = -1;
@@ -326,6 +422,26 @@ ecs_entity_t azk_resolve_ability_target_choice_entity(ecs_world_t *world,
     }
     const uint8_t target_player_num =
         is_enemy ? (player_num + 1) % MAX_PLAYERS_PER_MATCH : player_num;
+    return find_card_in_zone_index(world, gs->zones[target_player_num].garden,
+                                   zone_index);
+  }
+  case ABILITY_TARGET_ANY_LEADER_OR_GARDEN_ENTITY: {
+    bool is_leader = false;
+    bool is_enemy = false;
+    int zone_index = -1;
+    if (!azk_decode_any_leader_or_garden_target_index(action_index,
+                                                      &is_leader, &is_enemy,
+                                                      &zone_index)) {
+      return 0;
+    }
+
+    const uint8_t target_player_num =
+        is_enemy ? (player_num + 1) % MAX_PLAYERS_PER_MATCH : player_num;
+    if (is_leader) {
+      return find_leader_card_if_present(world,
+                                         gs->zones[target_player_num].leader);
+    }
+
     return find_card_in_zone_index(world, gs->zones[target_player_num].garden,
                                    zone_index);
   }

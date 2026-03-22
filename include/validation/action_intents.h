@@ -49,7 +49,7 @@ typedef struct {
   ecs_entity_t attacking_card;
   ecs_entity_t defending_card;
   uint8_t attacker_index;
-  uint8_t defender_index;
+  uint8_t defender_index; // 0-4=garden, 5=leader, 6-10=alley
   bool attacker_is_leader;
 } AttackIntent;
 

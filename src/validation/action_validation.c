@@ -53,6 +53,18 @@ static uint8_t zone_capacity_for_placement(ZonePlacementType placement_type) {
   return GARDEN_SIZE; // Garden and alley share the same capacity
 }
 
+static bool defender_has_tapped_taunt(ecs_world_t *world, ecs_entity_t garden) {
+  ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden);
+  for (int32_t i = 0; i < garden_cards.count; ++i) {
+    ecs_entity_t card = garden_cards.ids[i];
+    if (card != 0 && ecs_has(world, card, Taunt) && is_card_tapped(world, card)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 static bool fetch_ikz_payment(
   ecs_world_t *world,
   ecs_entity_t ikz_zone,
@@ -90,6 +102,23 @@ static bool fetch_ikz_payment(
   return true;
 }
 
+static bool entity_can_be_played_as_response(ecs_world_t *world,
+                                             ecs_entity_t card) {
+  const CardId *card_id = ecs_get(world, card, CardId);
+  if (card_id == NULL) {
+    return false;
+  }
+
+  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  return def != NULL && def->can_play_as_response_from_hand;
+}
+
+static bool weapon_can_be_played_as_response(ecs_world_t *world,
+                                             ecs_entity_t card) {
+  const CardId *card_id = ecs_get(world, card, CardId);
+  return card_id != NULL && card_id->id == CARD_DEF_AZK01_094;
+}
+
 bool azk_validate_play_entity_action(
   ecs_world_t *world,
   const GameState *gs,
@@ -104,6 +133,11 @@ bool azk_validate_play_entity_action(
   ecs_assert(action != NULL, ECS_INVALID_PARAMETER, "Action is null");
 
   if (!ensure_active_player(world, gs, player, log_errors)) {
+    return false;
+  }
+
+  if (gs->phase != PHASE_MAIN && gs->phase != PHASE_RESPONSE_WINDOW) {
+    VALIDATION_LOG(log_errors, "Entity cannot be played in phase %d", gs->phase);
     return false;
   }
 
@@ -140,8 +174,13 @@ bool azk_validate_play_entity_action(
     return false;
   }
 
-  const IKZCost *ikz_cost = ecs_get(world, card, IKZCost);
-  ecs_assert(ikz_cost != NULL, ECS_INVALID_PARAMETER, "IKZCost missing for card %d", card);
+  if (gs->phase == PHASE_RESPONSE_WINDOW &&
+      !entity_can_be_played_as_response(world, card)) {
+    VALIDATION_LOG(log_errors, "Card %d cannot be played as a response", card);
+    return false;
+  }
+
+  int8_t effective_cost = azk_get_effective_card_play_cost(world, player, card);
 
   ecs_entity_t target_zone = target_zone_for_placement(gs, player_number, placement_type);
   if (target_zone == 0) {
@@ -164,7 +203,7 @@ bool azk_validate_play_entity_action(
   if (!fetch_ikz_payment(
         world,
         ikz_zone,
-        ikz_cost->ikz_cost,
+        (uint8_t)effective_cost,
         use_ikz_token,
         log_errors,
         ikz_cards,
@@ -286,7 +325,7 @@ bool azk_validate_attack_action(
     VALIDATION_LOG(log_errors, "Attacker index %d out of bounds", attacker_index);
     return false;
   }
-  if (defender_index < 0 || defender_index > GARDEN_SIZE) {
+  if (defender_index < 0 || defender_index > GARDEN_SIZE + ALLEY_SIZE) {
     VALIDATION_LOG(log_errors, "Defender index %d out of bounds", defender_index);
     return false;
   }
@@ -323,12 +362,16 @@ bool azk_validate_attack_action(
     VALIDATION_LOG(log_errors, "Attacking card is frozen and cannot attack");
     return false;
   }
+  if (ecs_has(world, attacking_card, Rooted)) {
+    VALIDATION_LOG(log_errors, "Attacking card is rooted and cannot attack");
+    return false;
+  }
 
   ecs_entity_t defending_card = 0;
   bool defender_is_leader = defender_index == GARDEN_SIZE;
   if (defender_is_leader) {
     defending_card = find_leader_card_in_zone(world, gs->zones[defending_player_number].leader);
-  } else {
+  } else if (defender_index < GARDEN_SIZE) {
     defending_card = find_card_in_zone_index(world, gs->zones[defending_player_number].garden, defender_index);
     if (defending_card == 0) {
       VALIDATION_LOG(log_errors, "No defender at garden index %d", defender_index);
@@ -338,6 +381,33 @@ bool azk_validate_attack_action(
       VALIDATION_LOG(log_errors, "Defender card %d is not tapped", defending_card);
       return false;
     }
+  } else {
+    if (!azk_card_can_attack_opponent_alley(world, attacking_card)) {
+      VALIDATION_LOG(log_errors, "Attacking card cannot attack opponent alley");
+      return false;
+    }
+
+    int alley_index = defender_index - (GARDEN_SIZE + 1);
+    defending_card =
+        find_card_in_zone_index(world, gs->zones[defending_player_number].alley,
+                                alley_index);
+    if (defending_card == 0) {
+      VALIDATION_LOG(log_errors, "No defender at alley index %d", alley_index);
+      return false;
+    }
+  }
+
+  if (defender_has_tapped_taunt(world, gs->zones[defending_player_number].garden) &&
+      !ecs_has(world, defending_card, Taunt)) {
+    VALIDATION_LOG(log_errors, "A tapped Taunt entity must be attacked first");
+    return false;
+  }
+
+  if (azk_card_can_only_attack_leaders(world, attacking_card) &&
+      !defender_is_leader) {
+    VALIDATION_LOG(log_errors, "Attacking card %d can only attack leaders",
+                   attacking_card);
+    return false;
   }
 
   if (out_intent) {
@@ -372,6 +442,11 @@ bool azk_validate_attach_weapon_action(
     return false;
   }
 
+  if (gs->phase != PHASE_MAIN && gs->phase != PHASE_RESPONSE_WINDOW) {
+    VALIDATION_LOG(log_errors, "Weapon cannot be attached in phase %d", gs->phase);
+    return false;
+  }
+
   int hand_index = action->subaction_1;
   int entity_index = action->subaction_2;
   bool use_ikz_token = action->subaction_3 != 0;
@@ -399,6 +474,13 @@ bool azk_validate_attach_weapon_action(
     return false;
   }
 
+  if (gs->phase == PHASE_RESPONSE_WINDOW &&
+      !weapon_can_be_played_as_response(world, weapon_card)) {
+    VALIDATION_LOG(log_errors, "Card %d cannot be played as a response weapon",
+                   weapon_card);
+    return false;
+  }
+
   ecs_entity_t target_card = 0;
   bool target_is_leader = entity_index == GARDEN_SIZE;
   if (target_is_leader) {
@@ -411,8 +493,8 @@ bool azk_validate_attach_weapon_action(
     }
   }
 
-  const IKZCost *ikz_cost = ecs_get(world, weapon_card, IKZCost);
-  ecs_assert(ikz_cost != NULL, ECS_INVALID_PARAMETER, "IKZCost missing for weapon %d", weapon_card);
+  int8_t effective_cost =
+      azk_get_effective_card_play_cost(world, player, weapon_card);
 
   ecs_entity_t ikz_cards[AZK_MAX_IKZ_PAYMENT] = {0};
   uint8_t ikz_card_count = 0;
@@ -420,7 +502,7 @@ bool azk_validate_attach_weapon_action(
   if (!fetch_ikz_payment(
         world,
         ikz_zone,
-        ikz_cost->ikz_cost,
+        (uint8_t)effective_cost,
         use_ikz_token,
         log_errors,
         ikz_cards,
@@ -533,17 +615,25 @@ bool azk_validate_play_spell_action(
   bool is_response_spell = ecs_has(world, spell_card, AResponse);
   bool is_main_spell = ecs_has(world, spell_card, AMain);
 
-  if (is_response_spell && gs->phase != PHASE_RESPONSE_WINDOW) {
-    VALIDATION_LOG(log_errors, "Response spell cannot be played in phase %d", gs->phase);
-    return false;
-  }
-  if (is_main_spell && gs->phase != PHASE_MAIN) {
-    VALIDATION_LOG(log_errors, "Main spell cannot be played in phase %d", gs->phase);
-    return false;
-  }
   if (!is_response_spell && !is_main_spell) {
     VALIDATION_LOG(log_errors, "Spell %llu has no valid timing tag", (unsigned long long)spell_card);
     return false;
+  }
+  if (is_response_spell && is_main_spell) {
+    if (gs->phase != PHASE_MAIN && gs->phase != PHASE_RESPONSE_WINDOW) {
+      VALIDATION_LOG(log_errors, "Dual-timing spell cannot be played in phase %d", gs->phase);
+      return false;
+    }
+  } else if (is_response_spell) {
+    if (gs->phase != PHASE_RESPONSE_WINDOW) {
+      VALIDATION_LOG(log_errors, "Response spell cannot be played in phase %d", gs->phase);
+      return false;
+    }
+  } else if (is_main_spell) {
+    if (gs->phase != PHASE_MAIN) {
+      VALIDATION_LOG(log_errors, "Main spell cannot be played in phase %d", gs->phase);
+      return false;
+    }
   }
 
   // Verify card has an ability in the registry
@@ -559,6 +649,8 @@ bool azk_validate_play_spell_action(
     VALIDATION_LOG(log_errors, "Spell %llu has no IKZ cost component", (unsigned long long)spell_card);
     return false;
   }
+  int8_t effective_cost =
+      azk_get_effective_card_play_cost(world, player, spell_card);
 
   ecs_entity_t ikz_cards[AZK_MAX_IKZ_PAYMENT] = {0};
   uint8_t ikz_card_count = 0;
@@ -566,7 +658,7 @@ bool azk_validate_play_spell_action(
   if (!fetch_ikz_payment(
         world,
         ikz_zone,
-        ikz_cost->ikz_cost,
+        (uint8_t)effective_cost,
         use_ikz_token,
         log_errors,
         ikz_cards,
@@ -612,8 +704,10 @@ bool azk_validate_activate_alley_ability_action(
     return false;
   }
 
-  // Main phase abilities can only be activated during main phase
-  if (gs->phase != PHASE_MAIN) {
+  bool is_response_phase = (gs->phase == PHASE_RESPONSE_WINDOW);
+  bool is_main_phase = (gs->phase == PHASE_MAIN);
+
+  if (!is_main_phase && !is_response_phase) {
     VALIDATION_LOG(log_errors, "Alley ability cannot be activated in phase %d", gs->phase);
     return false;
   }
@@ -637,16 +731,32 @@ bool azk_validate_activate_alley_ability_action(
     return false;
   }
 
+  // Check once-per-turn before validation
+  if (ecs_has(world, card, AOnceTurn)) {
+    const AbilityRepeatContext *repeat_ctx =
+        ecs_get(world, card, AbilityRepeatContext);
+    if (repeat_ctx && repeat_ctx->was_applied) {
+      VALIDATION_LOG(log_errors, "Once-per-turn ability already used this turn");
+      return false;
+    }
+  }
+
   // Check if card is frozen (frozen cards cannot activate abilities)
   if (ecs_has(world, card, Frozen)) {
     VALIDATION_LOG(log_errors, "Card is frozen and cannot activate abilities");
     return false;
   }
 
-  // Verify card has AMain timing tag (main phase ability)
-  if (!ecs_has(world, card, AMain)) {
-    VALIDATION_LOG(log_errors, "Card %llu does not have a main phase ability", (unsigned long long)card);
-    return false;
+  if (is_main_phase) {
+    if (!ecs_has(world, card, AMain)) {
+      VALIDATION_LOG(log_errors, "Card %llu does not have a main phase ability", (unsigned long long)card);
+      return false;
+    }
+  } else {
+    if (!ecs_has(world, card, AResponse)) {
+      VALIDATION_LOG(log_errors, "Card %llu does not have a response ability", (unsigned long long)card);
+      return false;
+    }
   }
 
   // Verify card has an ability in the registry
@@ -705,12 +815,6 @@ bool azk_validate_activate_garden_or_leader_ability_action(
 
   if (slot_index < 0 || slot_index > GARDEN_SIZE) {
     VALIDATION_LOG(log_errors, "Slot index %d out of bounds (0-%d)", slot_index, GARDEN_SIZE);
-    return false;
-  }
-
-  // Response phase abilities are currently only supported for leaders
-  if (is_response_phase && slot_index != GARDEN_SIZE) {
-    VALIDATION_LOG(log_errors, "Response abilities only supported for leader (slot %d)", GARDEN_SIZE);
     return false;
   }
 

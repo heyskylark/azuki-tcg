@@ -4,8 +4,10 @@ import { useCallback } from "react";
 import { useGameState } from "@/contexts/GameStateContext";
 import { useRoom } from "@/contexts/RoomContext";
 import {
+  getValidTopDeckTargets,
   getValidBottomDeckTargets,
   hasBottomDeckAllAction,
+  buildTopDeckCardAction,
   buildBottomDeckCardAction,
   buildBottomDeckAllAction,
 } from "@/lib/game/actionValidation";
@@ -20,6 +22,7 @@ export function BottomDeckUI() {
   const { send } = useRoom();
 
   const actionMask = gameState?.actionMask ?? null;
+  const validTopTargets = getValidTopDeckTargets(actionMask);
   const validTargets = getValidBottomDeckTargets(actionMask);
   const canBottomAll = hasBottomDeckAllAction(actionMask);
   const selectionCards = (gameState?.selectionCards ?? []).filter(
@@ -49,6 +52,17 @@ export function BottomDeckUI() {
     [validTargets, send]
   );
 
+  const handleTopDeckCard = useCallback(
+    (selectionIndex: number) => {
+      if (!validTopTargets.includes(selectionIndex)) return;
+      send({
+        type: "GAME_ACTION",
+        action: buildTopDeckCardAction(selectionIndex),
+      });
+    },
+    [validTopTargets, send]
+  );
+
   const handleBottomAll = useCallback(() => {
     if (!canBottomAll) return;
     send({
@@ -65,11 +79,14 @@ export function BottomDeckUI() {
       {/* Selection panel */}
       <div className="relative bg-slate-800 border border-slate-600 rounded-lg shadow-xl p-6 max-w-4xl w-full mx-4">
         <h2 className="text-xl font-bold text-white mb-2">
-          Order Cards to Bottom of Deck
+          {validTopTargets.length > 0
+            ? "Order Cards On Top Or Bottom Of Deck"
+            : "Order Cards to Bottom of Deck"}
         </h2>
         <p className="text-slate-300 mb-4">
-          Select cards in the order you want them at the bottom of your deck
-          (first selected will be on bottom)
+          {validTopTargets.length > 0
+            ? "Select cards one by one and choose whether each goes to the top or bottom of your deck"
+            : "Select cards in the order you want them at the bottom of your deck (first selected will be on bottom)"}
         </p>
 
         {/* Card grid */}
@@ -78,18 +95,9 @@ export function BottomDeckUI() {
             selectionCardsWithIndex.map(({ card, selectionIndex }) => {
               const isValid = validTargets.includes(selectionIndex);
               return (
-                <button
+                <div
                   key={`bottom-${selectionIndex}-${card.cardCode}`}
-                  onClick={() => handleSelectCard(selectionIndex)}
-                  disabled={!isValid}
-                  className={`
-                    relative p-2 rounded-md border-2 transition-all
-                    ${
-                      isValid
-                        ? "border-orange-400 bg-orange-400/20 hover:bg-orange-400/40 cursor-pointer"
-                        : "border-slate-600 bg-slate-700/50 opacity-50 cursor-not-allowed"
-                    }
-                  `}
+                  className="relative p-2 rounded-md border-2 border-slate-600 bg-slate-700/40"
                 >
                   <div className="w-20 h-28 bg-slate-700 rounded flex items-center justify-center overflow-hidden">
                     {card.imageUrl ? (
@@ -107,7 +115,31 @@ export function BottomDeckUI() {
                   <p className="text-xs text-white mt-1 text-center truncate max-w-20">
                     {card.name}
                   </p>
-                </button>
+                  <div className="mt-2 flex gap-2 justify-center">
+                    {validTopTargets.includes(selectionIndex) && (
+                      <button
+                        onClick={() => handleTopDeckCard(selectionIndex)}
+                        className="px-2 py-1 text-[10px] font-semibold rounded bg-sky-600 hover:bg-sky-500 text-white"
+                      >
+                        Top
+                      </button>
+                    )}
+                    <button
+                      onClick={() => handleSelectCard(selectionIndex)}
+                      disabled={!isValid}
+                      className={`
+                        px-2 py-1 text-[10px] font-semibold rounded text-white
+                        ${
+                          isValid
+                            ? "bg-orange-600 hover:bg-orange-500"
+                            : "bg-slate-600 opacity-50 cursor-not-allowed"
+                        }
+                      `}
+                    >
+                      Bottom
+                    </button>
+                  </div>
+                </div>
               );
             })
           ) : (

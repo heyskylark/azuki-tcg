@@ -6,7 +6,7 @@ import { useGameState } from "@/contexts/GameStateContext";
 import { useRoom } from "@/contexts/RoomContext";
 import { buildNoopAction, hasNoopAction } from "@/lib/game/actionValidation";
 
-const ACTION_MULLIGAN = 23;
+const ACTION_MULLIGAN = 25;
 
 const BUTTON_Y = 0.3; // Slightly above hand cards (hand y = 0.05)
 const BUTTON_Z = 8.1; // Slightly closer to player than the hand row
@@ -95,8 +95,12 @@ export function ActionButtons3D() {
   const isMulliganPhase = gameState?.phase === "PREGAME_MULLIGAN";
 
   const abilitySubphase = gameState?.abilitySubphase ?? "NONE";
+  const canFinishCostSelection =
+    abilitySubphase === "COST_SELECTION" && canNoop;
   const canSkipTargetSelection =
     abilitySubphase === "EFFECT_SELECTION" && canNoop;
+  const canSkipSelectionPick =
+    abilitySubphase === "SELECTION_PICK" && canNoop;
 
   const handleNoop = useCallback(() => {
     if (!canNoop) return;
@@ -126,10 +130,24 @@ export function ActionButtons3D() {
       });
     }
 
-    if (canSkipTargetSelection) {
+    if (canFinishCostSelection) {
+      nextButtons.push({
+        id: "finish-cost-selection",
+        label: "Done Selecting",
+        variant: "secondary",
+        onClick: handleNoop,
+      });
+    } else if (canSkipTargetSelection) {
       nextButtons.push({
         id: "skip-target-selection",
         label: "Skip Target Selection",
+        variant: "secondary",
+        onClick: handleNoop,
+      });
+    } else if (canSkipSelectionPick) {
+      nextButtons.push({
+        id: "skip-selection-pick",
+        label: "Skip Selection",
         variant: "secondary",
         onClick: handleNoop,
       });
@@ -145,8 +163,10 @@ export function ActionButtons3D() {
     return nextButtons;
   }, [
     abilitySubphase,
+    canFinishCostSelection,
     canMulligan,
     canNoop,
+    canSkipSelectionPick,
     canSkipTargetSelection,
     handleMulligan,
     handleNoop,

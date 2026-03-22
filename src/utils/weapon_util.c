@@ -5,6 +5,30 @@
 #include "utils/game_log_util.h"
 #include "utils/status_util.h"
 
+void apply_weapon_combat_modifier_if_any(ecs_world_t *world,
+                                         ecs_entity_t weapon_card,
+                                         ecs_entity_t target_card) {
+  const EquippedCombatModifier *modifier =
+      ecs_get(world, weapon_card, EquippedCombatModifier);
+  if (!modifier) {
+    return;
+  }
+
+  if (modifier->requires_leader && !ecs_has(world, target_card, TLeader)) {
+    return;
+  }
+
+  apply_combat_damage_modifier(world, target_card, weapon_card,
+                               modifier->incoming_modifier,
+                               modifier->outgoing_modifier, false);
+}
+
+void remove_weapon_combat_modifier_if_any(ecs_world_t *world,
+                                          ecs_entity_t weapon_card,
+                                          ecs_entity_t target_card) {
+  remove_combat_damage_modifier(world, target_card, weapon_card);
+}
+
 bool apply_weapon_attack_bonus(ecs_world_t *world, ecs_entity_t target_card,
                                int8_t weapon_atk) {
   const CurStats *target_stats = ecs_get(world, target_card, CurStats);
@@ -62,6 +86,8 @@ int attach_weapon_from_hand(ecs_world_t *world,
   // 2. AttackBuff pairs from observers are also deferred
   apply_weapon_attack_bonus(world, intent->target_card,
                             weapon_cur_stats->cur_atk);
+  apply_weapon_combat_modifier_if_any(world, intent->weapon_card,
+                                      intent->target_card);
 
   cli_render_logf("[Weapon] Attached weapon (+%d attack) to entity",
                   weapon_cur_stats->cur_atk);

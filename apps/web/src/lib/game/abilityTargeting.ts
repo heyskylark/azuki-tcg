@@ -122,6 +122,20 @@ export function buildAbilityTargetMaps({
       }
       break;
 
+    case AbilityTargetType.ANY_LEADER_OR_GARDEN_ENTITY:
+      for (const idx of targetIndices) {
+        if (idx < 5) {
+          addGardenTargetByZoneIndex(maps.selfGarden, myBoard, idx, idx);
+        } else if (idx < 10) {
+          addGardenTargetByZoneIndex(maps.opponentGarden, opponentBoard, idx - 5, idx);
+        } else if (idx === 10) {
+          maps.selfLeader = idx;
+        } else if (idx === 11) {
+          maps.opponentLeader = idx;
+        }
+      }
+      break;
+
     case AbilityTargetType.ENEMY_LEADER_OR_GARDEN_ENTITY:
       for (const idx of targetIndices) {
         if (idx === 5) {
