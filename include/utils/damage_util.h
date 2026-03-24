@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
+#include "components/abilities.h"
 #include "components/components.h"
 
 /**
@@ -23,6 +24,10 @@ bool deal_effect_damage_from_source(ecs_world_t *world, ecs_entity_t source,
 void azk_record_damage_event(ecs_world_t *world, ecs_entity_t source,
                              ecs_entity_t target, int8_t actual_damage,
                              bool from_effect);
+bool azk_damage_tracker_is_current_turn(ecs_world_t *world,
+                                        const DamageTracker *tracker);
+const DamageTracker *azk_get_current_turn_damage_tracker(ecs_world_t *world,
+                                                         ecs_entity_t entity);
 bool azk_enqueue_pending_damage_redirect(ecs_world_t *world, ecs_entity_t source,
                                          ecs_entity_t original_target,
                                          ecs_entity_t owner, int8_t damage);

@@ -93,6 +93,10 @@ void resolve_combat(ecs_world_t *world) {
   ecs_assert(attacking_card_cur_stats != NULL, ECS_INVALID_PARAMETER, "Attacking card cur stats not found");
   CurStats *defender_card_cur_stats = ecs_get_mut(world, gs->combat_state.defender_card, CurStats);
   ecs_assert(defender_card_cur_stats != NULL, ECS_INVALID_PARAMETER, "Defender card cur stats not found");
+  const bool attacker_is_leader =
+      ecs_has(world, gs->combat_state.attacking_card, TLeader);
+  const bool defender_is_leader =
+      ecs_has(world, gs->combat_state.defender_card, TLeader);
   ecs_entity_t defender_parent =
       ecs_get_target(world, gs->combat_state.defender_card, EcsChildOf, 0);
 
@@ -137,15 +141,19 @@ void resolve_combat(ecs_world_t *world) {
 
   bool attacking_leader_defeated = false;
   bool defender_leader_defeated = false;
+  bool attacker_destroyed = false;
+  bool defender_destroyed = false;
+  // Capture destruction outcomes before discard_card resets CurStats.
   if (attacking_card_cur_stats->cur_hp <= 0) {
     if (azk_card_has_godmode_in_play(world, gs->combat_state.attacking_card)) {
       attacking_card_cur_stats->cur_hp = 1;
-    } else if (ecs_has(world, gs->combat_state.attacking_card, TLeader)) {
+    } else if (attacker_is_leader) {
       attacking_leader_defeated = true;
       // Log entity died (leader defeated by combat)
       azk_log_entity_died(world, gs->combat_state.attacking_card,
                           GLOG_DEATH_COMBAT);
     } else {
+      attacker_destroyed = true;
       // Log entity died before discarding (combat death)
       azk_log_entity_died(world, gs->combat_state.attacking_card,
                           GLOG_DEATH_COMBAT);
@@ -156,12 +164,13 @@ void resolve_combat(ecs_world_t *world) {
   if (defender_card_cur_stats->cur_hp <= 0) {
     if (azk_card_has_godmode_in_play(world, gs->combat_state.defender_card)) {
       defender_card_cur_stats->cur_hp = 1;
-    } else if (ecs_has(world, gs->combat_state.defender_card, TLeader)) {
+    } else if (defender_is_leader) {
       defender_leader_defeated = true;
       // Log entity died (leader defeated by combat)
       azk_log_entity_died(world, gs->combat_state.defender_card,
                           GLOG_DEATH_COMBAT);
     } else {
+      defender_destroyed = true;
       // Log entity died before discarding (combat death)
       azk_log_entity_died(world, gs->combat_state.defender_card,
                           GLOG_DEATH_COMBAT);
@@ -186,17 +195,11 @@ void resolve_combat(ecs_world_t *world) {
   gs->last_combat = (LastCombatResult){
       .attacker = gs->combat_state.attacking_card,
       .defender = gs->combat_state.defender_card,
-      .defender_was_leader = ecs_has(world, gs->combat_state.defender_card, TLeader),
+      .defender_was_leader = defender_is_leader,
       .defender_was_garden_entity =
           defender_parent == gs->zones[(gs->active_player_index + 1) % MAX_PLAYERS_PER_MATCH].garden,
-      .defender_destroyed =
-          !ecs_has(world, gs->combat_state.defender_card, TLeader) &&
-          defender_card_cur_stats->cur_hp <= 0 &&
-          !azk_card_has_godmode_in_play(world, gs->combat_state.defender_card),
-      .attacker_destroyed =
-          !ecs_has(world, gs->combat_state.attacking_card, TLeader) &&
-          attacking_card_cur_stats->cur_hp <= 0 &&
-          !azk_card_has_godmode_in_play(world, gs->combat_state.attacking_card),
+      .defender_destroyed = defender_destroyed,
+      .attacker_destroyed = attacker_destroyed,
       .damage_to_defender = defender_damage,
       .damage_to_attacker = attacker_damage,
   };

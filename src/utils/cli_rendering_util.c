@@ -1390,6 +1390,8 @@ static const char *status_effect_name(GameLogStatusEffect effect) {
   switch (effect) {
     case GLOG_STATUS_FROZEN:
       return "Frozen";
+    case GLOG_STATUS_ROOTED:
+      return "Rooted";
     case GLOG_STATUS_SHOCKED:
       return "Shocked";
     case GLOG_STATUS_EFFECT_IMMUNE:

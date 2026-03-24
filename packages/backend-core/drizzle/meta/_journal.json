@@ -120,6 +120,20 @@
       "when": 1773989364381,
       "tag": "0016_card-batch",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1774311656189,
+      "tag": "0017_fix-stt03-015-ikz-cost",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1774390501573,
+      "tag": "0018_fix-stt04-013-gate-power",
+      "breakpoints": true
     }
   ]
 }

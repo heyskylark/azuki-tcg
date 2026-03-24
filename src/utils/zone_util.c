@@ -397,7 +397,7 @@ int gate_card_into_garden(ecs_world_t *world, const GatePortalIntent *intent) {
 
   // Log cooldown state change AFTER zone move (if applicable)
   if (!ecs_has(world, intent->alley_card, Charge)) {
-    azk_log_card_tap_state_changed_ex(world, intent->alley_card, GLOG_TAP_COOLDOWN,
+  azk_log_card_tap_state_changed_ex(world, intent->alley_card, GLOG_TAP_COOLDOWN,
                                       GLOG_ZONE_GARDEN,
                                       (int8_t)intent->garden_index);
   }
@@ -407,7 +407,7 @@ int gate_card_into_garden(ecs_world_t *world, const GatePortalIntent *intent) {
 
   // Trigger gate card's portal ability (if any)
   azk_trigger_gate_portal_ability(world, intent->gate_card, intent->alley_card,
-                                  intent->player);
+                                  intent->garden_index, intent->player);
 
   return 0;
 }

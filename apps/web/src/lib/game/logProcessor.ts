@@ -895,6 +895,7 @@ function applyStatusEffect(
 
   const effectUpdate = {
     isFrozen: data.effect === "FROZEN" ? isApplied : undefined,
+    isRooted: data.effect === "ROOTED" ? isApplied : undefined,
     isShocked: data.effect === "SHOCKED" ? isApplied : undefined,
     isEffectImmune: data.effect === "EFFECT_IMMUNE" ? isApplied : undefined,
   };
@@ -975,6 +976,7 @@ function resolveCard(
     tapped: metadata?.tapped ?? false,
     cooldown: metadata?.cooldown ?? false,
     isFrozen: metadata?.isFrozen ?? false,
+    isRooted: metadata?.isRooted ?? false,
     isShocked: false, // Not in metadata
     isEffectImmune: metadata?.isEffectImmune ?? false,
     hasCharge: metadata?.hasCharge ?? false,

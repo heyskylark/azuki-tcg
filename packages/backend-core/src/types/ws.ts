@@ -175,6 +175,7 @@ export interface SnapshotCard {
   tapped: boolean;
   cooldown: boolean;
   isFrozen: boolean;
+  isRooted: boolean;
   isShocked: boolean;
   isEffectImmune: boolean;
   hasCharge: boolean;

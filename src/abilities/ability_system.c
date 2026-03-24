@@ -294,7 +294,7 @@ static bool finish_cost_selection(ecs_world_t *world, AbilityContext *ctx,
     }
   }
 
-  if (def->effect_req.max > 0) {
+  if (ctx->effect.max_allowed > 0) {
     ctx->runtime.phase = ABILITY_PHASE_EFFECT_SELECTION;
     cli_render_logf("[Ability] Moving to effect selection");
     ecs_singleton_modified(world, AbilityContext);
@@ -1065,6 +1065,7 @@ bool azk_trigger_main_ability(ecs_world_t *world, ecs_entity_t card,
           .available_cost_targets = available_cost_targets,
           .select_effects_when_max_positive = false,
           .apply_costs_before_effect_selection = true,
+          .clear_context_on_immediate_resolve = true,
           .applied_log = "[Ability] Applied main ability with no targets",
           .cost_selection_log =
               "[Ability] Triggered main ability, selecting cost targets",
@@ -1115,6 +1116,7 @@ bool azk_trigger_spell_ability(ecs_world_t *world, ecs_entity_t spell_card,
           .clamp_effect_expected_to_available = true,
           .select_effects_when_max_positive = false,
           .apply_costs_before_effect_selection = false,
+          .clear_context_on_immediate_resolve = true,
           .applied_log = "[Ability] Applied spell with no targets",
           .cost_selection_log =
               "[Ability] Spell triggered, selecting cost targets",
@@ -1159,6 +1161,7 @@ bool azk_trigger_leader_response_ability(ecs_world_t *world, ecs_entity_t card,
           .available_cost_targets = available_cost_targets,
           .select_effects_when_max_positive = false,
           .apply_costs_before_effect_selection = false,
+          .clear_context_on_immediate_resolve = true,
           .applied_log = "[Ability] Applied leader response with no targets",
           .cost_selection_log =
               "[Ability] Leader response triggered, selecting cost targets",
@@ -1397,6 +1400,7 @@ void azk_trigger_return_to_hand_observers(ecs_world_t *world,
 
 void azk_trigger_gate_portal_ability(ecs_world_t *world, ecs_entity_t gate_card,
                                      ecs_entity_t portaled_card,
+                                     uint8_t garden_index,
                                      ecs_entity_t owner) {
   // Verify this is actually a gate card
   ecs_assert(is_card_type(world, gate_card, CARD_TYPE_GATE),
@@ -1425,6 +1429,9 @@ void azk_trigger_gate_portal_ability(ecs_world_t *world, ecs_entity_t gate_card,
     return;
   }
 
+  uint8_t available_effect_targets = azk_count_ability_target_choices(
+      world, def, ABILITY_TARGET_SCOPE_EFFECT, gate_card, owner);
+
   bool is_active = azk_begin_ability(
       world, gate_card, owner, def,
       &(AbilityBeginOptions){
@@ -1432,17 +1439,23 @@ void azk_trigger_gate_portal_ability(ecs_world_t *world, ecs_entity_t gate_card,
           .enter_confirmation_when_optional = true,
           .available_cost_targets = azk_count_ability_target_choices(
               world, def, ABILITY_TARGET_SCOPE_COST, gate_card, owner),
+          .available_effect_targets = available_effect_targets,
+          .clamp_effect_expected_to_available = true,
+          .select_effects_when_max_positive = true,
+          .apply_costs_before_effect_selection = true,
           .initial_scratch =
               {
                   .kind = ABILITY_SCRATCH_GATE_PORTAL,
                   .data.gate_portal =
                       {
                           .portaled_card = portaled_card,
+                          .garden_index = garden_index,
                       },
               },
           .confirmation_log =
               "[Ability] Gate portal triggered optional ability, waiting for "
               "confirmation",
+          .clear_context_on_immediate_resolve = true,
           .cost_selection_log =
               "[Ability] Gate portal ability, selecting cost targets",
           .effect_selection_log =

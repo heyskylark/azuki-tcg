@@ -114,6 +114,35 @@ static int collect_zone_index_targets(ecs_world_t *world, ecs_entity_t zone,
   return count;
 }
 
+static int collect_pending_gate_portal_target(
+    ecs_world_t *world, const GameState *gs, uint8_t player_num,
+    ecs_entity_t source_card, ecs_entity_t owner,
+    AbilityTargetValidatorFn validator, AbilityTargetChoice *out, int out_cap,
+    int count) {
+  const AbilityContext *ctx = ecs_singleton_get(world, AbilityContext);
+  if (ctx == NULL || ctx->scratch.kind != ABILITY_SCRATCH_GATE_PORTAL) {
+    return count;
+  }
+
+  ecs_entity_t portaled_card = ctx->scratch.data.gate_portal.portaled_card;
+  if (portaled_card == 0) {
+    return count;
+  }
+
+  if (ecs_get_target(world, portaled_card, EcsChildOf, 0) ==
+      gs->zones[player_num].garden) {
+    return count;
+  }
+
+  if (!is_target_valid(world, source_card, owner, portaled_card, validator)) {
+    return count;
+  }
+
+  return append_choice(out, out_cap, count,
+                       ctx->scratch.data.gate_portal.garden_index,
+                       portaled_card);
+}
+
 static int collect_enemy_leader_or_garden_targets(
     ecs_world_t *world, const GameState *gs, uint8_t player_num,
     ecs_entity_t source_card, ecs_entity_t owner,
@@ -300,9 +329,12 @@ static int collect_target_choices_internal(
     return collect_hand_targets(world, gs->zones[player_num].hand, source_card,
                                 owner, validator, out, out_cap, count);
   case ABILITY_TARGET_FRIENDLY_GARDEN_ENTITY:
-    return collect_zone_index_targets(world, gs->zones[player_num].garden,
-                                      source_card, owner, validator, out,
-                                      out_cap, count, 0);
+    count = collect_zone_index_targets(world, gs->zones[player_num].garden,
+                                       source_card, owner, validator, out,
+                                       out_cap, count, 0);
+    return collect_pending_gate_portal_target(world, gs, player_num,
+                                              source_card, owner, validator,
+                                              out, out_cap, count);
   case ABILITY_TARGET_ENEMY_GARDEN_ENTITY: {
     const uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
     return collect_zone_index_targets(world, gs->zones[enemy_num].garden,

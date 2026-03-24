@@ -8,21 +8,26 @@
 #include "world.h"
 #include "abilities/ability_registry.h"
 #include "abilities/ability_system.h"
+#include "abilities/targeting/ability_targeting.h"
 #include "abilities/cards/st01_007.h"
 #include "abilities/cards/stt01_003.h"
 #include "abilities/cards/stt01_005.h"
 #include "components/abilities.h"
 #include "components/components.h"
 #include "components/game_log.h"
+#include "systems/main.h"
 #include "systems/phase_gate.h"
+#include "systems/response_phase.h"
 #include "utils/card_utils.h"
 #include "utils/combat_util.h"
 #include "utils/deck_utils.h"
+#include "utils/damage_util.h"
 #include "utils/game_log_util.h"
 #include "utils/observation_util.h"
 #include "utils/status_util.h"
 #include "utils/zone_util.h"
 #include "validation/action_enumerator.h"
+#include "validation/action_validation.h"
 #include "generated/card_defs.h"
 
 static const CardDef *find_card_def_by_entity_name(const char *entity_name) {
@@ -185,6 +190,9 @@ static int collect_cards_of_type_in_zone(ecs_world_t *world, ecs_entity_t zone,
 
 static ecs_entity_t create_zone(ecs_world_t *world, ecs_entity_t player,
                                 ecs_entity_t zone_tag, const char *name);
+
+static void initialize_test_card_runtime_components(ecs_world_t *world,
+                                                    ecs_entity_t card);
 
 static void test_azk_world_init_sets_game_state(void) {
   const uint32_t seed = 1234;
@@ -405,6 +413,159 @@ static ecs_entity_t create_zone(
   return zone;
 }
 
+static void setup_single_player_play_fixture(ecs_world_t *world,
+                                             ecs_entity_t *out_player,
+                                             PlayerZones *out_zones) {
+  ecs_set(world, ecs_id(GameState), GameState, {0});
+  ecs_set(world, ecs_id(AbilityContext), AbilityContext, {0});
+
+  ecs_entity_t player = ecs_new(world);
+  ecs_set(world, player, PlayerId, {.pid = 0});
+  ecs_set(world, player, PlayerNumber, {.player_number = 0});
+
+  PlayerZones zones = {0};
+  zones.hand = create_zone(world, player, ZHand, "Hand_P0");
+  zones.deck = create_zone(world, player, ZDeck, "Deck_P0");
+  zones.leader = create_zone(world, player, ZLeader, "Leader_P0");
+  zones.garden = create_zone(world, player, ZGarden, "Garden_P0");
+  zones.alley = create_zone(world, player, ZAlley, "Alley_P0");
+  zones.ikz_area = create_zone(world, player, ZIKZAreaTag, "IKZArea_P0");
+  zones.discard = create_zone(world, player, ZDiscard, "Discard_P0");
+
+  ecs_entity_t opponent = ecs_new(world);
+  ecs_set(world, opponent, PlayerId, {.pid = 1});
+  ecs_set(world, opponent, PlayerNumber, {.player_number = 1});
+
+  PlayerZones opponent_zones = {0};
+  opponent_zones.hand = create_zone(world, opponent, ZHand, "Hand_P1");
+  opponent_zones.deck = create_zone(world, opponent, ZDeck, "Deck_P1");
+  opponent_zones.leader = create_zone(world, opponent, ZLeader, "Leader_P1");
+  opponent_zones.garden = create_zone(world, opponent, ZGarden, "Garden_P1");
+  opponent_zones.alley = create_zone(world, opponent, ZAlley, "Alley_P1");
+  opponent_zones.discard =
+      create_zone(world, opponent, ZDiscard, "Discard_P1");
+
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->players[0] = player;
+  gs->players[1] = opponent;
+  gs->active_player_index = 0;
+  gs->winner = -1;
+  gs->phase = PHASE_MAIN;
+  gs->turn_number = 1;
+  gs->zones[0] = zones;
+  gs->zones[1] = opponent_zones;
+  ecs_singleton_modified(world, GameState);
+
+  azk_clear_ability_context(world);
+
+  if (out_player != NULL) {
+    *out_player = player;
+  }
+  if (out_zones != NULL) {
+    *out_zones = zones;
+  }
+}
+
+static ecs_entity_t create_bobu_leader(ecs_world_t *world, ecs_entity_t player,
+                                       ecs_entity_t leader_zone,
+                                       int8_t current_hp) {
+  ecs_entity_t leader = ecs_new(world);
+  ecs_set_name(world, leader, "STT03-001_test");
+  ecs_set(world, leader, CardId, {.id = CARD_DEF_STT03_001});
+  ecs_set(world, leader, Type, {.value = CARD_TYPE_LEADER});
+  ecs_set(world, leader, Element, {.element = CARD_ELEMENT_EARTH});
+  ecs_set(world, leader, BaseStats, {.attack = 0, .health = 20});
+  ecs_set(world, leader, CurStats, {.cur_atk = 0, .cur_hp = current_hp});
+  ecs_set(world, leader, TapState, {.tapped = false, .cooldown = false});
+  ecs_add_pair(world, leader, EcsChildOf, leader_zone);
+  ecs_add_pair(world, leader, Rel_OwnedBy, player);
+  initialize_test_card_runtime_components(world, leader);
+  attach_ability_components(world, leader);
+  return leader;
+}
+
+static ecs_entity_t create_basic_leader(ecs_world_t *world, ecs_entity_t player,
+                                        ecs_entity_t leader_zone,
+                                        CardDefId card_id,
+                                        CardElement element,
+                                        const char *name) {
+  ecs_entity_t leader = ecs_new(world);
+  ecs_set_name(world, leader, name);
+  ecs_set(world, leader, CardId, {.id = card_id});
+  ecs_set(world, leader, Type, {.value = CARD_TYPE_LEADER});
+  ecs_set(world, leader, Element, {.element = element});
+  ecs_set(world, leader, BaseStats, {.attack = 0, .health = 20});
+  ecs_set(world, leader, CurStats, {.cur_atk = 0, .cur_hp = 20});
+  ecs_set(world, leader, TapState, {.tapped = false, .cooldown = false});
+  ecs_add_pair(world, leader, EcsChildOf, leader_zone);
+  ecs_add_pair(world, leader, Rel_OwnedBy, player);
+  initialize_test_card_runtime_components(world, leader);
+  attach_ability_components(world, leader);
+  return leader;
+}
+
+static ecs_entity_t create_ikz_card(ecs_world_t *world, ecs_entity_t player,
+                                    ecs_entity_t ikz_area, const char *name) {
+  ecs_entity_t ikz = ecs_new(world);
+  ecs_set_name(world, ikz, name);
+  ecs_set(world, ikz, Type, {.value = CARD_TYPE_IKZ});
+  ecs_set(world, ikz, TapState, {.tapped = false, .cooldown = false});
+  ecs_add_pair(world, ikz, EcsChildOf, ikz_area);
+  ecs_add_pair(world, ikz, Rel_OwnedBy, player);
+  return ikz;
+}
+
+static void initialize_test_card_runtime_components(ecs_world_t *world,
+                                                    ecs_entity_t card) {
+  ecs_set(world, card, DamageTracker, {0});
+  ecs_set(world, card, CardConditionCountdown,
+          {.frozen_duration = 0,
+           .shocked_duration = 0,
+           .effect_immune_duration = 0,
+           .timed_tag_grant_count = 0});
+}
+
+static ecs_entity_t create_earth_entity_card(ecs_world_t *world,
+                                             ecs_entity_t player,
+                                             ecs_entity_t zone,
+                                             const char *name) {
+  ecs_entity_t card = ecs_new(world);
+  ecs_set_name(world, card, name);
+  ecs_set(world, card, CardId, {.id = CARD_DEF_STT03_003});
+  ecs_set(world, card, Type, {.value = CARD_TYPE_ENTITY});
+  ecs_set(world, card, Element, {.element = CARD_ELEMENT_EARTH});
+  ecs_set(world, card, BaseStats, {.attack = 1, .health = 1});
+  ecs_set(world, card, CurStats, {.cur_atk = 1, .cur_hp = 1});
+  ecs_set(world, card, TapState, {.tapped = false, .cooldown = false});
+  ecs_add_pair(world, card, EcsChildOf, zone);
+  ecs_add_pair(world, card, Rel_OwnedBy, player);
+  initialize_test_card_runtime_components(world, card);
+  return card;
+}
+
+static ecs_entity_t create_basic_entity_card(ecs_world_t *world,
+                                             ecs_entity_t player,
+                                             ecs_entity_t zone,
+                                             CardDefId card_id,
+                                             CardElement element,
+                                             const char *name,
+                                             uint8_t zone_index) {
+  ecs_entity_t card = ecs_new(world);
+  ecs_set_name(world, card, name);
+  ecs_set(world, card, CardId, {.id = card_id});
+  ecs_set(world, card, Type, {.value = CARD_TYPE_ENTITY});
+  ecs_set(world, card, Element, {.element = element});
+  ecs_set(world, card, BaseStats, {.attack = 1, .health = 1});
+  ecs_set(world, card, CurStats, {.cur_atk = 1, .cur_hp = 1});
+  ecs_set(world, card, TapState, {.tapped = false, .cooldown = false});
+  ecs_set(world, card, ZoneIndex, {.index = zone_index});
+  ecs_add_pair(world, card, EcsChildOf, zone);
+  ecs_add_pair(world, card, Rel_OwnedBy, player);
+  initialize_test_card_runtime_components(world, card);
+  attach_ability_components(world, card);
+  return card;
+}
+
 static void setup_triggered_ability_control_fixture(
   ecs_world_t *world,
   ecs_entity_t players[MAX_PLAYERS_PER_MATCH],
@@ -619,6 +780,20 @@ static void test_azk01_001_card_def_and_instantiation(void) {
   assert(ecs_has(world, card, TSubtype_Beanz));
 
   ecs_fini(world);
+}
+
+static void test_generated_card_def_stt03_015_has_correct_ikz_cost(void) {
+  const CardDef *def = azk_card_def_from_id(CARD_DEF_STT03_015);
+  assert(def != NULL);
+  assert(def->has_ikz_cost);
+  assert(def->ikz_cost.ikz_cost == 4);
+}
+
+static void test_generated_card_def_stt04_013_has_correct_gate_power(void) {
+  const CardDef *def = azk_card_def_from_id(CARD_DEF_STT04_013);
+  assert(def != NULL);
+  assert(def->has_gate_points);
+  assert(def->gate_points.gate_points == 1);
 }
 
 static void test_ability_registry_lookup(void) {
@@ -2544,7 +2719,7 @@ static void test_gate_portal_enters_selection_flow_stt01_002(void) {
   ecs_add_pair(world, weapon, Rel_OwnedBy, player0);
   ecs_add_pair(world, weapon, EcsChildOf, discard);
 
-  azk_trigger_gate_portal_ability(world, gate_card, portaled_card, player0);
+  azk_trigger_gate_portal_ability(world, gate_card, portaled_card, 0, player0);
 
   assert(azk_get_ability_phase(world) == ABILITY_PHASE_SELECTION_PICK);
 
@@ -2559,6 +2734,487 @@ static void test_gate_portal_enters_selection_flow_stt01_002(void) {
   assert(ecs_get_target(world, weapon, EcsChildOf, 0) == selection);
 
   ecs_fini(world);
+}
+
+static void test_gate_portal_effect_selection_stt03_002(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  ecs_set(world, ecs_id(GameState), GameState, {0});
+  ecs_set(world, ecs_id(AbilityContext), AbilityContext, {0});
+
+  ecs_entity_t player0 = ecs_new(world);
+  ecs_set(world, player0, PlayerId, {.pid = 0});
+  ecs_set(world, player0, PlayerNumber, {.player_number = 0});
+
+  ecs_entity_t player1 = ecs_new(world);
+  ecs_set(world, player1, PlayerId, {.pid = 1});
+  ecs_set(world, player1, PlayerNumber, {.player_number = 1});
+
+  ecs_entity_t garden0 = create_zone(world, player0, ZGarden, "Garden_P0");
+
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->players[0] = player0;
+  gs->players[1] = player1;
+  gs->zones[0].garden = garden0;
+  gs->active_player_index = 0;
+  ecs_singleton_modified(world, GameState);
+
+  ecs_entity_t gate_card = ecs_new(world);
+  ecs_set(world, gate_card, CardId, {.id = CARD_DEF_STT03_002, .code = "STT03-002"});
+  ecs_set(world, gate_card, Type, {.value = CARD_TYPE_GATE});
+  ecs_add_pair(world, gate_card, Rel_OwnedBy, player0);
+
+  ecs_entity_t eligible_target = ecs_new(world);
+  ecs_set(world, eligible_target, CardId,
+          {.id = CARD_DEF_STT03_003, .code = "ELIGIBLE"});
+  ecs_set(world, eligible_target, Type, {.value = CARD_TYPE_ENTITY});
+  ecs_set(world, eligible_target, BaseStats, {.attack = 1, .health = 2});
+  ecs_add_pair(world, eligible_target, Rel_OwnedBy, player0);
+  ecs_add_pair(world, eligible_target, EcsChildOf, garden0);
+  ecs_set(world, eligible_target, ZoneIndex, {.index = 0});
+
+  ecs_entity_t ineligible_target = ecs_new(world);
+  ecs_set(world, ineligible_target, CardId,
+          {.id = CARD_DEF_STT03_004, .code = "INELIGIBLE"});
+  ecs_set(world, ineligible_target, Type, {.value = CARD_TYPE_ENTITY});
+  ecs_set(world, ineligible_target, BaseStats, {.attack = 3, .health = 4});
+  ecs_add_pair(world, ineligible_target, Rel_OwnedBy, player0);
+  ecs_add_pair(world, ineligible_target, EcsChildOf, garden0);
+  ecs_set(world, ineligible_target, ZoneIndex, {.index = 1});
+
+  ecs_entity_t portaled_card = ecs_new(world);
+  ecs_set(world, portaled_card, CardId,
+          {.id = CARD_DEF_STT03_005, .code = "PORTALED"});
+  ecs_set(world, portaled_card, Type, {.value = CARD_TYPE_ENTITY});
+  ecs_set(world, portaled_card, GatePoints, {.gate_points = 2});
+
+  azk_trigger_gate_portal_ability(world, gate_card, portaled_card, 0, player0);
+
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_EFFECT_SELECTION);
+
+  const AbilityContext *ctx = ecs_singleton_get(world, AbilityContext);
+  assert(ctx != NULL);
+  assert(ctx->runtime.source_card == gate_card);
+  assert(ctx->runtime.owner == player0);
+  assert(ctx->scratch.kind == ABILITY_SCRATCH_GATE_PORTAL);
+  assert(ctx->scratch.data.gate_portal.portaled_card == portaled_card);
+
+  bool selected = azk_process_effect_selection(world, 0);
+  assert(selected);
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_NONE);
+  assert(ecs_has(world, eligible_target, Defender));
+  assert(!ecs_has(world, ineligible_target, Defender));
+
+  ecs_fini(world);
+}
+
+static void test_gate_portal_no_valid_targets_auto_resolves_stt03_002(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  ecs_set(world, ecs_id(GameState), GameState, {0});
+  ecs_set(world, ecs_id(AbilityContext), AbilityContext, {0});
+
+  ecs_entity_t player0 = ecs_new(world);
+  ecs_set(world, player0, PlayerId, {.pid = 0});
+  ecs_set(world, player0, PlayerNumber, {.player_number = 0});
+
+  ecs_entity_t player1 = ecs_new(world);
+  ecs_set(world, player1, PlayerId, {.pid = 1});
+  ecs_set(world, player1, PlayerNumber, {.player_number = 1});
+
+  ecs_entity_t garden0 = create_zone(world, player0, ZGarden, "Garden_P0");
+
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->players[0] = player0;
+  gs->players[1] = player1;
+  gs->zones[0].garden = garden0;
+  gs->active_player_index = 0;
+  ecs_singleton_modified(world, GameState);
+
+  ecs_entity_t gate_card = ecs_new(world);
+  ecs_set(world, gate_card, CardId, {.id = CARD_DEF_STT03_002, .code = "STT03-002"});
+  ecs_set(world, gate_card, Type, {.value = CARD_TYPE_GATE});
+  ecs_add_pair(world, gate_card, Rel_OwnedBy, player0);
+
+  ecs_entity_t existing_defender = ecs_new(world);
+  ecs_set(world, existing_defender, CardId,
+          {.id = CARD_DEF_STT03_003, .code = "EXISTING_DEFENDER"});
+  ecs_set(world, existing_defender, Type, {.value = CARD_TYPE_ENTITY});
+  ecs_set(world, existing_defender, BaseStats, {.attack = 1, .health = 2});
+  ecs_add(world, existing_defender, Defender);
+  ecs_add_pair(world, existing_defender, Rel_OwnedBy, player0);
+  ecs_add_pair(world, existing_defender, EcsChildOf, garden0);
+  ecs_set(world, existing_defender, ZoneIndex, {.index = 0});
+
+  ecs_entity_t too_big = ecs_new(world);
+  ecs_set(world, too_big, CardId, {.id = CARD_DEF_STT03_004, .code = "TOO_BIG"});
+  ecs_set(world, too_big, Type, {.value = CARD_TYPE_ENTITY});
+  ecs_set(world, too_big, BaseStats, {.attack = 3, .health = 4});
+  ecs_add_pair(world, too_big, Rel_OwnedBy, player0);
+  ecs_add_pair(world, too_big, EcsChildOf, garden0);
+  ecs_set(world, too_big, ZoneIndex, {.index = 1});
+
+  ecs_entity_t portaled_card = ecs_new(world);
+  ecs_set(world, portaled_card, CardId,
+          {.id = CARD_DEF_STT03_005, .code = "PORTALED"});
+  ecs_set(world, portaled_card, Type, {.value = CARD_TYPE_ENTITY});
+  ecs_set(world, portaled_card, GatePoints, {.gate_points = 2});
+
+  azk_trigger_gate_portal_ability(world, gate_card, portaled_card, 0, player0);
+
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_NONE);
+  assert(ecs_has(world, existing_defender, Defender));
+  assert(!ecs_has(world, too_big, Defender));
+
+  ecs_fini(world);
+}
+
+static void test_main_phase_gate_portal_enters_effect_selection_stt03_002(void) {
+  ecs_world_t *world = azk_world_init_with_starting_player(42, 0);
+
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  assert(gs != NULL);
+  gs->phase = PHASE_MAIN;
+  gs->active_player_index = 0;
+  ecs_singleton_modified(world, GameState);
+
+  ecs_entity_t player0 = gs->players[0];
+  ecs_entity_t gate_card = find_gate_card_in_zone(world, gs->zones[0].gate);
+  ecs_set(world, gate_card, CardId, {.id = CARD_DEF_STT03_002, .code = "STT03-002"});
+  ecs_set(world, gate_card, TapState, {.tapped = false, .cooldown = false});
+
+  ecs_entity_t eligible_target = ecs_new(world);
+  ecs_set(world, eligible_target, CardId,
+          {.id = CARD_DEF_STT03_003, .code = "GARDEN_TARGET"});
+  ecs_set(world, eligible_target, Type, {.value = CARD_TYPE_ENTITY});
+  ecs_set(world, eligible_target, BaseStats, {.attack = 1, .health = 2});
+  ecs_set(world, eligible_target, TapState, {.tapped = false, .cooldown = false});
+  ecs_add_pair(world, eligible_target, Rel_OwnedBy, player0);
+  ecs_add_pair(world, eligible_target, EcsChildOf, gs->zones[0].garden);
+  ecs_set(world, eligible_target, ZoneIndex, {.index = 1});
+
+  ecs_entity_t existing_defender = ecs_new(world);
+  ecs_set(world, existing_defender, CardId,
+          {.id = CARD_DEF_STT03_005, .code = "EXISTING_DEFENDER"});
+  ecs_set(world, existing_defender, Type, {.value = CARD_TYPE_ENTITY});
+  ecs_set(world, existing_defender, BaseStats, {.attack = 1, .health = 2});
+  ecs_set(world, existing_defender, TapState, {.tapped = false, .cooldown = false});
+  ecs_add(world, existing_defender, Defender);
+  ecs_add_pair(world, existing_defender, Rel_OwnedBy, player0);
+  ecs_add_pair(world, existing_defender, EcsChildOf, gs->zones[0].garden);
+  ecs_set(world, existing_defender, ZoneIndex, {.index = 2});
+
+  ecs_entity_t alley_card = ecs_new(world);
+  ecs_set(world, alley_card, CardId,
+          {.id = CARD_DEF_STT03_004, .code = "ALLEY_CARD"});
+  ecs_set(world, alley_card, Type, {.value = CARD_TYPE_ENTITY});
+  ecs_set(world, alley_card, BaseStats, {.attack = 3, .health = 3});
+  ecs_set(world, alley_card, GatePoints, {.gate_points = 2});
+  ecs_set(world, alley_card, TapState, {.tapped = false, .cooldown = false});
+  ecs_add_pair(world, alley_card, Rel_OwnedBy, player0);
+  ecs_add_pair(world, alley_card, EcsChildOf, gs->zones[0].alley);
+  ecs_set(world, alley_card, ZoneIndex, {.index = 0});
+
+  ActionContext *ac = ecs_singleton_get_mut(world, ActionContext);
+  assert(ac != NULL);
+  ac->user_action = (UserAction){
+      .player = player0,
+      .type = ACT_GATE_PORTAL,
+      .subaction_1 = 0,
+      .subaction_2 = 0,
+      .subaction_3 = 0,
+  };
+  ecs_singleton_modified(world, ActionContext);
+
+  run_phase_gate_system(world);
+  ecs_progress(world, 0);
+
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_EFFECT_SELECTION);
+  assert(ecs_get_target(world, alley_card, EcsChildOf, 0) == gs->zones[0].garden);
+  const ZoneIndex *alley_card_zone_index = ecs_get(world, alley_card, ZoneIndex);
+  assert(alley_card_zone_index != NULL);
+  assert(alley_card_zone_index->index == 0);
+
+  AzkActionMaskSet mask = {0};
+  bool built = azk_build_action_mask_for_player(
+      world, ecs_singleton_get(world, GameState), 0, &mask);
+  assert(built);
+
+  bool found_target = false;
+  bool found_existing_defender = false;
+  for (uint16_t i = 0; i < mask.legal_action_count; i++) {
+    const UserAction *action = &mask.legal_actions[i];
+    if (action->type == ACT_SELECT_EFFECT_TARGET && action->subaction_1 == 1) {
+      found_target = true;
+    }
+    if (action->type == ACT_SELECT_EFFECT_TARGET && action->subaction_1 == 2) {
+      found_existing_defender = true;
+    }
+  }
+  assert(found_target);
+  assert(!found_existing_defender);
+
+  ac = ecs_singleton_get_mut(world, ActionContext);
+  assert(ac != NULL);
+  ac->user_action = (UserAction){
+      .player = player0,
+      .type = ACT_SELECT_EFFECT_TARGET,
+      .subaction_1 = 1,
+      .subaction_2 = 0,
+      .subaction_3 = 0,
+  };
+  ecs_singleton_modified(world, ActionContext);
+
+  run_phase_gate_system(world);
+  ecs_progress(world, 0);
+
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_NONE);
+  assert(ecs_has(world, eligible_target, Defender));
+  assert(ecs_has(world, existing_defender, Defender));
+
+  azk_world_fini(world);
+}
+
+static void test_main_phase_gate_portal_can_target_portaled_card_stt03_002(void) {
+  ecs_world_t *world = azk_world_init_with_starting_player(42, 0);
+
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  assert(gs != NULL);
+  gs->phase = PHASE_MAIN;
+  gs->active_player_index = 0;
+  ecs_singleton_modified(world, GameState);
+
+  ecs_entity_t player0 = gs->players[0];
+  ecs_entity_t gate_card = find_gate_card_in_zone(world, gs->zones[0].gate);
+  ecs_set(world, gate_card, CardId, {.id = CARD_DEF_STT03_002, .code = "STT03-002"});
+  ecs_set(world, gate_card, TapState, {.tapped = false, .cooldown = false});
+
+  ecs_entity_t alley_card = ecs_new(world);
+  ecs_set(world, alley_card, CardId,
+          {.id = CARD_DEF_STT03_003, .code = "PORTALED_TARGET"});
+  ecs_set(world, alley_card, Type, {.value = CARD_TYPE_ENTITY});
+  ecs_set(world, alley_card, BaseStats, {.attack = 1, .health = 1});
+  ecs_set(world, alley_card, GatePoints, {.gate_points = 1});
+  ecs_set(world, alley_card, TapState, {.tapped = false, .cooldown = false});
+  ecs_add_pair(world, alley_card, Rel_OwnedBy, player0);
+  ecs_add_pair(world, alley_card, EcsChildOf, gs->zones[0].alley);
+  ecs_set(world, alley_card, ZoneIndex, {.index = 0});
+
+  ActionContext *ac = ecs_singleton_get_mut(world, ActionContext);
+  assert(ac != NULL);
+  ac->user_action = (UserAction){
+      .player = player0,
+      .type = ACT_GATE_PORTAL,
+      .subaction_1 = 0,
+      .subaction_2 = 0,
+      .subaction_3 = 0,
+  };
+  ecs_singleton_modified(world, ActionContext);
+
+  run_phase_gate_system(world);
+  ecs_progress(world, 0);
+
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_EFFECT_SELECTION);
+  assert(ecs_get_target(world, alley_card, EcsChildOf, 0) == gs->zones[0].garden);
+
+  AzkActionMaskSet mask = {0};
+  bool built = azk_build_action_mask_for_player(
+      world, ecs_singleton_get(world, GameState), 0, &mask);
+  assert(built);
+
+  bool found_portaled_card = false;
+  for (uint16_t i = 0; i < mask.legal_action_count; i++) {
+    const UserAction *action = &mask.legal_actions[i];
+    if (action->type == ACT_SELECT_EFFECT_TARGET && action->subaction_1 == 0) {
+      found_portaled_card = true;
+    }
+  }
+  assert(found_portaled_card);
+
+  ac = ecs_singleton_get_mut(world, ActionContext);
+  assert(ac != NULL);
+  ac->user_action = (UserAction){
+      .player = player0,
+      .type = ACT_SELECT_EFFECT_TARGET,
+      .subaction_1 = 0,
+      .subaction_2 = 0,
+      .subaction_3 = 0,
+  };
+  ecs_singleton_modified(world, ActionContext);
+
+  run_phase_gate_system(world);
+  ecs_progress(world, 0);
+
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_NONE);
+  assert(ecs_has(world, alley_card, Defender));
+
+  azk_world_fini(world);
+}
+
+static void test_main_phase_gate_portal_can_target_damaged_portaled_card_stt04_002(
+    void) {
+  ecs_world_t *world = azk_world_init_with_starting_player(42, 0);
+
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  assert(gs != NULL);
+  gs->phase = PHASE_MAIN;
+  gs->active_player_index = 0;
+  ecs_singleton_modified(world, GameState);
+
+  ecs_entity_t player0 = gs->players[0];
+  ecs_entity_t gate_card = find_gate_card_in_zone(world, gs->zones[0].gate);
+  ecs_set(world, gate_card, CardId, {.id = CARD_DEF_STT04_002, .code = "STT04-002"});
+  ecs_set(world, gate_card, TapState, {.tapped = false, .cooldown = false});
+
+  ecs_entity_t alley_card = ecs_new(world);
+  ecs_set(world, alley_card, CardId,
+          {.id = CARD_DEF_STT04_010, .code = "STT04-010"});
+  ecs_set(world, alley_card, Type, {.value = CARD_TYPE_ENTITY});
+  ecs_set(world, alley_card, BaseStats, {.attack = 1, .health = 2});
+  ecs_set(world, alley_card, CurStats, {.cur_atk = 1, .cur_hp = 2});
+  ecs_set(world, alley_card, GatePoints, {.gate_points = 1});
+  ecs_set(world, alley_card, TapState, {.tapped = false, .cooldown = false});
+  ecs_add_pair(world, alley_card, Rel_OwnedBy, player0);
+  ecs_add_pair(world, alley_card, EcsChildOf, gs->zones[0].alley);
+  ecs_set(world, alley_card, ZoneIndex, {.index = 0});
+
+  bool damaged = deal_effect_damage(world, alley_card, 1);
+  assert(damaged);
+
+  const DamageTracker *pre_portal_tracker = ecs_get(world, alley_card, DamageTracker);
+  assert(pre_portal_tracker != NULL);
+  assert(pre_portal_tracker->took_damage_this_turn);
+
+  ActionContext *ac = ecs_singleton_get_mut(world, ActionContext);
+  assert(ac != NULL);
+  ac->user_action = (UserAction){
+      .player = player0,
+      .type = ACT_GATE_PORTAL,
+      .subaction_1 = 0,
+      .subaction_2 = 0,
+      .subaction_3 = 0,
+  };
+  ecs_singleton_modified(world, ActionContext);
+
+  run_phase_gate_system(world);
+  ecs_progress(world, 0);
+
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_EFFECT_SELECTION);
+  assert(ecs_get_target(world, alley_card, EcsChildOf, 0) == gs->zones[0].garden);
+
+  const DamageTracker *post_portal_tracker =
+      ecs_get(world, alley_card, DamageTracker);
+  assert(post_portal_tracker != NULL);
+  assert(post_portal_tracker->took_damage_this_turn);
+
+  AzkActionMaskSet mask = {0};
+  bool built = azk_build_action_mask_for_player(
+      world, ecs_singleton_get(world, GameState), 0, &mask);
+  assert(built);
+
+  bool found_portaled_card = false;
+  for (uint16_t i = 0; i < mask.legal_action_count; i++) {
+    const UserAction *action = &mask.legal_actions[i];
+    if (action->type == ACT_SELECT_EFFECT_TARGET && action->subaction_1 == 0) {
+      found_portaled_card = true;
+    }
+  }
+  assert(found_portaled_card);
+
+  ac = ecs_singleton_get_mut(world, ActionContext);
+  assert(ac != NULL);
+  ac->user_action = (UserAction){
+      .player = player0,
+      .type = ACT_SELECT_EFFECT_TARGET,
+      .subaction_1 = 0,
+      .subaction_2 = 0,
+      .subaction_3 = 0,
+  };
+  ecs_singleton_modified(world, ActionContext);
+
+  run_phase_gate_system(world);
+  ecs_progress(world, 0);
+
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_NONE);
+  const CurStats *portal_stats = ecs_get(world, alley_card, CurStats);
+  assert(portal_stats != NULL);
+  assert(portal_stats->cur_atk == 2);
+
+  azk_world_fini(world);
+}
+
+static void
+test_main_phase_gate_portal_cannot_target_entity_damaged_last_turn_stt04_002(
+    void) {
+  ecs_world_t *world = azk_world_init_with_starting_player(42, 0);
+
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  assert(gs != NULL);
+  gs->phase = PHASE_MAIN;
+  gs->active_player_index = 0;
+  gs->turn_number = 1;
+  ecs_singleton_modified(world, GameState);
+
+  ecs_entity_t player0 = gs->players[0];
+  ecs_entity_t gate_card = find_gate_card_in_zone(world, gs->zones[0].gate);
+  ecs_set(world, gate_card, CardId, {.id = CARD_DEF_STT04_002, .code = "STT04-002"});
+  ecs_set(world, gate_card, TapState, {.tapped = false, .cooldown = false});
+
+  ecs_entity_t alley_card = ecs_new(world);
+  ecs_set(world, alley_card, CardId,
+          {.id = CARD_DEF_STT04_010, .code = "STT04-010"});
+  ecs_set(world, alley_card, Type, {.value = CARD_TYPE_ENTITY});
+  ecs_set(world, alley_card, BaseStats, {.attack = 1, .health = 2});
+  ecs_set(world, alley_card, CurStats, {.cur_atk = 1, .cur_hp = 2});
+  ecs_set(world, alley_card, GatePoints, {.gate_points = 1});
+  ecs_set(world, alley_card, TapState, {.tapped = false, .cooldown = false});
+  ecs_add_pair(world, alley_card, Rel_OwnedBy, player0);
+  ecs_add_pair(world, alley_card, EcsChildOf, gs->zones[0].alley);
+  ecs_set(world, alley_card, ZoneIndex, {.index = 0});
+
+  bool damaged = deal_effect_damage(world, alley_card, 1);
+  assert(damaged);
+
+  const DamageTracker *pre_turn_advance_tracker =
+      ecs_get(world, alley_card, DamageTracker);
+  assert(pre_turn_advance_tracker != NULL);
+  assert(pre_turn_advance_tracker->took_damage_this_turn);
+  assert(pre_turn_advance_tracker->turn_marker == 1);
+
+  gs = ecs_singleton_get_mut(world, GameState);
+  assert(gs != NULL);
+  gs->turn_number = 2;
+  ecs_singleton_modified(world, GameState);
+
+  const DamageTracker *stale_tracker = ecs_get(world, alley_card, DamageTracker);
+  assert(stale_tracker != NULL);
+  assert(stale_tracker->took_damage_this_turn);
+  assert(stale_tracker->turn_marker == 1);
+  assert(!azk_damage_tracker_is_current_turn(world, stale_tracker));
+
+  ActionContext *ac = ecs_singleton_get_mut(world, ActionContext);
+  assert(ac != NULL);
+  ac->user_action = (UserAction){
+      .player = player0,
+      .type = ACT_GATE_PORTAL,
+      .subaction_1 = 0,
+      .subaction_2 = 0,
+      .subaction_3 = 0,
+  };
+  ecs_singleton_modified(world, ActionContext);
+
+  run_phase_gate_system(world);
+  ecs_progress(world, 0);
+
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_NONE);
+  assert(ecs_get_target(world, alley_card, EcsChildOf, 0) == gs->zones[0].garden);
+  const CurStats *portal_stats = ecs_get(world, alley_card, CurStats);
+  assert(portal_stats != NULL);
+  assert(portal_stats->cur_atk == 1);
+
+  azk_world_fini(world);
 }
 
 static void test_start_phase_skips_opening_draw_for_starting_player(void) {
@@ -2881,6 +3537,689 @@ test_leader_with_multiple_stt01_013_weapons_supports_attack_mask_and_combat(
   ecs_fini(world);
 }
 
+static void test_stt03_001_blocks_second_main_activation_same_turn(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  ecs_entity_t player = 0;
+  PlayerZones zones = {0};
+  setup_single_player_play_fixture(world, &player, &zones);
+
+  ecs_entity_t leader = create_bobu_leader(world, player, zones.leader, 20);
+  create_ikz_card(world, player, zones.ikz_area, "IKZ_1");
+  create_ikz_card(world, player, zones.ikz_area, "IKZ_2");
+
+  UserAction action = {
+      .player = player,
+      .type = ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY,
+      .subaction_1 = GARDEN_SIZE,
+  };
+
+  ActivateAbilityIntent intent = {0};
+  bool valid = azk_validate_activate_garden_or_leader_ability_action(
+      world, ecs_singleton_get(world, GameState), player, &action, true,
+      &intent);
+  assert(valid);
+  assert(intent.card == leader);
+  assert(intent.ikz_card_count == 1);
+
+  tap_card(world, intent.ikz_cards[0]);
+
+  bool entered_phase = azk_trigger_main_ability(world, leader, player);
+  assert(!entered_phase);
+  assert(!azk_is_in_ability_phase(world));
+
+  const AbilityRepeatContext *repeat_ctx =
+      ecs_get(world, leader, AbilityRepeatContext);
+  assert(repeat_ctx != NULL);
+  assert(repeat_ctx->was_applied);
+
+  ActivateAbilityIntent second_intent = {0};
+  bool second_valid = azk_validate_activate_garden_or_leader_ability_action(
+      world, ecs_singleton_get(world, GameState), player, &action, false,
+      &second_intent);
+  assert(!second_valid);
+
+  ecs_fini(world);
+}
+
+static void test_stt03_001_heals_only_once_for_first_destroy_or_sacrifice(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  ecs_entity_t player = 0;
+  PlayerZones zones = {0};
+  setup_single_player_play_fixture(world, &player, &zones);
+
+  ecs_entity_t leader = create_bobu_leader(world, player, zones.leader, 17);
+  ecs_entity_t garden_entity =
+      create_earth_entity_card(world, player, zones.garden, "EarthGarden");
+  ecs_entity_t alley_entity =
+      create_earth_entity_card(world, player, zones.alley, "EarthAlley");
+
+  bool entered_phase = azk_trigger_main_ability(world, leader, player);
+  assert(!entered_phase);
+  assert(!azk_is_in_ability_phase(world));
+
+  const STT03BobuState *active_state = ecs_get(world, leader, STT03BobuState);
+  assert(active_state != NULL);
+  assert(active_state->expires_turn == 3);
+
+  discard_card(world, garden_entity);
+
+  const CurStats *leader_stats = ecs_get(world, leader, CurStats);
+  assert(leader_stats != NULL);
+  assert(leader_stats->cur_hp == 18);
+
+  const STT03BobuState *spent_state = ecs_get(world, leader, STT03BobuState);
+  assert(spent_state != NULL);
+  assert(spent_state->expires_turn == 0);
+
+  sacrifice_card(world, alley_entity);
+
+  leader_stats = ecs_get(world, leader, CurStats);
+  assert(leader_stats != NULL);
+  assert(leader_stats->cur_hp == 18);
+
+  ecs_fini(world);
+}
+
+static void test_stt03_012_heals_when_another_entity_is_destroyed_on_opponents_turn(
+    void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  ecs_entity_t player = 0;
+  PlayerZones zones = {0};
+  setup_single_player_play_fixture(world, &player, &zones);
+
+  create_basic_leader(world, player, zones.leader, CARD_DEF_STT01_001,
+                      CARD_ELEMENT_LIGHTNING, "Leader_P0_Test");
+  ecs_entity_t miharu = create_basic_entity_card(
+      world, player, zones.garden, CARD_DEF_STT03_012, CARD_ELEMENT_EARTH,
+      "STT03-012_test", 0);
+  ecs_entity_t other_entity = create_basic_entity_card(
+      world, player, zones.garden, CARD_DEF_STT03_003, CARD_ELEMENT_EARTH,
+      "OtherEntity_test", 1);
+  (void)miharu;
+
+  ecs_entity_t leader = find_leader_card_in_zone(world, zones.leader);
+  assert(leader != 0);
+  CurStats *leader_stats = ecs_get_mut(world, leader, CurStats);
+  assert(leader_stats != NULL);
+  leader_stats->cur_hp = 16;
+  ecs_modified(world, leader, CurStats);
+
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->active_player_index = 1;
+  gs->phase = PHASE_MAIN;
+  gs->turn_number = 2;
+  ecs_singleton_modified(world, GameState);
+
+  discard_card(world, other_entity);
+
+  leader_stats = ecs_get_mut(world, leader, CurStats);
+  assert(leader_stats != NULL);
+  assert(leader_stats->cur_hp == 18);
+
+  ecs_fini(world);
+}
+
+static void test_stt03_012_heals_when_itself_is_destroyed_on_opponents_main_turn(
+    void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  ecs_entity_t player = 0;
+  PlayerZones zones = {0};
+  setup_single_player_play_fixture(world, &player, &zones);
+
+  create_basic_leader(world, player, zones.leader, CARD_DEF_STT01_001,
+                      CARD_ELEMENT_LIGHTNING, "Leader_P0_Test");
+  ecs_entity_t miharu = create_basic_entity_card(
+      world, player, zones.garden, CARD_DEF_STT03_012, CARD_ELEMENT_EARTH,
+      "STT03-012_test", 0);
+
+  ecs_entity_t leader = find_leader_card_in_zone(world, zones.leader);
+  assert(leader != 0);
+  CurStats *leader_stats = ecs_get_mut(world, leader, CurStats);
+  assert(leader_stats != NULL);
+  leader_stats->cur_hp = 16;
+  ecs_modified(world, leader, CurStats);
+
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->active_player_index = 1;
+  gs->phase = PHASE_MAIN;
+  gs->turn_number = 2;
+  ecs_singleton_modified(world, GameState);
+
+  discard_card(world, miharu);
+
+  leader_stats = ecs_get_mut(world, leader, CurStats);
+  assert(leader_stats != NULL);
+  assert(leader_stats->cur_hp == 18);
+
+  ecs_fini(world);
+}
+
+static void test_stt03_012_heals_when_itself_is_destroyed_during_response_window(
+    void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  ecs_entity_t player = 0;
+  PlayerZones zones = {0};
+  setup_single_player_play_fixture(world, &player, &zones);
+
+  create_basic_leader(world, player, zones.leader, CARD_DEF_STT01_001,
+                      CARD_ELEMENT_LIGHTNING, "Leader_P0_Test");
+  ecs_entity_t miharu = create_basic_entity_card(
+      world, player, zones.garden, CARD_DEF_STT03_012, CARD_ELEMENT_EARTH,
+      "STT03-012_test", 0);
+
+  ecs_entity_t leader = find_leader_card_in_zone(world, zones.leader);
+  assert(leader != 0);
+  CurStats *leader_stats = ecs_get_mut(world, leader, CurStats);
+  assert(leader_stats != NULL);
+  leader_stats->cur_hp = 16;
+  ecs_modified(world, leader, CurStats);
+
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->active_player_index = 0;
+  gs->phase = PHASE_RESPONSE_WINDOW;
+  gs->turn_number = 2;
+  ecs_singleton_modified(world, GameState);
+
+  discard_card(world, miharu);
+
+  leader_stats = ecs_get_mut(world, leader, CurStats);
+  assert(leader_stats != NULL);
+  assert(leader_stats->cur_hp == 18);
+
+  ecs_fini(world);
+}
+
+static void test_declare_defender_taps_the_defending_entity(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+  ecs_set(world, ecs_id(ActionContext), ActionContext, {0});
+  init_response_phase_system(world);
+
+  ecs_entity_t player = 0;
+  PlayerZones zones = {0};
+  setup_single_player_play_fixture(world, &player, &zones);
+
+  const GameState *gs_ro = ecs_singleton_get(world, GameState);
+  assert(gs_ro != NULL);
+  ecs_entity_t opponent = gs_ro->players[1];
+  PlayerZones opponent_zones = gs_ro->zones[1];
+
+  create_basic_leader(world, player, zones.leader, CARD_DEF_STT01_001,
+                      CARD_ELEMENT_LIGHTNING, "Leader_P0_Test");
+  create_basic_leader(world, opponent, opponent_zones.leader, CARD_DEF_STT01_001,
+                      CARD_ELEMENT_LIGHTNING, "Leader_P1_Test");
+  ecs_entity_t attacker = create_basic_entity_card(
+      world, opponent, opponent_zones.garden, CARD_DEF_STT03_003,
+      CARD_ELEMENT_EARTH, "Attacker_test", 0);
+  ecs_entity_t original_target = create_basic_entity_card(
+      world, player, zones.garden, CARD_DEF_STT03_003, CARD_ELEMENT_EARTH,
+      "OriginalTarget_test", 0);
+  ecs_entity_t defender = create_basic_entity_card(
+      world, player, zones.garden, CARD_DEF_STT02_006, CARD_ELEMENT_WATER,
+      "Defender_test", 1);
+  ecs_add(world, defender, Defender);
+
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->active_player_index = 0;
+  gs->phase = PHASE_RESPONSE_WINDOW;
+  gs->turn_number = 2;
+  gs->combat_state.attacking_card = attacker;
+  gs->combat_state.defender_card = original_target;
+  gs->combat_state.defender_intercepted = false;
+  ecs_singleton_modified(world, GameState);
+
+  ActionContext *ac = ecs_singleton_get_mut(world, ActionContext);
+  assert(ac != NULL);
+  *ac = (ActionContext){
+      .user_action =
+          {
+              .player = player,
+              .type = ACT_DECLARE_DEFENDER,
+              .subaction_1 = 1,
+          },
+  };
+  ecs_singleton_modified(world, ActionContext);
+
+  ecs_entity_t response_system = ecs_lookup(world, "ResponsePhaseSystem");
+  assert(response_system != 0);
+  ecs_run(world, response_system, 0, NULL);
+
+  const GameState *after = ecs_singleton_get(world, GameState);
+  assert(after != NULL);
+  assert(after->combat_state.defender_card == defender);
+  assert(after->combat_state.defender_intercepted);
+  assert(is_card_tapped(world, defender));
+
+  ecs_fini(world);
+}
+
+static void test_stt03_006_destroyed_draw_then_discard_uses_hand_targets(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  ecs_entity_t player = 0;
+  PlayerZones zones = {0};
+  setup_single_player_play_fixture(world, &player, &zones);
+
+  create_basic_leader(world, player, zones.leader, CARD_DEF_STT01_001,
+                      CARD_ELEMENT_LIGHTNING, "Leader_P0_Test");
+
+  const AbilityDef *def = azk_get_ability_def(CARD_DEF_STT03_006);
+  assert(def != NULL);
+  assert(def->effect_req.type == ABILITY_TARGET_FRIENDLY_HAND);
+
+  ecs_entity_t hand_card =
+      create_earth_entity_card(world, player, zones.hand, "HandCard");
+  ecs_entity_t deck_card_keep =
+      create_earth_entity_card(world, player, zones.deck, "DeckCardKeep");
+  ecs_entity_t deck_card =
+      create_earth_entity_card(world, player, zones.deck, "DeckCard");
+
+  ecs_entity_t cactus_farmer = ecs_new(world);
+  ecs_set_name(world, cactus_farmer, "STT03-006_test");
+  ecs_set(world, cactus_farmer, CardId, {.id = CARD_DEF_STT03_006});
+  ecs_set(world, cactus_farmer, Type, {.value = CARD_TYPE_ENTITY});
+  ecs_set(world, cactus_farmer, Element, {.element = CARD_ELEMENT_EARTH});
+  ecs_set(world, cactus_farmer, BaseStats, {.attack = 2, .health = 1});
+  ecs_set(world, cactus_farmer, CurStats, {.cur_atk = 2, .cur_hp = 1});
+  ecs_set(world, cactus_farmer, TapState, {.tapped = false, .cooldown = false});
+  ecs_add_pair(world, cactus_farmer, EcsChildOf, zones.garden);
+  ecs_add_pair(world, cactus_farmer, Rel_OwnedBy, player);
+
+  discard_card(world, cactus_farmer);
+  assert(azk_has_queued_triggered_effects(world));
+
+  bool processed = azk_process_triggered_effect_queue(world);
+  assert(processed);
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_EFFECT_SELECTION);
+
+  ecs_entities_t hand_cards = ecs_get_ordered_children(world, zones.hand);
+  assert(hand_cards.count == 2);
+  assert(hand_cards.ids[0] == hand_card);
+  assert(hand_cards.ids[1] == deck_card);
+
+  AzkActionMaskSet mask = {0};
+  bool built = azk_build_action_mask_for_player(
+      world, ecs_singleton_get(world, GameState), 0, &mask);
+  assert(built);
+
+  bool found_hand_target0 = false;
+  bool found_hand_target1 = false;
+  for (uint16_t i = 0; i < mask.legal_action_count; i++) {
+    const UserAction *action = &mask.legal_actions[i];
+    if (action->type != ACT_SELECT_EFFECT_TARGET) {
+      continue;
+    }
+    if (action->subaction_1 == 0) {
+      found_hand_target0 = true;
+    }
+    if (action->subaction_1 == 1) {
+      found_hand_target1 = true;
+    }
+  }
+
+  assert(found_hand_target0);
+  assert(found_hand_target1);
+
+  bool selected = azk_process_effect_selection(world, 1);
+  assert(selected);
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_NONE);
+
+  hand_cards = ecs_get_ordered_children(world, zones.hand);
+  ecs_entities_t discard_cards = ecs_get_ordered_children(world, zones.discard);
+  ecs_entities_t deck_cards = ecs_get_ordered_children(world, zones.deck);
+  assert(hand_cards.count == 1);
+  assert(hand_cards.ids[0] == hand_card);
+  assert(deck_cards.count == 1);
+  assert(deck_cards.ids[0] == deck_card_keep);
+  assert(discard_cards.count == 2);
+  assert(discard_cards.ids[0] == cactus_farmer);
+  assert(discard_cards.ids[1] == deck_card);
+
+  ecs_fini(world);
+}
+
+static void test_stt04_001_effect_selection_accepts_garden_and_alley_targets(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  ecs_entity_t player = 0;
+  PlayerZones zones = {0};
+  setup_single_player_play_fixture(world, &player, &zones);
+
+  ecs_entity_t leader = create_basic_leader(
+      world, player, zones.leader, CARD_DEF_STT04_001, CARD_ELEMENT_FIRE,
+      "STT04-001_test");
+  ecs_entity_t garden_target = create_basic_entity_card(
+      world, player, zones.garden, CARD_DEF_STT03_003, CARD_ELEMENT_FIRE,
+      "GardenTarget", 0);
+  ecs_entity_t alley_target = create_basic_entity_card(
+      world, player, zones.alley, CARD_DEF_STT03_003, CARD_ELEMENT_FIRE,
+      "AlleyTarget", 0);
+
+  ecs_set(world, garden_target, BaseStats, {.attack = 2, .health = 2});
+  ecs_set(world, garden_target, CurStats, {.cur_atk = 2, .cur_hp = 2});
+  ecs_set(world, alley_target, BaseStats, {.attack = 2, .health = 2});
+  ecs_set(world, alley_target, CurStats, {.cur_atk = 2, .cur_hp = 2});
+
+  const AbilityDef *def = azk_get_ability_def(CARD_DEF_STT04_001);
+  assert(def != NULL);
+  assert(def->effect_req.type == ABILITY_TARGET_FRIENDLY_GARDEN_OR_ALLEY_ENTITY);
+
+  bool entered_phase = azk_trigger_main_ability(world, leader, player);
+  assert(entered_phase);
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_EFFECT_SELECTION);
+
+  const CurStats *leader_after_cost = ecs_get(world, leader, CurStats);
+  assert(leader_after_cost != NULL);
+  assert(leader_after_cost->cur_hp == 19);
+
+  AzkActionMaskSet mask = {0};
+  bool built = azk_build_action_mask_for_player(
+      world, ecs_singleton_get(world, GameState), 0, &mask);
+  assert(built);
+
+  bool found_garden_target = false;
+  bool found_alley_target = false;
+  for (uint16_t i = 0; i < mask.legal_action_count; i++) {
+    const UserAction *action = &mask.legal_actions[i];
+    if (action->type != ACT_SELECT_EFFECT_TARGET) {
+      continue;
+    }
+    if (action->subaction_1 == 0) {
+      found_garden_target = true;
+    }
+    if (action->subaction_1 == GARDEN_SIZE) {
+      found_alley_target = true;
+    }
+  }
+
+  assert(found_garden_target);
+  assert(found_alley_target);
+
+  ecs_entity_t resolved_garden = azk_resolve_ability_target_choice_entity(
+      world, def, ABILITY_TARGET_SCOPE_EFFECT, player, 0);
+  ecs_entity_t resolved_alley = azk_resolve_ability_target_choice_entity(
+      world, def, ABILITY_TARGET_SCOPE_EFFECT, player, GARDEN_SIZE);
+  assert(resolved_garden == garden_target);
+  assert(resolved_alley == alley_target);
+
+  bool selected = azk_process_effect_selection(world, GARDEN_SIZE);
+  assert(selected);
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_NONE);
+
+  const CurStats *garden_stats = ecs_get(world, garden_target, CurStats);
+  const CurStats *alley_stats = ecs_get(world, alley_target, CurStats);
+  const CurStats *leader_stats = ecs_get(world, leader, CurStats);
+  assert(garden_stats != NULL);
+  assert(alley_stats != NULL);
+  assert(leader_stats != NULL);
+  assert(garden_stats->cur_hp == 2);
+  assert(garden_stats->cur_atk == 2);
+  assert(alley_stats->cur_hp == 1);
+  assert(alley_stats->cur_atk == 3);
+  assert(leader_stats->cur_hp == 19);
+
+  ecs_fini(world);
+}
+
+static void test_stt03_010_heals_leader_when_both_combatants_are_destroyed(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  ecs_entity_t player = 0;
+  PlayerZones zones = {0};
+  setup_single_player_play_fixture(world, &player, &zones);
+
+  const GameState *gs_ro = ecs_singleton_get(world, GameState);
+  assert(gs_ro != NULL);
+  ecs_entity_t opponent = gs_ro->players[1];
+  PlayerZones opponent_zones = gs_ro->zones[1];
+
+  ecs_entity_t leader = create_basic_leader(
+      world, player, zones.leader, CARD_DEF_STT01_001, CARD_ELEMENT_LIGHTNING,
+      "Leader_P0_Test");
+  ecs_set(world, leader, CurStats, {.cur_atk = 0, .cur_hp = 19});
+
+  create_basic_leader(world, opponent, opponent_zones.leader, CARD_DEF_STT01_001,
+                      CARD_ELEMENT_LIGHTNING, "Leader_P1_Test");
+
+  ecs_entity_t shroommancer = create_basic_entity_card(
+      world, player, zones.garden, CARD_DEF_STT03_010, CARD_ELEMENT_EARTH,
+      "Shroommancer_test", 0);
+  ecs_entity_t defender = create_basic_entity_card(
+      world, opponent, opponent_zones.garden, CARD_DEF_STT03_003,
+      CARD_ELEMENT_EARTH, "Defender_test", 0);
+
+  AttackIntent intent = {
+      .attacking_player = player,
+      .defending_player = opponent,
+      .attacking_card = shroommancer,
+      .defending_card = defender,
+      .attacker_index = 0,
+      .defender_index = 0,
+      .attacker_is_leader = false,
+  };
+
+  int attack_result = attack(world, &intent);
+  assert(attack_result == 0);
+
+  resolve_combat(world);
+
+  const CardId *attacker_id = ecs_get(world, shroommancer, CardId);
+  assert(attacker_id != NULL);
+  if (azk_has_ability_with_timing(attacker_id->id, ecs_id(AAfterAttacking))) {
+    azk_queue_triggered_effect(world, shroommancer, player,
+                               TIMING_TAG_AFTER_ATTACKING);
+  }
+
+  const GameState *after_combat = ecs_singleton_get(world, GameState);
+  assert(after_combat != NULL);
+  assert(after_combat->last_combat.attacker == shroommancer);
+  assert(after_combat->last_combat.defender == defender);
+  assert(after_combat->last_combat.defender_destroyed);
+  assert(after_combat->last_combat.attacker_destroyed);
+  assert(ecs_get_target(world, shroommancer, EcsChildOf, 0) == zones.discard);
+  assert(ecs_get_target(world, defender, EcsChildOf, 0) ==
+         opponent_zones.discard);
+  assert(azk_has_queued_triggered_effects(world));
+
+  bool processed = azk_process_triggered_effect_queue(world);
+  assert(processed);
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_CONFIRMATION);
+
+  bool confirmed = azk_process_ability_confirmation(world);
+  assert(confirmed);
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_NONE);
+
+  const CurStats *leader_stats = ecs_get(world, leader, CurStats);
+  assert(leader_stats != NULL);
+  assert(leader_stats->cur_hp == 20);
+
+  ecs_fini(world);
+}
+
+static void test_stt04_008_after_attacking_only_untaps_once_per_turn(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  ecs_entity_t player = 0;
+  PlayerZones zones = {0};
+  setup_single_player_play_fixture(world, &player, &zones);
+
+  const GameState *gs_ro = ecs_singleton_get(world, GameState);
+  assert(gs_ro != NULL);
+  ecs_entity_t opponent = gs_ro->players[1];
+  PlayerZones opponent_zones = gs_ro->zones[1];
+
+  ecs_entity_t emberheart = create_basic_entity_card(
+      world, player, zones.garden, CARD_DEF_STT04_008, CARD_ELEMENT_FIRE,
+      "STT04-008_test", 0);
+  ecs_entity_t defender = create_basic_entity_card(
+      world, opponent, opponent_zones.garden, CARD_DEF_STT03_003,
+      CARD_ELEMENT_EARTH, "Defender_test", 0);
+
+  ecs_set(world, emberheart, TapState, {.tapped = true, .cooldown = false});
+
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->active_player_index = 0;
+  gs->last_combat = (LastCombatResult){
+      .attacker = emberheart,
+      .defender = defender,
+      .defender_was_garden_entity = true,
+  };
+  ecs_singleton_modified(world, GameState);
+
+  bool queued = azk_queue_triggered_effect(
+      world, emberheart, player, TIMING_TAG_AFTER_ATTACKING);
+  assert(queued);
+
+  bool processed = azk_process_triggered_effect_queue(world);
+  assert(processed);
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_CONFIRMATION);
+
+  bool confirmed = azk_process_ability_confirmation(world);
+  assert(confirmed);
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_NONE);
+
+  const TapState *tap = ecs_get(world, emberheart, TapState);
+  assert(tap != NULL);
+  assert(!tap->tapped);
+  assert(!tap->cooldown);
+
+  const AbilityRepeatContext *repeat_ctx =
+      ecs_get(world, emberheart, AbilityRepeatContext);
+  assert(repeat_ctx != NULL);
+  assert(repeat_ctx->was_applied);
+
+  ecs_set(world, emberheart, TapState, {.tapped = true, .cooldown = false});
+
+  queued = azk_queue_triggered_effect(
+      world, emberheart, player, TIMING_TAG_AFTER_ATTACKING);
+  assert(!queued);
+
+  tap = ecs_get(world, emberheart, TapState);
+  assert(tap != NULL);
+  assert(tap->tapped);
+
+  ecs_fini(world);
+}
+
+static void
+test_stt04_013_destroy_observer_only_untaps_once_per_turn(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  ecs_entity_t player = 0;
+  PlayerZones zones = {0};
+  setup_single_player_play_fixture(world, &player, &zones);
+
+  const GameState *gs_ro = ecs_singleton_get(world, GameState);
+  assert(gs_ro != NULL);
+  ecs_entity_t opponent = gs_ro->players[1];
+  PlayerZones opponent_zones = gs_ro->zones[1];
+
+  create_basic_leader(world, player, zones.leader, CARD_DEF_STT01_001,
+                      CARD_ELEMENT_LIGHTNING, "Leader_P0_Test");
+  create_basic_leader(world, opponent, opponent_zones.leader, CARD_DEF_STT01_001,
+                      CARD_ELEMENT_LIGHTNING, "Leader_P1_Test");
+  assert(find_leader_card_in_zone(world, zones.leader) != 0);
+  assert(find_leader_card_in_zone(world, opponent_zones.leader) != 0);
+
+  ecs_entity_t kurai = create_basic_entity_card(
+      world, player, zones.garden, CARD_DEF_STT04_013, CARD_ELEMENT_FIRE,
+      "STT04-013_test", 0);
+  ecs_entity_t enemy_one = create_basic_entity_card(
+      world, opponent, opponent_zones.garden, CARD_DEF_STT04_011,
+      CARD_ELEMENT_NORMAL, "EnemyOne_test", 0);
+  ecs_entity_t enemy_two = create_basic_entity_card(
+      world, opponent, opponent_zones.garden, CARD_DEF_STT04_011,
+      CARD_ELEMENT_NORMAL, "EnemyTwo_test", 1);
+
+  ecs_set(world, kurai, TapState, {.tapped = true, .cooldown = false});
+
+  discard_card(world, enemy_one);
+
+  const TapState *tap = ecs_get(world, kurai, TapState);
+  assert(tap != NULL);
+  assert(!tap->tapped);
+  assert(!tap->cooldown);
+
+  const STT04KuraiState *state = ecs_get(world, kurai, STT04KuraiState);
+  assert(state != NULL);
+  assert(state->last_untap_turn == 1);
+
+  ecs_set(world, kurai, TapState, {.tapped = true, .cooldown = false});
+
+  discard_card(world, enemy_two);
+
+  tap = ecs_get(world, kurai, TapState);
+  assert(tap != NULL);
+  assert(tap->tapped);
+  assert(!tap->cooldown);
+
+  state = ecs_get(world, kurai, STT04KuraiState);
+  assert(state != NULL);
+  assert(state->last_untap_turn == 1);
+
+  ecs_fini(world);
+}
+
+static void
+test_stt04_013_destroy_observer_does_not_clear_cooldown(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  ecs_entity_t player = 0;
+  PlayerZones zones = {0};
+  setup_single_player_play_fixture(world, &player, &zones);
+
+  const GameState *gs_ro = ecs_singleton_get(world, GameState);
+  assert(gs_ro != NULL);
+  ecs_entity_t opponent = gs_ro->players[1];
+  PlayerZones opponent_zones = gs_ro->zones[1];
+
+  create_basic_leader(world, player, zones.leader, CARD_DEF_STT01_001,
+                      CARD_ELEMENT_LIGHTNING, "Leader_P0_Test");
+  create_basic_leader(world, opponent, opponent_zones.leader, CARD_DEF_STT01_001,
+                      CARD_ELEMENT_LIGHTNING, "Leader_P1_Test");
+  assert(find_leader_card_in_zone(world, zones.leader) != 0);
+  assert(find_leader_card_in_zone(world, opponent_zones.leader) != 0);
+
+  ecs_entity_t kurai = create_basic_entity_card(
+      world, player, zones.garden, CARD_DEF_STT04_013, CARD_ELEMENT_FIRE,
+      "STT04-013_cooldown_test", 0);
+  ecs_entity_t enemy = create_basic_entity_card(
+      world, opponent, opponent_zones.garden, CARD_DEF_STT04_011,
+      CARD_ELEMENT_NORMAL, "EnemyCooldown_test", 0);
+
+  ecs_set(world, kurai, TapState, {.tapped = false, .cooldown = true});
+
+  discard_card(world, enemy);
+
+  const TapState *tap = ecs_get(world, kurai, TapState);
+  assert(tap != NULL);
+  assert(!tap->tapped);
+  assert(tap->cooldown);
+  assert(!can_tap_card(world, kurai, false));
+
+  const STT04KuraiState *state = ecs_get(world, kurai, STT04KuraiState);
+  assert(state != NULL);
+  assert(state->last_untap_turn == 1);
+
+  ecs_fini(world);
+}
+
 // ============================================================================
 // Game Log Tests
 // ============================================================================
@@ -3133,6 +4472,8 @@ int main(void) {
   test_get_tappable_ikz_cards_rejects_zero_token_entity();
   test_init_player_deck_raizen();
   test_azk01_001_card_def_and_instantiation();
+  test_generated_card_def_stt03_015_has_correct_ikz_cost();
+  test_generated_card_def_stt04_013_has_correct_gate_power();
   test_ability_registry_lookup();
   test_st01_007_validate_needs_hand_and_deck();
   test_st01_007_validate_cost_target();
@@ -3167,9 +4508,27 @@ int main(void) {
   test_azk01_003_ability_flow_excludes_self_and_adds_black_jade_card();
   test_leader_response_enters_effect_selection();
   test_gate_portal_enters_selection_flow_stt01_002();
+  test_gate_portal_effect_selection_stt03_002();
+  test_gate_portal_no_valid_targets_auto_resolves_stt03_002();
+  test_main_phase_gate_portal_enters_effect_selection_stt03_002();
+  test_main_phase_gate_portal_can_target_portaled_card_stt03_002();
+  test_main_phase_gate_portal_can_target_damaged_portaled_card_stt04_002();
+  test_main_phase_gate_portal_cannot_target_entity_damaged_last_turn_stt04_002();
   test_start_phase_skips_opening_draw_for_starting_player();
   test_observation_garden_slots_use_zone_index();
   test_leader_with_multiple_stt01_013_weapons_supports_attack_mask_and_combat();
+  test_stt03_001_blocks_second_main_activation_same_turn();
+  test_stt03_001_heals_only_once_for_first_destroy_or_sacrifice();
+  test_stt03_012_heals_when_another_entity_is_destroyed_on_opponents_turn();
+  test_stt03_012_heals_when_itself_is_destroyed_on_opponents_main_turn();
+  test_stt03_012_heals_when_itself_is_destroyed_during_response_window();
+  test_declare_defender_taps_the_defending_entity();
+  test_stt03_006_destroyed_draw_then_discard_uses_hand_targets();
+  test_stt04_001_effect_selection_accepts_garden_and_alley_targets();
+  test_stt03_010_heals_leader_when_both_combatants_are_destroyed();
+  test_stt04_008_after_attacking_only_untaps_once_per_turn();
+  test_stt04_013_destroy_observer_only_untaps_once_per_turn();
+  test_stt04_013_destroy_observer_does_not_clear_cooldown();
 
   // Game log tests
   printf("Running game log tests...\n");

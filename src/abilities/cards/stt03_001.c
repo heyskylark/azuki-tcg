@@ -12,10 +12,16 @@ bool stt03_001_validate(ecs_world_t *world, ecs_entity_t card,
 
 void stt03_001_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
   GameState *gs = ecs_singleton_get_mut(world, GameState);
+  const STT03BobuState *existing =
+      ecs_get(world, ctx->runtime.source_card, STT03BobuState);
   STT03BobuState *state =
-      ecs_get_mut(world, ctx->runtime.source_card, STT03BobuState);
+      ecs_ensure(world, ctx->runtime.source_card, STT03BobuState);
   if (gs == NULL || state == NULL) {
     return;
+  }
+
+  if (existing == NULL) {
+    *state = (STT03BobuState){0};
   }
 
   state->expires_turn = gs->turn_number + 2;

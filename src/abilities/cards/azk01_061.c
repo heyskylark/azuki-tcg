@@ -7,7 +7,7 @@ bool azk01_061_validate(ecs_world_t *world, ecs_entity_t card,
                         ecs_entity_t owner) {
   (void)owner;
 
-  const DamageTracker *tracker = ecs_get(world, card, DamageTracker);
+  const DamageTracker *tracker = azk_get_current_turn_damage_tracker(world, card);
   return tracker != NULL && tracker->tracked_source_count >= 3;
 }
 

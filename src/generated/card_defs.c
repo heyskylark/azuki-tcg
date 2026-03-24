@@ -2380,7 +2380,7 @@ static const CardDef kGeneratedCardDefs[CARD_DEF_COUNT] = {
         .has_gate_points = false,
         .gate_points = { .gate_points = 0 },
         .has_ikz_cost = true,
-        .ikz_cost = { .ikz_cost = 1 },
+        .ikz_cost = { .ikz_cost = 4 },
     },
     {
         .card_id = "STT03-016",
@@ -2560,7 +2560,7 @@ static const CardDef kGeneratedCardDefs[CARD_DEF_COUNT] = {
         .has_base_stats = true,
         .base_stats = { .attack = 3, .health = 3 },
         .has_gate_points = true,
-        .gate_points = { .gate_points = 2 },
+        .gate_points = { .gate_points = 1 },
         .has_ikz_cost = true,
         .ikz_cost = { .ikz_cost = 5 },
     },
@@ -6225,7 +6225,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_EARTH });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_SPELL });
         ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
-        ecs_set(world, prefab, IKZCost, { .ikz_cost = 1 });
+        ecs_set(world, prefab, IKZCost, { .ikz_cost = 4 });
         ecs_add(world, prefab, TSubtype_Stonemend);
     }
     {
@@ -6488,7 +6488,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, BaseStats, { .attack = 3, .health = 3 });
         ecs_set(world, prefab, CurStats, { .cur_atk = 3, .cur_hp = 3 });
-        ecs_set(world, prefab, GatePoints, { .gate_points = 2 });
+        ecs_set(world, prefab, GatePoints, { .gate_points = 1 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 5 });
         ecs_add(world, prefab, TSubtype_Crimsondrift);
         ecs_add(world, prefab, TSubtype_Elder);

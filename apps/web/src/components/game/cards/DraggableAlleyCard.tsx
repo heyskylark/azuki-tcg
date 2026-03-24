@@ -62,17 +62,13 @@ export function DraggableAlleyCard({
 
   // Check if we're in an ability phase - disable dragging during abilities
   const isInAbilityPhase =
-    gameState?.abilitySubphase !== undefined &&
-    gameState.abilitySubphase !== "NONE";
+    gameState?.abilitySubphase !== undefined && gameState.abilitySubphase !== "NONE";
 
   // Check if this card can be gated (also disabled during ability phases)
-  const canGate =
-    !isInAbilityPhase &&
-    getValidGateSourceAlleySlots(actionMask).has(alleyIndex);
+  const canGate = !isInAbilityPhase && getValidGateSourceAlleySlots(actionMask).has(alleyIndex);
 
   // Check if this specific card is being dragged
-  const isBeingDragged =
-    sourceAlleyIndex === alleyIndex && dragPhase !== "idle";
+  const isBeingDragged = sourceAlleyIndex === alleyIndex && dragPhase !== "idle";
 
   // Project pointer to XZ plane at given Y height
   const projectToXZPlane = useCallback(
@@ -105,11 +101,7 @@ export function DraggableAlleyCard({
 
       const worldPos = new THREE.Vector3();
       groupRef.current.getWorldPosition(worldPos);
-      const alleyPosition: [number, number, number] = [
-        worldPos.x,
-        worldPos.y,
-        worldPos.z,
-      ];
+      const alleyPosition: [number, number, number] = [worldPos.x, worldPos.y, worldPos.z];
 
       if (canGate && e.clientX !== undefined && e.clientY !== undefined) {
         pendingDragRef.current = {
@@ -124,12 +116,7 @@ export function DraggableAlleyCard({
         onAbilityActivate();
       }
     },
-    [
-      canGate,
-      dragPhase,
-      isAbilityActivatable,
-      onAbilityActivate,
-    ]
+    [canGate, dragPhase, isAbilityActivatable, onAbilityActivate]
   );
 
   const handlePointerMove = useCallback(
@@ -145,22 +132,14 @@ export function DraggableAlleyCard({
         const alleyPosition = pendingDragRef.current.alleyPosition;
         pendingDragRef.current = null;
 
-        const validGardenSlots = getValidGateTargetGardenSlots(
-          actionMask,
-          alleyIndex
-        );
+        const validGardenSlots = getValidGateTargetGardenSlots(actionMask, alleyIndex);
 
         console.log("[DraggableAlleyCard] Starting pickup:", {
           alleyIndex,
           validGardenSlots: [...validGardenSlots],
         });
 
-        startAlleyPickup(
-          alleyIndex,
-          card.cardCode,
-          alleyPosition,
-          validGardenSlots
-        );
+        startAlleyPickup(alleyIndex, card.cardCode, alleyPosition, validGardenSlots);
 
         const intersection = projectToXZPlane(e.clientX, e.clientY, 3);
         updateTargetPosition([intersection.x, 3, intersection.z]);
@@ -183,8 +162,7 @@ export function DraggableAlleyCard({
         // Calculate the garden slot index from cursor X position
         // Slots are centered at x = (index - 2) * SLOT_SPACING
         // So index = round(x / SLOT_SPACING) + 2
-        const slotIndex =
-          Math.round(intersection.x / SLOT_SPACING) + Math.floor(NUM_SLOTS / 2);
+        const slotIndex = Math.round(intersection.x / SLOT_SPACING) + Math.floor(NUM_SLOTS / 2);
 
         console.log("[DraggableAlleyCard] Transitioning to dragging:", {
           calculatedSlotIndex: slotIndex,
@@ -268,6 +246,7 @@ export function DraggableAlleyCard({
         tapped={card.tapped}
         cooldown={card.cooldown}
         isFrozen={card.isFrozen}
+        isRooted={card.isRooted}
         isShocked={card.isShocked}
         isEffectImmune={card.isEffectImmune}
         hasCharge={card.hasCharge}
@@ -281,12 +260,7 @@ export function DraggableAlleyCard({
         {canGate && (
           <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.06, 0]}>
             <planeGeometry args={[CARD_WIDTH + 0.1, CARD_HEIGHT + 0.1]} />
-            <meshBasicMaterial
-              color="#8844aa"
-              transparent
-              opacity={0.2}
-              side={THREE.DoubleSide}
-            />
+            <meshBasicMaterial color="#8844aa" transparent opacity={0.2} side={THREE.DoubleSide} />
           </mesh>
         )}
       </Card3D>

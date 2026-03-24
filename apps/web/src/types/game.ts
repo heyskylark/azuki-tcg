@@ -19,6 +19,7 @@ export interface ResolvedCard {
   tapped: boolean;
   cooldown: boolean;
   isFrozen: boolean;
+  isRooted: boolean;
   isShocked: boolean;
   isEffectImmune: boolean;
   hasCharge: boolean;
@@ -40,6 +41,7 @@ export interface ResolvedLeader {
   tapped: boolean;
   cooldown: boolean;
   isFrozen: boolean;
+  isRooted: boolean;
   isShocked: boolean;
   isEffectImmune: boolean;
   hasCharge: boolean;
@@ -221,9 +223,7 @@ export function buildImageUrl(imageKey: string): string {
  * Used to pre-populate the map with all cards in both players' decks
  * so that drawn cards can be resolved correctly.
  */
-export function buildCardDefIdMapFromDeckCards(
-  cards: DeckCard[]
-): Map<number, CardMapping> {
+export function buildCardDefIdMapFromDeckCards(cards: DeckCard[]): Map<number, CardMapping> {
   const map = new Map<number, CardMapping>();
 
   for (const card of cards) {

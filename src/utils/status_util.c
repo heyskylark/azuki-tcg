@@ -45,6 +45,18 @@ static bool is_keyword_tag(ecs_id_t tag) {
          tag == ecs_id(Infiltrate) || tag == ecs_id(Godmode);
 }
 
+static bool try_get_status_effect_for_tag(ecs_id_t tag,
+                                          GameLogStatusEffect *out_effect) {
+  if (tag == ecs_id(Rooted)) {
+    if (out_effect != NULL) {
+      *out_effect = GLOG_STATUS_ROOTED;
+    }
+    return true;
+  }
+
+  return false;
+}
+
 static void log_tag_change_if_keyword(ecs_world_t *world, ecs_entity_t entity,
                                       ecs_id_t tag) {
   if (is_keyword_tag(tag)) {
@@ -78,6 +90,10 @@ static void maybe_remove_unbacked_tag(ecs_world_t *world, ecs_entity_t entity,
   }
 
   ecs_remove_id(world, entity, tag);
+  GameLogStatusEffect effect;
+  if (try_get_status_effect_for_tag(tag, &effect)) {
+    azk_log_status_effect_expired(world, entity, effect);
+  }
   log_tag_change_if_keyword(world, entity, tag);
 }
 
@@ -322,6 +338,10 @@ bool apply_timed_tag_grant(ecs_world_t *world, ecs_entity_t entity, ecs_id_t tag
 
   if (!already_had_tag) {
     ecs_add_id(world, entity, tag);
+    GameLogStatusEffect effect;
+    if (try_get_status_effect_for_tag(tag, &effect)) {
+      azk_log_status_effect_applied(world, entity, effect, remaining_ticks);
+    }
     log_tag_change_if_keyword(world, entity, tag);
   }
 

@@ -18,12 +18,15 @@ export enum AbilityTargetType {
   FRIENDLY_SELECTION_WEAPON = 14,
   FRIENDLY_HAND_WEAPON = 15,
   ANY_LEADER = 16,
+  FRIENDLY_GARDEN_OR_ALLEY_ENTITY = 17,
 }
 
 export interface AbilityTargetMaps {
   hand: Map<number, number>;
   selfGarden: Map<number, number>;
+  selfAlley: Map<number, number>;
   opponentGarden: Map<number, number>;
+  opponentAlley: Map<number, number>;
   selfLeader: number | null;
   opponentLeader: number | null;
 }
@@ -61,6 +64,29 @@ function addGardenTargetByOrderedIndex(
   map.set(orderedIndex, targetIndex);
 }
 
+function findAlleySlotIndex(
+  board: ResolvedPlayerBoard,
+  zoneIndex: number
+): number | null {
+  const slotIndex = board.alley.findIndex(
+    (card) => card && card.zoneIndex === zoneIndex
+  );
+  if (slotIndex >= 0) return slotIndex;
+  if (zoneIndex >= 0 && zoneIndex < board.alley.length) return zoneIndex;
+  return null;
+}
+
+function addAlleyTargetByZoneIndex(
+  map: Map<number, number>,
+  board: ResolvedPlayerBoard,
+  zoneIndex: number,
+  targetIndex: number
+) {
+  const slotIndex = findAlleySlotIndex(board, zoneIndex);
+  if (slotIndex === null) return;
+  map.set(slotIndex, targetIndex);
+}
+
 export function isHandTargetType(targetType?: number): boolean {
   return (
     targetType === AbilityTargetType.FRIENDLY_HAND ||
@@ -80,7 +106,9 @@ export function buildAbilityTargetMaps({
   const maps: AbilityTargetMaps = {
     hand: new Map(),
     selfGarden: new Map(),
+    selfAlley: new Map(),
     opponentGarden: new Map(),
+    opponentAlley: new Map(),
     selfLeader: null,
     opponentLeader: null,
   };
@@ -106,9 +134,25 @@ export function buildAbilityTargetMaps({
       }
       break;
 
+    case AbilityTargetType.FRIENDLY_ALLEY_ENTITY:
+      for (const idx of targetIndices) {
+        addAlleyTargetByZoneIndex(maps.selfAlley, myBoard, idx, idx);
+      }
+      break;
+
     case AbilityTargetType.ENEMY_GARDEN_ENTITY:
       for (const idx of targetIndices) {
         addGardenTargetByZoneIndex(maps.opponentGarden, opponentBoard, idx, idx);
+      }
+      break;
+
+    case AbilityTargetType.FRIENDLY_GARDEN_OR_ALLEY_ENTITY:
+      for (const idx of targetIndices) {
+        if (idx < 5) {
+          addGardenTargetByZoneIndex(maps.selfGarden, myBoard, idx, idx);
+        } else {
+          addAlleyTargetByZoneIndex(maps.selfAlley, myBoard, idx - 5, idx);
+        }
       }
       break;
 
