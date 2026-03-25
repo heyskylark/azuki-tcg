@@ -1,4 +1,5 @@
 import { and, eq, inArray, isNull, ne, sql } from "drizzle-orm";
+import { MAX_CARD_COPIES } from "@core/constants";
 import db, { type IDatabase, type ITransaction } from "@core/database";
 import { Cards, Decks, DeckCardJunctions } from "@core/drizzle/schemas";
 import { DeckNotFoundError, ForbiddenError, ValidationError } from "@core/errors";
@@ -52,6 +53,7 @@ interface DeckBaseRecord {
 
 interface SelectedDeckCard {
   id: string;
+  cardCode: string;
   name: string;
   cardType: CardType;
   element: CardElement;
@@ -198,6 +200,7 @@ async function resolveDeckInput(
   const selectedCards = await database
     .select({
       id: Cards.id,
+      cardCode: Cards.cardCode,
       name: Cards.name,
       cardType: Cards.cardType,
       element: Cards.element,
@@ -220,6 +223,7 @@ async function resolveDeckInput(
   let gateCard: SelectedDeckCard | null = null;
   let leaderCard: SelectedDeckCard | null = null;
   const mainDeckEntries: Array<{ cardId: string; quantity: number }> = [];
+  const mainDeckQuantitiesByCardCode = new Map<string, number>();
   let mainDeckCardCount = 0;
 
   for (const card of selectedCards) {
@@ -247,6 +251,15 @@ async function resolveDeckInput(
       case CardType.ENTITY:
       case CardType.SPELL:
       case CardType.WEAPON:
+        const nextQuantity = (mainDeckQuantitiesByCardCode.get(card.cardCode) ?? 0) + quantity;
+
+        if (nextQuantity > MAX_CARD_COPIES) {
+          throw new ValidationError(
+            `Deck can include at most ${MAX_CARD_COPIES} copies of ${card.name}`
+          );
+        }
+
+        mainDeckQuantitiesByCardCode.set(card.cardCode, nextQuantity);
         mainDeckEntries.push({ cardId: card.id, quantity });
         mainDeckCardCount += quantity;
         break;

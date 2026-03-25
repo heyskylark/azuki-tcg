@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { MAX_CARD_COPIES } from "@tcg/backend-core/constants";
 import { CardElement, CardType } from "@tcg/backend-core/types/cards";
 import type { DeckBuilderCard, EditableDeck } from "@tcg/backend-core/types/deck";
 
@@ -37,6 +38,11 @@ interface PreviewState {
 }
 
 const MAIN_DECK_CARD_LIMIT = 50;
+
+interface SelectedMainDeckCard {
+  card: DeckBuilderCard;
+  quantity: number;
+}
 
 function isAllowedDeckElement(cardElement: CardElement, gateElement: CardElement): boolean {
   return cardElement === CardElement.NORMAL || cardElement === gateElement;
@@ -106,6 +112,23 @@ function buildInitialState(
 
 function getMainDeckCount(mainDeckCounts: Record<string, number>): number {
   return Object.values(mainDeckCounts).reduce((total, quantity) => total + quantity, 0);
+}
+
+function getCopyLimitErrorMessage(selectedMainDeckCards: SelectedMainDeckCard[]): string | null {
+  const overLimitCards = selectedMainDeckCards.filter((entry) => entry.quantity > MAX_CARD_COPIES);
+
+  if (overLimitCards.length === 0) {
+    return null;
+  }
+
+  const overLimitCardSummary = overLimitCards
+    .slice(0, 3)
+    .map((entry) => `${entry.card.name} (x${entry.quantity})`)
+    .join(", ");
+  const additionalCardCount = overLimitCards.length - 3;
+  const additionalCardText = additionalCardCount > 0 ? ` and ${additionalCardCount} more` : "";
+
+  return `Main deck cards are limited to ${MAX_CARD_COPIES} copies each. Reduce ${overLimitCardSummary}${additionalCardText}.`;
 }
 
 function getCardLabel(card: DeckBuilderCard): string {
@@ -506,7 +529,7 @@ export function DeckBuilderForm({ availableCards, initialDeck, mode }: DeckBuild
             isAllowedDeckElement(card.element, selectedGate.element)
         );
 
-  const selectedMainDeckCards = Object.entries(mainDeckCounts)
+  const selectedMainDeckCards: SelectedMainDeckCard[] = Object.entries(mainDeckCounts)
     .map(([cardId, quantity]) => {
       const card = cardsById.get(cardId);
 
@@ -523,11 +546,13 @@ export function DeckBuilderForm({ availableCards, initialDeck, mode }: DeckBuild
     .sort((leftEntry, rightEntry) => leftEntry.card.name.localeCompare(rightEntry.card.name));
 
   const mainDeckCount = getMainDeckCount(mainDeckCounts);
+  const copyLimitErrorMessage = getCopyLimitErrorMessage(selectedMainDeckCards);
   const canSubmit =
     deckName.trim().length > 0 &&
     selectedGate != null &&
     selectedLeader != null &&
     mainDeckCount === MAIN_DECK_CARD_LIMIT &&
+    copyLimitErrorMessage == null &&
     !isSubmitting;
 
   const pickerCards =
@@ -560,7 +585,8 @@ export function DeckBuilderForm({ availableCards, initialDeck, mode }: DeckBuild
         : isMainDeckCardType(previewCard.cardType)
           ? selectedGate == null ||
             !isAllowedDeckElement(previewCard.element, selectedGate.element) ||
-            mainDeckCount >= MAIN_DECK_CARD_LIMIT
+            mainDeckCount >= MAIN_DECK_CARD_LIMIT ||
+            (mainDeckCounts[previewCard.id] ?? 0) >= MAX_CARD_COPIES
           : false;
   const previewSelectedQuantity =
     previewCard == null || !isMainDeckCardType(previewCard.cardType)
@@ -604,7 +630,7 @@ export function DeckBuilderForm({ availableCards, initialDeck, mode }: DeckBuild
   };
 
   const handleAddMainDeckCard = (cardId: string) => {
-    if (mainDeckCount >= MAIN_DECK_CARD_LIMIT) {
+    if (mainDeckCount >= MAIN_DECK_CARD_LIMIT || (mainDeckCounts[cardId] ?? 0) >= MAX_CARD_COPIES) {
       return;
     }
 
@@ -675,6 +701,11 @@ export function DeckBuilderForm({ availableCards, initialDeck, mode }: DeckBuild
 
   const handleSubmit = async () => {
     if (!canSubmit) {
+      if (copyLimitErrorMessage != null) {
+        setError(copyLimitErrorMessage);
+        return;
+      }
+
       setError("Deck name, gate, leader, and 50 main deck cards are required");
       return;
     }
@@ -807,8 +838,8 @@ export function DeckBuilderForm({ availableCards, initialDeck, mode }: DeckBuild
             <CardHeader>
               <CardTitle>Main Deck</CardTitle>
               <CardDescription>
-                {mainDeckCount} / {MAIN_DECK_CARD_LIMIT} cards selected. IKZ cards are added
-                automatically.
+                {mainDeckCount} / {MAIN_DECK_CARD_LIMIT} cards selected. Up to {MAX_CARD_COPIES}{" "}
+                copies of each card. IKZ cards are added automatically.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -820,6 +851,12 @@ export function DeckBuilderForm({ availableCards, initialDeck, mode }: DeckBuild
               >
                 Open Main Deck Picker
               </Button>
+
+              {copyLimitErrorMessage != null && (
+                <Alert variant="destructive">
+                  <AlertDescription>{copyLimitErrorMessage}</AlertDescription>
+                </Alert>
+              )}
 
               {selectedMainDeckCards.length === 0 ? (
                 <div className="text-muted-foreground rounded-xl border border-dashed px-4 py-8 text-sm">
@@ -858,7 +895,10 @@ export function DeckBuilderForm({ availableCards, initialDeck, mode }: DeckBuild
                           variant="outline"
                           size="icon-sm"
                           onClick={() => handleAddMainDeckCard(entry.card.id)}
-                          disabled={mainDeckCount >= MAIN_DECK_CARD_LIMIT}
+                          disabled={
+                            mainDeckCount >= MAIN_DECK_CARD_LIMIT ||
+                            entry.quantity >= MAX_CARD_COPIES
+                          }
                           aria-label={`Add ${getCardLabel(entry.card)}`}
                         >
                           <Plus />
