@@ -1,0 +1,4 @@
+interface:
+  display_name: "Commit to Main"
+  short_description: "Create a relevant local commit"
+  default_prompt: "Use $commit-main to inspect the current changes, stage the intended files, write a relevant commit message, and create a commit instead of opening a PR."

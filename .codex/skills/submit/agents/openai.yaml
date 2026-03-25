@@ -1,0 +1,4 @@
+interface:
+  display_name: "Submit PR"
+  short_description: "Create or update a pull request"
+  default_prompt: "Use $submit to create or update a pull request for the current branch."
