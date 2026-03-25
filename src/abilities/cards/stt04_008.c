@@ -7,7 +7,14 @@
 bool stt04_008_validate(ecs_world_t *world, ecs_entity_t card,
                         ecs_entity_t owner) {
   const GameState *gs = ecs_singleton_get(world, GameState);
-  return gs->active_player_index == (int8_t)get_player_number(world, owner) &&
+  if (gs == NULL || owner == 0) {
+    return false;
+  }
+
+  const uint8_t owner_num = get_player_number(world, owner);
+  const ecs_entity_t parent = ecs_get_target(world, card, EcsChildOf, 0);
+  return gs->active_player_index == (int8_t)owner_num &&
+         parent == gs->zones[owner_num].garden &&
          gs->last_combat.attacker == card && gs->last_combat.defender_was_garden_entity;
 }
 

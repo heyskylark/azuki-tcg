@@ -4115,6 +4115,51 @@ static void test_stt04_008_after_attacking_only_untaps_once_per_turn(void) {
   ecs_fini(world);
 }
 
+static void test_stt04_008_after_attacking_does_not_prompt_if_destroyed(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  ecs_entity_t player = 0;
+  PlayerZones zones = {0};
+  setup_single_player_play_fixture(world, &player, &zones);
+
+  const GameState *gs_ro = ecs_singleton_get(world, GameState);
+  assert(gs_ro != NULL);
+  ecs_entity_t opponent = gs_ro->players[1];
+  PlayerZones opponent_zones = gs_ro->zones[1];
+
+  ecs_entity_t emberheart = create_basic_entity_card(
+      world, player, zones.garden, CARD_DEF_STT04_008, CARD_ELEMENT_FIRE,
+      "STT04-008_destroyed_test", 0);
+  ecs_entity_t defender = create_basic_entity_card(
+      world, opponent, opponent_zones.garden, CARD_DEF_STT03_003,
+      CARD_ELEMENT_EARTH, "Defender_destroyed_test", 0);
+
+  discard_card(world, emberheart);
+
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  gs->active_player_index = 0;
+  gs->last_combat = (LastCombatResult){
+      .attacker = emberheart,
+      .defender = defender,
+      .defender_was_garden_entity = true,
+      .attacker_destroyed = true,
+  };
+  ecs_singleton_modified(world, GameState);
+
+  bool queued = azk_queue_triggered_effect(
+      world, emberheart, player, TIMING_TAG_AFTER_ATTACKING);
+  assert(queued);
+
+  bool processed = azk_process_triggered_effect_queue(world);
+  assert(!processed);
+  assert(!azk_has_queued_triggered_effects(world));
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_NONE);
+  assert(ecs_get_target(world, emberheart, EcsChildOf, 0) == zones.discard);
+
+  ecs_fini(world);
+}
+
 static void
 test_stt04_013_destroy_observer_only_untaps_once_per_turn(void) {
   ecs_world_t *world = ecs_init();
@@ -4527,6 +4572,7 @@ int main(void) {
   test_stt04_001_effect_selection_accepts_garden_and_alley_targets();
   test_stt03_010_heals_leader_when_both_combatants_are_destroyed();
   test_stt04_008_after_attacking_only_untaps_once_per_turn();
+  test_stt04_008_after_attacking_does_not_prompt_if_destroyed();
   test_stt04_013_destroy_observer_only_untaps_once_per_turn();
   test_stt04_013_destroy_observer_does_not_clear_cooldown();
 
