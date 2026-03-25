@@ -24,6 +24,21 @@ static void discard_end_of_turn_marked_cards_in_zone(ecs_world_t *world,
   }
 }
 
+static void reset_entity_health_in_zone(ecs_world_t *world, ecs_entity_t zone) {
+  ecs_entities_t cards = ecs_get_ordered_children(world, zone);
+  for (int32_t i = 0; i < cards.count; i++) {
+    reset_entity_health(world, cards.ids[i]);
+  }
+}
+
+static void discard_equipped_weapon_cards_in_zone(ecs_world_t *world,
+                                                  ecs_entity_t zone) {
+  ecs_entities_t cards = ecs_get_ordered_children(world, zone);
+  for (int32_t i = 0; i < cards.count; i++) {
+    discard_equipped_weapon_cards(world, cards.ids[i]);
+  }
+}
+
 static void clear_spent_or_expiring_ikz_token(ecs_world_t *world,
                                               ecs_entity_t player) {
   IKZToken *ikz_token = ecs_get_mut(world, player, IKZToken);
@@ -65,17 +80,9 @@ void HandleEndPhase(ecs_iter_t *it) {
   clear_spent_or_expiring_ikz_token(world, gs->players[ending_player_index]);
   clear_spent_or_expiring_ikz_token(world, gs->players[next_player_index]);
 
-  ecs_entity_t active_player_garden_zone = gs->zones[ending_player_index].garden;
-  ecs_entities_t active_player_garden_cards =
-      ecs_get_ordered_children(world, active_player_garden_zone);
-
-  cli_render_logf("[EndPhase] Resetting entity health for active player's garden cards");
-  for (int32_t i = 0; i < active_player_garden_cards.count; i++) {
-    ecs_entity_t garden_card = active_player_garden_cards.ids[i];
-
-    reset_entity_health(world, garden_card);
-    discard_equipped_weapon_cards(world, garden_card);
-  }
+  cli_render_logf("[EndPhase] Resetting entity health for active player's in-play entities");
+  reset_entity_health_in_zone(world, gs->zones[ending_player_index].garden);
+  reset_entity_health_in_zone(world, gs->zones[ending_player_index].alley);
 
   // Expire end-of-turn attack modifiers for both players
   expire_eot_attack_modifiers_in_zone(world, gs->zones[ending_player_index].garden);
@@ -93,15 +100,9 @@ void HandleEndPhase(ecs_iter_t *it) {
   expire_eot_health_modifiers_in_zone(world, gs->zones[ending_player_index].leader);
   tick_end_of_turn_effects_for_player(world, ending_player_index);
 
-  ecs_entity_t defending_player_garden_zone = gs->zones[next_player_index].garden;
-  ecs_entities_t defending_player_garden_cards = ecs_get_ordered_children(world, defending_player_garden_zone);
-
-  cli_render_logf("[EndPhase] Resetting entity health for defending player's garden cards");
-  for (int32_t i = 0; i < defending_player_garden_cards.count; i++) {
-    ecs_entity_t garden_card = defending_player_garden_cards.ids[i];
-
-    reset_entity_health(world, garden_card);
-  }
+  cli_render_logf("[EndPhase] Resetting entity health for defending player's in-play entities");
+  reset_entity_health_in_zone(world, gs->zones[next_player_index].garden);
+  reset_entity_health_in_zone(world, gs->zones[next_player_index].alley);
 
   // Expire end-of-turn attack modifiers for defending player
   expire_eot_attack_modifiers_in_zone(world, gs->zones[next_player_index].garden);
@@ -119,8 +120,18 @@ void HandleEndPhase(ecs_iter_t *it) {
   expire_eot_health_modifiers_in_zone(world, gs->zones[next_player_index].leader);
   tick_end_of_turn_effects_for_player(world, next_player_index);
 
-  ecs_entity_t leader_card = find_leader_card_in_zone(world, gs->zones[ending_player_index].leader);
-  discard_equipped_weapon_cards(world, leader_card);
+  discard_equipped_weapon_cards_in_zone(world, gs->zones[ending_player_index].garden);
+  discard_equipped_weapon_cards_in_zone(world, gs->zones[ending_player_index].alley);
+  discard_equipped_weapon_cards_in_zone(world, gs->zones[next_player_index].garden);
+  discard_equipped_weapon_cards_in_zone(world, gs->zones[next_player_index].alley);
+
+  ecs_entity_t ending_leader =
+      find_leader_card_in_zone(world, gs->zones[ending_player_index].leader);
+  discard_equipped_weapon_cards(world, ending_leader);
+
+  ecs_entity_t next_leader =
+      find_leader_card_in_zone(world, gs->zones[next_player_index].leader);
+  discard_equipped_weapon_cards(world, next_leader);
 
   // Log turn ended before transitioning
   azk_log_turn_ended(world, ending_player_index, gs->turn_number);

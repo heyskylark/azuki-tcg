@@ -1334,10 +1334,13 @@ void azk_init_ability_registry(ecs_world_t *world) {
   kAbilityRegistry[CARD_DEF_AZK01_057] = (AbilityDef){
       .has_ability = true,
       .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
-      .effect_req = {.type = ABILITY_TARGET_ANY_GARDEN_ENTITY, .min = 2, .max = 2},
+      .effect_req = {.type = ABILITY_TARGET_ANY_GARDEN_ENTITY,
+                     .min = 0,
+                     .max = 0},
       .timing_tag = ecs_id(AStartOfTurn),
       .validate = azk01_057_validate,
       .validate_effect_target = azk01_057_validate_effect_target,
+      .on_cost_paid = azk01_057_on_cost_paid,
       .apply_effects = azk01_057_apply_effects,
   };
 

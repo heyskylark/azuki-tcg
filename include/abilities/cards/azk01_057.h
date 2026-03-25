@@ -7,6 +7,7 @@ bool azk01_057_validate(ecs_world_t *world, ecs_entity_t card,
                         ecs_entity_t owner);
 bool azk01_057_validate_effect_target(ecs_world_t *world, ecs_entity_t card,
                                       ecs_entity_t owner, ecs_entity_t target);
+void azk01_057_on_cost_paid(ecs_world_t *world, AbilityContext *ctx);
 void azk01_057_apply_effects(ecs_world_t *world, const AbilityContext *ctx);
 
 #endif // AZUKI_ABILITIES_AZK01_057_H
