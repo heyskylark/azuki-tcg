@@ -38,7 +38,15 @@ bool stt03_002_validate_effect_target(ecs_world_t *world, ecs_entity_t card,
   }
 
   const uint8_t owner_num = get_player_number(world, owner);
-  if (ecs_get_target(world, target, EcsChildOf, 0) != gs->zones[owner_num].garden) {
+  const bool is_portaled_card =
+      ctx->scratch.kind == ABILITY_SCRATCH_GATE_PORTAL &&
+      target == ctx->scratch.data.gate_portal.portaled_card;
+  if (ecs_get_target(world, target, EcsChildOf, 0) != gs->zones[owner_num].garden &&
+      !is_portaled_card) {
+    return false;
+  }
+
+  if (ecs_has(world, target, Defender)) {
     return false;
   }
 

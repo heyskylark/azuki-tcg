@@ -130,6 +130,7 @@ typedef struct {
   union {
     struct {
       ecs_entity_t portaled_card;
+      uint8_t garden_index;
     } gate_portal;
     struct {
       uint8_t max_cost;

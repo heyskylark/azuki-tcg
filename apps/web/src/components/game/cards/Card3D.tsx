@@ -69,6 +69,7 @@ interface Card3DProps {
   tapped?: boolean;
   cooldown?: boolean;
   isFrozen?: boolean;
+  isRooted?: boolean;
   isShocked?: boolean;
   isEffectImmune?: boolean;
   hasCharge?: boolean;
@@ -116,6 +117,7 @@ export function Card3D({
   tapped = false,
   cooldown = false,
   isFrozen = false,
+  isRooted = false,
   isShocked = false,
   isEffectImmune = false,
   hasCharge = false,
@@ -212,6 +214,7 @@ export function Card3D({
   // Determine card color based on state
   const getCardColor = () => {
     if (isFrozen) return "#88ccff";
+    if (isRooted) return "#9bd17a";
     if (isShocked) return "#ffff88";
     if (isEffectImmune) return "#88ffdd";
     if (cooldown) return "#888888";
@@ -434,6 +437,7 @@ export function Card3D({
           <>
             {/* Status effect overlays */}
             {isFrozen && <FrozenOverlay />}
+            {isRooted && <RootedOverlay />}
             {isShocked && <ShockedOverlay />}
             {isEffectImmune && <EffectImmuneOverlay />}
             {cooldown && <CooldownOverlay />}
@@ -630,6 +634,32 @@ function ShockedOverlay() {
     >
       <planeGeometry args={[CARD_WIDTH * 0.9, CARD_HEIGHT * 0.9]} />
       <meshBasicMaterial color="#ffff00" transparent opacity={0.2} side={THREE.DoubleSide} />
+    </mesh>
+  );
+}
+
+/**
+ * Rooted effect overlay - green vine tint.
+ */
+function RootedOverlay() {
+  const meshRef = useRef<THREE.Mesh>(null!);
+
+  useFrame((state) => {
+    if (meshRef.current) {
+      const pulse = Math.sin(state.clock.elapsedTime * 4) * 0.08 + 0.22;
+      (meshRef.current.material as THREE.MeshBasicMaterial).opacity = pulse;
+    }
+  });
+
+  return (
+    <mesh
+      ref={meshRef}
+      rotation={[-Math.PI / 2, 0, 0]}
+      position={[0, CARD_DEPTH + 0.018, 0]}
+      raycast={() => null}
+    >
+      <planeGeometry args={[CARD_WIDTH * 0.9, CARD_HEIGHT * 0.9]} />
+      <meshBasicMaterial color="#4f9f3c" transparent opacity={0.22} side={THREE.DoubleSide} />
     </mesh>
   );
 }

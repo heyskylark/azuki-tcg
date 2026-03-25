@@ -252,6 +252,7 @@ function BoardMoveAnimationCard({ animation }: { animation: BoardMoveAnimation }
         tapped={animation.card.tapped}
         cooldown={animation.card.cooldown}
         isFrozen={animation.card.isFrozen}
+        isRooted={animation.card.isRooted}
         isShocked={animation.card.isShocked}
         isEffectImmune={animation.card.isEffectImmune}
         hasCharge={animation.card.hasCharge}
@@ -311,6 +312,7 @@ function BoardDissolveAnimationCard({ animation }: { animation: BoardDissolveAni
         tapped={animation.card.tapped}
         cooldown={animation.card.cooldown}
         isFrozen={animation.card.isFrozen}
+        isRooted={animation.card.isRooted}
         isShocked={animation.card.isShocked}
         isEffectImmune={animation.card.isEffectImmune}
         hasCharge={animation.card.hasCharge}
@@ -527,6 +529,7 @@ function BoardCombatAnimationCard({ animation }: { animation: BoardCombatAnimati
           tapped={animation.defender.tapped}
           cooldown={animation.defender.cooldown}
           isFrozen={animation.defender.isFrozen}
+          isRooted={animation.defender.isRooted}
           isShocked={animation.defender.isShocked}
           isEffectImmune={animation.defender.isEffectImmune}
           hasCharge={animation.defender.hasCharge}
@@ -550,6 +553,7 @@ function BoardCombatAnimationCard({ animation }: { animation: BoardCombatAnimati
           tapped={animation.attacker.tapped}
           cooldown={animation.attacker.cooldown}
           isFrozen={animation.attacker.isFrozen}
+          isRooted={animation.attacker.isRooted}
           isShocked={animation.attacker.isShocked}
           isEffectImmune={animation.attacker.isEffectImmune}
           hasCharge={animation.attacker.hasCharge}
@@ -892,8 +896,7 @@ function CardRow({
           const isAttackTarget =
             isOpponent &&
             ((zone === "garden" && attackTargets?.has(index)) ||
-              (zone === "alley" &&
-                attackTargets?.has(index + ATTACK_TARGET_OPP_ALLEY_OFFSET)));
+              (zone === "alley" && attackTargets?.has(index + ATTACK_TARGET_OPP_ALLEY_OFFSET)));
 
           const isDefenderTarget = !isOpponent && zone === "garden" && defenderTargets?.has(index);
 
@@ -923,6 +926,7 @@ function CardRow({
               tapped={card.tapped}
               cooldown={card.cooldown}
               isFrozen={card.isFrozen}
+              isRooted={card.isRooted}
               isShocked={card.isShocked}
               isEffectImmune={card.isEffectImmune}
               hasCharge={card.hasCharge}
@@ -1036,6 +1040,7 @@ function LeaderCard({
       tapped={leader.tapped}
       cooldown={leader.cooldown}
       isFrozen={leader.isFrozen}
+      isRooted={leader.isRooted}
       isShocked={leader.isShocked}
       isEffectImmune={leader.isEffectImmune}
       hasCharge={leader.hasCharge}
@@ -1345,6 +1350,7 @@ function PlayerArea({
   isLeaderWeaponTarget?: boolean;
   abilityTargets?: {
     gardenTargets?: Map<number, number>;
+    alleyTargets?: Map<number, number>;
     handTargets?: Map<number, number>;
     leaderTargetIndex?: number | null;
   };
@@ -1445,6 +1451,8 @@ function PlayerArea({
         onDropToSlot={onDropToSlot}
         onWeaponAttachToSlot={onWeaponAttachToSlot}
         attackTargets={attackTargets}
+        abilityTargets={abilityTargets?.alleyTargets}
+        onAbilityTargetClick={onAbilityTargetClick}
         activatableSlots={!isOpponent ? activatableAlleySlots : undefined}
         onActivateAbility={!isOpponent ? onActivateAlleyAbility : undefined}
       />
@@ -2074,6 +2082,7 @@ export function Board() {
           abilityTargets
             ? {
                 gardenTargets: abilityTargets.selfGarden,
+                alleyTargets: abilityTargets.selfAlley,
                 handTargets: abilityTargets.hand,
                 leaderTargetIndex: abilityTargets.selfLeader,
               }
@@ -2096,6 +2105,7 @@ export function Board() {
           abilityTargets
             ? {
                 gardenTargets: abilityTargets.opponentGarden,
+                alleyTargets: abilityTargets.opponentAlley,
                 leaderTargetIndex: abilityTargets.opponentLeader,
               }
             : undefined

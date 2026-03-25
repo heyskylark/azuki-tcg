@@ -36,7 +36,7 @@ export type ZoneType =
 
 export type TapStateValue = "TAPPED" | "UNTAPPED" | "COOLDOWN";
 
-export type StatusEffect = "FROZEN" | "SHOCKED" | "EFFECT_IMMUNE";
+export type StatusEffect = "FROZEN" | "ROOTED" | "SHOCKED" | "EFFECT_IMMUNE";
 
 export type DeathCause = "COMBAT" | "ABILITY" | "EFFECT";
 
@@ -64,6 +64,7 @@ export interface CardObservation {
   curHp: number | null;
   gatePoints: number | null;
   isFrozen: boolean;
+  isRooted: boolean;
   isShocked: boolean;
   isEffectImmune: boolean;
   hasCharge: boolean;
@@ -189,6 +190,7 @@ export interface GameLogZoneMoved {
     hasDefender: boolean;
     hasInfiltrate: boolean;
     isFrozen: boolean;
+    isRooted: boolean;
     isEffectImmune: boolean;
   };
 }

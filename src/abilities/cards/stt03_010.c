@@ -35,7 +35,8 @@ bool stt03_010_validate(ecs_world_t *world, ecs_entity_t card,
   (void)owner;
 
   const GameState *gs = ecs_singleton_get(world, GameState);
-  return gs->last_combat.attacker == card && gs->last_combat.defender_destroyed &&
+  return gs != NULL && gs->last_combat.attacker == card &&
+         gs->last_combat.defender_destroyed &&
          gs->last_combat.defender_was_garden_entity;
 }
 

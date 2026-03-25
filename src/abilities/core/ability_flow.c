@@ -1,12 +1,21 @@
 #include "abilities/core/ability_flow.h"
 
 static bool should_enter_effect_selection(
-    const AbilityDef *def, const AbilityInitialPhaseOptions *options) {
-  if (options->select_effects_when_max_positive) {
-    return def->effect_req.max > 0;
+    const AbilityContext *ctx, const AbilityDef *def,
+    const AbilityInitialPhaseOptions *options) {
+  if (!ctx || !def) {
+    return false;
   }
 
-  return def->effect_req.min > 0;
+  if (ctx->effect.max_allowed == 0) {
+    return false;
+  }
+
+  if (options->select_effects_when_max_positive) {
+    return true;
+  }
+
+  return ctx->effect.min_required > 0;
 }
 
 bool azk_enter_initial_phase(ecs_world_t *world, AbilityContext *ctx,
@@ -35,7 +44,7 @@ bool azk_enter_initial_phase(ecs_world_t *world, AbilityContext *ctx,
     return ctx->runtime.phase != ABILITY_PHASE_NONE;
   }
 
-  if (should_enter_effect_selection(def, phase_options)) {
+  if (should_enter_effect_selection(ctx, def, phase_options)) {
     if (phase_options->apply_costs_before_effect_selection && def->apply_costs) {
       def->apply_costs(world, ctx);
     }

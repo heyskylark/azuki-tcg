@@ -1,6 +1,8 @@
 import { Suspense } from "react";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { DeckList } from "@/components/decks/DeckList";
 import { DeckListSkeleton } from "@/components/decks/DeckListSkeleton";
 import { getServerUser } from "@/lib/auth/getServerUser";
@@ -10,11 +12,14 @@ import type { DeckSummary } from "@tcg/backend-core/types/deck";
 export default function DecksPage() {
   return (
     <>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">My Decks</h1>
-        <p className="text-muted-foreground mt-2">
-          View and manage your card decks
-        </p>
+      <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">My Decks</h1>
+          <p className="text-muted-foreground mt-2">View, copy, edit, and build your card decks.</p>
+        </div>
+        <Button asChild>
+          <Link href="/decks/new">Create Deck</Link>
+        </Button>
       </div>
       <Suspense fallback={<DeckListSkeleton />}>
         <DeckListTable />

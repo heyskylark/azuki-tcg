@@ -2,6 +2,7 @@
 
 #include "abilities/core/ability_context.h"
 #include "abilities/core/ability_flow.h"
+#include "abilities/targeting/ability_targeting.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/player_util.h"
 
@@ -59,6 +60,22 @@ bool azk_begin_ability(ecs_world_t *world, ecs_entity_t source_card,
                                .initial_scratch =
                                    begin_options->initial_scratch,
                            });
+
+  if (begin_options->clamp_effect_expected_to_available &&
+      begin_options->available_effect_targets == 0 && def->effect_req.max > 0) {
+    const uint8_t available_effect_targets = azk_count_ability_target_choices(
+        world, def, ABILITY_TARGET_SCOPE_EFFECT, source_card, owner);
+    azk_init_ability_context(ctx, source_card, owner, def,
+                             begin_options->available_cost_targets,
+                             &(AbilityContextInitOptions){
+                                 .is_optional = begin_options->is_optional,
+                                 .clamp_effect_expected_to_available = true,
+                                 .available_effect_targets =
+                                     available_effect_targets,
+                                 .initial_scratch =
+                                     begin_options->initial_scratch,
+                             });
+  }
 
   if (begin_options->enter_confirmation_when_optional &&
       ctx->runtime.is_optional) {

@@ -19,7 +19,7 @@ typedef enum {
   GLOG_CARD_STAT_CHANGE,       // Attack/health delta
   GLOG_CARD_KEYWORDS_CHANGED,  // Keyword flags changed
   GLOG_CARD_TAP_STATE_CHANGED, // Tapped, untapped, or cooldown
-  GLOG_STATUS_EFFECT_APPLIED,  // Frozen/Shocked/EffectImmune added
+  GLOG_STATUS_EFFECT_APPLIED,  // Frozen/Rooted/Shocked/EffectImmune added
   GLOG_STATUS_EFFECT_EXPIRED,  // Status effect removed
   GLOG_COMBAT_DECLARED,        // Attacker + target
   GLOG_DEFENDER_DECLARED,      // Intercepting entity
@@ -65,6 +65,7 @@ typedef enum {
  */
 typedef enum {
   GLOG_STATUS_FROZEN = 0,
+  GLOG_STATUS_ROOTED,
   GLOG_STATUS_SHOCKED,
   GLOG_STATUS_EFFECT_IMMUNE,
 } GameLogStatusEffect;
@@ -118,6 +119,7 @@ typedef struct {
   bool has_defender;
   bool has_infiltrate;
   bool is_frozen;
+  bool is_rooted;
   bool is_effect_immune;
   CardDefId attached_weapons[MAX_ATTACHED_WEAPONS_LOG];
   uint8_t weapon_count;

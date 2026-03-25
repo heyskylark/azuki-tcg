@@ -3,7 +3,16 @@
  * Uses real deck card data to create test scenarios.
  */
 
-import type { GameState, DeckCard, ResolvedCard, ResolvedLeader, ResolvedGate, ResolvedIkz, ResolvedHandCard, ResolvedPlayerBoard } from "@/types/game";
+import type {
+  GameState,
+  DeckCard,
+  ResolvedCard,
+  ResolvedLeader,
+  ResolvedGate,
+  ResolvedIkz,
+  ResolvedHandCard,
+  ResolvedPlayerBoard,
+} from "@/types/game";
 import { buildImageUrl } from "@/types/game";
 
 // ============================================
@@ -33,6 +42,7 @@ function createResolvedCard(
     tapped: false,
     cooldown: false,
     isFrozen: false,
+    isRooted: false,
     isShocked: false,
     isEffectImmune: false,
     hasCharge: false,
@@ -54,6 +64,7 @@ function createResolvedLeader(card: DeckCard, hpOverride?: number): ResolvedLead
     tapped: false,
     cooldown: false,
     isFrozen: false,
+    isRooted: false,
     isShocked: false,
     isEffectImmune: false,
     hasCharge: false,
@@ -120,28 +131,35 @@ function createPlayerBoard(
   }
 
   return {
-    leader: leader ? createResolvedLeader(leader, leaderHp) : createResolvedLeader({
-      cardCode: "UNKNOWN",
-      cardDefId: 0,
-      imageKey: "unknown.png",
-      name: "Unknown Leader",
-      cardType: "LEADER",
-      attack: 2,
-      health: 25,
-      ikzCost: null,
-      quantity: 1,
-    }, leaderHp),
-    gate: gate ? createResolvedGate(gate) : createResolvedGate({
-      cardCode: "UNKNOWN",
-      cardDefId: 0,
-      imageKey: "unknown.png",
-      name: "Unknown Gate",
-      cardType: "GATE",
-      attack: null,
-      health: null,
-      ikzCost: null,
-      quantity: 1,
-    }),
+    leader: leader
+      ? createResolvedLeader(leader, leaderHp)
+      : createResolvedLeader(
+          {
+            cardCode: "UNKNOWN",
+            cardDefId: 0,
+            imageKey: "unknown.png",
+            name: "Unknown Leader",
+            cardType: "LEADER",
+            attack: 2,
+            health: 25,
+            ikzCost: null,
+            quantity: 1,
+          },
+          leaderHp
+        ),
+    gate: gate
+      ? createResolvedGate(gate)
+      : createResolvedGate({
+          cardCode: "UNKNOWN",
+          cardDefId: 0,
+          imageKey: "unknown.png",
+          name: "Unknown Gate",
+          cardType: "GATE",
+          attack: null,
+          health: null,
+          ikzCost: null,
+          quantity: 1,
+        }),
     garden: gardenCards,
     alley: alleyCards,
     ikzArea,
@@ -191,7 +209,14 @@ function generateEarlyGameState(deckCards: DeckCard[]): GameState {
     activePlayer: 0,
     turnNumber: 3,
     myBoard: createPlayerBoard(deckCards, myGarden, [null, null, null, null, null], 3, 1, 23),
-    opponentBoard: createPlayerBoard(deckCards, oppGarden, [null, null, null, null, null], 2, 0, 25),
+    opponentBoard: createPlayerBoard(
+      deckCards,
+      oppGarden,
+      [null, null, null, null, null],
+      2,
+      0,
+      25
+    ),
     myHand: handCards,
     actionMask: null,
     combatStack: [],
@@ -241,7 +266,14 @@ function generateStatusEffectsState(deckCards: DeckCard[]): GameState {
     activePlayer: 0,
     turnNumber: 7,
     myBoard: createPlayerBoard(deckCards, myGarden, [null, null, null, null, null], 3, 1, 23),
-    opponentBoard: createPlayerBoard(deckCards, oppGarden, [null, null, null, null, null], 2, 0, 25),
+    opponentBoard: createPlayerBoard(
+      deckCards,
+      oppGarden,
+      [null, null, null, null, null],
+      2,
+      0,
+      25
+    ),
     myHand: handCards,
     actionMask: null,
     combatStack: [],
@@ -291,7 +323,14 @@ function generateFullBoardState(deckCards: DeckCard[]): GameState {
     activePlayer: 0,
     turnNumber: 10,
     myBoard: createPlayerBoard(deckCards, myGarden, myAlley, 5, 2, 18),
-    opponentBoard: createPlayerBoard(deckCards, oppGarden, [null, null, null, null, null], 4, 1, 20),
+    opponentBoard: createPlayerBoard(
+      deckCards,
+      oppGarden,
+      [null, null, null, null, null],
+      4,
+      1,
+      20
+    ),
     myHand: handCards,
     actionMask: null,
     combatStack: [],
@@ -302,11 +341,7 @@ function generateFullBoardState(deckCards: DeckCard[]): GameState {
 // Scenario list for UI selector
 // ============================================
 
-export type MockScenario =
-  | "early"
-  | "combat"
-  | "statusEffects"
-  | "fullBoard";
+export type MockScenario = "early" | "combat" | "statusEffects" | "fullBoard";
 
 export const mockScenarios: { id: MockScenario; name: string; description: string }[] = [
   {

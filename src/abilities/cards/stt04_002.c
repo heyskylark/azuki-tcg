@@ -2,6 +2,7 @@
 
 #include "components/components.h"
 #include "utils/card_utils.h"
+#include "utils/damage_util.h"
 #include "utils/player_util.h"
 #include "utils/status_util.h"
 
@@ -31,12 +32,22 @@ bool stt04_002_validate_effect_target(ecs_world_t *world, ecs_entity_t card,
   }
 
   const GameState *gs = ecs_singleton_get(world, GameState);
-  const uint8_t owner_num = get_player_number(world, owner);
-  if (ecs_get_target(world, target, EcsChildOf, 0) != gs->zones[owner_num].garden) {
+  const AbilityContext *ctx = ecs_singleton_get(world, AbilityContext);
+  if (gs == NULL || ctx == NULL) {
     return false;
   }
 
-  const DamageTracker *tracker = ecs_get(world, target, DamageTracker);
+  const uint8_t owner_num = get_player_number(world, owner);
+  const bool is_portaled_card =
+      ctx->scratch.kind == ABILITY_SCRATCH_GATE_PORTAL &&
+      target == ctx->scratch.data.gate_portal.portaled_card;
+  if (ecs_get_target(world, target, EcsChildOf, 0) != gs->zones[owner_num].garden &&
+      !is_portaled_card) {
+    return false;
+  }
+
+  const DamageTracker *tracker =
+      azk_get_current_turn_damage_tracker(world, target);
   return tracker != NULL && tracker->took_damage_this_turn;
 }
 

@@ -88,6 +88,9 @@ static void handle_declare_defender(ecs_world_t *world, GameState *gs,
     return;
   }
 
+  // Defender redirects are a tap action, but they ignore cooldown.
+  tap_card(world, intent.defender_card);
+
   // Update combat state with new defender
   gs->combat_state.defender_card = intent.defender_card;
   gs->combat_state.defender_intercepted = true;

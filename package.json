@@ -13,6 +13,7 @@
     "dev:ai:local": "NODE_ENV=${NODE_ENV:-development} AZK_DEBUG_ACTIONS_ENABLED=${AZK_DEBUG_ACTIONS_ENABLED:-true} PYTHONPATH=python/src:build/python/src${PYTHONPATH:+:$PYTHONPATH} python3 python/src/inference_sidecar.py --host ${AZK_INFER_HOST:-0.0.0.0} --port ${AZK_INFER_PORT:-8002} --device ${AZK_INFER_DEVICE:-auto}",
     "dev:down": "COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$(basename \"$PWD\")} docker compose down",
     "dev:clean": "COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$(basename \"$PWD\")} docker compose down -v",
+    "db:migrate": "bun --filter '@tcg/backend-core' db:migrate",
     "ws": "bun --filter '@azuki/websocket'",
     "ws:debug:nosan": "NODE_ENV=${NODE_ENV:-development} AZK_DEBUG_ACTIONS_ENABLED=${AZK_DEBUG_ACTIONS_ENABLED:-true} bun run ws debug:nosan",
     "ws:debug:nosan:bt": "NODE_ENV=${NODE_ENV:-development} AZK_DEBUG_ACTIONS_ENABLED=${AZK_DEBUG_ACTIONS_ENABLED:-true} bun run ws debug:nosan:bt",

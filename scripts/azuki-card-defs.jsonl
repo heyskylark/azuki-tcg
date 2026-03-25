@@ -172,7 +172,7 @@
 {"card_id": "STT03-012", "name": "Miharu of the White Bloom", "rarity": "SR", "element": "EARTH", "type": "ENTITY", "ikz_cost": 6, "attack": 3, "health": 3, "gate_points": 3, "subtypes": ["Stonemend", "Verdant"]}
 {"card_id": "STT03-013", "name": "Stone Masked Ancient", "rarity": "SR", "element": "EARTH", "type": "ENTITY", "ikz_cost": 7, "attack": 3, "health": 6, "gate_points": 3, "subtypes": ["Obsidian", "Sandstrider"]}
 {"card_id": "STT03-014", "name": "Sandcoil Python", "rarity": "UC", "element": "EARTH", "type": "ENTITY", "ikz_cost": 8, "attack": 6, "health": 6, "gate_points": 4, "subtypes": ["Rootbane", "Sandstrider", "Verdant"]}
-{"card_id": "STT03-015", "name": "Jar of Beans", "rarity": "UC", "element": "EARTH", "type": "SPELL", "ikz_cost": 1, "subtypes": ["Stonemend"]}
+{"card_id": "STT03-015", "name": "Jar of Beans", "rarity": "UC", "element": "EARTH", "type": "SPELL", "ikz_cost": 4, "subtypes": ["Stonemend"]}
 {"card_id": "STT03-016", "name": "Quicksand", "rarity": "R", "element": "EARTH", "type": "SPELL", "ikz_cost": 5, "subtypes": ["Earthfury"]}
 {"card_id": "STT04-001", "name": "Zero", "rarity": "L", "element": "FIRE", "type": "LEADER", "health": 20, "subtypes": ["Black Jade", "Scorchweaver"]}
 {"card_id": "STT04-002", "name": "Ragefire Gate", "rarity": "G", "element": "FIRE", "type": "GATE"}
@@ -186,7 +186,7 @@
 {"card_id": "STT04-010", "name": "Reckless Tinkerer", "rarity": "C", "element": "FIRE", "type": "ENTITY", "ikz_cost": 3, "attack": 1, "health": 2, "gate_points": 1, "keywords": ["charge"], "subtypes": ["Blazerker", "Elder", "Pyreskin"]}
 {"card_id": "STT04-011", "name": "Scorchland Raven", "rarity": "C", "element": "NORMAL", "type": "ENTITY", "ikz_cost": 4, "attack": 2, "health": 2, "gate_points": 3, "subtypes": ["Bird"]}
 {"card_id": "STT04-012", "name": "Spiteful Raider", "rarity": "UC", "element": "FIRE", "type": "ENTITY", "ikz_cost": 4, "attack": 3, "health": 2, "gate_points": 1, "subtypes": ["Bandit", "Pyreskin"]}
-{"card_id": "STT04-013", "name": "Kurai the Volcano", "rarity": "SR", "element": "FIRE", "type": "ENTITY", "ikz_cost": 5, "attack": 3, "health": 3, "gate_points": 2, "subtypes": ["Crimsondrift", "Elder"]}
+{"card_id": "STT04-013", "name": "Kurai the Volcano", "rarity": "SR", "element": "FIRE", "type": "ENTITY", "ikz_cost": 5, "attack": 3, "health": 3, "gate_points": 1, "subtypes": ["Crimsondrift", "Elder"]}
 {"card_id": "STT04-014", "name": "Scorchveil Shinobi, Suzuka", "rarity": "SR", "element": "FIRE", "type": "ENTITY", "ikz_cost": 6, "attack": 3, "health": 3, "gate_points": 1, "keywords": ["charge"], "subtypes": ["Blazerker", "Ninja"]}
 {"card_id": "STT04-015", "name": "Detonation Pact", "rarity": "C", "element": "FIRE", "type": "SPELL", "ikz_cost": 1, "subtypes": ["Scorchweaver"]}
 {"card_id": "STT04-016", "name": "Collateral Burst", "rarity": "UC", "element": "FIRE", "type": "SPELL", "ikz_cost": 2, "subtypes": ["Pyreskin", "Scorchweaver"]}

@@ -162,10 +162,12 @@ bool azk_trigger_end_of_turn_abilities(ecs_world_t *world);
 // Trigger gate card's portal ability after successfully portaling an entity
 // gate_card: the gate card that was used to portal
 // portaled_card: the entity card that was moved from alley to garden
+// garden_index: the destination garden slot for the portaled card
 // owner: the player who owns the gate card
 // All gate cards must have a registered ability with AOnGatePortal timing tag
 void azk_trigger_gate_portal_ability(ecs_world_t *world, ecs_entity_t gate_card,
                                      ecs_entity_t portaled_card,
+                                     uint8_t garden_index,
                                      ecs_entity_t owner);
 
 // Trigger an enters-garden ability for a card that was just moved into Garden.

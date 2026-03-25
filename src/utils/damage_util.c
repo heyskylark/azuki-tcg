@@ -49,6 +49,26 @@ static void reset_damage_tracker_for_turn(const GameState *gs,
   }
 }
 
+bool azk_damage_tracker_is_current_turn(ecs_world_t *world,
+                                        const DamageTracker *tracker) {
+  if (world == NULL || tracker == NULL) {
+    return false;
+  }
+
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  return gs != NULL && tracker->turn_marker == gs->turn_number;
+}
+
+const DamageTracker *azk_get_current_turn_damage_tracker(ecs_world_t *world,
+                                                         ecs_entity_t entity) {
+  const DamageTracker *tracker = ecs_get(world, entity, DamageTracker);
+  if (!azk_damage_tracker_is_current_turn(world, tracker)) {
+    return NULL;
+  }
+
+  return tracker;
+}
+
 static void maybe_queue_damage_trigger(ecs_world_t *world, ecs_entity_t card,
                                        uint8_t timing_tag, ecs_id_t tag_id) {
   const CardId *card_id = ecs_get(world, card, CardId);

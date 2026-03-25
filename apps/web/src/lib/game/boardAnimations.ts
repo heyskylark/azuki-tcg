@@ -63,6 +63,7 @@ export interface BoardAnimationCard {
   tapped: boolean;
   cooldown: boolean;
   isFrozen: boolean;
+  isRooted: boolean;
   isShocked: boolean;
   isEffectImmune: boolean;
   hasCharge: boolean;
@@ -161,6 +162,7 @@ function buildCardFromMapping(
     tapped: metadata?.tapped ?? false,
     cooldown: metadata?.cooldown ?? false,
     isFrozen: metadata?.isFrozen ?? false,
+    isRooted: metadata?.isRooted ?? false,
     isShocked: false,
     isEffectImmune: metadata?.isEffectImmune ?? false,
     hasCharge: metadata?.hasCharge ?? false,
@@ -184,6 +186,7 @@ function buildCardFromResolvedHandCard(
     tapped: metadata?.tapped ?? false,
     cooldown: metadata?.cooldown ?? false,
     isFrozen: metadata?.isFrozen ?? false,
+    isRooted: metadata?.isRooted ?? false,
     isShocked: false,
     isEffectImmune: metadata?.isEffectImmune ?? false,
     hasCharge: metadata?.hasCharge ?? false,
@@ -207,6 +210,7 @@ function buildCardFromResolvedBoardCard(
     tapped: metadata?.tapped ?? card.tapped,
     cooldown: metadata?.cooldown ?? card.cooldown,
     isFrozen: metadata?.isFrozen ?? card.isFrozen,
+    isRooted: metadata?.isRooted ?? card.isRooted,
     isShocked: card.isShocked,
     isEffectImmune: metadata?.isEffectImmune ?? card.isEffectImmune,
     hasCharge: metadata?.hasCharge ?? card.hasCharge,
@@ -229,6 +233,7 @@ function buildCardFromResolvedLeader(
     tapped: leader.tapped,
     cooldown: leader.cooldown,
     isFrozen: leader.isFrozen,
+    isRooted: leader.isRooted,
     isShocked: leader.isShocked,
     isEffectImmune: leader.isEffectImmune,
     hasCharge: leader.hasCharge,

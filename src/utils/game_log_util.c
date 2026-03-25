@@ -367,6 +367,7 @@ GameLogCardMetadata azk_make_card_metadata(ecs_world_t *world,
   meta.has_defender = ecs_has(world, card, Defender);
   meta.has_infiltrate = ecs_has(world, card, Infiltrate);
   meta.is_frozen = ecs_has(world, card, Frozen);
+  meta.is_rooted = ecs_has(world, card, Rooted);
   meta.is_effect_immune = ecs_has(world, card, EffectImmune);
 
   // Get attached weapons (children with TWeapon tag)

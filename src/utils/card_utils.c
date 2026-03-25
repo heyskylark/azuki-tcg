@@ -235,6 +235,18 @@ static void maybe_trigger_bobu_state(ecs_world_t *world, const GameState *gs,
   heal_leader_in_zone(world, gs->zones[owner_num].leader, 1);
 }
 
+static uint8_t current_turn_owner_index(const GameState *gs) {
+  if (gs == NULL) {
+    return 0;
+  }
+
+  if (gs->phase == PHASE_RESPONSE_WINDOW) {
+    return (uint8_t)((gs->active_player_index + 1) % MAX_PLAYERS_PER_MATCH);
+  }
+
+  return (uint8_t)gs->active_player_index;
+}
+
 static void maybe_trigger_miharu_state(ecs_world_t *world, const GameState *gs,
                                        ecs_entity_t owner,
                                        ecs_entity_t from_zone_entity,
@@ -244,7 +256,7 @@ static void maybe_trigger_miharu_state(ecs_world_t *world, const GameState *gs,
   }
 
   const uint8_t owner_num = get_player_number(world, owner);
-  if (gs->active_player_index == (int8_t)owner_num ||
+  if (current_turn_owner_index(gs) == owner_num ||
       from_zone_entity != gs->zones[owner_num].garden) {
     return;
   }
@@ -313,10 +325,12 @@ static void maybe_trigger_kurai_state(ecs_world_t *world, const GameState *gs,
     }
 
     const TapState *tap = ecs_get(world, candidate, TapState);
-    if (tap != NULL && (tap->tapped || tap->cooldown)) {
+    if (tap != NULL && tap->tapped) {
       ecs_set(world, candidate, TapState,
-              {.tapped = false, .cooldown = false});
-      azk_log_card_tap_state_changed(world, candidate, GLOG_TAP_UNTAPPED);
+              {.tapped = false, .cooldown = tap->cooldown});
+      azk_log_card_tap_state_changed(
+          world, candidate,
+          tap->cooldown ? GLOG_TAP_COOLDOWN : GLOG_TAP_UNTAPPED);
     }
   }
 }

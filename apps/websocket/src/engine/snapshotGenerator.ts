@@ -88,10 +88,7 @@ export async function generateSnapshot(
   }
 
   // Include selection cards when in SELECTION_PICK or BOTTOM_DECK ability phase
-  if (
-    gameState.abilityPhase === "SELECTION_PICK" ||
-    gameState.abilityPhase === "BOTTOM_DECK"
-  ) {
+  if (gameState.abilityPhase === "SELECTION_PICK" || gameState.abilityPhase === "BOTTOM_DECK") {
     stateContext.selectionCards = buildSelectionCards(myObservation);
   }
 
@@ -116,21 +113,28 @@ export async function generateSnapshot(
     playerSlot,
     activePlayer,
     phase: gameState.phase,
-    rawActionMask: myObservation.actionMask ? {
-      legalActionCount: myObservation.actionMask.legalActionCount,
-      legalPrimary: myObservation.actionMask.legalPrimary?.slice(0, Math.min(10, myObservation.actionMask.legalActionCount)),
-      legalSub1: myObservation.actionMask.legalSub1?.slice(0, Math.min(10, myObservation.actionMask.legalActionCount)),
-      primaryActionMaskTrue: myObservation.actionMask.primaryActionMask
-        ?.map((v, i) => v ? i : -1)
-        .filter(i => i >= 0), // Show which action types are enabled
-    } : null,
+    rawActionMask: myObservation.actionMask
+      ? {
+          legalActionCount: myObservation.actionMask.legalActionCount,
+          legalPrimary: myObservation.actionMask.legalPrimary?.slice(
+            0,
+            Math.min(10, myObservation.actionMask.legalActionCount)
+          ),
+          legalSub1: myObservation.actionMask.legalSub1?.slice(
+            0,
+            Math.min(10, myObservation.actionMask.legalActionCount)
+          ),
+          primaryActionMaskTrue: myObservation.actionMask.primaryActionMask
+            ?.map((v, i) => (v ? i : -1))
+            .filter((i) => i >= 0), // Show which action types are enabled
+        }
+      : null,
   });
 
   // Flush debug logs immediately after getting observation to see C engine output
   flushEngineDebugLogs();
 
-  const actionMask =
-    activePlayer === playerSlot ? buildActionMask(myObservation.actionMask) : null;
+  const actionMask = activePlayer === playerSlot ? buildActionMask(myObservation.actionMask) : null;
 
   const cardCodes = collectSnapshotCardCodes(players, yourHand);
   let cardMetadata: Record<string, SnapshotCardMetadata> = {};
@@ -162,10 +166,7 @@ export async function generateSnapshot(
 /**
  * Build a player board from observation data.
  */
-function buildPlayerBoard(
-  observation: ObservationData,
-  isOwnBoard: boolean
-): SnapshotPlayerBoard {
+function buildPlayerBoard(observation: ObservationData, isOwnBoard: boolean): SnapshotPlayerBoard {
   const myObs = observation.myObservationData;
   const oppObs = observation.opponentObservationData;
 
@@ -174,9 +175,7 @@ function buildPlayerBoard(
     return {
       leader: buildLeader(myObs.leader),
       gate: buildGate(myObs.gate),
-      garden: myObs.garden.map((card) =>
-        card ? buildCard(card) : null
-      ),
+      garden: myObs.garden.map((card) => (card ? buildCard(card) : null)),
       alley: myObs.alley.map((card) => (card ? buildCard(card) : null)),
       ikzArea: myObs.ikzArea.map((ikz) => buildIkz(ikz)),
       handCount: myObs.hand.length,
@@ -189,9 +188,7 @@ function buildPlayerBoard(
     return {
       leader: buildLeader(oppObs.leader),
       gate: buildGate(oppObs.gate),
-      garden: oppObs.garden.map((card) =>
-        card ? buildCard(card) : null
-      ),
+      garden: oppObs.garden.map((card) => (card ? buildCard(card) : null)),
       alley: oppObs.alley.map((card) => (card ? buildCard(card) : null)),
       ikzArea: oppObs.ikzArea.map((ikz) => buildIkz(ikz)),
       handCount: oppObs.handCount,
@@ -247,6 +244,7 @@ function buildCard(card: CardObservation): SnapshotCard {
     tapped: card.tapped,
     cooldown: card.cooldown,
     isFrozen: card.isFrozen,
+    isRooted: card.isRooted,
     isShocked: card.isShocked,
     isEffectImmune: card.isEffectImmune,
     hasCharge: card.hasCharge,
@@ -288,15 +286,17 @@ function buildSelectionCards(observation: ObservationData): SnapshotSelectionCar
     if (!card) {
       return [];
     }
-    return [{
-      cardId: card.cardCode,
-      cardDefId: card.cardDefId,
-      zoneIndex: card.zoneIndex,
-      type: card.type,
-      ikzCost: card.ikzCost,
-      curAtk: card.curAtk,
-      curHp: card.curHp,
-    }];
+    return [
+      {
+        cardId: card.cardCode,
+        cardDefId: card.cardDefId,
+        zoneIndex: card.zoneIndex,
+        type: card.type,
+        ikzCost: card.ikzCost,
+        curAtk: card.curAtk,
+        curHp: card.curHp,
+      },
+    ];
   });
 }
 

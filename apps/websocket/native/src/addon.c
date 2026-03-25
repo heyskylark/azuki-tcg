@@ -508,7 +508,7 @@ static napi_value serialize_card_metadata(napi_env env, const GameLogCardMetadat
 
   napi_value cur_atk, cur_hp, tapped, cooldown;
   napi_value has_charge, has_defender, has_infiltrate;
-  napi_value is_frozen, is_effect_immune;
+  napi_value is_frozen, is_rooted, is_effect_immune;
 
   napi_create_int32(env, meta->cur_atk, &cur_atk);
   napi_create_int32(env, meta->cur_hp, &cur_hp);
@@ -518,6 +518,7 @@ static napi_value serialize_card_metadata(napi_env env, const GameLogCardMetadat
   napi_get_boolean(env, meta->has_defender, &has_defender);
   napi_get_boolean(env, meta->has_infiltrate, &has_infiltrate);
   napi_get_boolean(env, meta->is_frozen, &is_frozen);
+  napi_get_boolean(env, meta->is_rooted, &is_rooted);
   napi_get_boolean(env, meta->is_effect_immune, &is_effect_immune);
 
   napi_set_named_property(env, obj, "curAtk", cur_atk);
@@ -528,6 +529,7 @@ static napi_value serialize_card_metadata(napi_env env, const GameLogCardMetadat
   napi_set_named_property(env, obj, "hasDefender", has_defender);
   napi_set_named_property(env, obj, "hasInfiltrate", has_infiltrate);
   napi_set_named_property(env, obj, "isFrozen", is_frozen);
+  napi_set_named_property(env, obj, "isRooted", is_rooted);
   napi_set_named_property(env, obj, "isEffectImmune", is_effect_immune);
 
   return obj;
@@ -756,7 +758,8 @@ static napi_value serialize_game_log(napi_env env, const GameStateLog *log) {
 
       card = serialize_card_ref(env, &d->card);
       const char *eff_str = "FROZEN";
-      if (d->effect == GLOG_STATUS_SHOCKED) eff_str = "SHOCKED";
+      if (d->effect == GLOG_STATUS_ROOTED) eff_str = "ROOTED";
+      else if (d->effect == GLOG_STATUS_SHOCKED) eff_str = "SHOCKED";
       else if (d->effect == GLOG_STATUS_EFFECT_IMMUNE) eff_str = "EFFECT_IMMUNE";
       napi_create_string_utf8(env, eff_str, NAPI_AUTO_LENGTH, &effect);
       napi_create_int32(env, d->duration, &duration);
@@ -773,7 +776,8 @@ static napi_value serialize_game_log(napi_env env, const GameStateLog *log) {
 
       card = serialize_card_ref(env, &d->card);
       const char *eff_str = "FROZEN";
-      if (d->effect == GLOG_STATUS_SHOCKED) eff_str = "SHOCKED";
+      if (d->effect == GLOG_STATUS_ROOTED) eff_str = "ROOTED";
+      else if (d->effect == GLOG_STATUS_SHOCKED) eff_str = "SHOCKED";
       else if (d->effect == GLOG_STATUS_EFFECT_IMMUNE) eff_str = "EFFECT_IMMUNE";
       napi_create_string_utf8(env, eff_str, NAPI_AUTO_LENGTH, &effect);
 
@@ -1325,6 +1329,8 @@ static napi_value serialize_card(napi_env env, const CardObservationData *card) 
   // Status effects
   napi_get_boolean(env, card->is_frozen, &val);
   napi_set_named_property(env, obj, "isFrozen", val);
+  napi_get_boolean(env, card->is_rooted, &val);
+  napi_set_named_property(env, obj, "isRooted", val);
   napi_get_boolean(env, card->is_shocked, &val);
   napi_set_named_property(env, obj, "isShocked", val);
   napi_get_boolean(env, card->is_effect_immune, &val);

@@ -168,7 +168,7 @@ export function GameStateProvider({ children, initialState = null }: GameStatePr
   }, []);
 
   const updateLogPlaybackState = useCallback((isActive: boolean) => {
-    setIsLogPlaybackActive((current) => current === isActive ? current : isActive);
+    setIsLogPlaybackActive((current) => (current === isActive ? current : isActive));
   }, []);
 
   const clearPendingAnimation = useCallback(() => {
@@ -510,6 +510,7 @@ function resolveCard(card: SnapshotCard, cardMappings: Map<string, CardMapping>)
     tapped: card.tapped,
     cooldown: card.cooldown,
     isFrozen: card.isFrozen,
+    isRooted: card.isRooted,
     isShocked: card.isShocked,
     isEffectImmune: card.isEffectImmune,
     hasCharge: card.hasCharge,
@@ -536,6 +537,7 @@ function resolveLeader(
     tapped: leader.tapped,
     cooldown: leader.cooldown,
     isFrozen: false,
+    isRooted: false,
     isShocked: false,
     isEffectImmune: false,
     hasCharge: leader.hasCharge,

@@ -53,6 +53,7 @@ typedef struct {
   bool has_defender;
   bool has_infiltrate;
   bool is_frozen;
+  bool is_rooted;
   bool is_shocked;
   bool is_effect_immune;
 } CardObservationData;

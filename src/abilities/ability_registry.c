@@ -2220,7 +2220,7 @@ void azk_init_ability_registry(ecs_world_t *world) {
   kAbilityRegistry[CARD_DEF_STT03_006] = (AbilityDef){
       .has_ability = true,
       .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
-      .effect_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .effect_req = {.type = ABILITY_TARGET_FRIENDLY_HAND, .min = 0, .max = 0},
       .timing_tag = ecs_id(AWhenDestroyed),
       .validate = stt03_006_validate,
       .on_cost_paid = stt03_006_on_cost_paid,
