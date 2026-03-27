@@ -29,6 +29,20 @@ static AbilitySelectionCompletionMode get_selection_completion_mode(
   return AZK_SELECTION_COMPLETION_ALLOW_BOTTOM_DECK;
 }
 
+static void apply_deferred_costs_if_needed(ecs_world_t *world,
+                                           AbilityContext *ctx,
+                                           const AbilityDef *def) {
+  if (!ctx || !def || !def->apply_costs ||
+      ctx->runtime.apply_costs_before_effect_selection ||
+      ctx->runtime.costs_applied) {
+    return;
+  }
+
+  def->apply_costs(world, ctx);
+  ctx->runtime.costs_applied = true;
+  cli_render_logf("[Ability] Applied deferred costs");
+}
+
 bool azk_trigger_on_play_ability(ecs_world_t *world, ecs_entity_t card,
                                  ecs_entity_t owner) {
   // Get card ID
@@ -281,6 +295,7 @@ static bool finish_cost_selection(ecs_world_t *world, AbilityContext *ctx,
 
   if (def->apply_costs) {
     def->apply_costs(world, ctx);
+    ctx->runtime.costs_applied = true;
     cli_render_logf("[Ability] Applied costs");
   }
 
@@ -441,6 +456,7 @@ bool azk_process_effect_selection(ecs_world_t *world, int target_index) {
   if (ctx->effect.selected_count >= ctx->effect.max_allowed) {
     // Apply effects and finish
     AbilityPhase phase_before_effects = ctx->runtime.phase;
+    apply_deferred_costs_if_needed(world, ctx, def);
     if (def->apply_effects) {
       def->apply_effects(world, ctx);
       cli_render_logf("[Ability] Applied effects");
@@ -483,6 +499,7 @@ bool azk_process_effect_skip(ecs_world_t *world) {
     return false;
   }
 
+  apply_deferred_costs_if_needed(world, ctx, def);
   if (def->apply_effects) {
     AbilityPhase phase_before_effects = ctx->runtime.phase;
     def->apply_effects(world, ctx);
@@ -1331,6 +1348,17 @@ bool azk_process_triggered_effect_queue(ecs_world_t *world) {
     return false;
   }
 
+  uint8_t available_effect_targets = azk_count_ability_target_choices(
+      world, def, ABILITY_TARGET_SCOPE_EFFECT, card, owner);
+  if (def->effect_req.min > 0 &&
+      available_effect_targets < def->effect_req.min) {
+    cli_render_logf("[Ability] Queued effect has no valid effect targets "
+                    "(available=%u, required_min=%u), skipping",
+                    (unsigned)available_effect_targets,
+                    (unsigned)def->effect_req.min);
+    return false;
+  }
+
   return azk_begin_ability(
       world, card, owner, def,
       &(AbilityBeginOptions){
@@ -1338,6 +1366,8 @@ bool azk_process_triggered_effect_queue(ecs_world_t *world) {
           .enter_confirmation_when_optional = true,
           .transfer_control_on_user_input = true,
           .available_cost_targets = available_cost_targets,
+          .available_effect_targets = available_effect_targets,
+          .clamp_effect_expected_to_available = true,
           .select_effects_when_max_positive = true,
           .apply_costs_before_effect_selection = true,
           .clear_context_on_immediate_resolve = true,

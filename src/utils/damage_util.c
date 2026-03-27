@@ -227,9 +227,13 @@ static bool maybe_queue_pekiro_redirect(ecs_world_t *world, ecs_entity_t source,
   return false;
 }
 
-bool deal_effect_damage_from_source(ecs_world_t *world, ecs_entity_t source,
-                                    ecs_entity_t target, int8_t damage) {
-  if (maybe_queue_pekiro_redirect(world, source, target, damage)) {
+static bool deal_effect_damage_from_source_internal(ecs_world_t *world,
+                                                    ecs_entity_t source,
+                                                    ecs_entity_t target,
+                                                    int8_t damage,
+                                                    bool allow_redirect) {
+  if (allow_redirect &&
+      maybe_queue_pekiro_redirect(world, source, target, damage)) {
     return true;
   }
 
@@ -299,6 +303,20 @@ bool deal_effect_damage_from_source(ecs_world_t *world, ecs_entity_t source,
   }
 
   return true;
+}
+
+bool deal_effect_damage_from_source(ecs_world_t *world, ecs_entity_t source,
+                                    ecs_entity_t target, int8_t damage) {
+  return deal_effect_damage_from_source_internal(world, source, target, damage,
+                                                 true);
+}
+
+bool deal_effect_damage_from_source_no_redirect(ecs_world_t *world,
+                                                ecs_entity_t source,
+                                                ecs_entity_t target,
+                                                int8_t damage) {
+  return deal_effect_damage_from_source_internal(world, source, target, damage,
+                                                 false);
 }
 
 bool deal_effect_damage(ecs_world_t *world, ecs_entity_t target,

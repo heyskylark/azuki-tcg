@@ -5,11 +5,35 @@
 #include "utils/damage_util.h"
 #include "utils/player_util.h"
 
+static bool azk01_118_has_met_play_condition(const GameState *gs,
+                                             uint8_t owner_num) {
+  return gs != NULL && gs->cards_played_this_turn[owner_num] >= 3;
+}
+
+static bool azk01_118_opponent_has_garden_entity(ecs_world_t *world,
+                                                 const GameState *gs,
+                                                 uint8_t owner_num) {
+  if (world == NULL || gs == NULL) {
+    return false;
+  }
+
+  uint8_t enemy_num = (owner_num + 1) % MAX_PLAYERS_PER_MATCH;
+  return ecs_get_ordered_children(world, gs->zones[enemy_num].garden).count > 0;
+}
+
 bool azk01_118_validate(ecs_world_t *world, ecs_entity_t card,
                         ecs_entity_t owner) {
   const GameState *gs = ecs_singleton_get(world, GameState);
   uint8_t owner_num = get_player_number(world, owner);
-  return ecs_get_target(world, card, EcsChildOf, 0) == gs->zones[owner_num].garden;
+  if (ecs_get_target(world, card, EcsChildOf, 0) != gs->zones[owner_num].garden) {
+    return false;
+  }
+
+  if (!azk01_118_has_met_play_condition(gs, owner_num)) {
+    return false;
+  }
+
+  return azk01_118_opponent_has_garden_entity(world, gs, owner_num);
 }
 
 bool azk01_118_validate_cost_target(ecs_world_t *world, ecs_entity_t card,
@@ -33,7 +57,7 @@ bool azk01_118_validate_effect_target(ecs_world_t *world, ecs_entity_t card,
 
   const GameState *gs = ecs_singleton_get(world, GameState);
   uint8_t owner_num = get_player_number(world, owner);
-  if (gs->cards_played_this_turn[owner_num] < 3) {
+  if (!azk01_118_has_met_play_condition(gs, owner_num)) {
     return false;
   }
 

@@ -39,6 +39,12 @@ void azk01_062_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
     resolved_target = ctx->effect.entities[0];
   }
 
+  if (resolved_target == redirect.original_target) {
+    deal_effect_damage_from_source_no_redirect(
+        world, redirect.source_card, resolved_target, redirect.damage);
+    return;
+  }
+
   deal_effect_damage_from_source(world, redirect.source_card, resolved_target,
                                  redirect.damage);
 }

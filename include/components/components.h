@@ -99,6 +99,8 @@ typedef struct {
   ecs_entity_t source_card;
   ecs_entity_t owner;
   bool is_optional;
+  bool costs_applied;
+  bool apply_costs_before_effect_selection;
   bool restores_active_player;
   int8_t saved_active_player_index;
 } AbilityRuntimeState;

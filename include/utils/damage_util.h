@@ -21,6 +21,10 @@
 bool deal_effect_damage(ecs_world_t *world, ecs_entity_t target, int8_t damage);
 bool deal_effect_damage_from_source(ecs_world_t *world, ecs_entity_t source,
                                     ecs_entity_t target, int8_t damage);
+bool deal_effect_damage_from_source_no_redirect(ecs_world_t *world,
+                                                ecs_entity_t source,
+                                                ecs_entity_t target,
+                                                int8_t damage);
 void azk_record_damage_event(ecs_world_t *world, ecs_entity_t source,
                              ecs_entity_t target, int8_t actual_damage,
                              bool from_effect);

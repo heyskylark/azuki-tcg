@@ -1403,7 +1403,7 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .has_ability = true,
       .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
       .effect_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
-      .timing_tag = ecs_id(AOnPlay),
+      .timing_tag = ecs_id(AWhenEntersGarden),
       .validate = azk01_064_validate,
       .apply_effects = azk01_064_apply_effects,
   };
