@@ -4,6 +4,7 @@
 #include "components/components.h"
 #include "constants/game.h"
 #include "utils/cli_rendering_util.h"
+#include "utils/combat_util.h"
 #include "utils/player_util.h"
 
 /**
@@ -25,11 +26,12 @@ static void check_post_ability_transition(ecs_world_t *world, GameState *gs) {
   if (gs->phase == PHASE_RESPONSE_WINDOW) {
     // Check if defender can still respond
     if (!defender_can_respond(world, gs, gs->active_player_index)) {
-      cli_render_log("[AbilityResolution] Ability complete, no more response "
-                     "options - proceeding to combat");
-      gs->active_player_index =
-          (gs->active_player_index + 1) % MAX_PLAYERS_PER_MATCH;
-      gs->phase = PHASE_COMBAT_RESOLVE;
+      bool queued_when_attacked = azk_transition_to_combat_resolve(world);
+      cli_render_log(queued_when_attacked
+                         ? "[AbilityResolution] Ability complete, response "
+                           "window closed - processing when attacked effects"
+                         : "[AbilityResolution] Ability complete, no more "
+                           "response options - proceeding to combat");
     }
   }
 }

@@ -1,9 +1,9 @@
 #include "abilities/cards/azk01_097.h"
 
-#include "abilities/cards/common/reveal_selection.h"
 #include "abilities/selection/ability_selection_helpers.h"
 #include "utils/card_utils.h"
 #include "utils/cli_rendering_util.h"
+#include "utils/deck_utils.h"
 
 static bool is_weapon_selection_card(ecs_world_t *world, ecs_entity_t card,
                                      const void *user_ctx) {
@@ -20,20 +20,28 @@ bool azk01_097_validate(ecs_world_t *world, ecs_entity_t card,
 }
 
 void azk01_097_on_cost_paid(ecs_world_t *world, AbilityContext *ctx) {
-  const AbilityRevealSelectionResult result = azk_setup_reveal_top_cards_selection(
-      world, ctx, 5, 1, is_weapon_selection_card, NULL);
+  ecs_entity_t revealed_cards[MAX_SELECTION_ZONE_SIZE] = {0};
+  const int revealed_count =
+      look_at_top_n_cards(world, ctx->runtime.owner, 5, revealed_cards);
 
-  if (result.revealed_count == 0) {
+  if (revealed_count == 0) {
     cli_render_logf("[AZK01-097] No cards in deck to mill");
     return;
   }
 
-  if (result.matching_count > 0) {
+  azk_init_selection_state(ctx, revealed_cards, (uint8_t)revealed_count, 1);
+
+  const uint8_t matching_count = azk_count_selection_cards_matching(
+      world, ctx, is_weapon_selection_card, NULL);
+  if (matching_count > 0) {
+    ctx->runtime.phase = ABILITY_PHASE_SELECTION_PICK;
     cli_render_logf("[AZK01-097] Milled %d cards and found %d weapon card(s)",
-                    result.revealed_count, result.matching_count);
+                    revealed_count, matching_count);
   } else {
+    azk_return_remaining_selection_cards_to_discard(world, ctx);
+    ctx->runtime.phase = ABILITY_PHASE_NONE;
     cli_render_logf("[AZK01-097] Milled %d cards and found no weapon cards",
-                    result.revealed_count);
+                    revealed_count);
   }
 }
 

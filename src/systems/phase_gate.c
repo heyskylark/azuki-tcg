@@ -4,6 +4,7 @@
 #include "abilities/ability_system.h"
 #include "constants/game.h"
 #include "utils/cli_rendering_util.h"
+#include "utils/combat_util.h"
 #include "utils/player_util.h"
 
 static const char *PIPELINE_MULLIGAN = "MulliganPipeline";
@@ -124,10 +125,14 @@ void PhaseGate(ecs_iter_t *it) {
         set_pipeline_for_phase(world, cache, PHASE_RESPONSE_WINDOW);
         return;
       } else {
-        gs->phase = PHASE_COMBAT_RESOLVE;
+        bool queued_when_attacked = azk_transition_to_combat_resolve(world);
         ecs_singleton_modified(world, GameState);
         cli_render_logf(
-            "[PhaseGate] When attacking effects resolved - proceeding to combat");
+            queued_when_attacked
+                ? "[PhaseGate] When attacking effects resolved - processing "
+                  "when attacked effects"
+                : "[PhaseGate] When attacking effects resolved - proceeding to "
+                  "combat");
         set_pipeline_for_phase(world, cache, PHASE_COMBAT_RESOLVE);
         return;
       }

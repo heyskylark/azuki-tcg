@@ -58,9 +58,9 @@ static bool try_get_status_effect_for_tag(ecs_id_t tag,
 }
 
 static void log_tag_change_if_keyword(ecs_world_t *world, ecs_entity_t entity,
-                                      ecs_id_t tag) {
+                                      ecs_id_t tag, bool new_present) {
   if (is_keyword_tag(tag)) {
-    azk_log_card_keywords_changed(world, entity);
+    azk_log_card_keywords_changed_override(world, entity, tag, new_present);
   }
 }
 
@@ -94,7 +94,7 @@ static void maybe_remove_unbacked_tag(ecs_world_t *world, ecs_entity_t entity,
   if (try_get_status_effect_for_tag(tag, &effect)) {
     azk_log_status_effect_expired(world, entity, effect);
   }
-  log_tag_change_if_keyword(world, entity, tag);
+  log_tag_change_if_keyword(world, entity, tag, false);
 }
 
 static void remove_tag_grant_at(CardConditionCountdown *countdown, uint8_t index) {
@@ -342,7 +342,7 @@ bool apply_timed_tag_grant(ecs_world_t *world, ecs_entity_t entity, ecs_id_t tag
     if (try_get_status_effect_for_tag(tag, &effect)) {
       azk_log_status_effect_applied(world, entity, effect, remaining_ticks);
     }
-    log_tag_change_if_keyword(world, entity, tag);
+    log_tag_change_if_keyword(world, entity, tag, true);
   }
 
   return true;
@@ -473,14 +473,6 @@ static void tick_zone_status_effects(ecs_world_t *world, ecs_entity_t zone,
           ecs_remove(world, card, Frozen);
           azk_log_status_effect_expired(world, card, GLOG_STATUS_FROZEN);
           cli_render_logf("[Status] Frozen expired on entity");
-        }
-      }
-
-      // Process Shocked duration (for future use)
-      if (countdown->shocked_duration > 0) {
-        countdown->shocked_duration--;
-        if (countdown->shocked_duration == 0) {
-          remove_shocked(world, card);
         }
       }
 

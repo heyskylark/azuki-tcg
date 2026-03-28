@@ -34,7 +34,7 @@ bool is_frozen(ecs_world_t *world, ecs_entity_t entity);
  * Shocked cards do not untap during their next untap step.
  * @param world The ECS world
  * @param entity The entity to shock
- * @param duration Number of turns remaining before Shocked is removed
+ * @param duration Number of owner untap steps to skip before Shocked is removed
  */
 void apply_shocked(ecs_world_t *world, ecs_entity_t entity, int8_t duration);
 

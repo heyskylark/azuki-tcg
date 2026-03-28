@@ -11,8 +11,11 @@ bool azk01_039_validate(ecs_world_t *world, ecs_entity_t card,
 }
 
 void azk01_039_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
-  ecs_entity_t target =
-      ecs_get_target(world, ctx->runtime.source_card, EcsChildOf, 0);
+  ecs_entity_t target = ctx->runtime.source_card;
+  if (ecs_has(world, target, TWeapon)) {
+    target = ecs_get_target(world, target, EcsChildOf, 0);
+  }
+
   if (target == 0) {
     return;
   }

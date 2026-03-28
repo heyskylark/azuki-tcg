@@ -73,9 +73,13 @@ bool azk01_122_validate_selection_target(ecs_world_t *world, ecs_entity_t card,
 void azk01_122_on_selection_complete(ecs_world_t *world, AbilityContext *ctx) {
   if (ctx->selection.picked_count > 0 && ctx->selection.picked_cards[0] != 0) {
     ecs_entity_t played = ctx->selection.picked_cards[0];
-    apply_charge_grant(world, played, TAG_GRANT_TICK_END_OF_TURN, 1);
-    apply_timed_tag_grant(world, played, ecs_id(SacrificeAtEndOfTurn),
-                          TAG_GRANT_TICK_END_OF_TURN, 1);
+    apply_charge_grant(world, played, TAG_GRANT_TICK_NONE, -1);
+
+    const TapState *tap = ecs_get(world, played, TapState);
+    ecs_set(world, played, TapState,
+            {.tapped = azk_card_enters_garden_tapped(world, played) ||
+                       (tap != NULL && tap->tapped),
+             .cooldown = false});
   }
 
   azk_return_remaining_selection_cards_to_hand(world, ctx);

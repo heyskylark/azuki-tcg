@@ -20,5 +20,5 @@ void azk01_036_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
     return;
   }
 
-  apply_shocked(world, attacker, 2);
+  apply_shocked(world, attacker, 1);
 }

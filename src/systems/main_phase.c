@@ -200,14 +200,6 @@ static void handle_attack(ecs_world_t *world, GameState *gs,
     }
   }
 
-  // Check if the defending card has a "when attacked" ability.
-  const CardId *defender_card_id = ecs_get(world, intent.defending_card, CardId);
-  if (defender_card_id &&
-      azk_has_ability_with_timing(defender_card_id->id, ecs_id(AWhenAttacked))) {
-    azk_queue_triggered_effect(world, intent.defending_card, defender_player,
-                               TIMING_TAG_WHEN_ATTACKED);
-  }
-
   queue_kira_attack_redirect_if_present(world, gs, defender_player,
                                         intent.defending_card);
 
@@ -226,8 +218,11 @@ static void handle_attack(ecs_world_t *world, GameState *gs,
     cli_render_logf(
         "[MainAction] Attack declared - defender has response options");
   } else {
-    gs->phase = PHASE_COMBAT_RESOLVE;
-    cli_render_logf("[MainAction] Attack declared - proceeding to combat");
+    bool queued_when_attacked = azk_transition_to_combat_resolve(world);
+    cli_render_logf(queued_when_attacked
+                        ? "[MainAction] Attack declared - processing when "
+                          "attacked effects"
+                        : "[MainAction] Attack declared - proceeding to combat");
   }
 }
 
@@ -355,8 +350,9 @@ static void handle_attach_weapon_from_hand(ecs_world_t *world, GameState *gs,
   // Trigger on-play abilities for weapons (like entities)
   azk_trigger_on_play_ability(world, intent.weapon_card, intent.player);
 
-  // Trigger when-equipped abilities for weapons with AWhenEquipped timing
+  // Trigger when-equipped abilities on both the weapon and its equipped host.
   azk_trigger_when_equipped_ability(world, intent.weapon_card, intent.player);
+  azk_trigger_when_equipped_ability(world, intent.target_card, intent.player);
 
   cli_render_logf("[MainAction] Attach weapon");
 }

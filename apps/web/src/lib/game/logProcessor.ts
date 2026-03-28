@@ -26,14 +26,21 @@ import type {
 } from "@/types/gameLogs";
 
 type OrderedIndexedZone = "HAND" | "IKZ_AREA";
+type FixedBoardZone = "GARDEN" | "ALLEY";
+
+interface DisplacedBoardCard {
+  cardDefId: number | null;
+}
 
 export interface BatchIndexRebaseContext {
   removedOriginalIndicesByZone: Map<string, number[]>;
+  displacedBoardCardsBySlot: Map<string, DisplacedBoardCard>;
 }
 
 export function createBatchIndexRebaseContext(): BatchIndexRebaseContext {
   return {
     removedOriginalIndicesByZone: new Map(),
+    displacedBoardCardsBySlot: new Map(),
   };
 }
 
@@ -43,6 +50,22 @@ function isOrderedIndexedZone(zone: ZoneType): zone is OrderedIndexedZone {
 
 function getOrderedZoneKey(zone: OrderedIndexedZone, isMyCard: boolean): string {
   return `${isMyCard ? "my" : "opponent"}:${zone}`;
+}
+
+function isFixedBoardZone(zone: ZoneType): zone is FixedBoardZone {
+  return zone === "GARDEN" || zone === "ALLEY";
+}
+
+function getFixedBoardSlotKey(
+  zone: ZoneType,
+  index: number,
+  isMyCard: boolean
+): string | null {
+  if (!isFixedBoardZone(zone) || index < 0) {
+    return null;
+  }
+
+  return `${isMyCard ? "my" : "opponent"}:${zone}:${index}`;
 }
 
 function rebaseRemovalIndexForBatch(
@@ -82,6 +105,64 @@ function recordOrderedZoneRemoval(
   const priorRemovals = context.removedOriginalIndicesByZone.get(zoneKey) ?? [];
   priorRemovals.push(originalIndex);
   context.removedOriginalIndicesByZone.set(zoneKey, priorRemovals);
+}
+
+function getBoardSlotCard(
+  state: GameState,
+  zone: ZoneType,
+  index: number,
+  isMyCard: boolean
+): ResolvedCard | null {
+  if (!isFixedBoardZone(zone) || index < 0 || index >= 5) {
+    return null;
+  }
+
+  const board = isMyCard ? state.myBoard : state.opponentBoard;
+  return zone === "GARDEN" ? board.garden[index] : board.alley[index];
+}
+
+function trackDisplacedBoardCard(
+  state: GameState,
+  zone: ZoneType,
+  index: number,
+  isMyCard: boolean,
+  context: BatchIndexRebaseContext
+): void {
+  const slotKey = getFixedBoardSlotKey(zone, index, isMyCard);
+  if (slotKey == null) {
+    return;
+  }
+
+  const displacedCard = getBoardSlotCard(state, zone, index, isMyCard);
+  if (displacedCard == null) {
+    context.displacedBoardCardsBySlot.delete(slotKey);
+    return;
+  }
+
+  context.displacedBoardCardsBySlot.set(slotKey, {
+    cardDefId: displacedCard.cardDefId,
+  });
+}
+
+function consumeDisplacedBoardCardRemoval(
+  zone: ZoneType,
+  index: number,
+  cardDefId: number | null,
+  isMyCard: boolean,
+  context: BatchIndexRebaseContext
+): boolean {
+  const slotKey = getFixedBoardSlotKey(zone, index, isMyCard);
+  if (slotKey == null) {
+    return false;
+  }
+
+  const displacedCard = context.displacedBoardCardsBySlot.get(slotKey);
+  if (displacedCard == null || displacedCard.cardDefId !== cardDefId) {
+    return false;
+  }
+
+  context.displacedBoardCardsBySlot.delete(slotKey);
+  return true;
 }
 
 // ============================================
@@ -200,12 +281,28 @@ function applyZoneMoved(
     isMyCard,
     batchIndexRebaseContext
   );
+  const skipSourceRemoval = consumeDisplacedBoardCardRemoval(
+    data.fromZone,
+    rebasedFromIndex,
+    data.card.cardDefId,
+    isMyCard,
+    batchIndexRebaseContext
+  );
 
   // Remove from source zone
-  newState = removeFromZone(newState, data.fromZone, rebasedFromIndex, isMyCard);
+  if (!skipSourceRemoval) {
+    newState = removeFromZone(newState, data.fromZone, rebasedFromIndex, isMyCard);
+  }
   recordOrderedZoneRemoval(data.fromZone, data.fromIndex, isMyCard, batchIndexRebaseContext);
 
   // Add to destination zone
+  trackDisplacedBoardCard(
+    newState,
+    data.toZone,
+    data.toIndex,
+    isMyCard,
+    batchIndexRebaseContext
+  );
   newState = addToZone(
     newState,
     data.toZone,
@@ -743,10 +840,11 @@ function applyKeywordsChange(
     hasDefender: data.hasDefender,
     hasInfiltrate: data.hasInfiltrate,
   };
+  const chargeCooldownReset = data.hasCharge ? { cooldown: false } : {};
 
   switch (data.card.zone) {
     case "LEADER": {
-      const newLeader = { ...board.leader, ...keywordUpdate };
+      const newLeader = { ...board.leader, ...keywordUpdate, ...chargeCooldownReset };
       if (isMyCard) {
         return { ...state, myBoard: { ...state.myBoard, leader: newLeader } };
       }
@@ -756,7 +854,7 @@ function applyKeywordsChange(
     case "GARDEN": {
       const gardenCard = board.garden[data.card.zoneIndex];
       if (gardenCard) {
-        const newCard = { ...gardenCard, ...keywordUpdate };
+        const newCard = { ...gardenCard, ...keywordUpdate, ...chargeCooldownReset };
         const garden = [...board.garden];
         garden[data.card.zoneIndex] = newCard;
         if (isMyCard) {
@@ -770,7 +868,7 @@ function applyKeywordsChange(
     case "ALLEY": {
       const alleyCard = board.alley[data.card.zoneIndex];
       if (alleyCard) {
-        const newCard = { ...alleyCard, ...keywordUpdate };
+        const newCard = { ...alleyCard, ...keywordUpdate, ...chargeCooldownReset };
         const alley = [...board.alley];
         alley[data.card.zoneIndex] = newCard;
         if (isMyCard) {

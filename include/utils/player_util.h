@@ -7,9 +7,9 @@
 uint8_t get_player_number(ecs_world_t *world, ecs_entity_t player);
 
 /**
- * Check if the defending player has any response spells they can play.
- * Returns true if defender has at least one response spell in hand with enough
- * IKZ to cast.
+ * Check if the defending player has any legal response actions.
+ * This includes playable response cards from hand, in-play response abilities,
+ * and declaring a defender.
  */
 bool defender_can_respond(ecs_world_t *world, const GameState *gs,
                           uint8_t defender_index);

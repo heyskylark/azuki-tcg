@@ -9,6 +9,7 @@
 #include "utils/debug_log.h"
 #include "utils/game_log_util.h"
 #include "utils/player_util.h"
+#include "utils/status_util.h"
 #include <stdio.h>
 
 void azk_debug_validate_zone_indices(ecs_world_t *world, ecs_entity_t zone,
@@ -320,8 +321,19 @@ void untap_all_cards_in_zone(ecs_world_t *world, ecs_entity_t zone) {
   ecs_entities_t cards = ecs_get_ordered_children(world, zone);
   for (int32_t i = 0; i < cards.count; i++) {
     ecs_entity_t card = cards.ids[i];
-    if (ecs_has(world, card, Shocked) ||
-        azk_card_cannot_be_untapped(world, card)) {
+    if (ecs_has(world, card, Shocked)) {
+      CardConditionCountdown *countdown =
+          ecs_get_mut(world, card, CardConditionCountdown);
+      if (countdown != NULL && countdown->shocked_duration > 1) {
+        countdown->shocked_duration--;
+        ecs_modified(world, card, CardConditionCountdown);
+      } else {
+        remove_shocked(world, card);
+      }
+      continue;
+    }
+
+    if (azk_card_cannot_be_untapped(world, card)) {
       continue;
     }
     const TapState *ts = ecs_get(world, card, TapState);

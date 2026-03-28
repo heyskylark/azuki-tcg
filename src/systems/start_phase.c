@@ -77,6 +77,9 @@ static void UntapAllCards(ecs_world_t *world, GameState *gs) {
   ecs_entity_t garden_zone = gs->zones[gs->active_player_index].garden;
   untap_all_cards_in_zone(world, garden_zone);
 
+  ecs_entity_t alley_zone = gs->zones[gs->active_player_index].alley;
+  untap_all_cards_in_zone(world, alley_zone);
+
   ecs_entity_t ikz_area_zone = gs->zones[gs->active_player_index].ikz_area;
   untap_all_cards_in_zone(world, ikz_area_zone);
 

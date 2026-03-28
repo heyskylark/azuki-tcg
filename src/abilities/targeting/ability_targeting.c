@@ -335,6 +335,10 @@ static int collect_target_choices_internal(
     return collect_pending_gate_portal_target(world, gs, player_num,
                                               source_card, owner, validator,
                                               out, out_cap, count);
+  case ABILITY_TARGET_FRIENDLY_ALLEY_ENTITY:
+    return collect_zone_index_targets(world, gs->zones[player_num].alley,
+                                      source_card, owner, validator, out,
+                                      out_cap, count, 0);
   case ABILITY_TARGET_ENEMY_GARDEN_ENTITY: {
     const uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
     return collect_zone_index_targets(world, gs->zones[enemy_num].garden,
@@ -410,6 +414,9 @@ ecs_entity_t azk_resolve_ability_target_choice_entity(ecs_world_t *world,
   }
   case ABILITY_TARGET_FRIENDLY_GARDEN_ENTITY:
     return find_card_in_zone_index(world, gs->zones[player_num].garden,
+                                   action_index);
+  case ABILITY_TARGET_FRIENDLY_ALLEY_ENTITY:
+    return find_card_in_zone_index(world, gs->zones[player_num].alley,
                                    action_index);
   case ABILITY_TARGET_ENEMY_GARDEN_ENTITY: {
     const uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;

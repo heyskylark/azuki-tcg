@@ -78,6 +78,8 @@ static void equip_selection_weapon_to_source_card(ecs_world_t *world,
   apply_weapon_combat_modifier_if_any(world, weapon, ctx->runtime.source_card);
   azk_trigger_on_play_ability(world, weapon, ctx->runtime.owner);
   azk_trigger_when_equipped_ability(world, weapon, ctx->runtime.owner);
+  azk_trigger_when_equipped_ability(world, ctx->runtime.source_card,
+                                    ctx->runtime.owner);
 }
 
 bool azk01_041_validate(ecs_world_t *world, ecs_entity_t card,

@@ -261,6 +261,7 @@ typedef struct {
  */
 typedef struct {
   GameStateLog logs[MAX_GAME_STATE_LOGS];
+  ecs_entity_t log_entities[MAX_GAME_STATE_LOGS];
   PendingZoneMoveLog pending_zone_moves[MAX_GAME_STATE_LOGS];
   uint8_t count;
   uint8_t pending_zone_move_count;

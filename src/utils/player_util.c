@@ -14,10 +14,13 @@ uint8_t get_player_number(ecs_world_t *world, ecs_entity_t player) {
 
 bool defender_can_respond(ecs_world_t *world, const GameState *gs,
                           uint8_t defender_index) {
+  ecs_entity_t defender = gs->players[defender_index];
   ecs_entity_t hand = gs->zones[defender_index].hand;
   ecs_entity_t ikz_area = gs->zones[defender_index].ikz_area;
   uint8_t available_ikz =
       azk_count_tappable_ikz_sources(world, ikz_area, true);
+  GameState response_preview = *gs;
+  response_preview.active_player_index = defender_index;
 
   // Check if any card in hand is a response spell with affordable cost
   ecs_entities_t hand_cards = ecs_get_ordered_children(world, hand);
@@ -57,15 +60,14 @@ bool defender_can_respond(ecs_world_t *world, const GameState *gs,
 
     for (int use_token = 0; use_token <= 1; ++use_token) {
       UserAction garden_action = {
-          .player = gs->players[defender_index],
+          .player = defender,
           .type = ACT_PLAY_ENTITY_TO_GARDEN,
           .subaction_1 = i,
           .subaction_3 = use_token,
       };
       for (int slot = 0; slot < GARDEN_SIZE; ++slot) {
         garden_action.subaction_2 = slot;
-        if (azk_validate_play_entity_action(world, gs,
-                                            gs->players[defender_index],
+        if (azk_validate_play_entity_action(world, &response_preview, defender,
                                             ZONE_GARDEN, &garden_action, false,
                                             NULL)) {
           return true;
@@ -73,17 +75,40 @@ bool defender_can_respond(ecs_world_t *world, const GameState *gs,
       }
 
       UserAction alley_action = {
-          .player = gs->players[defender_index],
+          .player = defender,
           .type = ACT_PLAY_ENTITY_TO_ALLEY,
           .subaction_1 = i,
           .subaction_3 = use_token,
       };
       for (int slot = 0; slot < ALLEY_SIZE; ++slot) {
         alley_action.subaction_2 = slot;
-        if (azk_validate_play_entity_action(world, gs,
-                                            gs->players[defender_index],
+        if (azk_validate_play_entity_action(world, &response_preview, defender,
                                             ZONE_ALLEY, &alley_action, false,
                                             NULL)) {
+          return true;
+        }
+      }
+    }
+  }
+
+  for (int i = 0; i < hand_cards.count; i++) {
+    ecs_entity_t card = hand_cards.ids[i];
+    if (!is_card_type(world, card, CARD_TYPE_WEAPON)) {
+      continue;
+    }
+
+    for (int use_token = 0; use_token <= 1; ++use_token) {
+      UserAction weapon_action = {
+          .player = defender,
+          .type = ACT_ATTACH_WEAPON_FROM_HAND,
+          .subaction_1 = i,
+          .subaction_3 = use_token,
+      };
+      for (int target = 0; target <= GARDEN_SIZE; ++target) {
+        weapon_action.subaction_2 = target;
+        if (azk_validate_attach_weapon_action(world, &response_preview,
+                                              defender, &weapon_action, false,
+                                              NULL)) {
           return true;
         }
       }

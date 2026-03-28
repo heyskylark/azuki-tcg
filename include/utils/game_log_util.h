@@ -115,6 +115,10 @@ void azk_log_card_stat_change(ecs_world_t *world, ecs_entity_t card,
  * Log a card's keyword flags changing (Charge/Defender/Infiltrate).
  */
 void azk_log_card_keywords_changed(ecs_world_t *world, ecs_entity_t card);
+void azk_log_card_keywords_changed_override(ecs_world_t *world,
+                                            ecs_entity_t card,
+                                            ecs_id_t changed_tag,
+                                            bool new_present);
 
 /* ========== Status Effect Logs ========== */
 

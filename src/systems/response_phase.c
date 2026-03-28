@@ -7,6 +7,7 @@
 #include "generated/card_defs.h"
 #include "utils/card_utils.h"
 #include "utils/cli_rendering_util.h"
+#include "utils/combat_util.h"
 #include "utils/game_log_util.h"
 #include "utils/player_util.h"
 #include "utils/weapon_util.h"
@@ -197,6 +198,7 @@ static void handle_attach_weapon_from_hand(ecs_world_t *world, GameState *gs,
 
   azk_trigger_on_play_ability(world, intent.weapon_card, intent.player);
   azk_trigger_when_equipped_ability(world, intent.weapon_card, intent.player);
+  azk_trigger_when_equipped_ability(world, intent.target_card, intent.player);
 
   cli_render_logf("[ResponseAction] Attached response weapon");
 }
@@ -215,11 +217,12 @@ void HandleResponseAction(ecs_iter_t *it) {
   // Also check for queued effects - must process those first
   if (!azk_has_queued_triggered_effects(world) &&
       !defender_can_respond(world, gs, gs->active_player_index)) {
-    cli_render_log("[ResponseAction] Defender has no response options - "
-                   "proceeding to combat");
-    gs->active_player_index =
-        (gs->active_player_index + 1) % MAX_PLAYERS_PER_MATCH;
-    gs->phase = PHASE_COMBAT_RESOLVE;
+    bool queued_when_attacked = azk_transition_to_combat_resolve(world);
+    cli_render_log(queued_when_attacked
+                       ? "[ResponseAction] Response window closed - processing "
+                         "when attacked effects"
+                       : "[ResponseAction] Defender has no response options - "
+                         "proceeding to combat");
     return;
   }
 
@@ -269,11 +272,12 @@ void HandleResponseAction(ecs_iter_t *it) {
       ac->invalid_action = true;
       break;
     }
-    cli_render_log("[ResponseAction] Defender passes - proceeding to combat");
-    // Switch back to attacker for combat resolution tracking
-    gs->active_player_index =
-        (gs->active_player_index + 1) % MAX_PLAYERS_PER_MATCH;
-    gs->phase = PHASE_COMBAT_RESOLVE;
+    bool queued_when_attacked = azk_transition_to_combat_resolve(world);
+    cli_render_log(queued_when_attacked
+                       ? "[ResponseAction] Defender passes - processing when "
+                         "attacked effects"
+                       : "[ResponseAction] Defender passes - proceeding to "
+                         "combat");
     break;
 
   default:

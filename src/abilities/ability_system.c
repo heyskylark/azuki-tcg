@@ -936,6 +936,7 @@ bool azk_process_selection_to_equip(ecs_world_t *world, int selection_index,
     azk_trigger_on_play_ability(world, weapon, ctx->runtime.owner);
   }
   azk_trigger_when_equipped_ability(world, weapon, ctx->runtime.owner);
+  azk_trigger_when_equipped_ability(world, target_entity, ctx->runtime.owner);
 
   if (def->selection_to_equip_is_reequip) {
     ecs_remove(world, weapon, ReequipOrigin);
@@ -1080,7 +1081,7 @@ bool azk_trigger_main_ability(ecs_world_t *world, ecs_entity_t card,
       &(AbilityBeginOptions){
           .is_optional = def->is_optional,
           .available_cost_targets = available_cost_targets,
-          .select_effects_when_max_positive = false,
+          .select_effects_when_max_positive = true,
           .apply_costs_before_effect_selection = true,
           .clear_context_on_immediate_resolve = true,
           .applied_log = "[Ability] Applied main ability with no targets",
@@ -1131,7 +1132,7 @@ bool azk_trigger_spell_ability(ecs_world_t *world, ecs_entity_t spell_card,
           .available_cost_targets = available_cost_targets,
           .available_effect_targets = available_effect_targets,
           .clamp_effect_expected_to_available = true,
-          .select_effects_when_max_positive = false,
+          .select_effects_when_max_positive = true,
           .apply_costs_before_effect_selection = false,
           .clear_context_on_immediate_resolve = true,
           .applied_log = "[Ability] Applied spell with no targets",
@@ -1176,7 +1177,7 @@ bool azk_trigger_leader_response_ability(ecs_world_t *world, ecs_entity_t card,
       &(AbilityBeginOptions){
           .is_optional = false,
           .available_cost_targets = available_cost_targets,
-          .select_effects_when_max_positive = false,
+          .select_effects_when_max_positive = true,
           .apply_costs_before_effect_selection = false,
           .clear_context_on_immediate_resolve = true,
           .applied_log = "[Ability] Applied leader response with no targets",
@@ -1454,34 +1455,51 @@ void azk_trigger_gate_portal_ability(ecs_world_t *world, ecs_entity_t gate_card,
              "Gate card %llu ability has wrong timing tag",
              (unsigned long long)gate_card);
 
+  const AbilityScratchState initial_scratch = {
+      .kind = ABILITY_SCRATCH_GATE_PORTAL,
+      .data.gate_portal =
+          {
+              .portaled_card = portaled_card,
+              .garden_index = garden_index,
+          },
+  };
+
+  AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
+  ecs_assert(ctx != NULL, ECS_INVALID_PARAMETER,
+             "AbilityContext singleton missing for gate portal ability");
+  const AbilityContext saved_ctx = *ctx;
+
+  // Gate portal abilities may validate and count targets from scratch state.
+  azk_reset_ability_context_state(ctx);
+  ctx->runtime.source_card = gate_card;
+  ctx->runtime.owner = owner;
+  ctx->scratch = initial_scratch;
+
   // Validate can still fail (e.g., conditional effects)
   if (def->validate && !def->validate(world, gate_card, owner)) {
+    *ctx = saved_ctx;
+    ecs_singleton_modified(world, AbilityContext);
     return;
   }
 
+  uint8_t available_cost_targets = azk_count_ability_target_choices(
+      world, def, ABILITY_TARGET_SCOPE_COST, gate_card, owner);
   uint8_t available_effect_targets = azk_count_ability_target_choices(
       world, def, ABILITY_TARGET_SCOPE_EFFECT, gate_card, owner);
+
+  *ctx = saved_ctx;
 
   bool is_active = azk_begin_ability(
       world, gate_card, owner, def,
       &(AbilityBeginOptions){
           .is_optional = def->is_optional,
           .enter_confirmation_when_optional = true,
-          .available_cost_targets = azk_count_ability_target_choices(
-              world, def, ABILITY_TARGET_SCOPE_COST, gate_card, owner),
+          .available_cost_targets = available_cost_targets,
           .available_effect_targets = available_effect_targets,
           .clamp_effect_expected_to_available = true,
           .select_effects_when_max_positive = true,
           .apply_costs_before_effect_selection = true,
-          .initial_scratch =
-              {
-                  .kind = ABILITY_SCRATCH_GATE_PORTAL,
-                  .data.gate_portal =
-                      {
-                          .portaled_card = portaled_card,
-                          .garden_index = garden_index,
-                      },
-              },
+          .initial_scratch = initial_scratch,
           .confirmation_log =
               "[Ability] Gate portal triggered optional ability, waiting for "
               "confirmation",

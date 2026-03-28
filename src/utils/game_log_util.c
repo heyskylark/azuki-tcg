@@ -1,9 +1,8 @@
-#include "utils/game_log_util.h"
-
 #include "components/abilities.h"
 #include "components/components.h"
 #include "generated/card_defs.h"
 #include "utils/cli_rendering_util.h"
+#include "utils/game_log_util.h"
 
 /* Internal helper to add a log entry */
 static GameStateLog *add_log_entry(ecs_world_t *world) {
@@ -17,8 +16,19 @@ static GameStateLog *add_log_entry(ecs_world_t *world) {
   }
   GameStateLog *log = &ctx->logs[ctx->count++];
   *log = (GameStateLog){0};
+  ctx->log_entities[ctx->count - 1] = 0;
   ecs_singleton_modified(world, GameStateLogContext);
   return log;
+}
+
+static void set_last_log_entity(ecs_world_t *world, ecs_entity_t entity) {
+  GameStateLogContext *ctx = ecs_singleton_get_mut(world, GameStateLogContext);
+  if (ctx == NULL || ctx->count == 0) {
+    return;
+  }
+
+  ctx->log_entities[ctx->count - 1] = entity;
+  ecs_singleton_modified(world, GameStateLogContext);
 }
 
 static PendingZoneMoveLog *add_pending_zone_move(ecs_world_t *world) {
@@ -82,6 +92,32 @@ static bool is_public_log_zone(GameLogZone zone) {
 
 static bool zone_move_requires_post_commit_finalization(GameLogZone to_zone) {
   return to_zone == GLOG_ZONE_HAND || to_zone == GLOG_ZONE_SELECTION;
+}
+
+static GameLogCardRef make_visible_card_ref(ecs_world_t *world,
+                                            ecs_entity_t card) {
+  GameLogCardRef ref = azk_make_card_ref(world, card);
+  if (is_public_log_zone(ref.zone)) {
+    return ref;
+  }
+
+  const GameStateLogContext *ctx = ecs_singleton_get(world, GameStateLogContext);
+  if (ctx == NULL) {
+    return ref;
+  }
+
+  for (int i = (int)ctx->count - 1; i >= 0; --i) {
+    if (ctx->log_entities[i] != card || ctx->logs[i].type != GLOG_CARD_ZONE_MOVED) {
+      continue;
+    }
+
+    const GameLogCardRef moved_ref = ctx->logs[i].data.zone_moved.card;
+    if (is_public_log_zone(moved_ref.zone)) {
+      return moved_ref;
+    }
+  }
+
+  return ref;
 }
 
 static bool is_zone_entity(ecs_world_t *world, ecs_entity_t entity) {
@@ -407,6 +443,7 @@ void azk_log_card_zone_moved(ecs_world_t *world, ecs_entity_t card,
   log->data.zone_moved.to_zone = to_zone;
   log->data.zone_moved.to_index = to_index;
   log->data.zone_moved.metadata = azk_make_card_metadata(world, card);
+  set_last_log_entity(world, card);
 
   if (zone_move_requires_post_commit_finalization(to_zone)) {
     const GameStateLogContext *ctx =
@@ -458,8 +495,9 @@ void azk_log_card_tap_state_changed(ecs_world_t *world, ecs_entity_t card,
   }
 
   log->type = GLOG_CARD_TAP_STATE_CHANGED;
-  log->data.tap_changed.card = azk_make_card_ref(world, card);
+  log->data.tap_changed.card = make_visible_card_ref(world, card);
   log->data.tap_changed.new_state = new_state;
+  set_last_log_entity(world, card);
 }
 
 void azk_log_card_tap_state_changed_ex(ecs_world_t *world, ecs_entity_t card,
@@ -471,11 +509,12 @@ void azk_log_card_tap_state_changed_ex(ecs_world_t *world, ecs_entity_t card,
   }
 
   log->type = GLOG_CARD_TAP_STATE_CHANGED;
-  log->data.tap_changed.card = azk_make_card_ref(world, card);
+  log->data.tap_changed.card = make_visible_card_ref(world, card);
   // Override zone/index with explicit values (bypasses deferred zone lookup)
   log->data.tap_changed.card.zone = zone;
   log->data.tap_changed.card.zone_index = zone_index;
   log->data.tap_changed.new_state = new_state;
+  set_last_log_entity(world, card);
 }
 
 /* ========== Stat Change Logs ========== */
@@ -489,19 +528,27 @@ void azk_log_card_stat_change(ecs_world_t *world, ecs_entity_t card,
   }
 
   log->type = GLOG_CARD_STAT_CHANGE;
-  log->data.stat_change.card = azk_make_card_ref(world, card);
+  log->data.stat_change.card = make_visible_card_ref(world, card);
   log->data.stat_change.atk_delta = atk_delta;
   log->data.stat_change.hp_delta = hp_delta;
   log->data.stat_change.new_atk = new_atk;
   log->data.stat_change.new_hp = new_hp;
+  set_last_log_entity(world, card);
 }
 
 void azk_log_card_keywords_changed(ecs_world_t *world, ecs_entity_t card) {
+  azk_log_card_keywords_changed_override(world, card, 0, false);
+}
+
+void azk_log_card_keywords_changed_override(ecs_world_t *world,
+                                            ecs_entity_t card,
+                                            ecs_id_t changed_tag,
+                                            bool new_present) {
   if (card == 0) {
     return;
   }
 
-  GameLogCardRef ref = azk_make_card_ref(world, card);
+  GameLogCardRef ref = make_visible_card_ref(world, card);
   if (!is_public_log_zone(ref.zone)) {
     return;
   }
@@ -513,9 +560,13 @@ void azk_log_card_keywords_changed(ecs_world_t *world, ecs_entity_t card) {
 
   log->type = GLOG_CARD_KEYWORDS_CHANGED;
   log->data.keywords_changed.card = ref;
-  log->data.keywords_changed.has_charge = ecs_has(world, card, Charge);
-  log->data.keywords_changed.has_defender = ecs_has(world, card, Defender);
-  log->data.keywords_changed.has_infiltrate = ecs_has(world, card, Infiltrate);
+  log->data.keywords_changed.has_charge =
+      changed_tag == ecs_id(Charge) ? new_present : ecs_has(world, card, Charge);
+  log->data.keywords_changed.has_defender =
+      changed_tag == ecs_id(Defender) ? new_present : ecs_has(world, card, Defender);
+  log->data.keywords_changed.has_infiltrate =
+      changed_tag == ecs_id(Infiltrate) ? new_present : ecs_has(world, card, Infiltrate);
+  set_last_log_entity(world, card);
 }
 
 /* ========== Status Effect Logs ========== */
@@ -528,9 +579,10 @@ void azk_log_status_effect_applied(ecs_world_t *world, ecs_entity_t card,
   }
 
   log->type = GLOG_STATUS_EFFECT_APPLIED;
-  log->data.status_applied.card = azk_make_card_ref(world, card);
+  log->data.status_applied.card = make_visible_card_ref(world, card);
   log->data.status_applied.effect = effect;
   log->data.status_applied.duration = duration;
+  set_last_log_entity(world, card);
 }
 
 void azk_log_status_effect_expired(ecs_world_t *world, ecs_entity_t card,
@@ -541,8 +593,9 @@ void azk_log_status_effect_expired(ecs_world_t *world, ecs_entity_t card,
   }
 
   log->type = GLOG_STATUS_EFFECT_EXPIRED;
-  log->data.status_expired.card = azk_make_card_ref(world, card);
+  log->data.status_expired.card = make_visible_card_ref(world, card);
   log->data.status_expired.effect = effect;
+  set_last_log_entity(world, card);
 }
 
 /* ========== Combat Logs ========== */

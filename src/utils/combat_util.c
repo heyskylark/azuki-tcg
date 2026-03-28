@@ -7,6 +7,7 @@
 #include "utils/cli_rendering_util.h"
 #include "utils/damage_util.h"
 #include "utils/game_log_util.h"
+#include "utils/player_util.h"
 #include "utils/status_util.h"
 
 static void trigger_lightning_kanabo_if_present(ecs_world_t *world,
@@ -37,7 +38,7 @@ static void trigger_lightning_kanabo_if_present(ecs_world_t *world,
                 {.is_once_per_turn = true, .was_applied = true});
       }
 
-      apply_shocked(world, recipient, 2);
+      apply_shocked(world, recipient, 1);
     }
   }
 }
@@ -80,6 +81,51 @@ int attack(
   gs->combat_state = combat_state;
 
   return 0;
+}
+
+bool azk_queue_current_defender_when_attacked(ecs_world_t *world) {
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  if (gs == NULL || gs->combat_state.defender_card == 0) {
+    return false;
+  }
+
+  const ecs_entity_t defender = gs->combat_state.defender_card;
+  const CardId *defender_card_id = ecs_get(world, defender, CardId);
+  if (defender_card_id == NULL ||
+      !azk_has_ability_with_timing(defender_card_id->id,
+                                   ecs_id(AWhenAttacked))) {
+    return false;
+  }
+
+  const ecs_entity_t defender_owner =
+      ecs_get_target(world, defender, Rel_OwnedBy, 0);
+  if (defender_owner == 0) {
+    return false;
+  }
+
+  return azk_queue_triggered_effect(world, defender, defender_owner,
+                                    TIMING_TAG_WHEN_ATTACKED);
+}
+
+bool azk_transition_to_combat_resolve(ecs_world_t *world) {
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  if (gs == NULL) {
+    return false;
+  }
+
+  if (gs->combat_state.attacking_card != 0) {
+    const ecs_entity_t attacker_owner =
+        ecs_get_target(world, gs->combat_state.attacking_card, Rel_OwnedBy, 0);
+    if (attacker_owner != 0) {
+      gs->active_player_index =
+          (int8_t)get_player_number(world, attacker_owner);
+    }
+  }
+
+  const bool queued_when_attacked =
+      azk_queue_current_defender_when_attacked(world);
+  gs->phase = PHASE_COMBAT_RESOLVE;
+  return queued_when_attacked;
 }
 
 void resolve_combat(ecs_world_t *world) {

@@ -1900,7 +1900,7 @@ void azk_init_ability_registry(ecs_world_t *world) {
 
   // AZK01-112 "Enrai Shakunetsu": [On Play] You may sacrifice an untapped
   // entity in your Garden: If you control no entities in the Garden, this
-  // entity gains Charge until the end of the turn.
+  // entity gains Charge while it remains in play.
   kAbilityRegistry[CARD_DEF_AZK01_112] = (AbilityDef){
       .has_ability = true,
       .is_optional = true,
@@ -2036,11 +2036,12 @@ void azk_init_ability_registry(ecs_world_t *world) {
   };
 
   // AZK01-122 "Rushfire Gate": On Gate Portal; you may play an entity with
-  // cost <= the portaled entity's gate power from your hand into the Garden.
-  // It gains Charge until end of turn and is sacrificed at end of turn.
+  // cost <= the portaled entity's gate power from your hand into the Alley or
+  // Garden. It gains Charge while it remains in play.
   kAbilityRegistry[CARD_DEF_AZK01_122] = (AbilityDef){
       .has_ability = true,
       .can_select_to_garden = true,
+      .can_select_to_alley = true,
       .selection_pick_is_optional = true,
       .clear_selection_if_still_active = true,
       .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
