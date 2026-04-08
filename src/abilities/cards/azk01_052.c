@@ -4,6 +4,7 @@
 #include "components/abilities.h"
 #include "components/components.h"
 #include "generated/card_defs.h"
+#include "utils/ability_util.h"
 #include "utils/game_log_util.h"
 #include "utils/player_util.h"
 
@@ -88,7 +89,13 @@ static void azk01_052_opponent_garden_observer(ecs_iter_t *it) {
                       it->event == EcsOnRemove, false);
 }
 
-void azk01_052_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
+void azk01_052_init_passive_observers(ecs_world_t *world,
+                                      ecs_entity_t ability_entity) {
+  ecs_entity_t card = azk_get_ability_source_card(world, ability_entity);
+  if (card == 0) {
+    return;
+  }
+
   ecs_entity_t owner = ecs_get_target(world, card, Rel_OwnedBy, 0);
   if (owner == 0) {
     return;
@@ -105,10 +112,10 @@ void azk01_052_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
 
   ctx->card = card;
   ctx->owner_player_num = owner_player_num;
-  azk_init_passive_observer_context(world, card, ctx);
+  azk_init_passive_observer_context(world, ability_entity, ctx);
 
   ecs_entity_t player_obs = azk_create_tracked_passive_observer(
-      world, card,
+      world, ability_entity,
       &(ecs_observer_desc_t){
           .query.terms = {{.id = ecs_pair(EcsChildOf, gs->zones[owner_player_num].garden)},
                           {.id = TEntity}},
@@ -117,7 +124,7 @@ void azk01_052_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
           .ctx = ctx,
       });
   ecs_entity_t opponent_obs = azk_create_tracked_passive_observer(
-      world, card,
+      world, ability_entity,
       &(ecs_observer_desc_t){
           .query.terms = {{.id = ecs_pair(EcsChildOf, gs->zones[opponent_num].garden)},
                           {.id = TEntity}},
@@ -128,11 +135,19 @@ void azk01_052_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
 
   if (player_obs == 0 || opponent_obs == 0) {
     azk_cleanup_passive_observer_context(
-        world, card, &(PassiveObserverCleanupOptions){.free_ctx = true});
+        world, ability_entity,
+        &(PassiveObserverCleanupOptions){.free_ctx = true});
   }
 }
 
-void azk01_052_cleanup_passive_observers(ecs_world_t *world, ecs_entity_t card) {
+void azk01_052_cleanup_passive_observers(ecs_world_t *world,
+                                         ecs_entity_t ability_entity) {
+  ecs_entity_t card = azk_get_ability_source_card(world, ability_entity);
+  if (card != 0 && ecs_has(world, card, Defender)) {
+    ecs_remove(world, card, Defender);
+  }
+
   azk_cleanup_passive_observer_context(
-      world, card, &(PassiveObserverCleanupOptions){.free_ctx = true});
+      world, ability_entity,
+      &(PassiveObserverCleanupOptions){.free_ctx = true});
 }

@@ -1,15 +1,42 @@
 #include "utils/weapon_util.h"
+#include "abilities/ability_registry.h"
 #include "generated/card_defs.h"
 #include "utils/card_utils.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/game_log_util.h"
 #include "utils/status_util.h"
 
+static const EquippedCombatModifier *
+get_equipped_combat_modifier(ecs_world_t *world, ecs_entity_t weapon_card) {
+  const CardId *weapon_id = ecs_get(world, weapon_card, CardId);
+  const EquippedCombatModifier *modifier =
+      ecs_get(world, weapon_card, EquippedCombatModifier);
+  if (modifier != NULL) {
+    return modifier;
+  }
+
+  ecs_entity_t prefab = ecs_get_target(world, weapon_card, EcsIsA, 0);
+  if (prefab == 0) {
+    return weapon_id != NULL
+               ? azk_get_equipped_combat_modifier_spec(weapon_id->id)
+               : NULL;
+  }
+
+  modifier = ecs_get(world, prefab, EquippedCombatModifier);
+  if (modifier != NULL) {
+    return modifier;
+  }
+
+  return weapon_id != NULL
+             ? azk_get_equipped_combat_modifier_spec(weapon_id->id)
+             : NULL;
+}
+
 void apply_weapon_combat_modifier_if_any(ecs_world_t *world,
                                          ecs_entity_t weapon_card,
                                          ecs_entity_t target_card) {
   const EquippedCombatModifier *modifier =
-      ecs_get(world, weapon_card, EquippedCombatModifier);
+      get_equipped_combat_modifier(world, weapon_card);
   if (!modifier) {
     return;
   }

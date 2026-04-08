@@ -21,6 +21,7 @@
 
 // Maximum number of concurrent game worlds
 #define MAX_WORLDS 256
+#define WORLD_BOOTSTRAP_MAX_TICKS 1024
 
 // World storage
 typedef struct {
@@ -246,6 +247,27 @@ static napi_value build_action_result(napi_env env, AzkEngine *engine) {
   return result;
 }
 
+static bool advance_world_to_action_or_game_over(AzkEngine *engine,
+                                                 uint32_t *out_tick_count) {
+  uint32_t tick_count = 0;
+  while (!azk_engine_requires_action(engine) &&
+         !azk_engine_is_game_over(engine)) {
+    azk_engine_tick(engine);
+    tick_count++;
+    if (tick_count >= WORLD_BOOTSTRAP_MAX_TICKS) {
+      if (out_tick_count != NULL) {
+        *out_tick_count = tick_count;
+      }
+      return false;
+    }
+  }
+
+  if (out_tick_count != NULL) {
+    *out_tick_count = tick_count;
+  }
+  return true;
+}
+
 // createWorld(seed: number) -> { worldId: string, success: boolean }
 static napi_value CreateWorld(napi_env env, napi_callback_info info) {
   size_t argc = 1;
@@ -273,6 +295,20 @@ static napi_value CreateWorld(napi_env env, napi_callback_info info) {
       napi_set_named_property(env, result, "error", error_val);
       azk_engine_clear_last_error();
     }
+    return result;
+  }
+
+  uint32_t bootstrap_ticks = 0;
+  if (!advance_world_to_action_or_game_over(engine, &bootstrap_ticks)) {
+    azk_engine_destroy(engine);
+    napi_value result, success_val, error_val;
+    napi_create_object(env, &result);
+    napi_get_boolean(env, false, &success_val);
+    napi_create_string_utf8(env,
+                            "World initialization did not reach an input-ready state",
+                            NAPI_AUTO_LENGTH, &error_val);
+    napi_set_named_property(env, result, "success", success_val);
+    napi_set_named_property(env, result, "error", error_val);
     return result;
   }
 
@@ -369,6 +405,20 @@ static napi_value CreateWorldWithDecks(napi_env env, napi_callback_info info) {
       napi_set_named_property(env, result, "error", error_val);
       azk_engine_clear_last_error();
     }
+    return result;
+  }
+
+  uint32_t bootstrap_ticks = 0;
+  if (!advance_world_to_action_or_game_over(engine, &bootstrap_ticks)) {
+    azk_engine_destroy(engine);
+    napi_value result, success_val, error_val;
+    napi_create_object(env, &result);
+    napi_get_boolean(env, false, &success_val);
+    napi_create_string_utf8(env,
+                            "World initialization did not reach an input-ready state",
+                            NAPI_AUTO_LENGTH, &error_val);
+    napi_set_named_property(env, result, "success", success_val);
+    napi_set_named_property(env, result, "error", error_val);
     return result;
   }
 

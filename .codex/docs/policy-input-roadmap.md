@@ -19,7 +19,37 @@ Scope:
      - OpenAI Five analog: previous sampled action.
      - High value with very small footprint.
 
-2. Effect system upgrade: effect embeddings instead of only fixed booleans
+2. Active combat / response-window attacker context
+   - `response_attacker_valid`
+   - `response_attacker_slot_index`
+   - `response_attacker_is_leader`
+   - `response_attacker_card_def_id`
+   - `response_target_is_leader`
+   - `response_target_slot_index`
+   - `response_target_card_def_id`
+   - optional: `response_attack_declared_steps_ago`
+   - Notes:
+     - In defender decision windows, the policy should not need to infer "which opposing entity or leader is attacking right now" purely from recurrent state.
+     - This is public information and should be exposed directly whenever combat/response is active.
+     - If some of this already exists in combat-context fields elsewhere, treat this item as a roadmap reminder to preserve that signal in the actual v2 marshaled inputs.
+
+3. Opponent previous action tuple / short recent action history
+   - Minimum parity block:
+     - `opp_prev_primary`
+     - `opp_prev_sub1`
+     - `opp_prev_sub2`
+     - `opp_prev_sub3`
+     - `opp_prev_action_valid`
+     - optional: `opp_prev_was_pass`
+   - Optional expansion:
+     - last-`N` opponent action tuples (same schema as self)
+     - or compact opponent-action event tokens + pooling
+   - Notes:
+     - Current self-only previous-action input leaves a tactical blind spot during response windows.
+     - In many combat-response situations, the most informative recent opponent action is the attack declaration itself, which identifies the attacking entity or leader.
+     - Prefer explicit combat-state attacker fields even if opponent action history is added; action history should complement, not replace, direct public combat context.
+
+4. Effect system upgrade: effect embeddings instead of only fixed booleans
    - Replace/augment fields like `is_frozen`, `is_shocked`, `is_effect_immune` with an effect-set payload per entity.
    - Per-effect fields (for each slot in `effects[K]`):
      - `effect_type_id` (embedding)
@@ -34,7 +64,7 @@ Scope:
    - Encoding:
      - masked set encoder (same pattern as current zone/weapon set processors).
 
-3. Ability dynamic readiness state
+5. Ability dynamic readiness state
    - For each relevant ability/card:
      - `can_use_now`
      - `turns_until_usable`
@@ -44,7 +74,7 @@ Scope:
    - Notes:
      - Distinct from static ability metadata (`ability_timing`, `has_ability`, etc.).
 
-4. Board relation/topology features (non-CNN default)
+6. Board relation/topology features (non-CNN default)
    - Not necessarily a CNN first.
    - Candidate structured relations:
      - `can_attack_matrix[src, dst]`
@@ -56,7 +86,7 @@ Scope:
    - Notes:
      - Likely better ROI than CNN for current structured board representation.
 
-5. Hidden-information belief state (no information leakage)
+7. Hidden-information belief state (no information leakage)
    - Global belief/certainty payload candidates:
      - `opp_unknown_hand_slots`
      - `opp_known_hand_slots`
@@ -126,7 +156,7 @@ Scope:
        - Transformer over event tokens:
          - expressive, but likely heavier than needed for first v2 pass.
 
-6. Turn-economy / tempo globals
+8. Turn-economy / tempo globals
    - `turn_number`
    - `decision_index_in_turn`
    - `cards_played_this_turn_self`
@@ -144,7 +174,7 @@ Scope:
        - who can currently act;
        - count of consecutive passes in the active response window (often governs phase advance/stack resolution).
 
-7. Short event-history summaries
+9. Short event-history summaries
    - Per-turn / recent-window aggregates:
      - damage dealt/taken (self/opp)
      - cards drawn/played/discarded (self/opp)
@@ -153,13 +183,15 @@ Scope:
    - Notes:
      - Helps credit assignment and tactical context without full long sequence replay in observation.
 
-8. Optional expanded previous-action history
+10. Optional expanded previous-action history
    - After v1 previous action tuple, consider:
-     - `prev2_*` or last-N compressed action stats.
+     - `prev2_*` / last-N self action stats.
+     - last-N opponent action stats or opponent action tokens.
+     - keep self vs opponent history in separate channels unless each token includes an explicit actor marker.
    - Notes:
      - Keep small unless clear gain.
 
-9. Optional policy-side memory enhancements (if needed later)
+11. Optional policy-side memory enhancements (if needed later)
    - Keep observation lean and rely more on recurrent hidden state for long horizon context.
    - Add explicit memory channels only if training indicates persistent blind spots.
 
@@ -170,37 +202,47 @@ Scope:
      - Minimal implementation and model-cost.
      - Typically immediate behavioral lift.
 
-2. Ability dynamic readiness state
+2. Active combat / response-window attacker context
    - Why second:
+     - Extremely high tactical value in defender response windows.
+     - Public information, cheap to expose, and directly answers "who is attacking now?"
+
+3. Opponent previous action tuple / short recent action history
+   - Why third:
+     - Natural extension of the existing self previous-action block.
+     - Gives the defender immediate context for what the opponent just did, especially attack declarations.
+
+4. Ability dynamic readiness state
+   - Why fourth:
      - High tactical value: whether a card/ability is actually usable now or soon.
      - Directly impacts action legality and planning.
 
-3. Effect embedding payload with duration + source metadata
-   - Why third:
+5. Effect embedding payload with duration + source metadata
+   - Why fifth:
      - Scales better than adding ad-hoc booleans forever.
      - Captures rich status semantics with controlled dimensional growth.
 
-4. Turn-economy / tempo globals
-   - Why fourth:
+6. Turn-economy / tempo globals
+   - Why sixth:
      - Strong signal for phase pacing and local tactical tempo.
      - Cheap relative to complex relational/belief systems.
 
-5. Hidden-information belief features (v1 compact)
-   - Why fifth:
+7. Hidden-information belief features (v1 compact)
+   - Why seventh:
      - High strategic upside in partially observable play.
      - More engineering complexity; add after stable baseline features.
 
-6. Board relation matrices / threat summaries
-   - Why sixth:
+8. Board relation matrices / threat summaries
+   - Why eighth:
      - Powerful, but potentially expensive and easy to overgrow.
      - Add once earlier gains plateau.
 
-7. Short event-history summaries
-   - Why seventh:
+9. Short event-history summaries
+   - Why ninth:
      - Useful context compression; moderate complexity.
      - Can overlap with what LSTM already captures.
 
-8. Optional expanded history (prev2/last-N actions) and other long-tail extras
+10. Optional expanded history (self/opp last-N actions) and other long-tail extras
    - Why last:
      - Diminishing returns unless diagnostics identify specific deficits.
 
@@ -209,9 +251,11 @@ Scope:
 1. Start with low-risk small-dimensional additions.
 2. Keep hard factual channels separate from uncertain/inferred channels.
 3. For uncertain channels, always expose uncertainty (`entropy`, `confidence`).
-4. Prefer structured set/relation encoders before trying CNNs for this board format.
-5. Add instrumentation per feature block so ablations can measure ROI cleanly.
-6. For public reveals, preserve both:
+4. In combat/response windows, expose public attacker/target identity directly instead of forcing the model to reconstruct it from hidden state or long action history.
+5. If opponent action history is added, start with a single last-opponent-action parity block and only expand to last-`N` if diagnostics still show response-phase ambiguity.
+6. Prefer structured set/relation encoders before trying CNNs for this board format.
+7. Add instrumentation per feature block so ablations can measure ROI cleanly.
+8. For public reveals, preserve both:
    - a short-horizon "may still be in hand" representation;
    - a long-horizon "this deck has shown this card/package" representation.
-7. If a pooled set is used for reveal memory, include explicit count or sum-based aggregation so duplicate reveals are not silently erased.
+9. If a pooled set is used for reveal memory, include explicit count or sum-based aggregation so duplicate reveals are not silently erased.

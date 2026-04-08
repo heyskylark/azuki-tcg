@@ -120,20 +120,21 @@ void azk_clear_ability_context(ecs_world_t *world);
 // casting) Returns true if ability requires target selection, false if
 // auto-executes
 bool azk_trigger_spell_ability(ecs_world_t *world, ecs_entity_t spell_card,
-                               ecs_entity_t owner);
+                               ecs_entity_t owner, int8_t action_index);
 
 // Trigger a main phase ability (AMain tag) for a card in the alley
 // These are optional abilities that can be activated during the main phase
 // Returns true if ability requires confirmation/selection, false if
 // auto-executes or no ability
 bool azk_trigger_main_ability(ecs_world_t *world, ecs_entity_t card,
-                              ecs_entity_t owner);
+                              ecs_entity_t owner, int8_t action_index);
 
 // Trigger a leader response ability (AResponse tag) during response window
 // Similar to spell abilities but for leader cards with response timing
 // Returns true if ability requires target selection, false if auto-executes
 bool azk_trigger_leader_response_ability(ecs_world_t *world, ecs_entity_t card,
-                                         ecs_entity_t owner);
+                                         ecs_entity_t owner,
+                                         int8_t action_index);
 
 // Trigger observer abilities when a card is returned to hand from garden/alley
 // Scans both players' gardens for cards with AWhenReturnedToHand timing tag
@@ -179,7 +180,7 @@ bool azk_trigger_enter_garden_ability(ecs_world_t *world, ecs_entity_t card,
 // deferred zone operations haven't flushed yet
 // timing_tag is the index of the timing tag (e.g., AOnPlay)
 // Returns true if successfully queued, false if queue is full
-bool azk_queue_triggered_effect(ecs_world_t *world, ecs_entity_t card,
+bool azk_queue_triggered_effect(ecs_world_t *world, ecs_entity_t ability_entity,
                                 ecs_entity_t owner, uint8_t timing_tag);
 
 // Check if there are pending triggered effects in the queue

@@ -2,6 +2,7 @@
 
 #include "abilities/core/ability_runtime.h"
 #include "components/abilities.h"
+#include "utils/ability_util.h"
 
 static uint8_t clamp_expected_target_count(uint8_t available,
                                            uint8_t requested_max) {
@@ -50,7 +51,8 @@ uint8_t azk_count_remaining_selection_cards(const AbilityContext *ctx) {
   return remaining;
 }
 
-void azk_init_ability_context(AbilityContext *ctx, ecs_entity_t source_card,
+void azk_init_ability_context(ecs_world_t *world, AbilityContext *ctx,
+                              ecs_entity_t source_ability,
                               ecs_entity_t owner, const AbilityDef *def,
                               uint8_t available_cost_targets,
                               const AbilityContextInitOptions *options) {
@@ -64,9 +66,18 @@ void azk_init_ability_context(AbilityContext *ctx, ecs_entity_t source_card,
 
   azk_reset_ability_context_state(ctx);
 
-  ctx->runtime.source_card = source_card;
+  ctx->runtime.source_ability = source_ability;
+  ctx->runtime.source_card =
+      azk_get_ability_source_card(world, source_ability);
   ctx->runtime.owner = owner;
   ctx->runtime.is_optional = init_options->is_optional;
+
+  const AbilityInstance *instance =
+      source_ability != 0 ? ecs_get(world, source_ability, AbilityInstance) : NULL;
+  if (instance != NULL) {
+    ctx->runtime.action_index = instance->action_index;
+    ctx->runtime.registry_order = instance->registry_order;
+  }
 
   azk_init_ability_target_state(
       &ctx->cost, def->cost_req.min,
@@ -92,9 +103,9 @@ void azk_clear_ability_context(ecs_world_t *world) {
     return;
   }
 
-  if (ctx->runtime.source_card != 0 &&
-      ecs_has(world, ctx->runtime.source_card, AOnceTurn)) {
-    ecs_set(world, ctx->runtime.source_card, AbilityRepeatContext,
+  if (ctx->runtime.source_ability != 0 &&
+      ecs_has(world, ctx->runtime.source_ability, AOnceTurn)) {
+    ecs_set(world, ctx->runtime.source_ability, AbilityRepeatContext,
             {.is_once_per_turn = true, .was_applied = true});
   }
 

@@ -217,7 +217,7 @@ export function Card3D({
     if (isRooted) return "#9bd17a";
     if (isShocked) return "#ffff88";
     if (isEffectImmune) return "#88ffdd";
-    if (cooldown) return "#888888";
+    if (cooldown) return "#6e6e6e";
     if (hovered) return "#ffffff";
     return "#dddddd";
   };
@@ -695,10 +695,30 @@ function EffectImmuneOverlay() {
  */
 function CooldownOverlay() {
   return (
-    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, CARD_DEPTH + 0.01, 0]} raycast={() => null}>
-      <planeGeometry args={[CARD_WIDTH * 0.9, CARD_HEIGHT * 0.9]} />
-      <meshBasicMaterial color="#000000" transparent opacity={0.4} side={THREE.DoubleSide} />
-    </mesh>
+    <group rotation={[-Math.PI / 2, 0, 0]} position={[0, CARD_DEPTH + 0.01, 0]}>
+      <mesh raycast={() => null} renderOrder={3}>
+        <planeGeometry args={[CARD_WIDTH * 0.92, CARD_HEIGHT * 0.92]} />
+        <meshBasicMaterial
+          color="#050505"
+          transparent
+          opacity={0.62}
+          side={THREE.DoubleSide}
+          depthWrite={false}
+          depthTest={false}
+        />
+      </mesh>
+      <mesh position={[0, 0.001, 0]} raycast={() => null} renderOrder={4}>
+        <planeGeometry args={[CARD_WIDTH * 0.8, CARD_HEIGHT * 0.8]} />
+        <meshBasicMaterial
+          color="#8d95a0"
+          transparent
+          opacity={0.16}
+          side={THREE.DoubleSide}
+          depthWrite={false}
+          depthTest={false}
+        />
+      </mesh>
+    </group>
   );
 }
 

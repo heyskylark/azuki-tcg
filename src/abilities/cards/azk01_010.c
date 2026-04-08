@@ -3,6 +3,7 @@
 #include "abilities/passive/passive_runtime.h"
 #include "components/abilities.h"
 #include "components/components.h"
+#include "utils/ability_util.h"
 #include "utils/card_utils.h"
 #include "utils/player_util.h"
 #include "utils/status_util.h"
@@ -64,7 +65,13 @@ static void azk01_010_zone_observer(ecs_iter_t *it) {
   update_jd_buff(it->world, ctx->card, ctx->player_num);
 }
 
-void azk01_010_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
+void azk01_010_init_passive_observers(ecs_world_t *world,
+                                      ecs_entity_t ability_entity) {
+  ecs_entity_t card = azk_get_ability_source_card(world, ability_entity);
+  if (card == 0) {
+    return;
+  }
+
   ecs_entity_t owner = ecs_get_target(world, card, Rel_OwnedBy, 0);
   if (!owner) {
     return;
@@ -78,14 +85,14 @@ void azk01_010_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
 
   ctx->card = card;
   ctx->player_num = get_player_number(world, owner);
-  azk_init_passive_observer_context(world, card, ctx);
+  azk_init_passive_observer_context(world, ability_entity, ctx);
 
   const GameState *gs = ecs_singleton_get(world, GameState);
   ecs_entity_t garden = gs->zones[ctx->player_num].garden;
   ecs_entity_t alley = gs->zones[ctx->player_num].alley;
 
   ecs_entity_t garden_observer = azk_create_tracked_passive_observer(
-      world, card,
+      world, ability_entity,
       &(ecs_observer_desc_t){
           .query.terms = {{.id = ecs_pair(EcsChildOf, garden)},
                           {.id = ecs_id(CardId)}},
@@ -94,7 +101,7 @@ void azk01_010_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
           .ctx = ctx,
       });
   ecs_entity_t alley_observer = azk_create_tracked_passive_observer(
-      world, card,
+      world, ability_entity,
       &(ecs_observer_desc_t){
           .query.terms = {{.id = ecs_pair(EcsChildOf, alley)},
                           {.id = ecs_id(CardId)}},
@@ -105,7 +112,7 @@ void azk01_010_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
 
   if (garden_observer == 0 || alley_observer == 0) {
     azk_cleanup_passive_observer_context(
-        world, card,
+        world, ability_entity,
         &(PassiveObserverCleanupOptions){
             .free_ctx = true,
         });
@@ -116,9 +123,10 @@ void azk01_010_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
 }
 
 void azk01_010_cleanup_passive_observers(ecs_world_t *world,
-                                         ecs_entity_t card) {
+                                         ecs_entity_t ability_entity) {
+  ecs_entity_t card = azk_get_ability_source_card(world, ability_entity);
   azk_cleanup_passive_observer_context(
-      world, card,
+      world, ability_entity,
       &(PassiveObserverCleanupOptions){
           .free_ctx = true,
           .attack_buff_source = card,

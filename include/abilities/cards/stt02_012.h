@@ -7,7 +7,9 @@
 // the number of entities in your opponent's garden, this card has +1 attack
 // and +1 health.
 
-void stt02_012_init_passive_observers(ecs_world_t *world, ecs_entity_t card);
-void stt02_012_cleanup_passive_observers(ecs_world_t *world, ecs_entity_t card);
+void stt02_012_init_passive_observers(ecs_world_t *world,
+                                      ecs_entity_t ability_entity);
+void stt02_012_cleanup_passive_observers(ecs_world_t *world,
+                                         ecs_entity_t ability_entity);
 
 #endif

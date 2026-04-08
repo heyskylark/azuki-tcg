@@ -134,6 +134,13 @@
       "when": 1774390501573,
       "tag": "0018_fix-stt04-013-gate-power",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1774733143297,
+      "tag": "0019_fix-azk01-107-ikz-cost",
+      "breakpoints": true
     }
   ]
 }

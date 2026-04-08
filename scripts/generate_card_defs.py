@@ -30,10 +30,14 @@ BASE_REQUIRED_FIELDS = {"card_id", "name", "rarity", "element", "type"}
 
 # Keywords that map to simple ECS tags
 KEYWORD_TAG_MAPPING = {
+    "can_target_leader_only": "AttrCanTargetLeaderOnly",
+    "can_target_tapped_and_untapped_alley": "AttrCanTargetTappedAndUntappedAlley",
     "charge": "Charge",
     "defender": "Defender",
     "infiltrate": "Infiltrate",
     "godmode": "Godmode",
+    "garden_force_tapped": "AttrGardenForceTapped",
+    "is_ikz_card": "AttrCountsAsIkzSource",
 }
 
 # Keywords that require additional component data

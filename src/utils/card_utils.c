@@ -5,6 +5,7 @@
 #include "components/abilities.h"
 #include "components/components.h"
 #include "generated/card_defs.h"
+#include "utils/ability_util.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/entity_util.h"
 #include "utils/game_log_util.h"
@@ -35,49 +36,23 @@ bool azk_card_has_godmode_in_play(ecs_world_t *world, ecs_entity_t card) {
 }
 
 bool azk_card_enters_garden_tapped(ecs_world_t *world, ecs_entity_t card) {
-  const CardId *card_id = ecs_get(world, card, CardId);
-  return card_id != NULL && card_id->id == CARD_DEF_AZK01_046;
+  return ecs_has(world, card, AttrGardenForceTapped);
 }
 
 bool azk_card_cannot_be_untapped(ecs_world_t *world, ecs_entity_t card) {
-  const CardId *card_id = ecs_get(world, card, CardId);
-  return card_id != NULL && card_id->id == CARD_DEF_AZK01_046;
+  return ecs_has(world, card, AttrGardenForceTapped);
 }
 
 bool azk_card_can_only_attack_leaders(ecs_world_t *world, ecs_entity_t card) {
-  const CardId *card_id = ecs_get(world, card, CardId);
-  return card_id != NULL && card_id->id == CARD_DEF_AZK01_077;
+  return ecs_has(world, card, AttrCanTargetLeaderOnly);
 }
 
 bool azk_card_can_attack_opponent_alley(ecs_world_t *world, ecs_entity_t card) {
-  const CardId *card_id = ecs_get(world, card, CardId);
-  if (card_id != NULL &&
-      (card_id->id == CARD_DEF_AZK01_037 || card_id->id == CARD_DEF_AZK01_038)) {
-    return true;
-  }
-
-  if (!ecs_has(world, card, TLeader)) {
-    return false;
-  }
-
-  ecs_iter_t child_it = ecs_children(world, card);
-  while (ecs_children_next(&child_it)) {
-    for (int i = 0; i < child_it.count; ++i) {
-      const CardId *weapon_id = ecs_get(world, child_it.entities[i], CardId);
-      if (weapon_id != NULL &&
-          (weapon_id->id == CARD_DEF_AZK01_043 ||
-           weapon_id->id == CARD_DEF_AZK01_095)) {
-        return true;
-      }
-    }
-  }
-
-  return false;
+  return ecs_has(world, card, AttrCanTargetTappedAndUntappedAlley);
 }
 
 bool azk_card_counts_as_ikz_source(ecs_world_t *world, ecs_entity_t card) {
-  const CardId *card_id = ecs_get(world, card, CardId);
-  if (card_id == NULL || card_id->id != CARD_DEF_STT03_007) {
+  if (!ecs_has(world, card, AttrCountsAsIkzSource)) {
     return false;
   }
 
@@ -93,6 +68,34 @@ bool azk_card_counts_as_ikz_source(ecs_world_t *world, ecs_entity_t card) {
 
   uint8_t player_num = get_player_number(world, owner);
   return ecs_get_target(world, card, EcsChildOf, 0) == gs->zones[player_num].garden;
+}
+
+bool azk_can_play_card_from_hand_during_response_window(ecs_world_t *world,
+                                                        ecs_entity_t card) {
+  const Type *type = ecs_get(world, card, Type);
+  if (type == NULL) {
+    return false;
+  }
+
+  if (type->value == CARD_TYPE_SPELL) {
+    ecs_entity_t abilities[AZK_MAX_CARD_ABILITIES] = {0};
+    uint8_t ability_count = azk_collect_card_action_abilities(
+        world, card, abilities, AZK_MAX_CARD_ABILITIES);
+    for (uint8_t i = 0; i < ability_count; ++i) {
+      if (azk_ability_has_timing(world, abilities[i], ecs_id(AResponse))) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  const CardId *card_id = ecs_get(world, card, CardId);
+  if (card_id == NULL) {
+    return false;
+  }
+
+  return azk_can_play_as_response_from_hand(card_id->id);
 }
 
 static uint8_t count_defender_entities_in_garden(ecs_world_t *world,
@@ -151,22 +154,23 @@ static void maybe_queue_self_leave_play_trigger(ecs_world_t *world,
                                                 ecs_entity_t card,
                                                 ecs_entity_t owner,
                                                 AzkDiscardReason reason) {
-  const CardId *card_id = ecs_get(world, card, CardId);
-  if (card_id == NULL || !azk_has_ability(card_id->id)) {
+  ecs_id_t timing_tag_id = 0;
+  uint8_t timing_tag = 0;
+  if (reason == AZK_DISCARD_REASON_DESTROY) {
+    timing_tag_id = ecs_id(AWhenDestroyed);
+    timing_tag = TIMING_TAG_WHEN_DESTROYED;
+  } else if (reason == AZK_DISCARD_REASON_SACRIFICE) {
+    timing_tag_id = ecs_id(AWhenSacrificed);
+    timing_tag = TIMING_TAG_WHEN_SACRIFICED;
+  } else {
     return;
   }
 
-  const AbilityDef *def = azk_get_ability_def(card_id->id);
-  if (def == NULL) {
-    return;
-  }
-
-  if (reason == AZK_DISCARD_REASON_DESTROY &&
-      azk_has_ability_with_timing(card_id->id, ecs_id(AWhenDestroyed))) {
-    azk_queue_triggered_effect(world, card, owner, TIMING_TAG_WHEN_DESTROYED);
-  } else if (reason == AZK_DISCARD_REASON_SACRIFICE &&
-             azk_has_ability_with_timing(card_id->id, ecs_id(AWhenSacrificed))) {
-    azk_queue_triggered_effect(world, card, owner, TIMING_TAG_WHEN_SACRIFICED);
+  ecs_entity_t abilities[AZK_MAX_CARD_ABILITIES] = {0};
+  uint8_t ability_count = azk_collect_card_timed_abilities(
+      world, card, timing_tag_id, abilities, AZK_MAX_CARD_ABILITIES);
+  for (uint8_t i = 0; i < ability_count; ++i) {
+    azk_queue_triggered_effect(world, abilities[i], owner, timing_tag);
   }
 }
 
@@ -490,13 +494,13 @@ void return_card_to_hand(ecs_world_t *world, ecs_entity_t card) {
 
   // Trigger observers only if card came from play (garden/alley)
   if (from_play) {
-    const CardId *card_id = ecs_get(world, card, CardId);
-    if (card_id != NULL && azk_has_ability(card_id->id)) {
-      const AbilityDef *def = azk_get_ability_def(card_id->id);
-      if (def != NULL && def->timing_tag == ecs_id(AWhenReturnedToHand)) {
-        azk_queue_triggered_effect(world, card, owner,
-                                   TIMING_TAG_WHEN_RETURNED_TO_HAND);
-      }
+    ecs_entity_t abilities[AZK_MAX_CARD_ABILITIES] = {0};
+    uint8_t ability_count = azk_collect_card_timed_abilities(
+        world, card, ecs_id(AWhenReturnedToHand), abilities,
+        AZK_MAX_CARD_ABILITIES);
+    for (uint8_t i = 0; i < ability_count; ++i) {
+      azk_queue_triggered_effect(world, abilities[i], owner,
+                                 TIMING_TAG_WHEN_RETURNED_TO_HAND);
     }
 
     GameState *gs_mut = ecs_singleton_get_mut(world, GameState);

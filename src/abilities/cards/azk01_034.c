@@ -1,5 +1,6 @@
 #include "abilities/cards/azk01_034.h"
 
+#include "utils/card_utils.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/game_log_util.h"
 #include "utils/player_util.h"
@@ -60,16 +61,22 @@ void azk01_034_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
   const int8_t alley_index = (int8_t)kira_index->index;
   const int8_t garden_index = (int8_t)attacked_index->index;
 
+  ecs_add_pair(world, kira, EcsChildOf, gs->zones[owner_num].garden);
+  ecs_set(world, kira, ZoneIndex, {.index = (uint8_t)garden_index});
+  const TapState *kira_tap = ecs_get(world, kira, TapState);
+  if (kira_tap != NULL && azk_card_enters_garden_tapped(world, kira) &&
+      !kira_tap->tapped) {
+    ecs_set(world, kira, TapState,
+            {.tapped = true, .cooldown = kira_tap->cooldown});
+  }
+
+  ecs_add_pair(world, attacked_card, EcsChildOf, gs->zones[owner_num].alley);
+  ecs_set(world, attacked_card, ZoneIndex, {.index = (uint8_t)alley_index});
+
   azk_log_card_zone_moved(world, kira, GLOG_ZONE_ALLEY, alley_index,
                           GLOG_ZONE_GARDEN, garden_index);
   azk_log_card_zone_moved(world, attacked_card, GLOG_ZONE_GARDEN, garden_index,
                           GLOG_ZONE_ALLEY, alley_index);
-
-  ecs_add_pair(world, kira, EcsChildOf, gs->zones[owner_num].garden);
-  ecs_set(world, kira, ZoneIndex, {.index = (uint8_t)garden_index});
-
-  ecs_add_pair(world, attacked_card, EcsChildOf, gs->zones[owner_num].alley);
-  ecs_set(world, attacked_card, ZoneIndex, {.index = (uint8_t)alley_index});
 
   gs->combat_state.defender_card = kira;
 

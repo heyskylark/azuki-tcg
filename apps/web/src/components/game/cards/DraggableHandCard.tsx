@@ -14,6 +14,7 @@ import {
   getValidWeaponAttachTargets,
   canAttachWeapon,
 } from "@/lib/game/actionValidation";
+import { countGardenDefenders } from "@/lib/game/defenderRules";
 import type { SnapshotActionMask } from "@tcg/backend-core/types/ws";
 import type { ResolvedHandCard } from "@/types/game";
 
@@ -77,6 +78,15 @@ export function DraggableHandCard({
 
   // Card is draggable if it can be played OR if it's a weapon that can be attached
   const isDraggable = isPlayable || canAttach;
+
+  const displayedIkzCost =
+    card.cardCode === "AZK01-106" && gameState
+      ? Math.max(
+          0,
+          card.ikzCost -
+            countGardenDefenders(gameState.myBoard, gameState.opponentBoard)
+        )
+      : card.ikzCost;
 
   // Check if this specific card is being dragged
   const isBeingDragged = draggedCardIndex === handIndex && dragPhase !== "idle";
@@ -270,7 +280,7 @@ export function DraggableHandCard({
             anchorY="middle"
             fontWeight="bold"
           >
-            {card.ikzCost}
+            {displayedIkzCost}
           </Text>
         </group>
 

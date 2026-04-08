@@ -5,6 +5,7 @@
 #include "utils/cli_rendering_util.h"
 #include "utils/deck_utils.h"
 #include "utils/game_log_util.h"
+#include "utils/ability_util.h"
 #include "utils/status_util.h"
 #include "utils/zone_util.h"
 
@@ -37,28 +38,41 @@ void GrantIKZ(ecs_world_t *world, GameState *gs) {
 }
 
 static void reset_once_per_turn_in_zone(ecs_world_t *world, ecs_entity_t zone) {
+  ecs_entity_t abilities[AZK_MAX_CARD_ABILITIES] = {0};
   ecs_entities_t cards = ecs_get_ordered_children(world, zone);
   for (int i = 0; i < cards.count; i++) {
     ecs_entity_t card = cards.ids[i];
-    if (ecs_has(world, card, AOnceTurn)) {
-      ecs_set(world, card, AbilityRepeatContext, {
-        .is_once_per_turn = true,
-        .was_applied = false
-      });
+    uint8_t ability_count =
+        azk_collect_card_abilities(world, card, abilities, AZK_MAX_CARD_ABILITIES);
+    for (uint8_t j = 0; j < ability_count; ++j) {
+      if (!ecs_has(world, abilities[j], AOnceTurn)) {
+        continue;
+      }
+
+      ecs_set(world, abilities[j], AbilityRepeatContext,
+              {
+                  .is_once_per_turn = true,
+                  .was_applied = false
+              });
     }
 
     ecs_iter_t child_it = ecs_children(world, card);
     while (ecs_children_next(&child_it)) {
-      for (int j = 0; j < child_it.count; j++) {
+      for (int j = 0; j < child_it.count; ++j) {
         ecs_entity_t child = child_it.entities[j];
-        if (!ecs_has(world, child, AOnceTurn)) {
-          continue;
-        }
+        uint8_t child_ability_count = azk_collect_card_abilities(
+            world, child, abilities, AZK_MAX_CARD_ABILITIES);
+        for (uint8_t k = 0; k < child_ability_count; ++k) {
+          if (!ecs_has(world, abilities[k], AOnceTurn)) {
+            continue;
+          }
 
-        ecs_set(world, child, AbilityRepeatContext, {
-          .is_once_per_turn = true,
-          .was_applied = false
-        });
+          ecs_set(world, abilities[k], AbilityRepeatContext,
+                  {
+                      .is_once_per_turn = true,
+                      .was_applied = false
+                  });
+        }
       }
     }
   }

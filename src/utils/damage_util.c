@@ -8,6 +8,7 @@
 #include "utils/card_utils.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/game_log_util.h"
+#include "utils/ability_util.h"
 #include "utils/player_util.h"
 #include "utils/status_util.h"
 
@@ -71,14 +72,16 @@ const DamageTracker *azk_get_current_turn_damage_tracker(ecs_world_t *world,
 
 static void maybe_queue_damage_trigger(ecs_world_t *world, ecs_entity_t card,
                                        uint8_t timing_tag, ecs_id_t tag_id) {
-  const CardId *card_id = ecs_get(world, card, CardId);
-  if (card_id == NULL || !azk_has_ability_with_timing(card_id->id, tag_id)) {
+  ecs_entity_t owner = ecs_get_target(world, card, Rel_OwnedBy, 0);
+  if (owner == 0) {
     return;
   }
 
-  ecs_entity_t owner = ecs_get_target(world, card, Rel_OwnedBy, 0);
-  if (owner != 0) {
-    azk_queue_triggered_effect(world, card, owner, timing_tag);
+  ecs_entity_t abilities[AZK_MAX_CARD_ABILITIES] = {0};
+  uint8_t ability_count = azk_collect_card_timed_abilities(
+      world, card, tag_id, abilities, AZK_MAX_CARD_ABILITIES);
+  for (uint8_t i = 0; i < ability_count; ++i) {
+    azk_queue_triggered_effect(world, abilities[i], owner, timing_tag);
   }
 }
 
@@ -218,9 +221,15 @@ static bool maybe_queue_pekiro_redirect(ecs_world_t *world, ecs_entity_t source,
     return false;
   }
 
-  if (azk_queue_triggered_effect(world, target, owner,
-                                 TIMING_TAG_WHEN_TAKES_DAMAGE)) {
-    return true;
+  ecs_entity_t abilities[AZK_MAX_CARD_ABILITIES] = {0};
+  uint8_t ability_count = azk_collect_card_timed_abilities(
+      world, target, ecs_id(AWhenTakesDamage), abilities,
+      AZK_MAX_CARD_ABILITIES);
+  for (uint8_t i = 0; i < ability_count; ++i) {
+    if (azk_queue_triggered_effect(world, abilities[i], owner,
+                                   TIMING_TAG_WHEN_TAKES_DAMAGE)) {
+      return true;
+    }
   }
 
   azk_consume_pending_damage_redirect(world, target, NULL);
@@ -257,11 +266,13 @@ static bool deal_effect_damage_from_source_internal(ecs_world_t *world,
     return false;
   }
 
+  const bool target_has_godmode = azk_card_has_godmode_in_play(world, target);
   int8_t prev_hp = cur_stats->cur_hp;
-  cur_stats->cur_hp -= (int8_t)adjusted_damage;
-  if (cur_stats->cur_hp <= 0 && azk_card_has_godmode_in_play(world, target)) {
-    cur_stats->cur_hp = 1;
+  int16_t next_hp = (int16_t)prev_hp - adjusted_damage;
+  if (target_has_godmode && next_hp < 0) {
+    next_hp = 0;
   }
+  cur_stats->cur_hp = (int8_t)next_hp;
   ecs_modified(world, target, CurStats);
   int8_t hp_delta = (int8_t)(cur_stats->cur_hp - prev_hp);
   int8_t actual_damage = (int8_t)(prev_hp - cur_stats->cur_hp);
@@ -279,7 +290,9 @@ static bool deal_effect_damage_from_source_internal(ecs_world_t *world,
 
   // Check for death (HP <= 0)
   if (cur_stats->cur_hp <= 0) {
-    if (ecs_has(world, target, TLeader)) {
+    if (target_has_godmode) {
+      cli_render_logf("[Damage] Godmode kept card in play at 0 HP");
+    } else if (ecs_has(world, target, TLeader)) {
       // Leader defeated - determine winner based on target's owner
       GameState *gs = ecs_singleton_get_mut(world, GameState);
       ecs_entity_t target_parent = ecs_get_target(world, target, EcsChildOf, 0);

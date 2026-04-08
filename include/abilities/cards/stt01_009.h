@@ -9,9 +9,11 @@
 
 // Initialize passive observers for this card
 // Creates observers that watch for weapons in owner's discard and zone changes
-void stt01_009_init_passive_observers(ecs_world_t *world, ecs_entity_t card);
+void stt01_009_init_passive_observers(ecs_world_t *world,
+                                      ecs_entity_t ability_entity);
 
 // Cleanup passive observers and remove any buffs
-void stt01_009_cleanup_passive_observers(ecs_world_t *world, ecs_entity_t card);
+void stt01_009_cleanup_passive_observers(ecs_world_t *world,
+                                         ecs_entity_t ability_entity);
 
 #endif // AZUKI_ABILITY_STT01_009_H

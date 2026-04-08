@@ -34,12 +34,15 @@ static uint8_t move_matching_discard_entities_to_selection(ecs_world_t *world,
     if (!is_valid_replica_target(world, target)) {
       continue;
     }
+    selection_cards[selection_count++] = target;
+  }
 
+  for (uint8_t i = 0; i < selection_count; ++i) {
+    ecs_entity_t target = selection_cards[i];
     int8_t from_index = azk_get_card_index_in_zone(world, target, discard_zone);
     ecs_add_pair(world, target, EcsChildOf, selection_zone);
     azk_log_card_zone_moved(world, target, GLOG_ZONE_DISCARD, from_index,
-                            GLOG_ZONE_SELECTION, (int8_t)selection_count);
-    selection_cards[selection_count++] = target;
+                            GLOG_ZONE_SELECTION, (int8_t)i);
   }
 
   azk_init_selection_state(ctx, selection_cards, selection_count, 1);

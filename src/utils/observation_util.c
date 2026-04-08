@@ -2,9 +2,15 @@
 
 #include <stddef.h>
 
+#include "abilities/ability_system.h"
 #include "components/abilities.h"
 #include "utils/cli_rendering_util.h"
+#include "utils/combat_util.h"
+#include "utils/deck_utils.h"
 #include "utils/debug_log.h"
+#include "utils/phase_utils.h"
+#include "utils/player_util.h"
+#include "utils/status_util.h"
 #include "validation/action_enumerator.h"
 
 static void reset_legal_actions(ActionMaskObs *action_mask) {
@@ -49,17 +55,6 @@ static void populate_action_mask_from_set(const AzkActionMaskSet *mask_set,
   }
 
   out_mask->legal_action_count = legal_action_count;
-
-  if (!out_mask->primary_action_mask[ACT_NOOP]) {
-    out_mask->primary_action_mask[ACT_NOOP] = true;
-    if (out_mask->legal_action_count < AZK_MAX_LEGAL_ACTIONS) {
-      uint16_t noop_idx = out_mask->legal_action_count++;
-      out_mask->legal_primary[noop_idx] = (uint8_t)ACT_NOOP;
-      out_mask->legal_sub1[noop_idx] = 0;
-      out_mask->legal_sub2[noop_idx] = 0;
-      out_mask->legal_sub3[noop_idx] = 0;
-    }
-  }
 }
 
 static ActionMaskObs build_observation_action_mask(ecs_world_t *world,
@@ -78,6 +73,45 @@ static ActionMaskObs build_observation_action_mask(ecs_world_t *world,
   populate_action_mask_from_set(&mask_set, &action_mask);
 
   return action_mask;
+}
+
+static bool should_expose_observation_action_mask(ecs_world_t *world,
+                                                  const GameState *gs,
+                                                  int8_t player_index) {
+  if (gs == NULL || gs->winner != -1) {
+    return false;
+  }
+
+  if (player_index != gs->active_player_index) {
+    return false;
+  }
+
+  if (!phase_requires_user_action(world, gs->phase)) {
+    return false;
+  }
+
+  const bool in_ability_phase = azk_is_in_ability_phase(world);
+
+  // Keep mask generation aligned with azk_engine_requires_action.
+  if (azk_has_pending_deck_reorders(world) ||
+      (azk_has_pending_passive_buffs(world) && !in_ability_phase) ||
+      (azk_has_queued_triggered_effects(world) && !in_ability_phase)) {
+    return false;
+  }
+
+  // Mirror PhaseGate auto-transitions so snapshots never expose stale actions.
+  if (gs->phase == PHASE_MAIN && gs->combat_state.attacking_card != 0 &&
+      !azk_has_queued_triggered_effects(world) && !in_ability_phase) {
+    return false;
+  }
+
+  if (gs->phase == PHASE_RESPONSE_WINDOW &&
+      !azk_has_queued_triggered_effects(world) && !in_ability_phase &&
+      !defender_can_respond(world, gs, gs->active_player_index)) {
+    return false;
+  }
+
+  return true;
 }
 
 static WeaponObservationData get_weapon_observation(ecs_world_t *world,
@@ -436,8 +470,11 @@ ObservationData create_observation_data(ecs_world_t *world,
   observation_data.my_observation_data = my_observation_data;
   observation_data.opponent_observation_data = opponent_observation_data;
   observation_data.phase = gs->phase;
-  observation_data.action_mask =
-      build_observation_action_mask(world, gs, player_index);
+  reset_legal_actions(&observation_data.action_mask);
+  if (should_expose_observation_action_mask(world, gs, player_index)) {
+    observation_data.action_mask =
+        build_observation_action_mask(world, gs, player_index);
+  }
 
   return observation_data;
 }

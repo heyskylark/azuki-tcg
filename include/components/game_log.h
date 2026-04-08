@@ -192,13 +192,13 @@ typedef struct {
 
 typedef struct {
   GameLogCardRef card;
-  uint8_t ability_index;
+  int8_t ability_index;
   uint8_t trigger_tag; // Timing tag index (AOnPlay, etc.)
 } GameLogEffectQueued;
 
 typedef struct {
   GameLogCardRef card;
-  uint8_t ability_index;
+  int8_t ability_index;
 } GameLogEffectEnabled;
 
 typedef struct {

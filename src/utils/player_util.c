@@ -2,6 +2,7 @@
 #include "abilities/ability_registry.h"
 #include "components/abilities.h"
 #include "components/components.h"
+#include "utils/ability_util.h"
 #include "utils/card_utils.h"
 #include "utils/zone_util.h"
 #include "validation/action_validation.h"
@@ -27,11 +28,22 @@ bool defender_can_respond(ecs_world_t *world, const GameState *gs,
   for (int i = 0; i < hand_cards.count; i++) {
     ecs_entity_t card = hand_cards.ids[i];
 
-    // Check if it's a spell with AResponse timing
     if (!is_card_type(world, card, CARD_TYPE_SPELL))
       continue;
-    if (!ecs_has(world, card, AResponse))
+
+    ecs_entity_t abilities[AZK_MAX_CARD_ABILITIES] = {0};
+    uint8_t ability_count = azk_collect_card_action_abilities(
+        world, card, abilities, AZK_MAX_CARD_ABILITIES);
+    bool has_response_spell = false;
+    for (uint8_t j = 0; j < ability_count; ++j) {
+      if (azk_ability_has_timing(world, abilities[j], ecs_id(AResponse))) {
+        has_response_spell = true;
+        break;
+      }
+    }
+    if (!has_response_spell) {
       continue;
+    }
 
     // Check if we have the ability registered
     const CardId *card_id = ecs_get(world, card, CardId);
@@ -50,11 +62,7 @@ bool defender_can_respond(ecs_world_t *world, const GameState *gs,
     if (!is_card_type(world, card, CARD_TYPE_ENTITY)) {
       continue;
     }
-
-    const CardId *card_id = ecs_get(world, card, CardId);
-    const AbilityDef *def =
-        card_id != NULL ? azk_get_ability_def(card_id->id) : NULL;
-    if (def == NULL || !def->can_play_as_response_from_hand) {
+    if (!azk_can_play_card_from_hand_during_response_window(world, card)) {
       continue;
     }
 
@@ -94,6 +102,9 @@ bool defender_can_respond(ecs_world_t *world, const GameState *gs,
   for (int i = 0; i < hand_cards.count; i++) {
     ecs_entity_t card = hand_cards.ids[i];
     if (!is_card_type(world, card, CARD_TYPE_WEAPON)) {
+      continue;
+    }
+    if (!azk_can_play_card_from_hand_during_response_window(world, card)) {
       continue;
     }
 
@@ -142,41 +153,45 @@ bool defender_can_respond(ecs_world_t *world, const GameState *gs,
 
   for (int i = 0; i < response_card_count; i++) {
     ecs_entity_t response_card = response_cards[i];
-    if (response_card == 0 || !ecs_has(world, response_card, AResponse) ||
-        ecs_has(world, response_card, Frozen)) {
+    if (response_card == 0 || ecs_has(world, response_card, Frozen)) {
       continue;
     }
 
-    bool once_turn_blocked = false;
-    if (ecs_has(world, response_card, AOnceTurn)) {
-      const AbilityRepeatContext *repeat_ctx =
-          ecs_get(world, response_card, AbilityRepeatContext);
-      if (repeat_ctx && repeat_ctx->was_applied) {
-        once_turn_blocked = true;
+    ecs_entity_t response_abilities[AZK_MAX_CARD_ABILITIES] = {0};
+    uint8_t response_ability_count = azk_collect_card_action_abilities(
+        world, response_card, response_abilities, AZK_MAX_CARD_ABILITIES);
+    for (uint8_t j = 0; j < response_ability_count; ++j) {
+      ecs_entity_t response_ability = response_abilities[j];
+      if (!azk_ability_has_timing(world, response_ability, ecs_id(AResponse))) {
+        continue;
       }
-    }
-    if (once_turn_blocked) {
-      continue;
-    }
 
-    const CardId *card_id = ecs_get(world, response_card, CardId);
-    if (!card_id || !azk_has_ability(card_id->id)) {
-      continue;
-    }
+      bool once_turn_blocked = false;
+      if (ecs_has(world, response_ability, AOnceTurn)) {
+        const AbilityRepeatContext *repeat_ctx =
+            ecs_get(world, response_ability, AbilityRepeatContext);
+        if (repeat_ctx && repeat_ctx->was_applied) {
+          once_turn_blocked = true;
+        }
+      }
+      if (once_turn_blocked) {
+        continue;
+      }
 
-    const AbilityDef *def = azk_get_ability_def(card_id->id);
-    if (!def || (def->timing_tag != ecs_id(AResponse) &&
-                 def->secondary_timing_tag != ecs_id(AResponse))) {
-      continue;
-    }
+      const AbilityDef *def =
+          azk_get_ability_def_for_entity(world, response_ability);
+      if (!def) {
+        continue;
+      }
 
-    if (def->ikz_cost > available_ikz) {
-      continue;
-    }
+      if (def->ikz_cost > available_ikz) {
+        continue;
+      }
 
-    if (!def->validate ||
-        def->validate(world, response_card, gs->players[defender_index])) {
-      return true;
+      if (!def->validate ||
+          def->validate(world, response_card, gs->players[defender_index])) {
+        return true;
+      }
     }
   }
 

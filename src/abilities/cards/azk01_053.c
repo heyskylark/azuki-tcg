@@ -3,6 +3,7 @@
 #include "abilities/passive/passive_runtime.h"
 #include "components/abilities.h"
 #include "components/components.h"
+#include "utils/ability_util.h"
 #include "utils/player_util.h"
 #include "utils/status_util.h"
 
@@ -38,6 +39,22 @@ static void sync_geodust_smuggler_buffs(ecs_world_t *world, ecs_entity_t card,
   }
 }
 
+static void clear_geodust_smuggler_buffs(ecs_world_t *world, ecs_entity_t card,
+                                         uint8_t owner_player_num) {
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  ecs_entity_t owner_garden = gs->zones[owner_player_num].garden;
+  ecs_entities_t garden_cards = ecs_get_ordered_children(world, owner_garden);
+  for (int32_t i = 0; i < garden_cards.count; ++i) {
+    ecs_entity_t entity = garden_cards.ids[i];
+    if (entity == card ||
+        !ecs_has_pair(world, entity, ecs_id(HealthBuff), card)) {
+      continue;
+    }
+
+    remove_health_modifier(world, entity, card);
+  }
+}
+
 static void azk01_053_garden_observer(ecs_iter_t *it) {
   Azk01053ObserverCtx *ctx = it->ctx;
   if (ctx == NULL) {
@@ -47,7 +64,13 @@ static void azk01_053_garden_observer(ecs_iter_t *it) {
   sync_geodust_smuggler_buffs(it->world, ctx->card, ctx->owner_player_num);
 }
 
-void azk01_053_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
+void azk01_053_init_passive_observers(ecs_world_t *world,
+                                      ecs_entity_t ability_entity) {
+  ecs_entity_t card = azk_get_ability_source_card(world, ability_entity);
+  if (card == 0) {
+    return;
+  }
+
   ecs_entity_t owner = ecs_get_target(world, card, Rel_OwnedBy, 0);
   if (owner == 0) {
     return;
@@ -63,10 +86,10 @@ void azk01_053_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
 
   ctx->card = card;
   ctx->owner_player_num = owner_player_num;
-  azk_init_passive_observer_context(world, card, ctx);
+  azk_init_passive_observer_context(world, ability_entity, ctx);
 
   ecs_entity_t observer = azk_create_tracked_passive_observer(
-      world, card,
+      world, ability_entity,
       &(ecs_observer_desc_t){
           .query.terms = {{.id = ecs_pair(EcsChildOf, gs->zones[owner_player_num].garden)},
                           {.id = TEntity}},
@@ -77,13 +100,23 @@ void azk01_053_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
 
   if (observer == 0) {
     azk_cleanup_passive_observer_context(
-        world, card, &(PassiveObserverCleanupOptions){.free_ctx = true});
+        world, ability_entity,
+        &(PassiveObserverCleanupOptions){.free_ctx = true});
   }
 }
 
-void azk01_053_cleanup_passive_observers(ecs_world_t *world, ecs_entity_t card) {
+void azk01_053_cleanup_passive_observers(ecs_world_t *world,
+                                         ecs_entity_t ability_entity) {
+  ecs_entity_t card = azk_get_ability_source_card(world, ability_entity);
+  const PassiveObserverContext *obs_ctx =
+      ecs_get(world, ability_entity, PassiveObserverContext);
+  const Azk01053ObserverCtx *ctx = obs_ctx != NULL ? obs_ctx->ctx : NULL;
+  if (card != 0 && ctx != NULL) {
+    clear_geodust_smuggler_buffs(world, card, ctx->owner_player_num);
+  }
+
   azk_cleanup_passive_observer_context(
-      world, card,
+      world, ability_entity,
       &(PassiveObserverCleanupOptions){
           .free_ctx = true,
       });

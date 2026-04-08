@@ -5,6 +5,7 @@
 #include "components/components.h"
 #include "constants/game.h"
 #include "generated/card_defs.h"
+#include "utils/ability_util.h"
 #include "utils/card_utils.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/combat_util.h"
@@ -65,8 +66,14 @@ static void queue_kira_attack_redirect_if_present(ecs_world_t *world,
       continue;
     }
 
-    azk_queue_triggered_effect(world, alley_card, defender_player,
-                               TIMING_TAG_WHEN_ATTACKED);
+    ecs_entity_t abilities[AZK_MAX_CARD_ABILITIES] = {0};
+    uint8_t ability_count = azk_collect_card_timed_abilities(
+        world, alley_card, ecs_id(AWhenAttacked), abilities,
+        AZK_MAX_CARD_ABILITIES);
+    for (uint8_t j = 0; j < ability_count; ++j) {
+      azk_queue_triggered_effect(world, abilities[j], defender_player,
+                                 TIMING_TAG_WHEN_ATTACKED);
+    }
   }
 }
 
@@ -177,9 +184,14 @@ static void handle_attack(ecs_world_t *world, GameState *gs,
   const CardId *card_id = ecs_get(world, intent.attacking_card, CardId);
   if (card_id &&
       azk_has_ability_with_timing(card_id->id, ecs_id(AWhenAttacking))) {
-    // Queue "when attacking" triggered ability for the attacking card
-    azk_queue_triggered_effect(world, intent.attacking_card, player,
-                               TIMING_TAG_WHEN_ATTACKING);
+    ecs_entity_t abilities[AZK_MAX_CARD_ABILITIES] = {0};
+    uint8_t ability_count = azk_collect_card_timed_abilities(
+        world, intent.attacking_card, ecs_id(AWhenAttacking), abilities,
+        AZK_MAX_CARD_ABILITIES);
+    for (uint8_t i = 0; i < ability_count; ++i) {
+      azk_queue_triggered_effect(world, abilities[i], player,
+                                 TIMING_TAG_WHEN_ATTACKING);
+    }
   }
 
   // Also check attached weapons for "when attacking" abilities
@@ -194,8 +206,14 @@ static void handle_attack(ecs_world_t *world, GameState *gs,
       const CardId *weapon_id = ecs_get(world, weapon, CardId);
       if (weapon_id &&
           azk_has_ability_with_timing(weapon_id->id, ecs_id(AWhenAttacking))) {
-        azk_queue_triggered_effect(world, weapon, player,
-                                   TIMING_TAG_WHEN_ATTACKING);
+        ecs_entity_t abilities[AZK_MAX_CARD_ABILITIES] = {0};
+        uint8_t ability_count = azk_collect_card_timed_abilities(
+            world, weapon, ecs_id(AWhenAttacking), abilities,
+            AZK_MAX_CARD_ABILITIES);
+        for (uint8_t j = 0; j < ability_count; ++j) {
+          azk_queue_triggered_effect(world, abilities[j], player,
+                                     TIMING_TAG_WHEN_ATTACKING);
+        }
       }
     }
   }
@@ -227,8 +245,7 @@ static void handle_attack(ecs_world_t *world, GameState *gs,
 }
 
 /**
- * Expected Action: ACT_ACTIVATE_ALLEY_ABILITY, ability_index, alley_index,
- * unused ability_index is 0 for now (single ability per card)
+ * Expected Action: ACT_ACTIVATE_ALLEY_ABILITY, ability_index, alley_index, 0
  */
 static void handle_activate_alley_ability(ecs_world_t *world, GameState *gs,
                                           ActionContext *ac) {
@@ -250,14 +267,16 @@ static void handle_activate_alley_ability(ecs_world_t *world, GameState *gs,
   }
 
   // Trigger the main phase ability
-  azk_trigger_main_ability(world, intent.card, player);
+  azk_trigger_main_ability(world, intent.card, player,
+                           (int8_t)intent.ability_index);
 
   cli_render_logf("[MainAction] Activated alley ability");
 }
 
 /**
- * Expected Action: ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY, slot_index, unused,
- * unused slot_index is 0-4 for garden, 5 for leader
+ * Expected Action: ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY, slot_index,
+ * ability_index, use_ikz_token
+ * slot_index is 0-4 for garden, 5 for leader
  */
 static void handle_activate_garden_or_leader_ability(ecs_world_t *world,
                                                       GameState *gs,
@@ -280,13 +299,15 @@ static void handle_activate_garden_or_leader_ability(ecs_world_t *world,
   }
 
   // Trigger the main phase ability
-  azk_trigger_main_ability(world, intent.card, player);
+  azk_trigger_main_ability(world, intent.card, player,
+                           (int8_t)intent.ability_index);
 
   cli_render_logf("[MainAction] Activated garden/leader ability");
 }
 
 /**
- * Expected Action: ACT_PLAY_SPELL_FROM_HAND, hand_index, unused, use_ikz_token
+ * Expected Action: ACT_PLAY_SPELL_FROM_HAND, hand_index, ability_index,
+ * use_ikz_token
  */
 static void handle_play_spell_from_hand(ecs_world_t *world, GameState *gs,
                                         ActionContext *ac) {
@@ -316,7 +337,8 @@ static void handle_play_spell_from_hand(ecs_world_t *world, GameState *gs,
   cli_render_logf("[MainAction] Played spell from hand");
 
   // Trigger the spell's ability
-  azk_trigger_spell_ability(world, intent.spell_card, player);
+  azk_trigger_spell_ability(world, intent.spell_card, player,
+                            (int8_t)intent.ability_index);
 }
 
 /**

@@ -34,6 +34,8 @@ bool azk_card_cannot_be_untapped(ecs_world_t *world, ecs_entity_t card);
 bool azk_card_can_only_attack_leaders(ecs_world_t *world, ecs_entity_t card);
 bool azk_card_can_attack_opponent_alley(ecs_world_t *world, ecs_entity_t card);
 bool azk_card_counts_as_ikz_source(ecs_world_t *world, ecs_entity_t card);
+bool azk_can_play_card_from_hand_during_response_window(ecs_world_t *world,
+                                                        ecs_entity_t card);
 int8_t azk_get_effective_card_play_cost(ecs_world_t *world, ecs_entity_t player,
                                         ecs_entity_t card);
 void discard_card_for_replacement(ecs_world_t *world, ecs_entity_t card);

@@ -6,6 +6,7 @@
 #include <stdint.h>
 
 #include "constants/game.h"
+#include "generated/card_defs.h"
 
 typedef enum {
   PHASE_PREGAME_MULLIGAN = 0,
@@ -96,6 +97,7 @@ typedef struct {
 
 typedef struct {
   AbilityPhase phase;
+  ecs_entity_t source_ability;
   ecs_entity_t source_card;
   ecs_entity_t owner;
   bool is_optional;
@@ -103,6 +105,8 @@ typedef struct {
   bool apply_costs_before_effect_selection;
   bool restores_active_player;
   int8_t saved_active_player_index;
+  int8_t action_index;
+  uint8_t registry_order;
 } AbilityRuntimeState;
 
 typedef struct {
@@ -151,6 +155,22 @@ typedef struct {
   AbilitySelectionState selection;
   AbilityScratchState scratch;
 } AbilityContext;
+
+#define AZK_NO_ACTION_INDEX (-1)
+
+typedef enum {
+  ABILITY_INVOCATION_NONE = 0,
+  ABILITY_INVOCATION_PLAYER = 1,
+  ABILITY_INVOCATION_TRIGGERED = 2,
+  ABILITY_INVOCATION_PASSIVE = 3,
+} AbilityInvocationMode;
+
+typedef struct {
+  CardDefId card_def_id;
+  uint8_t registry_order;
+  int8_t action_index;
+  uint8_t invocation_mode;
+} AbilityInstance;
 
 typedef struct {
   uint32_t seed;
@@ -224,8 +244,11 @@ typedef struct {
 
 /* Triggered effect queue for deferred ability processing */
 typedef struct {
+  ecs_entity_t ability_entity;
   ecs_entity_t source_card;
   ecs_entity_t owner;
+  int8_t action_index;
+  uint8_t registry_order;
   uint8_t timing_tag; // Index into timing tag array (AOnPlay, etc.)
 } PendingTriggeredEffect;
 
@@ -281,6 +304,7 @@ typedef struct {
 
 extern ECS_COMPONENT_DECLARE(ActionContext);
 extern ECS_COMPONENT_DECLARE(AbilityContext);
+extern ECS_COMPONENT_DECLARE(AbilityInstance);
 extern ECS_COMPONENT_DECLARE(GameState);
 extern ECS_COMPONENT_DECLARE(PlayerNumber);
 extern ECS_COMPONENT_DECLARE(PlayerId);
@@ -298,6 +322,7 @@ extern ECS_COMPONENT_DECLARE(PhaseGateCache);
 
 /* Relationship Entities */
 extern ECS_ENTITY_DECLARE(Rel_OwnedBy);
+extern ECS_ENTITY_DECLARE(Rel_AbilityOf);
 
 /* Board Zone Tags */
 extern ECS_TAG_DECLARE(ZDeck);

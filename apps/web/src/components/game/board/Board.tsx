@@ -261,6 +261,7 @@ function BoardMoveAnimationCard({ animation }: { animation: BoardMoveAnimation }
         showStats={animation.card.showStats}
         canPreview={false}
         interactive={false}
+        snapTapRotationOnMount={animation.card.tapped}
       />
     </group>
   );

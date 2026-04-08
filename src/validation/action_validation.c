@@ -5,6 +5,7 @@
 
 #include "abilities/ability_registry.h"
 #include "components/abilities.h"
+#include "utils/ability_util.h"
 #include "utils/card_utils.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/player_util.h"
@@ -102,23 +103,6 @@ static bool fetch_ikz_payment(
   return true;
 }
 
-static bool entity_can_be_played_as_response(ecs_world_t *world,
-                                             ecs_entity_t card) {
-  const CardId *card_id = ecs_get(world, card, CardId);
-  if (card_id == NULL) {
-    return false;
-  }
-
-  const AbilityDef *def = azk_get_ability_def(card_id->id);
-  return def != NULL && def->can_play_as_response_from_hand;
-}
-
-static bool weapon_can_be_played_as_response(ecs_world_t *world,
-                                             ecs_entity_t card) {
-  const CardId *card_id = ecs_get(world, card, CardId);
-  return card_id != NULL && card_id->id == CARD_DEF_AZK01_094;
-}
-
 bool azk_validate_play_entity_action(
   ecs_world_t *world,
   const GameState *gs,
@@ -175,7 +159,7 @@ bool azk_validate_play_entity_action(
   }
 
   if (gs->phase == PHASE_RESPONSE_WINDOW &&
-      !entity_can_be_played_as_response(world, card)) {
+      !azk_can_play_card_from_hand_during_response_window(world, card)) {
     VALIDATION_LOG(log_errors, "Card %d cannot be played as a response", card);
     return false;
   }
@@ -475,7 +459,7 @@ bool azk_validate_attach_weapon_action(
   }
 
   if (gs->phase == PHASE_RESPONSE_WINDOW &&
-      !weapon_can_be_played_as_response(world, weapon_card)) {
+      !azk_can_play_card_from_hand_during_response_window(world, weapon_card)) {
     VALIDATION_LOG(log_errors, "Card %d cannot be played as a response weapon",
                    weapon_card);
     return false;
@@ -584,6 +568,7 @@ bool azk_validate_play_spell_action(
   }
 
   int hand_index = action->subaction_1;
+  int ability_index = action->subaction_2;
   bool use_ikz_token = action->subaction_3 != 0;
 
   if (hand_index < 0 || hand_index >= MAX_HAND_SIZE) {
@@ -611,9 +596,19 @@ bool azk_validate_play_spell_action(
     return false;
   }
 
+  ecs_entity_t ability_entity =
+      azk_find_card_action_ability(world, spell_card, ability_index);
+  if (ability_entity == 0) {
+    VALIDATION_LOG(log_errors, "Spell %llu has no actionable ability",
+                   (unsigned long long)spell_card);
+    return false;
+  }
+
   // Check spell timing tag vs current phase
-  bool is_response_spell = ecs_has(world, spell_card, AResponse);
-  bool is_main_spell = ecs_has(world, spell_card, AMain);
+  bool is_response_spell =
+      azk_ability_has_timing(world, ability_entity, ecs_id(AResponse));
+  bool is_main_spell =
+      azk_ability_has_timing(world, ability_entity, ecs_id(AMain));
 
   if (!is_response_spell && !is_main_spell) {
     VALIDATION_LOG(log_errors, "Spell %llu has no valid timing tag", (unsigned long long)spell_card);
@@ -668,7 +663,7 @@ bool azk_validate_play_spell_action(
   }
 
   // Verify spell can actually be activated (has valid targets)
-  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  const AbilityDef *def = azk_get_ability_def_for_entity(world, ability_entity);
   if (def && def->validate && !def->validate(world, spell_card, player)) {
     VALIDATION_LOG(log_errors, "Spell %llu cannot be activated (no valid targets)", (unsigned long long)spell_card);
     return false;
@@ -678,6 +673,7 @@ bool azk_validate_play_spell_action(
     PlaySpellIntent intent = {
       .player = player,
       .spell_card = spell_card,
+      .ability_index = (uint8_t)ability_index,
       .use_ikz_token = use_ikz_token,
       .ikz_card_count = ikz_card_count
     };
@@ -712,10 +708,8 @@ bool azk_validate_activate_alley_ability_action(
     return false;
   }
 
-  int ability_index = action->subaction_1;  // For future multi-ability support (currently always 0)
+  int ability_index = action->subaction_1;
   int alley_slot = action->subaction_2;
-
-  (void)ability_index;  // Unused for now
 
   if (alley_slot < 0 || alley_slot >= ALLEY_SIZE) {
     VALIDATION_LOG(log_errors, "Alley slot %d out of bounds", alley_slot);
@@ -731,10 +725,18 @@ bool azk_validate_activate_alley_ability_action(
     return false;
   }
 
+  ecs_entity_t ability_entity =
+      azk_find_card_action_ability(world, card, (int8_t)ability_index);
+  if (ability_entity == 0) {
+    VALIDATION_LOG(log_errors, "Card %llu has no actionable ability %d",
+                   (unsigned long long)card, ability_index);
+    return false;
+  }
+
   // Check once-per-turn before validation
-  if (ecs_has(world, card, AOnceTurn)) {
+  if (ecs_has(world, ability_entity, AOnceTurn)) {
     const AbilityRepeatContext *repeat_ctx =
-        ecs_get(world, card, AbilityRepeatContext);
+        ecs_get(world, ability_entity, AbilityRepeatContext);
     if (repeat_ctx && repeat_ctx->was_applied) {
       VALIDATION_LOG(log_errors, "Once-per-turn ability already used this turn");
       return false;
@@ -748,12 +750,12 @@ bool azk_validate_activate_alley_ability_action(
   }
 
   if (is_main_phase) {
-    if (!ecs_has(world, card, AMain)) {
+    if (!azk_ability_has_timing(world, ability_entity, ecs_id(AMain))) {
       VALIDATION_LOG(log_errors, "Card %llu does not have a main phase ability", (unsigned long long)card);
       return false;
     }
   } else {
-    if (!ecs_has(world, card, AResponse)) {
+    if (!azk_ability_has_timing(world, ability_entity, ecs_id(AResponse))) {
       VALIDATION_LOG(log_errors, "Card %llu does not have a response ability", (unsigned long long)card);
       return false;
     }
@@ -767,7 +769,7 @@ bool azk_validate_activate_alley_ability_action(
   }
 
   // Verify ability can actually be activated (passes validation)
-  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  const AbilityDef *def = azk_get_ability_def_for_entity(world, ability_entity);
   if (def && def->validate && !def->validate(world, card, player)) {
     VALIDATION_LOG(log_errors, "Card %llu ability cannot be activated (validation failed)", (unsigned long long)card);
     return false;
@@ -812,6 +814,7 @@ bool azk_validate_activate_garden_or_leader_ability_action(
   }
 
   int slot_index = action->subaction_1;
+  int ability_index = action->subaction_2;
 
   if (slot_index < 0 || slot_index > GARDEN_SIZE) {
     VALIDATION_LOG(log_errors, "Slot index %d out of bounds (0-%d)", slot_index, GARDEN_SIZE);
@@ -845,9 +848,17 @@ bool azk_validate_activate_garden_or_leader_ability_action(
     return false;
   }
 
+  ecs_entity_t ability_entity =
+      azk_find_card_action_ability(world, card, (int8_t)ability_index);
+  if (ability_entity == 0) {
+    VALIDATION_LOG(log_errors, "Card %llu has no actionable ability",
+                   (unsigned long long)card);
+    return false;
+  }
+
   // Check once-per-turn: if card has AOnceTurn tag and ability was already used
-  if (ecs_has(world, card, AOnceTurn)) {
-    const AbilityRepeatContext *repeat_ctx = ecs_get(world, card, AbilityRepeatContext);
+  if (ecs_has(world, ability_entity, AOnceTurn)) {
+    const AbilityRepeatContext *repeat_ctx = ecs_get(world, ability_entity, AbilityRepeatContext);
     if (repeat_ctx && repeat_ctx->was_applied) {
       VALIDATION_LOG(log_errors, "Once-per-turn ability already used this turn");
       return false;
@@ -856,13 +867,13 @@ bool azk_validate_activate_garden_or_leader_ability_action(
 
   // Verify card has the appropriate timing tag for the current phase
   if (is_main_phase) {
-    if (!ecs_has(world, card, AMain)) {
+    if (!azk_ability_has_timing(world, ability_entity, ecs_id(AMain))) {
       VALIDATION_LOG(log_errors, "Card %llu does not have a main phase ability", (unsigned long long)card);
       return false;
     }
   } else {
     // Response phase
-    if (!ecs_has(world, card, AResponse)) {
+    if (!azk_ability_has_timing(world, ability_entity, ecs_id(AResponse))) {
       VALIDATION_LOG(log_errors, "Card %llu does not have a response ability", (unsigned long long)card);
       return false;
     }
@@ -875,7 +886,7 @@ bool azk_validate_activate_garden_or_leader_ability_action(
     return false;
   }
 
-  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  const AbilityDef *def = azk_get_ability_def_for_entity(world, ability_entity);
 
   // Verify ability can actually be activated (passes validation)
   if (def && def->validate && !def->validate(world, card, player)) {
@@ -900,7 +911,7 @@ bool azk_validate_activate_garden_or_leader_ability_action(
     ActivateAbilityIntent intent = {
       .player = player,
       .card = card,
-      .ability_index = 0,
+      .ability_index = (uint8_t)ability_index,
       .slot_index = (uint8_t)slot_index,
       .use_ikz_token = use_ikz_token,
       .ikz_card_count = ikz_card_count

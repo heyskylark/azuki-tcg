@@ -252,8 +252,9 @@ static int insert_card_into_zone_index(ecs_world_t *world, ecs_entity_t card,
 
   if (placement_type == ZONE_GARDEN) {
     const TapState *tap_state = ecs_get(world, card, TapState);
+    const bool enters_tapped = azk_card_enters_garden_tapped(world, card);
     ecs_set(world, card, TapState,
-            {.tapped = azk_card_enters_garden_tapped(world, card) ||
+            {.tapped = enters_tapped ||
                        (tap_state ? tap_state->tapped : false),
              .cooldown = !ecs_has(world, card, Charge)});
 
@@ -270,6 +271,18 @@ static int insert_card_into_zone_index(ecs_world_t *world, ecs_entity_t card,
       placement_type == ZONE_GARDEN ? GARDEN_SIZE : ALLEY_SIZE);
 
   return 0;
+}
+
+static void maybe_log_garden_entry_cooldown(ecs_world_t *world, ecs_entity_t card,
+                                            GameLogZone zone,
+                                            int8_t zone_index) {
+  const TapState *tap_state = ecs_get(world, card, TapState);
+  if (tap_state == NULL || !tap_state->cooldown || tap_state->tapped) {
+    return;
+  }
+
+  azk_log_card_tap_state_changed_ex(world, card, GLOG_TAP_COOLDOWN, zone,
+                                    zone_index);
 }
 
 int summon_card_into_zone_index(ecs_world_t *world,
@@ -298,11 +311,9 @@ int summon_card_into_zone_index(ecs_world_t *world,
                           (int8_t)intent->zone_index);
 
   // Log cooldown state change AFTER zone move (if applicable)
-  if (intent->placement_type == ZONE_GARDEN &&
-      !ecs_has(world, intent->card, Charge)) {
-    azk_log_card_tap_state_changed_ex(world, intent->card, GLOG_TAP_COOLDOWN,
-                                      GLOG_ZONE_GARDEN,
-                                      (int8_t)intent->zone_index);
+  if (intent->placement_type == ZONE_GARDEN) {
+    maybe_log_garden_entry_cooldown(world, intent->card, GLOG_ZONE_GARDEN,
+                                    (int8_t)intent->zone_index);
   }
 
   // Tap IKZ cards
@@ -334,6 +345,12 @@ void untap_all_cards_in_zone(ecs_world_t *world, ecs_entity_t zone) {
     }
 
     if (azk_card_cannot_be_untapped(world, card)) {
+      const TapState *ts = ecs_get(world, card, TapState);
+      if (ts && ts->cooldown) {
+        ecs_set(world, card, TapState, {.tapped = ts->tapped, .cooldown = false});
+        azk_log_card_tap_state_changed(
+            world, card, ts->tapped ? GLOG_TAP_TAPPED : GLOG_TAP_UNTAPPED);
+      }
       continue;
     }
     const TapState *ts = ecs_get(world, card, TapState);
@@ -408,11 +425,8 @@ int gate_card_into_garden(ecs_world_t *world, const GatePortalIntent *intent) {
                           GLOG_ZONE_GARDEN, (int8_t)intent->garden_index);
 
   // Log cooldown state change AFTER zone move (if applicable)
-  if (!ecs_has(world, intent->alley_card, Charge)) {
-  azk_log_card_tap_state_changed_ex(world, intent->alley_card, GLOG_TAP_COOLDOWN,
-                                      GLOG_ZONE_GARDEN,
-                                      (int8_t)intent->garden_index);
-  }
+  maybe_log_garden_entry_cooldown(world, intent->alley_card, GLOG_ZONE_GARDEN,
+                                  (int8_t)intent->garden_index);
 
   tap_card(world, intent->gate_card);
   azk_trigger_enter_garden_ability(world, intent->alley_card, intent->player);

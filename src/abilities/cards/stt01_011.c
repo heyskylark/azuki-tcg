@@ -4,6 +4,7 @@
 #include "components/abilities.h"
 #include "components/components.h"
 #include "generated/card_defs.h"
+#include "utils/ability_util.h"
 #include "utils/card_utils.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/player_util.h"
@@ -231,7 +232,13 @@ static void stt01_011_weapon_attach_observer(ecs_iter_t *it) {
   }
 }
 
-void stt01_011_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
+void stt01_011_init_passive_observers(ecs_world_t *world,
+                                      ecs_entity_t ability_entity) {
+  ecs_entity_t card = azk_get_ability_source_card(world, ability_entity);
+  if (card == 0) {
+    return;
+  }
+
   // Get owner's zones
   ecs_entity_t owner = ecs_get_target(world, card, Rel_OwnedBy, 0);
   if (!owner) {
@@ -263,10 +270,10 @@ void stt01_011_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
   ctx->player_num = player_num;
   ctx->prefab = prefab;
 
-  azk_init_passive_observer_context(world, card, ctx);
+  azk_init_passive_observer_context(world, ability_entity, ctx);
 
   ecs_entity_t obs_garden = azk_create_tracked_passive_observer(
-      world, card,
+      world, ability_entity,
       &(ecs_observer_desc_t){
           .query.terms = {{.id = ecs_pair(EcsChildOf, garden)},
                           {.id = ecs_id(CardId)}},
@@ -276,7 +283,7 @@ void stt01_011_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
       });
 
   ecs_entity_t obs_alley = azk_create_tracked_passive_observer(
-      world, card,
+      world, ability_entity,
       &(ecs_observer_desc_t){
           .query.terms = {{.id = ecs_pair(EcsChildOf, alley)},
                           {.id = ecs_id(CardId)}},
@@ -286,7 +293,7 @@ void stt01_011_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
       });
 
   ecs_entity_t obs_weapon = azk_create_tracked_passive_observer(
-      world, card,
+      world, ability_entity,
       &(ecs_observer_desc_t){
           .query.terms = {{.id = ecs_pair(EcsChildOf, EcsWildcard)},
                           {.id = TWeapon}},
@@ -297,7 +304,7 @@ void stt01_011_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
 
   if (obs_garden == 0 || obs_alley == 0 || obs_weapon == 0) {
     azk_cleanup_passive_observer_context(
-        world, card,
+        world, ability_entity,
         &(PassiveObserverCleanupOptions){
             .free_ctx = true,
         });
@@ -312,9 +319,14 @@ void stt01_011_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
 }
 
 void stt01_011_cleanup_passive_observers(ecs_world_t *world,
-                                          ecs_entity_t card) {
+                                         ecs_entity_t ability_entity) {
+  ecs_entity_t card = azk_get_ability_source_card(world, ability_entity);
+  if (card == 0) {
+    return;
+  }
+
   const PassiveObserverContext *obs_ctx =
-      ecs_get(world, card, PassiveObserverContext);
+      ecs_get(world, ability_entity, PassiveObserverContext);
   if (!obs_ctx) {
     return;
   }
@@ -362,7 +374,7 @@ void stt01_011_cleanup_passive_observers(ecs_world_t *world,
   }
 
   azk_cleanup_passive_observer_context(
-      world, card,
+      world, ability_entity,
       &(PassiveObserverCleanupOptions){
           .free_ctx = true,
       });

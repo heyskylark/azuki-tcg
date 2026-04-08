@@ -138,7 +138,8 @@ static void handle_activate_response_ability(ecs_world_t *world, GameState *gs,
   cli_render_logf("[ResponseAction] Activated response ability");
 
   // Trigger the selected card's response ability
-  azk_trigger_leader_response_ability(world, intent.card, player);
+  azk_trigger_leader_response_ability(world, intent.card, player,
+                                      (int8_t)intent.ability_index);
 }
 
 static void handle_play_spell_from_hand(ecs_world_t *world, GameState *gs,
@@ -169,7 +170,8 @@ static void handle_play_spell_from_hand(ecs_world_t *world, GameState *gs,
   cli_render_logf("[ResponseAction] Played spell from hand");
 
   // Trigger the spell's ability
-  azk_trigger_spell_ability(world, intent.spell_card, player);
+  azk_trigger_spell_ability(world, intent.spell_card, player,
+                            (int8_t)intent.ability_index);
 }
 
 static void handle_attach_weapon_from_hand(ecs_world_t *world, GameState *gs,

@@ -91,7 +91,15 @@ static bool is_public_log_zone(GameLogZone zone) {
 }
 
 static bool zone_move_requires_post_commit_finalization(GameLogZone to_zone) {
-  return to_zone == GLOG_ZONE_HAND || to_zone == GLOG_ZONE_SELECTION;
+  switch (to_zone) {
+  case GLOG_ZONE_HAND:
+  case GLOG_ZONE_SELECTION:
+  case GLOG_ZONE_GARDEN:
+  case GLOG_ZONE_ALLEY:
+    return true;
+  default:
+    return false;
+  }
 }
 
 static GameLogCardRef make_visible_card_ref(ecs_world_t *world,
@@ -655,7 +663,7 @@ void azk_log_entity_died(ecs_world_t *world, ecs_entity_t card,
 /* ========== Ability Logs ========== */
 
 void azk_log_effect_queued(ecs_world_t *world, ecs_entity_t card,
-                           uint8_t ability_index, uint8_t trigger_tag) {
+                           int8_t ability_index, uint8_t trigger_tag) {
   GameStateLog *log = add_log_entry(world);
   if (!log) {
     return;
@@ -668,7 +676,7 @@ void azk_log_effect_queued(ecs_world_t *world, ecs_entity_t card,
 }
 
 void azk_log_effect_enabled(ecs_world_t *world, ecs_entity_t card,
-                            uint8_t ability_index) {
+                            int8_t ability_index) {
   GameStateLog *log = add_log_entry(world);
   if (!log) {
     return;

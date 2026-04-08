@@ -14,7 +14,7 @@
 #define MAX_ABILITY_SELECTION                                                  \
   4 // Expand if we find an ability that has much more
 #define MAX_SELECTION_ZONE_SIZE                                                \
-  5 // Maximum cards in selection zone (look at top N)
+  MAX_DECK_SIZE // Selection flows may need to surface an entire discard pile
 
 #define REQUIRED_DECK_SIZE 50
 #define REQUIRED_LEADER_SIZE 1

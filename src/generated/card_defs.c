@@ -1899,7 +1899,7 @@ static const CardDef kGeneratedCardDefs[CARD_DEF_COUNT] = {
         .has_gate_points = false,
         .gate_points = { .gate_points = 0 },
         .has_ikz_cost = true,
-        .ikz_cost = { .ikz_cost = 1 },
+        .ikz_cost = { .ikz_cost = 0 },
     },
     {
         .card_id = "AZK01-108",
@@ -4282,7 +4282,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
     {
         ecs_entity_desc_t desc = {
             .name = "CardPrefab::AZK01-037",
-            .add = (ecs_id_t[]){ EcsPrefab, TEntity, Charge, 0 }
+            .add = (ecs_id_t[]){ EcsPrefab, TEntity, Charge, AttrCanTargetTappedAndUntappedAlley, 0 }
         };
         ecs_entity_t prefab = ecs_entity_init(world, &desc);
         ecs_assert(prefab != 0, ECS_INVALID_PARAMETER, "failed to create prefab for card AZK01-037");
@@ -4302,7 +4302,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
     {
         ecs_entity_desc_t desc = {
             .name = "CardPrefab::AZK01-038",
-            .add = (ecs_id_t[]){ EcsPrefab, TEntity, 0 }
+            .add = (ecs_id_t[]){ EcsPrefab, TEntity, AttrCanTargetTappedAndUntappedAlley, 0 }
         };
         ecs_entity_t prefab = ecs_entity_init(world, &desc);
         ecs_assert(prefab != 0, ECS_INVALID_PARAMETER, "failed to create prefab for card AZK01-038");
@@ -4454,7 +4454,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
     {
         ecs_entity_desc_t desc = {
             .name = "CardPrefab::AZK01-046",
-            .add = (ecs_id_t[]){ EcsPrefab, TEntity, 0 }
+            .add = (ecs_id_t[]){ EcsPrefab, TEntity, AttrGardenForceTapped, 0 }
         };
         ecs_entity_t prefab = ecs_entity_init(world, &desc);
         ecs_assert(prefab != 0, ECS_INVALID_PARAMETER, "failed to create prefab for card AZK01-046");
@@ -5030,7 +5030,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
     {
         ecs_entity_desc_t desc = {
             .name = "CardPrefab::AZK01-077",
-            .add = (ecs_id_t[]){ EcsPrefab, TEntity, 0 }
+            .add = (ecs_id_t[]){ EcsPrefab, TEntity, AttrCanTargetLeaderOnly, 0 }
         };
         ecs_entity_t prefab = ecs_entity_init(world, &desc);
         ecs_assert(prefab != 0, ECS_INVALID_PARAMETER, "failed to create prefab for card AZK01-077");
@@ -5541,7 +5541,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_EARTH });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_SPELL });
         ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
-        ecs_set(world, prefab, IKZCost, { .ikz_cost = 1 });
+        ecs_set(world, prefab, IKZCost, { .ikz_cost = 0 });
         ecs_add(world, prefab, TSubtype_Verdant);
     }
     {
@@ -6054,7 +6054,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
     {
         ecs_entity_desc_t desc = {
             .name = "CardPrefab::STT03-007",
-            .add = (ecs_id_t[]){ EcsPrefab, TEntity, 0 }
+            .add = (ecs_id_t[]){ EcsPrefab, TEntity, AttrCountsAsIkzSource, 0 }
         };
         ecs_entity_t prefab = ecs_entity_init(world, &desc);
         ecs_assert(prefab != 0, ECS_INVALID_PARAMETER, "failed to create prefab for card STT03-007");

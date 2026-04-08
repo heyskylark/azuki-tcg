@@ -366,9 +366,9 @@ static void register_card(ecs_world_t *world, ecs_entity_t player,
     // mid-resolution.
     initialize_card_runtime_components(world, card);
 
-    // Attach ability timing tags (AOnPlay, AResponse, etc.) if card has an
-    // ability. Must be after Rel_OwnedBy is set for passive observers that
-    // need to access owner's zones.
+    // Instantiate owned ability entities and any card-level response-play tag.
+    // Must be after Rel_OwnedBy is set for passive observers that need to
+    // access owner's zones.
     attach_ability_components(world, card);
 
     // Used for validating the final card distribution sizes

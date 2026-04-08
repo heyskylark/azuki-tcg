@@ -14,11 +14,14 @@
 #include "utils/cli_rendering_util.h"
 #include "utils/game_log_util.h"
 #include "utils/player_util.h"
+#include "utils/ability_util.h"
 #include "utils/weapon_util.h"
 #include "utils/zone_util.h"
 
 // Forward declaration of timing tag constant
 #define TIMING_TAG_ON_PLAY_FWD 0
+
+static ecs_id_t get_timing_tag_id(uint8_t tag_index);
 
 static AbilitySelectionCompletionMode get_selection_completion_mode(
     const AbilityDef *def) {
@@ -27,6 +30,22 @@ static AbilitySelectionCompletionMode get_selection_completion_mode(
   }
 
   return AZK_SELECTION_COMPLETION_ALLOW_BOTTOM_DECK;
+}
+
+static const AbilityDef *get_context_ability_def(ecs_world_t *world,
+                                                 const AbilityContext *ctx) {
+  if (ctx == NULL) {
+    return NULL;
+  }
+
+  return azk_get_ability_def_for_entity(world, ctx->runtime.source_ability);
+}
+
+static int8_t get_action_index_for_ability(ecs_world_t *world,
+                                           ecs_entity_t ability_entity) {
+  const AbilityInstance *instance =
+      ecs_get(world, ability_entity, AbilityInstance);
+  return instance != NULL ? instance->action_index : AZK_NO_ACTION_INDEX;
 }
 
 static void apply_deferred_costs_if_needed(ecs_world_t *world,
@@ -45,74 +64,51 @@ static void apply_deferred_costs_if_needed(ecs_world_t *world,
 
 bool azk_trigger_on_play_ability(ecs_world_t *world, ecs_entity_t card,
                                  ecs_entity_t owner) {
-  // Get card ID
-  const CardId *card_id = ecs_get(world, card, CardId);
-  if (!card_id) {
-    return false;
+  ecs_entity_t abilities[AZK_MAX_CARD_ABILITIES] = {0};
+  uint8_t ability_count = azk_collect_card_timed_abilities(
+      world, card, ecs_id(AOnPlay), abilities, AZK_MAX_CARD_ABILITIES);
+  bool queued_any = false;
+  for (uint8_t i = 0; i < ability_count; ++i) {
+    if (azk_queue_triggered_effect(world, abilities[i], owner,
+                                   TIMING_TAG_ON_PLAY_FWD)) {
+      queued_any = true;
+    }
   }
 
-  // Check if card has an ability
-  if (!azk_has_ability(card_id->id)) {
-    return false;
-  }
-
-  const AbilityDef *def = azk_get_ability_def(card_id->id);
-  if (!def || !def->has_ability) {
-    return false;
-  }
-
-  // Check if it's an OnPlay ability
-  if (def->timing_tag != ecs_id(AOnPlay)) {
-    return false;
-  }
-
-  // Queue the effect for processing on next loop iteration
-  // This is necessary because during ecs_progress(), zone changes (ChildOf)
-  // are deferred and not visible yet. By queuing, we ensure the card is
-  // in the correct zone when validation runs.
-  return azk_queue_triggered_effect(world, card, owner, TIMING_TAG_ON_PLAY_FWD);
+  // Queue the effect for processing on next loop iteration.
+  return queued_any;
 }
 
 bool azk_trigger_when_equipped_ability(ecs_world_t *world, ecs_entity_t card,
                                        ecs_entity_t owner) {
-  const CardId *card_id = ecs_get(world, card, CardId);
-  if (!card_id) {
-    return false;
+  ecs_entity_t abilities[AZK_MAX_CARD_ABILITIES] = {0};
+  uint8_t ability_count = azk_collect_card_timed_abilities(
+      world, card, ecs_id(AWhenEquipped), abilities, AZK_MAX_CARD_ABILITIES);
+  bool queued_any = false;
+  for (uint8_t i = 0; i < ability_count; ++i) {
+    if (azk_queue_triggered_effect(world, abilities[i], owner,
+                                   TIMING_TAG_WHEN_EQUIPPED)) {
+      queued_any = true;
+    }
   }
 
-  if (!azk_has_ability(card_id->id)) {
-    return false;
-  }
-
-  const AbilityDef *def = azk_get_ability_def(card_id->id);
-  if (!def || !def->has_ability) {
-    return false;
-  }
-
-  // Check if it's an AWhenEquipped ability
-  if (def->timing_tag != ecs_id(AWhenEquipped)) {
-    return false;
-  }
-
-  // Queue for processing after deferred ops (ChildOf) flush
-  return azk_queue_triggered_effect(world, card, owner, TIMING_TAG_WHEN_EQUIPPED);
+  return queued_any;
 }
 
 bool azk_trigger_enter_garden_ability(ecs_world_t *world, ecs_entity_t card,
                                       ecs_entity_t owner) {
-  const CardId *card_id = ecs_get(world, card, CardId);
-  if (!card_id || !azk_has_ability(card_id->id)) {
-    return false;
+  ecs_entity_t abilities[AZK_MAX_CARD_ABILITIES] = {0};
+  uint8_t ability_count = azk_collect_card_timed_abilities(
+      world, card, ecs_id(AWhenEntersGarden), abilities, AZK_MAX_CARD_ABILITIES);
+  bool queued_any = false;
+  for (uint8_t i = 0; i < ability_count; ++i) {
+    if (azk_queue_triggered_effect(world, abilities[i], owner,
+                                   TIMING_TAG_WHEN_ENTERS_GARDEN)) {
+      queued_any = true;
+    }
   }
 
-  const AbilityDef *def = azk_get_ability_def(card_id->id);
-  if (def == NULL || !def->has_ability ||
-      def->timing_tag != ecs_id(AWhenEntersGarden)) {
-    return false;
-  }
-
-  return azk_queue_triggered_effect(world, card, owner,
-                                    TIMING_TAG_WHEN_ENTERS_GARDEN);
+  return queued_any;
 }
 
 static bool queue_timing_abilities_in_zone(ecs_world_t *world,
@@ -125,18 +121,13 @@ static bool queue_timing_abilities_in_zone(ecs_world_t *world,
 
   for (int32_t i = 0; i < cards.count; i++) {
     ecs_entity_t card = cards.ids[i];
-    if (!ecs_has_id(world, card, timing_tag_id)) {
-      continue;
-    }
-
-    const CardId *card_id = ecs_get(world, card, CardId);
-    if (!card_id ||
-        !azk_has_ability_with_timing(card_id->id, timing_tag_id)) {
-      continue;
-    }
-
-    if (azk_queue_triggered_effect(world, card, owner, timing_tag)) {
-      queued_any = true;
+    ecs_entity_t abilities[AZK_MAX_CARD_ABILITIES] = {0};
+    uint8_t ability_count = azk_collect_card_timed_abilities(
+        world, card, timing_tag_id, abilities, AZK_MAX_CARD_ABILITIES);
+    for (uint8_t j = 0; j < ability_count; ++j) {
+      if (azk_queue_triggered_effect(world, abilities[j], owner, timing_tag)) {
+        queued_any = true;
+      }
     }
   }
 
@@ -228,7 +219,7 @@ bool azk_process_ability_confirmation(ecs_world_t *world) {
     return false;
   }
 
-  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  const AbilityDef *def = get_context_ability_def(world, ctx);
   if (!def) {
     azk_clear_ability_context(world);
     return false;
@@ -337,7 +328,7 @@ bool azk_process_cost_selection(ecs_world_t *world, int target_index) {
     return false;
   }
 
-  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  const AbilityDef *def = get_context_ability_def(world, ctx);
   if (!def) {
     return false;
   }
@@ -391,7 +382,7 @@ bool azk_process_cost_skip(ecs_world_t *world) {
     return false;
   }
 
-  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  const AbilityDef *def = get_context_ability_def(world, ctx);
   if (!def) {
     azk_clear_ability_context(world);
     return false;
@@ -418,7 +409,7 @@ bool azk_process_effect_selection(ecs_world_t *world, int target_index) {
     return false;
   }
 
-  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  const AbilityDef *def = get_context_ability_def(world, ctx);
   if (!def) {
     return false;
   }
@@ -493,7 +484,7 @@ bool azk_process_effect_skip(ecs_world_t *world) {
     return false;
   }
 
-  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  const AbilityDef *def = get_context_ability_def(world, ctx);
   if (!def) {
     azk_clear_ability_context(world);
     return false;
@@ -541,7 +532,7 @@ bool azk_process_selection_pick(ecs_world_t *world, int selection_index) {
     return false;
   }
 
-  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  const AbilityDef *def = get_context_ability_def(world, ctx);
   if (!def) {
     azk_clear_ability_context(world);
     return false;
@@ -611,7 +602,7 @@ bool azk_process_selection_to_garden(ecs_world_t *world, int selection_index,
     return false;
   }
 
-  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  const AbilityDef *def = get_context_ability_def(world, ctx);
   if (!def) {
     azk_clear_ability_context(world);
     return false;
@@ -717,7 +708,7 @@ bool azk_process_selection_to_alley(ecs_world_t *world, int selection_index,
     return false;
   }
 
-  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  const AbilityDef *def = get_context_ability_def(world, ctx);
   if (!def) {
     azk_clear_ability_context(world);
     return false;
@@ -851,7 +842,7 @@ bool azk_process_selection_to_equip(ecs_world_t *world, int selection_index,
     return false;
   }
 
-  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  const AbilityDef *def = get_context_ability_def(world, ctx);
   if (!def) {
     azk_clear_ability_context(world);
     return false;
@@ -975,7 +966,7 @@ bool azk_process_skip_selection(ecs_world_t *world) {
     return false;
   }
 
-  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  const AbilityDef *def = get_context_ability_def(world, ctx);
   if (!def) {
     azk_clear_ability_context(world);
     return false;
@@ -1032,25 +1023,21 @@ AbilityPhase azk_get_ability_phase(ecs_world_t *world) {
 }
 
 bool azk_trigger_main_ability(ecs_world_t *world, ecs_entity_t card,
-                              ecs_entity_t owner) {
+                              ecs_entity_t owner, int8_t action_index) {
   // Check if card is frozen (frozen cards cannot activate abilities)
   if (ecs_has(world, card, Frozen)) {
     cli_render_logf("[Ability] Card is frozen and cannot activate abilities");
     return false;
   }
 
-  // Get card ID
-  const CardId *card_id = ecs_get(world, card, CardId);
-  if (!card_id) {
+  ecs_entity_t ability_entity =
+      azk_find_card_action_ability(world, card, action_index);
+  if (ability_entity == 0 ||
+      !azk_ability_has_timing(world, ability_entity, ecs_id(AMain))) {
     return false;
   }
 
-  // Check if card has an ability
-  if (!azk_has_ability(card_id->id)) {
-    return false;
-  }
-
-  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  const AbilityDef *def = azk_get_ability_def_for_entity(world, ability_entity);
   if (!def || !def->has_ability) {
     return false;
   }
@@ -1065,11 +1052,6 @@ bool azk_trigger_main_ability(ecs_world_t *world, ecs_entity_t card,
     return false;
   }
 
-  // Check if it's a Main phase ability
-  if (def->timing_tag != ecs_id(AMain)) {
-    return false;
-  }
-
   // Validate the ability can be activated
   if (def->validate && !def->validate(world, card, owner)) {
     cli_render_logf("[Ability] Main ability validation failed");
@@ -1077,7 +1059,7 @@ bool azk_trigger_main_ability(ecs_world_t *world, ecs_entity_t card,
   }
 
   return azk_begin_ability(
-      world, card, owner, def,
+      world, ability_entity, owner, def,
       &(AbilityBeginOptions){
           .is_optional = def->is_optional,
           .available_cost_targets = available_cost_targets,
@@ -1095,19 +1077,14 @@ bool azk_trigger_main_ability(ecs_world_t *world, ecs_entity_t card,
 }
 
 bool azk_trigger_spell_ability(ecs_world_t *world, ecs_entity_t spell_card,
-                               ecs_entity_t owner) {
-  // Get card ID
-  const CardId *card_id = ecs_get(world, spell_card, CardId);
-  if (!card_id) {
+                               ecs_entity_t owner, int8_t action_index) {
+  ecs_entity_t ability_entity =
+      azk_find_card_action_ability(world, spell_card, action_index);
+  if (ability_entity == 0) {
     return false;
   }
 
-  // Check if card has an ability
-  if (!azk_has_ability(card_id->id)) {
-    return false;
-  }
-
-  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  const AbilityDef *def = azk_get_ability_def_for_entity(world, ability_entity);
   if (!def || !def->has_ability) {
     return false;
   }
@@ -1126,7 +1103,7 @@ bool azk_trigger_spell_ability(ecs_world_t *world, ecs_entity_t spell_card,
       world, def, ABILITY_TARGET_SCOPE_EFFECT, spell_card, owner);
 
   return azk_begin_ability(
-      world, spell_card, owner, def,
+      world, ability_entity, owner, def,
       &(AbilityBeginOptions){
           .is_optional = false,
           .available_cost_targets = available_cost_targets,
@@ -1145,19 +1122,16 @@ bool azk_trigger_spell_ability(ecs_world_t *world, ecs_entity_t spell_card,
 }
 
 bool azk_trigger_leader_response_ability(ecs_world_t *world, ecs_entity_t card,
-                                         ecs_entity_t owner) {
-  // Get card ID
-  const CardId *card_id = ecs_get(world, card, CardId);
-  if (!card_id) {
+                                         ecs_entity_t owner,
+                                         int8_t action_index) {
+  ecs_entity_t ability_entity =
+      azk_find_card_action_ability(world, card, action_index);
+  if (ability_entity == 0 ||
+      !azk_ability_has_timing(world, ability_entity, ecs_id(AResponse))) {
     return false;
   }
 
-  // Check if card has an ability
-  if (!azk_has_ability(card_id->id)) {
-    return false;
-  }
-
-  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  const AbilityDef *def = azk_get_ability_def_for_entity(world, ability_entity);
   if (!def || !def->has_ability) {
     return false;
   }
@@ -1173,7 +1147,7 @@ bool azk_trigger_leader_response_ability(ecs_world_t *world, ecs_entity_t card,
   }
 
   return azk_begin_ability(
-      world, card, owner, def,
+      world, ability_entity, owner, def,
       &(AbilityBeginOptions){
           .is_optional = false,
           .available_cost_targets = available_cost_targets,
@@ -1190,11 +1164,22 @@ bool azk_trigger_leader_response_ability(ecs_world_t *world, ecs_entity_t card,
       });
 }
 
-bool azk_queue_triggered_effect(ecs_world_t *world, ecs_entity_t card,
+bool azk_queue_triggered_effect(ecs_world_t *world, ecs_entity_t ability_entity,
                                 ecs_entity_t owner, uint8_t timing_tag) {
-  if (ecs_has(world, card, AOnceTurn)) {
+  if (ability_entity == 0 ||
+      ecs_get(world, ability_entity, AbilityInstance) == NULL) {
+    return false;
+  }
+
+  ecs_entity_t card = azk_get_ability_source_card(world, ability_entity);
+
+  if (ability_entity == 0 || card == 0) {
+    return false;
+  }
+
+  if (ecs_has(world, ability_entity, AOnceTurn)) {
     const AbilityRepeatContext *repeat_ctx =
-        ecs_get(world, card, AbilityRepeatContext);
+        ecs_get(world, ability_entity, AbilityRepeatContext);
     if (repeat_ctx && repeat_ctx->was_applied) {
       return false;
     }
@@ -1208,13 +1193,21 @@ bool azk_queue_triggered_effect(ecs_world_t *world, ecs_entity_t card,
     return false;
   }
 
+  queue->effects[queue->count].ability_entity = ability_entity;
   queue->effects[queue->count].source_card = card;
   queue->effects[queue->count].owner = owner;
+  queue->effects[queue->count].action_index =
+      get_action_index_for_ability(world, ability_entity);
+  const AbilityInstance *instance =
+      ecs_get(world, ability_entity, AbilityInstance);
+  queue->effects[queue->count].registry_order =
+      instance != NULL ? instance->registry_order : 0;
   queue->effects[queue->count].timing_tag = timing_tag;
   queue->count++;
 
-  // Log effect queued (ability_index=0 as default, timing_tag for trigger type)
-  azk_log_effect_queued(world, card, 0, timing_tag);
+  azk_log_effect_queued(world, card,
+                        queue->effects[queue->count - 1].action_index,
+                        timing_tag);
 
   cli_render_logf("[Ability] Queued triggered effect (tag=%d, count=%d)",
                   timing_tag, queue->count);
@@ -1287,15 +1280,20 @@ bool azk_process_triggered_effect_queue(ecs_world_t *world) {
   ecs_singleton_modified(world, TriggeredEffectQueue);
 
   // Log effect enabled (ability is now being processed)
-  azk_log_effect_enabled(world, effect.source_card, 0);
+  azk_log_effect_enabled(world, effect.source_card, effect.action_index);
 
   cli_render_logf("[Ability] Processing queued effect (tag=%d, remaining=%d)",
                   effect.timing_tag, queue->count);
 
   // Now process the effect - card should be in correct zone after deferred ops
   // flushed
+  ecs_entity_t ability_entity = effect.ability_entity;
   ecs_entity_t card = effect.source_card;
   ecs_entity_t owner = effect.owner;
+  if (ability_entity == 0 || card == 0) {
+    cli_render_logf("[Ability] Queued effect: source ability is no longer valid");
+    return false;
+  }
 
   // Get card ID
   const CardId *card_id = ecs_get(world, card, CardId);
@@ -1304,21 +1302,15 @@ bool azk_process_triggered_effect_queue(ecs_world_t *world) {
     return false;
   }
 
-  // Check if card has an ability
-  if (!azk_has_ability(card_id->id)) {
-    cli_render_logf("[Ability] Queued effect: card has no ability");
-    return false;
-  }
-
-  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  const AbilityDef *def = azk_get_ability_def_for_entity(world, ability_entity);
   if (!def || !def->has_ability) {
     cli_render_logf("[Ability] Queued effect: no ability definition");
     return false;
   }
 
-  if (ecs_has(world, card, AOnceTurn)) {
+  if (ecs_has(world, ability_entity, AOnceTurn)) {
     const AbilityRepeatContext *repeat_ctx =
-        ecs_get(world, card, AbilityRepeatContext);
+        ecs_get(world, ability_entity, AbilityRepeatContext);
     if (repeat_ctx && repeat_ctx->was_applied) {
       cli_render_logf("[Ability] Queued effect: once-per-turn already used");
       return false;
@@ -1338,7 +1330,7 @@ bool azk_process_triggered_effect_queue(ecs_world_t *world) {
   // Check if it's the correct timing tag
   ecs_id_t expected_tag = get_timing_tag_id(effect.timing_tag);
   if (expected_tag == 0 ||
-      !azk_has_ability_with_timing(card_id->id, expected_tag)) {
+      !azk_ability_has_timing(world, ability_entity, expected_tag)) {
     cli_render_logf("[Ability] Queued effect: timing tag mismatch");
     return false;
   }
@@ -1361,7 +1353,7 @@ bool azk_process_triggered_effect_queue(ecs_world_t *world) {
   }
 
   return azk_begin_ability(
-      world, card, owner, def,
+      world, ability_entity, owner, def,
       &(AbilityBeginOptions){
           .is_optional = def->is_optional,
           .enter_confirmation_when_optional = true,
@@ -1398,33 +1390,22 @@ void azk_trigger_return_to_hand_observers(ecs_world_t *world,
 
     for (int32_t i = 0; i < garden_cards.count; i++) {
       ecs_entity_t card = garden_cards.ids[i];
+      ecs_entity_t abilities[AZK_MAX_CARD_ABILITIES] = {0};
+      uint8_t ability_count = azk_collect_card_timed_abilities(
+          world, card, ecs_id(AWhenReturnedToHand), abilities,
+          AZK_MAX_CARD_ABILITIES);
+      for (uint8_t j = 0; j < ability_count; ++j) {
+        const AbilityDef *def =
+            azk_get_ability_def_for_entity(world, abilities[j]);
+        if (def != NULL && def->validate && !def->validate(world, card, player)) {
+          continue;
+        }
 
-      // Check if card has AWhenReturnedToHand timing tag
-      if (!ecs_has(world, card, AWhenReturnedToHand)) {
-        continue;
+        azk_queue_triggered_effect(world, abilities[j], player,
+                                   TIMING_TAG_WHEN_RETURNED_TO_HAND);
+        cli_render_logf("[Ability] Queued return-to-hand observer for card %s",
+                        ecs_get_name(world, card));
       }
-
-      // Get card ID and ability def
-      const CardId *card_id = ecs_get(world, card, CardId);
-      if (!card_id || !azk_has_ability(card_id->id)) {
-        continue;
-      }
-
-      const AbilityDef *def = azk_get_ability_def(card_id->id);
-      if (!def || def->timing_tag != ecs_id(AWhenReturnedToHand)) {
-        continue;
-      }
-
-      // Validate the ability can be activated
-      if (def->validate && !def->validate(world, card, player)) {
-        continue;
-      }
-
-      // Queue the triggered effect
-      azk_queue_triggered_effect(world, card, player,
-                                 TIMING_TAG_WHEN_RETURNED_TO_HAND);
-      cli_render_logf("[Ability] Queued return-to-hand observer for card %s",
-                      ecs_get_name(world, card));
     }
   }
 }
@@ -1439,20 +1420,15 @@ void azk_trigger_gate_portal_ability(ecs_world_t *world, ecs_entity_t gate_card,
              "Gate portal ability triggered on non-gate card %llu",
              (unsigned long long)gate_card);
 
-  const CardId *card_id = ecs_get(world, gate_card, CardId);
-  ecs_assert(card_id != NULL, ECS_INVALID_PARAMETER,
-             "Gate card %llu has no CardId component",
-             (unsigned long long)gate_card);
-
-  // All gate cards must have a registered ability
-  ecs_assert(azk_has_ability(card_id->id), ECS_INVALID_PARAMETER,
-             "Gate card %llu (def %d) has no registered ability",
-             (unsigned long long)gate_card, card_id->id);
-
-  const AbilityDef *def = azk_get_ability_def(card_id->id);
-  ecs_assert(def != NULL && def->timing_tag == ecs_id(AOnGatePortal),
+  ecs_entity_t abilities[AZK_MAX_CARD_ABILITIES] = {0};
+  uint8_t ability_count = azk_collect_card_timed_abilities(
+      world, gate_card, ecs_id(AOnGatePortal), abilities,
+      AZK_MAX_CARD_ABILITIES);
+  ecs_entity_t ability_entity = ability_count > 0 ? abilities[0] : 0;
+  const AbilityDef *def = azk_get_ability_def_for_entity(world, ability_entity);
+  ecs_assert(def != NULL && azk_ability_def_has_timing(def, ecs_id(AOnGatePortal)),
              ECS_INVALID_PARAMETER,
-             "Gate card %llu ability has wrong timing tag",
+             "Gate card %llu has no registered portal ability",
              (unsigned long long)gate_card);
 
   const AbilityScratchState initial_scratch = {
@@ -1471,8 +1447,14 @@ void azk_trigger_gate_portal_ability(ecs_world_t *world, ecs_entity_t gate_card,
 
   // Gate portal abilities may validate and count targets from scratch state.
   azk_reset_ability_context_state(ctx);
+  ctx->runtime.source_ability = ability_entity;
   ctx->runtime.source_card = gate_card;
   ctx->runtime.owner = owner;
+  const AbilityInstance *instance = ecs_get(world, ability_entity, AbilityInstance);
+  if (instance != NULL) {
+    ctx->runtime.action_index = instance->action_index;
+    ctx->runtime.registry_order = instance->registry_order;
+  }
   ctx->scratch = initial_scratch;
 
   // Validate can still fail (e.g., conditional effects)
@@ -1490,7 +1472,7 @@ void azk_trigger_gate_portal_ability(ecs_world_t *world, ecs_entity_t gate_card,
   *ctx = saved_ctx;
 
   bool is_active = azk_begin_ability(
-      world, gate_card, owner, def,
+      world, ability_entity, owner, def,
       &(AbilityBeginOptions){
           .is_optional = def->is_optional,
           .enter_confirmation_when_optional = true,

@@ -2,6 +2,7 @@
 
 #include "abilities/passive/passive_runtime.h"
 #include "components/components.h"
+#include "utils/ability_util.h"
 #include "utils/card_utils.h"
 #include "utils/player_util.h"
 #include "utils/status_util.h"
@@ -61,7 +62,13 @@ static void azk01_073_garden_observer(ecs_iter_t *it) {
   sync_top_beanz_buff(it->world, ctx->card, ctx->owner_player_num);
 }
 
-void azk01_073_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
+void azk01_073_init_passive_observers(ecs_world_t *world,
+                                      ecs_entity_t ability_entity) {
+  ecs_entity_t card = azk_get_ability_source_card(world, ability_entity);
+  if (card == 0) {
+    return;
+  }
+
   ecs_entity_t owner = ecs_get_target(world, card, Rel_OwnedBy, 0);
   if (owner == 0) {
     return;
@@ -77,10 +84,10 @@ void azk01_073_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
 
   ctx->card = card;
   ctx->owner_player_num = owner_player_num;
-  azk_init_passive_observer_context(world, card, ctx);
+  azk_init_passive_observer_context(world, ability_entity, ctx);
 
   ecs_entity_t observer = azk_create_tracked_passive_observer(
-      world, card,
+      world, ability_entity,
       &(ecs_observer_desc_t){
           .query.terms = {{.id = ecs_pair(EcsChildOf, gs->zones[owner_player_num].garden)},
                           {.id = TEntity}},
@@ -91,13 +98,16 @@ void azk01_073_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
 
   if (observer == 0) {
     azk_cleanup_passive_observer_context(
-        world, card, &(PassiveObserverCleanupOptions){.free_ctx = true});
+        world, ability_entity,
+        &(PassiveObserverCleanupOptions){.free_ctx = true});
   }
 }
 
-void azk01_073_cleanup_passive_observers(ecs_world_t *world, ecs_entity_t card) {
+void azk01_073_cleanup_passive_observers(ecs_world_t *world,
+                                         ecs_entity_t ability_entity) {
+  ecs_entity_t card = azk_get_ability_source_card(world, ability_entity);
   azk_cleanup_passive_observer_context(
-      world, card,
+      world, ability_entity,
       &(PassiveObserverCleanupOptions){
           .free_ctx = true,
           .attack_buff_source = card,

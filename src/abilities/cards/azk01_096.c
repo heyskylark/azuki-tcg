@@ -84,16 +84,17 @@ void azk01_096_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
   const int8_t old_garden_index = (int8_t)garden_index->index;
   const int8_t old_alley_index = (int8_t)alley_index->index;
 
-  azk_log_card_zone_moved(world, garden_card, GLOG_ZONE_GARDEN,
-                          old_garden_index, GLOG_ZONE_ALLEY, old_alley_index);
-  azk_log_card_zone_moved(world, alley_card, GLOG_ZONE_ALLEY, old_alley_index,
-                          GLOG_ZONE_GARDEN, old_garden_index);
-
   ecs_add_pair(world, garden_card, EcsChildOf, gs->zones[owner_num].alley);
   ecs_set(world, garden_card, ZoneIndex, {.index = (uint8_t)old_alley_index});
 
   ecs_add_pair(world, alley_card, EcsChildOf, gs->zones[owner_num].garden);
   ecs_set(world, alley_card, ZoneIndex, {.index = (uint8_t)old_garden_index});
+  const TapState *alley_tap = ecs_get(world, alley_card, TapState);
+  if (alley_tap != NULL && azk_card_enters_garden_tapped(world, alley_card) &&
+      !alley_tap->tapped) {
+    ecs_set(world, alley_card, TapState,
+            {.tapped = true, .cooldown = alley_tap->cooldown});
+  }
 
   const CardId *alley_card_id = ecs_get(world, alley_card, CardId);
   if (alley_card_id != NULL && alley_card_id->id == CARD_DEF_STT03_013 &&
@@ -101,6 +102,11 @@ void azk01_096_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
     ecs_add(world, alley_card, Taunt);
     azk_log_card_keywords_changed(world, alley_card);
   }
+
+  azk_log_card_zone_moved(world, garden_card, GLOG_ZONE_GARDEN,
+                          old_garden_index, GLOG_ZONE_ALLEY, old_alley_index);
+  azk_log_card_zone_moved(world, alley_card, GLOG_ZONE_ALLEY, old_alley_index,
+                          GLOG_ZONE_GARDEN, old_garden_index);
 
   if (gs->combat_state.defender_card == garden_card) {
     gs->combat_state.defender_card = alley_card;

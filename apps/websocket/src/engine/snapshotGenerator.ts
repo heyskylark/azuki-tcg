@@ -22,6 +22,7 @@ import {
   getPlayerObservationBySlot,
   getGameState,
   getActivePlayer,
+  requiresAction,
   flushEngineDebugLogs,
 } from "@/engine/WorldManager";
 import type {
@@ -108,10 +109,12 @@ export async function generateSnapshot(
 
   // Get action mask if it's this player's turn
   const activePlayer = getActivePlayer(roomId);
+  const isAwaitingInput = activePlayer === playerSlot && requiresAction(roomId);
   logger.info("Snapshot generation - action mask check", {
     roomId,
     playerSlot,
     activePlayer,
+    isAwaitingInput,
     phase: gameState.phase,
     rawActionMask: myObservation.actionMask
       ? {
@@ -134,7 +137,7 @@ export async function generateSnapshot(
   // Flush debug logs immediately after getting observation to see C engine output
   flushEngineDebugLogs();
 
-  const actionMask = activePlayer === playerSlot ? buildActionMask(myObservation.actionMask) : null;
+  const actionMask = isAwaitingInput ? buildActionMask(myObservation.actionMask) : null;
 
   const cardCodes = collectSnapshotCardCodes(players, yourHand);
   let cardMetadata: Record<string, SnapshotCardMetadata> = {};

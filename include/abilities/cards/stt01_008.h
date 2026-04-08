@@ -8,9 +8,11 @@
 
 // Initialize passive observers for this card
 // Creates an observer that watches for weapon ChildOf attachment/detachment
-void stt01_008_init_passive_observers(ecs_world_t *world, ecs_entity_t card);
+void stt01_008_init_passive_observers(ecs_world_t *world,
+                                      ecs_entity_t ability_entity);
 
 // Cleanup passive observers and remove any buffs
-void stt01_008_cleanup_passive_observers(ecs_world_t *world, ecs_entity_t card);
+void stt01_008_cleanup_passive_observers(ecs_world_t *world,
+                                         ecs_entity_t ability_entity);
 
 #endif // AZUKI_ABILITY_STT01_008_H

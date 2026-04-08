@@ -4,6 +4,7 @@
 #include "components/abilities.h"
 #include "components/components.h"
 #include "generated/card_defs.h"
+#include "utils/ability_util.h"
 #include "utils/card_utils.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/player_util.h"
@@ -153,7 +154,13 @@ static void stt01_009_check_and_update_buff(ecs_world_t *world,
   }
 }
 
-void stt01_009_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
+void stt01_009_init_passive_observers(ecs_world_t *world,
+                                      ecs_entity_t ability_entity) {
+  ecs_entity_t card = azk_get_ability_source_card(world, ability_entity);
+  if (card == 0) {
+    return;
+  }
+
   // Get owner's zones
   ecs_entity_t owner = ecs_get_target(world, card, Rel_OwnedBy, 0);
   if (!owner) {
@@ -175,10 +182,10 @@ void stt01_009_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
   }
   ctx->card = card;
 
-  azk_init_passive_observer_context(world, card, ctx);
+  azk_init_passive_observer_context(world, ability_entity, ctx);
 
   ecs_entity_t obs_discard = azk_create_tracked_passive_observer(
-      world, card,
+      world, ability_entity,
       &(ecs_observer_desc_t){
           .query.terms = {{.id = ecs_pair(EcsChildOf, discard)},
                           {.id = TWeapon}},
@@ -188,7 +195,7 @@ void stt01_009_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
       });
 
   ecs_entity_t obs_zone = azk_create_tracked_passive_observer(
-      world, card,
+      world, ability_entity,
       &(ecs_observer_desc_t){
           .query.terms = {{.id = ecs_pair(EcsChildOf, garden)},
                           {.id = ecs_id(CardId)}},
@@ -199,7 +206,7 @@ void stt01_009_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
 
   if (obs_discard == 0 || obs_zone == 0) {
     azk_cleanup_passive_observer_context(
-        world, card,
+        world, ability_entity,
         &(PassiveObserverCleanupOptions){
             .free_ctx = true,
         });
@@ -212,9 +219,10 @@ void stt01_009_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
 }
 
 void stt01_009_cleanup_passive_observers(ecs_world_t *world,
-                                         ecs_entity_t card) {
+                                         ecs_entity_t ability_entity) {
+  ecs_entity_t card = azk_get_ability_source_card(world, ability_entity);
   azk_cleanup_passive_observer_context(
-      world, card,
+      world, ability_entity,
       &(PassiveObserverCleanupOptions){
           .free_ctx = true,
           .attack_buff_source = card,

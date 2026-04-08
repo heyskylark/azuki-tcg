@@ -167,13 +167,13 @@ void azk_log_entity_died(ecs_world_t *world, ecs_entity_t card,
  * Log an effect being queued (ability trigger).
  */
 void azk_log_effect_queued(ecs_world_t *world, ecs_entity_t card,
-                           uint8_t ability_index, uint8_t trigger_tag);
+                           int8_t ability_index, uint8_t trigger_tag);
 
 /**
  * Log an effect being enabled/executed.
  */
 void azk_log_effect_enabled(ecs_world_t *world, ecs_entity_t card,
-                            uint8_t ability_index);
+                            int8_t ability_index);
 
 /* ========== Game Flow Logs ========== */
 

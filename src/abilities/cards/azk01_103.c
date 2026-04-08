@@ -27,10 +27,15 @@ bool azk01_103_validate(ecs_world_t *world, ecs_entity_t card,
     return false;
   }
 
+  if (!can_tap_card(world, card, true)) {
+    return false;
+  }
+
   ecs_entities_t garden_cards =
       ecs_get_ordered_children(world, gs->zones[owner_num].garden);
   for (int32_t i = 0; i < garden_cards.count; ++i) {
-    if (is_earth_garden_entity(world, garden_cards.ids[i], owner) &&
+    if (garden_cards.ids[i] != card &&
+        is_earth_garden_entity(world, garden_cards.ids[i], owner) &&
         !is_card_tapped(world, garden_cards.ids[i])) {
       return true;
     }
@@ -41,9 +46,8 @@ bool azk01_103_validate(ecs_world_t *world, ecs_entity_t card,
 
 bool azk01_103_validate_cost_target(ecs_world_t *world, ecs_entity_t card,
                                     ecs_entity_t owner, ecs_entity_t target) {
-  (void)card;
-
-  return target != 0 && is_earth_garden_entity(world, target, owner) &&
+  return target != 0 && target != card &&
+         is_earth_garden_entity(world, target, owner) &&
          !is_card_tapped(world, target);
 }
 
@@ -65,6 +69,8 @@ void azk01_103_apply_costs(ecs_world_t *world, const AbilityContext *ctx) {
   if (ctx->cost.selected_count == 0) {
     return;
   }
+
+  tap_card(world, ctx->runtime.source_card);
 
   ecs_entity_t sacrificed = ctx->cost.entities[0];
   const CurStats *stats = ecs_get(world, sacrificed, CurStats);

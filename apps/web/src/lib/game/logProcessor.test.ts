@@ -142,6 +142,51 @@ function createTestState(): GameState {
 }
 
 describe("applySingleLog", () => {
+  test("uses zone-move metadata for tapped and cooldown state on garden entry", () => {
+    const state = createTestState();
+    const cardDefIdMap = new Map<number, CardMapping>([
+      [300, createCardMapping("AZK01-046", 300, "Mina the Geomancer")],
+    ]);
+    const cardMappings = new Map<string, CardMapping>(
+      Array.from(cardDefIdMap.values()).map((mapping) => [mapping.cardCode, mapping])
+    );
+    const batchContext = createBatchIndexRebaseContext();
+
+    const nextState = applySingleLog(
+      state,
+      {
+        type: "ZONE_MOVED",
+        data: {
+          card: { player: 0, cardDefId: 300, zone: "GARDEN", zoneIndex: 1 },
+          fromZone: "HAND",
+          fromIndex: 0,
+          toZone: "GARDEN",
+          toIndex: 1,
+          metadata: {
+            curAtk: 1,
+            curHp: 2,
+            tapped: true,
+            cooldown: true,
+            hasCharge: false,
+            hasDefender: false,
+            hasInfiltrate: false,
+            isFrozen: false,
+            isRooted: false,
+            isEffectImmune: false,
+          },
+        },
+      },
+      0,
+      cardMappings,
+      cardDefIdMap,
+      batchContext
+    );
+
+    assert.equal(nextState.myBoard.garden[1]?.cardDefId, 300);
+    assert.equal(nextState.myBoard.garden[1]?.tapped, true);
+    assert.equal(nextState.myBoard.garden[1]?.cooldown, true);
+  });
+
   test("keeps both cards visible when a garden/alley swap is logged in one batch", () => {
     const state = createTestState();
     const cardDefIdMap = new Map<number, CardMapping>([

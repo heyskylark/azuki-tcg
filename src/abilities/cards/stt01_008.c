@@ -4,6 +4,7 @@
 #include "components/abilities.h"
 #include "components/components.h"
 #include "generated/card_defs.h"
+#include "utils/ability_util.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/status_util.h"
 
@@ -67,18 +68,24 @@ static void stt01_008_weapon_observer(ecs_iter_t *it) {
   }
 }
 
-void stt01_008_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
-  azk_init_passive_observer_context(world, card, NULL);
+void stt01_008_init_passive_observers(ecs_world_t *world,
+                                      ecs_entity_t ability_entity) {
+  ecs_entity_t card = azk_get_ability_source_card(world, ability_entity);
+  if (card == 0) {
+    return;
+  }
+
+  azk_init_passive_observer_context(world, ability_entity, NULL);
 
   ecs_entity_t observer = azk_create_tracked_passive_observer(
-      world, card,
+      world, ability_entity,
       &(ecs_observer_desc_t){
           .query.terms = {{.id = ecs_pair(EcsChildOf, card)}, {.id = TWeapon}},
           .events = {EcsOnAdd, EcsOnRemove},
           .callback = stt01_008_weapon_observer,
       });
   if (observer == 0) {
-    azk_cleanup_passive_observer_context(world, card, NULL);
+    azk_cleanup_passive_observer_context(world, ability_entity, NULL);
     cli_render_logf("[STT01-008] Failed to initialize weapon observer");
     return;
   }
@@ -87,9 +94,10 @@ void stt01_008_init_passive_observers(ecs_world_t *world, ecs_entity_t card) {
 }
 
 void stt01_008_cleanup_passive_observers(ecs_world_t *world,
-                                         ecs_entity_t card) {
+                                         ecs_entity_t ability_entity) {
+  ecs_entity_t card = azk_get_ability_source_card(world, ability_entity);
   azk_cleanup_passive_observer_context(
-      world, card,
+      world, ability_entity,
       &(PassiveObserverCleanupOptions){
           .attack_buff_source = card,
       });

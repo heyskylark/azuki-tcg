@@ -18,7 +18,8 @@ void azk_reset_ability_context_state(AbilityContext *ctx);
 
 uint8_t azk_count_remaining_selection_cards(const AbilityContext *ctx);
 
-void azk_init_ability_context(AbilityContext *ctx, ecs_entity_t source_card,
+void azk_init_ability_context(ecs_world_t *world, AbilityContext *ctx,
+                              ecs_entity_t source_ability,
                               ecs_entity_t owner, const AbilityDef *def,
                               uint8_t available_cost_targets,
                               const AbilityContextInitOptions *options);

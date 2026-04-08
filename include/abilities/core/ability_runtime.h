@@ -25,7 +25,7 @@ typedef struct {
   const char *selection_log;
 } AbilityBeginOptions;
 
-bool azk_begin_ability(ecs_world_t *world, ecs_entity_t source_card,
+bool azk_begin_ability(ecs_world_t *world, ecs_entity_t source_ability,
                        ecs_entity_t owner, const AbilityDef *def,
                        const AbilityBeginOptions *options);
 

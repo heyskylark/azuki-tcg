@@ -69,8 +69,8 @@
 {"card_id": "AZK01-034", "name": "Kira", "rarity": "C", "element": "LIGHTNING", "type": "ENTITY", "ikz_cost": 2, "attack": 1, "health": 1, "gate_points": 1, "subtypes": ["Voltguard"]}
 {"card_id": "AZK01-035", "name": "Raimaru the Stolen", "rarity": "C", "element": "LIGHTNING", "type": "ENTITY", "ikz_cost": 3, "attack": 0, "health": 1, "gate_points": 0, "keywords": ["defender"], "subtypes": ["Cat", "Statue", "Voltguard"]}
 {"card_id": "AZK01-036", "name": "Denmu", "rarity": "UC", "element": "LIGHTNING", "type": "ENTITY", "ikz_cost": 3, "attack": 2, "health": 2, "gate_points": 1, "subtypes": ["Bat", "Shockcoil"]}
-{"card_id": "AZK01-037", "name": "Stormcaller Tenkichi", "rarity": "R", "element": "LIGHTNING", "type": "ENTITY", "ikz_cost": 4, "attack": 3, "health": 2, "gate_points": 0, "keywords": ["charge"], "subtypes": ["Riftwalk", "Stormcaller"]}
-{"card_id": "AZK01-038", "name": "Riven Flashborne", "rarity": "R", "element": "LIGHTNING", "type": "ENTITY", "ikz_cost": 3, "attack": 2, "health": 2, "gate_points": 1, "subtypes": ["Riftwalk"]}
+{"card_id": "AZK01-037", "name": "Stormcaller Tenkichi", "rarity": "R", "element": "LIGHTNING", "type": "ENTITY", "ikz_cost": 4, "attack": 3, "health": 2, "gate_points": 0, "keywords": ["charge", "can_target_tapped_and_untapped_alley"], "subtypes": ["Riftwalk", "Stormcaller"]}
+{"card_id": "AZK01-038", "name": "Riven Flashborne", "rarity": "R", "element": "LIGHTNING", "type": "ENTITY", "ikz_cost": 3, "attack": 2, "health": 2, "gate_points": 1, "keywords": ["can_target_tapped_and_untapped_alley"], "subtypes": ["Riftwalk"]}
 {"card_id": "AZK01-039", "name": "Piko", "rarity": "C", "element": "LIGHTNING", "type": "ENTITY", "ikz_cost": 4, "attack": 2, "health": 3, "gate_points": 0, "subtypes": ["Cat", "Steelborn"]}
 {"card_id": "AZK01-040", "name": "Black Jade Vault Master", "rarity": "UC", "element": "LIGHTNING", "type": "ENTITY", "ikz_cost": 5, "attack": 1, "health": 3, "gate_points": 2, "keywords": ["defender"], "subtypes": ["Black Jade", "Tiger", "Voltguard"]}
 {"card_id": "AZK01-041", "name": "Wu Cha", "rarity": "SR", "element": "LIGHTNING", "type": "ENTITY", "ikz_cost": 8, "attack": 7, "health": 7, "gate_points": 2, "subtypes": ["Fox Fire", "Steelborn"]}
@@ -78,7 +78,7 @@
 {"card_id": "AZK01-043", "name": "Stormglass Daggers", "rarity": "C", "element": "LIGHTNING", "type": "WEAPON", "ikz_cost": 2, "attack": 1, "subtypes": ["Dagger", "Riftwalk"]}
 {"card_id": "AZK01-044", "name": "Lightning Kanabo", "rarity": "R", "element": "LIGHTNING", "type": "WEAPON", "ikz_cost": 3, "attack": 2, "subtypes": ["Shockcoil"]}
 {"card_id": "AZK01-045", "name": "Treetop Scout", "rarity": "C", "element": "EARTH", "type": "ENTITY", "ikz_cost": 1, "attack": 1, "health": 1, "gate_points": 1, "subtypes": ["Scout"]}
-{"card_id": "AZK01-046", "name": "Mina the Geomancer", "rarity": "UC", "element": "EARTH", "type": "ENTITY", "ikz_cost": 1, "attack": 1, "health": 1, "gate_points": 0, "subtypes": ["Earthfury"]}
+{"card_id": "AZK01-046", "name": "Mina the Geomancer", "rarity": "UC", "element": "EARTH", "type": "ENTITY", "ikz_cost": 1, "attack": 1, "health": 1, "gate_points": 0, "keywords": ["garden_force_tapped"], "subtypes": ["Earthfury"]}
 {"card_id": "AZK01-047", "name": "Shiko the Priestess", "rarity": "UC", "element": "EARTH", "type": "ENTITY", "ikz_cost": 2, "attack": 1, "health": 2, "gate_points": 1, "subtypes": ["Earthwarden"]}
 {"card_id": "AZK01-048", "name": "Kale", "rarity": "C", "element": "EARTH", "type": "ENTITY", "ikz_cost": 3, "attack": 1, "health": 2, "gate_points": 2, "subtypes": ["Obsidian"]}
 {"card_id": "AZK01-049", "name": "Lone Journeyman", "rarity": "C", "element": "EARTH", "type": "ENTITY", "ikz_cost": 3, "attack": 1, "health": 2, "gate_points": 2, "keywords": ["defender"], "subtypes": ["Earthwarden"]}
@@ -108,7 +108,7 @@
 {"card_id": "AZK01-073", "name": "Top Beanz", "rarity": "C", "element": "NORMAL", "type": "ENTITY", "ikz_cost": 3, "attack": 1, "health": 1, "gate_points": 2, "subtypes": ["Beanz"]}
 {"card_id": "AZK01-074", "name": "Gurugumi Vanguard", "rarity": "UC", "element": "NORMAL", "type": "ENTITY", "ikz_cost": 2, "attack": 0, "health": 2, "gate_points": 1, "subtypes": ["Gurijutsu"]}
 {"card_id": "AZK01-075", "name": "Drunken Brewmaster", "rarity": "C", "element": "NORMAL", "type": "ENTITY", "ikz_cost": 4, "attack": 2, "health": 2, "gate_points": 1, "subtypes": ["Brewmaster", "Elder"]}
-{"card_id": "AZK01-077", "name": "Stalking Assassin", "rarity": "C", "element": "NORMAL", "type": "ENTITY", "ikz_cost": 3, "attack": 2, "health": 2, "gate_points": 2, "subtypes": ["Assassin", "Steelborn"]}
+{"card_id": "AZK01-077", "name": "Stalking Assassin", "rarity": "C", "element": "NORMAL", "type": "ENTITY", "ikz_cost": 3, "attack": 2, "health": 2, "gate_points": 2, "keywords": ["can_target_leader_only"], "subtypes": ["Assassin", "Steelborn"]}
 {"card_id": "AZK01-078", "name": "Fermented Beanz", "rarity": "C", "element": "NORMAL", "type": "ENTITY", "ikz_cost": 4, "attack": 2, "health": 2, "gate_points": 2, "subtypes": ["Beanz"]}
 {"card_id": "AZK01-080", "name": "Bladebound Ally", "rarity": "R", "element": "NORMAL", "type": "ENTITY", "ikz_cost": 5, "attack": 3, "health": 2, "gate_points": 3, "subtypes": ["Invigorate", "Samurai"]}
 {"card_id": "AZK01-081", "name": "Gurugumi Mentor", "rarity": "C", "element": "NORMAL", "type": "ENTITY", "ikz_cost": 5, "attack": 3, "health": 3, "gate_points": 2, "subtypes": ["Gurijutsu"]}
@@ -135,7 +135,7 @@
 {"card_id": "AZK01-104", "name": "Sanzu's Envoy", "rarity": "UC", "element": "EARTH", "type": "ENTITY", "ikz_cost": 6, "attack": 4, "health": 4, "gate_points": 3, "subtypes": ["Stonemend", "Verdant"]}
 {"card_id": "AZK01-105", "name": "Prickly Tumbleweed", "rarity": "C", "element": "EARTH", "type": "ENTITY", "ikz_cost": 4, "attack": 1, "health": 3, "gate_points": 2, "subtypes": ["Earthfury"]}
 {"card_id": "AZK01-106", "name": "Lord of Sands, Osunanami", "rarity": "SR", "element": "EARTH", "type": "ENTITY", "ikz_cost": 10, "attack": 6, "health": 6, "gate_points": 3, "subtypes": ["Colossal", "Sandstrider"]}
-{"card_id": "AZK01-107", "name": "Offering to Stillstone", "rarity": "C", "element": "EARTH", "type": "SPELL", "ikz_cost": 1, "subtypes": ["Verdant"]}
+{"card_id": "AZK01-107", "name": "Offering to Stillstone", "rarity": "C", "element": "EARTH", "type": "SPELL", "ikz_cost": 0, "subtypes": ["Verdant"]}
 {"card_id": "AZK01-108", "name": "Crushing Weight", "rarity": "R", "element": "EARTH", "type": "SPELL", "ikz_cost": 5, "subtypes": ["Earthfury"]}
 {"card_id": "AZK01-109", "name": "Rock Sloth", "rarity": "C", "element": "EARTH", "type": "ENTITY", "ikz_cost": 6, "attack": 3, "health": 4, "gate_points": 3, "subtypes": ["Obsidian", "Sloth"]}
 {"card_id": "AZK01-110", "name": "Gluttonous Devourer, Kasha", "rarity": "UC", "element": "FIRE", "type": "ENTITY", "ikz_cost": 4, "attack": 2, "health": 2, "gate_points": 2, "subtypes": ["Loneflame", "Red Panda"]}
@@ -164,7 +164,7 @@
 {"card_id": "STT03-004", "name": "Sloth Scarecrow", "rarity": "C", "element": "EARTH", "type": "ENTITY", "ikz_cost": 1, "attack": 0, "health": 1, "gate_points": 0, "keywords": ["defender"], "subtypes": ["Earthwarden", "Stonemend"]}
 {"card_id": "STT03-005", "name": "Wobbly Cabbage Cart", "rarity": "C", "element": "EARTH", "type": "ENTITY", "ikz_cost": 2, "attack": 0, "health": 1, "gate_points": 1, "subtypes": ["Earthfury"]}
 {"card_id": "STT03-006", "name": "Cactus Farmer", "rarity": "UC", "element": "EARTH", "type": "ENTITY", "ikz_cost": 2, "attack": 2, "health": 1, "gate_points": 1, "subtypes": ["Earthwarden"]}
-{"card_id": "STT03-007", "name": "Koyama Farm Caretaker", "rarity": "R", "element": "EARTH", "type": "ENTITY", "ikz_cost": 3, "attack": 1, "health": 1, "gate_points": 0, "subtypes": ["Farmer", "Verdant"]}
+{"card_id": "STT03-007", "name": "Koyama Farm Caretaker", "rarity": "R", "element": "EARTH", "type": "ENTITY", "ikz_cost": 3, "attack": 1, "health": 1, "gate_points": 0, "keywords": ["is_ikz_card"], "subtypes": ["Farmer", "Verdant"]}
 {"card_id": "STT03-008", "name": "Midnight Courier", "rarity": "C", "element": "NORMAL", "type": "ENTITY", "ikz_cost": 3, "attack": 2, "health": 2, "gate_points": 1, "subtypes": ["Strider"]}
 {"card_id": "STT03-009", "name": "Warding Totem", "rarity": "UC", "element": "EARTH", "type": "ENTITY", "ikz_cost": 4, "attack": 0, "health": 2, "gate_points": 2, "keywords": ["defender"], "subtypes": ["Earthwarden", "Statue", "Verdant"]}
 {"card_id": "STT03-010", "name": "Shroommancer", "rarity": "C", "element": "EARTH", "type": "ENTITY", "ikz_cost": 4, "attack": 2, "health": 2, "gate_points": 2, "subtypes": ["Stonemend"]}

@@ -4,6 +4,7 @@
 #include "components/abilities.h"
 #include "components/components.h"
 #include "utils/card_utils.h"
+#include "utils/ability_util.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/damage_util.h"
 #include "utils/game_log_util.h"
@@ -27,14 +28,17 @@ static void trigger_lightning_kanabo_if_present(ecs_world_t *world,
         continue;
       }
 
-      if (ecs_has(world, weapon, AOnceTurn)) {
+      ecs_entity_t ability_entity =
+          azk_find_card_ability_by_registry_order(world, weapon, 0);
+
+      if (ability_entity != 0 && ecs_has(world, ability_entity, AOnceTurn)) {
         const AbilityRepeatContext *repeat_ctx =
-            ecs_get(world, weapon, AbilityRepeatContext);
+            ecs_get(world, ability_entity, AbilityRepeatContext);
         if (repeat_ctx && repeat_ctx->was_applied) {
           continue;
         }
 
-        ecs_set(world, weapon, AbilityRepeatContext,
+        ecs_set(world, ability_entity, AbilityRepeatContext,
                 {.is_once_per_turn = true, .was_applied = true});
       }
 
@@ -58,6 +62,17 @@ static int8_t calculate_combat_damage(ecs_world_t *world, ecs_entity_t dealer,
   }
 
   return (int8_t)damage;
+}
+
+static int8_t clamp_combat_hp_for_godmode(ecs_world_t *world, ecs_entity_t card,
+                                          int8_t current_hp,
+                                          int8_t incoming_damage) {
+  int16_t next_hp = (int16_t)current_hp - incoming_damage;
+  if (azk_card_has_godmode_in_play(world, card) && next_hp < 0) {
+    next_hp = 0;
+  }
+
+  return (int8_t)next_hp;
 }
 
 int attack(
@@ -103,8 +118,18 @@ bool azk_queue_current_defender_when_attacked(ecs_world_t *world) {
     return false;
   }
 
-  return azk_queue_triggered_effect(world, defender, defender_owner,
-                                    TIMING_TAG_WHEN_ATTACKED);
+  ecs_entity_t abilities[AZK_MAX_CARD_ABILITIES] = {0};
+  uint8_t ability_count = azk_collect_card_timed_abilities(
+      world, defender, ecs_id(AWhenAttacked), abilities, AZK_MAX_CARD_ABILITIES);
+  bool queued_any = false;
+  for (uint8_t i = 0; i < ability_count; ++i) {
+    if (azk_queue_triggered_effect(world, abilities[i], defender_owner,
+                                   TIMING_TAG_WHEN_ATTACKED)) {
+      queued_any = true;
+    }
+  }
+
+  return queued_any;
 }
 
 bool azk_transition_to_combat_resolve(ecs_world_t *world) {
@@ -151,9 +176,13 @@ void resolve_combat(ecs_world_t *world) {
   bool defender_frozen = ecs_has(world, gs->combat_state.defender_card, Frozen);
   int8_t attacker_damage = 0;
   int8_t defender_damage = 0;
+  int8_t attacker_damage_taken = 0;
+  int8_t defender_damage_taken = 0;
   if (defender_frozen) {
     cli_render_log("[Combat] Defender is frozen - no damage dealt");
   } else {
+    const int8_t attacker_prev_hp = attacking_card_cur_stats->cur_hp;
+    const int8_t defender_prev_hp = defender_card_cur_stats->cur_hp;
     attacker_damage = calculate_combat_damage(
         world, gs->combat_state.defender_card, gs->combat_state.attacking_card,
         defender_card_cur_stats->cur_atk);
@@ -161,38 +190,55 @@ void resolve_combat(ecs_world_t *world) {
         world, gs->combat_state.attacking_card, gs->combat_state.defender_card,
         attacking_card_cur_stats->cur_atk);
 
-    attacking_card_cur_stats->cur_hp -= attacker_damage;
-    defender_card_cur_stats->cur_hp -= defender_damage;
+    attacking_card_cur_stats->cur_hp = clamp_combat_hp_for_godmode(
+        world, gs->combat_state.attacking_card, attacker_prev_hp,
+        attacker_damage);
+    defender_card_cur_stats->cur_hp = clamp_combat_hp_for_godmode(
+        world, gs->combat_state.defender_card, defender_prev_hp,
+        defender_damage);
+
+    attacker_damage_taken =
+        azk_card_has_godmode_in_play(world, gs->combat_state.attacking_card)
+            ? (int8_t)(attacker_prev_hp - attacking_card_cur_stats->cur_hp)
+            : attacker_damage;
+    defender_damage_taken =
+        azk_card_has_godmode_in_play(world, gs->combat_state.defender_card)
+            ? (int8_t)(defender_prev_hp - defender_card_cur_stats->cur_hp)
+            : defender_damage;
 
     trigger_lightning_kanabo_if_present(world, gs->combat_state.attacking_card,
                                         gs->combat_state.defender_card,
-                                        defender_damage);
+                                        defender_damage_taken);
     trigger_lightning_kanabo_if_present(world, gs->combat_state.defender_card,
                                         gs->combat_state.attacking_card,
-                                        attacker_damage);
+                                        attacker_damage_taken);
 
     azk_record_damage_event(world, gs->combat_state.defender_card,
-                            gs->combat_state.attacking_card, attacker_damage,
-                            false);
+                            gs->combat_state.attacking_card,
+                            attacker_damage_taken, false);
     azk_record_damage_event(world, gs->combat_state.attacking_card,
-                            gs->combat_state.defender_card, defender_damage,
-                            false);
+                            gs->combat_state.defender_card,
+                            defender_damage_taken, false);
 
     // Log combat damage (attacker deals defender_damage to defender, takes attacker_damage)
     azk_log_combat_damage(world, gs->combat_state.attacking_card,
                           gs->combat_state.defender_card,
-                          defender_damage, attacker_damage,
-                          attacker_damage, defender_damage);
+                          defender_damage_taken, attacker_damage_taken,
+                          attacker_damage_taken, defender_damage_taken);
   }
 
   bool attacking_leader_defeated = false;
   bool defender_leader_defeated = false;
   bool attacker_destroyed = false;
   bool defender_destroyed = false;
+  const bool attacker_has_godmode =
+      azk_card_has_godmode_in_play(world, gs->combat_state.attacking_card);
+  const bool defender_has_godmode =
+      azk_card_has_godmode_in_play(world, gs->combat_state.defender_card);
   // Capture destruction outcomes before discard_card resets CurStats.
   if (attacking_card_cur_stats->cur_hp <= 0) {
-    if (azk_card_has_godmode_in_play(world, gs->combat_state.attacking_card)) {
-      attacking_card_cur_stats->cur_hp = 1;
+    if (attacker_has_godmode) {
+      cli_render_log("[Combat] Godmode kept attacker in play at 0 HP");
     } else if (attacker_is_leader) {
       attacking_leader_defeated = true;
       // Log entity died (leader defeated by combat)
@@ -208,8 +254,8 @@ void resolve_combat(ecs_world_t *world) {
   }
 
   if (defender_card_cur_stats->cur_hp <= 0) {
-    if (azk_card_has_godmode_in_play(world, gs->combat_state.defender_card)) {
-      defender_card_cur_stats->cur_hp = 1;
+    if (defender_has_godmode) {
+      cli_render_log("[Combat] Godmode kept defender in play at 0 HP");
     } else if (defender_is_leader) {
       defender_leader_defeated = true;
       // Log entity died (leader defeated by combat)
@@ -246,8 +292,8 @@ void resolve_combat(ecs_world_t *world) {
           defender_parent == gs->zones[(gs->active_player_index + 1) % MAX_PLAYERS_PER_MATCH].garden,
       .defender_destroyed = defender_destroyed,
       .attacker_destroyed = attacker_destroyed,
-      .damage_to_defender = defender_damage,
-      .damage_to_attacker = attacker_damage,
+      .damage_to_defender = defender_damage_taken,
+      .damage_to_attacker = attacker_damage_taken,
   };
 
   // TODO: Resolve "after attacking" or "when attacked" effects that trigger from the outcome

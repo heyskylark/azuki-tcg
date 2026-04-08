@@ -32,7 +32,7 @@ void azk_log_ability_initial_phase_entry(AbilityPhase phase,
   }
 }
 
-bool azk_begin_ability(ecs_world_t *world, ecs_entity_t source_card,
+bool azk_begin_ability(ecs_world_t *world, ecs_entity_t source_ability,
                        ecs_entity_t owner, const AbilityDef *def,
                        const AbilityBeginOptions *options) {
   if (!def) {
@@ -48,7 +48,7 @@ bool azk_begin_ability(ecs_world_t *world, ecs_entity_t source_card,
     return false;
   }
 
-  azk_init_ability_context(ctx, source_card, owner, def,
+  azk_init_ability_context(world, ctx, source_ability, owner, def,
                            begin_options->available_cost_targets,
                            &(AbilityContextInitOptions){
                                .is_optional = begin_options->is_optional,
@@ -64,8 +64,8 @@ bool azk_begin_ability(ecs_world_t *world, ecs_entity_t source_card,
   if (begin_options->clamp_effect_expected_to_available &&
       begin_options->available_effect_targets == 0 && def->effect_req.max > 0) {
     const uint8_t available_effect_targets = azk_count_ability_target_choices(
-        world, def, ABILITY_TARGET_SCOPE_EFFECT, source_card, owner);
-    azk_init_ability_context(ctx, source_card, owner, def,
+        world, def, ABILITY_TARGET_SCOPE_EFFECT, ctx->runtime.source_card, owner);
+    azk_init_ability_context(world, ctx, source_ability, owner, def,
                              begin_options->available_cost_targets,
                              &(AbilityContextInitOptions){
                                  .is_optional = begin_options->is_optional,

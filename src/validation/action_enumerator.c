@@ -10,6 +10,7 @@
 #include "abilities/ability_system.h"
 #include "abilities/targeting/ability_targeting.h"
 #include "generated/card_defs.h"
+#include "utils/ability_util.h"
 #include "utils/debug_log.h"
 #include "utils/card_utils.h"
 #include "utils/cli_rendering_util.h"
@@ -247,7 +248,8 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
     if (!card_id)
       break;
 
-    const AbilityDef *def = azk_get_ability_def(card_id->id);
+    const AbilityDef *def =
+        azk_get_ability_def_for_entity(world, ctx->runtime.source_ability);
     if (!def)
       break;
 
@@ -275,7 +277,8 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
     if (!card_id)
       break;
 
-    const AbilityDef *def = azk_get_ability_def(card_id->id);
+    const AbilityDef *def =
+        azk_get_ability_def_for_entity(world, ctx->runtime.source_ability);
     if (!def)
       break;
 
@@ -304,7 +307,8 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
     if (!card_id)
       break;
 
-    const AbilityDef *def = azk_get_ability_def(card_id->id);
+    const AbilityDef *def =
+        azk_get_ability_def_for_entity(world, ctx->runtime.source_ability);
     if (!def)
       break;
 
@@ -424,8 +428,8 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
   }
 
   case ABILITY_PHASE_BOTTOM_DECK: {
-    const CardId *card_id = ecs_get(world, ctx->runtime.source_card, CardId);
-    const AbilityDef *def = card_id ? azk_get_ability_def(card_id->id) : NULL;
+    const AbilityDef *def =
+        azk_get_ability_def_for_entity(world, ctx->runtime.source_ability);
 
     if (def && def->can_topdeck_selection) {
       action.type = ACT_TOP_DECK_CARD;
@@ -628,10 +632,33 @@ static void enumerate_play_spell_actions(ecs_world_t *world, const GameState *gs
                        .subaction_2 = 0,
                        .subaction_3 = 0};
   for (int hand_index = 0; hand_index < ctx->hand_card_count; ++hand_index) {
+    ecs_entity_t hand_zone = gs->zones[get_player_number(world, player)].hand;
+    ecs_entities_t hand_cards = ecs_get_ordered_children(world, hand_zone);
+    if (hand_index >= hand_cards.count) {
+      continue;
+    }
+
+    ecs_entity_t card = hand_cards.ids[hand_index];
+    ecs_entity_t abilities[AZK_MAX_CARD_ABILITIES] = {0};
+    uint8_t ability_count = azk_collect_card_action_abilities(
+        world, card, abilities, AZK_MAX_CARD_ABILITIES);
+    if (ability_count == 0) {
+      continue;
+    }
+
     action.subaction_1 = hand_index;
-    for (int b = 0; b < bool_count; ++b) {
-      action.subaction_3 = bool_values[b];
-      try_add_action_if_valid(world, gs, player, &action, out_mask);
+    for (uint8_t i = 0; i < ability_count; ++i) {
+      const AbilityInstance *instance =
+          ecs_get(world, abilities[i], AbilityInstance);
+      if (instance == NULL || instance->action_index == AZK_NO_ACTION_INDEX) {
+        continue;
+      }
+
+      action.subaction_2 = instance->action_index;
+      for (int b = 0; b < bool_count; ++b) {
+        action.subaction_3 = bool_values[b];
+        try_add_action_if_valid(world, gs, player, &action, out_mask);
+      }
     }
   }
 }
@@ -714,13 +741,9 @@ static void enumerate_gate_portal_actions(ecs_world_t *world, const GameState *g
   }
 }
 
-static bool ability_uses_ikz_cost(ecs_world_t *world, ecs_entity_t card) {
-  const CardId *card_id = ecs_get(world, card, CardId);
-  if (card_id == NULL) {
-    return false;
-  }
-
-  const AbilityDef *def = azk_get_ability_def(card_id->id);
+static bool ability_uses_ikz_cost(ecs_world_t *world, ecs_entity_t ability) {
+  const AbilityDef *def =
+      ability != 0 ? azk_get_ability_def_for_entity(world, ability) : NULL;
   return def != NULL && def->ikz_cost > 0;
 }
 
@@ -741,24 +764,50 @@ static void enumerate_activate_garden_or_leader_ability_actions(
     if (card == 0) {
       continue;
     }
-    action.subaction_1 = slot;
-    action.subaction_3 = 0;
-    try_add_action_if_valid(world, gs, player, &action, out_mask);
-    if (ctx != NULL && ctx->has_ikz_token && ability_uses_ikz_cost(world, card)) {
-      action.subaction_3 = 1;
+
+    ecs_entity_t abilities[AZK_MAX_CARD_ABILITIES] = {0};
+    uint8_t ability_count = azk_collect_card_action_abilities(
+        world, card, abilities, AZK_MAX_CARD_ABILITIES);
+    for (uint8_t i = 0; i < ability_count; ++i) {
+      const AbilityInstance *instance =
+          ecs_get(world, abilities[i], AbilityInstance);
+      if (instance == NULL || instance->action_index == AZK_NO_ACTION_INDEX) {
+        continue;
+      }
+
+      action.subaction_1 = slot;
+      action.subaction_2 = instance->action_index;
+      action.subaction_3 = 0;
       try_add_action_if_valid(world, gs, player, &action, out_mask);
+      if (ctx != NULL && ctx->has_ikz_token &&
+          ability_uses_ikz_cost(world, abilities[i])) {
+        action.subaction_3 = 1;
+        try_add_action_if_valid(world, gs, player, &action, out_mask);
+      }
     }
   }
 
   ecs_entity_t leader = find_leader_card_in_zone(world, gs->zones[player_num].leader);
   if (leader != 0) {
-    action.subaction_1 = GARDEN_SIZE;
-    action.subaction_3 = 0;
-    try_add_action_if_valid(world, gs, player, &action, out_mask);
-    if (ctx != NULL && ctx->has_ikz_token &&
-        ability_uses_ikz_cost(world, leader)) {
-      action.subaction_3 = 1;
+    ecs_entity_t abilities[AZK_MAX_CARD_ABILITIES] = {0};
+    uint8_t ability_count = azk_collect_card_action_abilities(
+        world, leader, abilities, AZK_MAX_CARD_ABILITIES);
+    for (uint8_t i = 0; i < ability_count; ++i) {
+      const AbilityInstance *instance =
+          ecs_get(world, abilities[i], AbilityInstance);
+      if (instance == NULL || instance->action_index == AZK_NO_ACTION_INDEX) {
+        continue;
+      }
+
+      action.subaction_1 = GARDEN_SIZE;
+      action.subaction_2 = instance->action_index;
+      action.subaction_3 = 0;
       try_add_action_if_valid(world, gs, player, &action, out_mask);
+      if (ctx != NULL && ctx->has_ikz_token &&
+          ability_uses_ikz_cost(world, abilities[i])) {
+        action.subaction_3 = 1;
+        try_add_action_if_valid(world, gs, player, &action, out_mask);
+      }
     }
   }
 }
@@ -775,11 +824,26 @@ static void enumerate_activate_alley_ability_actions(ecs_world_t *world,
                        .subaction_3 = 0};
 
   for (int slot = 0; slot < ALLEY_SIZE; ++slot) {
-    if (find_card_in_zone_index(world, gs->zones[player_num].alley, slot) == 0) {
+    ecs_entity_t card =
+        find_card_in_zone_index(world, gs->zones[player_num].alley, slot);
+    if (card == 0) {
       continue;
     }
-    action.subaction_2 = slot;
-    try_add_action_if_valid(world, gs, player, &action, out_mask);
+
+    ecs_entity_t abilities[AZK_MAX_CARD_ABILITIES] = {0};
+    uint8_t ability_count = azk_collect_card_action_abilities(
+        world, card, abilities, AZK_MAX_CARD_ABILITIES);
+    for (uint8_t i = 0; i < ability_count; ++i) {
+      const AbilityInstance *instance =
+          ecs_get(world, abilities[i], AbilityInstance);
+      if (instance == NULL || instance->action_index == AZK_NO_ACTION_INDEX) {
+        continue;
+      }
+
+      action.subaction_1 = instance->action_index;
+      action.subaction_2 = slot;
+      try_add_action_if_valid(world, gs, player, &action, out_mask);
+    }
   }
 }
 

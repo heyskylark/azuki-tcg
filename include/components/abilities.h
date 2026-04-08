@@ -60,7 +60,7 @@ extern ECS_COMPONENT_DECLARE(AbilityCostRequirements);
 extern ECS_COMPONENT_DECLARE(AbilityEffectRequirements);
 extern ECS_COMPONENT_DECLARE(AbilityFunctions);
 
-/* Ability Timing Tags */
+/* Ability Timing / Activation Tags */
 extern ECS_TAG_DECLARE(AOnPlay);
 extern ECS_TAG_DECLARE(AStartOfTurn);
 extern ECS_TAG_DECLARE(AStartOfEachTurn);
@@ -92,6 +92,12 @@ extern ECS_TAG_DECLARE(Godmode);
 extern ECS_TAG_DECLARE(SacrificeAtEndOfTurn);
 extern ECS_TAG_DECLARE(Taunt);
 extern ECS_TAG_DECLARE(Rooted);
+
+/* Attribute Tags */
+extern ECS_TAG_DECLARE(AttrCanTargetLeaderOnly);
+extern ECS_TAG_DECLARE(AttrCanTargetTappedAndUntappedAlley);
+extern ECS_TAG_DECLARE(AttrGardenForceTapped);
+extern ECS_TAG_DECLARE(AttrCountsAsIkzSource);
 
 /* Negative Condition Tags */
 extern ECS_TAG_DECLARE(Frozen);
@@ -206,6 +212,9 @@ typedef struct {
 extern ECS_COMPONENT_DECLARE(DamageTracker);
 
 void azk_register_ability_components(ecs_world_t *world);
+uint8_t azk_sync_card_abilities(ecs_world_t *world, ecs_entity_t card,
+                                ecs_entity_t *out_abilities,
+                                uint8_t out_cap);
 void attach_ability_components(ecs_world_t *world, ecs_entity_t card);
 
 #endif

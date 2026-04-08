@@ -29,6 +29,7 @@
 #include "abilities/cards/azk01_032.h"
 #include "abilities/cards/azk01_033.h"
 #include "abilities/cards/azk01_034.h"
+#include "abilities/cards/azk01_043.h"
 #include "abilities/cards/azk01_045.h"
 #include "abilities/cards/azk01_046.h"
 #include "abilities/cards/azk01_047.h"
@@ -69,6 +70,7 @@
 #include "abilities/cards/azk01_091.h"
 #include "abilities/cards/azk01_092.h"
 #include "abilities/cards/azk01_093.h"
+#include "abilities/cards/azk01_095.h"
 #include "abilities/cards/azk01_096.h"
 #include "abilities/cards/azk01_097.h"
 #include "abilities/cards/azk01_098.h"
@@ -165,10 +167,19 @@
 #include "abilities/cards/stt04_017.h"
 #include "components/abilities.h"
 
+#define AZK_MAX_ADDITIONAL_CARD_ABILITIES 7
+
 // Static registry table - most entries are empty (no ability)
 // Entries are populated in azk_init_ability_registry() after tags are
 // registered
 static AbilityDef kAbilityRegistry[CARD_DEF_COUNT] = {0};
+static AbilityDef
+    kAdditionalAbilityRegistry[CARD_DEF_COUNT]
+                              [AZK_MAX_ADDITIONAL_CARD_ABILITIES] = {0};
+static uint8_t kAdditionalAbilityCount[CARD_DEF_COUNT] = {0};
+static EquippedCombatModifier
+    kEquippedCombatModifierRegistry[CARD_DEF_COUNT] = {0};
+static bool kHasEquippedCombatModifierRegistry[CARD_DEF_COUNT] = {0};
 
 // Flag to track if registry has been initialized
 static bool kRegistryInitialized = false;
@@ -177,24 +188,102 @@ const AbilityDef *azk_get_ability_def(CardDefId id) {
   if ((size_t)id >= CARD_DEF_COUNT) {
     return NULL;
   }
+
   return &kAbilityRegistry[id];
 }
 
-bool azk_has_ability(CardDefId id) {
+uint8_t azk_get_ability_count(CardDefId id) {
   if ((size_t)id >= CARD_DEF_COUNT) {
+    return 0;
+  }
+
+  return kAbilityRegistry[id].has_ability
+             ? (uint8_t)(1 + kAdditionalAbilityCount[id])
+             : 0;
+}
+
+const AbilityDef *azk_get_ability_def_at(CardDefId id, uint8_t registry_order) {
+  if ((size_t)id >= CARD_DEF_COUNT || registry_order >= azk_get_ability_count(id)) {
+    return NULL;
+  }
+
+  if (registry_order == 0) {
+    return &kAbilityRegistry[id];
+  }
+
+  return &kAdditionalAbilityRegistry[id][registry_order - 1];
+}
+
+bool azk_set_additional_card_abilities(CardDefId id, const AbilityDef *defs,
+                                       uint8_t count) {
+  if ((size_t)id >= CARD_DEF_COUNT ||
+      count > AZK_MAX_ADDITIONAL_CARD_ABILITIES ||
+      (count > 0 && defs == NULL)) {
     return false;
   }
-  return kAbilityRegistry[id].has_ability;
+
+  if (count > 0 && !kAbilityRegistry[id].has_ability) {
+    return false;
+  }
+
+  for (uint8_t i = 0; i < AZK_MAX_ADDITIONAL_CARD_ABILITIES; ++i) {
+    kAdditionalAbilityRegistry[id][i] = (AbilityDef){0};
+  }
+
+  for (uint8_t i = 0; i < count; ++i) {
+    if (!defs[i].has_ability) {
+      return false;
+    }
+    kAdditionalAbilityRegistry[id][i] = defs[i];
+  }
+
+  kAdditionalAbilityCount[id] = count;
+  return true;
+}
+
+const EquippedCombatModifier *azk_get_equipped_combat_modifier_spec(
+    CardDefId id) {
+  if ((size_t)id >= CARD_DEF_COUNT ||
+      !kHasEquippedCombatModifierRegistry[id]) {
+    return NULL;
+  }
+
+  return &kEquippedCombatModifierRegistry[id];
+}
+
+bool azk_has_ability(CardDefId id) {
+  return azk_get_ability_count(id) > 0;
 }
 
 bool azk_has_ability_with_timing(CardDefId id, ecs_id_t timing_tag) {
-  if ((size_t)id >= CARD_DEF_COUNT) {
-    return false;
+  const uint8_t ability_count = azk_get_ability_count(id);
+  for (uint8_t i = 0; i < ability_count; ++i) {
+    const AbilityDef *def = azk_get_ability_def_at(id, i);
+    if (def != NULL &&
+        (def->timing_tag == timing_tag ||
+         def->secondary_timing_tag == timing_tag)) {
+      return true;
+    }
   }
-  const AbilityDef *def = &kAbilityRegistry[id];
-  return def->has_ability &&
-         (def->timing_tag == timing_tag ||
-          def->secondary_timing_tag == timing_tag);
+
+  return false;
+}
+
+bool azk_can_play_as_response_from_hand(CardDefId id) {
+  const AbilityDef *primary = azk_get_ability_def(id);
+  if (primary != NULL && primary->can_play_as_response_from_hand) {
+    return true;
+  }
+
+  const uint8_t ability_count = azk_get_ability_count(id);
+  for (uint8_t i = 0; i < ability_count; ++i) {
+    const AbilityDef *def = azk_get_ability_def_at(id, i);
+    if (def != NULL && def->can_play_as_response_from_hand) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 void azk_init_ability_registry(ecs_world_t *world) {
@@ -887,10 +976,14 @@ void azk_init_ability_registry(ecs_world_t *world) {
   ecs_entity_t monk_staff_prefab = azk_prefab_from_id(CARD_DEF_AZK01_018);
   ecs_assert(monk_staff_prefab != 0, ECS_INVALID_PARAMETER,
              "Prefab missing for AZK01-018");
-  ecs_set(world, monk_staff_prefab, EquippedCombatModifier,
-          {.incoming_modifier = -1,
-           .outgoing_modifier = 0,
-           .requires_leader = true});
+  kEquippedCombatModifierRegistry[CARD_DEF_AZK01_018] =
+      (EquippedCombatModifier){.incoming_modifier = -1,
+                               .outgoing_modifier = 0,
+                               .requires_leader = true};
+  kHasEquippedCombatModifierRegistry[CARD_DEF_AZK01_018] = true;
+  ecs_set_id(world, monk_staff_prefab, ecs_id(EquippedCombatModifier),
+             sizeof(EquippedCombatModifier),
+             &kEquippedCombatModifierRegistry[CARD_DEF_AZK01_018]);
 
   // AZK01-019 "Jay": If you only have (Normal) entities in your Garden, this
   // card has +2 health.
@@ -1180,6 +1273,14 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .apply_effects = azk01_042_apply_effects,
   };
 
+  // AZK01-043 "Stormglass Daggers": While equipped to your leader, it can
+  // target tapped and untapped cards in the opponent's Alley.
+  kAbilityRegistry[CARD_DEF_AZK01_043] = (AbilityDef){
+      .has_ability = true,
+      .init_passive_observers = azk01_043_init_passive_observers,
+      .cleanup_passive_observers = azk01_043_cleanup_passive_observers,
+  };
+
   // AZK01-044 "Lightning Kanabo": [Once/Turn] Whenever the equipped host deals
   // combat damage to an opponent's card, that card becomes Shocked.
   kAbilityRegistry[CARD_DEF_AZK01_044] = (AbilityDef){
@@ -1230,6 +1331,7 @@ void azk_init_ability_registry(ecs_world_t *world) {
   kAbilityRegistry[CARD_DEF_AZK01_048] = (AbilityDef){
       .has_ability = true,
       .init_passive_observers = azk01_048_init_passive_observers,
+      .cleanup_passive_observers = azk01_048_cleanup_passive_observers,
   };
 
   // AZK01-050 "Shroom Tender": [On Play] Heal 2 to your leader.
@@ -1705,6 +1807,19 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .apply_effects = azk01_093_apply_effects,
   };
 
+  // AZK01-094 "Hidden Dagger": This weapon can be played as a response.
+  kAbilityRegistry[CARD_DEF_AZK01_094] = (AbilityDef){
+      .can_play_as_response_from_hand = true,
+  };
+
+  // AZK01-095 "Stormglass Katana": While equipped to your leader, it can
+  // target tapped and untapped cards in the opponent's Alley.
+  kAbilityRegistry[CARD_DEF_AZK01_095] = (AbilityDef){
+      .has_ability = true,
+      .init_passive_observers = azk01_095_init_passive_observers,
+      .cleanup_passive_observers = azk01_095_cleanup_passive_observers,
+  };
+
   // AZK01-096 "Ninpo: Thunderstep": [Response] Swap an entity in your Garden
   // with an entity in your Alley. If the Garden entity was being attacked, the
   // Alley entity becomes the new target.
@@ -1862,6 +1977,13 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .validate_cost_target = azk01_108_validate_cost_target,
       .validate_effect_target = azk01_108_validate_effect_target,
       .apply_effects = azk01_108_apply_effects,
+  };
+
+  // AZK01-109 "Rock Sloth": Carapace 1.
+  kAbilityRegistry[CARD_DEF_AZK01_109] = (AbilityDef){
+      .has_ability = true,
+      .init_passive_observers = azk01_048_init_passive_observers,
+      .cleanup_passive_observers = azk01_048_cleanup_passive_observers,
   };
 
   // AZK01-110 "Gluttonous Devourer, Kasha": [When Attacking] You may

@@ -2,6 +2,7 @@
 #include "abilities/ability_registry.h"
 #include "abilities/ability_system.h"
 #include "components/components.h"
+#include "utils/ability_util.h"
 #include "utils/cli_rendering_util.h"
 #include "utils/combat_util.h"
 #include "utils/observation_util.h"
@@ -59,8 +60,14 @@ void HandleCombatResolution(ecs_iter_t *it) {
     const CardId *attacker_id = ecs_get(world, attacker, CardId);
     if (attacker_id != NULL &&
         azk_has_ability_with_timing(attacker_id->id, ecs_id(AAfterAttacking))) {
-      azk_queue_triggered_effect(world, attacker, attacker_owner,
-                                 TIMING_TAG_AFTER_ATTACKING);
+      ecs_entity_t abilities[AZK_MAX_CARD_ABILITIES] = {0};
+      uint8_t ability_count = azk_collect_card_timed_abilities(
+          world, attacker, ecs_id(AAfterAttacking), abilities,
+          AZK_MAX_CARD_ABILITIES);
+      for (uint8_t i = 0; i < ability_count; ++i) {
+        azk_queue_triggered_effect(world, abilities[i], attacker_owner,
+                                   TIMING_TAG_AFTER_ATTACKING);
+      }
     }
   }
 

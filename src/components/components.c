@@ -6,6 +6,7 @@
 
 ECS_COMPONENT_DECLARE(ActionContext);
 ECS_COMPONENT_DECLARE(AbilityContext);
+ECS_COMPONENT_DECLARE(AbilityInstance);
 ECS_COMPONENT_DECLARE(GameState);
 ECS_COMPONENT_DECLARE(PlayerNumber);
 ECS_COMPONENT_DECLARE(PlayerId);
@@ -22,6 +23,7 @@ ECS_COMPONENT_DECLARE(DeckReorderQueue);
 ECS_COMPONENT_DECLARE(PhaseGateCache);
 
 ECS_ENTITY_DECLARE(Rel_OwnedBy);
+ECS_ENTITY_DECLARE(Rel_AbilityOf);
 
 ECS_TAG_DECLARE(ZDeck);
 ECS_TAG_DECLARE(ZHand);
@@ -44,9 +46,21 @@ ECS_TAG_DECLARE(TEndTurn);
 ECS_TAG_DECLARE(TEndMatch);
 ECS_TAG_DECLARE(TAbilityResolution);
 
+static void on_owned_card_id_set(ecs_iter_t *it) {
+  for (int32_t i = 0; i < it->count; ++i) {
+    ecs_entity_t entity = it->entities[i];
+    if (ecs_get_target(it->world, entity, Rel_OwnedBy, 0) == 0) {
+      continue;
+    }
+
+    attach_ability_components(it->world, entity);
+  }
+}
+
 void azk_register_components(ecs_world_t *world) {
   ECS_COMPONENT_DEFINE(world, ActionContext);
   ECS_COMPONENT_DEFINE(world, AbilityContext);
+  ECS_COMPONENT_DEFINE(world, AbilityInstance);
   ECS_COMPONENT_DEFINE(world, GameState);
   ECS_COMPONENT_DEFINE(world, PlayerNumber);
   ECS_COMPONENT_DEFINE(world, PlayerId);
@@ -84,6 +98,22 @@ void azk_register_components(ecs_world_t *world) {
     ecs_id(Rel_OwnedBy) = Rel_OwnedBy;
   }
 
+  {
+    ecs_entity_desc_t desc = {
+      .name = "Rel_AbilityOf",
+      .add = (ecs_id_t[]){
+        EcsRelationship,
+        EcsAcyclic,
+        0
+      }
+    };
+    Rel_AbilityOf = ecs_entity_init(world, &desc);
+    ecs_assert(Rel_AbilityOf != 0, ECS_INVALID_PARAMETER,
+               "failed to create entity Rel_AbilityOf");
+    ecs_id(Rel_AbilityOf) = Rel_AbilityOf;
+    ecs_add_pair(world, Rel_AbilityOf, EcsOnDeleteTarget, EcsDelete);
+  }
+
   ECS_TAG_DEFINE(world, ZDeck);
   ECS_TAG_DEFINE(world, ZHand);
   ECS_TAG_DEFINE(world, ZLeader);
@@ -109,4 +139,20 @@ void azk_register_components(ecs_world_t *world) {
   azk_register_card_def_resources(world);
   azk_init_ability_registry(world);
   azk_register_game_log_components(world);
+
+  ecs_observer(world,
+               {
+                   .entity = ecs_entity(world, {.name = "OnOwnedCardIdSet"}),
+                   .query.terms =
+                       {
+                           {
+                               .id = ecs_id(CardId),
+                           },
+                           {
+                               .id = ecs_pair(Rel_OwnedBy, EcsWildcard),
+                           },
+                       },
+                   .events = {EcsOnSet},
+                   .callback = on_owned_card_id_set,
+               });
 }
