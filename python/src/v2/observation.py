@@ -16,9 +16,9 @@ ALLEY_SIZE = 5
 IKZ_PILE_SIZE = 10
 IKZ_AREA_SIZE = 10
 MAX_ATTACHED_WEAPONS = 10
-MAX_SELECTION_ZONE_SIZE = 5
+MAX_SELECTION_ZONE_SIZE = MAX_DECK_SIZE
 
-ACTION_TYPE_COUNT = 24
+ACTION_TYPE_COUNT = 26
 SUBACTION_SELECTION_COUNT = MAX_DECK_SIZE
 MAX_LEGAL_ACTIONS_COUNT = 1024
 ACTION_COMPONENT_COUNT = 4
@@ -186,7 +186,6 @@ class _TrainingObservationData(ctypes.Structure):
         ("opponent_observation_data", _TrainingOpponentObservationData),
         ("phase", ctypes.c_int32),
         ("ability_context", _TrainingAbilityContextObservationData),
-        ("previous_action", _TrainingPreviousActionObservationData),
         ("action_mask", _TrainingActionMaskObs),
     ]
 

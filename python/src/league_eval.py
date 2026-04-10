@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+import azk_puffer.pytorch as azk_pytorch
+import azk_puffer.vector as azk_vector
 import numpy as np
 import torch
-import pufferlib.pytorch
-import pufferlib.vector
 
 
 def _unwrap_base_env(env):
@@ -66,7 +66,7 @@ class InlineLeagueEvaluator(LeagueEvaluator):
 
     vecenv = build_vecenv(
       trainer_args,
-      backend=pufferlib.vector.Serial,
+      backend=azk_vector.Serial,
       num_envs=1,
       seed=seed,
     )
@@ -112,7 +112,7 @@ class InlineLeagueEvaluator(LeagueEvaluator):
           obs_t = torch.as_tensor(obs, device=device)
           with torch.no_grad():
             logits, _ = acting_policy.forward_eval(obs_t, step_state)
-            actions, _, _ = pufferlib.pytorch.sample_logits(logits)
+            actions, _, _ = azk_pytorch.sample_logits(logits)
 
           if use_rnn:
             acting_state["lstm_h"] = step_state["lstm_h"]

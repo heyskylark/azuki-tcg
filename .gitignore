@@ -9,6 +9,9 @@ build
 build-debug
 build-local
 build_local
+build-3090-smoke
+build-codex
+build-puffertank
 build-cuda-validation
 build-debug-validation
 build-validation

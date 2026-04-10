@@ -4,14 +4,17 @@ import functools
 import sys
 import ast
 import configparser
+import os
 from pathlib import Path
 from typing import Sequence
 
+import azk_puffer.emulation as emulation
+import azk_puffer.pytorch as azk_pytorch
+import azk_puffer.trainer as pufferl
+import azk_puffer.vector as azk_vector
 import torch
 from pettingzoo.utils.conversions import turn_based_aec_to_parallel
-import pufferlib.vector
-from pufferlib import MultiagentEpisodeStats, emulation, pufferl
-import pufferlib.pytorch
+from azk_puffer import MultiagentEpisodeStats
 
 from policy.v2.tcg_policy import TCG, TCGLSTM
 from policy.v2 import tcg_sampler
@@ -21,9 +24,39 @@ BUILD_PYTHON_DIR = REPO_ROOT / "build" / "python" / "src"
 DEFAULT_CONFIG_PATH = REPO_ROOT / "python" / "config" / "azuki.ini"
 
 
+def _candidate_python_build_dirs() -> list[Path]:
+  env_override = os.getenv("AZK_BUILD_PYTHON_DIR")
+  candidates: list[Path] = []
+  if env_override:
+    candidates.append(Path(env_override).expanduser())
+
+  discovered: list[Path] = [BUILD_PYTHON_DIR]
+  for path in sorted(REPO_ROOT.glob("build*/python/src")):
+    if path not in discovered:
+      discovered.append(path)
+
+  def _binding_mtime(path: Path) -> float:
+    binding_candidates = list(path.glob("binding*.so")) + list(path.glob("binding*.pyd"))
+    if not binding_candidates:
+      return -1.0
+    return max(candidate.stat().st_mtime for candidate in binding_candidates)
+
+  for path in sorted(discovered, key=_binding_mtime, reverse=True):
+    if path not in candidates:
+      candidates.append(path)
+  return candidates
+
+
 def ensure_python_build_on_path() -> None:
-  if str(BUILD_PYTHON_DIR) not in sys.path and BUILD_PYTHON_DIR.exists():
-    sys.path.insert(0, str(BUILD_PYTHON_DIR))
+  for candidate in _candidate_python_build_dirs():
+    if not candidate.exists():
+      continue
+    if not any(candidate.glob("binding*.so")) and not any(candidate.glob("binding*.pyd")):
+      continue
+    candidate_str = str(candidate)
+    if candidate_str not in sys.path:
+      sys.path.insert(0, candidate_str)
+    break
 
 
 ensure_python_build_on_path()
@@ -34,8 +67,8 @@ from v2.tcg_parallel import AzukiTCGParallel  # noqa: E402
 
 def install_tcg_sampler() -> None:
   """Use the custom sampler that understands the Azuki action layout."""
-  tcg_sampler.set_fallback_sampler(pufferlib.pytorch.sample_logits)
-  pufferlib.pytorch.sample_logits = tcg_sampler.tcg_sample_logits
+  tcg_sampler.set_fallback_sampler(azk_pytorch.sample_logits)
+  azk_pytorch.sample_logits = tcg_sampler.tcg_sample_logits
 
 
 def load_training_config(config_path: Path, forwarded_cli: Sequence[str]) -> dict:
@@ -164,14 +197,14 @@ def build_vecenv(trainer_args: dict, *, backend=None, num_envs: int | None = Non
     vec_kwargs["seed"] = seed
   chosen_backend = vec_kwargs.get("backend")
   if isinstance(chosen_backend, str):
-    backend_attr = getattr(pufferlib.vector, chosen_backend, None)
+    backend_attr = getattr(azk_vector, chosen_backend, None)
     if backend_attr is not None:
       chosen_backend = backend_attr
       vec_kwargs["backend"] = chosen_backend
-  if chosen_backend == pufferlib.vector.Serial or chosen_backend is pufferlib.vector.Serial:
+  if chosen_backend == azk_vector.Serial or chosen_backend is azk_vector.Serial:
     vec_kwargs.pop("num_workers", None)
     vec_kwargs["batch_size"] = vec_kwargs.get("num_envs", 1)
-  return pufferlib.vector.make(
+  return azk_vector.make(
     functools.partial(make_azuki_env, **env_kwargs),
     **vec_kwargs,
   )

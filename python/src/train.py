@@ -11,10 +11,10 @@ import os
 import time
 from pathlib import Path
 
+import azk_puffer.pytorch as azk_pytorch
+import azk_puffer.trainer as pufferl
+import azk_puffer.vector as azk_vector
 import torch
-import pufferlib.pytorch
-import pufferlib.vector
-from pufferlib import pufferl
 
 from policy.v2 import tcg_sampler
 from league_manager import LeagueManager, parse_league_manager_config
@@ -1140,7 +1140,7 @@ def _rollout_health_snapshot(trainer) -> dict[str, float]:
 
     with torch.no_grad(), amp_context:
         logits, _ = trainer.policy(mb_obs, state)
-        _, _, entropy = pufferlib.pytorch.sample_logits(logits, action=mb_actions)
+        _, _, entropy = azk_pytorch.sample_logits(logits, action=mb_actions)
 
     return {
         "entropy": float(entropy.mean().item()),
@@ -1172,7 +1172,7 @@ def _resume_reset_start_probe(
         policy.eval()
         probe_vecenv = build_vecenv(
             trainer_args,
-            backend=pufferlib.vector.Serial,
+            backend=azk_vector.Serial,
             num_envs=1,
             seed=seed,
         )
@@ -1202,7 +1202,7 @@ def _resume_reset_start_probe(
 
             with torch.no_grad(), amp_context:
                 logits, _ = policy.forward_eval(obs_t, state)
-                action, _, entropy = pufferlib.pytorch.sample_logits(logits)
+                action, _, entropy = azk_pytorch.sample_logits(logits)
 
             if use_rnn:
                 lstm_h = state["lstm_h"]

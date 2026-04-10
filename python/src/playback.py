@@ -9,9 +9,9 @@ import io
 import json
 import time
 
+import azk_puffer.pytorch as azk_pytorch
+import azk_puffer.vector as azk_vector
 import torch
-import pufferlib.vector
-import pufferlib.pytorch
 
 from training_utils import (
   DEFAULT_CONFIG_PATH,
@@ -71,7 +71,7 @@ def run_playback(
 
   vecenv = build_vecenv(
     trainer_args,
-    backend=pufferlib.vector.Serial,
+    backend=azk_vector.Serial,
     num_envs=1,
     seed=seed if seed is not None else 0,
   )
@@ -189,7 +189,7 @@ def run_playback(
 
         with torch.no_grad():
           logits, _ = policy.forward_eval(obs_tensor, step_state)
-          action, _, _ = pufferlib.pytorch.sample_logits(logits)
+          action, _, _ = azk_pytorch.sample_logits(logits)
 
         if use_rnn:
           state["lstm_h"] = step_state["lstm_h"]

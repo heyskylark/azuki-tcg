@@ -437,7 +437,7 @@ class InferenceEngine:
                 load_training_config,
             )
             from train import _load_model_weights  # noqa: WPS433
-            import pufferlib.pytorch  # noqa: WPS433
+            import azk_puffer.pytorch as azk_pytorch  # noqa: WPS433
 
             self._build_policy = build_policy
             self._build_vecenv = build_vecenv
@@ -446,7 +446,7 @@ class InferenceEngine:
             self._load_model_weights = _load_model_weights
 
             self._install_tcg_sampler()
-            self._puffer_sample_logits = pufferlib.pytorch.sample_logits
+            self._puffer_sample_logits = azk_pytorch.sample_logits
 
             trainer_args = self._load_training_config(self.config_path, [])
             trainer_args["train"]["device"] = self._device

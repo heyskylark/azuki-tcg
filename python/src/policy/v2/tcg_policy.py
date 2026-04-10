@@ -1,5 +1,5 @@
-import pufferlib.models
-import pufferlib.pytorch
+import azk_puffer.pytorch as azk_pytorch
+from azk_puffer.models import LSTMWrapper
 from gymnasium.wrappers.normalize import RunningMeanStd
 
 import numpy as np
@@ -230,7 +230,7 @@ class SingleUnitProjection(nn.Module):
     return self.fc2(self.act(self.fc1(x)))
 
 
-class TCGLSTM(pufferlib.models.LSTMWrapper):
+class TCGLSTM(LSTMWrapper):
   def __init__(self, env, policy, input_size=None, hidden_size=LSTM_HIDDEN_SIZE):
     if input_size is None:
       input_size = policy.lstm_input_size
@@ -415,7 +415,7 @@ class TCG(nn.Module):
     self.q_bins3 = nn.Linear(LSTM_HIDDEN_SIZE, MAX_INDEX_SIZE)
     self.gate_1_embeder = nn.Embedding(PRIMARY_ACTION_COUNT, UNIT_EMBED_SIZE)
     self.gate_2_embeder = nn.Embedding(PRIMARY_ACTION_COUNT, UNIT_EMBED_SIZE)
-    self.value_fn = pufferlib.pytorch.layer_init(nn.Linear(UNIT_EMBED_SIZE, 1), std=1)
+    self.value_fn = azk_pytorch.layer_init(nn.Linear(UNIT_EMBED_SIZE, 1), std=1)
 
     emulated_spec = getattr(env, "emulated", None)
     if emulated_spec is None:
@@ -489,7 +489,7 @@ class TCG(nn.Module):
     if squeeze_batch:
       obs_tensor = obs_tensor.unsqueeze(0)
     obs_tensor = obs_tensor.to(self.__policy_device())
-    structured_obs = pufferlib.pytorch.nativize_tensor(obs_tensor, self._obs_struct_dtype)
+    structured_obs = azk_pytorch.nativize_tensor(obs_tensor, self._obs_struct_dtype)
     return structured_obs, squeeze_batch, obs_tensor
 
   def __store_mask_observations(self, obs_tensor: torch.Tensor, state):

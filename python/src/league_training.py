@@ -5,12 +5,11 @@ import time
 from collections import defaultdict
 from dataclasses import dataclass
 
+import azk_puffer.pytorch as azk_pytorch
+import azk_puffer.trainer as pufferl
+from azk_puffer.core import unroll_nested_dict
 import numpy as np
 import torch
-
-import pufferlib
-import pufferlib.pytorch
-from pufferlib import pufferl
 
 
 @dataclass
@@ -191,7 +190,7 @@ class LeaguePuffeRL(pufferl.PuffeRL):
         learner_state["lstm_c"] = self._learner_lstm_c[learner_idx_t]
       logits, values = self._safe_forward_eval(self.policy, o_device[learner_idx_t], learner_state)
       with torch.no_grad(), self.amp_context:
-        actions, logprobs, _ = pufferlib.pytorch.sample_logits(logits)
+        actions, logprobs, _ = azk_pytorch.sample_logits(logits)
       actions_out[learner_idx_t] = actions.to(dtype=torch.int32)
       logprobs_out[learner_idx_t] = logprobs.to(dtype=logprobs_out.dtype)
       values_out[learner_idx_t] = values.flatten().to(dtype=values_out.dtype)
@@ -220,7 +219,7 @@ class LeaguePuffeRL(pufferl.PuffeRL):
           latest_state["lstm_c"] = self._learner_lstm_c[latest_idx_t]
         latest_logits, _ = self._safe_forward_eval(self.policy, o_device[latest_idx_t], latest_state)
         with torch.no_grad(), self.amp_context:
-          latest_actions, _, _ = pufferlib.pytorch.sample_logits(latest_logits)
+          latest_actions, _, _ = azk_pytorch.sample_logits(latest_logits)
         actions_out[latest_idx_t] = latest_actions.to(dtype=torch.int32)
         if self._use_rnn:
           self._learner_lstm_h[latest_idx_t] = latest_state["lstm_h"].to(
@@ -247,7 +246,7 @@ class LeaguePuffeRL(pufferl.PuffeRL):
             opp_state["lstm_c"] = self._opp_lstm_c[int(policy_id)][rows_t]
           opp_logits, _ = self._safe_forward_eval(opp_policy, o_device[rows_t], opp_state)
           with torch.no_grad(), self.amp_context:
-            opp_actions, _, _ = pufferlib.pytorch.sample_logits(opp_logits)
+            opp_actions, _, _ = azk_pytorch.sample_logits(opp_logits)
           actions_out[rows_t] = opp_actions.to(dtype=torch.int32)
           if self._use_rnn:
             self._opp_lstm_h[int(policy_id)][rows_t] = opp_state["lstm_h"].to(
@@ -364,7 +363,7 @@ class LeaguePuffeRL(pufferl.PuffeRL):
 
       profile("eval_misc", epoch)
       for i in info:
-        for k, v in pufferlib.unroll_nested_dict(i):
+        for k, v in unroll_nested_dict(i):
           if isinstance(v, np.ndarray):
             v = v.tolist()
           elif isinstance(v, (list, tuple)):
@@ -457,7 +456,7 @@ class LeaguePuffeRL(pufferl.PuffeRL):
 
       state = dict(action=mb_actions, lstm_h=None, lstm_c=None)
       logits, newvalue = self.policy(mb_obs, state)
-      _, newlogprob, entropy = pufferlib.pytorch.sample_logits(logits, action=mb_actions)
+      _, newlogprob, entropy = azk_pytorch.sample_logits(logits, action=mb_actions)
 
       profile("train_misc", epoch)
       newlogprob = newlogprob.reshape(mb_logprobs.shape)

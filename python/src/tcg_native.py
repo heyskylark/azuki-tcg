@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 import numpy as np
-import pufferlib
 import gymnasium as gym
 
 import binding
+from azk_puffer import PufferEnv
 from action import ACTION_COMPONENT_COUNT, build_action_space
 from observation import MAX_PLAYERS_PER_MATCH, OBSERVATION_CTYPE, OBSERVATION_STRUCT_SIZE
 
 
-class AzukiNativePufferEnv(pufferlib.PufferEnv):
+class AzukiNativePufferEnv(PufferEnv):
   """Native PufferEnv path that bypasses PettingZoo AEC/parallel conversion."""
 
   def __init__(

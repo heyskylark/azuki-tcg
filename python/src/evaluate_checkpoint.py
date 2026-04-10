@@ -3,10 +3,10 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
+import azk_puffer.pytorch as azk_pytorch
+import azk_puffer.vector as azk_vector
 import numpy as np
 import torch
-import pufferlib.pytorch
-import pufferlib.vector
 
 from training_utils import (
   DEFAULT_CONFIG_PATH,
@@ -88,7 +88,7 @@ def evaluate(
 
   vecenv = build_vecenv(
     trainer_args,
-    backend=pufferlib.vector.Serial,
+    backend=azk_vector.Serial,
     num_envs=1,
     seed=seed,
   )
@@ -149,7 +149,7 @@ def evaluate(
 
           with torch.no_grad():
             logits, _ = policy.forward_eval(obs_tensor, step_state)
-            actions, _, _ = pufferlib.pytorch.sample_logits(logits)
+            actions, _, _ = azk_pytorch.sample_logits(logits)
           action_np = actions.cpu().numpy().astype(np.int32, copy=True)
 
           if use_rnn:

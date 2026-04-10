@@ -61,9 +61,7 @@ def _repo_root() -> Path:
 
 
 def _enum_suffix_to_card_code(enum_suffix: str) -> str:
-    if enum_suffix.startswith("IKZ_"):
-        return enum_suffix.replace("_", "-")
-    if re.fullmatch(r"STT\d{2}_\d{3}", enum_suffix):
+    if re.fullmatch(r"[A-Z0-9]+_\d{3}", enum_suffix):
         return enum_suffix.replace("_", "-", 1)
     raise ValueError(f"Unsupported CardDef enum suffix '{enum_suffix}'")
 
