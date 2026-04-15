@@ -1,0 +1,4467 @@
+{
+  "export_date": "2026-04-15",
+  "public_decks_count": 42,
+  "tournament_decklists_count": 13,
+  "public_decks": [
+    {
+      "deck_name": "Aez's Shao Deck V1",
+      "deck_slug": "my-deck-mjfik24h",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-009",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-014",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-021",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-022",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-024",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-031",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-087",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-088",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT02-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT02-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-008",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-012",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-016",
+          "quantity": 3
+        }
+      ]
+    },
+    {
+      "deck_name": "Bean :D",
+      "deck_slug": "my-deck-ml8jz6it",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-007",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-011",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-012",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-015",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-018",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-019",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-020",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-066",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-111",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-01",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-02",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "deck_name": "Blaze",
+      "deck_slug": "my-deck-mneoxops",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-002",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-058",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-122",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-01",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-03",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-04",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-05",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-09",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-15",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-16",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-17",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "deck_name": "Bobu (Incomplete)",
+      "deck_slug": "my-deck-mj9jmt1n",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "STT03-01",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-02",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-03",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-04",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-05",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-06",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-07",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-08",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-09",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-10",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-11",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-12",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-13",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-14",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-15",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-16",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-17",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "deck_name": "Earth deck",
+      "deck_slug": "my-deck-ml1rm5qc",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-005",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-006",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-008",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-009",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-011",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-013",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-015",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-016",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-046",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-047",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-050",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-051",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-052",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-053",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-054",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-101",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-103",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-106",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-107",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-108",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-109",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-015",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-012",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-01",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-02",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-04",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-09",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-10",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT03-13",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "deck_name": "Fire ish",
+      "deck_slug": "my-deck-mm8gn8op",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-116",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-122",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-01",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-03",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-04",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT04-05",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-07",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-09",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-14",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-15",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-16",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "Genki 1st",
+      "deck_slug": "zero-rush-set-1-mmsjxma2",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-058",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-116",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-122",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-01",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-03",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-04",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-05",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-14",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-16",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "GENKI PRESEASON",
+      "deck_slug": "genki-preseason-mm8iwjw0",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-001",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-114",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-01",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-02",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-04",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-07",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-15",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-16",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "Genki- 5th or 6th?",
+      "deck_slug": "saka-mjbq8lc7",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-059",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-111",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-116",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-01",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-02",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-03",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-05",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-07",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-09",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-14",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-15",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-16",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "Indiana Jones",
+      "deck_slug": "my-deck-mjwbxoeo",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-016",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-046",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-047",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-053",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-054",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-055",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-101",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-105",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-108",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT03-01",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-02",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-04",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-05",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-07",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT03-09",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-12",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT03-13",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-16",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT03-17",
+          "quantity": 2
+        }
+      ]
+    },
+    {
+      "deck_name": "Invitational 16th",
+      "deck_slug": "invitational-16th-mkd3yy9k",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-001",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-061",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-111",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-01",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-02",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-04",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-07",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT04-09",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-14",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-15",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-16",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "Invitational Zhu",
+      "deck_slug": "test-2-mjkb303f",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-002",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-114",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-116",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-01",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-02",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-03",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-04",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-05",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-07",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-15",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-16",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "JGZ SHAO",
+      "deck_slug": "jgz-shao-mj3zjhgx",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-009",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-012",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-021",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-022",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-024",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-025",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-031",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT02-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT02-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-005",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-007",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-008",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-012",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-013",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-015",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-016",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-017",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "deck_name": "JR0PPIE",
+      "deck_slug": "jr0ppie-mjars60i",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-009",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-011",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-015",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-028",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-029",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-031",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-032",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT02-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT02-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-009",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-011",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-012",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-013",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-014",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-015",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-016",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-017",
+          "quantity": 2
+        }
+      ]
+    },
+    {
+      "deck_name": "My Deck",
+      "deck_slug": "my-deck-mmsi9ots",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-002",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-011",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-014",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-040",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-042",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-094",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-099",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-100",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-005",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-010",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-011",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-016",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-017",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-012",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT03-08",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "My Deck",
+      "deck_slug": "my-deck-mk33fz2w",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-036",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-040",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-094",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-097",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-098",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-007",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-008",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "My Deck",
+      "deck_slug": "my-deck-mk7ivibe",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-014",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-040",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-042",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-094",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-100",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-010",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-011",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-016",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-017",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-08",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "My Deck",
+      "deck_slug": "my-deck-mk9hd59y",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-094",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-097",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-010",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-012",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-017",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-08",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "My Deck",
+      "deck_slug": "my-deck-mkdxuzpo",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-011",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-033",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-040",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-041",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-094",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-008",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-009",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-012",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-017",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-08",
+          "quantity": 3
+        }
+      ]
+    },
+    {
+      "deck_name": "My Deck",
+      "deck_slug": "my-deck-mke4zl87",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-009",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-011",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-014",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-021",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-022",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-024",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-028",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-031",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-087",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-088",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT02-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT02-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-008",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-010",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-012",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-013",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-015",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-016",
+          "quantity": 2
+        }
+      ]
+    },
+    {
+      "deck_name": "My Deck",
+      "deck_slug": "my-deck-mm9rpxx2",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-009",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-058",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-061",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-01",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-02",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-03",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-04",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-07",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-09",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-14",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-15",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-16",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "My Deck",
+      "deck_slug": "my-deck-mns7qhpz",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-007",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-019",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-040",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-041",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-067",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-069",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-072",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-073",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-084",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-094",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-009",
+          "quantity": 2
+        }
+      ]
+    },
+    {
+      "deck_name": "NANS TEMPO SHAO V1",
+      "deck_slug": "my-deck-mm6yg392",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-002",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-022",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-024",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-029",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-079",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-087",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-088",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-089",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT02-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT02-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-006",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-007",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-012",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-016",
+          "quantity": 2
+        }
+      ]
+    },
+    {
+      "deck_name": "PERMA FLUTTER",
+      "deck_slug": "my-deck-mm3t7pao",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-015",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-022",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-028",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-031",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-068",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-087",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-088",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-089",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-125",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-126",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-007",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-009",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-016",
+          "quantity": 3
+        }
+      ]
+    },
+    {
+      "deck_name": "Raizan",
+      "deck_slug": "raizan-starter-mj9jgkrs",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "STT01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-006",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-007",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-008",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-010",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-011",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-012",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-015",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-016",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-017",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "Raizan",
+      "deck_slug": "my-deck-mjc64wyu",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-011",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-033",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-040",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-077",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-086",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-094",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-008",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-012",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-017",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "Raizenv2",
+      "deck_slug": "raizenv2-mm1g4tky",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-042",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-086",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-097",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-005",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-008",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-010",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-012",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-015",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-017",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "Rock Hrd & Bricked",
+      "deck_slug": "my-deck-mm5jb3d7",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-045",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-047",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-048",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-054",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-103",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-105",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-123",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-128",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-02",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-06",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-09",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-13",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-16",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "Rqizan1",
+      "deck_slug": "rqizan1-mns6xm7r",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-011",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-033",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-097",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-008",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-011",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-012",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-016",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-017",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-08",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "Shao",
+      "deck_slug": "shao-starter-mj9jbw7n",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "STT02-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT02-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT02-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-007",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-008",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-010",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-011",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-012",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-013",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-014",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-015",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-016",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-017",
+          "quantity": 2
+        }
+      ]
+    },
+    {
+      "deck_name": "Shao and Friends",
+      "deck_slug": "power-of-friendshi-mk1vnlom",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-010",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-014",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-019",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-020",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT02-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-012",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-08",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-06",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-11",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "Shao and Friends",
+      "deck_slug": "shao-and-friends-mn46y03s",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-010",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-014",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-019",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-020",
+          "quantity": 2
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT02-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-012",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-08",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-06",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-11",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "Shao neutral",
+      "deck_slug": "my-deck-mk21uwfb",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-001",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-005",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-006",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-007",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-008",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-009",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-010",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-011",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-012",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-013",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-014",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-019",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-020",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-023",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-025",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-029",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT02-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT02-005",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-006",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-016",
+          "quantity": 2
+        }
+      ]
+    },
+    {
+      "deck_name": "SirWilhelm",
+      "deck_slug": "sirwilhelm-mjctkv5g",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-056",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-057",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-058",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-061",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-063",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-064",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-066",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-110",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-111",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-112",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-113",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-114",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-115",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-116",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-117",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-118",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-01",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-02",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-03",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-04",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-05",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-07",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-08",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-09",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-10",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-12",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-13",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-14",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-15",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-16",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-17",
+          "quantity": 2
+        }
+      ]
+    },
+    {
+      "deck_name": "SP Raizen 2",
+      "deck_slug": "sp-raizen-2-mk9jjj4h",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-002",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-014",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-042",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-094",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-100",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-005",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-010",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-011",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-015",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-016",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-017",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-08",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "SUPA HOT FYA",
+      "deck_slug": "my-deck-mkkx04ba",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-061",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-01",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-02",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-03",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-04",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-07",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT04-09",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT04-14",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-15",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-16",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "T&E Deck",
+      "deck_slug": "te-deck-mjhwzvwc",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-005",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-007",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-008",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-009",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-012",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-014",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-016",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-017",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-020",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-035",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-036",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-037",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-038",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-039",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-040",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-041",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-042",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-043",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-044",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-005",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-006",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-008",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-009",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-010",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-011",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-012",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-015",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-016",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "deck_name": "water is wet",
+      "deck_slug": "my-deck-mm49przn",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-002",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-021",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-022",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-024",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-029",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-068",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-087",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-092",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-125",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-126",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-007",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-007",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-008",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-013",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-015",
+          "quantity": 3
+        }
+      ]
+    },
+    {
+      "deck_name": "Zero (Incomplete)",
+      "deck_slug": "zero-starter-cards-mj9jqx7l",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "STT04-01",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-02",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-03",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-04",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-05",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-06",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-07",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-08",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-09",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-10",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-11",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-12",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-13",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-14",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-15",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-16",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-17",
+          "quantity": 1
+        }
+      ]
+    },
+    {
+      "deck_name": "Zero Top 8",
+      "deck_slug": "my-deck-mkbix0mz",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-009",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-058",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-061",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-111",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-113",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-116",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-01",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-02",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-03",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT04-04",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-05",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT04-07",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-09",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-15",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-16",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "Zero1",
+      "deck_slug": "my-deck-mns6ixg9",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-001",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-111",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-122",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-01",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-04",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-05",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-07",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-15",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-16",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "ZOOMIES",
+      "deck_slug": "my-deck-mmmv539p",
+      "description": null,
+      "source": "public",
+      "cards": [
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-058",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-116",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-122",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-01",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-03",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-04",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-05",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-16",
+          "quantity": 4
+        }
+      ]
+    }
+  ],
+  "tournament_decklists": [
+    {
+      "deck_name": "Raizenv2",
+      "deck_slug": "raizenv2-mm1g4tky",
+      "description": null,
+      "source": "tournament",
+      "tournament_name": "Azuki Online Pre-Season (Full Set 1)",
+      "placement": 1,
+      "cards": [
+        {
+          "card_id": "AZK01-042",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-086",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-097",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-005",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-008",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-010",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-012",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-015",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-017",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "yq Earth 03/03/26",
+      "deck_slug": "yq-earth-030326-mmcmq87j",
+      "description": null,
+      "source": "tournament",
+      "tournament_name": "Azuki Online Pre-Season (Full Set 1)",
+      "placement": 2,
+      "cards": [
+        {
+          "card_id": "AZK01-045",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-047",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-054",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-105",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-123",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-124",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-128",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-04",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT03-06",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-09",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-11",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT03-13",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-16",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "My Deck",
+      "deck_slug": "my-deck-mm9rpxx2",
+      "description": null,
+      "source": "tournament",
+      "tournament_name": "Azuki Online Pre-Season #3",
+      "placement": 1,
+      "cards": [
+        {
+          "card_id": "AZK01-009",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-058",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-061",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-01",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-02",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-03",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-04",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-07",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-09",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-14",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-15",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-16",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "GENKI PRESEASON",
+      "deck_slug": "genki-preseason-mm8iwjw0",
+      "description": null,
+      "source": "tournament",
+      "tournament_name": "Azuki Online Pre-Season #3",
+      "placement": 2,
+      "cards": [
+        {
+          "card_id": "AZK01-001",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-114",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-01",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-02",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-04",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-07",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-15",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-16",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "\u26a1\ufe0f:  3/1 :Genki \ud83e\udd49",
+      "deck_slug": "-31-genki-mm8j05w0",
+      "description": null,
+      "source": "tournament",
+      "tournament_name": "Azuki Online Pre-Season #3",
+      "placement": 3,
+      "cards": [
+        {
+          "card_id": "AZK01-002",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-008",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-011",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-015",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-040",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-094",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-100",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-008",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-012",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-017",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "ducky",
+      "deck_slug": "ducky-mkd9pgym",
+      "description": null,
+      "source": "tournament",
+      "tournament_name": "Azuki TCG Invitational",
+      "placement": 1,
+      "cards": [
+        {
+          "card_id": "AZK01-011",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-033",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-040",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-041",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-094",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-008",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-009",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-012",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-017",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-08",
+          "quantity": 3
+        }
+      ]
+    },
+    {
+      "deck_name": "xell",
+      "deck_slug": "xell-mkd9o4t0",
+      "description": null,
+      "source": "tournament",
+      "tournament_name": "Azuki TCG Invitational",
+      "placement": 2,
+      "cards": [
+        {
+          "card_id": "AZK01-001",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-111",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-01",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-02",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-04",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-05",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-07",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-15",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-16",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "jerry",
+      "deck_slug": "jerry-mkd9tc1y",
+      "description": null,
+      "source": "tournament",
+      "tournament_name": "Azuki TCG Invitational",
+      "placement": 3,
+      "cards": [
+        {
+          "card_id": "AZK01-011",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-033",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-097",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-008",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-011",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-012",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-016",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-017",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-08",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "dylhu",
+      "deck_slug": "dylhu-mkda9xis",
+      "description": null,
+      "source": "tournament",
+      "tournament_name": "Azuki TCG Invitational",
+      "placement": 4,
+      "cards": [
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-116",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-01",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-02",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-03",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-04",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-05",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-07",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-09",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-15",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-16",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "toraoy",
+      "deck_slug": "toraoy-mkdaeblf",
+      "description": null,
+      "source": "tournament",
+      "tournament_name": "Azuki TCG Invitational",
+      "placement": 5,
+      "cards": [
+        {
+          "card_id": "AZK01-001",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-111",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-01",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-02",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-04",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-05",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-07",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-15",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-16",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "bfg",
+      "deck_slug": "bfg-mkdal7lr",
+      "description": null,
+      "source": "tournament",
+      "tournament_name": "Azuki TCG Invitational",
+      "placement": 6,
+      "cards": [
+        {
+          "card_id": "AZK01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-009",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-058",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-061",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-111",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-113",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-116",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-117",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-01",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-02",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-03",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT04-04",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-05",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT04-07",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-09",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-15",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "drewwskiee",
+      "deck_slug": "drewwskiee-mkdanmm6",
+      "description": null,
+      "source": "tournament",
+      "tournament_name": "Azuki TCG Invitational",
+      "placement": 7,
+      "cards": [
+        {
+          "card_id": "AZK01-002",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-111",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-116",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT04-01",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-02",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-03",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT04-04",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-05",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-07",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-09",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-15",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-16",
+          "quantity": 4
+        }
+      ]
+    },
+    {
+      "deck_name": "jackie",
+      "deck_slug": "jackie-mkdabxt6",
+      "description": null,
+      "source": "tournament",
+      "tournament_name": "Azuki TCG Invitational",
+      "placement": 8,
+      "cards": [
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-116",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-01",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-02",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-03",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-04",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-05",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-07",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-09",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-15",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-16",
+          "quantity": 4
+        }
+      ]
+    }
+  ]
+}
