@@ -17,11 +17,154 @@
 #include "utils/ability_util.h"
 #include "utils/weapon_util.h"
 #include "utils/zone_util.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 // Forward declaration of timing tag constant
 #define TIMING_TAG_ON_PLAY_FWD 0
 
 static ecs_id_t get_timing_tag_id(uint8_t tag_index);
+
+static bool stt04_017_debug_enabled(void) {
+  static bool initialized = false;
+  static bool enabled = false;
+  if (!initialized) {
+    const char *raw = getenv("AZK_DEBUG_STT04_017");
+    enabled = raw != NULL &&
+              (strcmp(raw, "1") == 0 || strcmp(raw, "true") == 0 ||
+               strcmp(raw, "TRUE") == 0 || strcmp(raw, "yes") == 0 ||
+               strcmp(raw, "on") == 0);
+    initialized = true;
+  }
+  return enabled;
+}
+
+static const char *debug_card_type_name(CardType type) {
+  switch (type) {
+  case CARD_TYPE_ENTITY:
+    return "ENTITY";
+  case CARD_TYPE_SPELL:
+    return "SPELL";
+  case CARD_TYPE_WEAPON:
+    return "WEAPON";
+  case CARD_TYPE_GATE:
+    return "GATE";
+  case CARD_TYPE_LEADER:
+    return "LEADER";
+  case CARD_TYPE_IKZ:
+    return "IKZ";
+  case CARD_TYPE_EXTRA_IKZ:
+    return "EXTRA_IKZ";
+  default:
+    return "UNKNOWN";
+  }
+}
+
+static void debug_dump_stt04_017_cost_failure(ecs_world_t *world,
+                                              const AbilityContext *ctx,
+                                              const AbilityDef *def,
+                                              int target_index,
+                                              ecs_entity_t resolved_target,
+                                              const char *reason) {
+  if (!world || !ctx || !def || !stt04_017_debug_enabled()) {
+    return;
+  }
+
+  const CardId *source_card_id = ecs_get(world, ctx->runtime.source_card, CardId);
+  if (source_card_id == NULL || source_card_id->id != CARD_DEF_STT04_017) {
+    return;
+  }
+
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  if (gs == NULL || ctx->runtime.owner == 0) {
+    return;
+  }
+
+  const uint8_t owner_num = get_player_number(world, ctx->runtime.owner);
+  const ecs_entity_t garden_zone = gs->zones[owner_num].garden;
+  const ecs_entity_t direct_zone_match =
+      find_card_in_zone_index(world, garden_zone, target_index);
+  const bool resolved_valid =
+      resolved_target != 0 &&
+      (!def->validate_cost_target ||
+       def->validate_cost_target(world, ctx->runtime.source_card,
+                                 ctx->runtime.owner, resolved_target));
+
+  fprintf(stderr,
+          "[STT04-017 DEBUG] reason=%s owner_player=%u target_index=%d "
+          "resolved_target=%llu direct_zone_match=%llu selected=%u/%u "
+          "phase=%d source_card=%llu source_ability=%llu\n",
+          reason != NULL ? reason : "unknown", (unsigned)owner_num, target_index,
+          (unsigned long long)resolved_target,
+          (unsigned long long)direct_zone_match, (unsigned)ctx->cost.selected_count,
+          (unsigned)ctx->cost.max_allowed, (int)ctx->runtime.phase,
+          (unsigned long long)ctx->runtime.source_card,
+          (unsigned long long)ctx->runtime.source_ability);
+
+  for (uint8_t i = 0; i < ctx->cost.selected_count; ++i) {
+    const ecs_entity_t selected = ctx->cost.entities[i];
+    const CardId *selected_card_id = ecs_get(world, selected, CardId);
+    const Type *selected_type = ecs_get(world, selected, Type);
+    const ZoneIndex *selected_zone_index = ecs_get(world, selected, ZoneIndex);
+    const EcsIdentifier *selected_name = ecs_get(world, selected, EcsIdentifier);
+    fprintf(stderr,
+            "  selected[%u]: entity=%llu code=%s name=%s zone_index=%d type=%s\n",
+            (unsigned)i, (unsigned long long)selected,
+            selected_card_id != NULL ? selected_card_id->code : "<missing>",
+            selected_name != NULL ? selected_name->value : "<unnamed>",
+            selected_zone_index != NULL ? (int)selected_zone_index->index : -1,
+            selected_type != NULL ? debug_card_type_name(selected_type->value)
+                                  : "<missing>");
+  }
+
+  AbilityTargetChoice choices[AZK_MAX_ABILITY_TARGET_CHOICES];
+  const int choice_count = azk_collect_ability_target_choices(
+      world, def, ABILITY_TARGET_SCOPE_COST, ctx->runtime.source_card,
+      ctx->runtime.owner, choices, AZK_MAX_ABILITY_TARGET_CHOICES);
+  fprintf(stderr, "  enumerated_choices=%d resolved_valid=%d\n", choice_count,
+          resolved_valid ? 1 : 0);
+  for (int i = 0; i < choice_count; ++i) {
+    const ecs_entity_t entity = choices[i].entity;
+    const CardId *choice_card_id = ecs_get(world, entity, CardId);
+    const Type *choice_type = ecs_get(world, entity, Type);
+    const ZoneIndex *choice_zone_index = ecs_get(world, entity, ZoneIndex);
+    const EcsIdentifier *choice_name = ecs_get(world, entity, EcsIdentifier);
+    const bool choice_valid =
+        !def->validate_cost_target ||
+        def->validate_cost_target(world, ctx->runtime.source_card,
+                                  ctx->runtime.owner, entity);
+    fprintf(stderr,
+            "  choice[%d]: action_index=%d entity=%llu code=%s name=%s "
+            "zone_index=%d type=%s valid=%d%s\n",
+            i, choices[i].action_index, (unsigned long long)entity,
+            choice_card_id != NULL ? choice_card_id->code : "<missing>",
+            choice_name != NULL ? choice_name->value : "<unnamed>",
+            choice_zone_index != NULL ? (int)choice_zone_index->index : -1,
+            choice_type != NULL ? debug_card_type_name(choice_type->value)
+                                : "<missing>",
+            choice_valid ? 1 : 0,
+            choices[i].action_index == target_index ? " <requested>" : "");
+  }
+
+  ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden_zone);
+  fprintf(stderr, "  garden_cards=%d zone=%llu\n", (int)garden_cards.count,
+          (unsigned long long)garden_zone);
+  for (int32_t i = 0; i < garden_cards.count; ++i) {
+    const ecs_entity_t card = garden_cards.ids[i];
+    const CardId *card_id = ecs_get(world, card, CardId);
+    const Type *type = ecs_get(world, card, Type);
+    const ZoneIndex *zone_index = ecs_get(world, card, ZoneIndex);
+    const EcsIdentifier *name = ecs_get(world, card, EcsIdentifier);
+    fprintf(stderr,
+            "  garden[%d]: entity=%llu code=%s name=%s zone_index=%d type=%s\n",
+            (int)i, (unsigned long long)card,
+            card_id != NULL ? card_id->code : "<missing>",
+            name != NULL ? name->value : "<unnamed>",
+            zone_index != NULL ? (int)zone_index->index : -1,
+            type != NULL ? debug_card_type_name(type->value) : "<missing>");
+  }
+}
 
 static AbilitySelectionCompletionMode get_selection_completion_mode(
     const AbilityDef *def) {
@@ -57,8 +200,16 @@ static void apply_deferred_costs_if_needed(ecs_world_t *world,
     return;
   }
 
+  const bool was_deferred =
+      ecs_is_deferred(world) && !ecs_stage_is_readonly(world);
+  if (was_deferred) {
+    ecs_defer_suspend(world);
+  }
   def->apply_costs(world, ctx);
   ctx->runtime.costs_applied = true;
+  if (was_deferred) {
+    ecs_defer_resume(world);
+  }
   cli_render_logf("[Ability] Applied deferred costs");
 }
 
@@ -285,8 +436,16 @@ static bool finish_cost_selection(ecs_world_t *world, AbilityContext *ctx,
   }
 
   if (def->apply_costs) {
+    const bool was_deferred =
+        ecs_is_deferred(world) && !ecs_stage_is_readonly(world);
+    if (was_deferred) {
+      ecs_defer_suspend(world);
+    }
     def->apply_costs(world, ctx);
     ctx->runtime.costs_applied = true;
+    if (was_deferred) {
+      ecs_defer_resume(world);
+    }
     cli_render_logf("[Ability] Applied costs");
   }
 
@@ -301,6 +460,15 @@ static bool finish_cost_selection(ecs_world_t *world, AbilityContext *ctx,
   }
 
   if (ctx->effect.max_allowed > 0) {
+    if (!azk_prepare_effect_selection_after_costs(world, ctx, def)) {
+      if (def->apply_effects) {
+        def->apply_effects(world, ctx);
+        cli_render_logf(
+            "[Ability] Applied effects after costs removed all valid targets");
+      }
+      azk_clear_ability_context(world);
+      return true;
+    }
     ctx->runtime.phase = ABILITY_PHASE_EFFECT_SELECTION;
     cli_render_logf("[Ability] Moving to effect selection");
     ecs_singleton_modified(world, AbilityContext);
@@ -337,6 +505,8 @@ bool azk_process_cost_selection(ecs_world_t *world, int target_index) {
       world, def, ABILITY_TARGET_SCOPE_COST, ctx->runtime.owner, target_index);
 
   if (target == 0) {
+    debug_dump_stt04_017_cost_failure(world, ctx, def, target_index, target,
+                                      "resolve_failed");
     cli_render_logf("[Ability] Invalid cost target index %d", target_index);
     return false;
   }
@@ -345,6 +515,8 @@ bool azk_process_cost_selection(ecs_world_t *world, int target_index) {
   if (def->validate_cost_target &&
       !def->validate_cost_target(world, ctx->runtime.source_card,
                                  ctx->runtime.owner, target)) {
+    debug_dump_stt04_017_cost_failure(world, ctx, def, target_index, target,
+                                      "validate_failed");
     cli_render_logf("[Ability] Cost target validation failed");
     return false;
   }
@@ -472,12 +644,6 @@ bool azk_process_effect_skip(ecs_world_t *world) {
     return false;
   }
 
-  if (ctx->effect.selected_count < ctx->effect.min_required) {
-    cli_render_logf(
-        "[Ability] Cannot finish effect selection before minimum is reached");
-    return false;
-  }
-
   const CardId *card_id = ecs_get(world, ctx->runtime.source_card, CardId);
   if (!card_id) {
     azk_clear_ability_context(world);
@@ -488,6 +654,19 @@ bool azk_process_effect_skip(ecs_world_t *world) {
   if (!def) {
     azk_clear_ability_context(world);
     return false;
+  }
+
+  if (ctx->effect.selected_count < ctx->effect.min_required) {
+    uint8_t remaining_choices = azk_count_ability_target_choices(
+        world, def, ABILITY_TARGET_SCOPE_EFFECT, ctx->runtime.source_card,
+        ctx->runtime.owner);
+    if (remaining_choices > 0) {
+      cli_render_logf(
+          "[Ability] Cannot finish effect selection before minimum is reached");
+      return false;
+    }
+    cli_render_logf(
+        "[Ability] No valid effect targets remain; resolving ability");
   }
 
   apply_deferred_costs_if_needed(world, ctx, def);
@@ -806,6 +985,77 @@ bool azk_process_selection_to_alley(ecs_world_t *world, int selection_index,
   }
 
   ecs_singleton_modified(world, AbilityContext);
+  return true;
+}
+
+bool azk_can_select_to_equip(ecs_world_t *world, int selection_index,
+                             int entity_index) {
+  AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
+
+  if (ctx == NULL || ctx->runtime.phase != ABILITY_PHASE_SELECTION_PICK) {
+    return false;
+  }
+
+  if (selection_index < 0 || selection_index >= ctx->selection.count) {
+    return false;
+  }
+
+  if (entity_index < 0 || entity_index > GARDEN_SIZE) {
+    return false;
+  }
+
+  const ecs_entity_t weapon = ctx->selection.cards[selection_index];
+  if (weapon == 0) {
+    return false;
+  }
+
+  const AbilityDef *def = get_context_ability_def(world, ctx);
+  if (def == NULL || !def->can_select_to_equip) {
+    return false;
+  }
+
+  const Type *weapon_type = ecs_get(world, weapon, Type);
+  if (weapon_type == NULL || weapon_type->value != CARD_TYPE_WEAPON) {
+    return false;
+  }
+
+  if (def->validate_selection_target &&
+      !def->validate_selection_target(world, ctx->runtime.source_card,
+                                      ctx->runtime.owner, weapon)) {
+    return false;
+  }
+
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  if (gs == NULL) {
+    return false;
+  }
+
+  const uint8_t player_num = get_player_number(world, ctx->runtime.owner);
+  ecs_entity_t target_entity = 0;
+  if (entity_index < GARDEN_SIZE) {
+    target_entity = find_card_in_zone_index(world, gs->zones[player_num].garden,
+                                            entity_index);
+  } else {
+    target_entity =
+        find_leader_card_in_zone(world, gs->zones[player_num].leader);
+  }
+
+  if (target_entity == 0) {
+    return false;
+  }
+
+  const CurStats *weapon_stats = ecs_get(world, weapon, CurStats);
+  const CurStats *target_stats = ecs_get(world, target_entity, CurStats);
+  if (weapon_stats == NULL || target_stats == NULL) {
+    return false;
+  }
+
+  const ReequipOrigin *reequip_origin = ecs_get(world, weapon, ReequipOrigin);
+  if (def->selection_to_equip_is_reequip && reequip_origin != NULL &&
+      reequip_origin->previous_host == target_entity) {
+    return false;
+  }
+
   return true;
 }
 

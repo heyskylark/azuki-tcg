@@ -25,6 +25,14 @@ ecs_world_t* azk_world_init_with_decks(
   const CardInfo *player1_deck,
   size_t player1_deck_count
 );
+ecs_world_t* azk_world_init_with_decks_and_starting_player(
+  uint32_t seed,
+  int8_t starting_player_index,
+  const CardInfo *player0_deck,
+  size_t player0_deck_count,
+  const CardInfo *player1_deck,
+  size_t player1_deck_count
+);
 void azk_world_fini(ecs_world_t *world);
 
 /**

@@ -39,6 +39,11 @@ typedef struct {
 
 typedef struct {
   int16_t card_def_id; // -1 indicates empty slot
+  uint8_t zone_index;
+} TrainingCriticPrivilegedCardObservationData;
+
+typedef struct {
+  int16_t card_def_id; // -1 indicates empty slot
   TapState tap_state;
   uint8_t zone_index;
   bool has_cur_stats;
@@ -89,6 +94,12 @@ typedef struct {
 } TrainingOpponentObservationData;
 
 typedef struct {
+  TrainingCriticPrivilegedCardObservationData opponent_hand[MAX_HAND_SIZE];
+  TrainingCriticPrivilegedCardObservationData self_deck[MAX_DECK_SIZE];
+  TrainingCriticPrivilegedCardObservationData opponent_deck[MAX_DECK_SIZE];
+} TrainingCriticPrivilegedObservationData;
+
+typedef struct {
   bool primary_action_mask[AZK_ACTION_TYPE_COUNT];
   uint16_t legal_action_count;
   uint8_t legal_primary[AZK_MAX_LEGAL_ACTIONS];
@@ -110,11 +121,48 @@ typedef struct {
   int8_t active_player_index;
 } TrainingAbilityContextObservationData;
 
+#define AZK_RECENT_ACTION_HISTORY_LEN 4
+
+typedef struct {
+  bool valid;
+  uint8_t primary;
+  uint8_t sub1;
+  uint8_t sub2;
+  uint8_t sub3;
+  bool was_noop;
+} TrainingRecentActionObservationData;
+
+typedef struct {
+  bool combat_active;
+  bool response_window_active;
+  bool defender_intercepted;
+
+  bool attacker_is_self;
+  bool attacker_is_leader;
+  bool attacker_is_garden;
+  bool attacker_is_alley;
+  int16_t attacker_card_def_id; // -1 when absent
+  uint8_t attacker_slot_index;
+
+  bool target_is_self;
+  bool target_is_leader;
+  bool target_is_garden;
+  bool target_is_alley;
+  int16_t target_card_def_id; // -1 when absent
+  uint8_t target_slot_index;
+} TrainingCombatContextObservationData;
+
 typedef struct {
   TrainingMyObservationData my_observation_data;
   TrainingOpponentObservationData opponent_observation_data;
   Phase phase;
   TrainingAbilityContextObservationData ability_context;
+  TrainingCombatContextObservationData combat_context;
+  TrainingRecentActionObservationData
+      self_recent_actions[AZK_RECENT_ACTION_HISTORY_LEN];
+  TrainingRecentActionObservationData
+      opp_recent_actions[AZK_RECENT_ACTION_HISTORY_LEN];
+  TrainingCriticPrivilegedObservationData critic_privileged;
   TrainingActionMaskObs action_mask;
 } TrainingObservationData;
 

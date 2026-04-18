@@ -477,15 +477,15 @@ bool init_player_deck_custom(ecs_world_t *world, ecs_entity_t player,
   return true;
 }
 
-ecs_world_t *azk_world_init_with_decks(uint32_t seed,
-                                        const CardInfo *player0_deck,
-                                        size_t player0_deck_count,
-                                        const CardInfo *player1_deck,
-                                        size_t player1_deck_count) {
+static ecs_world_t *azk_world_init_with_decks_internal(
+    uint32_t seed, int8_t requested_starting_player_index,
+    const CardInfo *player0_deck, size_t player0_deck_count,
+    const CardInfo *player1_deck, size_t player1_deck_count) {
   ecs_world_t *world = ecs_init();
   azk_register_components(world);
   WorldRef ref = {0};
-  const int8_t starting_player_index = choose_starting_player_index(seed);
+  const int8_t starting_player_index =
+      normalize_starting_player_index(requested_starting_player_index, seed);
   const int8_t second_player_index =
       (starting_player_index + 1) % MAX_PLAYERS_PER_MATCH;
 
@@ -556,4 +556,23 @@ ecs_world_t *azk_world_init_with_decks(uint32_t seed,
   init_all_system(world);
 
   return world;
+}
+
+ecs_world_t *azk_world_init_with_decks(uint32_t seed,
+                                       const CardInfo *player0_deck,
+                                       size_t player0_deck_count,
+                                       const CardInfo *player1_deck,
+                                       size_t player1_deck_count) {
+  return azk_world_init_with_decks_internal(
+      seed, -1, player0_deck, player0_deck_count, player1_deck,
+      player1_deck_count);
+}
+
+ecs_world_t *azk_world_init_with_decks_and_starting_player(
+    uint32_t seed, int8_t starting_player_index, const CardInfo *player0_deck,
+    size_t player0_deck_count, const CardInfo *player1_deck,
+    size_t player1_deck_count) {
+  return azk_world_init_with_decks_internal(
+      seed, starting_player_index, player0_deck, player0_deck_count,
+      player1_deck, player1_deck_count);
 }

@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <flecs.h>
@@ -37,6 +38,18 @@
 #include "validation/action_enumerator.h"
 #include "validation/action_validation.h"
 #include "generated/card_defs.h"
+
+static void azk_test_assert_fail(const char *expr, const char *file, int line) {
+  fprintf(stderr, "test assertion failed: %s (%s:%d)\n", expr, file, line);
+  abort();
+}
+
+#define AZK_TEST_ASSERT(expr)                                                 \
+  do {                                                                        \
+    if (!(expr)) {                                                            \
+      azk_test_assert_fail(#expr, __FILE__, __LINE__);                        \
+    }                                                                         \
+  } while (0)
 
 static const CardDef *find_card_def_by_entity_name(const char *entity_name) {
   size_t base_length = strcspn(entity_name, "_");
@@ -1673,7 +1686,8 @@ static void test_additional_card_abilities_get_sparse_action_indices(void) {
   ecs_world_t *world = ecs_init();
   azk_register_components(world);
 
-  assert(azk_set_additional_card_abilities(CARD_DEF_STT03_001, NULL, 0));
+  AZK_TEST_ASSERT(
+      azk_set_additional_card_abilities(CARD_DEF_STT03_001, NULL, 0));
 
   ecs_entity_t player = 0;
   PlayerZones zones = {0};
@@ -1695,37 +1709,38 @@ static void test_additional_card_abilities_get_sparse_action_indices(void) {
           .validate = test_validate_always_true,
       },
   };
-  assert(azk_set_additional_card_abilities(CARD_DEF_STT03_001, extra_defs, 2));
-  assert(azk_get_ability_count(CARD_DEF_STT03_001) == 3);
+  AZK_TEST_ASSERT(
+      azk_set_additional_card_abilities(CARD_DEF_STT03_001, extra_defs, 2));
+  AZK_TEST_ASSERT(azk_get_ability_count(CARD_DEF_STT03_001) == 3);
 
   attach_ability_components(world, leader);
 
   ecs_entity_t ability0 = azk_find_card_ability_by_registry_order(world, leader, 0);
   ecs_entity_t ability1 = azk_find_card_ability_by_registry_order(world, leader, 1);
   ecs_entity_t ability2 = azk_find_card_ability_by_registry_order(world, leader, 2);
-  assert(ability0 != 0);
-  assert(ability1 != 0);
-  assert(ability2 != 0);
+  AZK_TEST_ASSERT(ability0 != 0);
+  AZK_TEST_ASSERT(ability1 != 0);
+  AZK_TEST_ASSERT(ability2 != 0);
 
   const AbilityInstance *instance0 = ecs_get(world, ability0, AbilityInstance);
   const AbilityInstance *instance1 = ecs_get(world, ability1, AbilityInstance);
   const AbilityInstance *instance2 = ecs_get(world, ability2, AbilityInstance);
-  assert(instance0 != NULL);
-  assert(instance1 != NULL);
-  assert(instance2 != NULL);
-  assert(instance0->registry_order == 0);
-  assert(instance1->registry_order == 1);
-  assert(instance2->registry_order == 2);
-  assert(instance0->action_index == 0);
-  assert(instance1->action_index == 1);
-  assert(instance2->action_index == AZK_NO_ACTION_INDEX);
+  AZK_TEST_ASSERT(instance0 != NULL);
+  AZK_TEST_ASSERT(instance1 != NULL);
+  AZK_TEST_ASSERT(instance2 != NULL);
+  AZK_TEST_ASSERT(instance0->registry_order == 0);
+  AZK_TEST_ASSERT(instance1->registry_order == 1);
+  AZK_TEST_ASSERT(instance2->registry_order == 2);
+  AZK_TEST_ASSERT(instance0->action_index == 0);
+  AZK_TEST_ASSERT(instance1->action_index == 1);
+  AZK_TEST_ASSERT(instance2->action_index == AZK_NO_ACTION_INDEX);
 
   ecs_entity_t action_abilities[AZK_MAX_CARD_ABILITIES] = {0};
   uint8_t action_ability_count = azk_collect_card_action_abilities(
       world, leader, action_abilities, AZK_MAX_CARD_ABILITIES);
-  assert(action_ability_count == 2);
-  assert(action_abilities[0] == ability0);
-  assert(action_abilities[1] == ability1);
+  AZK_TEST_ASSERT(action_ability_count == 2);
+  AZK_TEST_ASSERT(action_abilities[0] == ability0);
+  AZK_TEST_ASSERT(action_abilities[1] == ability1);
 
   UserAction action = {
       .player = player,
@@ -1738,14 +1753,14 @@ static void test_additional_card_abilities_get_sparse_action_indices(void) {
   bool valid = azk_validate_activate_garden_or_leader_ability_action(
       world, ecs_singleton_get(world, GameState), player, &action, true,
       &intent);
-  assert(valid);
-  assert(intent.card == leader);
-  assert(intent.ability_index == 1);
+  AZK_TEST_ASSERT(valid);
+  AZK_TEST_ASSERT(intent.card == leader);
+  AZK_TEST_ASSERT(intent.ability_index == 1);
 
   AzkActionMaskSet mask = {0};
   bool built = azk_build_action_mask_for_player(
       world, ecs_singleton_get(world, GameState), 0, &mask);
-  assert(built);
+  AZK_TEST_ASSERT(built);
 
   bool saw_base_action = false;
   bool saw_extra_action = false;
@@ -1762,10 +1777,11 @@ static void test_additional_card_abilities_get_sparse_action_indices(void) {
       saw_extra_action = true;
     }
   }
-  assert(saw_base_action);
-  assert(saw_extra_action);
+  AZK_TEST_ASSERT(saw_base_action);
+  AZK_TEST_ASSERT(saw_extra_action);
 
-  assert(azk_set_additional_card_abilities(CARD_DEF_STT03_001, NULL, 0));
+  AZK_TEST_ASSERT(
+      azk_set_additional_card_abilities(CARD_DEF_STT03_001, NULL, 0));
   ecs_fini(world);
 }
 
@@ -6375,6 +6391,182 @@ static void test_stt04_001_effect_selection_accepts_garden_and_alley_targets(voi
   ecs_fini(world);
 }
 
+static void test_stt04_017_cost_selection_allows_fifth_garden_sacrifice(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  ecs_entity_t player = 0;
+  PlayerZones zones = {0};
+  setup_single_player_play_fixture(world, &player, &zones);
+
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  assert(gs != NULL);
+  ecs_entity_t opponent = gs->players[1];
+  PlayerZones opponent_zones = gs->zones[1];
+
+  create_basic_leader(world, player, zones.leader, CARD_DEF_STT04_001,
+                      CARD_ELEMENT_FIRE, "STT04-017_Leader_P0");
+  create_basic_leader(world, opponent, opponent_zones.leader,
+                      CARD_DEF_STT01_001, CARD_ELEMENT_LIGHTNING,
+                      "STT04-017_Leader_P1");
+
+  ecs_entity_t spell = ecs_new(world);
+  ecs_set_name(world, spell, "STT04-017_spell");
+  ecs_set(world, spell, CardId, {.id = CARD_DEF_STT04_017, .code = "STT04-017"});
+  ecs_set(world, spell, Type, {.value = CARD_TYPE_SPELL});
+  ecs_set(world, spell, Element, {.element = CARD_ELEMENT_FIRE});
+  ecs_set(world, spell, IKZCost, {.ikz_cost = 3});
+  ecs_add_pair(world, spell, Rel_OwnedBy, player);
+  ecs_add_pair(world, spell, EcsChildOf, zones.hand);
+  initialize_test_card_runtime_components(world, spell);
+  attach_ability_components(world, spell);
+
+  for (uint8_t i = 0; i < GARDEN_SIZE; ++i) {
+    char name[64];
+    snprintf(name, sizeof(name), "STT04-017_Sacrifice_%u", (unsigned)i);
+    create_basic_entity_card(world, player, zones.garden, CARD_DEF_STT03_003,
+                             CARD_ELEMENT_FIRE, name, i);
+  }
+
+  ecs_entity_t enemy_target = create_basic_entity_card(
+      world, opponent, opponent_zones.garden, CARD_DEF_STT03_004,
+      CARD_ELEMENT_EARTH, "STT04-017_EnemyTarget", 0);
+  ecs_set(world, enemy_target, BaseStats, {.attack = 2, .health = 6});
+  ecs_set(world, enemy_target, CurStats, {.cur_atk = 2, .cur_hp = 6});
+
+  const AbilityDef *def = azk_get_ability_def(CARD_DEF_STT04_017);
+  AZK_TEST_ASSERT(def != NULL);
+  AZK_TEST_ASSERT(def->cost_req.max == GARDEN_SIZE);
+
+  bool triggered = azk_trigger_spell_ability(world, spell, player, 0);
+  AZK_TEST_ASSERT(triggered);
+  AZK_TEST_ASSERT(azk_get_ability_phase(world) == ABILITY_PHASE_COST_SELECTION);
+
+  const int selection_order[] = {4, 3, 2, 1};
+  for (size_t step = 0; step < sizeof(selection_order) / sizeof(selection_order[0]);
+       ++step) {
+    const int expected_target_index = selection_order[step];
+
+    AzkActionMaskSet mask = {0};
+    bool built = azk_build_action_mask_for_player(
+        world, ecs_singleton_get(world, GameState), 0, &mask);
+    AZK_TEST_ASSERT(built);
+
+    bool found_noop = false;
+    bool found_expected_target = false;
+    int cost_target_count = 0;
+    for (uint16_t i = 0; i < mask.legal_action_count; ++i) {
+      const UserAction *action = &mask.legal_actions[i];
+      if (action->type == ACT_NOOP) {
+        found_noop = true;
+        continue;
+      }
+      if (action->type != ACT_SELECT_COST_TARGET) {
+        continue;
+      }
+
+      cost_target_count++;
+      if (action->subaction_1 == expected_target_index) {
+        found_expected_target = true;
+      }
+    }
+
+    AZK_TEST_ASSERT(found_expected_target);
+    AZK_TEST_ASSERT(found_noop == (step > 0));
+    AZK_TEST_ASSERT(cost_target_count == (int)(GARDEN_SIZE - step));
+
+    bool selected = azk_process_cost_selection(world, expected_target_index);
+    AZK_TEST_ASSERT(selected);
+    AZK_TEST_ASSERT(azk_get_ability_phase(world) == ABILITY_PHASE_COST_SELECTION);
+
+    const AbilityContext *ctx = ecs_singleton_get(world, AbilityContext);
+    AZK_TEST_ASSERT(ctx != NULL);
+    AZK_TEST_ASSERT(ctx->cost.selected_count == (uint8_t)(step + 1));
+  }
+
+  AzkActionMaskSet final_cost_mask = {0};
+  bool built = azk_build_action_mask_for_player(
+      world, ecs_singleton_get(world, GameState), 0, &final_cost_mask);
+  AZK_TEST_ASSERT(built);
+
+  bool found_noop = false;
+  bool found_last_target = false;
+  int remaining_cost_targets = 0;
+  for (uint16_t i = 0; i < final_cost_mask.legal_action_count; ++i) {
+    const UserAction *action = &final_cost_mask.legal_actions[i];
+    if (action->type == ACT_NOOP) {
+      found_noop = true;
+      continue;
+    }
+    if (action->type != ACT_SELECT_COST_TARGET) {
+      continue;
+    }
+
+    remaining_cost_targets++;
+    if (action->subaction_1 == 0) {
+      found_last_target = true;
+    }
+  }
+
+  AZK_TEST_ASSERT(found_noop);
+  AZK_TEST_ASSERT(found_last_target);
+  AZK_TEST_ASSERT(remaining_cost_targets == 1);
+
+  bool final_cost_selected = azk_process_cost_selection(world, 0);
+  AZK_TEST_ASSERT(final_cost_selected);
+  AZK_TEST_ASSERT(
+      azk_get_ability_phase(world) == ABILITY_PHASE_EFFECT_SELECTION);
+
+  const AbilityContext *ctx = ecs_singleton_get(world, AbilityContext);
+  AZK_TEST_ASSERT(ctx != NULL);
+  AZK_TEST_ASSERT(ctx->cost.selected_count == GARDEN_SIZE);
+  AZK_TEST_ASSERT(ecs_get_ordered_children(world, zones.garden).count == 0);
+  AZK_TEST_ASSERT(ecs_get_ordered_children(world, zones.discard).count ==
+                  GARDEN_SIZE);
+
+  AbilityTargetChoice choices[AZK_MAX_ABILITY_TARGET_CHOICES] = {0};
+  int choice_count = azk_collect_ability_target_choices(
+      world, def, ABILITY_TARGET_SCOPE_EFFECT, spell, player, choices,
+      AZK_MAX_ABILITY_TARGET_CHOICES);
+  AZK_TEST_ASSERT(choice_count > 0);
+
+  int enemy_target_action_index = -1;
+  for (int i = 0; i < choice_count; ++i) {
+    if (choices[i].entity == enemy_target) {
+      enemy_target_action_index = choices[i].action_index;
+      break;
+    }
+  }
+  AZK_TEST_ASSERT(enemy_target_action_index >= 0);
+
+  AzkActionMaskSet effect_mask = {0};
+  built = azk_build_action_mask_for_player(
+      world, ecs_singleton_get(world, GameState), 0, &effect_mask);
+  AZK_TEST_ASSERT(built);
+
+  bool found_effect_target = false;
+  for (uint16_t i = 0; i < effect_mask.legal_action_count; ++i) {
+    const UserAction *action = &effect_mask.legal_actions[i];
+    if (action->type == ACT_SELECT_EFFECT_TARGET &&
+        action->subaction_1 == enemy_target_action_index) {
+      found_effect_target = true;
+      break;
+    }
+  }
+  AZK_TEST_ASSERT(found_effect_target);
+
+  bool effect_selected =
+      azk_process_effect_selection(world, enemy_target_action_index);
+  AZK_TEST_ASSERT(effect_selected);
+  AZK_TEST_ASSERT(azk_get_ability_phase(world) == ABILITY_PHASE_NONE);
+
+  const CurStats *enemy_stats = ecs_get(world, enemy_target, CurStats);
+  AZK_TEST_ASSERT(enemy_stats != NULL);
+  AZK_TEST_ASSERT(enemy_stats->cur_hp == 1);
+
+  ecs_fini(world);
+}
+
 static void
 test_azk01_041_main_ability_is_activatable_with_valid_discard_weapon(void) {
   ecs_world_t *world = ecs_init();
@@ -8152,7 +8344,13 @@ static void test_deck_to_selection_to_hand_finalizes_each_committed_step(void) {
   azk_world_fini(world);
 }
 
-int main(void) {
+int main(int argc, char **argv) {
+  if (argc > 1 &&
+      strcmp(argv[1], "--run-stt04-017-regression") == 0) {
+    test_stt04_017_cost_selection_allows_fifth_garden_sacrifice();
+    return 0;
+  }
+
   test_azk_world_init_sets_game_state();
   test_world_init_creates_player_zones();
   test_world_init_assigns_damage_trackers_to_cards();
@@ -8253,6 +8451,7 @@ int main(void) {
   test_azk01_097_on_play_adds_selected_weapon_to_hand_and_discards_rest();
   test_azk01_084_selection_includes_more_than_five_discard_targets();
   test_stt04_001_effect_selection_accepts_garden_and_alley_targets();
+  test_stt04_017_cost_selection_allows_fifth_garden_sacrifice();
   test_azk01_059_triggers_after_nonlethal_damage();
   test_azk01_059_triggers_after_lethal_damage();
   test_azk01_062_auto_resolves_self_damage_when_no_redirect_targets();

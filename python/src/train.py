@@ -20,6 +20,7 @@ from policy.v2 import tcg_sampler
 from league_manager import LeagueManager, parse_league_manager_config
 from league_training import LeagueConfig, LeaguePuffeRL, compute_league_active
 from playback import run_playback
+from training_deck_pool import resolve_training_deck_pool_path
 from training_utils import (
     DEFAULT_CONFIG_PATH,
     build_policy,
@@ -60,7 +61,9 @@ RESUME_SOURCE_HASH_TARGETS = (
     "python/src/v2/observation.py",
     "python/src/tcg.h",
     "python/src/train.py",
+    "python/src/training_deck_pool.py",
     "python/src/training_utils.py",
+    ".codex/docs/azuki_tcg_decks_final.json",
 )
 
 
@@ -782,10 +785,34 @@ def _resume_config_fingerprint(trainer_args: dict) -> dict[str, object]:
     env_cfg = trainer_args.get("env")
     if not isinstance(env_cfg, dict):
         env_cfg = {}
+    policy_cfg = trainer_args.get("policy")
+    if not isinstance(policy_cfg, dict):
+        policy_cfg = {}
 
     return {
         "use_rnn": bool(train_cfg.get("use_rnn", False)),
         "direct_parallel": bool(env_cfg.get("direct_parallel", False)),
+        "deck_pool_path": str(resolve_training_deck_pool_path(env_cfg.get("deck_pool_path"))),
+        "policy_model_version": str(policy_cfg.get("model_version", "metadata_v1")),
+        "policy_critic_head_type": str(policy_cfg.get("critic_head_type", "full_lstm_mlp")),
+        "policy_privileged_critic_enabled": bool(policy_cfg.get("privileged_critic_enabled", False)),
+        "policy_privileged_critic_embed_dim": int(policy_cfg.get("privileged_critic_embed_dim", 64)),
+        "policy_privileged_critic_deck_heads": int(policy_cfg.get("privileged_critic_deck_heads", 4)),
+        "policy_privileged_critic_deck_layers": int(policy_cfg.get("privileged_critic_deck_layers", 2)),
+        "policy_privileged_critic_deck_ff_size": int(policy_cfg.get("privileged_critic_deck_ff_size", 256)),
+        "policy_privileged_critic_fusion_hidden_size": int(
+            policy_cfg.get("privileged_critic_fusion_hidden_size", 512)
+        ),
+        "policy_privileged_critic_fusion_projection_size": int(
+            policy_cfg.get("privileged_critic_fusion_projection_size", 128)
+        ),
+        "policy_privileged_critic_feature_scale": float(
+            policy_cfg.get("privileged_critic_feature_scale", 1.0)
+        ),
+        "policy_win_prob_aux_enabled": bool(policy_cfg.get("win_prob_aux_enabled", False)),
+        "policy_win_prob_aux_coef": float(policy_cfg.get("win_prob_aux_coef", 0.1)),
+        "policy_split_value_heads_enabled": bool(policy_cfg.get("split_value_heads_enabled", False)),
+        "policy_split_value_component_coef": float(policy_cfg.get("split_value_component_coef", 0.5)),
         "schedule_env": _resume_env_var_fingerprint(),
         "source_hashes": _source_hash_fingerprint(),
     }
@@ -1003,6 +1030,10 @@ def _load_model_weights(policy: torch.nn.Module, model_path: Path, *, device: st
 
 def _maybe_reset_critic_head(policy: torch.nn.Module) -> bool:
     base_policy = getattr(policy, "policy", policy)
+    reset_critic_head = getattr(base_policy, "reset_critic_head", None)
+    if callable(reset_critic_head):
+        reset_critic_head()
+        return True
     value_head = getattr(base_policy, "value_fn", None)
     if value_head is None:
         return False

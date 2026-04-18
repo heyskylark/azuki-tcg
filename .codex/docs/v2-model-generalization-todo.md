@@ -1,0 +1,1845 @@
+# V2 Model Generalization TODO
+
+Purpose: track the ordered work needed to move the v2 policy away from learned card identity and toward metadata-driven card understanding that can generalize to unseen custom cards.
+
+## Execution Guardrails
+
+- This document is the active source of truth for the v2 model-generalization work.
+- Update this document as implementation progresses so the current state, next steps, and decisions survive context refreshes.
+- Baseline priority:
+  - first build the main metadata-driven model path and get it training end-to-end
+  - only start ablations after the baseline path is stable and producing sane metrics
+- Keep ablations easy to compare:
+  - separate materially different approaches into distinct model versions / loader paths / config switches where practical
+  - avoid rewriting the only baseline implementation in-place when testing an ablation that may regress
+- Local smoke testing target machine:
+  - use the RTX 3090 on this system for short training validation runs
+  - assume up to 128 GB system RAM is available for local smoke tests and artifact generation
+- Training acceptance bar for the baseline implementation:
+  - training must show healthy progress rather than obviously degenerate behavior
+  - action metrics should remain reasonable and game-like
+  - noop should typically land in roughly the 30-40% range based on prior runs unless a deliberate distribution change explains otherwise
+  - the remaining action mass should spread across plausible play actions instead of collapsing onto a tiny set of invalid or nonsensical choices
+- Do not stop at partial plumbing if the baseline still fails to train or produces obviously broken action distributions.
+
+## Local Setup / Required Env
+
+- Source the repo-root `.env` before running embedding generation or W&B-backed training:
+  - `source .env`
+- Expected keys in that file:
+  - `OPENAI_API_KEY`
+    - required for the offline embedding generation path described below
+  - `WANDB_API_KEY`
+    - optional for this project work itself
+    - required only if training runs should log to Weights & Biases
+- Local DB for canonical card metadata:
+  - start infra with `bun run dev:infra`
+  - this local Postgres instance is the intended source for the DB-backed card metadata used by the artifact generator
+  - canonical card data for this workflow is expected to come from checked-in schema, seed migrations, and later fix-up migrations
+  - prod DB access should not be required for the baseline artifact generation path
+- `DATABASE_URL` does not need to be hand-managed separately if it is already provided by the local infra/dev env setup.
+
+## Current Direction
+
+- Engine/Python observation source of truth note:
+  - the compiled training observation path is the shared default engine path in `include/utils/training_observation_util.h`, `src/utils/training_observation_util.c`, and `python/src/observation.py`
+  - the `src/**/v2/*.c` snapshot files are not part of the default build right now, so v2 observation changes must land in the compiled shared path unless the build is changed intentionally
+- Keep `card_def_id` as a runtime lookup key only.
+- Remove learned card-identity semantics from the model.
+- Replace per-card learned identity with metadata-derived features:
+  - `name` text embedding
+  - `effect_text` text embedding
+  - pooled `subtype` text embeddings
+  - pooled `keyword` features
+  - structured categorical/scalar features such as `card_type`, `element`, `ikz_cost`, `attack`, `health`, and `gate_points`
+- Move recent-action history into the engine-side v2 observation path rather than the Python wrapper hack.
+- Add explicit combat-state observation so the model does not have to infer the current attacker/target from recurrence alone.
+- Do not remove `card_def_id` from the engine or metadata system. The goal is to remove it as a learned identity input to the policy, not to remove it from runtime.
+
+## Representation Contract
+
+- `card_def_id`
+  - stays in the engine
+  - stays in the observation/runtime pipeline as the metadata lookup handle
+  - does not remain a learned identity embedding that gives the model card-specific semantics by id
+- `keywords`
+  - use a closed learned vocabulary
+  - treat keywords as discrete mechanic tags because they map to a small, mostly stable mechanic set
+  - keep them distinct from free-text semantics
+- `subtypes`
+  - treat as open-ended text features
+  - support arbitrary unseen subtype strings
+  - do not force them into a permanently closed learned id vocabulary
+- `name`
+  - treat as open-ended text
+- `effect_text`
+  - treat as open-ended text
+- `card_type`, `element`, ability timing, zone index, action type
+  - keep as structured categorical embeddings
+- `ikz_cost`, `attack`, `health`, `gate_points`, and similar stats
+  - keep as structured scalar features
+
+## Text Embedding Strategy
+
+- Initial plan is to precompute text embeddings offline and store them in the exported metadata artifact.
+- The intended default path is OpenAI text embeddings for:
+  - card `name`
+  - card `effect_text`
+  - each `subtype` string
+- The same offline path can be used for subtype/keyword-like text features that need open-ended coverage.
+- Training must never call an embedding API at runtime.
+- The exported artifact should contain the final vectors needed by training.
+
+## Modeling Constraints
+
+- Do not add explicit parser-derived features to force subtype matches.
+- Do not add hard-coded “mentioned subtype in effect text” features as part of the baseline model.
+- Let the model learn alignments from the shared metadata inputs and architecture.
+- Preserve repeated lexical information naturally by keeping subtype strings and effect text in compatible text-embedding space.
+
+## Planned Action Interface Direction
+
+- Current v2 actor shape:
+  - the current actor is factorized over `(primary, sub1, sub2, sub3)`
+  - the engine emits a legal tuple list, but the policy still samples in stages with conditional masks derived from those tuples
+  - PPO therefore trains on the sum of conditional log-prob terms for the chosen tuple, not on a single normalized distribution over full legal moves
+- Proposed actor branch:
+  - score each full legal action tuple once
+  - build one candidate embedding per legal row from:
+    - action-type embedding
+    - semantic embeddings for any referenced source/target cards gathered from the current public `target_matrix`
+    - typed flags / scalar context describing whether each tuple field is a card target, slot index, leader target, selection index, or generic bin
+  - compute one logit per legal row from the public recurrent state plus the candidate action embedding
+  - apply a single masked softmax over legal rows `0..legal_action_count-1`
+  - keep the emitted env action format as the concrete 4-field tuple for execution, replay, and evaluation compatibility
+- Masking / padding rules for the scorer branch:
+  - legal rows beyond `legal_action_count` are padding only and must be masked to `-inf`
+  - the scorer branch should not rebuild the current conditional subaction masks; legality is enforced once at the row level
+- Implementation constraints:
+  - reuse the existing public observation encoder and public LSTM first
+  - change the actor head / sampler / log-prob path before changing the rest of the architecture
+  - keep the current factorized actor available as a control branch; do not overwrite the only stable actor path in-place
+
+## Planned Privileged Critic / Belief Direction
+
+- Actor information boundary:
+  - the actor path must remain strictly public-information-only at both train and eval time
+  - belief heads may attach to the public recurrent state, but no hidden simulator tensors may flow into the actor logits path
+- Privileged critic goal:
+  - give the value function lower-variance targets by letting the critic see hidden state during training
+  - the critic is allowed to know more so it can better estimate return; the actor is still trained to act from public information only
+- First-pass privileged inputs:
+  - opponent hand card embeddings
+  - opponent deck card embeddings
+  - self deck card embeddings
+  - optional future additions only after the first branch is stable:
+    - hidden queue/order state if any hidden reordering effects exist
+    - hidden “next draw” summary features derived from the ordered deck path
+- Encoder shape expectations:
+  - opponent hand can use a masked set / slot encoder
+  - deck inputs should preserve order in the critic-only branch rather than being pure pooled sets, because top-of-deck order matters
+  - empty deck slots after the current deck count should use masked padding and contribute zero
+  - it is acceptable for the critic-only branch to maintain both:
+    - an ordered deck representation
+    - a pooled summary representation
+- Ordered deck encoder preference:
+  - first try a small masked transformer for the hidden ordered deck path
+  - each hidden deck card should act as a token composed from:
+    - card semantic embedding
+    - deck-position embedding
+    - optional typed scalar context such as normalized distance from top / valid bit
+  - use padding masks for slots beyond the current deck count
+  - do not start with a large general hidden-state transformer over every hidden zone
+  - if the transformer branch becomes unstable, too expensive, or fails to beat simpler baselines, fall back to a smaller GRU deck encoder
+- First-pass fusion plan:
+  - keep the current public encoder and public LSTM as the shared trunk
+  - build critic-only private encoders for hidden zones
+  - fuse critic-only features with the public recurrent state inside a dedicated critic MLP / projector
+  - do not start with a fully separate private LSTM unless the simpler critic-only hidden-zone encoders underfit
+- Current implementation status:
+  - implemented in the v2 policy behind `policy.privileged_critic_enabled`
+  - shared training observation now carries critic-only hidden zones for:
+    - opponent hand
+    - self deck
+    - opponent deck
+  - first pass uses:
+    - masked set encoder for opponent hand
+    - small masked transformer for both ordered hidden decks
+    - critic-only fusion MLP on top of the public critic features
+  - current value head becomes privileged when enabled
+  - public win-prob head now uses a dedicated public-only projector off the public recurrent hidden state
+    - it no longer reuses the critic feature path
+    - this keeps the inference-facing win-prob task separate from the training-only privileged value path
+  - reduced local 3090 ablation (`32` envs, `16384` timesteps, same config with branch off vs on) showed:
+    - lower value loss (`0.0109 -> 0.0073`)
+    - higher explained variance (`0.0013 -> 0.0653`)
+    - better public win-prob aux accuracy (`0.60 -> 0.845`) and Brier (`0.249 -> 0.236`)
+    - lower throughput (`229.4 SPS -> 216.1 SPS`)
+    - roughly `+1-2 GiB` extra VRAM during the short run
+  - follow-up reduced 3090 rerun after the public win-prob split (`32` envs, `51200` timesteps, fixed replay eval on `critic_eval.py`) showed:
+    - new public-only baseline replay metrics:
+      - value `mse = 0.282`, `mae = 0.448`, `explained_variance = 0.044`
+      - win-prob `brier = 0.296`, `log_loss = 0.853`, `accuracy = 0.529`, `ece = 0.210`
+    - new privileged-critic replay metrics:
+      - value `mse = 1.606`, `mae = 1.214`, `explained_variance = 0.049`
+      - win-prob `brier = 0.334`, `log_loss = 1.164`, `accuracy = 0.551`, `ece = 0.266`
+    - takeaway:
+      - separating the public win-prob path materially reduced the earlier calibration regression from the coupled privileged branch
+      - on this shorter rerun, the best replay-calibrated checkpoint was still the new public-only baseline, so the privileged branch remains promising but not default-ready
+  - privileged-critic retune plumbing now exposes:
+    - `policy.privileged_critic_embed_dim`
+    - `policy.privileged_critic_deck_heads`
+    - `policy.privileged_critic_deck_layers`
+    - `policy.privileged_critic_deck_ff_size`
+    - `policy.privileged_critic_fusion_hidden_size`
+    - `policy.privileged_critic_fusion_projection_size`
+    - `policy.privileged_critic_feature_scale`
+  - `reset_critic_head()` now also resets the critic-only deck transformer, so resume-time critic resets actually reset the whole privileged branch instead of only the MLP pieces
+  - first retune sweep on the local 3090 (`32` envs, `51200` timesteps, seed `1234`) compared:
+    - `control`
+      - current privileged critic (`embed_dim=64`, `heads=4`, `layers=2`, `ff=256`, `fusion=512->128`, `feature_scale=1.0`)
+    - `scale05`
+      - same as control, but `feature_scale=0.5`
+    - `fusionwide`
+      - same as control, but `fusion=768->192`
+    - `compactdeck`
+      - same as control, but `layers=1`, `ff=128`
+    - `combo_scale05_fusionwide`
+      - `feature_scale=0.5` plus `fusion=768->192`
+  - online tail metrics from that sweep:
+    - `control`
+      - `SPS = 225.96`
+      - `value_loss = 0.00896`
+      - `explained_variance = 0.0665`
+      - `win_prob_aux_accuracy = 0.8623`
+      - `win_prob_aux_brier = 0.1772`
+    - `scale05`
+      - `SPS = 231.72`
+      - `value_loss = 0.00869`
+      - `explained_variance = 0.0379`
+      - `win_prob_aux_accuracy = 0.8683`
+      - `win_prob_aux_brier = 0.1945`
+    - `fusionwide`
+      - `SPS = 227.78`
+      - `value_loss = 0.00938`
+      - `explained_variance = 0.0508`
+      - `win_prob_aux_accuracy = 0.9282`
+      - `win_prob_aux_brier = 0.1683`
+    - `compactdeck`
+      - `SPS = 227.45`
+      - `value_loss = 0.00967`
+      - `explained_variance = 0.0777`
+      - `win_prob_aux_accuracy = 0.7106`
+      - `win_prob_aux_brier = 0.1727`
+    - `combo_scale05_fusionwide`
+      - `SPS = 231.77`
+      - `value_loss = 0.00933`
+      - `explained_variance = 0.0616`
+      - `win_prob_aux_accuracy = 0.7586`
+      - `win_prob_aux_brier = 0.2026`
+  - fixed replay eval on `/tmp/privcritic_long_baseline_policy_dataset_v2.pt` (`2609` rows) was more decisive:
+    - `control`
+      - value `mse = 0.1319`, `mae = 0.2854`, `explained_variance = 0.0586`
+      - win-prob `brier = 0.2975`, `log_loss = 0.9499`, `accuracy = 0.5715`, `ece = 0.2135`
+    - `scale05`
+      - value `mse = 0.2729`, `mae = 0.4302`, `explained_variance = 0.0086`
+      - win-prob `brier = 0.2543`, `log_loss = 0.7090`, `accuracy = 0.5749`, `ece = 0.1233`
+    - `fusionwide`
+      - value `mse = 66.9074`, `mae = 8.1709`, `explained_variance = -0.0313`
+      - win-prob `brier = 0.3065`, `log_loss = 0.9360`, `accuracy = 0.5473`, `ece = 0.2321`
+    - `compactdeck`
+      - value `mse = 0.1421`, `mae = 0.3010`, `explained_variance = -0.0185`
+      - win-prob `brier = 0.2635`, `log_loss = 0.7540`, `accuracy = 0.5707`, `ece = 0.1495`
+    - `combo_scale05_fusionwide`
+      - value `mse = 0.5193`, `mae = 0.6317`, `explained_variance = 0.0377`
+      - win-prob `brier = 0.2730`, `log_loss = 0.7928`, `accuracy = 0.5623`, `ece = 0.1646`
+  - retune takeaway:
+    - no retuned privileged-critic variant beat the current `control` branch on replay value quality
+    - `fusionwide` looked attractive online but was clearly unstable on replay and should not be carried forward without a separate investigation
+    - `compactdeck` is the only plausible follow-up candidate if another critic-only pass is desired:
+      - slightly better online explained variance than control
+      - replay value absolute error stayed close to control
+      - but replay value explained variance regressed below zero, so it is not an automatic promotion
+    - practical recommendation after this sweep:
+      - keep the current privileged-critic control as the reference branch
+      - do not widen the fusion MLP by default
+      - if doing one more critic-only follow-up, test `compactdeck` against control over multiple seeds
+      - otherwise move on to the legal-action scorer actor branch
+- Belief-head scope:
+  - start with coarse metadata-space targets rather than exact hidden card IDs
+  - examples:
+    - opponent hand element / type / cost histograms
+    - `has_removal`, `has_board_wipe`, or similar tactical predicates
+    - next-draw / remaining-deck bucket targets
+  - exact hidden card-ID prediction is a later optional ablation only; it is not the first recommended branch because it is sparse and works against the generalization goal
+- Intended relationship between the two:
+  - privileged critic uses hidden ground-truth state during training only
+  - belief heads train the public recurrent state to model hidden-state uncertainty from public observations
+  - belief predictions may later be fed into the critic or actor as a compact summary, but that should be a separate ablation, not the initial implementation
+- Win-probability head separation:
+  - do not treat a privileged win-probability estimate as the deployable / real-game win percentage
+  - if win percentages are needed at inference time, add a separate public-only win-prob head on the public trunk
+  - the public win-prob head should use only public observations / history, just like the actor
+  - optional later direction:
+    - distill from privileged targets into the public win-prob head during training
+  - first-pass recommendation:
+    - privileged value head for training stability
+    - public win-prob head for inference-facing estimates
+    - belief heads as auxiliary public-state modeling targets
+
+## Keyword / Subtype Encoding Notes
+
+- `keyword` features should come from the explicit card metadata `keywords` array, not arbitrary words from rules text.
+- In practice for the current repo, the engine-aligned explicit mechanic keywords live in `scripts/azuki-card-defs.jsonl`, while the local Postgres card rows remain the source of truth for `name`, `effect_text`, `subtypes`, and structured scalar/categorical card metadata.
+- Initial keyword vocab should be built from the canonical card metadata set and versioned with the exported artifact.
+- Keywords should use a closed learned vocabulary because they correspond to discrete game mechanics.
+- That vocab should include all engine-relevant explicit keywords currently present in card metadata, for example:
+  - `charge`
+  - `defender`
+  - `infiltrate`
+  - `effect_immune`
+  - `carapace1`
+  - `can_target_leader_only`
+  - `is_ikz_card`
+- `subtype` embeddings should come from the explicit card metadata `subtypes` array and be pooled per card.
+- `subtypes` should use open text embeddings because the subtype space can grow indefinitely with new custom cards.
+- `effect_text` should be embedded separately from keywords/subtypes. Do not collapse explicit keywords into free-text-only semantics.
+- Baseline expectation:
+  - if `effect_text` contains language like `choose a Steelborn subtype card`
+  - and the candidate card has subtype text embedding containing `Steelborn`
+  - the model should learn that alignment from training, without explicit parser features
+- This means the baseline should preserve shared lexical signal between effect text and subtype strings rather than hiding that signal behind unrelated learned ids.
+
+## Ordered TODOs
+
+1. [ ] Freeze the v2 representation contract in writing.
+   - Define exactly which card features are identity-carrying inputs.
+   - Define exactly which fields remain categorical embeddings (`card_type`, `element`, ability timing, zone index, action type).
+   - Define exactly which fields become text-derived or pooled-set metadata.
+
+2. [x] Add explicit combat-state observation to the engine-side v2 schema.
+   - Include whether combat/response is active.
+   - Include current attacker identity as public metadata.
+   - Include attacker slot index and whether the attacker is a leader.
+   - Include current target slot index and whether the target is a leader.
+   - Include any cheap public combat summaries that remove defender-response ambiguity.
+
+3. [x] Add engine-side recent action history for both players.
+   - Add `self_recent_actions[4]`.
+   - Add `opp_recent_actions[4]`.
+   - Include valid bit plus the 4 action heads for each step.
+   - Keep self and opponent histories in separate channels.
+
+4. [x] Remove the Python-side v2 previous-action wrapper augmentation.
+   - Delete the current wrapper-only previous-action memory in `python/src/v2/tcg.py`.
+   - Delete the parallel variant hack in `python/src/v2/tcg_parallel.py`.
+   - Make the observation source of truth the engine-side v2 observation struct.
+
+5. [x] Define the exported policy card metadata artifact format.
+   - Create a versioned JSON or NPZ-backed artifact intended for model loading.
+   - Include `card_code`, `name`, `effect_text`, `keywords`, `subtypes`, `card_type`, `element`, `ikz_cost`, `attack`, `health`, `gate_points`, and ability metadata.
+   - Include explicit vocab tables for keywords and subtypes.
+   - Include artifact version and generation metadata.
+
+6. [x] Build a one-time artifact generator from canonical card metadata.
+   - Use the DB-backed card metadata as source of truth for `effect_text`, `keywords`, and `subtypes`.
+   - Do not require a live DB connection during training.
+   - Generate a checked-in or reproducibly generated artifact under a stable config/data path for training.
+
+7. [x] Add preprocessing for text embeddings.
+   - Generate embeddings for `name`.
+   - Generate embeddings for `effect_text`.
+   - Generate embeddings for each `subtype` string.
+   - Decide whether to embed `name` and `effect_text` separately or also add a combined card-text embedding.
+   - Cache the embedding vectors inside the exported artifact so training does not call external APIs.
+
+8. [x] Extend the policy static table loader into a metadata table loader.
+   - Replace `load_policy_static_card_table` with a loader that reads the exported metadata artifact.
+   - Keep cheap structured scalar/categorical fields in tensor form.
+   - Load precomputed text embeddings and pooled keyword/subtype features alongside the structured metadata.
+
+9. [x] Refactor the v2 policy encoder away from learned card-id identity.
+   - Remove the learned `card_def_encoder` as the primary identity representation.
+   - Keep `card_def_id` only for indexing into the metadata table.
+   - Build each card representation from:
+     - precomputed `name` embedding
+     - precomputed `effect_text` embedding
+     - pooled subtype text embedding
+     - keyword feature embedding from closed mechanic vocab
+     - structured categorical/scalar features
+   - Keep existing structured embeddings for `card_type`, `element`, action heads, phase, ability phase, and indices where they remain useful.
+
+10. [ ] Prototype a legal-action scorer actor branch.
+   - Keep the current factorized `(primary, sub1, sub2, sub3)` actor as a control branch.
+   - Build one candidate embedding per legal action row using the legal tuple list plus semantic card references gathered from the public `target_matrix`.
+   - Compute a single logit per legal action row from the public recurrent state and candidate action embedding.
+   - Train PPO on one masked softmax over legal rows instead of the current product of conditional subaction distributions.
+   - Keep the emitted action format as the concrete 4-field tuple so env stepping, replay, and offline eval stay compatible.
+   - Add sampler / replay / log-prob plumbing so factorized and legal-row-scoring actors can coexist behind model-version or config switches.
+
+11. [x] Add a privileged-critic branch with critic-only hidden-zone encoders.
+   - Keep the actor path strictly public-only.
+   - Add critic-only encoders for:
+     - opponent hand
+     - opponent deck
+     - self deck
+   - Preserve deck order in the critic branch instead of pure pooling; use masked padding for empty deck slots after the current deck count.
+   - Try a small masked transformer first for ordered hidden deck encoding; keep a GRU fallback branch ready if the transformer path becomes a dead end.
+   - Fuse critic-only hidden-zone features with the public recurrent state inside a dedicated critic projector / MLP.
+   - Start without a separate private LSTM; only add a private recurrent critic branch if the simpler critic-only hidden-zone encoders prove insufficient.
+   - Compare public-only critic vs privileged critic with both online PPO metrics and `critic_eval.py` slices before promoting the branch.
+
+12. [ ] Add ablations for metadata representation choices and hidden-state modeling.
+   - text only vs text + structured stats
+   - text + subtype pool vs text + subtype + keyword pool
+   - pooled subtype/keyword embeddings vs simple multi-hot baselines
+   - with vs without recent action history
+   - with vs without explicit combat context
+   - current factorized actor vs legal-action scorer actor
+   - legal-action scorer with action-type-only candidates vs scorer with referenced-card semantic embeddings
+   - current public per-zone processed-set encoder vs a unified public-card token transformer encoder before the public LSTM
+   - in the public-token transformer branch, represent each visible card as card semantics plus public zone / owner / slot-position embeddings rather than flattening away zone semantics
+   - keep the public LSTM after the transformer in the first transformer-encoder ablation so cross-card attention and temporal recurrence are tested separately
+   - baseline metadata encoder vs baseline + cross-attention from policy hidden state to candidate card embeddings
+   - baseline metadata encoder vs attention only in selection-heavy / target-selection contexts
+   - public-only critic vs privileged critic
+   - privileged critic deck encoder: masked transformer vs GRU
+   - belief heads on vs off
+   - privileged critic with vs without a compact predicted belief summary fused into the critic branch
+   - coarse metadata-space belief targets vs exact hidden-card-id belief targets, if the exact-ID branch is attempted later
+   - privileged value head only vs privileged value head + separate public win-prob head
+   - public win-prob trained from terminal labels only vs public win-prob plus privileged-target distillation
+   - test attention only after the baseline metadata path is stable so gains are attributable
+
+13. [ ] Expand training distribution once the new representation path is stable.
+   - Completed first-stage rollout:
+     - training now defaults to the combined pool of `starter_raizan`, `starter_shao`, and the 16 curated generalized decks from `.codex/docs/azuki_tcg_decks_final.json`
+     - combined-pool reset sampling is near-uniform
+     - combined-pool training now runs with `0%` zero-legal-action truncation after the reset / teardown / legality fixes documented below
+   - Remaining work:
+     - move beyond the current curated 18-deck pool
+     - train on the full available card pool from the DB-backed card metadata
+     - add deck sampling / curriculum logic that exposes the model to much more card variation
+
+14. [ ] Add evaluation focused on true generalization.
+   - Hold out a subset of cards during training and evaluate on them later.
+   - Hold out subtype combinations during training and test whether the model transfers.
+   - Add targeted tactical evals for subtype-search cards, effect-text-heavy cards, and response-window combat decisions.
+   - Add belief-head evaluation:
+     - calibration / Brier / accuracy for each belief target
+     - slices by phase, seat, deck pair, and episode stage
+   - Add head-to-head evaluation for factorized actor vs legal-action scorer under matched compute / wall-clock budgets.
+   - If a public win-prob head is added, evaluate it separately from any privileged training-only value / win-prob branches.
+
+15. [ ] Add regression checks around observation/model compatibility.
+   - Test engine v2 observation struct, Python marshaling, and policy loader shape alignment.
+   - Test that recent-action history is perspective-correct.
+   - Test that combat context matches live engine state.
+   - Test that unknown cards can be represented as long as metadata exists in the artifact.
+   - Add hidden-state-path checks for the privileged critic:
+     - critic-only hidden tensors never flow into the actor logits path
+     - deck-count masks and empty-slot padding are respected for ordered hidden deck encoders
+     - replay / checkpoint restore preserves whichever actor branch and critic branch are active
+   - Completed on the engine side for `STT04-017`:
+     - added a repeatable `STT04-017` regression in `tests/test_world.c`
+     - added a focused runner path: `./build/world_tests --run-stt04-017-regression`
+     - registered dedicated CTest coverage: `ctest --test-dir build -R stt04_017_regression --output-on-failure`
+     - the focused regression proves the legal mask and execution path stay aligned through the 5th `ACT_SELECT_COST_TARGET` and final effect resolution
+
+16. [ ] Tune critic quality and overall training health on the generalized deck pool.
+   - Use the local RTX 3090 for apples-to-apples PPO sweeps on the stable `18`-deck training pool.
+   - Focus first on knobs most likely to improve critic fit and overall policy health:
+     - `learning_rate`
+     - `vf_coef`
+     - `gae_lambda`
+     - `update_epochs`
+     - entropy / sampler anneal schedules only if the first four do not move critic quality enough
+   - Compare runs on:
+     - `value_loss`
+     - `explained_variance`
+     - `approx_kl`
+     - `clipfrac`
+     - action ratios
+     - episode length
+     - zero-legal-action truncation
+   - Keep the stable local 3090 shape unless a better fit is found:
+     - `vec.num_envs = 120`
+     - `vec.num_workers = 4`
+     - `vec.batch_size = 120`
+     - `train.batch_size = 3840`
+     - `train.minibatch_size = 960`
+     - `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`
+   - Completed first local sweep:
+     - compared multiple PPO variants against the stable 18-deck generalized pool on the local RTX 3090
+     - validated that safe variants kept `0%` zero-legal-action truncation
+     - established that the current baseline remains the best safe late-window configuration among the variants tested so far
+   - Remaining work:
+     - either find a true critic-quality win that holds through the late window
+     - or conclude the next meaningful gains require architectural / reward / evaluation changes rather than more local PPO knob nudging
+
+17. [x] Fix the `STT04-017` / `Wrath of Sinder` invalid-action parity bug.
+   - Deterministic repro:
+     - mixed-deck probe reproduced an invalid `ACT_SELECT_COST_TARGET` during `ABILITY_PHASE_COST_SELECTION`
+     - the action was present in both the cached mask and a freshly rebuilt mask
+     - logged snapshot:
+       - `deck_indices = [3,1]`
+       - `ability_phase = 2`
+       - `ability_ctx_phase = 2`
+       - `ability_ctx_source_card_def_id = 192`
+       - `ability_ctx_effect_target_type = 11`
+       - `ability_ctx_cost_target_type = 4`
+   - Root cause:
+     - `STT04-017` correctly advertises `cost_req.max = GARDEN_SIZE`
+     - `GARDEN_SIZE = 5`
+     - but `MAX_ABILITY_SELECTION` was still `4`
+     - the action mask therefore exposed a legal 5th sacrifice target that the execution path rejected with `Too many cost targets`
+   - Fix:
+     - raised `MAX_ABILITY_SELECTION` to `GARDEN_SIZE`
+     - added clamp + assert guards in ability target state init and selection-state init so future ability definitions cannot silently exceed storage capacity
+   - Verification:
+     - deterministic mixed-deck `STT04-017` repro no longer hit invalid-action aborts
+     - pooled env stress and a short 3090 trainer rerun both completed with `0%` zero-legal-action truncation
+
+18. [ ] Run critic architecture / evaluation ablations in ROI order.
+   - Goal:
+     - improve critic quality without destabilizing the generalized-deck policy path
+   - Ordered execution plan from here:
+     1. [x] Add a win-probability auxiliary head on top of the active `full_lstm_mlp` branch.
+        - predict eventual winner from the critic-side recurrent representation
+        - keep it auxiliary first, not a replacement for the scalar value head
+        - validated with real 3090 trainer runs and promoted into the active tuning configs
+     2. [x] Extend the offline evaluator to score the win-prob head directly.
+        - add Brier score, log loss, accuracy, and calibration buckets
+        - slice those metrics by phase, ability phase, deck pair, seat, and episode stage
+     3. [x] Run controlled 3090 A/B training on:
+        - `full_lstm_mlp`
+        - `full_lstm_mlp + win_prob_aux`
+        - keep PPO knobs fixed during this comparison batch
+     4. [x] Split terminal-vs-shaped value prediction if the win-prob head improves ranking but value calibration is still weak.
+     5. [x] Revisit PPO knob tuning only after the architecture/target changes above settle.
+     6. [ ] Leave phase-conditioned critic heads for last.
+   - Already completed in this track:
+     - Ablation 1: separate critic head from the policy bottleneck
+     - Ablation 2: add critic-focused offline evaluation
+     - Ablation 3, step 1: add the win-probability auxiliary head on top of the active `full_lstm_mlp` branch
+   - Detailed notes for the completed work:
+   - Ablation 1: separate critic head from the policy bottleneck
+     - current value head reads from the same projected hidden used for primary-action logits
+     - add a dedicated critic MLP from the full recurrent state instead
+     - compare against the current shared-bottleneck baseline first
+     - status:
+       - implemented as a switchable `policy.critic_head_type`
+       - current options:
+         - `shared_primary`
+         - `full_lstm_mlp`
+       - initial result:
+         - stable under the generalized deck pool
+         - not a strong enough win to replace the default baseline yet
+   - Ablation 2: add critic-focused offline evaluation
+     - fixed rollout dataset / replay slice for apples-to-apples critic comparison
+     - metrics by phase, ability phase, deck, deck pair, and episode stage
+     - log return MSE / MAE / explained variance instead of relying only on online PPO aggregates
+     - status:
+       - implemented in `python/src/critic_eval.py`
+       - dataset format stores deterministic replay traces:
+         - episode seeds
+         - sampled action traces
+         - active-seat traces
+         - per-step reward traces
+         - deck-pair selection
+       - evaluator replays the exact same games against arbitrary checkpoints and reports:
+         - overall return MSE / MAE / explained variance / bias
+         - slices by phase, ability phase, deck pair, seat, leader-health bucket, and opening/mid/late stage
+       - initial result:
+         - useful and non-redundant relative to online PPO metrics
+         - shows `full_lstm_mlp` improves variance tracking in several hard-state slices, especially response-window states
+         - also shows `full_lstm_mlp` has materially higher positive bias / overestimation, so calibration is still the main weakness
+   - Ablation 3, step 1: add the win-probability auxiliary head
+     - implementation:
+       - added `policy.win_prob_aux_enabled` and `policy.win_prob_aux_coef`
+       - the policy now emits a critic-side win-prob logit from the same critic feature path used by the scalar value head
+       - the logit is stashed in policy `state` so PPO action sampling stays unchanged
+       - rollout buffers now track per-step episode ids and agent ids so terminal winner labels can be backfilled when an episode finishes inside the sampled horizon
+       - both `PuffeRL` and `LeaguePuffeRL` now optimize a BCE auxiliary loss on those labeled steps and log:
+         - `win_prob_aux_loss`
+         - `win_prob_aux_labeled_frac`
+         - `win_prob_aux_accuracy`
+         - `win_prob_aux_brier`
+         - `win_prob_aux_pred_mean`
+         - `win_prob_aux_target_mean`
+       - checkpoint resume metadata now fingerprints:
+         - `policy_win_prob_aux_enabled`
+         - `policy_win_prob_aux_coef`
+       - `critic_eval.py` now restores those settings from checkpoint metadata
+     - active tuning default:
+       - enabled in:
+         - `python/config/azuki.ini`
+         - `python/config/azuki_speed_3090.ini`
+         - `python/config/azuki_speed_3090_parallel.ini`
+       - keep CLI override available so the no-aux branch can still be used as a control during step 3
+     - validation:
+       - focused policy/import probe:
+         - confirmed `policy_ok True 0.1`
+         - confirmed `forward_eval` publishes `_azk_win_prob_logits` with the expected batch shape
+       - explicit 3090 trainer validation:
+         - command:
+           - `PYTHONPATH=python/src:build/python/src WANDB_MODE=disabled PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python/.venv-codex/bin/python python/src/train.py --config python/config/azuki_speed_3090_parallel.ini --no-league-enable --policy.win_prob_aux_enabled true --policy.win_prob_aux_coef 0.1 --vec.num-envs 120 --vec.num-workers 4 --vec.batch-size 120 --train.batch_size 3840 --train.minibatch_size 960 --train.total_timesteps 30720`
+         - log:
+           - `/tmp/azuki_winprob_quick.log`
+         - result:
+           - completed cleanly with `0%` zero-legal-action truncation on both seats
+           - once episodes began finishing, the aux head trained on non-zero labeled fractions
+           - by the later quick-run window:
+             - `win_prob_aux_loss` settled around `0.65-0.69`
+             - `win_prob_aux_labeled_frac` rose into the `0.08-0.13` range
+             - `win_prob_aux_accuracy` stayed roughly `0.75-0.97`
+             - `win_prob_aux_brier` stayed roughly `0.23-0.25`
+             - `win_prob_aux_pred_mean` stayed near `0.49`
+           - action-health stayed sane while the aux head was active:
+             - seat-0 examples stayed in the rough range of `noop 0.25-0.27`, `attack 0.12-0.14`, `play 0.31-0.36`, `ability 0.07-0.08`, `target 0.17-0.21`
+       - default-config path:
+         - command:
+           - `PYTHONPATH=python/src:build/python/src WANDB_MODE=disabled PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True python/.venv-codex/bin/python python/src/train.py --config python/config/azuki_speed_3090_parallel.ini --no-league-enable --vec.num-envs 120 --vec.num-workers 4 --vec.batch-size 120 --train.batch_size 3840 --train.minibatch_size 960 --train.total_timesteps 15360`
+         - log:
+           - `/tmp/azuki_winprob_default_quick.log`
+         - result:
+           - active config path booted cleanly with the aux head enabled by default
+     - notes:
+       - the structured `[epoch N]` logger output is one update behind the live dashboard because `mean_and_log()` currently runs before `self.losses` is replaced
+       - the live dashboard is the correct source for the current epoch’s auxiliary metrics until that logging order is cleaned up
+       - there is still a separate unrelated quirk where `environment/league/active` shows up even under `--no-league-enable`; did not address that in this step
+   - Ablation 3, step 2: extend the offline evaluator to score the win-prob head directly
+     - implementation:
+       - `critic_eval.py` replay rows now capture `win_prob_prediction` from `_azk_win_prob_logits` for the active seat on each replayed step
+       - win-prob metrics only score rows with a real terminal winner label
+         - incomplete / timed-out episodes still participate in scalar-value replay metrics
+         - but they are excluded from binary win-prob scoring to avoid fake `0/0` labels
+       - added binary metric summaries with:
+         - `accuracy`
+         - `brier`
+         - `log_loss`
+         - `pred_mean`
+         - `target_mean`
+         - `calibration_ece`
+         - `calibration_mce`
+         - fixed `10`-bucket calibration tables
+       - evaluator output now includes:
+         - `win_prob_overall`
+         - `win_prob_by_phase`
+         - `win_prob_by_ability_phase`
+         - `win_prob_by_stage`
+         - `win_prob_by_deck_pair`
+         - `win_prob_by_active_seat`
+         - `win_prob_by_leader_health_bucket`
+         - `win_prob_by_seat_win`
+       - CLI summary now prints the top-level win-prob metrics when the checkpoint actually has a win-prob head
+     - checkpoint compatibility guard:
+       - current tuning configs now default `win_prob_aux_enabled = true`
+       - older checkpoints that predate the aux-head metadata would otherwise inherit that config default during offline eval and accidentally build a randomly initialized win-prob head
+       - `critic_eval.py` now forces `win_prob_aux_enabled = false` when evaluating a checkpoint whose resume metadata does not explicitly declare the aux-head setting
+     - validation:
+       - syntax/runtime:
+         - `PYTHONPATH=python/src:build/python/src python/.venv-codex/bin/python -m py_compile python/src/critic_eval.py`
+       - evaluator smoke replay:
+         - command:
+           - `PYTHONPATH=python/src:build/python/src python/.venv-codex/bin/python python/src/critic_eval.py evaluate --config python/config/azuki_speed_3090_parallel.ini --dataset /tmp/azuki_critic_eval_smoke.pt --checkpoint experiments/azuki_local_177637185327/model_azuki_local_000020.pt --device cuda --output /tmp/azuki_critic_eval_winprob_smoke.json`
+         - result:
+           - completed cleanly and emitted both value and win-prob summaries
+           - top-level win-prob metrics on that replay slice:
+             - `count = 632`
+             - `brier = 0.229486`
+             - `log_loss = 0.650568`
+             - `accuracy = 0.601266`
+             - `calibration_ece = 0.056630`
+           - JSON shape confirmed that the per-slice win-prob sections and calibration buckets are present
+   - Ablation 3, step 3: run the controlled 3090 A/B
+     - experiment shape:
+       - fixed train config:
+         - `vec.num-envs = 120`
+         - `vec.num-workers = 4`
+         - `vec.batch-size = 120`
+         - `train.batch_size = 3840`
+         - `train.minibatch_size = 960`
+         - `train.total_timesteps = 153600` (`40` epochs)
+         - `league disabled`
+         - same PPO knobs and same deck pool for all runs
+       - compared branches:
+         - control: `full_lstm_mlp`, `win_prob_aux_enabled = false`
+         - aux: `full_lstm_mlp`, `win_prob_aux_enabled = true`, `win_prob_aux_coef = 0.1`
+       - seeds:
+         - `501`
+         - `502`
+       - logs:
+         - `/tmp/azuki_ab3_auxoff_s501.log`
+         - `/tmp/azuki_ab3_auxon_s501.log`
+         - `/tmp/azuki_ab3_auxoff_s502.log`
+         - `/tmp/azuki_ab3_auxon_s502.log`
+       - checkpoints:
+         - `experiments/azuki_ab3_auxoff_s501_177637349349/model_azuki_ab3_auxoff_s501_000040.pt`
+         - `experiments/azuki_ab3_auxon_s501_177637386051/model_azuki_ab3_auxon_s501_000040.pt`
+         - `experiments/azuki_ab3_auxoff_s502_177637499178/model_azuki_ab3_auxoff_s502_000040.pt`
+         - `experiments/azuki_ab3_auxon_s502_177637535899/model_azuki_ab3_auxon_s502_000040.pt`
+     - online trainer results, averaged over epochs `20-40`:
+       - control:
+         - `SPS = 463.38`
+         - `value_loss = 0.03886`
+         - `explained_variance = 0.26682`
+         - `approx_kl = 0.00920`
+         - `clipfrac = 0.14939`
+         - `0%` zero-legal truncation on both seats
+       - aux:
+         - `SPS = 469.23`
+         - `value_loss = 0.03885`
+         - `explained_variance = 0.23313`
+         - `approx_kl = 0.00851`
+         - `clipfrac = 0.14829`
+         - `0%` zero-legal truncation on both seats
+       - takeaways:
+         - the aux head did not destabilize training
+         - action mix stayed essentially unchanged between branches
+         - online scalar critic quality did **not** improve in this batch; late-window `explained_variance` was lower on both seeds with the aux head enabled
+     - online action-health, averaged over epochs `20-40`:
+       - control:
+         - `noop 0.2642`
+         - `attack 0.1342`
+         - `play 0.3302`
+         - `ability 0.0715`
+         - `target 0.1969`
+       - aux:
+         - `noop 0.2667`
+         - `attack 0.1325`
+         - `play 0.3273`
+         - `ability 0.0739`
+         - `target 0.1968`
+       - takeaway:
+         - no action-collapse or legality regression; branch comparison is about critic behavior, not basic policy health
+     - aux-head own metrics, averaged over epochs `20-40`:
+       - `win_prob_aux_loss = 0.55298`
+       - `win_prob_aux_labeled_frac = 0.11506`
+       - `win_prob_aux_accuracy = 0.87085`
+       - `win_prob_aux_brier = 0.18197`
+       - `win_prob_aux_pred_mean = 0.51280`
+       - `win_prob_aux_target_mean = 0.51430`
+     - fixed replay results on `/tmp/azuki_critic_eval_smoke.pt`:
+       - seed `501`:
+         - control:
+           - `mse = 7.40911`
+           - `mae = 2.49622`
+           - `ev = 0.20107`
+         - aux:
+           - `mse = 6.62701`
+           - `mae = 2.28301`
+           - `ev = 0.28889`
+           - `win_prob_brier = 0.22267`
+           - `win_prob_logloss = 0.63394`
+           - `win_prob_acc = 0.61392`
+           - `win_prob_ece = 0.17214`
+       - seed `502`:
+         - control:
+           - `mse = 7.09378`
+           - `mae = 2.44238`
+           - `ev = 0.23426`
+         - aux:
+           - `mse = 6.74780`
+           - `mae = 2.26750`
+           - `ev = 0.30045`
+           - `win_prob_brier = 0.20837`
+           - `win_prob_logloss = 0.57640`
+           - `win_prob_acc = 0.61709`
+           - `win_prob_ece = 0.18846`
+       - fixed-replay average across both seeds:
+         - control:
+           - `mse = 7.25144`
+           - `mae = 2.46930`
+           - `ev = 0.21767`
+           - `bias = 0.18776`
+           - `response_window_ev = 0.07976`
+           - `late_stage_ev = 0.27148`
+         - aux:
+           - `mse = 6.68741`
+           - `mae = 2.27526`
+           - `ev = 0.29467`
+           - `bias = 0.14144`
+           - `response_window_ev = 0.11155`
+           - `late_stage_ev = 0.39278`
+           - `win_prob_brier = 0.21552`
+           - `win_prob_logloss = 0.60517`
+           - `win_prob_acc = 0.61551`
+           - `win_prob_ece = 0.18030`
+     - conclusion from this batch:
+       - the aux head is still worth keeping on the active branch
+       - reason:
+         - it preserves training stability and action health
+         - it improves the fixed-rollout value metrics on both seeds
+         - it provides the dedicated win-prob signal we wanted anyway
+       - but it does **not** solve scalar critic quality by itself
+         - online late-window `explained_variance` regressed relative to control on both seeds
+         - win-prob calibration is still weak enough that the next high-value task is to reduce target interference, not to do a broad PPO sweep
+   - Ablation 4: split terminal-vs-shaped value prediction
+     - implementation:
+       - native env reward accounting now exposes per-step:
+         - `terminal_rewards`
+         - `shaped_rewards`
+       - both the single-env and vector bindings now map those component buffers into Python
+       - `AzukiTCG`, `AzukiTCGParallel`, and `AzukiNativePufferEnv` now publish:
+         - `azk_step_terminal_reward`
+         - `azk_step_shaped_reward`
+       - `MultiagentEpisodeStats` now preserves `azk_step_*` info on nonterminal steps so the vector trainer can actually see component rewards during rollout collection
+       - `PuffeRL` and `LeaguePuffeRL` now store split reward/value rollout buffers and optimize:
+         - total scalar value loss
+         - terminal value loss
+         - shaped value loss
+         - combined split-head objective:
+           - `value_loss_total + split_value_component_coef * 0.5 * (value_loss_terminal + value_loss_shaped)`
+       - the policy now supports:
+         - `policy.split_value_heads_enabled`
+         - `policy.split_value_component_coef`
+       - when enabled, `full_lstm_mlp` publishes:
+         - `_azk_value_terminal`
+         - `_azk_value_shaped`
+         - total value remains their sum so PPO action/value interfaces stay compatible
+       - checkpoint resume / eval metadata now fingerprints and restores:
+         - `policy_split_value_heads_enabled`
+         - `policy_split_value_component_coef`
+     - validation:
+       - rebuilt native module:
+         - `cmake --build build --target azuki_puffer_env`
+       - Python syntax/import validation passed for the updated trainer / env / policy path
+       - serial vecenv smoke confirmed that split step rewards survive vectorization and policy state carries terminal/shaped value tensors
+       - short 3090 smoke train:
+         - command shape:
+           - `--policy.split_value_heads_enabled true`
+           - `--policy.split_value_component_coef 0.5`
+           - `--vec.num-envs 120`
+           - `--vec.num-workers 4`
+           - `--vec.batch-size 120`
+           - `--train.batch_size 3840`
+           - `--train.minibatch_size 960`
+           - `--train.total_timesteps 30720`
+         - log:
+           - `/tmp/azuki_split_value_quick.log`
+         - result:
+           - completed cleanly with `0%` zero-legal-action truncation on both seats
+           - new split metrics appeared online:
+             - `value_loss_total`
+             - `value_loss_terminal`
+             - `value_loss_shaped`
+             - `explained_variance_terminal`
+             - `explained_variance_shaped`
+     - controlled 3090 A/B:
+       - experiment shape:
+         - fixed train config:
+           - `vec.num-envs = 120`
+           - `vec.num-workers = 4`
+           - `vec.batch-size = 120`
+           - `train.batch_size = 3840`
+           - `train.minibatch_size = 960`
+           - `train.total_timesteps = 153600` (`40` epochs)
+           - `league disabled`
+           - same PPO knobs, same deck pool, same `full_lstm_mlp`, same win-prob aux settings in both branches
+         - compared branches:
+           - control:
+             - `split_value_heads_enabled = false`
+           - split:
+             - `split_value_heads_enabled = true`
+             - `split_value_component_coef = 0.5`
+         - seeds:
+           - `601`
+           - `602`
+         - logs:
+           - `/tmp/azuki_step4_control_s601.log`
+           - `/tmp/azuki_step4_control_s602.log`
+           - `/tmp/azuki_step4_split_s601.log`
+           - `/tmp/azuki_step4_split_s602.log`
+         - checkpoints:
+           - `experiments/azuki_local_177637731668/model_azuki_local_000040.pt`
+           - `experiments/azuki_local_177637767937/model_azuki_local_000040.pt`
+           - `experiments/azuki_local_177637803913/model_azuki_local_000040.pt`
+           - `experiments/azuki_local_177637839740/model_azuki_local_000040.pt`
+       - online trainer results, averaged over epochs `20-40`:
+         - control:
+           - `SPS = 469.15`
+           - `value_loss = 0.04137`
+           - `value_loss_total = 0.04137`
+           - `explained_variance = 0.21523`
+           - `approx_kl = 0.00852`
+           - `clipfrac = 0.14302`
+           - `0%` zero-legal truncation on both seats
+         - split:
+           - `SPS = 470.54`
+           - `value_loss = 0.04895`
+           - `value_loss_total = 0.03676`
+           - `value_loss_terminal = 0.02379`
+           - `value_loss_shaped = 0.02498`
+           - `explained_variance = 0.28072`
+           - `explained_variance_terminal = 0.20728`
+           - `explained_variance_shaped = 0.20841`
+           - `approx_kl = 0.00857`
+           - `clipfrac = 0.14065`
+           - `0%` zero-legal truncation on both seats
+       - late trainer slice, averaged over epochs `31-40`:
+         - control:
+           - `SPS = 466.72`
+           - `value_loss_total = 0.04057`
+           - `explained_variance = 0.20392`
+         - split:
+           - `SPS = 469.34`
+           - `value_loss_total = 0.03863`
+           - `explained_variance = 0.26009`
+           - `explained_variance_terminal = 0.19077`
+           - `explained_variance_shaped = 0.19953`
+       - online action-health, averaged over epochs `20-40`:
+         - control:
+           - `noop 0.2626`
+           - `attack 0.1291`
+           - `play 0.3282`
+           - `ability 0.0743`
+           - `target 0.2032`
+         - split:
+           - `noop 0.2624`
+           - `attack 0.1325`
+           - `play 0.3293`
+           - `ability 0.0735`
+           - `target 0.1996`
+       - takeaway from online training:
+         - split heads improved the online total-scalar fit metrics we care about:
+           - lower `value_loss_total`
+           - higher `explained_variance`
+         - policy behavior and legality stayed stable
+         - the optimized `value_loss` is higher in the split branch because it includes the extra component-loss penalty by construction
+     - fixed replay follow-up:
+       - old replay datasets were no longer valid after the binding-size change, so a fresh current-source dataset was collected:
+         - `/tmp/azuki_critic_eval_step4_small.pt`
+         - `8` random-legal episodes
+         - `avg_episode_length = 135.875`
+         - `timeout_count = 0`
+       - replay results on that fresh dataset:
+         - control average across both seeds:
+           - `mse = 7.64934`
+           - `mae = 2.45936`
+           - `ev = 0.28156`
+           - `bias = 0.30516`
+           - `win_prob_acc = 0.72263`
+           - `win_prob_brier = 0.17481`
+           - `win_prob_logloss = 0.51153`
+           - `win_prob_ece = 0.07185`
+         - split average across both seeds:
+           - `mse = 8.01335`
+           - `mae = 2.43050`
+           - `ev = 0.25988`
+           - `bias = 0.47901`
+           - `win_prob_acc = 0.66605`
+           - `win_prob_brier = 0.21109`
+           - `win_prob_logloss = 0.59778`
+           - `win_prob_ece = 0.10841`
+         - per-seed note:
+           - `split_s601` replayed better than `control_s601`
+           - `split_s602` replayed materially worse than `control_s602`
+           - the replay conclusion is therefore mixed / unstable rather than uniformly positive
+     - conclusion from this batch:
+       - split terminal/shaped heads are useful infrastructure and remain a live critic branch
+       - but this first validation is **not** strong enough to promote them as the default path yet
+       - reason:
+         - online trainer metrics improved
+         - fixed replay metrics regressed on average and were unstable across seeds
+       - current recommendation:
+         - keep the active default as:
+           - `full_lstm_mlp`
+           - `win_prob_aux_enabled = true`
+           - `split_value_heads_enabled = false`
+         - keep split heads available as an ablation branch for future tuning or re-evaluation once we have a larger fresh replay suite
+   - Step 5: focused PPO / training-health tuning on the active unsplit branch
+     - tuning target:
+       - `critic_head_type = full_lstm_mlp`
+       - `win_prob_aux_enabled = true`
+       - `split_value_heads_enabled = false`
+     - short 3090 screening sweep:
+       - fixed train config:
+         - `vec.num-envs = 120`
+         - `vec.num-workers = 4`
+         - `vec.batch-size = 120`
+         - `train.batch_size = 3840`
+         - `train.minibatch_size = 960`
+         - `train.total_timesteps = 76800` (`20` epochs)
+         - seed `701`
+       - variants:
+         - baseline
+         - `win_prob_aux_coef = 0.05`
+         - `win_prob_aux_coef = 0.2`
+         - `vf_coef = 1.25`
+         - `learning_rate = 0.0025`
+       - late-window results, epochs `10-20`:
+         - baseline:
+           - `SPS = 464.99`
+           - `value_loss = 0.03881`
+           - `explained_variance = 0.16931`
+         - `aux_coef = 0.05`:
+           - `SPS = 466.87`
+           - `value_loss = 0.04063`
+           - `explained_variance = 0.17514`
+         - `aux_coef = 0.2`:
+           - `SPS = 464.01`
+           - `value_loss = 0.03848`
+           - `explained_variance = 0.13723`
+         - `vf_coef = 1.25`:
+           - `SPS = 467.52`
+           - `value_loss = 0.03815`
+           - `explained_variance = 0.16058`
+         - `learning_rate = 0.0025`:
+           - `SPS = 463.62`
+           - `value_loss = 0.04061`
+           - `explained_variance = 0.13363`
+       - screening takeaway:
+         - `learning_rate = 0.0025` and `win_prob_aux_coef = 0.2` were not worth carrying forward
+         - the only plausible follow-ups were:
+           - `win_prob_aux_coef = 0.05`
+           - `vf_coef = 1.25`
+     - longer 3090 validation:
+       - seed `711`, `40` epochs:
+         - baseline:
+           - `SPS = 474.63`
+           - `value_loss = 0.04057`
+           - `explained_variance = 0.21756`
+           - `win_prob_aux_brier = 0.19364`
+         - `aux_coef = 0.05`:
+           - `SPS = 468.89`
+           - `value_loss = 0.03881`
+           - `explained_variance = 0.24560`
+           - `win_prob_aux_brier = 0.19862`
+         - `vf_coef = 1.25`:
+           - `SPS = 469.21`
+           - `value_loss = 0.03987`
+           - `explained_variance = 0.25556`
+           - `win_prob_aux_brier = 0.18570`
+         - `vf_coef = 1.25, aux_coef = 0.05`:
+           - `SPS = 465.43`
+           - `value_loss = 0.04082`
+           - `explained_variance = 0.22848`
+           - `win_prob_aux_brier = 0.20667`
+       - seed `712`, `40` epochs:
+         - baseline:
+           - `SPS = 465.89`
+           - `value_loss = 0.03920`
+           - `explained_variance = 0.25521`
+           - `win_prob_aux_brier = 0.17236`
+         - `vf_coef = 1.25`:
+           - `SPS = 464.37`
+           - `value_loss = 0.03997`
+           - `explained_variance = 0.22850`
+           - `win_prob_aux_brier = 0.19713`
+         - `aux_coef = 0.05`:
+           - `SPS = 472.74`
+           - `value_loss = 0.04029`
+           - `explained_variance = 0.25439`
+           - `win_prob_aux_brier = 0.19016`
+       - two-seed average over epochs `20-40`:
+         - baseline:
+           - `SPS = 470.26`
+           - `value_loss = 0.03989`
+           - `explained_variance = 0.23639`
+           - `win_prob_aux_loss = 0.55536`
+           - `win_prob_aux_brier = 0.18300`
+           - `0%` zero-legal truncation on both seats
+         - `vf_coef = 1.25`:
+           - `SPS = 466.79`
+           - `value_loss = 0.03992`
+           - `explained_variance = 0.24203`
+           - `win_prob_aux_loss = 0.57313`
+           - `win_prob_aux_brier = 0.19141`
+           - `0%` zero-legal truncation on both seats
+         - `aux_coef = 0.05`:
+           - `SPS = 470.81`
+           - `value_loss = 0.03955`
+           - `explained_variance = 0.25000`
+           - `win_prob_aux_loss = 0.58023`
+           - `win_prob_aux_brier = 0.19439`
+           - `0%` zero-legal truncation on both seats
+       - late slice, epochs `31-40`, two-seed average:
+         - baseline:
+           - `SPS = 470.13`
+           - `value_loss = 0.04146`
+           - `explained_variance = 0.22566`
+         - `aux_coef = 0.05`:
+           - `SPS = 470.72`
+           - `value_loss = 0.04092`
+           - `explained_variance = 0.24111`
+       - tuning conclusion:
+         - best balanced current training default is:
+           - `full_lstm_mlp`
+           - `win_prob_aux_enabled = true`
+           - `win_prob_aux_coef = 0.05`
+           - `split_value_heads_enabled = false`
+         - reason:
+           - it improved scalar critic health on real trainer runs:
+             - better `explained_variance`
+             - slightly lower `value_loss`
+             - slightly better `SPS`
+           - it kept action-health and legality stable
+         - tradeoff:
+           - the win-prob auxiliary metrics are a bit worse than the old `0.1` setting
+           - that is acceptable for now because the main PPO objective benefited, and the win-prob head remains auxiliary rather than primary
+     - repo default updated:
+       - `python/config/azuki.ini`
+       - `python/config/azuki_speed_3090.ini`
+       - `python/config/azuki_speed_3090_parallel.ini`
+       - all now use:
+         - `win_prob_aux_coef = 0.05`
+     - larger multi-seed confirmation on the tuned default:
+       - target branch:
+         - `full_lstm_mlp`
+         - `win_prob_aux_enabled = true`
+         - `win_prob_aux_coef = 0.05`
+         - `split_value_heads_enabled = false`
+       - confirmation seeds:
+         - `711`
+         - `712`
+         - `713`
+         - `714`
+         - `715`
+         - `716`
+       - logs:
+         - `/tmp/azuki_tune_step5_long_aux005_s711.log`
+         - `/tmp/azuki_tune_step5_confirm_aux005_s712.log`
+         - `/tmp/azuki_confirm_tuned_s713.log`
+         - `/tmp/azuki_confirm_tuned_s714.log`
+         - `/tmp/azuki_confirm_tuned_s715.log`
+         - `/tmp/azuki_confirm_tuned_s716.log`
+       - `20-40` epoch aggregate across all 6 seeds:
+         - `SPS = 467.91 +/- 2.65`
+         - `value_loss = 0.03914 +/- 0.00077`
+         - `explained_variance = 0.24203 +/- 0.01194`
+         - `win_prob_aux_loss = 0.58223 +/- 0.00768`
+         - `win_prob_aux_accuracy = 0.85304 +/- 0.02397`
+         - `win_prob_aux_brier = 0.19542 +/- 0.00374`
+         - `approx_kl = 0.00862 +/- 0.00024`
+         - `clipfrac = 0.14813 +/- 0.00374`
+         - `0%` zero-legal truncation on both seats in every run
+       - late slice, epochs `31-40`, aggregate across all 6 seeds:
+         - `SPS = 469.13 +/- 4.03`
+         - `value_loss = 0.03968 +/- 0.00235`
+         - `explained_variance = 0.23153 +/- 0.01241`
+       - action-health, `20-40` epoch aggregate:
+         - `noop = 0.26550 +/- 0.00456`
+         - `attack = 0.13055 +/- 0.00192`
+         - `play = 0.32702 +/- 0.00159`
+         - `ability = 0.07364 +/- 0.00114`
+         - `target = 0.20049 +/- 0.00372`
+       - confirmation conclusion:
+         - the tuned default is stable enough to scale training compute
+         - reason:
+           - six clean seeds with `0%` legality truncation
+           - critic metrics stayed in a tight band instead of showing seed-fragile collapse
+           - action mix stayed healthy across the generalized deck pool
+         - practical recommendation:
+           - use this tuned branch for larger compute runs before revisiting more critic complexity
+    - Rules for this track:
+      - change one major idea at a time
+      - keep the current best-safe PPO config fixed while running the architecture ablations
+      - do not mix new PPO knob sweeps with critic-architecture changes in the same comparison batch
+     - validate architecture changes primarily with real training runs on the local 3090, not standalone unit-test-only smoke checks, unless a smaller test is needed to unblock the trainer experiment
+
+## Explicit Non-Goals
+
+- Do not remove `card_def_id` from the engine/runtime entirely.
+- Do not make training depend on live DB queries at startup.
+- Do not rely on raw effect text alone when explicit keyword/subtype metadata already exists.
+- Do not keep wrapper-side previous-action state once engine-side history is available.
+- Do not add explicit parser-driven subtype matching as part of the baseline representation.
+
+## Short-Term Execution Order
+
+1. Engine-side `combat_context`
+2. Engine-side `self_recent_actions[4]` and `opp_recent_actions[4]`
+3. Remove Python wrapper previous-action augmentation
+4. Metadata artifact generator from DB-backed card records
+5. Metadata-table loader in Python
+6. Policy encoder refactor from card-id semantics to metadata semantics
+7. Broader deck/card training distribution
+8. Holdout-card generalization evals
+9. Critic / training-health tuning on the stable generalized deck pool
+10. Critic architecture / evaluation ablations in ROI order
+
+## Implementation Status
+
+- Completed in code:
+  - engine/Python observation schema now includes `combat_context`, `self_recent_actions[4]`, and `opp_recent_actions[4]`
+  - v2 env wrappers no longer maintain wrapper-side previous-action memory
+  - metadata artifact generator and loader exist under `scripts/generate_policy_card_metadata.py` and `python/src/policy/card_metadata_table.py`
+  - the v2 policy baseline now builds card representations from metadata features and fuses global counts, global context, combat context, and recent-action history
+  - the training path now selects the v2 baseline through `policy.model_version = metadata_v1`
+  - the metadata artifact has been generated locally at `python/config/policy_card_metadata_v1.json` and `python/config/policy_card_metadata_v1.npz`
+  - the generated artifact now carries the full eight engine keyword mechanics rather than the smaller human-readable DB-only keyword set
+  - the v2 policy successfully instantiates and encodes live environment observations against the generated artifact
+  - the critic ablation path now includes optional split terminal/shaped value heads plus step-level reward-component plumbing from the native env through PPO and offline eval
+  - generalized-deck training now defaults to the combined pool of:
+    - `starter_raizan`
+    - `starter_shao`
+    - 16 curated generalized decks from `.codex/docs/azuki_tcg_decks_final.json`
+  - the combined generalized deck pool is now stable in the native env and trainer:
+    - reset-time zero-mask bug fixed
+    - pooled reset teardown segfault fixed
+    - pooled equip-target legality bug fixed
+    - `STT04-017` selection-capacity parity bug fixed
+    - `STT04-017` focused regression test added and runnable independently of unrelated legacy `world_tests` failures
+  - a CUDA smoke train on the local 3090 completed successfully with a stable reduced rollout configuration:
+    - `vec.num_envs = 32`
+    - `vec.num_workers = 1`
+    - `train.total_timesteps = 8192`
+    - `train.minibatch_size = 1024`
+  - that smoke run reached epoch 8 without collapse and produced reasonable early action distributions:
+    - seat 0 noop `0.285`
+    - seat 1 noop `0.315`
+    - both seats also showed non-trivial mass on attack, play-to-garden, play-to-alley, target-selection, attach-weapon, gate-portal, and ability actions rather than collapsing onto noop only
+  - a follow-up longer run using the same 32-env memory-safe config remained stable through the first `8192` steps of a `32768`-step schedule and still showed reasonable action mix:
+    - seat 0 noop `0.306`
+    - seat 1 noop `0.357`
+    - attack / play / attach / target / gate-portal actions continued to appear with non-zero mass
+- Remaining baseline work before calling the model path complete:
+  - improve critic quality / overall training health on the generalized deck pool
+  - extend from the known-good stable local 3090 shape into longer production-quality runs
+  - later expand beyond the curated 18-deck pool into broader card / deck coverage
+
+## Local 3090 Notes
+
+- The metadata v2 baseline is materially heavier than the old card-id baseline on the local 24 GB RTX 3090.
+- During implementation smoke tests:
+  - `vec.num_envs = 128` OOMed during training
+  - `vec.num_envs = 64` survived eval and early epochs but still OOMed on backward
+
+## Deck Pool Rollout Notes
+
+- Current training default is the combined pool:
+  - 2 starter decks (`starter_raizan`, `starter_shao`)
+  - 16 curated decks from `.codex/docs/azuki_tcg_decks_final.json`
+  - total live training pool size: 18 decks
+- Reset sampling over the live combined pool is close to uniform.
+  - direct reset sampling showed each deck landing at roughly `5-6%` of total seat assignments
+  - this suggests the deck sampler is not the source of the truncation issue
+
+## 3090 Training Probe Notes
+
+- The stock high-throughput 3090 config still OOMs with the heavier metadata path and generalized deck pool.
+- A stable reduced probe configuration on the local RTX 3090 was:
+  - `vec.num_envs = 120`
+  - `vec.num_workers = 4`
+  - `vec.batch_size = 120`
+  - `train.minibatch_size = 960`
+  - `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`
+- That probe held around `13.9 GiB` VRAM and roughly `463-477` SPS.
+- Average probe metrics over later epochs were still not acceptable because truncations were too high:
+  - `azk_zero_legal_action_truncation ~= 0.236`
+  - noop / play / attack / target mass still looked superficially sane, which suggests the main regression is environment-state validity rather than pure policy collapse
+
+## Zero-Truncation Debug Notes
+
+- The main regression does not appear to be deck sampling skew.
+- The strongest current repro is much earlier than combat or mid-turn phase handling:
+  - some deck choices begin in `PHASE_PREGAME_MULLIGAN`
+  - the active player observation already has `legal_action_count = 0`
+  - that happens before any action is submitted
+- This reset-time empty-mask repro is deterministic by deck, not by opening-hand seed.
+  - the following live combined-pool deck indices reproduce `legal_action_count = 0` for the active player on every reset seed tested so far:
+    - combined pool index `6` -> `my-deck-ml8jz6it-stt04-001`
+    - combined pool index `11` -> `my-deck-mns7qhpz-azk01-119`
+    - combined pool index `16` -> `power-of-friendshi-mk1vnlom-stt02-001`
+  - comparable decks with the same element or even the same leader/gate pair can reset cleanly, so the issue is not explained by leader/gate choice alone
+- Current reset-time observations for the failing decks:
+  - `phase = PHASE_PREGAME_MULLIGAN`
+  - `ability_context.phase = ABILITY_PHASE_NONE`
+  - `ability_context.pending_confirmation_count = 0`
+  - active player render looks otherwise normal: leaders, gates, hands, and IKZ token state are populated
+- This narrows the likely fault surface to one of two paths:
+  - the training observation gate is suppressing the action mask because an init-time deferred queue is left pending
+  - the normal mulligan mask builder is running but returning an empty mask for those deck states
+- Important debugging note:
+  - `binding.env_masks(...)` is currently stale / misleading for this investigation because the native `action_masks` buffer does not appear to be populated
+  - use `obs[agent]["action_mask"]` from `AzukiTCGParallel.reset()` / `step()` when debugging live training masks
+
+## Immediate Follow-Up Steps
+
+- Continue critic / training-health tuning on the now-clean generalized deck pool.
+  - use the stable local 3090 shape
+  - treat `0%` truncation as a hard guardrail while tuning critic quality
+- Start critic architecture / evaluation ablations in ROI order.
+  - Ablation 1 is now implemented and compared.
+    - active tuning default is now `full_lstm_mlp`
+    - keep `shared_primary` available as the control baseline for A/B comparisons
+  - next:
+    - keep the active tuned default as:
+      - `full_lstm_mlp`
+      - `win_prob_aux_enabled = true`
+      - `win_prob_aux_coef = 0.05`
+      - `split_value_heads_enabled = false`
+    - this tuned default is now the recommended branch for larger compute scaling runs
+    - keep split terminal/shaped heads parked as a non-default ablation until replay quality stops being seed-fragile
+    - keep phase-conditioned critic heads on the backlog until after the larger confirmation run and any scale-up decision
+    - continue using fixed-rollout critic evaluation plus trainer runs to judge whether changes improve calibration as well as variance tracking
+
+## Truncation / Reset Resolution Notes
+
+- Reset-time empty masks are fixed.
+  - Root cause:
+    - newly created custom-deck engines could enter training observation refresh before the engine had auto-ticked through pending passive/triggered setup work
+    - this produced `legal_action_count = 0` at reset for some deck choices even though a fresh direct mask build showed mulligan actions existed
+  - Fix:
+    - `azk_engine_create*` now stabilizes new engines by auto-ticking until `azk_engine_requires_action(...)` or game-over before the env exposes observations
+- A second pooled-deck reset crash was also fixed.
+  - Repro:
+    - starter-only envs ran, but `deck_pool + starters` envs segfaulted during `binding.env_reset(...)` after several completed episodes
+    - `gdb` pinned the crash to `update_jay_buff()` -> `is_card_type()` during `ecs_fini()` observer teardown
+  - Root cause:
+    - Jay / JD passive zone observers were scanning disappearing garden children during world teardown and calling `ecs_get(...)` on invalid entities
+  - Fix:
+    - `is_card_type(...)` now returns `false` for invalid / missing entities instead of assuming the `Type` component exists
+    - `AZK01-010` and `AZK01-019` now skip invalid garden children and guard `card_is_in_play(...)` against teardown state
+- A third pooled-deck legality bug was fixed.
+  - Repro:
+    - pooled random-play stress hit an "invalid action detected" abort for deck pair `[13,9]`
+    - the chosen action was `ACT_SELECT_TO_EQUIP [22,0,5,0]`
+    - the action appeared in both the cached mask and a freshly rebuilt mask, but ability execution rejected it
+    - source card was `AZK01-120`
+  - Root cause:
+    - the action enumerator was exposing every occupied garden / leader slot as a legal re-equip destination even when the ability logic later rejected re-equipping onto the current host
+  - Fix:
+    - added `azk_can_select_to_equip(...)` as a shared non-mutating validator
+    - `ACT_SELECT_TO_EQUIP` mask generation now filters through that validator so the mask only exposes executable equip targets
+- Temporary zero-mask logging remains available via:
+  - `AZK_DEBUG_ZERO_MASK=1`
+  - it is env-gated and off by default
+
+## `STT04-017` Resolution Notes
+
+- Repro path:
+  - no-anneal tuning exposed an invalid `ACT_SELECT_COST_TARGET` while resolving `STT04-017` / `Wrath of Sinder`
+  - a deterministic mixed-deck probe reproduced the same class of failure by forcing high-index cost picks during `ABILITY_PHASE_COST_SELECTION`
+  - the invalid action was present in both the cached mask and a freshly rebuilt mask, so this was not a stale-mask issue
+- Root cause:
+  - `STT04-017` is intentionally allowed to sacrifice up to `GARDEN_SIZE` entities
+  - `GARDEN_SIZE = 5`
+  - the engine-side selection storage cap was still `MAX_ABILITY_SELECTION = 4`
+  - once four sacrifices had already been selected, the mask still exposed a legal 5th choice, but `azk_process_cost_selection(...)` rejected it with the generic `Too many cost targets` guard
+- Fix:
+  - changed `MAX_ABILITY_SELECTION` to `GARDEN_SIZE`
+  - added defensive clamp/assert guards in:
+    - `src/abilities/core/ability_context.c`
+    - `src/abilities/selection/ability_selection_helpers.c`
+  - this keeps future multi-target abilities from advertising more targets than the ability context can actually store
+- Debugging note:
+  - the temporary `STT04-017` debug hook in `src/abilities/ability_system.c` can remain env-gated because it stays off by default
+  - the actual fix did not require deeper phase-routing changes once the selection-capacity mismatch was confirmed
+- Regression note:
+  - `tests/test_world.c` now includes a dedicated `STT04-017` regression that:
+    - walks the cost-selection mask through four high-index sacrifices
+    - verifies the 5th sacrifice target is still legal
+    - resolves the final effect target and verifies damage lands correctly
+  - because the legacy `world_tests` binary is currently built in `Release`, the focused regression uses a non-elided test assertion helper for its critical checks
+  - `world_tests` also accepts `--run-stt04-017-regression` so the new regression can run cleanly even while unrelated older tests still fail later in the full suite
+
+## Post-Fix Verification
+
+- Direct pooled env stress (`deck_pool + starters`) now passes:
+  - `1000` completed random-legal-action episodes
+  - `163115` env steps
+  - `0` zero-legal-action truncations
+  - `0` timeout truncations
+  - `0` auto-tick truncations
+- Combined deck usage over those `1000` pooled episodes (`2000` seat assignments) remained near-uniform:
+  - lowest observed share: `4.90%`
+  - highest observed share: `6.30%`
+  - starters still land near the same range:
+    - `starter_raizan = 5.10%`
+    - `starter_shao = 6.05%`
+- Short local RTX 3090 trainer verification now passes:
+  - command shape:
+    - `--vec.num-envs 120`
+    - `--vec.num-workers 4`
+    - `--vec.batch-size 120`
+    - `--train.batch_size 3840`
+    - `--train.minibatch_size 960`
+    - `--train.total_timesteps 30720`
+    - `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`
+  - trainer completed all `8` epochs successfully
+  - `environment/0/azk_zero_legal_action_truncation = 0.0` for epochs `4-8`
+  - `environment/1/azk_zero_legal_action_truncation = 0.0` for epochs `4-8`
+  - average metrics over epochs `4-8`:
+    - `SPS = 484.80`
+    - `policy_loss = -0.0074`
+    - `value_loss = 0.0297`
+    - `entropy = 0.9672`
+    - `approx_kl = 0.0092`
+    - `clipfrac = 0.1427`
+    - `explained_variance = 0.1409`
+  - average action mix over epochs `4-8`:
+    - seat 0:
+      - noop `30.62%`
+      - attack `9.34%`
+      - play `35.42%`
+      - ability `6.46%`
+      - target `17.95%`
+    - seat 1:
+      - noop `26.71%`
+      - attack `18.14%`
+      - play `33.31%`
+      - ability `7.31%`
+      - target `14.31%`
+- Post-`STT04-017` targeted verification:
+  - deterministic mixed-deck `STT04-017` probe replayed the old failing full-garden cost-selection sequences without hitting an invalid-action abort
+  - pooled random-legal env stress after the fix:
+    - `500` completed episodes
+    - `80713` env steps
+    - `0` zero-legal-action truncations
+    - `0` timeout truncations
+    - `0` auto-tick truncations
+  - short local RTX 3090 trainer verification after the fix:
+    - command shape:
+      - `--vec.num-envs 120`
+      - `--vec.num-workers 4`
+      - `--vec.batch-size 120`
+      - `--train.batch_size 3840`
+      - `--train.minibatch_size 960`
+      - `--train.total_timesteps 30720`
+      - `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`
+    - trainer completed all `8` epochs successfully
+    - average metrics over epochs `4-8`:
+      - `SPS = 468.29`
+      - `policy_loss = -0.0078`
+      - `value_loss = 0.0247`
+      - `entropy = 0.9951`
+      - `approx_kl = 0.0094`
+      - `clipfrac = 0.1482`
+      - `explained_variance = 0.1124`
+      - `environment/0/azk_zero_legal_action_truncation = 0.0`
+      - `environment/1/azk_zero_legal_action_truncation = 0.0`
+      - `environment/0/azk_timeout_truncation = 0.0`
+      - `environment/1/azk_timeout_truncation = 0.0`
+      - `environment/0/azk_auto_tick_truncation = 0.0`
+      - `environment/1/azk_auto_tick_truncation = 0.0`
+    - average action mix over epochs `4-8`:
+      - seat 0:
+        - noop `27.35%`
+        - attack `14.55%`
+        - play `32.92%`
+        - ability `7.27%`
+        - target `17.71%`
+      - seat 1:
+        - noop `28.93%`
+        - attack `13.94%`
+        - play `33.64%`
+        - ability `6.77%`
+        - target `16.34%`
+
+## Finished Generalized-Deck Tasks
+
+- Completed:
+  - created and validated the curated `.codex/docs/azuki_tcg_decks_final.json` training deck artifact
+  - switched trainer default behavior to use the generalized deck pool plus starters
+  - fixed reset-time, teardown-time, and action-legality bugs that the wider pool exposed
+  - fixed the `STT04-017` multi-target selection-capacity mismatch that wider-pool tuning exposed
+  - restored generalized-pool training to `0%` zero-legal-action truncation
+  - verified near-uniform combined-pool deck exposure in both direct env sampling and trainer metrics
+
+## Finished Tuning Milestones
+
+- Completed:
+  - added an explicit critic / training-health tuning track to this document
+  - ran a first local RTX 3090 PPO sweep across safe and unsafe variants on the generalized deck pool
+  - compared short-run and long-run behavior against the current generalized-pool baseline
+  - established that the current baseline remains the best safe late-window config among the variants tested so far
+  - identified one new invalid-action follow-up for `STT04-017` during no-anneal tuning
+  - implemented and tested critic ablation 1 (`policy.critic_head_type = full_lstm_mlp`) against the current `shared_primary` baseline on the stable 3090 generalized-deck config
+  - implemented critic ablation 2 (`python/src/critic_eval.py`) for fixed-rollout offline critic evaluation
+
+## Critic Ablation Notes
+
+- Current value-path shape:
+  - the critic does use the recurrent path today
+  - but it does not read the full recurrent hidden state directly
+  - current flow is:
+    - observation encoder -> recurrent hidden
+    - recurrent hidden -> `q_primary`
+    - `value_fn(q_primary)`
+  - this means the value head currently learns from the same narrow action-oriented bottleneck used for primary-action logits
+- Highest-ROI critic architecture idea:
+  - keep the policy path unchanged
+  - give the critic its own head from the full recurrent hidden state
+  - this should be the first critic ablation before more PPO knob sweeps
+- Ablation 1 implementation:
+  - added `policy.critic_head_type`
+  - current explicit options:
+    - `shared_primary`
+      - existing baseline
+      - `value_fn(q_primary(flat_hidden))`
+    - `full_lstm_mlp`
+      - dedicated critic MLP from the full 4096-d recurrent hidden
+      - leaves the policy path untouched
+  - tuning default update:
+    - hard fallback now defaults to `full_lstm_mlp`
+    - training configs now pin `critic_head_type = full_lstm_mlp` explicitly so future runs use the full-hidden critic unless they intentionally override back to `shared_primary`
+    - short default-path trainer validation:
+      - command:
+        - `PYTHONPATH=python/src:build/python/src WANDB_MODE=disabled PYTORCH_ALLOC_CONF=expandable_segments:True python/.venv-codex/bin/python python/src/train.py --config python/config/azuki_speed_3090_parallel.ini --no-league-enable --vec.num-envs 120 --vec.num-workers 4 --vec.batch-size 120 --train.batch_size 3840 --train.minibatch_size 960 --train.total_timesteps 30720`
+      - log:
+        - `/tmp/azuki_default_full_lstm_quick.log`
+      - result:
+        - completed `8` epochs cleanly at roughly `471.7 SPS`
+        - `0%` zero-legal-action truncation on both seats
+        - final checkpoint metadata confirmed `policy_critic_head_type = full_lstm_mlp`
+          - `experiments/azuki_local_177637049501/model_azuki_local_000008.pt.meta.json`
+- Ablation 1 training validation:
+  - validation used trainer runs on the local RTX 3090, not standalone unit-test-only smoke checks
+  - short 8-epoch verification:
+    - `full_lstm_mlp` trained cleanly
+    - `0%` zero-legal-action truncation on both seats
+    - params increased from roughly `84.4M` to `86.6M`
+  - clean 40-epoch comparison on the stable generalized-pool shape:
+    - baseline:
+      - log: `/tmp/azuki_critic_baseline_long.log`
+      - late `20-40`: `value_loss = 0.0381`, `explained_variance = 0.2714`, `SPS = 464.8`
+      - final `31-40`: `value_loss = 0.0402`, `explained_variance = 0.2213`, `SPS = 465.7`
+    - `full_lstm_mlp`:
+      - log: `/tmp/azuki_critic_ablation_long.log`
+      - late `20-40`: `value_loss = 0.0392`, `explained_variance = 0.2698`, `SPS = 466.7`
+      - final `31-40`: `value_loss = 0.0372`, `explained_variance = 0.2566`, `SPS = 469.5`
+    - interpretation:
+      - the dedicated full-hidden critic looked promising in the very final slice
+      - but it did not beat the baseline over the broader late window
+  - matched 40->80 extension comparison with resume-state load:
+    - caveat:
+      - resume currently appears to restart the LR schedule, so these are matched relative comparisons rather than a clean continuous 80-epoch curve
+    - baseline extension log:
+      - `/tmp/azuki_critic_baseline_resume80.log`
+    - `full_lstm_mlp` extension log:
+      - `/tmp/azuki_critic_ablation_resume80.log`
+    - stage-2 `41-80` averages:
+      - baseline:
+        - `value_loss = 0.0427`
+        - `explained_variance = 0.1648`
+      - `full_lstm_mlp`:
+        - `value_loss = 0.0890`
+        - `explained_variance = -0.0686`
+    - late stage-2 `60-80` averages:
+      - baseline:
+        - `value_loss = 0.0371`
+        - `explained_variance = 0.3693`
+      - `full_lstm_mlp`:
+        - `value_loss = 0.0661`
+        - `explained_variance = 0.4416`
+    - interpretation:
+      - `full_lstm_mlp` can drive higher explained variance in some resumed late slices
+      - but the value loss is materially worse and the stage-2 curve is less stable overall
+      - that is not a clean enough critic win to promote it as the new default
+  - Current conclusion for Ablation 1:
+  - `full_lstm_mlp` did not beat `shared_primary` cleanly enough to justify a blind promotion based on PPO aggregates alone
+  - but it remained the more promising architecture candidate for future tuning because it was reading the full recurrent state directly
+  - it should be treated as a tuning branch rather than discarded
+- Longer from-scratch 3-seed validation:
+  - to avoid the resume-scheduler confound for the main model decision, ran fresh `80`-epoch A/B comparisons for both critic heads with identical settings and seeds `42`, `43`, and `44`
+  - command shape for every run:
+    - `--vec.num-envs 120`
+    - `--vec.num-workers 4`
+    - `--vec.batch-size 120`
+    - `--train.batch_size 3840`
+    - `--train.minibatch_size 960`
+    - `--train.total_timesteps 307200`
+    - `--vec.seed = --train.seed = {42,43,44}`
+    - `PYTORCH_ALLOC_CONF=expandable_segments:True`
+  - logs:
+    - baseline:
+      - `/tmp/azuki_critic_shared_primary_seed42_80ep.log`
+      - `/tmp/azuki_critic_shared_primary_seed43_80ep.log`
+      - `/tmp/azuki_critic_shared_primary_seed44_80ep.log`
+    - `full_lstm_mlp`:
+      - `/tmp/azuki_critic_full_lstm_mlp_seed42_80ep.log`
+      - `/tmp/azuki_critic_full_lstm_mlp_seed43_80ep.log`
+      - `/tmp/azuki_critic_full_lstm_mlp_seed44_80ep.log`
+  - all six runs:
+    - completed cleanly
+    - kept `0%` zero-legal-action truncation on both seats
+  - seed-mean results over epochs `40-80`:
+    - baseline `shared_primary`:
+      - `value_loss = 0.0365`
+      - `explained_variance = 0.2956`
+      - `SPS = 469.4`
+    - `full_lstm_mlp`:
+      - `value_loss = 0.0376`
+      - `explained_variance = 0.2782`
+      - `SPS = 465.2`
+  - seed-mean results over epochs `61-80`:
+    - baseline `shared_primary`:
+      - `value_loss = 0.0361`
+      - `explained_variance = 0.2922`
+      - `SPS = 469.3`
+    - `full_lstm_mlp`:
+      - `value_loss = 0.0385`
+      - `explained_variance = 0.2845`
+      - `SPS = 464.3`
+  - seed-mean results over epochs `71-80`:
+    - baseline `shared_primary`:
+      - `value_loss = 0.0368`
+      - `explained_variance = 0.2939`
+    - `full_lstm_mlp`:
+      - `value_loss = 0.0407`
+      - `explained_variance = 0.2755`
+  - action-health note:
+    - both models stayed behaviorally sane and close in aggregate action mix
+    - the main separation remained critic quality rather than policy-collapse behavior
+  - stronger conclusion after the 3-seed fresh runs:
+    - `full_lstm_mlp` did not outperform `shared_primary` over longer training durations in this first controlled pass
+    - the baseline won on both critic fit metrics and throughput in those PPO-only comparisons
+    - that was enough to block a blind promotion at that moment, but not enough to rule out `full_lstm_mlp` as the better long-term architecture candidate
+- New evaluation note discovered during Ablation 1:
+  - the resume path appears to restart the learning-rate schedule on resumed runs
+  - this does not block matched A/B comparisons when both runs use the same resume flow
+  - but it does make resumed long-horizon critic comparisons harder to interpret as continuous training curves
+  - if we rely more heavily on resumed ablations later, fix or at least explicitly measure scheduler resume parity first
+- Win-probability head:
+  - explicitly planned now
+  - preferred first use:
+    - auxiliary supervised head for eventual winner prediction
+    - additional evaluation metric during training and playback
+  - only later decide whether to integrate it more directly into action selection or value decomposition
+- Ablation 2 implementation:
+  - added `python/src/critic_eval.py`
+  - command shape:
+    - collect:
+      - `PYTHONPATH=python/src:build/python/src WANDB_MODE=disabled PYTORCH_ALLOC_CONF=expandable_segments:True python/.venv-codex/bin/python python/src/critic_eval.py collect --config python/config/azuki_speed_3090_parallel.ini --collector-mode checkpoint --collector-checkpoint <checkpoint> --episodes <N> --seed <seed> --max-steps 300 --device cuda --output <dataset.pt>`
+    - evaluate:
+      - `PYTHONPATH=python/src:build/python/src WANDB_MODE=disabled PYTORCH_ALLOC_CONF=expandable_segments:True python/.venv-codex/bin/python python/src/critic_eval.py evaluate --config python/config/azuki_speed_3090_parallel.ini --dataset <dataset.pt> --checkpoint <ckptA> --checkpoint <ckptB> --device cuda --output <results.json>`
+  - design choice:
+    - the dataset does not store full observations
+    - instead it stores exact action traces plus rewards and seeds, then replays those traces deterministically
+    - this keeps the artifact small and lets later ablations reuse the same state distribution
+  - validation:
+    - smoke dataset:
+      - `/tmp/azuki_critic_eval_smoke.pt`
+      - result json:
+        - `/tmp/azuki_critic_eval_smoke.json`
+    - confirmed:
+      - replay stayed deterministic
+      - checkpoint metadata correctly rebuilt the matching policy shape, including `critic_head_type`
+      - phase / ability-phase / deck-pair slices populated correctly
+- Ablation 2 initial matched-rollout results:
+  - dataset 1:
+    - collector:
+      - `shared_primary` seed-42 checkpoint `experiments/azuki_local_177632860403/model_azuki_local_000080.pt`
+    - dataset:
+      - `/tmp/azuki_critic_eval_seed42_24ep.pt`
+      - `24` episodes
+      - `3338` active-seat critic rows
+    - pair result json:
+      - `/tmp/azuki_critic_eval_seed42_24ep_pair.json`
+    - overall:
+      - `shared_primary`:
+        - `mse = 12.9504`
+        - `mae = 2.9559`
+        - `explained_variance = -0.2237`
+        - `bias = +0.9573`
+      - `full_lstm_mlp`:
+        - `mse = 12.8062`
+        - `mae = 2.7779`
+        - `explained_variance = 0.0732`
+        - `bias = +1.9215`
+    - notable slices:
+      - response window:
+        - `shared_primary`:
+          - `mse = 16.8242`
+          - `explained_variance = 0.0331`
+        - `full_lstm_mlp`:
+          - `mse = 8.7986`
+          - `explained_variance = 0.1300`
+      - late stage:
+        - `shared_primary explained_variance = -0.0366`
+        - `full_lstm_mlp explained_variance = 0.2321`
+  - dataset 2:
+    - collector:
+      - `shared_primary` seed-43 checkpoint `experiments/azuki_local_177632927560/model_azuki_local_000080.pt`
+    - dataset:
+      - `/tmp/azuki_critic_eval_seed43_12ep.pt`
+      - `12` episodes
+      - `1670` active-seat critic rows
+    - pair result json:
+      - `/tmp/azuki_critic_eval_seed43_12ep_pair.json`
+    - overall:
+      - `shared_primary`:
+        - `mse = 15.4184`
+        - `mae = 3.1060`
+        - `explained_variance = -0.1838`
+        - `bias = +1.9724`
+      - `full_lstm_mlp`:
+        - `mse = 15.8998`
+        - `mae = 3.1947`
+        - `explained_variance = 0.0679`
+        - `bias = +2.6121`
+    - notable slices:
+      - response window:
+        - `shared_primary`:
+          - `mse = 13.9998`
+          - `explained_variance = 0.1536`
+        - `full_lstm_mlp`:
+          - `mse = 6.8112`
+          - `explained_variance = 0.3906`
+      - late stage:
+        - `shared_primary explained_variance = 0.0251`
+        - `full_lstm_mlp explained_variance = 0.2887`
+- Ablation 2 interpretation:
+  - the offline evaluator is worth keeping; it surfaces critic behavior that online PPO aggregates were hiding
+  - `full_lstm_mlp` consistently improves explained variance on the fixed replay slices we tested
+  - the strongest improvement is in:
+    - response-window states
+    - later episode stages
+    - several non-`ABILITY_PHASE_NONE` subflows
+  - but `full_lstm_mlp` also has a much larger positive bias
+    - it tends to overestimate shaped return more aggressively than `shared_primary`
+  - this explains why the from-scratch PPO comparison still favored `shared_primary` overall:
+    - `full_lstm_mlp` seems better at ranking / variance tracking in hard states
+    - but worse calibrated as a scalar value target
+  - current decision after Ablation 2:
+    - move the active tuning default to `full_lstm_mlp`
+    - keep `shared_primary` as the control baseline, not the default
+    - keep the offline evaluator as the required comparison tool for future critic changes
+    - prioritize the win-probability auxiliary head next, because it should add a cleaner strategic target without forcing the shaped-return critic to carry all the signal alone
+  - tuning-policy note:
+    - because there is no production run to preserve yet, future local training/tuning work should assume `full_lstm_mlp` unless a comparison specifically asks for the `shared_primary` control
+- Ablation 2 runtime note:
+  - a single-env replay pass is much slower than trainer SPS
+  - a first attempted `24`-episode / `6`-checkpoint sweep was aborted because wall time was trending toward roughly `45-50` minutes
+  - for now, the practical path is:
+    - smaller matched checkpoint pairs
+    - or multiple small datasets rather than one very wide sweep
+  - if offline critic evaluation becomes a routine workflow, optimize this script before scaling the dataset size much further
+
+## Longer Generalized-Pool Training Notes
+
+- A longer local RTX 3090 run on the stable generalized pool completed `40` epochs cleanly with:
+  - `--vec.num-envs 120`
+  - `--vec.num-workers 4`
+  - `--vec.batch-size 120`
+  - `--train.batch_size 3840`
+  - `--train.minibatch_size 960`
+  - `--train.total_timesteps 153600`
+  - `PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True`
+- Zero-legal-action truncation stayed at `0.0` for both seats across the run.
+- Throughput was stable across windows:
+  - epochs `4-10`: `467.91` SPS
+  - epochs `11-20`: `466.13` SPS
+  - epochs `21-30`: `460.34` SPS
+  - epochs `31-40`: `460.41` SPS
+- Later-window averages over epochs `20-40`:
+  - `policy_loss = -0.0072`
+  - `value_loss = 0.0376`
+  - `entropy = 0.9393`
+  - `approx_kl = 0.0086`
+  - `clipfrac = 0.1498`
+  - `explained_variance = 0.2329`
+  - episode length per seat = `178.24`
+- Combined action mix over epochs `20-40` stayed game-like:
+  - noop `26.38%`
+  - attack `13.04%`
+  - play `33.09%`
+  - ability `7.27%`
+  - target `19.96%`
+- Weighted completed-episode deck usage still covered all `18` decks:
+  - lowest observed share: `4.22%`
+  - highest observed share: `6.68%`
+
+## Critic / Training Health Notes
+
+- Current state after generalized-deck stabilization:
+  - environment health is now acceptable
+  - action ratios remain plausible and non-collapsed
+  - the main remaining weakness is critic quality rather than environment correctness
+- Why critic tuning is now the next task:
+  - `value_loss` remains noticeably noisy in longer generalized-pool runs
+  - `explained_variance` improved but still sits around `0.23` in the longer `40`-epoch run
+  - longer games and broader deck diversity appear to be making return prediction materially harder than in the narrower old training setup
+- Initial tuning direction:
+  - start with PPO core knobs before changing the architecture
+  - first sweep:
+    - lower `learning_rate` from `0.003`
+    - test `vf_coef` below and above `1.0`
+    - test slightly higher `gae_lambda`
+    - test whether `update_epochs = 3` helps critic fit without destabilizing KL / clipfrac
+- Acceptance direction for the tuning work:
+  - keep `0%` truncation
+  - keep action ratios sane
+  - improve critic-fit metrics enough that longer generalized-pool training looks healthier than the current baseline
+
+## Critic / Training Health Sweep Results
+
+- Stable generalized-pool baseline for comparison:
+  - `learning_rate = 0.003`
+  - `anneal_lr = true`
+  - `vf_coef = 1.0`
+  - `gae_lambda = 0.95`
+  - `update_epochs = 2`
+- Short sweep shape for apples-to-apples comparisons:
+  - `20` epochs / `76800` timesteps
+  - `vec.num_envs = 120`
+  - `vec.num_workers = 4`
+  - `vec.batch_size = 120`
+  - `train.batch_size = 3840`
+  - `train.minibatch_size = 960`
+- Short sweep results:
+  - `learning_rate = 0.002`
+    - safe, `0%` truncation
+    - did not improve critic fit enough:
+      - `value_loss = 0.0422`
+      - `explained_variance = 0.1743`
+  - `learning_rate = 0.0015`
+    - safe, `0%` truncation
+    - lower KL / clip pressure, but critic fit was worse:
+      - `value_loss = 0.0402`
+      - `explained_variance = 0.1080`
+  - `learning_rate = 0.002`, `vf_coef = 1.5`, `gae_lambda = 0.97`
+    - safe, `0%` truncation
+    - did not hold up against baseline:
+      - `value_loss = 0.0443`
+      - `explained_variance = 0.1610`
+  - `learning_rate = 0.002`, `vf_coef = 1.5`, `gae_lambda = 0.97`, `update_epochs = 3`
+    - safe, `0%` truncation
+    - strongest short-horizon critic fit of the first sweep:
+      - `value_loss = 0.0458`
+      - `explained_variance = 0.2290`
+    - but it cost substantial throughput (`~377` SPS vs `~460-470` SPS) and needed long-run confirmation
+  - `learning_rate = 0.0015`, `anneal_lr = false`
+    - safe, `0%` truncation
+    - best short-horizon no-anneal candidate:
+      - `value_loss = 0.0431`
+      - `explained_variance = 0.1900`
+  - `learning_rate = 0.0015`, `anneal_lr = false`, `vf_coef = 1.25`, `gae_lambda = 0.97`
+    - unsafe
+    - trainer hit an invalid action / hang rather than finishing the run:
+      - `ACT_SELECT_COST_TARGET [13,3,0,0]`
+      - `STT04-017` / `Wrath of Sinder`
+      - `deck_indices = [9,7]`
+- Long-run confirmations:
+  - Critic-biased `update_epochs = 3` branch (`learning_rate = 0.002`, `vf_coef = 1.5`, `gae_lambda = 0.97`)
+    - mid window (`11-20`) looked strong:
+      - `explained_variance = 0.2470`
+    - but late windows gave the gain back while staying slower:
+      - final `31-40`:
+        - `SPS = 383.6`
+        - `value_loss = 0.0429`
+        - `explained_variance = 0.2264`
+    - baseline still won on the late window with better throughput
+  - No-anneal safe branch (`learning_rate = 0.0015`, `anneal_lr = false`)
+    - improved the same-horizon mid window over baseline:
+      - baseline `11-20` `explained_variance = 0.1843`
+      - no-anneal `11-20` `explained_variance = 0.2056`
+    - but also failed to beat baseline in the late window:
+      - final `31-40`:
+        - `SPS = 458.6`
+        - `value_loss = 0.0368`
+        - `explained_variance = 0.2276`
+- Current recommendation after the sweep:
+  - keep the existing stable generalized-pool baseline for production-style local runs:
+    - `learning_rate = 0.003`
+    - `anneal_lr = true`
+    - `vf_coef = 1.0`
+    - `gae_lambda = 0.95`
+    - `update_epochs = 2`
+  - Why:
+    - it still has the best safe late-window critic fit among tested variants
+    - it keeps `0%` zero-legal-action truncation
+    - it avoids the new `STT04-017` invalid-action path exposed by one of the no-anneal variants
+    - it preserves stronger throughput than the `update_epochs = 3` branch

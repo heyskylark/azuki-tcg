@@ -136,6 +136,14 @@ static TrainingDiscardCardObservationData empty_discard_card_observation(
   return observation;
 }
 
+static TrainingCriticPrivilegedCardObservationData
+empty_critic_privileged_card_observation(uint8_t zone_index) {
+  TrainingCriticPrivilegedCardObservationData observation = {0};
+  observation.card_def_id = -1;
+  observation.zone_index = zone_index;
+  return observation;
+}
+
 static TrainingBoardCardObservationData empty_board_card_observation(
     uint8_t zone_index) {
   TrainingBoardCardObservationData observation = {0};
@@ -357,6 +365,16 @@ static TrainingDiscardCardObservationData get_discard_card_observation(
   return observation;
 }
 
+static TrainingCriticPrivilegedCardObservationData
+get_critic_privileged_card_observation(ecs_world_t *world, ecs_entity_t card,
+                                       uint8_t fallback_zone_index) {
+  TrainingCriticPrivilegedCardObservationData observation =
+      empty_critic_privileged_card_observation(fallback_zone_index);
+  const CardId *card_id = ecs_get(world, card, CardId);
+  observation.card_def_id = card_def_id_or_empty(card_id);
+  return observation;
+}
+
 static TrainingIKZCardObservationData get_ikz_card_observation(
     ecs_world_t *world, ecs_entity_t card, uint8_t fallback_zone_index) {
   TrainingIKZCardObservationData observation =
@@ -468,6 +486,30 @@ static void get_discard_observation_array_for_zone(
   for (size_t i = 0; i < count; ++i) {
     observation_data[i] =
         get_discard_card_observation(world, cards.ids[i], (uint8_t)i);
+  }
+}
+
+static void get_critic_privileged_card_array_for_zone(
+    ecs_world_t *world, ecs_entity_t zone,
+    TrainingCriticPrivilegedCardObservationData *observation_data,
+    size_t max_count, bool top_of_zone_first) {
+  for (size_t i = 0; i < max_count; ++i) {
+    observation_data[i] = empty_critic_privileged_card_observation((uint8_t)i);
+  }
+
+  ecs_entities_t cards = ecs_get_ordered_children(world, zone);
+  size_t count = cards.count;
+  if (count > max_count) {
+    count = max_count;
+  }
+
+  for (size_t i = 0; i < count; ++i) {
+    size_t source_index = i;
+    if (top_of_zone_first) {
+      source_index = count - 1 - i;
+    }
+    observation_data[i] = get_critic_privileged_card_observation(
+        world, cards.ids[source_index], (uint8_t)i);
   }
 }
 
@@ -672,6 +714,168 @@ static TrainingAbilityContextObservationData build_ability_context_observation(
   return observation;
 }
 
+static uint8_t clamp_subaction_to_u8(int value) {
+  if (value < 0) {
+    return 0;
+  }
+  if (value >= MAX_DECK_SIZE) {
+    return (uint8_t)(MAX_DECK_SIZE - 1);
+  }
+  return (uint8_t)value;
+}
+
+static int8_t get_entity_owner_player_index(ecs_world_t *world,
+                                            ecs_entity_t entity) {
+  if (world == NULL || entity == 0) {
+    return -1;
+  }
+
+  ecs_entity_t owner = ecs_get_target(world, entity, Rel_OwnedBy, 0);
+  if (owner == 0) {
+    return -1;
+  }
+
+  const PlayerNumber *player_number = ecs_get(world, owner, PlayerNumber);
+  if (player_number == NULL) {
+    return -1;
+  }
+
+  return (int8_t)player_number->player_number;
+}
+
+static void populate_recent_action_history_for_player(
+    ecs_world_t *world, const GameState *gs, ecs_entity_t target_player,
+    TrainingRecentActionObservationData
+        out_entries[AZK_RECENT_ACTION_HISTORY_LEN]) {
+  (void)world;
+
+  if (gs == NULL || target_player == 0 || out_entries == NULL) {
+    return;
+  }
+
+  const ActionContext *action_context = ecs_singleton_get(world, ActionContext);
+  if (action_context == NULL || action_context->history_size == 0) {
+    return;
+  }
+
+  uint32_t history_count = action_context->history_size;
+  if (history_count > MAX_USER_ACTION_HISTORY_SIZE) {
+    history_count = MAX_USER_ACTION_HISTORY_SIZE;
+  }
+
+  uint8_t write_index = 0;
+  for (uint32_t offset = 0;
+       offset < history_count && write_index < AZK_RECENT_ACTION_HISTORY_LEN;
+       ++offset) {
+    const uint32_t history_index =
+        (action_context->history_head + MAX_USER_ACTION_HISTORY_SIZE - 1u -
+         offset) %
+        MAX_USER_ACTION_HISTORY_SIZE;
+    const UserAction *action =
+        &action_context->user_action_history[history_index];
+    if (action->player != target_player) {
+      continue;
+    }
+    if (action->type < 0 || action->type >= AZK_ACTION_TYPE_COUNT) {
+      continue;
+    }
+
+    TrainingRecentActionObservationData *entry = &out_entries[write_index];
+    entry->valid = true;
+    entry->primary = (uint8_t)action->type;
+    entry->sub1 = clamp_subaction_to_u8(action->subaction_1);
+    entry->sub2 = clamp_subaction_to_u8(action->subaction_2);
+    entry->sub3 = clamp_subaction_to_u8(action->subaction_3);
+    entry->was_noop = action->type == ACT_NOOP;
+    write_index++;
+  }
+}
+
+static void populate_combat_entity_context(
+    ecs_world_t *world, const GameState *gs, int8_t perspective_player_index,
+    ecs_entity_t entity, bool *out_is_self, bool *out_is_leader,
+    bool *out_is_garden, bool *out_is_alley, int16_t *out_card_def_id,
+    uint8_t *out_slot_index) {
+  ecs_assert(out_is_self != NULL && out_is_leader != NULL &&
+                 out_is_garden != NULL && out_is_alley != NULL &&
+                 out_card_def_id != NULL && out_slot_index != NULL,
+             ECS_INVALID_PARAMETER, "Combat context output pointers are null");
+
+  *out_is_self = false;
+  *out_is_leader = false;
+  *out_is_garden = false;
+  *out_is_alley = false;
+  *out_card_def_id = -1;
+  *out_slot_index = 0;
+
+  if (world == NULL || gs == NULL || entity == 0) {
+    return;
+  }
+
+  const CardId *card_id = ecs_get(world, entity, CardId);
+  if (card_id != NULL) {
+    *out_card_def_id = (int16_t)card_id->id;
+  }
+
+  int8_t owner_index = get_entity_owner_player_index(world, entity);
+  if (owner_index < 0 || owner_index >= MAX_PLAYERS_PER_MATCH) {
+    return;
+  }
+
+  *out_is_self = owner_index == perspective_player_index;
+
+  ecs_entity_t parent = ecs_get_target(world, entity, EcsChildOf, 0);
+  if (parent == gs->zones[owner_index].leader) {
+    *out_is_leader = true;
+    return;
+  }
+  if (parent == gs->zones[owner_index].garden) {
+    *out_is_garden = true;
+  } else if (parent == gs->zones[owner_index].alley) {
+    *out_is_alley = true;
+  } else {
+    return;
+  }
+
+  const ZoneIndex *zone_index = ecs_get(world, entity, ZoneIndex);
+  if (zone_index != NULL) {
+    *out_slot_index = zone_index->index;
+  }
+}
+
+static TrainingCombatContextObservationData build_combat_context_observation(
+    ecs_world_t *world, const GameState *gs, int8_t player_index) {
+  TrainingCombatContextObservationData observation = {0};
+  observation.attacker_card_def_id = -1;
+  observation.target_card_def_id = -1;
+
+  if (world == NULL || gs == NULL || player_index < 0 ||
+      player_index >= MAX_PLAYERS_PER_MATCH) {
+    return observation;
+  }
+
+  observation.response_window_active = gs->phase == PHASE_RESPONSE_WINDOW;
+  observation.combat_active = gs->combat_state.attacking_card != 0;
+  observation.defender_intercepted = gs->combat_state.defender_intercepted;
+
+  if (!observation.combat_active) {
+    return observation;
+  }
+
+  populate_combat_entity_context(
+      world, gs, player_index, gs->combat_state.attacking_card,
+      &observation.attacker_is_self, &observation.attacker_is_leader,
+      &observation.attacker_is_garden, &observation.attacker_is_alley,
+      &observation.attacker_card_def_id, &observation.attacker_slot_index);
+  populate_combat_entity_context(
+      world, gs, player_index, gs->combat_state.defender_card,
+      &observation.target_is_self, &observation.target_is_leader,
+      &observation.target_is_garden, &observation.target_is_alley,
+      &observation.target_card_def_id, &observation.target_slot_index);
+
+  return observation;
+}
+
 static TrainingMyObservationData build_training_my_observation(
     ecs_world_t *world, const GameState *gs, int8_t player_index) {
   init_obs_profile_if_needed();
@@ -800,6 +1004,33 @@ static TrainingOpponentObservationData build_training_opponent_from_my(
   return opponent_observation;
 }
 
+static TrainingCriticPrivilegedObservationData
+build_training_critic_privileged_observation(ecs_world_t *world,
+                                             const GameState *gs,
+                                             int8_t player_index) {
+  ecs_assert(world != NULL, ECS_INVALID_PARAMETER, "World is null");
+  ecs_assert(gs != NULL, ECS_INVALID_PARAMETER, "GameState is null");
+  ecs_assert(player_index >= 0 && player_index < MAX_PLAYERS_PER_MATCH,
+             ECS_INVALID_PARAMETER, "Player index %d out of bounds",
+             player_index);
+
+  const int8_t opponent_player_index = (player_index + 1) % MAX_PLAYERS_PER_MATCH;
+  const PlayerZones *my_zones = &gs->zones[player_index];
+  const PlayerZones *opponent_zones = &gs->zones[opponent_player_index];
+
+  TrainingCriticPrivilegedObservationData privileged_observation = {0};
+  get_critic_privileged_card_array_for_zone(
+      world, opponent_zones->hand, privileged_observation.opponent_hand,
+      MAX_HAND_SIZE, false);
+  get_critic_privileged_card_array_for_zone(
+      world, my_zones->deck, privileged_observation.self_deck, MAX_DECK_SIZE,
+      true);
+  get_critic_privileged_card_array_for_zone(
+      world, opponent_zones->deck, privileged_observation.opponent_deck,
+      MAX_DECK_SIZE, true);
+  return privileged_observation;
+}
+
 TrainingObservationData create_training_observation_data(ecs_world_t *world,
                                                          int8_t player_index) {
   ecs_assert(world != NULL, ECS_INVALID_PARAMETER, "World is null");
@@ -881,6 +1112,14 @@ TrainingObservationData create_training_observation_data(ecs_world_t *world,
   observation.opponent_observation_data = opponent_observation;
   observation.phase = gs->phase;
   observation.ability_context = build_ability_context_observation(world, gs);
+  observation.combat_context =
+      build_combat_context_observation(world, gs, player_index);
+  populate_recent_action_history_for_player(world, gs, my_player,
+                                            observation.self_recent_actions);
+  populate_recent_action_history_for_player(world, gs, opponent_player,
+                                            observation.opp_recent_actions);
+  observation.critic_privileged =
+      build_training_critic_privileged_observation(world, gs, player_index);
   reset_legal_actions(&observation.action_mask);
   if (should_expose_training_action_mask(world, gs, player_index)) {
     observation.action_mask = build_training_action_mask(world, gs, player_index);
@@ -903,10 +1142,14 @@ void create_training_observation_data_pair(
   ecs_assert(gs != NULL, ECS_INVALID_PARAMETER, "GameState singleton missing");
 
   TrainingMyObservationData my_observations[MAX_PLAYERS_PER_MATCH];
+  TrainingCriticPrivilegedObservationData
+      privileged_observations[MAX_PLAYERS_PER_MATCH];
   for (int8_t player_index = 0; player_index < MAX_PLAYERS_PER_MATCH;
        ++player_index) {
     my_observations[player_index] =
         build_training_my_observation(world, gs, player_index);
+    privileged_observations[player_index] =
+        build_training_critic_privileged_observation(world, gs, player_index);
   }
 
   TrainingAbilityContextObservationData ability_observation =
@@ -924,6 +1167,14 @@ void create_training_observation_data_pair(
             &my_observations[opponent_player_index]);
     observation.phase = gs->phase;
     observation.ability_context = ability_observation;
+    observation.combat_context =
+        build_combat_context_observation(world, gs, player_index);
+    populate_recent_action_history_for_player(
+        world, gs, gs->players[player_index], observation.self_recent_actions);
+    populate_recent_action_history_for_player(
+        world, gs, gs->players[opponent_player_index],
+        observation.opp_recent_actions);
+    observation.critic_privileged = privileged_observations[player_index];
 
     // Fast path: only the active player can have legal actions.
     // Keep non-active players' masks empty without invoking the full builder.

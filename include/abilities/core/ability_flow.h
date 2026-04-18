@@ -11,6 +11,10 @@ typedef struct {
   bool apply_costs_before_effect_selection;
 } AbilityInitialPhaseOptions;
 
+bool azk_prepare_effect_selection_after_costs(ecs_world_t *world,
+                                              AbilityContext *ctx,
+                                              const AbilityDef *def);
+
 bool azk_enter_initial_phase(ecs_world_t *world, AbilityContext *ctx,
                              const AbilityDef *def,
                              const AbilityInitialPhaseOptions *options);

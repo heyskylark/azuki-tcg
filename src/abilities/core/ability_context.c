@@ -9,6 +9,15 @@ static uint8_t clamp_expected_target_count(uint8_t available,
   return available < requested_max ? available : requested_max;
 }
 
+static uint8_t clamp_selection_capacity(uint8_t requested,
+                                        const char *state_name) {
+  const bool within_capacity = requested <= MAX_ABILITY_SELECTION;
+  ecs_assert(within_capacity, ECS_INVALID_PARAMETER,
+             "%s target count %u exceeds MAX_ABILITY_SELECTION %u", state_name,
+             (unsigned)requested, (unsigned)MAX_ABILITY_SELECTION);
+  return within_capacity ? requested : MAX_ABILITY_SELECTION;
+}
+
 static void azk_init_ability_target_state(AbilityTargetState *state,
                                           uint8_t min_required,
                                           uint8_t max_allowed) {
@@ -16,9 +25,14 @@ static void azk_init_ability_target_state(AbilityTargetState *state,
     return;
   }
 
+  const uint8_t capped_max_allowed =
+      clamp_selection_capacity(max_allowed, "Ability target");
+  const uint8_t capped_min_required =
+      min_required > capped_max_allowed ? capped_max_allowed : min_required;
+
   *state = (AbilityTargetState){
-      .min_required = min_required,
-      .max_allowed = max_allowed,
+      .min_required = capped_min_required,
+      .max_allowed = capped_max_allowed,
   };
 }
 

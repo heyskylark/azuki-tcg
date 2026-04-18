@@ -164,9 +164,11 @@ static PyObject* env_init(PyObject* self, PyObject* args, PyObject* kwargs) {
     Py_DECREF(py_seed);
 
     PyObject* empty_args = PyTuple_New(0);
-    my_init(env, empty_args, kwargs);
+    int init_result = my_init(env, empty_args, kwargs);
+    Py_DECREF(empty_args);
     Py_DECREF(kwargs);
-    if (PyErr_Occurred()) {
+    if (init_result != 0 || PyErr_Occurred()) {
+        free(env);
         return NULL;
     }
 
@@ -191,6 +193,7 @@ static PyObject* env_reset(PyObject* self, PyObject* args) {
     }
     env->seed = PyLong_AsLong(seed_arg);
     env->starter_rng_state = starter_seed_from_env_seed(env->seed);
+    env->deck_rng_state = deck_seed_from_env_seed(env->seed);
     c_reset(env);
     Py_RETURN_NONE;
 }
@@ -562,6 +565,7 @@ static PyObject* vec_reset(PyObject* self, PyObject* args) {
         srand((unsigned int)env_seed);
         vec->envs[i]->seed = env_seed;
         vec->envs[i]->starter_rng_state = starter_seed_from_env_seed(env_seed);
+        vec->envs[i]->deck_rng_state = deck_seed_from_env_seed(env_seed);
         c_reset(vec->envs[i]);
     }
     Py_RETURN_NONE;

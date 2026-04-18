@@ -1,0 +1,1650 @@
+{
+  "export_date": "2026-04-15",
+  "source_file": ".codex/docs/azuki_tcg_decks_lean.json",
+  "normalization_notes": [
+    "Normalized STT03-01..16 to STT03-001..016 to match engine card codes.",
+    "Normalized STT04-01..17 to STT04-001..017 to match engine card codes.",
+    "Dropped decks that were incomplete, had unsupported card codes, had invalid leader/gate composition, or were already pre-expanded with an embedded IKZ pile.",
+    "Balanced the final pool to 4 decks per element.",
+    "Balanced same-element leader/gate pairs to 2 decks per leader.",
+    "Added IKZ-001 x10 to every final deck so each deck is engine-ready at 62 total cards."
+  ],
+  "summary": {
+    "input_decks_count": 55,
+    "valid_after_cleanup_count": 46,
+    "unique_valid_signatures_count": 39,
+    "invalid_removed_count": 9,
+    "final_balanced_decks_count": 16,
+    "final_element_distribution": {
+      "EARTH": 4,
+      "FIRE": 4,
+      "LIGHTNING": 4,
+      "WATER": 4
+    },
+    "final_leader_distribution": {
+      "AZK01-123": 2,
+      "STT03-001": 2,
+      "STT04-001": 2,
+      "AZK01-121": 2,
+      "STT01-001": 2,
+      "AZK01-119": 2,
+      "STT02-001": 2,
+      "AZK01-125": 2
+    },
+    "main_deck_unique_card_coverage": {
+      "covered_cards": 119,
+      "total_cards_in_valid_pool": 124,
+      "coverage_pct": 96
+    }
+  },
+  "invalid_removed_decks": [
+    {
+      "deck_name": "Bobu (Incomplete)",
+      "deck_slug": "my-deck-mj9jmt1n",
+      "source": "public",
+      "reasons": [
+        "total cards 17 != 52",
+        "main deck count 14 != 50",
+        "unsupported card codes: STT03-017"
+      ]
+    },
+    {
+      "deck_name": "Earth deck",
+      "deck_slug": "my-deck-ml1rm5qc",
+      "source": "public",
+      "reasons": [
+        "main deck count 49 != 50",
+        "unsupported card codes: AZK01-013"
+      ]
+    },
+    {
+      "deck_name": "Indiana Jones",
+      "deck_slug": "my-deck-mjwbxoeo",
+      "source": "public",
+      "reasons": [
+        "main deck count 48 != 50",
+        "unsupported card codes: STT03-017"
+      ]
+    },
+    {
+      "deck_name": "My Deck",
+      "deck_slug": "my-deck-mmsi9ots",
+      "source": "public",
+      "reasons": [
+        "main deck count 49 != 50",
+        "unsupported card codes: AZK01-099"
+      ]
+    },
+    {
+      "deck_name": "NANS TEMPO SHAO V1",
+      "deck_slug": "my-deck-mm6yg392",
+      "source": "public",
+      "reasons": [
+        "main deck count 48 != 50",
+        "unsupported card codes: AZK01-079"
+      ]
+    },
+    {
+      "deck_name": "Shao and Friends",
+      "deck_slug": "shao-and-friends-mn46y03s",
+      "source": "public",
+      "reasons": [
+        "total cards 62 != 52",
+        "embedded IKZ count 10 != 0"
+      ]
+    },
+    {
+      "deck_name": "Shao neutral",
+      "deck_slug": "my-deck-mk21uwfb",
+      "source": "public",
+      "reasons": [
+        "main deck count 48 != 50",
+        "unsupported card codes: AZK01-013"
+      ]
+    },
+    {
+      "deck_name": "SirWilhelm",
+      "deck_slug": "sirwilhelm-mjctkv5g",
+      "source": "public",
+      "reasons": [
+        "leader count 2 != 1",
+        "main deck count 49 != 50"
+      ]
+    },
+    {
+      "deck_name": "Zero (Incomplete)",
+      "deck_slug": "zero-starter-cards-mj9jqx7l",
+      "source": "public",
+      "reasons": [
+        "total cards 17 != 52",
+        "main deck count 15 != 50"
+      ]
+    }
+  ],
+  "decks": [
+    {
+      "deck_name": "Rock Hrd & Bricked [Goro Graveloth]",
+      "deck_slug": "my-deck-mm5jb3d7-azk01-123",
+      "source_deck_name": "Rock Hrd & Bricked",
+      "source_deck_slug": "my-deck-mm5jb3d7",
+      "source": "public",
+      "description": null,
+      "element": "EARTH",
+      "leader_card_id": "AZK01-123",
+      "leader_name": "Goro Graveloth",
+      "gate_card_id": "AZK01-124",
+      "gate_name": "Gate of Devotion",
+      "original_leader_card_id": "AZK01-123",
+      "original_gate_card_id": "STT03-002",
+      "leader_gate_swapped": true,
+      "cards": [
+        {
+          "card_id": "AZK01-123",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-124",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-045",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-047",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-048",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-054",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-103",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-105",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-128",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-016",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "Rock Hrd & Bricked [Bobu]",
+      "deck_slug": "my-deck-mm5jb3d7-stt03-001",
+      "source_deck_name": "Rock Hrd & Bricked",
+      "source_deck_slug": "my-deck-mm5jb3d7",
+      "source": "public",
+      "description": null,
+      "element": "EARTH",
+      "leader_card_id": "STT03-001",
+      "leader_name": "Bobu",
+      "gate_card_id": "STT03-002",
+      "gate_name": "Stonehaven Gate",
+      "original_leader_card_id": "AZK01-123",
+      "original_gate_card_id": "STT03-002",
+      "leader_gate_swapped": true,
+      "cards": [
+        {
+          "card_id": "STT03-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-045",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-047",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-048",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-054",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-103",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-105",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-128",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-016",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "yq Earth 03/03/26 [Goro Graveloth]",
+      "deck_slug": "yq-earth-030326-mmcmq87j-azk01-123",
+      "source_deck_name": "yq Earth 03/03/26",
+      "source_deck_slug": "yq-earth-030326-mmcmq87j",
+      "source": "tournament",
+      "description": null,
+      "element": "EARTH",
+      "leader_card_id": "AZK01-123",
+      "leader_name": "Goro Graveloth",
+      "gate_card_id": "AZK01-124",
+      "gate_name": "Gate of Devotion",
+      "original_leader_card_id": "AZK01-123",
+      "original_gate_card_id": "AZK01-124",
+      "leader_gate_swapped": false,
+      "cards": [
+        {
+          "card_id": "AZK01-123",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-124",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-045",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-047",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-054",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-105",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-128",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-004",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT03-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-011",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT03-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-016",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "yq Earth 03/03/26 [Bobu]",
+      "deck_slug": "yq-earth-030326-mmcmq87j-stt03-001",
+      "source_deck_name": "yq Earth 03/03/26",
+      "source_deck_slug": "yq-earth-030326-mmcmq87j",
+      "source": "tournament",
+      "description": null,
+      "element": "EARTH",
+      "leader_card_id": "STT03-001",
+      "leader_name": "Bobu",
+      "gate_card_id": "STT03-002",
+      "gate_name": "Stonehaven Gate",
+      "original_leader_card_id": "AZK01-123",
+      "original_gate_card_id": "AZK01-124",
+      "leader_gate_swapped": true,
+      "cards": [
+        {
+          "card_id": "STT03-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-045",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-047",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-054",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-105",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-128",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-004",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT03-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-011",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT03-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-016",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "Bean :D [Zero]",
+      "deck_slug": "my-deck-ml8jz6it-stt04-001",
+      "source_deck_name": "Bean :D",
+      "source_deck_slug": "my-deck-ml8jz6it",
+      "source": "public",
+      "description": null,
+      "element": "FIRE",
+      "leader_card_id": "STT04-001",
+      "leader_name": "Zero",
+      "gate_card_id": "STT04-002",
+      "gate_name": "Ragefire Gate",
+      "original_leader_card_id": "STT04-001",
+      "original_gate_card_id": "STT04-002",
+      "leader_gate_swapped": false,
+      "cards": [
+        {
+          "card_id": "STT04-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-007",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-011",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-012",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-015",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-018",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-019",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-020",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-066",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-111",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 1
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "Blaze [Zero]",
+      "deck_slug": "my-deck-mneoxops-stt04-001",
+      "source_deck_name": "Blaze",
+      "source_deck_slug": "my-deck-mneoxops",
+      "source": "public",
+      "description": null,
+      "element": "FIRE",
+      "leader_card_id": "STT04-001",
+      "leader_name": "Zero",
+      "gate_card_id": "STT04-002",
+      "gate_name": "Ragefire Gate",
+      "original_leader_card_id": "STT04-001",
+      "original_gate_card_id": "AZK01-122",
+      "leader_gate_swapped": true,
+      "cards": [
+        {
+          "card_id": "STT04-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-058",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-015",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-016",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-017",
+          "quantity": 1
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "Genki 1st [Kagoro of the Burnt Path]",
+      "deck_slug": "zero-rush-set-1-mmsjxma2-azk01-121",
+      "source_deck_name": "Genki 1st",
+      "source_deck_slug": "zero-rush-set-1-mmsjxma2",
+      "source": "public",
+      "description": null,
+      "element": "FIRE",
+      "leader_card_id": "AZK01-121",
+      "leader_name": "Kagoro of the Burnt Path",
+      "gate_card_id": "AZK01-122",
+      "gate_name": "Rushfire Gate",
+      "original_leader_card_id": "STT04-001",
+      "original_gate_card_id": "AZK01-122",
+      "leader_gate_swapped": true,
+      "cards": [
+        {
+          "card_id": "AZK01-121",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-122",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-058",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-116",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-014",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-016",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "bfg [Kagoro of the Burnt Path]",
+      "deck_slug": "bfg-mkdal7lr-azk01-121",
+      "source_deck_name": "bfg",
+      "source_deck_slug": "bfg-mkdal7lr",
+      "source": "tournament",
+      "description": null,
+      "element": "FIRE",
+      "leader_card_id": "AZK01-121",
+      "leader_name": "Kagoro of the Burnt Path",
+      "gate_card_id": "AZK01-122",
+      "gate_name": "Rushfire Gate",
+      "original_leader_card_id": "STT04-001",
+      "original_gate_card_id": "STT04-002",
+      "leader_gate_swapped": true,
+      "cards": [
+        {
+          "card_id": "AZK01-121",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-122",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-009",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-058",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-061",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-111",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-113",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-116",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-117",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-005",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT04-007",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-009",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-015",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "My Deck [Raizan]",
+      "deck_slug": "my-deck-mk33fz2w-stt01-001",
+      "source_deck_name": "My Deck",
+      "source_deck_slug": "my-deck-mk33fz2w",
+      "source": "public",
+      "description": null,
+      "element": "LIGHTNING",
+      "leader_card_id": "STT01-001",
+      "leader_name": "Raizan",
+      "gate_card_id": "STT01-002",
+      "gate_name": "Surge",
+      "original_leader_card_id": "STT01-001",
+      "original_gate_card_id": "STT01-002",
+      "leader_gate_swapped": false,
+      "cards": [
+        {
+          "card_id": "STT01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-036",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-040",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-094",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-097",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-098",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-007",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-008",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "My Deck [Piko of Thousand Blades]",
+      "deck_slug": "my-deck-mns7qhpz-azk01-119",
+      "source_deck_name": "My Deck",
+      "source_deck_slug": "my-deck-mns7qhpz",
+      "source": "public",
+      "description": null,
+      "element": "LIGHTNING",
+      "leader_card_id": "AZK01-119",
+      "leader_name": "Piko of Thousand Blades",
+      "gate_card_id": "AZK01-120",
+      "gate_name": "Stormchain Gate",
+      "original_leader_card_id": "STT01-001",
+      "original_gate_card_id": "STT01-002",
+      "leader_gate_swapped": true,
+      "cards": [
+        {
+          "card_id": "AZK01-119",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-120",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-007",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-019",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-040",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-041",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-067",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-069",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-072",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-073",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-084",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-094",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-009",
+          "quantity": 2
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "Raizan [Raizan]",
+      "deck_slug": "my-deck-mjc64wyu-stt01-001",
+      "source_deck_name": "Raizan",
+      "source_deck_slug": "my-deck-mjc64wyu",
+      "source": "public",
+      "description": null,
+      "element": "LIGHTNING",
+      "leader_card_id": "STT01-001",
+      "leader_name": "Raizan",
+      "gate_card_id": "STT01-002",
+      "gate_name": "Surge",
+      "original_leader_card_id": "STT01-001",
+      "original_gate_card_id": "STT01-002",
+      "leader_gate_swapped": false,
+      "cards": [
+        {
+          "card_id": "STT01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-011",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-033",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-040",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-077",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-086",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-094",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-008",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-012",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-017",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "T&E Deck [Piko of Thousand Blades]",
+      "deck_slug": "te-deck-mjhwzvwc-azk01-119",
+      "source_deck_name": "T&E Deck",
+      "source_deck_slug": "te-deck-mjhwzvwc",
+      "source": "public",
+      "description": null,
+      "element": "LIGHTNING",
+      "leader_card_id": "AZK01-119",
+      "leader_name": "Piko of Thousand Blades",
+      "gate_card_id": "AZK01-120",
+      "gate_name": "Stormchain Gate",
+      "original_leader_card_id": "STT01-001",
+      "original_gate_card_id": "STT01-002",
+      "leader_gate_swapped": true,
+      "cards": [
+        {
+          "card_id": "AZK01-119",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-120",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-005",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-007",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-008",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-009",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-012",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-014",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-016",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-017",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-020",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-035",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-036",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-037",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-038",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-039",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-040",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-041",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-042",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-043",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-044",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-005",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-006",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-008",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-009",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-010",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-011",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-012",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-015",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-016",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 1
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "JGZ SHAO [Shao]",
+      "deck_slug": "jgz-shao-mj3zjhgx-stt02-001",
+      "source_deck_name": "JGZ SHAO",
+      "source_deck_slug": "jgz-shao-mj3zjhgx",
+      "source": "public",
+      "description": null,
+      "element": "WATER",
+      "leader_card_id": "STT02-001",
+      "leader_name": "Shao",
+      "gate_card_id": "STT02-002",
+      "gate_name": "Hydromancy",
+      "original_leader_card_id": "STT02-001",
+      "original_gate_card_id": "STT02-002",
+      "leader_gate_swapped": false,
+      "cards": [
+        {
+          "card_id": "STT02-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT02-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-009",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-012",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-021",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-022",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-024",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-025",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-031",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-005",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-007",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-008",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-012",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-013",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-015",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-016",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-017",
+          "quantity": 1
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "JR0PPIE [Benzai the Sly]",
+      "deck_slug": "jr0ppie-mjars60i-azk01-125",
+      "source_deck_name": "JR0PPIE",
+      "source_deck_slug": "jr0ppie-mjars60i",
+      "source": "public",
+      "description": null,
+      "element": "WATER",
+      "leader_card_id": "AZK01-125",
+      "leader_name": "Benzai the Sly",
+      "gate_card_id": "AZK01-126",
+      "gate_name": "Gate of Echoed Waves",
+      "original_leader_card_id": "STT02-001",
+      "original_gate_card_id": "STT02-002",
+      "leader_gate_swapped": true,
+      "cards": [
+        {
+          "card_id": "AZK01-125",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-126",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-009",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-011",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-015",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-028",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-029",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-031",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-032",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-009",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-011",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-012",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-013",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-014",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-015",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-016",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-017",
+          "quantity": 2
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "Shao and Friends [Shao]",
+      "deck_slug": "power-of-friendshi-mk1vnlom-stt02-001",
+      "source_deck_name": "Shao and Friends",
+      "source_deck_slug": "power-of-friendshi-mk1vnlom",
+      "source": "public",
+      "description": null,
+      "element": "WATER",
+      "leader_card_id": "STT02-001",
+      "leader_name": "Shao",
+      "gate_card_id": "STT02-002",
+      "gate_name": "Hydromancy",
+      "original_leader_card_id": "STT02-001",
+      "original_gate_card_id": "STT02-002",
+      "leader_gate_swapped": false,
+      "cards": [
+        {
+          "card_id": "STT02-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT02-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-010",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-014",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-019",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-020",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-012",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-008",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-011",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "water is wet [Benzai the Sly]",
+      "deck_slug": "my-deck-mm49przn-azk01-125",
+      "source_deck_name": "water is wet",
+      "source_deck_slug": "my-deck-mm49przn",
+      "source": "public",
+      "description": null,
+      "element": "WATER",
+      "leader_card_id": "AZK01-125",
+      "leader_name": "Benzai the Sly",
+      "gate_card_id": "AZK01-126",
+      "gate_name": "Gate of Echoed Waves",
+      "original_leader_card_id": "AZK01-125",
+      "original_gate_card_id": "AZK01-126",
+      "leader_gate_swapped": false,
+      "cards": [
+        {
+          "card_id": "AZK01-125",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-126",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-021",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-022",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-024",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-029",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-068",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-087",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-092",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-007",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-007",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-008",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-013",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-015",
+          "quantity": 3
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    }
+  ]
+}

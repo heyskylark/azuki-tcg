@@ -84,6 +84,8 @@ bool azk_process_selection_to_alley(ecs_world_t *world, int selection_index,
 // entity_index is the target entity (0-4 for garden, 5 for leader)
 // Equips a weapon from selection to the target entity
 // Returns true if successful, false otherwise
+bool azk_can_select_to_equip(ecs_world_t *world, int selection_index,
+                             int entity_index);
 bool azk_process_selection_to_equip(ecs_world_t *world, int selection_index,
                                     int entity_index);
 

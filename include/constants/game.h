@@ -12,7 +12,7 @@
 #define INITIAL_DRAW_COUNT 7
 #define MAX_USER_ACTION_HISTORY_SIZE 5000
 #define MAX_ABILITY_SELECTION                                                  \
-  4 // Expand if we find an ability that has much more
+  GARDEN_SIZE // Must cover the largest multi-target ability currently exposed
 #define MAX_SELECTION_ZONE_SIZE                                                \
   MAX_DECK_SIZE // Selection flows may need to surface an entire discard pile
 

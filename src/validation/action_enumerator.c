@@ -294,6 +294,11 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
     int choice_count = azk_collect_ability_target_choices(
         world, def, ABILITY_TARGET_SCOPE_EFFECT, ctx->runtime.source_card,
         ctx->runtime.owner, choices, AZK_MAX_ABILITY_TARGET_CHOICES);
+    if (choice_count == 0) {
+      action.type = ACT_NOOP;
+      add_valid_action(out_mask, &action);
+      break;
+    }
     for (int i = 0; i < choice_count; i++) {
       action.subaction_1 = choices[i].action_index;
       add_valid_action(out_mask, &action);
@@ -410,7 +415,7 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
         for (int slot = 0; slot < GARDEN_SIZE; slot++) {
           ecs_entity_t entity =
               find_card_in_zone_index(world, gs->zones[pnum].garden, slot);
-          if (entity != 0) {
+          if (entity != 0 && azk_can_select_to_equip(world, i, slot)) {
             action.subaction_2 = slot;
             add_valid_action(out_mask, &action);
           }
@@ -418,7 +423,7 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
         // Enumerate leader (slot 5)
         ecs_entity_t leader =
             find_leader_card_in_zone(world, gs->zones[pnum].leader);
-        if (leader != 0) {
+        if (leader != 0 && azk_can_select_to_equip(world, i, GARDEN_SIZE)) {
           action.subaction_2 = GARDEN_SIZE; // 5 for leader
           add_valid_action(out_mask, &action);
         }

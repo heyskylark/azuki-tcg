@@ -45,6 +45,19 @@ AzkEngine *azk_engine_create_with_decks(
 );
 
 /**
+ * Create a fresh Azuki game world with custom decks and an explicit starting
+ * player index (0 or 1).
+ */
+AzkEngine *azk_engine_create_with_decks_and_starting_player(
+  uint32_t seed,
+  int8_t starting_player_index,
+  const CardInfo *player0_deck,
+  size_t player0_deck_count,
+  const CardInfo *player1_deck,
+  size_t player1_deck_count
+);
+
+/**
  * Destroy a previously created Azuki engine instance.
  */
 void azk_engine_destroy(AzkEngine *engine);

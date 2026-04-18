@@ -414,9 +414,13 @@ static void discard_card_internal(ecs_world_t *world, ecs_entity_t card,
 }
 
 bool is_card_type(ecs_world_t *world, ecs_entity_t card, CardType type) {
+  if (world == NULL || card == 0 || !ecs_is_valid(world, card)) {
+    return false;
+  }
   const Type *card_type = ecs_get(world, card, Type);
-  ecs_assert(card_type != NULL, ECS_INVALID_PARAMETER,
-             "Type component not found for card %d", card);
+  if (card_type == NULL) {
+    return false;
+  }
   return card_type->value == type;
 }
 

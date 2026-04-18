@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 import azk_puffer.pytorch as azk_pytorch
@@ -26,6 +27,67 @@ from train import (
 )
 
 
+def _checkpoint_metadata_path(model_path: Path) -> Path:
+  return model_path.with_suffix(model_path.suffix + ".meta.json")
+
+
+def _read_checkpoint_metadata(model_path: Path) -> dict:
+  metadata_path = _checkpoint_metadata_path(model_path)
+  if not metadata_path.exists():
+    return {}
+  try:
+    payload = json.loads(metadata_path.read_text())
+  except Exception as exc:
+    print(f"[eval] warning: failed to read checkpoint metadata {metadata_path}: {exc}")
+    return {}
+  return payload if isinstance(payload, dict) else {}
+
+
+def _apply_checkpoint_resume_policy_config(trainer_args: dict, checkpoint: Path | None) -> None:
+  if checkpoint is None:
+    return
+
+  payload = _read_checkpoint_metadata(checkpoint)
+  resume_cfg = payload.get("resume_config_fingerprint")
+  if not isinstance(resume_cfg, dict):
+    return
+
+  env_cfg = trainer_args.setdefault("env", {})
+  policy_cfg = trainer_args.setdefault("policy", {})
+
+  deck_pool_path = resume_cfg.get("deck_pool_path")
+  if isinstance(deck_pool_path, str) and deck_pool_path:
+    env_cfg["deck_pool_path"] = deck_pool_path
+
+  for source_key, target_key, caster in (
+    ("policy_model_version", "model_version", str),
+    ("policy_critic_head_type", "critic_head_type", str),
+    ("policy_privileged_critic_enabled", "privileged_critic_enabled", bool),
+    ("policy_privileged_critic_embed_dim", "privileged_critic_embed_dim", int),
+    ("policy_privileged_critic_deck_heads", "privileged_critic_deck_heads", int),
+    ("policy_privileged_critic_deck_layers", "privileged_critic_deck_layers", int),
+    ("policy_privileged_critic_deck_ff_size", "privileged_critic_deck_ff_size", int),
+    (
+      "policy_privileged_critic_fusion_hidden_size",
+      "privileged_critic_fusion_hidden_size",
+      int,
+    ),
+    (
+      "policy_privileged_critic_fusion_projection_size",
+      "privileged_critic_fusion_projection_size",
+      int,
+    ),
+    ("policy_privileged_critic_feature_scale", "privileged_critic_feature_scale", float),
+    ("policy_win_prob_aux_enabled", "win_prob_aux_enabled", bool),
+    ("policy_win_prob_aux_coef", "win_prob_aux_coef", float),
+    ("policy_split_value_heads_enabled", "split_value_heads_enabled", bool),
+    ("policy_split_value_component_coef", "split_value_component_coef", float),
+  ):
+    value = resume_cfg.get(source_key)
+    if isinstance(value, (bool, int, float, str)):
+      policy_cfg[target_key] = caster(value)
+
+
 def _unwrap_base_env(env):
   current = getattr(env, "env", env)
   seen = set()
@@ -35,6 +97,9 @@ def _unwrap_base_env(env):
       break
     seen.add(current)
     current = nxt
+  aec_env = getattr(current, "aec_env", None)
+  if aec_env is not None:
+    current = aec_env
   return current
 
 
@@ -69,6 +134,7 @@ def evaluate(
 ):
   trainer_args = load_training_config(config_path, [])
   trainer_args["train"]["device"] = device
+  _apply_checkpoint_resume_policy_config(trainer_args, checkpoint)
   install_tcg_sampler()
   anneal_total_timesteps = int(trainer_args.get("train", {}).get("total_timesteps", 0))
   sampler_cfg = _build_sampler_anneal_config(

@@ -25,6 +25,7 @@ import psutil
 import pufferlib as upstream_pufferlib
 import torch
 import torch.distributed
+import torch.nn.functional as F
 from torch.distributed.elastic.multiprocessing.errors import record
 import torch.utils.cpp_extension
 
@@ -95,8 +96,12 @@ class PuffeRL:
         self.actions = torch.zeros(segments, horizon, *atn_space.shape, device=device,
             dtype=pufferlib.pytorch.numpy_to_torch_dtype_dict[atn_space.dtype])
         self.values = torch.zeros(segments, horizon, device=device)
+        self.terminal_values = torch.zeros(segments, horizon, device=device)
+        self.shaped_values = torch.zeros(segments, horizon, device=device)
         self.logprobs = torch.zeros(segments, horizon, device=device)
         self.rewards = torch.zeros(segments, horizon, device=device)
+        self.terminal_reward_components = torch.zeros(segments, horizon, device=device)
+        self.shaped_reward_components = torch.zeros(segments, horizon, device=device)
         self.terminals = torch.zeros(segments, horizon, device=device)
         self.truncations = torch.zeros(segments, horizon, device=device)
         self.ratio = torch.ones(segments, horizon, device=device)
@@ -104,6 +109,19 @@ class PuffeRL:
         self.ep_lengths = torch.zeros(total_agents, device=device, dtype=torch.int32)
         self.ep_indices = torch.arange(total_agents, device=device, dtype=torch.int32)
         self.free_idx = total_agents
+        self._agents_per_env = max(1, int(getattr(vecenv.driver_env, 'num_agents', 1)))
+        if hasattr(vecenv, 'num_environments'):
+            self._num_envs_total = int(vecenv.num_environments)
+        elif hasattr(vecenv, 'envs'):
+            self._num_envs_total = int(len(vecenv.envs))
+        else:
+            self._num_envs_total = max(1, int(total_agents // self._agents_per_env))
+        self._env_episode_ids = np.arange(self._num_envs_total, dtype=np.int64)
+        self._next_env_episode_id = int(self._num_envs_total)
+        self.win_prob_targets = torch.zeros(segments, horizon, device=device)
+        self.win_prob_target_mask = torch.zeros(segments, horizon, device=device, dtype=torch.bool)
+        self.win_prob_episode_ids = torch.full((segments, horizon), -1, device=device, dtype=torch.int64)
+        self.win_prob_agent_ids = torch.full((segments, horizon), -1, device=device, dtype=torch.int32)
 
         # LSTM
         if config['use_rnn']:
@@ -220,6 +238,224 @@ class PuffeRL:
 
         return (self.global_step - self.last_log_step) / (time.time() - self.last_log_time)
 
+    def _base_policy_module(self):
+        return getattr(self.uncompiled_policy, 'policy', self.uncompiled_policy)
+
+    def _win_prob_aux_enabled(self) -> bool:
+        base_policy = self._base_policy_module()
+        return bool(getattr(base_policy, 'win_prob_aux_enabled', False)) and getattr(base_policy, 'win_prob_fn', None) is not None
+
+    def _win_prob_aux_coef(self) -> float:
+        base_policy = self._base_policy_module()
+        return float(getattr(base_policy, 'win_prob_aux_coef', 0.0))
+
+    def _split_value_heads_enabled(self) -> bool:
+        base_policy = self._base_policy_module()
+        return bool(getattr(base_policy, 'split_value_heads_enabled', False)) and getattr(base_policy, 'value_terminal_fn', None) is not None and getattr(base_policy, 'value_shaped_fn', None) is not None
+
+    def _split_value_component_coef(self) -> float:
+        base_policy = self._base_policy_module()
+        return float(getattr(base_policy, 'split_value_component_coef', 0.0))
+
+    def _reset_win_prob_rollout_buffers(self):
+        self.win_prob_targets.zero_()
+        self.win_prob_target_mask.zero_()
+        self.win_prob_episode_ids.fill_(-1)
+        self.win_prob_agent_ids.fill_(-1)
+
+    def _reset_split_value_rollout_buffers(self):
+        self.terminal_values.zero_()
+        self.shaped_values.zero_()
+        self.terminal_reward_components.zero_()
+        self.shaped_reward_components.zero_()
+
+    def _build_info_by_env(self, info, env_indices: np.ndarray) -> dict[int, object]:
+        ordered_envs = np.unique(env_indices)
+        info_entries = list(info) if isinstance(info, (list, tuple)) else []
+        if len(info_entries) == len(ordered_envs):
+            return {
+                int(env_idx): info_entries[pos]
+                for pos, env_idx in enumerate(ordered_envs)
+            }
+        if len(info_entries) == len(env_indices):
+            info_by_env: dict[int, object] = {}
+            for pos, env_idx in enumerate(env_indices):
+                info_by_env.setdefault(int(env_idx), info_entries[pos])
+            return info_by_env
+        return {}
+
+    def _extract_agent_info(self, env_info, seat: int):
+        if not isinstance(env_info, dict):
+            return None
+        seat_info = env_info.get(seat)
+        if seat_info is None:
+            seat_info = env_info.get(str(seat))
+        return seat_info if isinstance(seat_info, dict) else None
+
+    def _extract_step_reward_components(
+        self,
+        info,
+        env_id: np.ndarray,
+        total_rewards: np.ndarray,
+    ) -> tuple[np.ndarray, np.ndarray]:
+        if env_id.size == 0:
+            return (
+                np.zeros((0,), dtype=np.float32),
+                np.zeros((0,), dtype=np.float32),
+            )
+
+        env_indices = (env_id // self._agents_per_env).astype(np.int32)
+        info_by_env = self._build_info_by_env(info, env_indices)
+        terminal = np.zeros(env_id.shape[0], dtype=np.float32)
+        shaped = np.asarray(total_rewards, dtype=np.float32).copy()
+
+        for row_index, agent_id in enumerate(env_id):
+            env_idx = int(env_indices[row_index])
+            seat = int(agent_id % self._agents_per_env)
+            seat_info = self._extract_agent_info(info_by_env.get(env_idx), seat)
+            if seat_info is None:
+                continue
+
+            terminal_value = seat_info.get('azk_step_terminal_reward', 0.0)
+            shaped_value = seat_info.get('azk_step_shaped_reward')
+            terminal[row_index] = float(np.clip(float(terminal_value), -1.0, 1.0))
+            if shaped_value is not None:
+                shaped[row_index] = float(np.clip(float(shaped_value), -1.0, 1.0))
+            else:
+                shaped[row_index] = float(total_rewards[row_index]) - terminal[row_index]
+
+        return terminal, shaped
+
+    def _component_values_from_state(self, state: dict, shape: torch.Size | tuple[int, ...]):
+        terminal_value = state.get('_azk_value_terminal')
+        shaped_value = state.get('_azk_value_shaped')
+        if not torch.is_tensor(terminal_value) or not torch.is_tensor(shaped_value):
+            raise RuntimeError('split_value_heads_enabled is true but component value tensors were not published by the policy')
+        return terminal_value.view(shape), shaped_value.view(shape)
+
+    def _clipped_value_loss(self, new_value, old_value, returns, vf_clip: float):
+        v_clipped = old_value + torch.clamp(new_value - old_value, -vf_clip, vf_clip)
+        v_loss_unclipped = (new_value - returns) ** 2
+        v_loss_clipped = (v_clipped - returns) ** 2
+        return 0.5 * torch.max(v_loss_unclipped, v_loss_clipped).mean()
+
+    def _episode_envs_from_done_mask(self, env_id: np.ndarray, done_mask: np.ndarray) -> np.ndarray:
+        if env_id.size == 0:
+            return np.zeros((0,), dtype=np.int32)
+        env_indices = (env_id // self._agents_per_env).astype(np.int32)
+        finished_envs: list[int] = []
+        for env_idx in np.unique(env_indices):
+            selector = env_indices == env_idx
+            if selector.any() and bool(done_mask[selector].all()):
+                finished_envs.append(int(env_idx))
+        return np.asarray(finished_envs, dtype=np.int32)
+
+    def _stamp_win_prob_rollout_metadata(self, batch_rows, step_index: int, env_id: np.ndarray):
+        if env_id.size == 0:
+            return
+        env_indices = (env_id // self._agents_per_env).astype(np.int32)
+        episode_ids = self._env_episode_ids[env_indices]
+        device = self.config['device']
+        self.win_prob_episode_ids[batch_rows, step_index] = torch.as_tensor(
+            episode_ids,
+            device=device,
+            dtype=torch.int64,
+        )
+        self.win_prob_agent_ids[batch_rows, step_index] = torch.as_tensor(
+            env_id,
+            device=device,
+            dtype=torch.int32,
+        )
+
+    def _extract_terminal_win_labels(self, env_info) -> dict[int, float]:
+        if not isinstance(env_info, dict):
+            return {}
+
+        labels: dict[int, float] = {}
+        for seat in range(self._agents_per_env):
+            seat_info = env_info.get(seat)
+            if seat_info is None:
+                seat_info = env_info.get(str(seat))
+            if not isinstance(seat_info, dict):
+                continue
+            win_value = seat_info.get('win')
+            if win_value is None:
+                continue
+            labels[int(seat)] = float(win_value)
+        return labels
+
+    def _assign_terminal_win_prob_targets(self, info, env_id: np.ndarray, done_mask: np.ndarray):
+        finished_envs = self._episode_envs_from_done_mask(env_id, done_mask)
+        if finished_envs.size == 0:
+            return finished_envs
+
+        env_indices = (env_id // self._agents_per_env).astype(np.int32)
+        info_by_env = self._build_info_by_env(info, env_indices)
+
+        seat_ids = torch.remainder(self.win_prob_agent_ids.long(), self._agents_per_env)
+        for env_idx in finished_envs:
+            episode_id = int(self._env_episode_ids[int(env_idx)])
+            episode_mask = self.win_prob_episode_ids == episode_id
+            if bool(episode_mask.any().item()):
+                seat_labels = self._extract_terminal_win_labels(info_by_env.get(int(env_idx)))
+                for seat, win_value in seat_labels.items():
+                    seat_mask = episode_mask & (seat_ids == int(seat))
+                    if not bool(seat_mask.any().item()):
+                        continue
+                    self.win_prob_targets[seat_mask] = float(win_value)
+                    self.win_prob_target_mask[seat_mask] = True
+
+            self._env_episode_ids[int(env_idx)] = self._next_env_episode_id
+            self._next_env_episode_id += 1
+
+        return finished_envs
+
+    def _compute_win_prob_aux(self, state: dict, idx: torch.Tensor):
+        device = self.config['device']
+        zero_loss = torch.zeros((), device=device)
+        metrics = {
+            'enabled': False,
+            'raw_loss': 0.0,
+            'labeled_frac': 0.0,
+            'example_count': 0,
+            'correct_sum': 0.0,
+            'brier_sum': 0.0,
+            'pred_sum': 0.0,
+            'target_sum': 0.0,
+        }
+        if not self._win_prob_aux_enabled():
+            return zero_loss, metrics
+
+        metrics['enabled'] = True
+        win_prob_logits = state.get('_azk_win_prob_logits')
+        if not torch.is_tensor(win_prob_logits):
+            return zero_loss, metrics
+
+        targets = self.win_prob_targets[idx].to(device=win_prob_logits.device, dtype=win_prob_logits.dtype)
+        labeled_mask = self.win_prob_target_mask[idx].to(device=win_prob_logits.device)
+        if win_prob_logits.shape != targets.shape:
+            win_prob_logits = win_prob_logits.view_as(targets)
+
+        metrics['labeled_frac'] = float(labeled_mask.float().mean().item())
+        labeled_count = int(labeled_mask.sum().item())
+        metrics['example_count'] = labeled_count
+        if labeled_count == 0:
+            return zero_loss, metrics
+
+        logits = win_prob_logits[labeled_mask]
+        target_values = targets[labeled_mask]
+        raw_loss = F.binary_cross_entropy_with_logits(logits, target_values)
+        probs = torch.sigmoid(logits)
+        predictions = (probs >= 0.5).to(dtype=target_values.dtype)
+
+        metrics['raw_loss'] = float(raw_loss.detach().item())
+        metrics['correct_sum'] = float((predictions == target_values).float().sum().item())
+        metrics['brier_sum'] = float(torch.square(probs - target_values).sum().item())
+        metrics['pred_sum'] = float(probs.sum().item())
+        metrics['target_sum'] = float(target_values.sum().item())
+        weighted_loss = raw_loss * self._win_prob_aux_coef()
+        return weighted_loss, metrics
+
     def evaluate(self):
         profile = self.profile
         epoch = self.epoch
@@ -235,14 +471,16 @@ class PuffeRL:
                 self.lstm_c[k].zero_()
 
         self.full_rows = 0
+        self._reset_win_prob_rollout_buffers()
+        self._reset_split_value_rollout_buffers()
         while self.full_rows < self.segments:
             profile('env', epoch)
             o, r, d, t, info, env_id, mask = self.vecenv.recv()
 
             profile('eval_misc', epoch)
-            env_id = slice(env_id[0], env_id[-1] + 1)
-
-            done_mask = d + t # TODO: Handle truncations separately
+            env_id_np = np.asarray(env_id, dtype=np.int64)
+            env_id = slice(env_id_np[0], env_id_np[-1] + 1)
+            done_mask = np.asarray(d + t, dtype=np.bool_) # TODO: Handle truncations separately
             self.global_step += int(mask.sum())
 
             profile('eval_copy', epoch)
@@ -250,6 +488,13 @@ class PuffeRL:
             o_device = o.to(device)#, non_blocking=True)
             r = torch.as_tensor(r).to(device)#, non_blocking=True)
             d = torch.as_tensor(d).to(device)#, non_blocking=True)
+            reward_components_terminal_np, reward_components_shaped_np = self._extract_step_reward_components(
+                info,
+                env_id_np,
+                np.clip(np.asarray(r.cpu().numpy(), dtype=np.float32), -1.0, 1.0),
+            )
+            reward_components_terminal = torch.as_tensor(reward_components_terminal_np, device=device)
+            reward_components_shaped = torch.as_tensor(reward_components_shaped_np, device=device)
 
             profile('eval_forward', epoch)
             with torch.no_grad(), self.amp_context:
@@ -286,8 +531,18 @@ class PuffeRL:
                 self.actions[batch_rows, l] = action
                 self.logprobs[batch_rows, l] = logprob
                 self.rewards[batch_rows, l] = r
+                self.terminal_reward_components[batch_rows, l] = reward_components_terminal
+                self.shaped_reward_components[batch_rows, l] = reward_components_shaped
                 self.terminals[batch_rows, l] = d.float()
                 self.values[batch_rows, l] = value.flatten()
+                if self._split_value_heads_enabled():
+                    terminal_value, shaped_value = self._component_values_from_state(
+                        state,
+                        self.values[batch_rows, l].shape,
+                    )
+                    self.terminal_values[batch_rows, l] = terminal_value.detach().float()
+                    self.shaped_values[batch_rows, l] = shaped_value.detach().float()
+                self._stamp_win_prob_rollout_metadata(batch_rows, l, env_id_np)
 
                 # Note: We are not yet handling masks in this version
                 self.ep_lengths[env_id] += 1
@@ -311,6 +566,7 @@ class PuffeRL:
                         self.stats[k].extend(v)
                     else:
                         self.stats[k].append(v)
+            self._assign_terminal_win_prob_targets(info, env_id_np, done_mask)
 
             profile('env', epoch)
             self.vecenv.send(action)
@@ -331,6 +587,13 @@ class PuffeRL:
         losses = defaultdict(float)
         config = self.config
         device = config['device']
+        win_prob_enabled = self._win_prob_aux_enabled()
+        split_value_enabled = self._split_value_heads_enabled()
+        win_prob_correct_sum = 0.0
+        win_prob_brier_sum = 0.0
+        win_prob_pred_sum = 0.0
+        win_prob_target_sum = 0.0
+        win_prob_example_count = 0
 
         b0 = config['prio_beta0']
         a = config['prio_alpha']
@@ -348,6 +611,33 @@ class PuffeRL:
             advantages = compute_puff_advantage(self.values, self.rewards,
                 self.terminals, self.ratio, advantages, config['gamma'],
                 config['gae_lambda'], config['vtrace_rho_clip'], config['vtrace_c_clip'])
+            terminal_advantages = None
+            shaped_advantages = None
+            if split_value_enabled:
+                terminal_advantages = torch.zeros(shape, device=device)
+                terminal_advantages = compute_puff_advantage(
+                    self.terminal_values,
+                    self.terminal_reward_components,
+                    self.terminals,
+                    self.ratio,
+                    terminal_advantages,
+                    config['gamma'],
+                    config['gae_lambda'],
+                    config['vtrace_rho_clip'],
+                    config['vtrace_c_clip'],
+                )
+                shaped_advantages = torch.zeros(shape, device=device)
+                shaped_advantages = compute_puff_advantage(
+                    self.shaped_values,
+                    self.shaped_reward_components,
+                    self.terminals,
+                    self.ratio,
+                    shaped_advantages,
+                    config['gamma'],
+                    config['gae_lambda'],
+                    config['vtrace_rho_clip'],
+                    config['vtrace_c_clip'],
+                )
 
             # Prioritize experience by advantage magnitude
             adv = advantages.abs().sum(axis=1)
@@ -367,6 +657,11 @@ class PuffeRL:
             mb_values = self.values[idx]
             mb_returns = advantages[idx] + mb_values
             mb_advantages = advantages[idx]
+            if split_value_enabled:
+                mb_terminal_values = self.terminal_values[idx]
+                mb_shaped_values = self.shaped_values[idx]
+                mb_terminal_returns = terminal_advantages[idx] + mb_terminal_values
+                mb_shaped_returns = shaped_advantages[idx] + mb_shaped_values
 
             profile('train_forward', epoch)
             if not config['use_rnn']:
@@ -408,28 +703,63 @@ class PuffeRL:
             pg_loss = torch.max(pg_loss1, pg_loss2).mean()
 
             newvalue = newvalue.view(mb_returns.shape)
-            v_clipped = mb_values + torch.clamp(newvalue - mb_values, -vf_clip, vf_clip)
-            v_loss_unclipped = (newvalue - mb_returns) ** 2
-            v_loss_clipped = (v_clipped - mb_returns) ** 2
-            v_loss = 0.5*torch.max(v_loss_unclipped, v_loss_clipped).mean()
+            total_v_loss = self._clipped_value_loss(newvalue, mb_values, mb_returns, vf_clip)
+            component_v_loss = torch.zeros((), device=device)
+            terminal_v_loss = torch.zeros((), device=device)
+            shaped_v_loss = torch.zeros((), device=device)
+            if split_value_enabled:
+                new_terminal_value, new_shaped_value = self._component_values_from_state(
+                    state,
+                    mb_returns.shape,
+                )
+                terminal_v_loss = self._clipped_value_loss(
+                    new_terminal_value,
+                    mb_terminal_values,
+                    mb_terminal_returns,
+                    vf_clip,
+                )
+                shaped_v_loss = self._clipped_value_loss(
+                    new_shaped_value,
+                    mb_shaped_values,
+                    mb_shaped_returns,
+                    vf_clip,
+                )
+                component_v_loss = 0.5 * (terminal_v_loss + shaped_v_loss)
 
             entropy_loss = entropy.mean()
+            win_prob_aux_loss, win_prob_aux_metrics = self._compute_win_prob_aux(state, idx)
 
-            loss = pg_loss + config['vf_coef']*v_loss - config['ent_coef']*entropy_loss
+            value_loss_for_optim = total_v_loss + self._split_value_component_coef() * component_v_loss
+            loss = pg_loss + config['vf_coef']*value_loss_for_optim - config['ent_coef']*entropy_loss + win_prob_aux_loss
             self.amp_context.__enter__() # TODO: AMP needs some debugging
 
             # This breaks vloss clipping?
             self.values[idx] = newvalue.detach().float()
+            if split_value_enabled:
+                self.terminal_values[idx] = new_terminal_value.detach().float()
+                self.shaped_values[idx] = new_shaped_value.detach().float()
 
             # Logging
             profile('train_misc', epoch)
             losses['policy_loss'] += pg_loss.item() / self.total_minibatches
-            losses['value_loss'] += v_loss.item() / self.total_minibatches
+            losses['value_loss'] += value_loss_for_optim.item() / self.total_minibatches
+            losses['value_loss_total'] += total_v_loss.item() / self.total_minibatches
+            if split_value_enabled:
+                losses['value_loss_terminal'] += terminal_v_loss.item() / self.total_minibatches
+                losses['value_loss_shaped'] += shaped_v_loss.item() / self.total_minibatches
             losses['entropy'] += entropy_loss.item() / self.total_minibatches
             losses['old_approx_kl'] += old_approx_kl.item() / self.total_minibatches
             losses['approx_kl'] += approx_kl.item() / self.total_minibatches
             losses['clipfrac'] += clipfrac.item() / self.total_minibatches
             losses['importance'] += ratio.mean().item() / self.total_minibatches
+            if win_prob_enabled:
+                losses['win_prob_aux_loss'] += win_prob_aux_metrics['raw_loss'] / self.total_minibatches
+                losses['win_prob_aux_labeled_frac'] += win_prob_aux_metrics['labeled_frac'] / self.total_minibatches
+                win_prob_correct_sum += win_prob_aux_metrics['correct_sum']
+                win_prob_brier_sum += win_prob_aux_metrics['brier_sum']
+                win_prob_pred_sum += win_prob_aux_metrics['pred_sum']
+                win_prob_target_sum += win_prob_aux_metrics['target_sum']
+                win_prob_example_count += win_prob_aux_metrics['example_count']
 
             # Learn on accumulated minibatches
             profile('learn', epoch)
@@ -449,6 +779,34 @@ class PuffeRL:
         var_y = y_true.var()
         explained_var = torch.nan if var_y == 0 else (1 - (y_true - y_pred).var() / var_y).item()
         losses['explained_variance'] = explained_var
+        if split_value_enabled:
+            terminal_y_pred = self.terminal_values.flatten()
+            terminal_y_true = terminal_advantages.flatten() + self.terminal_values.flatten()
+            terminal_var_y = terminal_y_true.var()
+            losses['explained_variance_terminal'] = (
+                torch.nan
+                if terminal_var_y == 0
+                else (1 - (terminal_y_true - terminal_y_pred).var() / terminal_var_y).item()
+            )
+            shaped_y_pred = self.shaped_values.flatten()
+            shaped_y_true = shaped_advantages.flatten() + self.shaped_values.flatten()
+            shaped_var_y = shaped_y_true.var()
+            losses['explained_variance_shaped'] = (
+                torch.nan
+                if shaped_var_y == 0
+                else (1 - (shaped_y_true - shaped_y_pred).var() / shaped_var_y).item()
+            )
+        if win_prob_enabled:
+            if win_prob_example_count > 0:
+                losses['win_prob_aux_accuracy'] = win_prob_correct_sum / win_prob_example_count
+                losses['win_prob_aux_brier'] = win_prob_brier_sum / win_prob_example_count
+                losses['win_prob_aux_pred_mean'] = win_prob_pred_sum / win_prob_example_count
+                losses['win_prob_aux_target_mean'] = win_prob_target_sum / win_prob_example_count
+            else:
+                losses['win_prob_aux_accuracy'] = 0.0
+                losses['win_prob_aux_brier'] = 0.0
+                losses['win_prob_aux_pred_mean'] = 0.0
+                losses['win_prob_aux_target_mean'] = 0.0
 
         profile.end()
         logs = None

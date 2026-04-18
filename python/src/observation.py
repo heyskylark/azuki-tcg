@@ -17,6 +17,7 @@ IKZ_PILE_SIZE = 10
 IKZ_AREA_SIZE = 10
 MAX_ATTACHED_WEAPONS = 10
 MAX_SELECTION_ZONE_SIZE = MAX_DECK_SIZE
+RECENT_ACTION_HISTORY_LEN = 4
 
 ACTION_TYPE_COUNT = 26
 SUBACTION_SELECTION_COUNT = MAX_DECK_SIZE
@@ -84,6 +85,13 @@ class _TrainingDiscardCardObservationData(ctypes.Structure):
     ]
 
 
+class _TrainingCriticPrivilegedCardObservationData(ctypes.Structure):
+    _fields_ = [
+        ("card_def_id", ctypes.c_int16),
+        ("zone_index", ctypes.c_uint8),
+    ]
+
+
 class _TrainingBoardCardObservationData(ctypes.Structure):
     _fields_ = [
         ("card_def_id", ctypes.c_int16),
@@ -143,6 +151,14 @@ class _TrainingOpponentObservationData(ctypes.Structure):
     ]
 
 
+class _TrainingCriticPrivilegedObservationData(ctypes.Structure):
+    _fields_ = [
+        ("opponent_hand", _TrainingCriticPrivilegedCardObservationData * MAX_HAND_SIZE),
+        ("self_deck", _TrainingCriticPrivilegedCardObservationData * MAX_DECK_SIZE),
+        ("opponent_deck", _TrainingCriticPrivilegedCardObservationData * MAX_DECK_SIZE),
+    ]
+
+
 class _TrainingActionMaskObs(ctypes.Structure):
     _fields_ = [
         ("primary_action_mask", ctypes.c_bool * ACTION_TYPE_COUNT),
@@ -169,12 +185,47 @@ class _TrainingAbilityContextObservationData(ctypes.Structure):
     ]
 
 
+class _TrainingRecentActionObservationData(ctypes.Structure):
+    _fields_ = [
+        ("valid", ctypes.c_bool),
+        ("primary", ctypes.c_uint8),
+        ("sub1", ctypes.c_uint8),
+        ("sub2", ctypes.c_uint8),
+        ("sub3", ctypes.c_uint8),
+        ("was_noop", ctypes.c_bool),
+    ]
+
+
+class _TrainingCombatContextObservationData(ctypes.Structure):
+    _fields_ = [
+        ("combat_active", ctypes.c_bool),
+        ("response_window_active", ctypes.c_bool),
+        ("defender_intercepted", ctypes.c_bool),
+        ("attacker_is_self", ctypes.c_bool),
+        ("attacker_is_leader", ctypes.c_bool),
+        ("attacker_is_garden", ctypes.c_bool),
+        ("attacker_is_alley", ctypes.c_bool),
+        ("attacker_card_def_id", ctypes.c_int16),
+        ("attacker_slot_index", ctypes.c_uint8),
+        ("target_is_self", ctypes.c_bool),
+        ("target_is_leader", ctypes.c_bool),
+        ("target_is_garden", ctypes.c_bool),
+        ("target_is_alley", ctypes.c_bool),
+        ("target_card_def_id", ctypes.c_int16),
+        ("target_slot_index", ctypes.c_uint8),
+    ]
+
+
 class _TrainingObservationData(ctypes.Structure):
     _fields_ = [
         ("my_observation_data", _TrainingMyObservationData),
         ("opponent_observation_data", _TrainingOpponentObservationData),
         ("phase", ctypes.c_int32),
         ("ability_context", _TrainingAbilityContextObservationData),
+        ("combat_context", _TrainingCombatContextObservationData),
+        ("self_recent_actions", _TrainingRecentActionObservationData * RECENT_ACTION_HISTORY_LEN),
+        ("opp_recent_actions", _TrainingRecentActionObservationData * RECENT_ACTION_HISTORY_LEN),
+        ("critic_privileged", _TrainingCriticPrivilegedObservationData),
         ("action_mask", _TrainingActionMaskObs),
     ]
 
@@ -264,6 +315,15 @@ def _discard_card_space() -> spaces.Dict:
     )
 
 
+def _critic_privileged_card_space() -> spaces.Dict:
+    return spaces.Dict(
+        {
+            "card_def_id": _scalar_box(CARD_DEF_MIN, CARD_DEF_MAX, dtype=np.int16),
+            "zone_index": _scalar_box(0, ZONE_INDEX_MAX, dtype=np.uint8),
+        }
+    )
+
+
 def _board_card_space() -> spaces.Dict:
     return spaces.Dict(
         {
@@ -314,6 +374,41 @@ def _ability_context_space() -> spaces.Dict:
     )
 
 
+def _recent_action_space() -> spaces.Dict:
+    return spaces.Dict(
+        {
+            "valid": _bool_space(),
+            "primary": spaces.Discrete(ACTION_TYPE_COUNT),
+            "sub1": _scalar_box(0, SUBACTION_SELECTION_COUNT - 1, dtype=np.uint8),
+            "sub2": _scalar_box(0, SUBACTION_SELECTION_COUNT - 1, dtype=np.uint8),
+            "sub3": _scalar_box(0, SUBACTION_SELECTION_COUNT - 1, dtype=np.uint8),
+            "was_noop": _bool_space(),
+        }
+    )
+
+
+def _combat_context_space() -> spaces.Dict:
+    return spaces.Dict(
+        {
+            "combat_active": _bool_space(),
+            "response_window_active": _bool_space(),
+            "defender_intercepted": _bool_space(),
+            "attacker_is_self": _bool_space(),
+            "attacker_is_leader": _bool_space(),
+            "attacker_is_garden": _bool_space(),
+            "attacker_is_alley": _bool_space(),
+            "attacker_card_def_id": _scalar_box(CARD_DEF_MIN, CARD_DEF_MAX, dtype=np.int16),
+            "attacker_slot_index": _scalar_box(0, ZONE_INDEX_MAX, dtype=np.uint8),
+            "target_is_self": _bool_space(),
+            "target_is_leader": _bool_space(),
+            "target_is_garden": _bool_space(),
+            "target_is_alley": _bool_space(),
+            "target_card_def_id": _scalar_box(CARD_DEF_MIN, CARD_DEF_MAX, dtype=np.int16),
+            "target_slot_index": _scalar_box(0, ZONE_INDEX_MAX, dtype=np.uint8),
+        }
+    )
+
+
 def _legal_actions_space() -> spaces.Dict:
     return spaces.Dict(
         {
@@ -331,6 +426,22 @@ def _action_mask_space() -> spaces.Dict:
             "primary_action_mask": spaces.MultiBinary(ACTION_TYPE_COUNT),
             "legal_action_count": spaces.Discrete(MAX_LEGAL_ACTIONS_COUNT),
             "legal_actions": _legal_actions_space(),
+        }
+    )
+
+
+def _critic_privileged_space() -> spaces.Dict:
+    return spaces.Dict(
+        {
+            "opponent_hand": spaces.Tuple(
+                tuple(_critic_privileged_card_space() for _ in range(MAX_HAND_SIZE))
+            ),
+            "self_deck": spaces.Tuple(
+                tuple(_critic_privileged_card_space() for _ in range(MAX_DECK_SIZE))
+            ),
+            "opponent_deck": spaces.Tuple(
+                tuple(_critic_privileged_card_space() for _ in range(MAX_DECK_SIZE))
+            ),
         }
     )
 
@@ -373,6 +484,14 @@ def build_observation_space() -> spaces.Dict:
         {
             "phase": spaces.Discrete(PHASE_COUNT),
             "ability_context": _ability_context_space(),
+            "combat_context": _combat_context_space(),
+            "self_recent_actions": spaces.Tuple(
+                tuple(_recent_action_space() for _ in range(RECENT_ACTION_HISTORY_LEN))
+            ),
+            "opp_recent_actions": spaces.Tuple(
+                tuple(_recent_action_space() for _ in range(RECENT_ACTION_HISTORY_LEN))
+            ),
+            "critic_privileged": _critic_privileged_space(),
             "player": player_space,
             "opponent": opponent_space,
             "action_mask": _action_mask_space(),
@@ -431,6 +550,13 @@ def _hand_card_to_dict(card: Any) -> dict[str, int]:
 
 
 def _discard_card_to_dict(card: Any) -> dict[str, int]:
+    return {
+        "card_def_id": int(getattr(card, "card_def_id", -1)),
+        "zone_index": int(getattr(card, "zone_index", 0)),
+    }
+
+
+def _critic_privileged_card_to_dict(card: Any) -> dict[str, int]:
     return {
         "card_def_id": int(getattr(card, "card_def_id", -1)),
         "zone_index": int(getattr(card, "zone_index", 0)),
@@ -528,6 +654,80 @@ def _ability_context_to_dict(ability_context: Any) -> dict[str, int]:
         "active_player_index": int(getattr(ability_context, "active_player_index", -1)),
     }
 
+
+def _recent_action_to_dict(action: Any) -> dict[str, int]:
+    valid = int(bool(getattr(action, "valid", 0)))
+    primary = int(getattr(action, "primary", 0))
+    sub1 = int(getattr(action, "sub1", 0))
+    sub2 = int(getattr(action, "sub2", 0))
+    sub3 = int(getattr(action, "sub3", 0))
+
+    if valid:
+        primary = max(0, min(primary, ACTION_TYPE_COUNT - 1))
+        sub1 = max(0, min(sub1, SUBACTION_SELECTION_COUNT - 1))
+        sub2 = max(0, min(sub2, SUBACTION_SELECTION_COUNT - 1))
+        sub3 = max(0, min(sub3, SUBACTION_SELECTION_COUNT - 1))
+    else:
+        primary = 0
+        sub1 = 0
+        sub2 = 0
+        sub3 = 0
+
+    return {
+        "valid": valid,
+        "primary": primary,
+        "sub1": sub1,
+        "sub2": sub2,
+        "sub3": sub3,
+        "was_noop": int(bool(getattr(action, "was_noop", 0))),
+    }
+
+
+def _recent_actions_to_tuple(actions: Sequence[Any]) -> tuple[dict[str, int], ...]:
+    return tuple(_recent_action_to_dict(action) for action in actions)
+
+
+def _combat_context_to_dict(combat_context: Any) -> dict[str, int]:
+    return {
+        "combat_active": int(bool(getattr(combat_context, "combat_active", 0))),
+        "response_window_active": int(
+            bool(getattr(combat_context, "response_window_active", 0))
+        ),
+        "defender_intercepted": int(
+            bool(getattr(combat_context, "defender_intercepted", 0))
+        ),
+        "attacker_is_self": int(bool(getattr(combat_context, "attacker_is_self", 0))),
+        "attacker_is_leader": int(bool(getattr(combat_context, "attacker_is_leader", 0))),
+        "attacker_is_garden": int(bool(getattr(combat_context, "attacker_is_garden", 0))),
+        "attacker_is_alley": int(bool(getattr(combat_context, "attacker_is_alley", 0))),
+        "attacker_card_def_id": int(getattr(combat_context, "attacker_card_def_id", -1)),
+        "attacker_slot_index": int(getattr(combat_context, "attacker_slot_index", 0)),
+        "target_is_self": int(bool(getattr(combat_context, "target_is_self", 0))),
+        "target_is_leader": int(bool(getattr(combat_context, "target_is_leader", 0))),
+        "target_is_garden": int(bool(getattr(combat_context, "target_is_garden", 0))),
+        "target_is_alley": int(bool(getattr(combat_context, "target_is_alley", 0))),
+        "target_card_def_id": int(getattr(combat_context, "target_card_def_id", -1)),
+        "target_slot_index": int(getattr(combat_context, "target_slot_index", 0)),
+    }
+
+
+def _critic_privileged_to_dict(critic_privileged: Any) -> dict[str, Any]:
+    return {
+        "opponent_hand": tuple(
+            _critic_privileged_card_to_dict(card)
+            for card in getattr(critic_privileged, "opponent_hand", ())
+        ),
+        "self_deck": tuple(
+            _critic_privileged_card_to_dict(card)
+            for card in getattr(critic_privileged, "self_deck", ())
+        ),
+        "opponent_deck": tuple(
+            _critic_privileged_card_to_dict(card)
+            for card in getattr(critic_privileged, "opponent_deck", ())
+        ),
+    }
+
+
 def observation_to_dict(observation: Any) -> dict[str, Any]:
     """Convert a ctypes/cffi TrainingObservationData into pure Python primitives."""
 
@@ -567,6 +767,18 @@ def observation_to_dict(observation: Any) -> dict[str, Any]:
         "phase": int(getattr(observation, "phase", 0)),
         "ability_context": _ability_context_to_dict(
             getattr(observation, "ability_context", None)
+        ),
+        "combat_context": _combat_context_to_dict(
+            getattr(observation, "combat_context", None)
+        ),
+        "self_recent_actions": _recent_actions_to_tuple(
+            getattr(observation, "self_recent_actions", ())
+        ),
+        "opp_recent_actions": _recent_actions_to_tuple(
+            getattr(observation, "opp_recent_actions", ())
+        ),
+        "critic_privileged": _critic_privileged_to_dict(
+            getattr(observation, "critic_privileged", None)
         ),
         "player": player_dict,
         "opponent": opponent_dict,

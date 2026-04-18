@@ -157,13 +157,38 @@ static void record_tick_profile(
   maybe_report_tick_profile();
 }
 
+#define AZK_ENGINE_INIT_AUTO_TICK_LIMIT 128
+
+static AzkEngine *stabilize_new_engine(AzkEngine *engine) {
+  if (engine == NULL) {
+    return NULL;
+  }
+
+  int auto_ticks = 0;
+  while (!azk_engine_requires_action(engine) &&
+         !azk_engine_is_game_over(engine)) {
+    azk_engine_tick(engine);
+    auto_ticks++;
+    if (auto_ticks >= AZK_ENGINE_INIT_AUTO_TICK_LIMIT) {
+      fprintf(stderr,
+              "[EngineInit] exceeded init auto-tick limit (%d) while "
+              "stabilizing new engine\n",
+              AZK_ENGINE_INIT_AUTO_TICK_LIMIT);
+      break;
+    }
+  }
+
+  return engine;
+}
+
 AzkEngine *azk_engine_create(uint32_t seed) {
-  return azk_world_init(seed);
+  return stabilize_new_engine(azk_world_init(seed));
 }
 
 AzkEngine *azk_engine_create_with_starting_player(uint32_t seed,
                                                   int8_t starting_player_index) {
-  return azk_world_init_with_starting_player(seed, starting_player_index);
+  return stabilize_new_engine(
+      azk_world_init_with_starting_player(seed, starting_player_index));
 }
 
 AzkEngine *azk_engine_create_with_decks(
@@ -173,8 +198,22 @@ AzkEngine *azk_engine_create_with_decks(
   const CardInfo *player1_deck,
   size_t player1_deck_count
 ) {
-  return azk_world_init_with_decks(seed, player0_deck, player0_deck_count,
-                                   player1_deck, player1_deck_count);
+  return azk_engine_create_with_decks_and_starting_player(
+      seed, -1, player0_deck, player0_deck_count, player1_deck,
+      player1_deck_count);
+}
+
+AzkEngine *azk_engine_create_with_decks_and_starting_player(
+  uint32_t seed,
+  int8_t starting_player_index,
+  const CardInfo *player0_deck,
+  size_t player0_deck_count,
+  const CardInfo *player1_deck,
+  size_t player1_deck_count
+) {
+  return stabilize_new_engine(azk_world_init_with_decks_and_starting_player(
+      seed, starting_player_index, player0_deck, player0_deck_count,
+      player1_deck, player1_deck_count));
 }
 
 void azk_engine_destroy(AzkEngine *engine) {

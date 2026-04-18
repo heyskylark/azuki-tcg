@@ -15,6 +15,7 @@ from observation import (
   build_observation_space,
   observation_to_dict,
 )
+from training_deck_pool import NativeDeckPool
 
 def _env_int(name: str, default: int) -> int:
   raw = os.getenv(name)
@@ -34,7 +35,7 @@ class AzukiTCGParallel(ParallelEnv):
     "name": "azuki_tcg_parallel_v0",
   }
 
-  def __init__(self, seed: int | None = None) -> None:
+  def __init__(self, seed: int | None = None, deck_pool: NativeDeckPool | None = None) -> None:
     super().__init__()
     self.render_mode = "ansi"
     self.np_random = np.random.default_rng(seed)
@@ -56,6 +57,8 @@ class AzukiTCGParallel(ParallelEnv):
       dtype=np.int32,
     )
     self._rewards = np.zeros(self._agent_count, dtype=np.float32)
+    self._terminal_rewards = np.zeros(self._agent_count, dtype=np.float32)
+    self._shaped_rewards = np.zeros(self._agent_count, dtype=np.float32)
     self._terminals = np.zeros(self._agent_count, dtype=np.bool_)
     self._truncations = np.zeros(self._agent_count, dtype=np.bool_)
 
@@ -69,14 +72,22 @@ class AzukiTCGParallel(ParallelEnv):
       sample_every=_env_int("AZK_OBS_DEBUG_SAMPLE_EVERY", 1),
       possible_agents=self.possible_agents,
     )
+    self._deck_pool_count = 0
+    self._current_deck_indices = tuple(-1 for _ in self.possible_agents)
 
+    init_kwargs = {}
+    if deck_pool is not None:
+      init_kwargs["deck_pool"] = deck_pool
     self.c_envs = binding.env_init(
       self._observations,
       self._actions,
       self._rewards,
+      self._terminal_rewards,
+      self._shaped_rewards,
       self._terminals,
       self._truncations,
       int(seed or 0),
+      **init_kwargs,
     )
 
   def observation_space(self, agent):
@@ -94,10 +105,32 @@ class AzukiTCGParallel(ParallelEnv):
       for idx, agent in enumerate(self.possible_agents)
     }
 
+  def _refresh_deck_state(self):
+    env_state = binding.env_get(self.c_envs) or {}
+    deck_indices = env_state.get("current_deck_indices", [])
+    if isinstance(deck_indices, list) and len(deck_indices) == self._agent_count:
+      self._current_deck_indices = tuple(int(index) for index in deck_indices)
+    deck_pool_count = env_state.get("deck_pool_count")
+    if deck_pool_count is not None:
+      self._deck_pool_count = int(deck_pool_count)
+
+  def _inject_deck_usage_metrics(self, stats: dict, player_index: int):
+    if self._deck_pool_count <= 0:
+      return
+    selected_index = self._current_deck_indices[player_index]
+    for deck_index in range(self._deck_pool_count):
+      stats[f"azk_deck_{deck_index:02d}_selected_rate"] = 1.0 if deck_index == selected_index else 0.0
+
   def _sync_done_flags(self):
     for idx, agent in enumerate(self.possible_agents):
       self.terminations[agent] = bool(self._terminals[idx])
       self.truncations[agent] = bool(self._truncations[idx])
+
+  def _inject_step_reward_metrics(self):
+    for idx, agent in enumerate(self.possible_agents):
+      step_info = self.infos.setdefault(agent, {})
+      step_info["azk_step_terminal_reward"] = float(self._terminal_rewards[idx])
+      step_info["azk_step_shaped_reward"] = float(self._shaped_rewards[idx])
 
   def _sync_active_player(self):
     active_idx = binding.env_active_player(self.c_envs)
@@ -120,6 +153,7 @@ class AzukiTCGParallel(ParallelEnv):
         "azk_episode_length": float(log.get("episode_length", 0.0)),
         "azk_timeout_truncation": float(log.get("timeout_truncation_rate", 0.0)),
         "azk_auto_tick_truncation": float(log.get("auto_tick_truncation_rate", 0.0)),
+        "azk_zero_legal_action_truncation": float(log.get("zero_legal_action_truncation_rate", 0.0)),
         "azk_gameover_terminal": float(log.get("gameover_terminal_rate", 0.0)),
         "azk_winner_terminal": float(log.get("winner_terminal_rate", 0.0)),
         "azk_curriculum_episode_cap": float(log.get("curriculum_episode_cap", 0.0)),
@@ -146,6 +180,7 @@ class AzukiTCGParallel(ParallelEnv):
         "azk_episode_length": float(log.get("episode_length", 0.0)),
         "azk_timeout_truncation": float(log.get("timeout_truncation_rate", 0.0)),
         "azk_auto_tick_truncation": float(log.get("auto_tick_truncation_rate", 0.0)),
+        "azk_zero_legal_action_truncation": float(log.get("zero_legal_action_truncation_rate", 0.0)),
         "azk_gameover_terminal": float(log.get("gameover_terminal_rate", 0.0)),
         "azk_winner_terminal": float(log.get("winner_terminal_rate", 0.0)),
         "azk_curriculum_episode_cap": float(log.get("curriculum_episode_cap", 0.0)),
@@ -165,7 +200,8 @@ class AzukiTCGParallel(ParallelEnv):
         "azk_target_selected_rate": float(log.get("p1_target_selected_rate", 0.0)),
       },
     )
-    for agent, stats in zip(self.possible_agents, per_agent_stats):
+    for player_index, (agent, stats) in enumerate(zip(self.possible_agents, per_agent_stats)):
+      self._inject_deck_usage_metrics(stats, player_index)
       self.infos[agent].update(stats)
     for agent, debug_stats in self._obs_debug.episode_metrics().items():
       if agent in self.infos:
@@ -180,8 +216,11 @@ class AzukiTCGParallel(ParallelEnv):
     binding.env_reset(self.c_envs, seed)
     self._actions.fill(0)
     self._rewards.fill(0.0)
+    self._terminal_rewards.fill(0.0)
+    self._shaped_rewards.fill(0.0)
     self._terminals.fill(False)
     self._truncations.fill(False)
+    self._refresh_deck_state()
 
     self.agents = self.possible_agents[:]
     self.rewards = {agent: 0.0 for agent in self.possible_agents}
@@ -216,6 +255,8 @@ class AzukiTCGParallel(ParallelEnv):
 
     for idx, agent in enumerate(self.possible_agents):
       self.rewards[agent] = float(self._rewards[idx])
+      self.infos.setdefault(agent, {})
+    self._inject_step_reward_metrics()
 
     self._sync_done_flags()
     all_done = all(

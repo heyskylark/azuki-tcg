@@ -307,6 +307,9 @@ class MultiagentEpisodeStats(PettingZooWrapper):
 
             agent_info = {}
             all_infos[agent] = agent_info
+            for k, v in infos[agent].items():
+                if isinstance(k, str) and k.startswith("azk_step_"):
+                    agent_info[k] = v
             if terminations[agent] or truncations[agent]:
                 for k, v in self.infos[agent].items():
                     try:

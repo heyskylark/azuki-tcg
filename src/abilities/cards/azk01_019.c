@@ -16,11 +16,17 @@ typedef struct {
 static bool owner_garden_has_only_normal_entities(ecs_world_t *world,
                                                   uint8_t player_num) {
   const GameState *gs = ecs_singleton_get(world, GameState);
+  if (gs == NULL) {
+    return false;
+  }
   ecs_entities_t cards =
       ecs_get_ordered_children(world, gs->zones[player_num].garden);
 
   for (int32_t i = 0; i < cards.count; i++) {
     ecs_entity_t entity = cards.ids[i];
+    if (entity == 0 || !ecs_is_valid(world, entity)) {
+      continue;
+    }
     if (!is_card_type(world, entity, CARD_TYPE_ENTITY) ||
         !is_normal_element_card(world, entity)) {
       return false;
@@ -33,6 +39,9 @@ static bool owner_garden_has_only_normal_entities(ecs_world_t *world,
 static bool card_is_in_play(ecs_world_t *world, ecs_entity_t card,
                             uint8_t player_num) {
   const GameState *gs = ecs_singleton_get(world, GameState);
+  if (gs == NULL || card == 0 || !ecs_is_valid(world, card)) {
+    return false;
+  }
   ecs_entity_t parent = ecs_get_target(world, card, EcsChildOf, 0);
   return parent == gs->zones[player_num].garden ||
          parent == gs->zones[player_num].alley;

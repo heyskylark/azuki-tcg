@@ -50,6 +50,8 @@ class AzukiNativePufferEnv(PufferEnv):
     super().__init__(buf)
 
     if self.num_matches == 1:
+      self._terminal_rewards = np.zeros_like(self.rewards)
+      self._shaped_rewards = np.zeros_like(self.rewards)
       self._observations_view = self.observations.reshape(
         MAX_PLAYERS_PER_MATCH,
         OBSERVATION_STRUCT_SIZE,
@@ -62,6 +64,8 @@ class AzukiNativePufferEnv(PufferEnv):
         self._observations_view,
         self._actions_view,
         self.rewards,
+        self._terminal_rewards,
+        self._shaped_rewards,
         self.terminals,
         self.truncations,
         self._seed,
@@ -71,6 +75,8 @@ class AzukiNativePufferEnv(PufferEnv):
       self._terminals_view = self.terminals
       self._truncations_view = self.truncations
     else:
+      self._terminal_rewards = np.zeros_like(self.rewards)
+      self._shaped_rewards = np.zeros_like(self.rewards)
       self._observations_view = self.observations.reshape(
         self.num_matches,
         MAX_PLAYERS_PER_MATCH,
@@ -82,6 +88,14 @@ class AzukiNativePufferEnv(PufferEnv):
         ACTION_COMPONENT_COUNT,
       )
       self._rewards_view = self.rewards.reshape(
+        self.num_matches,
+        MAX_PLAYERS_PER_MATCH,
+      )
+      self._terminal_rewards_view = self._terminal_rewards.reshape(
+        self.num_matches,
+        MAX_PLAYERS_PER_MATCH,
+      )
+      self._shaped_rewards_view = self._shaped_rewards.reshape(
         self.num_matches,
         MAX_PLAYERS_PER_MATCH,
       )
@@ -97,6 +111,8 @@ class AzukiNativePufferEnv(PufferEnv):
         self._observations_view,
         self._actions_view,
         self._rewards_view,
+        self._terminal_rewards_view,
+        self._shaped_rewards_view,
         self._terminals_view,
         self._truncations_view,
         self.num_matches,
@@ -132,6 +148,8 @@ class AzukiNativePufferEnv(PufferEnv):
       binding.vec_reset(self._vec_handle, self._seed)
 
     self.rewards[:] = 0.0
+    self._terminal_rewards[:] = 0.0
+    self._shaped_rewards[:] = 0.0
     self.terminals[:] = False
     self.truncations[:] = False
     self.masks[:] = True

@@ -48,8 +48,8 @@ static Env* unpack_env(PyObject* args) {
 
 // Python function to initialize the environment
 static PyObject* env_init(PyObject* self, PyObject* args, PyObject* kwargs) {
-    if (PyTuple_Size(args) != 6) {
-        PyErr_SetString(PyExc_TypeError, "Environment requires 5 arguments");
+    if (PyTuple_Size(args) != 8) {
+        PyErr_SetString(PyExc_TypeError, "Environment requires 8 positional arguments");
         return NULL;
     }
 
@@ -103,7 +103,39 @@ static PyObject* env_init(PyObject* self, PyObject* args, PyObject* kwargs) {
     }
     env->rewards = PyArray_DATA(rewards);
 
-    PyObject* term = PyTuple_GetItem(args, 3);
+    PyObject* term_rew = PyTuple_GetItem(args, 3);
+    if (!PyObject_TypeCheck(term_rew, &PyArray_Type)) {
+        PyErr_SetString(PyExc_TypeError, "Terminal reward components must be a NumPy array");
+        return NULL;
+    }
+    PyArrayObject* terminal_rewards = (PyArrayObject*)term_rew;
+    if (!PyArray_ISCONTIGUOUS(terminal_rewards)) {
+        PyErr_SetString(PyExc_ValueError, "Terminal reward components must be contiguous");
+        return NULL;
+    }
+    if (PyArray_NDIM(terminal_rewards) < 1) {
+        PyErr_SetString(PyExc_ValueError, "Terminal reward components must have at least one dimension");
+        return NULL;
+    }
+    env->terminal_rewards = PyArray_DATA(terminal_rewards);
+
+    PyObject* shaped_rew = PyTuple_GetItem(args, 4);
+    if (!PyObject_TypeCheck(shaped_rew, &PyArray_Type)) {
+        PyErr_SetString(PyExc_TypeError, "Shaped reward components must be a NumPy array");
+        return NULL;
+    }
+    PyArrayObject* shaped_rewards = (PyArrayObject*)shaped_rew;
+    if (!PyArray_ISCONTIGUOUS(shaped_rewards)) {
+        PyErr_SetString(PyExc_ValueError, "Shaped reward components must be contiguous");
+        return NULL;
+    }
+    if (PyArray_NDIM(shaped_rewards) < 1) {
+        PyErr_SetString(PyExc_ValueError, "Shaped reward components must have at least one dimension");
+        return NULL;
+    }
+    env->shaped_rewards = PyArray_DATA(shaped_rewards);
+
+    PyObject* term = PyTuple_GetItem(args, 5);
     if (!PyObject_TypeCheck(term, &PyArray_Type)) {
         PyErr_SetString(PyExc_TypeError, "Terminals must be a NumPy array");
         return NULL;
@@ -119,7 +151,7 @@ static PyObject* env_init(PyObject* self, PyObject* args, PyObject* kwargs) {
     }
     env->terminals = PyArray_DATA(terminals);
 
-    PyObject* trunc = PyTuple_GetItem(args, 4);
+    PyObject* trunc = PyTuple_GetItem(args, 6);
     if (!PyObject_TypeCheck(trunc, &PyArray_Type)) {
         PyErr_SetString(PyExc_TypeError, "Truncations must be a NumPy array");
         return NULL;
@@ -136,7 +168,7 @@ static PyObject* env_init(PyObject* self, PyObject* args, PyObject* kwargs) {
     env->truncations = PyArray_DATA(truncations);
     
     
-    PyObject* seed_arg = PyTuple_GetItem(args, 5);
+    PyObject* seed_arg = PyTuple_GetItem(args, 7);
     if (!PyObject_TypeCheck(seed_arg, &PyLong_Type)) {
         PyErr_SetString(PyExc_TypeError, "seed must be an integer");
         return NULL;
@@ -164,9 +196,11 @@ static PyObject* env_init(PyObject* self, PyObject* args, PyObject* kwargs) {
     Py_DECREF(py_seed);
 
     PyObject* empty_args = PyTuple_New(0);
-    my_init(env, empty_args, kwargs);
+    int init_result = my_init(env, empty_args, kwargs);
+    Py_DECREF(empty_args);
     Py_DECREF(kwargs);
-    if (PyErr_Occurred()) {
+    if (init_result != 0 || PyErr_Occurred()) {
+        free(env);
         return NULL;
     }
 
@@ -191,6 +225,7 @@ static PyObject* env_reset(PyObject* self, PyObject* args) {
     }
     env->seed = PyLong_AsLong(seed_arg);
     env->starter_rng_state = starter_seed_from_env_seed(env->seed);
+    env->deck_rng_state = deck_seed_from_env_seed(env->seed);
     c_reset(env);
     Py_RETURN_NONE;
 }
@@ -345,8 +380,8 @@ static VecEnv* unpack_vecenv(PyObject* args) {
 }
 
 static PyObject* vec_init(PyObject* self, PyObject* args, PyObject* kwargs) {
-    if (PyTuple_Size(args) != 7) {
-        PyErr_SetString(PyExc_TypeError, "vec_init requires 6 arguments");
+    if (PyTuple_Size(args) != 9) {
+        PyErr_SetString(PyExc_TypeError, "vec_init requires 9 arguments");
         return NULL;
     }
 
@@ -355,7 +390,7 @@ static PyObject* vec_init(PyObject* self, PyObject* args, PyObject* kwargs) {
         PyErr_SetString(PyExc_MemoryError, "Failed to allocate vec env");
         return NULL;
     }
-    PyObject* num_envs_arg = PyTuple_GetItem(args, 5);
+    PyObject* num_envs_arg = PyTuple_GetItem(args, 7);
     if (!PyObject_TypeCheck(num_envs_arg, &PyLong_Type)) {
         PyErr_SetString(PyExc_TypeError, "num_envs must be an integer");
         return NULL;
@@ -372,7 +407,7 @@ static PyObject* vec_init(PyObject* self, PyObject* args, PyObject* kwargs) {
         return NULL;
     }
 
-    PyObject* seed_obj = PyTuple_GetItem(args, 6);
+    PyObject* seed_obj = PyTuple_GetItem(args, 8);
     if (!PyObject_TypeCheck(seed_obj, &PyLong_Type)) {
         PyErr_SetString(PyExc_TypeError, "seed must be an integer");
         return NULL;
@@ -424,7 +459,37 @@ static PyObject* vec_init(PyObject* self, PyObject* args, PyObject* kwargs) {
         return NULL;
     }
 
-    PyObject* term = PyTuple_GetItem(args, 3);
+    PyObject* term_rew = PyTuple_GetItem(args, 3);
+    if (!PyObject_TypeCheck(term_rew, &PyArray_Type)) {
+        PyErr_SetString(PyExc_TypeError, "Terminal reward components must be a NumPy array");
+        return NULL;
+    }
+    PyArrayObject* terminal_rewards = (PyArrayObject*)term_rew;
+    if (!PyArray_ISCONTIGUOUS(terminal_rewards)) {
+        PyErr_SetString(PyExc_ValueError, "Terminal reward components must be contiguous");
+        return NULL;
+    }
+    if (PyArray_NDIM(terminal_rewards) < 1) {
+        PyErr_SetString(PyExc_ValueError, "Terminal reward components must have at least one dimension");
+        return NULL;
+    }
+
+    PyObject* shaped_rew = PyTuple_GetItem(args, 4);
+    if (!PyObject_TypeCheck(shaped_rew, &PyArray_Type)) {
+        PyErr_SetString(PyExc_TypeError, "Shaped reward components must be a NumPy array");
+        return NULL;
+    }
+    PyArrayObject* shaped_rewards = (PyArrayObject*)shaped_rew;
+    if (!PyArray_ISCONTIGUOUS(shaped_rewards)) {
+        PyErr_SetString(PyExc_ValueError, "Shaped reward components must be contiguous");
+        return NULL;
+    }
+    if (PyArray_NDIM(shaped_rewards) < 1) {
+        PyErr_SetString(PyExc_ValueError, "Shaped reward components must have at least one dimension");
+        return NULL;
+    }
+
+    PyObject* term = PyTuple_GetItem(args, 5);
     if (!PyObject_TypeCheck(term, &PyArray_Type)) {
         PyErr_SetString(PyExc_TypeError, "Terminals must be a NumPy array");
         return NULL;
@@ -439,7 +504,7 @@ static PyObject* vec_init(PyObject* self, PyObject* args, PyObject* kwargs) {
         return NULL;
     }
 
-    PyObject* trunc = PyTuple_GetItem(args, 4);
+    PyObject* trunc = PyTuple_GetItem(args, 6);
     if (!PyObject_TypeCheck(trunc, &PyArray_Type)) {
         PyErr_SetString(PyExc_TypeError, "Truncations must be a NumPy array");
         return NULL;
@@ -476,6 +541,8 @@ static PyObject* vec_init(PyObject* self, PyObject* args, PyObject* kwargs) {
         env->observations = (void*)((char*)PyArray_DATA(observations) + i*PyArray_STRIDE(observations, 0));
         env->actions = (void*)((char*)PyArray_DATA(actions) + i*PyArray_STRIDE(actions, 0));
         env->rewards = (void*)((char*)PyArray_DATA(rewards) + i*PyArray_STRIDE(rewards, 0));
+        env->terminal_rewards = (void*)((char*)PyArray_DATA(terminal_rewards) + i*PyArray_STRIDE(terminal_rewards, 0));
+        env->shaped_rewards = (void*)((char*)PyArray_DATA(shaped_rewards) + i*PyArray_STRIDE(shaped_rewards, 0));
         env->terminals = (void*)((char*)PyArray_DATA(terminals) + i*PyArray_STRIDE(terminals, 0));
         env->truncations = (void*)((char*)PyArray_DATA(truncations) + i*PyArray_STRIDE(truncations, 0));
 
@@ -562,6 +629,7 @@ static PyObject* vec_reset(PyObject* self, PyObject* args) {
         srand((unsigned int)env_seed);
         vec->envs[i]->seed = env_seed;
         vec->envs[i]->starter_rng_state = starter_seed_from_env_seed(env_seed);
+        vec->envs[i]->deck_rng_state = deck_seed_from_env_seed(env_seed);
         c_reset(vec->envs[i]);
     }
     Py_RETURN_NONE;

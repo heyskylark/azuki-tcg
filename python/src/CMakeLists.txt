@@ -13,6 +13,7 @@ set(AZUKI_PUFFER_ENV_SOURCES
 )
 
 add_library(azuki_puffer_env MODULE ${AZUKI_PUFFER_ENV_SOURCES})
+target_sources(azuki_puffer_env PRIVATE $<TARGET_OBJECTS:azuki_obj>)
 set_target_properties(azuki_puffer_env PROPERTIES
   OUTPUT_NAME binding
   PREFIX ""
@@ -24,7 +25,8 @@ target_include_directories(azuki_puffer_env PRIVATE
 )
 
 target_link_libraries(azuki_puffer_env PRIVATE
-  azuki_lib
+  ${AZUKI_FLECS_TARGET}
+  ${CURSES_LIBRARIES}
   Python3::Python
   Python3::NumPy
 )

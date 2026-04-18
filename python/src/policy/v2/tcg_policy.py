@@ -11,13 +11,15 @@ from observation import (
   MAX_ATTACHED_WEAPONS,
   MAX_DECK_SIZE,
   MAX_HAND_SIZE,
+  RECENT_ACTION_HISTORY_LEN,
   MAX_SELECTION_ZONE_SIZE,
 )
-from policy.static_card_table import load_policy_static_card_table
+from policy.card_metadata_table import load_policy_card_metadata_table
 from policy.tcg_distribution import TCGActionDistribution
 
 MAX_PLAYERS_PER_MATCH = 2
 CARD_TYPE_COUNT = 7
+ELEMENT_COUNT = 5
 GAME_PHASE_COUNT = 8
 ABILITY_PHASE_COUNT = 6
 PRIMARY_ACTION_COUNT = ACTION_TYPE_COUNT
@@ -28,18 +30,41 @@ ACT_NOOP = 0
 ACT_ATTACK = 6
 ACT_ATTACH_WEAPON_FROM_HAND = 7
 
-CARD_DEF_ENC_OUTPUT_SIZE = 16
 CARD_TYPE_ENC_OUTPUT_SIZE = 4
+ELEMENT_ENC_OUTPUT_SIZE = 4
 ABILITY_TIMING_ENC_OUTPUT_SIZE = 4
 INDEX_ENC_OUTPUT_SIZE = 8
 PHASE_ENC_OUTPUT_SIZE = 4
 ABILITY_PHASE_ENC_OUTPUT_SIZE = 4
-PREV_PRIMARY_ENC_OUTPUT_SIZE = 8
-PREV_SUBACTION_ENC_OUTPUT_SIZE = 8
+NAME_TEXT_ENC_OUTPUT_SIZE = 16
+EFFECT_TEXT_ENC_OUTPUT_SIZE = 24
+SUBTYPE_TEXT_ENC_OUTPUT_SIZE = 16
+KEYWORD_FEATURE_ENC_OUTPUT_SIZE = 16
+CARD_METADATA_EMBED_SIZE = 48
+ACTION_HISTORY_PRIMARY_ENC_OUTPUT_SIZE = 8
+ACTION_HISTORY_SUBACTION_ENC_OUTPUT_SIZE = 8
+ACTION_HISTORY_STEP_EMBED_SIZE = 16
+ACTION_HISTORY_PLAYER_EMBED_SIZE = 32
 UNIT_EMBED_SIZE = 64
+CRITIC_HEAD_TYPE_SHARED_PRIMARY = "shared_primary"
+CRITIC_HEAD_TYPE_FULL_LSTM_MLP = "full_lstm_mlp"
+CRITIC_MLP_HIDDEN_SIZE = 512
+CRITIC_MLP_PROJECTION_SIZE = 128
+WIN_PROB_AUX_COEF_DEFAULT = 0.1
+SPLIT_VALUE_COMPONENT_COEF_DEFAULT = 0.5
+PRIVILEGED_CRITIC_ENABLED_DEFAULT = False
+PRIVILEGED_CRITIC_TOKEN_SCALAR_SIZE = 2
+PRIVILEGED_CRITIC_EMBED_DIM = UNIT_EMBED_SIZE
+PRIVILEGED_CRITIC_DECK_HEADS = 4
+PRIVILEGED_CRITIC_DECK_LAYERS = 2
+PRIVILEGED_CRITIC_DECK_FF_SIZE = 256
+PRIVILEGED_CRITIC_FUSION_HIDDEN_SIZE = CRITIC_MLP_HIDDEN_SIZE
+PRIVILEGED_CRITIC_FUSION_PROJECTION_SIZE = CRITIC_MLP_PROJECTION_SIZE
+PRIVILEGED_CRITIC_FEATURE_SCALE_DEFAULT = 1.0
 
 PROCESS_SET_HIDDEN_SIZE = 128
 LSTM_HIDDEN_SIZE = 4096
+POLICY_MODEL_VERSION_METADATA_V1 = "metadata_v1"
 
 
 def _numpy_dtype_to_torch(dtype: np.dtype) -> torch.dtype:
@@ -230,6 +255,59 @@ class SingleUnitProjection(nn.Module):
     return self.fc2(self.act(self.fc1(x)))
 
 
+class MaskedTransformerDeckEncoder(nn.Module):
+  def __init__(
+    self,
+    model_dim: int = UNIT_EMBED_SIZE,
+    *,
+    num_heads: int = PRIVILEGED_CRITIC_DECK_HEADS,
+    num_layers: int = PRIVILEGED_CRITIC_DECK_LAYERS,
+    ff_size: int = PRIVILEGED_CRITIC_DECK_FF_SIZE,
+  ):
+    super().__init__()
+    self.model_dim = int(model_dim)
+    encoder_layer = nn.TransformerEncoderLayer(
+      d_model=model_dim,
+      nhead=num_heads,
+      dim_feedforward=ff_size,
+      dropout=0.0,
+      activation="gelu",
+      batch_first=True,
+      norm_first=True,
+    )
+    self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+    self.cls_token = nn.Parameter(torch.zeros(1, 1, model_dim))
+    self.output_norm = nn.LayerNorm(model_dim)
+    self.reset_parameters()
+
+  def reset_parameters(self) -> None:
+    for module in self.encoder.modules():
+      if module is self.encoder:
+        continue
+      reset_parameters = getattr(module, "reset_parameters", None)
+      if callable(reset_parameters):
+        reset_parameters()
+    self.output_norm.reset_parameters()
+    nn.init.normal_(self.cls_token, std=0.02)
+
+  def forward(self, tokens: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+    if tokens.dim() != 3:
+      raise ValueError(f"Deck tokens must be rank 3, got shape {tuple(tokens.shape)}")
+
+    batch_size = tokens.shape[0]
+    cls = self.cls_token.expand(batch_size, -1, -1)
+    sequence = torch.cat([cls, tokens], dim=1)
+
+    if mask.dim() != 2:
+      raise ValueError(f"Deck mask must be rank 2, got shape {tuple(mask.shape)}")
+    cls_mask = torch.ones((batch_size, 1), device=mask.device, dtype=torch.bool)
+    valid_mask = torch.cat([cls_mask, mask.to(dtype=torch.bool)], dim=1)
+    key_padding_mask = ~valid_mask
+
+    encoded = self.encoder(sequence, src_key_padding_mask=key_padding_mask)
+    return self.output_norm(encoded[:, 0, :])
+
+
 class TCGLSTM(LSTMWrapper):
   def __init__(self, env, policy, input_size=None, hidden_size=LSTM_HIDDEN_SIZE):
     if input_size is None:
@@ -262,6 +340,15 @@ class TCGLSTM(LSTMWrapper):
     state["lstm_h"] = hidden
     state["lstm_c"] = c
     logits, values = self.policy.decode_actions(hidden, target_matrix=target_matrix, state=state)
+    win_prob_logits = state.get("_azk_win_prob_logits")
+    if torch.is_tensor(win_prob_logits):
+      state["_azk_win_prob_logits"] = win_prob_logits.reshape(batch_size)
+    terminal_value = state.get("_azk_value_terminal")
+    if torch.is_tensor(terminal_value):
+      state["_azk_value_terminal"] = terminal_value.reshape(batch_size)
+    shaped_value = state.get("_azk_value_shaped")
+    if torch.is_tensor(shaped_value):
+      state["_azk_value_shaped"] = shaped_value.reshape(batch_size)
     return logits, values
 
   def forward(self, observations, state):
@@ -297,6 +384,15 @@ class TCGLSTM(LSTMWrapper):
     flat_hidden = hidden.reshape(B * TT, self.hidden_size)
     logits, values = self.policy.decode_actions(flat_hidden, target_matrix=target_matrix, state=state)
     values = values.reshape(B, TT)
+    win_prob_logits = state.get("_azk_win_prob_logits")
+    if torch.is_tensor(win_prob_logits):
+      state["_azk_win_prob_logits"] = win_prob_logits.reshape(B, TT)
+    terminal_value = state.get("_azk_value_terminal")
+    if torch.is_tensor(terminal_value):
+      state["_azk_value_terminal"] = terminal_value.reshape(B, TT)
+    shaped_value = state.get("_azk_value_shaped")
+    if torch.is_tensor(shaped_value):
+      state["_azk_value_shaped"] = shaped_value.reshape(B, TT)
     state["hidden"] = hidden
     state["lstm_h"] = lstm_h.detach()
     state["lstm_c"] = lstm_c.detach()
@@ -304,37 +400,157 @@ class TCGLSTM(LSTMWrapper):
 
 
 class TCG(nn.Module):
-  def __init__(self, env, **kwargs):
+  def __init__(
+    self,
+    env,
+    *,
+    model_version: str = POLICY_MODEL_VERSION_METADATA_V1,
+    critic_head_type: str = CRITIC_HEAD_TYPE_FULL_LSTM_MLP,
+    privileged_critic_enabled: bool = PRIVILEGED_CRITIC_ENABLED_DEFAULT,
+    privileged_critic_embed_dim: int = PRIVILEGED_CRITIC_EMBED_DIM,
+    privileged_critic_deck_heads: int = PRIVILEGED_CRITIC_DECK_HEADS,
+    privileged_critic_deck_layers: int = PRIVILEGED_CRITIC_DECK_LAYERS,
+    privileged_critic_deck_ff_size: int = PRIVILEGED_CRITIC_DECK_FF_SIZE,
+    privileged_critic_fusion_hidden_size: int = PRIVILEGED_CRITIC_FUSION_HIDDEN_SIZE,
+    privileged_critic_fusion_projection_size: int = PRIVILEGED_CRITIC_FUSION_PROJECTION_SIZE,
+    privileged_critic_feature_scale: float = PRIVILEGED_CRITIC_FEATURE_SCALE_DEFAULT,
+    win_prob_aux_enabled: bool = False,
+    win_prob_aux_coef: float = WIN_PROB_AUX_COEF_DEFAULT,
+    split_value_heads_enabled: bool = False,
+    split_value_component_coef: float = SPLIT_VALUE_COMPONENT_COEF_DEFAULT,
+    **kwargs,
+  ):
     super().__init__()
 
     self.is_continuous = False
+    self.model_version = model_version
+    self.critic_head_type = str(critic_head_type)
+    self.privileged_critic_enabled = bool(privileged_critic_enabled)
+    self.privileged_critic_embed_dim = int(privileged_critic_embed_dim)
+    self.privileged_critic_deck_heads = int(privileged_critic_deck_heads)
+    self.privileged_critic_deck_layers = int(privileged_critic_deck_layers)
+    self.privileged_critic_deck_ff_size = int(privileged_critic_deck_ff_size)
+    self.privileged_critic_fusion_hidden_size = int(privileged_critic_fusion_hidden_size)
+    self.privileged_critic_fusion_projection_size = int(privileged_critic_fusion_projection_size)
+    self.privileged_critic_feature_scale = float(privileged_critic_feature_scale)
+    self.win_prob_aux_enabled = bool(win_prob_aux_enabled)
+    self.win_prob_aux_coef = float(win_prob_aux_coef)
+    self.split_value_heads_enabled = bool(split_value_heads_enabled)
+    self.split_value_component_coef = float(split_value_component_coef)
     self.scalar_normalizer = ScalarRunningNorm()
+    if self.privileged_critic_embed_dim <= 0:
+      raise ValueError(
+        f"privileged_critic_embed_dim must be positive, got {self.privileged_critic_embed_dim}"
+      )
+    if self.privileged_critic_deck_heads <= 0:
+      raise ValueError(
+        f"privileged_critic_deck_heads must be positive, got {self.privileged_critic_deck_heads}"
+      )
+    if self.privileged_critic_embed_dim % self.privileged_critic_deck_heads != 0:
+      raise ValueError(
+        "privileged_critic_embed_dim must be divisible by privileged_critic_deck_heads, "
+        f"got embed_dim={self.privileged_critic_embed_dim} "
+        f"heads={self.privileged_critic_deck_heads}"
+      )
+    if self.privileged_critic_deck_layers <= 0:
+      raise ValueError(
+        f"privileged_critic_deck_layers must be positive, got {self.privileged_critic_deck_layers}"
+      )
+    if self.privileged_critic_deck_ff_size <= 0:
+      raise ValueError(
+        f"privileged_critic_deck_ff_size must be positive, got {self.privileged_critic_deck_ff_size}"
+      )
+    if self.privileged_critic_fusion_hidden_size <= 0:
+      raise ValueError(
+        "privileged_critic_fusion_hidden_size must be positive, "
+        f"got {self.privileged_critic_fusion_hidden_size}"
+      )
+    if self.privileged_critic_fusion_projection_size <= 0:
+      raise ValueError(
+        "privileged_critic_fusion_projection_size must be positive, "
+        f"got {self.privileged_critic_fusion_projection_size}"
+      )
+    if self.privileged_critic_feature_scale < 0.0:
+      raise ValueError(
+        f"privileged_critic_feature_scale must be non-negative, got {self.privileged_critic_feature_scale}"
+      )
+    if self.win_prob_aux_coef < 0.0:
+      raise ValueError(f"win_prob_aux_coef must be non-negative, got {self.win_prob_aux_coef}")
+    if self.split_value_component_coef < 0.0:
+      raise ValueError(
+        f"split_value_component_coef must be non-negative, got {self.split_value_component_coef}"
+      )
 
-    static_table = load_policy_static_card_table()
+    if self.critic_head_type not in {
+      CRITIC_HEAD_TYPE_SHARED_PRIMARY,
+      CRITIC_HEAD_TYPE_FULL_LSTM_MLP,
+    }:
+      raise ValueError(
+        f"Unsupported critic_head_type '{self.critic_head_type}'. "
+        f"Known critic heads: {CRITIC_HEAD_TYPE_SHARED_PRIMARY}, {CRITIC_HEAD_TYPE_FULL_LSTM_MLP}"
+      )
+
+    static_table = load_policy_card_metadata_table()
     self.static_vocab_size = static_table.vocab_size
-    self.register_buffer("static_card_type", static_table.card_type)
-    self.register_buffer("static_base_ikz_cost", static_table.base_ikz_cost)
-    self.register_buffer("static_base_attack", static_table.base_attack)
-    self.register_buffer("static_base_health", static_table.base_health)
-    self.register_buffer("static_base_gate_points", static_table.base_gate_points)
-    self.register_buffer("static_innate_charge", static_table.innate_has_charge)
-    self.register_buffer("static_innate_defender", static_table.innate_has_defender)
-    self.register_buffer("static_innate_infiltrate", static_table.innate_has_infiltrate)
+    self.metadata_embedding_dim = static_table.embedding_dim
+    self.keyword_vocab_size = static_table.keyword_vocab_size
+    self.register_buffer("static_card_present_mask", static_table.card_present_mask)
+    self.register_buffer("static_card_type", static_table.card_type_ids)
+    self.register_buffer("static_element", static_table.element_ids)
+    self.register_buffer("static_base_ikz_cost", static_table.ikz_cost)
+    self.register_buffer("static_base_attack", static_table.attack)
+    self.register_buffer("static_base_health", static_table.health)
+    self.register_buffer("static_base_gate_points", static_table.gate_points)
     self.register_buffer("static_has_ability", static_table.has_ability)
-    self.register_buffer("static_ability_timing", static_table.ability_timing)
+    self.register_buffer("static_ability_timing", static_table.ability_timing_ids)
     self.register_buffer("static_ability_optional", static_table.ability_is_optional)
+    self.register_buffer("static_keyword_multi_hot", static_table.keyword_multi_hot)
+    self.register_buffer("static_name_embeddings", static_table.name_embeddings)
+    self.register_buffer("static_effect_embeddings", static_table.effect_embeddings)
+    self.register_buffer("static_subtype_pooled_embeddings", static_table.subtype_pooled_embeddings)
 
     ability_timing_vocab = int(self.static_ability_timing.max().item()) + 1
     ability_timing_vocab = max(ability_timing_vocab, 1)
 
-    self.card_def_encoder = nn.Embedding(self.static_vocab_size, CARD_DEF_ENC_OUTPUT_SIZE)
     self.card_type_encoder = nn.Embedding(CARD_TYPE_COUNT, CARD_TYPE_ENC_OUTPUT_SIZE)
+    self.element_encoder = nn.Embedding(ELEMENT_COUNT, ELEMENT_ENC_OUTPUT_SIZE)
     self.ability_timing_encoder = nn.Embedding(ability_timing_vocab, ABILITY_TIMING_ENC_OUTPUT_SIZE)
     self.index_encoder = nn.Embedding(MAX_INDEX_SIZE, INDEX_ENC_OUTPUT_SIZE)
     self.game_phase_encoder = nn.Embedding(GAME_PHASE_COUNT, PHASE_ENC_OUTPUT_SIZE)
     self.ability_phase_encoder = nn.Embedding(ABILITY_PHASE_COUNT, ABILITY_PHASE_ENC_OUTPUT_SIZE)
-    self.prev_primary_encoder = nn.Embedding(PRIMARY_ACTION_COUNT + 1, PREV_PRIMARY_ENC_OUTPUT_SIZE)
-    self.prev_subaction_encoder = nn.Embedding(MAX_INDEX_SIZE + 1, PREV_SUBACTION_ENC_OUTPUT_SIZE)
+    self.action_history_primary_encoder = nn.Embedding(
+      PRIMARY_ACTION_COUNT + 1, ACTION_HISTORY_PRIMARY_ENC_OUTPUT_SIZE
+    )
+    self.action_history_subaction_encoder = nn.Embedding(
+      MAX_INDEX_SIZE + 1, ACTION_HISTORY_SUBACTION_ENC_OUTPUT_SIZE
+    )
+    self.name_text_encoder = nn.Linear(
+      self.metadata_embedding_dim, NAME_TEXT_ENC_OUTPUT_SIZE, bias=False
+    )
+    self.effect_text_encoder = nn.Linear(
+      self.metadata_embedding_dim, EFFECT_TEXT_ENC_OUTPUT_SIZE, bias=False
+    )
+    self.subtype_text_encoder = nn.Linear(
+      self.metadata_embedding_dim, SUBTYPE_TEXT_ENC_OUTPUT_SIZE, bias=False
+    )
+    self.keyword_feature_encoder = nn.Linear(
+      self.keyword_vocab_size, KEYWORD_FEATURE_ENC_OUTPUT_SIZE, bias=False
+    )
+    card_metadata_input_size = (
+      NAME_TEXT_ENC_OUTPUT_SIZE
+      + EFFECT_TEXT_ENC_OUTPUT_SIZE
+      + SUBTYPE_TEXT_ENC_OUTPUT_SIZE
+      + KEYWORD_FEATURE_ENC_OUTPUT_SIZE
+      + CARD_TYPE_ENC_OUTPUT_SIZE
+      + ELEMENT_ENC_OUTPUT_SIZE
+      + ABILITY_TIMING_ENC_OUTPUT_SIZE
+      + 7
+    )
+    self.card_metadata_projector = SingleUnitProjection(
+      card_metadata_input_size,
+      hidden_size=PROCESS_SET_HIDDEN_SIZE,
+      output_size=CARD_METADATA_EMBED_SIZE,
+    )
 
     self.primary_action_encoder = nn.Sequential(
       nn.Embedding(PRIMARY_ACTION_COUNT, UNIT_EMBED_SIZE),
@@ -343,36 +559,56 @@ class TCG(nn.Module):
     self.register_buffer("primary_action_id_batch", torch.tensor(PRIMARY_ACTION_ID_BATCH, dtype=torch.long))
 
     weapon_input_size = (
-      CARD_DEF_ENC_OUTPUT_SIZE
-      + CARD_TYPE_ENC_OUTPUT_SIZE
-      + ABILITY_TIMING_ENC_OUTPUT_SIZE
+      CARD_METADATA_EMBED_SIZE
       + 5
     )
     self.weapon_set_processor = ProcessSetProcessor(weapon_input_size)
 
     hand_input_size = (
-      CARD_DEF_ENC_OUTPUT_SIZE
-      + CARD_TYPE_ENC_OUTPUT_SIZE
-      + ABILITY_TIMING_ENC_OUTPUT_SIZE
+      CARD_METADATA_EMBED_SIZE
       + INDEX_ENC_OUTPUT_SIZE
-      + 9
+      + 8
     )
     self.hand_set_processor = ProcessSetProcessor(hand_input_size)
     self.discard_set_processor = ProcessSetProcessor(hand_input_size)
+    self.privileged_hand_set_processor = None
+    self.privileged_deck_token_projector = None
+    self.privileged_deck_encoder = None
+    self.privileged_critic_fusion = None
+    self._cached_privileged_critic_features = None
+
+    if self.privileged_critic_enabled:
+      privileged_zone_input_size = (
+        CARD_METADATA_EMBED_SIZE
+        + INDEX_ENC_OUTPUT_SIZE
+        + PRIVILEGED_CRITIC_TOKEN_SCALAR_SIZE
+      )
+      self.privileged_hand_set_processor = ProcessSetProcessor(
+        privileged_zone_input_size,
+        hidden_size=PROCESS_SET_HIDDEN_SIZE,
+        output_size=self.privileged_critic_embed_dim,
+      )
+      self.privileged_deck_token_projector = SingleUnitProjection(
+        privileged_zone_input_size,
+        hidden_size=PROCESS_SET_HIDDEN_SIZE,
+        output_size=self.privileged_critic_embed_dim,
+      )
+      self.privileged_deck_encoder = MaskedTransformerDeckEncoder(
+        self.privileged_critic_embed_dim,
+        num_heads=self.privileged_critic_deck_heads,
+        num_layers=self.privileged_critic_deck_layers,
+        ff_size=self.privileged_critic_deck_ff_size,
+      )
 
     ikz_input_size = (
-      CARD_DEF_ENC_OUTPUT_SIZE
-      + CARD_TYPE_ENC_OUTPUT_SIZE
-      + ABILITY_TIMING_ENC_OUTPUT_SIZE
+      CARD_METADATA_EMBED_SIZE
       + INDEX_ENC_OUTPUT_SIZE
       + 2
     )
     self.ikz_set_processor = ProcessSetProcessor(ikz_input_size)
 
     board_input_size = (
-      CARD_DEF_ENC_OUTPUT_SIZE
-      + CARD_TYPE_ENC_OUTPUT_SIZE
-      + ABILITY_TIMING_ENC_OUTPUT_SIZE
+      CARD_METADATA_EMBED_SIZE
       + INDEX_ENC_OUTPUT_SIZE
       + UNIT_EMBED_SIZE
       + 17
@@ -380,13 +616,11 @@ class TCG(nn.Module):
     self.board_set_processor = ProcessSetProcessor(board_input_size)
 
     leader_input_size = (
-      CARD_DEF_ENC_OUTPUT_SIZE
-      + CARD_TYPE_ENC_OUTPUT_SIZE
-      + ABILITY_TIMING_ENC_OUTPUT_SIZE
+      CARD_METADATA_EMBED_SIZE
       + UNIT_EMBED_SIZE
       + 12
     )
-    gate_input_size = CARD_DEF_ENC_OUTPUT_SIZE + CARD_TYPE_ENC_OUTPUT_SIZE + ABILITY_TIMING_ENC_OUTPUT_SIZE + 4
+    gate_input_size = CARD_METADATA_EMBED_SIZE + 4
 
     self.leader_projector = SingleUnitProjection(leader_input_size)
     self.gate_projector = SingleUnitProjection(gate_input_size)
@@ -394,16 +628,48 @@ class TCG(nn.Module):
     context_input_size = (
       PHASE_ENC_OUTPUT_SIZE
       + ABILITY_PHASE_ENC_OUTPUT_SIZE
-      + CARD_DEF_ENC_OUTPUT_SIZE
+      + CARD_METADATA_EMBED_SIZE
       + 9
     )
     self.global_context_projector = SingleUnitProjection(context_input_size)
-    prev_action_input_size = (
-      PREV_PRIMARY_ENC_OUTPUT_SIZE
-      + (PREV_SUBACTION_ENC_OUTPUT_SIZE * 3)
+    self.global_counts_projector = SingleUnitProjection(9, output_size=UNIT_EMBED_SIZE)
+
+    recent_action_step_input_size = (
+      ACTION_HISTORY_PRIMARY_ENC_OUTPUT_SIZE
+      + (ACTION_HISTORY_SUBACTION_ENC_OUTPUT_SIZE * 3)
       + 2
     )
-    self.previous_action_projector = SingleUnitProjection(prev_action_input_size)
+    self.recent_action_step_projector = SingleUnitProjection(
+      recent_action_step_input_size,
+      hidden_size=64,
+      output_size=ACTION_HISTORY_STEP_EMBED_SIZE,
+    )
+    self.self_recent_action_projector = SingleUnitProjection(
+      RECENT_ACTION_HISTORY_LEN * ACTION_HISTORY_STEP_EMBED_SIZE,
+      output_size=ACTION_HISTORY_PLAYER_EMBED_SIZE,
+    )
+    self.opp_recent_action_projector = SingleUnitProjection(
+      RECENT_ACTION_HISTORY_LEN * ACTION_HISTORY_STEP_EMBED_SIZE,
+      output_size=ACTION_HISTORY_PLAYER_EMBED_SIZE,
+    )
+    self.recent_action_history_projector = SingleUnitProjection(
+      ACTION_HISTORY_PLAYER_EMBED_SIZE * 2,
+      output_size=UNIT_EMBED_SIZE,
+    )
+
+    combat_context_input_size = (
+      CARD_METADATA_EMBED_SIZE * 2
+      + INDEX_ENC_OUTPUT_SIZE * 2
+      + 13
+    )
+    self.combat_context_projector = SingleUnitProjection(
+      combat_context_input_size,
+      output_size=UNIT_EMBED_SIZE,
+    )
+    self.global_fusion_projector = SingleUnitProjection(
+      UNIT_EMBED_SIZE * 4,
+      output_size=UNIT_EMBED_SIZE,
+    )
 
     self.zone_component_count = 14
     self.lstm_input_size = UNIT_EMBED_SIZE * (self.zone_component_count + 1)
@@ -415,7 +681,58 @@ class TCG(nn.Module):
     self.q_bins3 = nn.Linear(LSTM_HIDDEN_SIZE, MAX_INDEX_SIZE)
     self.gate_1_embeder = nn.Embedding(PRIMARY_ACTION_COUNT, UNIT_EMBED_SIZE)
     self.gate_2_embeder = nn.Embedding(PRIMARY_ACTION_COUNT, UNIT_EMBED_SIZE)
-    self.value_fn = azk_pytorch.layer_init(nn.Linear(UNIT_EMBED_SIZE, 1), std=1)
+
+    if self.critic_head_type == CRITIC_HEAD_TYPE_SHARED_PRIMARY:
+      self.critic_projector = None
+      public_critic_feature_dim = UNIT_EMBED_SIZE
+    else:
+      self.critic_projector = nn.Sequential(
+        azk_pytorch.layer_init(nn.Linear(LSTM_HIDDEN_SIZE, CRITIC_MLP_HIDDEN_SIZE)),
+        nn.ReLU(),
+        azk_pytorch.layer_init(nn.Linear(CRITIC_MLP_HIDDEN_SIZE, CRITIC_MLP_PROJECTION_SIZE)),
+        nn.ReLU(),
+      )
+      public_critic_feature_dim = CRITIC_MLP_PROJECTION_SIZE
+
+    value_feature_dim = public_critic_feature_dim
+    if self.privileged_critic_enabled:
+      self.privileged_critic_fusion = nn.Sequential(
+        azk_pytorch.layer_init(
+          nn.Linear(
+            public_critic_feature_dim + (self.privileged_critic_embed_dim * 3),
+            self.privileged_critic_fusion_hidden_size,
+          )
+        ),
+        nn.ReLU(),
+        azk_pytorch.layer_init(
+          nn.Linear(
+            self.privileged_critic_fusion_hidden_size,
+            self.privileged_critic_fusion_projection_size,
+          )
+        ),
+        nn.ReLU(),
+      )
+      value_feature_dim = self.privileged_critic_fusion_projection_size
+
+    self.value_fn = azk_pytorch.layer_init(nn.Linear(value_feature_dim, 1), std=1)
+    self.value_terminal_fn = None
+    self.value_shaped_fn = None
+    if self.split_value_heads_enabled:
+      self.value_terminal_fn = azk_pytorch.layer_init(nn.Linear(value_feature_dim, 1), std=1)
+      self.value_shaped_fn = azk_pytorch.layer_init(nn.Linear(value_feature_dim, 1), std=1)
+    self.win_prob_projector = None
+    self.win_prob_fn = None
+    if self.win_prob_aux_enabled:
+      self.win_prob_projector = nn.Sequential(
+        azk_pytorch.layer_init(nn.Linear(LSTM_HIDDEN_SIZE, CRITIC_MLP_HIDDEN_SIZE)),
+        nn.ReLU(),
+        azk_pytorch.layer_init(nn.Linear(CRITIC_MLP_HIDDEN_SIZE, CRITIC_MLP_PROJECTION_SIZE)),
+        nn.ReLU(),
+      )
+      self.win_prob_fn = azk_pytorch.layer_init(
+        nn.Linear(CRITIC_MLP_PROJECTION_SIZE, 1),
+        std=1,
+      )
 
     emulated_spec = getattr(env, "emulated", None)
     if emulated_spec is None:
@@ -501,6 +818,14 @@ class TCG(nn.Module):
         pass
     self._cached_mask_observations = detached
 
+  def __store_privileged_critic_features(self, features: torch.Tensor | None, state):
+    if state is not None:
+      try:
+        state["_azk_privileged_critic_features"] = features
+      except (TypeError, AttributeError):
+        pass
+    self._cached_privileged_critic_features = features
+
   def __get_struct_field(self, container, *names):
     for name in names:
       if isinstance(container, dict):
@@ -544,21 +869,74 @@ class TCG(nn.Module):
 
   def _lookup_static(self, idx: torch.Tensor):
     return {
+      "present_mask": self.static_card_present_mask[idx],
       "card_type": self.static_card_type[idx],
+      "element": self.static_element[idx],
       "base_ikz_cost": self.static_base_ikz_cost[idx],
       "base_attack": self.static_base_attack[idx],
       "base_health": self.static_base_health[idx],
       "base_gate_points": self.static_base_gate_points[idx],
-      "innate_charge": self.static_innate_charge[idx],
-      "innate_defender": self.static_innate_defender[idx],
-      "innate_infiltrate": self.static_innate_infiltrate[idx],
       "has_ability": self.static_has_ability[idx],
       "ability_timing": self.static_ability_timing[idx],
       "ability_optional": self.static_ability_optional[idx],
+      "keyword_multi_hot": self.static_keyword_multi_hot[idx],
+      "name_embedding": self.static_name_embeddings[idx],
+      "effect_embedding": self.static_effect_embeddings[idx],
+      "subtype_pooled_embedding": self.static_subtype_pooled_embeddings[idx],
     }
 
   def _index_embedding(self, zone_indices: torch.Tensor):
     return self.index_encoder(zone_indices.long().clamp(0, MAX_INDEX_SIZE - 1))
+
+  def _encode_card_metadata_from_index(self, idx: torch.Tensor, valid_mask: torch.Tensor | None = None):
+    static = self._lookup_static(idx)
+
+    present_mask = static["present_mask"] > 0.5
+    if valid_mask is None:
+      valid_mask = present_mask
+    else:
+      valid_mask = valid_mask.to(dtype=torch.bool) & present_mask
+
+    card_type_emb = self.card_type_encoder(static["card_type"])
+    element_emb = self.element_encoder(static["element"])
+    ability_timing_emb = self.ability_timing_encoder(static["ability_timing"])
+    name_emb = self.name_text_encoder(static["name_embedding"])
+    effect_emb = self.effect_text_encoder(static["effect_embedding"])
+    subtype_emb = self.subtype_text_encoder(static["subtype_pooled_embedding"])
+    keyword_emb = self.keyword_feature_encoder(static["keyword_multi_hot"])
+
+    scalar = torch.stack(
+      [
+        static["present_mask"],
+        static["base_ikz_cost"],
+        static["base_attack"],
+        static["base_health"],
+        static["base_gate_points"],
+        static["has_ability"],
+        static["ability_optional"],
+      ],
+      dim=-1,
+    )
+    scalar = self.scalar_normalizer("card_metadata_scalar", scalar, mask=valid_mask)
+
+    metadata_input = torch.cat(
+      [
+        name_emb,
+        effect_emb,
+        subtype_emb,
+        keyword_emb,
+        card_type_emb,
+        element_emb,
+        ability_timing_emb,
+        scalar,
+      ],
+      dim=-1,
+    )
+    metadata_emb = self.card_metadata_projector(metadata_input)
+
+    if valid_mask.dim() < metadata_emb.dim():
+      valid_mask = valid_mask.unsqueeze(-1)
+    return metadata_emb * valid_mask.to(dtype=metadata_emb.dtype)
 
   def _encode_weapons(self, weapon_slots, weapon_count):
     weapon_slots = self.__normalize_zone_entries(weapon_slots)
@@ -566,9 +944,7 @@ class TCG(nn.Module):
     idx, valid_mask = self._card_index_and_mask(card_def_ids)
     static = self._lookup_static(idx)
 
-    card_emb = self.card_def_encoder(idx)
-    type_emb = self.card_type_encoder(static["card_type"])
-    timing_emb = self.ability_timing_encoder(static["ability_timing"])
+    card_emb = self._encode_card_metadata_from_index(idx, valid_mask=valid_mask)
 
     cur_atk = self.__stack_zone_field(weapon_slots, "cur_atk").float()
     scalar = torch.stack(
@@ -588,7 +964,7 @@ class TCG(nn.Module):
     mask = valid_mask & count_mask
     scalar = self.scalar_normalizer("weapon_scalar", scalar, mask=mask)
 
-    weapon_input = torch.cat([card_emb, type_emb, timing_emb, scalar], dim=-1)
+    weapon_input = torch.cat([card_emb, scalar], dim=-1)
     _, pooled = self.weapon_set_processor(weapon_input, mask=mask)
     return pooled
 
@@ -600,9 +976,7 @@ class TCG(nn.Module):
     idx, mask = self._card_index_and_mask(card_def_ids)
     static = self._lookup_static(idx)
 
-    card_emb = self.card_def_encoder(idx)
-    type_emb = self.card_type_encoder(static["card_type"])
-    timing_emb = self.ability_timing_encoder(static["ability_timing"])
+    card_emb = self._encode_card_metadata_from_index(idx, valid_mask=mask)
     zone_emb = self._index_embedding(zone_indices)
 
     scalar = torch.stack(
@@ -611,9 +985,8 @@ class TCG(nn.Module):
         static["base_attack"],
         static["base_health"],
         static["base_gate_points"],
-        static["innate_charge"],
-        static["innate_defender"],
-        static["innate_infiltrate"],
+        static["present_mask"],
+        static["element"].float(),
         static["has_ability"],
         static["ability_optional"],
       ],
@@ -621,7 +994,7 @@ class TCG(nn.Module):
     )
     scalar = self.scalar_normalizer(f"{key_prefix}_scalar", scalar, mask=mask)
 
-    zone_input = torch.cat([card_emb, type_emb, timing_emb, zone_emb, scalar], dim=-1)
+    zone_input = torch.cat([card_emb, zone_emb, scalar], dim=-1)
     set_embeddings, pooled = processor(zone_input, mask=mask)
     return set_embeddings, pooled
 
@@ -633,19 +1006,47 @@ class TCG(nn.Module):
     cooldown = self.__stack_zone_field(slots, "cooldown").float()
 
     idx, mask = self._card_index_and_mask(card_def_ids)
-    static = self._lookup_static(idx)
-
-    card_emb = self.card_def_encoder(idx)
-    type_emb = self.card_type_encoder(static["card_type"])
-    timing_emb = self.ability_timing_encoder(static["ability_timing"])
+    card_emb = self._encode_card_metadata_from_index(idx, valid_mask=mask)
     zone_emb = self._index_embedding(zone_indices)
 
     scalar = torch.stack([tapped, cooldown], dim=-1)
     scalar = self.scalar_normalizer("ikz_scalar", scalar, mask=mask)
 
-    zone_input = torch.cat([card_emb, type_emb, timing_emb, zone_emb, scalar], dim=-1)
+    zone_input = torch.cat([card_emb, zone_emb, scalar], dim=-1)
     set_embeddings, pooled = self.ikz_set_processor(zone_input, mask=mask)
     return set_embeddings, pooled
+
+  def _encode_critic_privileged_zone_tokens(self, slots, *, key_prefix: str):
+    slots = self.__normalize_zone_entries(slots)
+    card_def_ids = self.__stack_zone_field(slots, "card_def_id")
+    zone_indices = self.__stack_zone_field(slots, "zone_index")
+
+    idx, mask = self._card_index_and_mask(card_def_ids)
+    card_emb = self._encode_card_metadata_from_index(idx, valid_mask=mask)
+    zone_emb = self._index_embedding(zone_indices)
+
+    normalized_position = zone_indices.float() / float(max(MAX_INDEX_SIZE - 1, 1))
+    scalar = torch.stack([normalized_position, mask.float()], dim=-1)
+    scalar = self.scalar_normalizer(f"{key_prefix}_privileged_scalar", scalar, mask=mask)
+    zone_input = torch.cat([card_emb, zone_emb, scalar], dim=-1)
+    return zone_input, mask
+
+  def _encode_critic_privileged_hand(self, slots):
+    zone_input, mask = self._encode_critic_privileged_zone_tokens(
+      slots,
+      key_prefix="critic_privileged_hand",
+    )
+    _, pooled = self.privileged_hand_set_processor(zone_input, mask=mask)
+    return pooled
+
+  def _encode_critic_privileged_deck(self, slots, *, key_prefix: str):
+    zone_input, mask = self._encode_critic_privileged_zone_tokens(slots, key_prefix=key_prefix)
+    batch_size, slot_count, feature_dim = zone_input.shape
+    tokens = self.privileged_deck_token_projector(
+      zone_input.reshape(batch_size * slot_count, feature_dim)
+    ).reshape(batch_size, slot_count, self.privileged_critic_embed_dim)
+    tokens = tokens * mask.unsqueeze(-1).to(dtype=tokens.dtype)
+    return self.privileged_deck_encoder(tokens, mask)
 
   def _encode_board_zone(self, slots, *, key_prefix: str):
     slots = self.__normalize_zone_entries(slots)
@@ -667,9 +1068,7 @@ class TCG(nn.Module):
     idx, mask = self._card_index_and_mask(card_def_ids)
     static = self._lookup_static(idx)
 
-    card_emb = self.card_def_encoder(idx)
-    type_emb = self.card_type_encoder(static["card_type"])
-    timing_emb = self.ability_timing_encoder(static["ability_timing"])
+    card_emb = self._encode_card_metadata_from_index(idx, valid_mask=mask)
     zone_emb = self._index_embedding(zone_indices)
 
     weapon_embeddings = []
@@ -703,21 +1102,19 @@ class TCG(nn.Module):
     )
     scalar = self.scalar_normalizer(f"{key_prefix}_scalar", scalar, mask=mask)
 
-    zone_input = torch.cat([card_emb, type_emb, timing_emb, zone_emb, weapon_emb, scalar], dim=-1)
+    zone_input = torch.cat([card_emb, zone_emb, weapon_emb, scalar], dim=-1)
     set_embeddings, pooled = self.board_set_processor(zone_input, mask=mask)
     return set_embeddings, pooled
 
   def _encode_leader(self, leader_obs, *, key_prefix: str):
     card_def_ids = self._squeeze_trailing_singleton(leader_obs["card_def_id"]).long()
-    idx, _ = self._card_index_and_mask(card_def_ids)
+    idx, valid_mask = self._card_index_and_mask(card_def_ids)
     static = self._lookup_static(idx)
 
     weapon_count = self._squeeze_trailing_singleton(leader_obs["weapon_count"])
     weapon_emb = self._encode_weapons(leader_obs["weapons"], weapon_count)
 
-    card_emb = self.card_def_encoder(idx)
-    type_emb = self.card_type_encoder(static["card_type"])
-    timing_emb = self.ability_timing_encoder(static["ability_timing"])
+    card_emb = self._encode_card_metadata_from_index(idx, valid_mask=valid_mask)
 
     scalar = torch.stack(
       [
@@ -730,25 +1127,23 @@ class TCG(nn.Module):
         self._squeeze_trailing_singleton(leader_obs["has_infiltrate"]).float(),
         static["base_attack"],
         static["base_health"],
-        static["innate_charge"],
-        static["innate_defender"],
-        static["innate_infiltrate"],
+        static["base_ikz_cost"],
+        static["base_gate_points"],
+        static["has_ability"],
       ],
       dim=-1,
     )
     scalar = self.scalar_normalizer(f"{key_prefix}_leader_scalar", scalar)
 
-    leader_input = torch.cat([card_emb, type_emb, timing_emb, weapon_emb, scalar], dim=-1)
+    leader_input = torch.cat([card_emb, weapon_emb, scalar], dim=-1)
     return self.leader_projector(leader_input)
 
   def _encode_gate(self, gate_obs, *, key_prefix: str):
     card_def_ids = self._squeeze_trailing_singleton(gate_obs["card_def_id"]).long()
-    idx, _ = self._card_index_and_mask(card_def_ids)
+    idx, valid_mask = self._card_index_and_mask(card_def_ids)
     static = self._lookup_static(idx)
 
-    card_emb = self.card_def_encoder(idx)
-    type_emb = self.card_type_encoder(static["card_type"])
-    timing_emb = self.ability_timing_encoder(static["ability_timing"])
+    card_emb = self._encode_card_metadata_from_index(idx, valid_mask=valid_mask)
 
     scalar = torch.stack(
       [
@@ -761,7 +1156,7 @@ class TCG(nn.Module):
     )
     scalar = self.scalar_normalizer(f"{key_prefix}_gate_scalar", scalar)
 
-    gate_input = torch.cat([card_emb, type_emb, timing_emb, scalar], dim=-1)
+    gate_input = torch.cat([card_emb, scalar], dim=-1)
     return self.gate_projector(gate_input)
 
   def _encode_global_context(self, structured_obs):
@@ -774,11 +1169,11 @@ class TCG(nn.Module):
     ).long().clamp(0, ABILITY_PHASE_COUNT - 1)
 
     source_card = self._squeeze_trailing_singleton(ability["source_card_def_id"]).long()
-    source_idx, _ = self._card_index_and_mask(source_card)
+    source_idx, source_valid = self._card_index_and_mask(source_card)
 
     phase_emb = self.game_phase_encoder(phase)
     ability_phase_emb = self.ability_phase_encoder(ability_phase)
-    source_emb = self.card_def_encoder(source_idx)
+    source_emb = self._encode_card_metadata_from_index(source_idx, valid_mask=source_valid)
 
     action_mask = self.__get_struct_field(structured_obs, "action_mask")
     is_active = (self._squeeze_trailing_singleton(action_mask["legal_action_count"]) > 0).float()
@@ -802,7 +1197,49 @@ class TCG(nn.Module):
     context_input = torch.cat([phase_emb, ability_phase_emb, source_emb, scalar], dim=-1)
     return self.global_context_projector(context_input)
 
-  def _encode_previous_action(self, structured_obs):
+  def _encode_recent_action_sequence(self, recent_actions, *, key_prefix: str):
+    recent_actions = self.__normalize_zone_entries(recent_actions)
+    valid = self.__stack_zone_field(recent_actions, "valid").to(dtype=torch.bool)
+    primary = self.__stack_zone_field(recent_actions, "primary").long()
+    sub1 = self.__stack_zone_field(recent_actions, "sub1").long()
+    sub2 = self.__stack_zone_field(recent_actions, "sub2").long()
+    sub3 = self.__stack_zone_field(recent_actions, "sub3").long()
+    was_noop = self.__stack_zone_field(recent_actions, "was_noop").float()
+
+    zero_primary = torch.zeros_like(primary)
+    zero_sub = torch.zeros_like(sub1)
+    primary_idx = torch.where(
+      valid,
+      primary.clamp(0, PRIMARY_ACTION_COUNT - 1) + 1,
+      zero_primary,
+    )
+    sub1_idx = torch.where(valid, sub1.clamp(0, MAX_INDEX_SIZE - 1) + 1, zero_sub)
+    sub2_idx = torch.where(valid, sub2.clamp(0, MAX_INDEX_SIZE - 1) + 1, zero_sub)
+    sub3_idx = torch.where(valid, sub3.clamp(0, MAX_INDEX_SIZE - 1) + 1, zero_sub)
+
+    primary_emb = self.action_history_primary_encoder(primary_idx)
+    sub1_emb = self.action_history_subaction_encoder(sub1_idx)
+    sub2_emb = self.action_history_subaction_encoder(sub2_idx)
+    sub3_emb = self.action_history_subaction_encoder(sub3_idx)
+
+    scalar = torch.stack([valid.float(), was_noop], dim=-1)
+    scalar = self.scalar_normalizer(f"{key_prefix}_recent_action_scalar", scalar, mask=valid)
+    step_input = torch.cat([primary_emb, sub1_emb, sub2_emb, sub3_emb, scalar], dim=-1)
+
+    batch_size, step_count, _ = step_input.shape
+    projected_steps = self.recent_action_step_projector(
+      step_input.reshape(batch_size * step_count, -1)
+    ).reshape(batch_size, step_count, ACTION_HISTORY_STEP_EMBED_SIZE)
+    projected_steps = projected_steps * valid.unsqueeze(-1).to(dtype=projected_steps.dtype)
+    flattened = projected_steps.reshape(batch_size, step_count * ACTION_HISTORY_STEP_EMBED_SIZE)
+
+    if key_prefix == "self":
+      return self.self_recent_action_projector(flattened)
+    if key_prefix == "opp":
+      return self.opp_recent_action_projector(flattened)
+    raise ValueError(f"Unsupported recent action history key_prefix: {key_prefix}")
+
+  def _encode_recent_action_history(self, structured_obs):
     phase = self._squeeze_trailing_singleton(
       self.__get_struct_field(structured_obs, "phase")
     )
@@ -810,7 +1247,8 @@ class TCG(nn.Module):
       phase = phase.unsqueeze(0)
 
     try:
-      previous_action = self.__get_struct_field(structured_obs, "previous_action")
+      self_recent_actions = self.__get_struct_field(structured_obs, "self_recent_actions")
+      opp_recent_actions = self.__get_struct_field(structured_obs, "opp_recent_actions")
     except KeyError:
       return torch.zeros(
         (phase.shape[0], UNIT_EMBED_SIZE),
@@ -818,58 +1256,186 @@ class TCG(nn.Module):
         dtype=torch.float32,
       )
 
-    has_action = self._squeeze_trailing_singleton(
-      previous_action["has_action"]
+    self_history_vec = self._encode_recent_action_sequence(
+      self_recent_actions,
+      key_prefix="self",
+    )
+    opp_history_vec = self._encode_recent_action_sequence(
+      opp_recent_actions,
+      key_prefix="opp",
+    )
+    return self.recent_action_history_projector(
+      torch.cat([self_history_vec, opp_history_vec], dim=-1)
+    )
+
+  def _encode_combat_context(self, structured_obs):
+    phase = self._squeeze_trailing_singleton(
+      self.__get_struct_field(structured_obs, "phase")
+    )
+    if phase.dim() == 0:
+      phase = phase.unsqueeze(0)
+
+    try:
+      combat_context = self.__get_struct_field(structured_obs, "combat_context")
+    except KeyError:
+      return torch.zeros(
+        (phase.shape[0], UNIT_EMBED_SIZE),
+        device=phase.device,
+        dtype=torch.float32,
+      )
+
+    attacker_card = self._squeeze_trailing_singleton(
+      combat_context["attacker_card_def_id"]
+    ).long()
+    target_card = self._squeeze_trailing_singleton(
+      combat_context["target_card_def_id"]
+    ).long()
+    attacker_idx, attacker_valid = self._card_index_and_mask(attacker_card)
+    target_idx, target_valid = self._card_index_and_mask(target_card)
+    attacker_card_emb = self._encode_card_metadata_from_index(
+      attacker_idx, valid_mask=attacker_valid
+    )
+    target_card_emb = self._encode_card_metadata_from_index(
+      target_idx, valid_mask=target_valid
+    )
+
+    attacker_slot_idx = self._squeeze_trailing_singleton(
+      combat_context["attacker_slot_index"]
+    )
+    target_slot_idx = self._squeeze_trailing_singleton(
+      combat_context["target_slot_index"]
+    )
+    attacker_slot_emb = self._index_embedding(attacker_slot_idx)
+    target_slot_emb = self._index_embedding(target_slot_idx)
+    attacker_slot_emb = attacker_slot_emb * attacker_valid.unsqueeze(-1).to(dtype=attacker_slot_emb.dtype)
+    target_slot_emb = target_slot_emb * target_valid.unsqueeze(-1).to(dtype=target_slot_emb.dtype)
+
+    combat_active = self._squeeze_trailing_singleton(
+      combat_context["combat_active"]
     ).to(dtype=torch.bool)
-    primary = self._squeeze_trailing_singleton(previous_action["primary"]).long()
-    sub1 = self._squeeze_trailing_singleton(previous_action["sub1"]).long()
-    sub2 = self._squeeze_trailing_singleton(previous_action["sub2"]).long()
-    sub3 = self._squeeze_trailing_singleton(previous_action["sub3"]).long()
-    was_noop = self._squeeze_trailing_singleton(
-      previous_action["was_noop"]
-    ).float()
-
-    zero_primary = torch.zeros_like(primary)
-    zero_sub = torch.zeros_like(sub1)
-    primary_idx = torch.where(
-      has_action,
-      primary.clamp(0, PRIMARY_ACTION_COUNT - 1) + 1,
-      zero_primary,
-    )
-    sub1_idx = torch.where(
-      has_action,
-      sub1.clamp(0, MAX_INDEX_SIZE - 1) + 1,
-      zero_sub,
-    )
-    sub2_idx = torch.where(
-      has_action,
-      sub2.clamp(0, MAX_INDEX_SIZE - 1) + 1,
-      zero_sub,
-    )
-    sub3_idx = torch.where(
-      has_action,
-      sub3.clamp(0, MAX_INDEX_SIZE - 1) + 1,
-      zero_sub,
-    )
-
-    primary_emb = self.prev_primary_encoder(primary_idx)
-    sub1_emb = self.prev_subaction_encoder(sub1_idx)
-    sub2_emb = self.prev_subaction_encoder(sub2_idx)
-    sub3_emb = self.prev_subaction_encoder(sub3_idx)
-
-    has_action_float = has_action.float()
-    scalar = torch.stack([has_action_float, was_noop], dim=-1)
-    scalar = self.scalar_normalizer(
-      "previous_action_scalar",
-      scalar,
-      mask=has_action,
-    )
-
-    previous_action_input = torch.cat(
-      [primary_emb, sub1_emb, sub2_emb, sub3_emb, scalar],
+    scalar = torch.stack(
+      [
+        combat_active.float(),
+        self._squeeze_trailing_singleton(combat_context["response_window_active"]).float(),
+        self._squeeze_trailing_singleton(combat_context["defender_intercepted"]).float(),
+        self._squeeze_trailing_singleton(combat_context["attacker_is_self"]).float(),
+        self._squeeze_trailing_singleton(combat_context["attacker_is_leader"]).float(),
+        self._squeeze_trailing_singleton(combat_context["attacker_is_garden"]).float(),
+        self._squeeze_trailing_singleton(combat_context["attacker_is_alley"]).float(),
+        attacker_slot_idx.float(),
+        self._squeeze_trailing_singleton(combat_context["target_is_self"]).float(),
+        self._squeeze_trailing_singleton(combat_context["target_is_leader"]).float(),
+        self._squeeze_trailing_singleton(combat_context["target_is_garden"]).float(),
+        self._squeeze_trailing_singleton(combat_context["target_is_alley"]).float(),
+        target_slot_idx.float(),
+      ],
       dim=-1,
     )
-    return self.previous_action_projector(previous_action_input)
+    scalar = self.scalar_normalizer("combat_context_scalar", scalar, mask=combat_active)
+    combat_input = torch.cat(
+      [
+        attacker_card_emb,
+        target_card_emb,
+        attacker_slot_emb,
+        target_slot_emb,
+        scalar,
+      ],
+      dim=-1,
+    )
+    return self.combat_context_projector(combat_input)
+
+  def _encode_critic_privileged_features(self, structured_obs):
+    if not self.privileged_critic_enabled:
+      return None
+
+    phase = self._squeeze_trailing_singleton(
+      self.__get_struct_field(structured_obs, "phase")
+    )
+    if phase.dim() == 0:
+      phase = phase.unsqueeze(0)
+
+    try:
+      critic_privileged = self.__get_struct_field(structured_obs, "critic_privileged")
+    except KeyError:
+      return torch.zeros(
+        (phase.shape[0], self.privileged_critic_embed_dim * 3),
+        device=phase.device,
+        dtype=torch.float32,
+      )
+
+    opponent_hand_vec = self._encode_critic_privileged_hand(critic_privileged["opponent_hand"])
+    self_deck_vec = self._encode_critic_privileged_deck(
+      critic_privileged["self_deck"],
+      key_prefix="critic_privileged_self_deck",
+    )
+    opponent_deck_vec = self._encode_critic_privileged_deck(
+      critic_privileged["opponent_deck"],
+      key_prefix="critic_privileged_opponent_deck",
+    )
+    return torch.cat([opponent_hand_vec, self_deck_vec, opponent_deck_vec], dim=-1)
+
+  def _public_critic_features(self, flat_hidden: torch.Tensor, projected_hidden: torch.Tensor):
+    if self.critic_head_type == CRITIC_HEAD_TYPE_SHARED_PRIMARY:
+      return projected_hidden
+    return self.critic_projector(flat_hidden)
+
+  def _value_features(self, flat_hidden: torch.Tensor, projected_hidden: torch.Tensor, state=None):
+    public_critic_features = self._public_critic_features(flat_hidden, projected_hidden)
+    if not self.privileged_critic_enabled:
+      return public_critic_features
+
+    privileged_features = None
+    if state is not None:
+      privileged_features = state.get("_azk_privileged_critic_features")
+    if privileged_features is None:
+      privileged_features = self._cached_privileged_critic_features
+
+    if not torch.is_tensor(privileged_features):
+      raise ValueError("Privileged critic enabled but privileged features were not prepared")
+
+    if self.privileged_critic_feature_scale != 1.0:
+      privileged_features = privileged_features * self.privileged_critic_feature_scale
+
+    value_features = self.privileged_critic_fusion(
+      torch.cat([public_critic_features, privileged_features], dim=-1)
+    )
+    return value_features
+
+  def _win_prob_features(self, flat_hidden: torch.Tensor):
+    if self.win_prob_projector is None:
+      raise ValueError("win_prob_features requested but win_prob_projector is not initialized")
+    return self.win_prob_projector(flat_hidden)
+
+  def reset_critic_head(self) -> None:
+    if self.critic_projector is not None:
+      for module in self.critic_projector.modules():
+        if isinstance(module, nn.Linear):
+          azk_pytorch.layer_init(module)
+    if self.privileged_hand_set_processor is not None:
+      for module in self.privileged_hand_set_processor.modules():
+        if isinstance(module, nn.Linear):
+          azk_pytorch.layer_init(module)
+    if self.privileged_deck_token_projector is not None:
+      for module in self.privileged_deck_token_projector.modules():
+        if isinstance(module, nn.Linear):
+          azk_pytorch.layer_init(module)
+    if self.privileged_deck_encoder is not None:
+      self.privileged_deck_encoder.reset_parameters()
+    if self.privileged_critic_fusion is not None:
+      for module in self.privileged_critic_fusion.modules():
+        if isinstance(module, nn.Linear):
+          azk_pytorch.layer_init(module)
+    azk_pytorch.layer_init(self.value_fn, std=1)
+    if self.value_terminal_fn is not None:
+      azk_pytorch.layer_init(self.value_terminal_fn, std=1)
+    if self.value_shaped_fn is not None:
+      azk_pytorch.layer_init(self.value_shaped_fn, std=1)
+    if self.win_prob_projector is not None:
+      for module in self.win_prob_projector.modules():
+        if isinstance(module, nn.Linear):
+          azk_pytorch.layer_init(module)
+    if self.win_prob_fn is not None:
+      azk_pytorch.layer_init(self.win_prob_fn, std=1)
 
   def forward(self, x, state=None):
     target_vector, target_matrix = self.encode_observations(x, state=state)
@@ -882,6 +1448,10 @@ class TCG(nn.Module):
   def encode_observations(self, observations, state=None):
     structured_obs, squeeze_batch, obs_tensor = self.__prepare_structured_observations(observations)
     self.__store_mask_observations(obs_tensor, state)
+    self.__store_privileged_critic_features(
+      self._encode_critic_privileged_features(structured_obs),
+      state,
+    )
 
     player = self.__get_struct_field(structured_obs, "player", "my_observation_data")
     opponent = self.__get_struct_field(structured_obs, "opponent", "opponent_observation_data")
@@ -919,12 +1489,20 @@ class TCG(nn.Module):
       dim=-1,
     )
     global_counts = self.scalar_normalizer("global_counts", global_counts)
+    global_counts_vec = self.global_counts_projector(global_counts)
     global_context_vec = self._encode_global_context(structured_obs)
-    previous_action_vec = self._encode_previous_action(structured_obs)
-    global_vec = (
-      global_context_vec
-      + nn.functional.pad(global_counts, (0, UNIT_EMBED_SIZE - global_counts.size(-1)))
-      + previous_action_vec
+    combat_context_vec = self._encode_combat_context(structured_obs)
+    recent_action_history_vec = self._encode_recent_action_history(structured_obs)
+    global_vec = self.global_fusion_projector(
+      torch.cat(
+        [
+          global_counts_vec,
+          global_context_vec,
+          combat_context_vec,
+          recent_action_history_vec,
+        ],
+        dim=-1,
+      )
     )
 
     target_vector = torch.cat(
@@ -1064,5 +1642,94 @@ class TCG(nn.Module):
       gate2_table=gate_2_table,
     )
 
-    values = self.value_fn(projected_hidden)
+    value_features = self._value_features(
+      flat_hidden,
+      projected_hidden,
+      state=state,
+    )
+    if self.split_value_heads_enabled:
+      terminal_values = self.value_terminal_fn(value_features)
+      shaped_values = self.value_shaped_fn(value_features)
+      values = terminal_values + shaped_values
+      if state is not None:
+        state["_azk_value_terminal"] = terminal_values
+        state["_azk_value_shaped"] = shaped_values
+    else:
+      values = self.value_fn(value_features)
+    if state is not None and self.win_prob_fn is not None:
+      state["_azk_win_prob_logits"] = self.win_prob_fn(self._win_prob_features(flat_hidden))
     return distribution, values
+
+
+def build_policy_model(env, policy_config: dict | None = None, **kwargs) -> TCG:
+  policy_config = policy_config or {}
+  model_version = str(
+    policy_config.get("model_version", POLICY_MODEL_VERSION_METADATA_V1)
+  )
+  critic_head_type = str(
+    policy_config.get("critic_head_type", CRITIC_HEAD_TYPE_FULL_LSTM_MLP)
+  )
+  privileged_critic_enabled = bool(
+    policy_config.get("privileged_critic_enabled", PRIVILEGED_CRITIC_ENABLED_DEFAULT)
+  )
+  privileged_critic_embed_dim = int(
+    policy_config.get("privileged_critic_embed_dim", PRIVILEGED_CRITIC_EMBED_DIM)
+  )
+  privileged_critic_deck_heads = int(
+    policy_config.get("privileged_critic_deck_heads", PRIVILEGED_CRITIC_DECK_HEADS)
+  )
+  privileged_critic_deck_layers = int(
+    policy_config.get("privileged_critic_deck_layers", PRIVILEGED_CRITIC_DECK_LAYERS)
+  )
+  privileged_critic_deck_ff_size = int(
+    policy_config.get("privileged_critic_deck_ff_size", PRIVILEGED_CRITIC_DECK_FF_SIZE)
+  )
+  privileged_critic_fusion_hidden_size = int(
+    policy_config.get(
+      "privileged_critic_fusion_hidden_size",
+      PRIVILEGED_CRITIC_FUSION_HIDDEN_SIZE,
+    )
+  )
+  privileged_critic_fusion_projection_size = int(
+    policy_config.get(
+      "privileged_critic_fusion_projection_size",
+      PRIVILEGED_CRITIC_FUSION_PROJECTION_SIZE,
+    )
+  )
+  privileged_critic_feature_scale = float(
+    policy_config.get(
+      "privileged_critic_feature_scale",
+      PRIVILEGED_CRITIC_FEATURE_SCALE_DEFAULT,
+    )
+  )
+  win_prob_aux_enabled = bool(policy_config.get("win_prob_aux_enabled", False))
+  win_prob_aux_coef = float(policy_config.get("win_prob_aux_coef", WIN_PROB_AUX_COEF_DEFAULT))
+  split_value_heads_enabled = bool(policy_config.get("split_value_heads_enabled", False))
+  split_value_component_coef = float(
+    policy_config.get("split_value_component_coef", SPLIT_VALUE_COMPONENT_COEF_DEFAULT)
+  )
+
+  if model_version == POLICY_MODEL_VERSION_METADATA_V1:
+    return TCG(
+      env,
+      model_version=model_version,
+      critic_head_type=critic_head_type,
+      privileged_critic_enabled=privileged_critic_enabled,
+      privileged_critic_embed_dim=privileged_critic_embed_dim,
+      privileged_critic_deck_heads=privileged_critic_deck_heads,
+      privileged_critic_deck_layers=privileged_critic_deck_layers,
+      privileged_critic_deck_ff_size=privileged_critic_deck_ff_size,
+      privileged_critic_fusion_hidden_size=privileged_critic_fusion_hidden_size,
+      privileged_critic_fusion_projection_size=privileged_critic_fusion_projection_size,
+      privileged_critic_feature_scale=privileged_critic_feature_scale,
+      win_prob_aux_enabled=win_prob_aux_enabled,
+      win_prob_aux_coef=win_prob_aux_coef,
+      split_value_heads_enabled=split_value_heads_enabled,
+      split_value_component_coef=split_value_component_coef,
+      **kwargs,
+    )
+
+  raise ValueError(
+    f"Unsupported v2 policy model_version '{model_version}'. "
+    f"Known versions: {POLICY_MODEL_VERSION_METADATA_V1}"
+  )

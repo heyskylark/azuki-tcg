@@ -9,6 +9,14 @@ static uint8_t clamp_selection_count(uint8_t count) {
   return count > MAX_SELECTION_ZONE_SIZE ? MAX_SELECTION_ZONE_SIZE : count;
 }
 
+static uint8_t clamp_pick_max(uint8_t pick_max) {
+  const bool within_capacity = pick_max <= MAX_ABILITY_SELECTION;
+  ecs_assert(within_capacity, ECS_INVALID_PARAMETER,
+             "Selection pick_max %u exceeds MAX_ABILITY_SELECTION %u",
+             (unsigned)pick_max, (unsigned)MAX_ABILITY_SELECTION);
+  return within_capacity ? pick_max : MAX_ABILITY_SELECTION;
+}
+
 void azk_init_selection_state(AbilityContext *ctx, const ecs_entity_t *cards,
                               uint8_t count, uint8_t pick_max) {
   if (!ctx) {
@@ -18,7 +26,7 @@ void azk_init_selection_state(AbilityContext *ctx, const ecs_entity_t *cards,
   const uint8_t actual_count = cards ? clamp_selection_count(count) : 0;
   ctx->selection = (AbilitySelectionState){
       .count = actual_count,
-      .pick_max = pick_max,
+      .pick_max = clamp_pick_max(pick_max),
   };
 
   for (uint8_t i = 0; i < actual_count; ++i) {

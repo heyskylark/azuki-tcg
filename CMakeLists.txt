@@ -35,35 +35,57 @@ set(AZUKI_MAIN ${CMAKE_CURRENT_SOURCE_DIR}/src/main.c)
 set(AZUKI_LIB_SOURCES ${AZUKI_SOURCES})
 list(REMOVE_ITEM AZUKI_LIB_SOURCES ${AZUKI_MAIN})
 
-add_library(azuki_lib ${AZUKI_LIB_SOURCES})
+if(TARGET flecs::flecs)
+  set(AZUKI_FLECS_TARGET flecs::flecs)
+else()
+  set(AZUKI_FLECS_TARGET flecs)
+endif()
 
-target_include_directories(azuki_lib PUBLIC
+add_library(azuki_obj OBJECT ${AZUKI_LIB_SOURCES})
+
+target_include_directories(azuki_obj PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/src
   ${CURSES_INCLUDE_DIRS}
 )
 
-# Link against the imported target if available, otherwise the alias we set up
-if(TARGET flecs::flecs)
-  target_link_libraries(azuki_lib PUBLIC flecs::flecs)
-else()
-  # Fallback if package config exported a different canonical target name
-  # Adjust if your environment provides a different target.
-  target_link_libraries(azuki_lib PUBLIC flecs)
-endif()
+target_link_libraries(azuki_obj PUBLIC ${AZUKI_FLECS_TARGET})
+target_link_libraries(azuki_obj PUBLIC ${CURSES_LIBRARIES})
 
+add_library(azuki_lib STATIC $<TARGET_OBJECTS:azuki_obj>)
+target_include_directories(azuki_lib PUBLIC
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/src
+  ${CURSES_INCLUDE_DIRS}
+)
+target_link_libraries(azuki_lib PUBLIC ${AZUKI_FLECS_TARGET})
 target_link_libraries(azuki_lib PUBLIC ${CURSES_LIBRARIES})
 
-add_executable(azuki ${AZUKI_MAIN})
-target_link_libraries(azuki PRIVATE azuki_lib)
+add_executable(azuki ${AZUKI_MAIN} $<TARGET_OBJECTS:azuki_obj>)
+target_include_directories(azuki PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/src
+  ${CURSES_INCLUDE_DIRS}
+)
+target_link_libraries(azuki PRIVATE ${AZUKI_FLECS_TARGET})
+target_link_libraries(azuki PRIVATE ${CURSES_LIBRARIES})
 
 enable_testing()
 
 add_executable(world_tests
   tests/test_world.c
+  $<TARGET_OBJECTS:azuki_obj>
 )
-target_link_libraries(world_tests PRIVATE azuki_lib)
+target_include_directories(world_tests PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/src
+  ${CURSES_INCLUDE_DIRS}
+)
+target_link_libraries(world_tests PRIVATE ${AZUKI_FLECS_TARGET})
+target_link_libraries(world_tests PRIVATE ${CURSES_LIBRARIES})
 add_test(NAME world_tests COMMAND world_tests)
+add_test(NAME stt04_017_regression
+  COMMAND world_tests --run-stt04-017-regression)
 
 if(BUILD_PYTHON_BINDINGS)
   add_subdirectory(python/src)

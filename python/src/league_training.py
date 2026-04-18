@@ -180,6 +180,8 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     actions_out = torch.zeros((batch_n, *self.vecenv.single_action_space.shape), device=device, dtype=torch.int32)
     logprobs_out = torch.zeros(batch_n, device=device)
     values_out = torch.zeros(batch_n, device=device)
+    terminal_values_out = torch.zeros(batch_n, device=device)
+    shaped_values_out = torch.zeros(batch_n, device=device)
 
     learner_idx = np.nonzero(learner_rows_np)[0]
     if learner_idx.size > 0:
@@ -194,6 +196,13 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       actions_out[learner_idx_t] = actions.to(dtype=torch.int32)
       logprobs_out[learner_idx_t] = logprobs.to(dtype=logprobs_out.dtype)
       values_out[learner_idx_t] = values.flatten().to(dtype=values_out.dtype)
+      if self._split_value_heads_enabled():
+        terminal_value, shaped_value = self._component_values_from_state(
+          learner_state,
+          values_out[learner_idx_t].shape,
+        )
+        terminal_values_out[learner_idx_t] = terminal_value.detach().float()
+        shaped_values_out[learner_idx_t] = shaped_value.detach().float()
       if self._use_rnn:
         self._learner_lstm_h[learner_idx_t] = learner_state["lstm_h"].to(
           device=self._learner_lstm_h.device,
@@ -217,10 +226,18 @@ class LeaguePuffeRL(pufferl.PuffeRL):
         if self._use_rnn:
           latest_state["lstm_h"] = self._learner_lstm_h[latest_idx_t]
           latest_state["lstm_c"] = self._learner_lstm_c[latest_idx_t]
-        latest_logits, _ = self._safe_forward_eval(self.policy, o_device[latest_idx_t], latest_state)
+        latest_logits, latest_values = self._safe_forward_eval(self.policy, o_device[latest_idx_t], latest_state)
         with torch.no_grad(), self.amp_context:
           latest_actions, _, _ = azk_pytorch.sample_logits(latest_logits)
         actions_out[latest_idx_t] = latest_actions.to(dtype=torch.int32)
+        values_out[latest_idx_t] = latest_values.flatten().to(dtype=values_out.dtype)
+        if self._split_value_heads_enabled():
+          terminal_value, shaped_value = self._component_values_from_state(
+            latest_state,
+            values_out[latest_idx_t].shape,
+          )
+          terminal_values_out[latest_idx_t] = terminal_value.detach().float()
+          shaped_values_out[latest_idx_t] = shaped_value.detach().float()
         if self._use_rnn:
           self._learner_lstm_h[latest_idx_t] = latest_state["lstm_h"].to(
             device=self._learner_lstm_h.device,
@@ -244,10 +261,18 @@ class LeaguePuffeRL(pufferl.PuffeRL):
           if self._use_rnn:
             opp_state["lstm_h"] = self._opp_lstm_h[int(policy_id)][rows_t]
             opp_state["lstm_c"] = self._opp_lstm_c[int(policy_id)][rows_t]
-          opp_logits, _ = self._safe_forward_eval(opp_policy, o_device[rows_t], opp_state)
+          opp_logits, opp_values = self._safe_forward_eval(opp_policy, o_device[rows_t], opp_state)
           with torch.no_grad(), self.amp_context:
             opp_actions, _, _ = azk_pytorch.sample_logits(opp_logits)
           actions_out[rows_t] = opp_actions.to(dtype=torch.int32)
+          values_out[rows_t] = opp_values.flatten().to(dtype=values_out.dtype)
+          if self._split_value_heads_enabled():
+            terminal_value, shaped_value = self._component_values_from_state(
+              opp_state,
+              values_out[rows_t].shape,
+            )
+            terminal_values_out[rows_t] = terminal_value.detach().float()
+            shaped_values_out[rows_t] = shaped_value.detach().float()
           if self._use_rnn:
             self._opp_lstm_h[int(policy_id)][rows_t] = opp_state["lstm_h"].to(
               device=self._opp_lstm_h[int(policy_id)].device,
@@ -258,7 +283,15 @@ class LeaguePuffeRL(pufferl.PuffeRL):
               dtype=self._opp_lstm_c[int(policy_id)].dtype,
             )
 
-    return actions_out, logprobs_out, values_out, learner_rows_np, env_indices
+    return (
+      actions_out,
+      logprobs_out,
+      values_out,
+      terminal_values_out,
+      shaped_values_out,
+      learner_rows_np,
+      env_indices,
+    )
 
   def _safe_forward_eval(self, model, obs: torch.Tensor, state: dict):
     with torch.no_grad(), self.amp_context:
@@ -274,6 +307,10 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       if self._use_rnn:
         state["lstm_h"] = state_pad["lstm_h"][:1]
         state["lstm_c"] = state_pad["lstm_c"][:1]
+      for key in ("_azk_win_prob_logits", "_azk_value_terminal", "_azk_value_shaped"):
+        tensor = state_pad.get(key)
+        if torch.is_tensor(tensor):
+          state[key] = tensor[:1]
 
       if hasattr(logits, "primary_logits"):
         logits = type(logits)(
@@ -302,6 +339,8 @@ class LeaguePuffeRL(pufferl.PuffeRL):
 
     self.full_rows = 0
     self._segment_is_trainable.zero_()
+    self._reset_win_prob_rollout_buffers()
+    self._reset_split_value_rollout_buffers()
     while self.full_rows < self.segments:
       profile("env", epoch)
       o, r, d, t, info, env_id, mask = self.vecenv.recv()
@@ -317,9 +356,24 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       d_t = torch.as_tensor(d).to(device)
       mask_t = torch.as_tensor(mask, device=device, dtype=torch.bool)
       env_id_np = np.asarray(env_id, dtype=np.int64)
+      reward_components_terminal_np, reward_components_shaped_np = self._extract_step_reward_components(
+        info,
+        env_id_np,
+        np.clip(np.asarray(r, dtype=np.float32), -1.0, 1.0),
+      )
+      reward_components_terminal = torch.as_tensor(reward_components_terminal_np, device=device)
+      reward_components_shaped = torch.as_tensor(reward_components_shaped_np, device=device)
 
       profile("eval_forward", epoch)
-      actions_t, logprobs_t, values_t, learner_rows_np, env_indices = self._infer_actions(
+      (
+        actions_t,
+        logprobs_t,
+        values_t,
+        terminal_values_t,
+        shaped_values_t,
+        learner_rows_np,
+        env_indices,
+      ) = self._infer_actions(
         o_device, mask_t, env_id_np
       )
 
@@ -342,9 +396,15 @@ class LeaguePuffeRL(pufferl.PuffeRL):
         self.actions[batch_rows, l] = actions_t
         self.logprobs[batch_rows, l] = logprobs_t
         self.rewards[batch_rows, l] = torch.clamp(r_t, -1, 1)
+        self.terminal_reward_components[batch_rows, l] = reward_components_terminal
+        self.shaped_reward_components[batch_rows, l] = reward_components_shaped
         self.terminals[batch_rows, l] = d_t.float()
         self.values[batch_rows, l] = values_t.float()
+        if self._split_value_heads_enabled():
+          self.terminal_values[batch_rows, l] = terminal_values_t.float()
+          self.shaped_values[batch_rows, l] = shaped_values_t.float()
         self._segment_is_trainable[batch_rows] = torch.as_tensor(learner_rows_np, device=device, dtype=torch.bool)
+        self._stamp_win_prob_rollout_metadata(batch_rows, l, env_id_np)
 
         self.ep_lengths[env_id_slice] += 1
         if l + 1 >= config["bptt_horizon"]:
@@ -356,7 +416,7 @@ class LeaguePuffeRL(pufferl.PuffeRL):
 
       done_rows = env_id_np[done_mask]
       self._zero_done_states(done_rows)
-      finished_envs = self._episode_envs_from_done_mask(env_id_np, done_mask)
+      finished_envs = self._assign_terminal_win_prob_targets(info, env_id_np, done_mask)
       self._resample_matchups(finished_envs)
 
       actions_np = actions_t.cpu().numpy()
@@ -401,6 +461,13 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     device = config["device"]
     # Ensure learner policy is in training mode before any backward pass.
     self.policy.train()
+    win_prob_enabled = self._win_prob_aux_enabled()
+    split_value_enabled = self._split_value_heads_enabled()
+    win_prob_correct_sum = 0.0
+    win_prob_brier_sum = 0.0
+    win_prob_pred_sum = 0.0
+    win_prob_target_sum = 0.0
+    win_prob_example_count = 0
 
     b0 = config["prio_beta0"]
     a = config["prio_alpha"]
@@ -431,6 +498,33 @@ class LeaguePuffeRL(pufferl.PuffeRL):
         config["vtrace_rho_clip"],
         config["vtrace_c_clip"],
       )
+      terminal_advantages = None
+      shaped_advantages = None
+      if split_value_enabled:
+        terminal_advantages = torch.zeros(shape, device=device)
+        terminal_advantages = pufferl.compute_puff_advantage(
+          self.terminal_values,
+          self.terminal_reward_components,
+          self.terminals,
+          self.ratio,
+          terminal_advantages,
+          config["gamma"],
+          config["gae_lambda"],
+          config["vtrace_rho_clip"],
+          config["vtrace_c_clip"],
+        )
+        shaped_advantages = torch.zeros(shape, device=device)
+        shaped_advantages = pufferl.compute_puff_advantage(
+          self.shaped_values,
+          self.shaped_reward_components,
+          self.terminals,
+          self.ratio,
+          shaped_advantages,
+          config["gamma"],
+          config["gae_lambda"],
+          config["vtrace_rho_clip"],
+          config["vtrace_c_clip"],
+        )
 
       adv = advantages.abs().sum(axis=1)
       prio_weights_all = torch.nan_to_num(adv**a, 0, 0, 0)
@@ -449,6 +543,11 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       mb_values = self.values[idx]
       mb_returns = advantages[idx] + mb_values
       mb_advantages = advantages[idx]
+      if split_value_enabled:
+        mb_terminal_values = self.terminal_values[idx]
+        mb_shaped_values = self.shaped_values[idx]
+        mb_terminal_returns = terminal_advantages[idx] + mb_terminal_values
+        mb_shaped_returns = shaped_advantages[idx] + mb_shaped_values
 
       profile("train_forward", epoch)
       if not config["use_rnn"]:
@@ -475,23 +574,58 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       pg_loss = torch.max(pg_loss1, pg_loss2).mean()
 
       newvalue = newvalue.view(mb_returns.shape)
-      v_clipped = mb_values + torch.clamp(newvalue - mb_values, -vf_clip, vf_clip)
-      v_loss_unclipped = (newvalue - mb_returns) ** 2
-      v_loss_clipped = (v_clipped - mb_returns) ** 2
-      v_loss = 0.5 * torch.max(v_loss_unclipped, v_loss_clipped).mean()
+      total_v_loss = self._clipped_value_loss(newvalue, mb_values, mb_returns, vf_clip)
+      component_v_loss = torch.zeros((), device=device)
+      terminal_v_loss = torch.zeros((), device=device)
+      shaped_v_loss = torch.zeros((), device=device)
+      if split_value_enabled:
+        new_terminal_value, new_shaped_value = self._component_values_from_state(
+          state,
+          mb_returns.shape,
+        )
+        terminal_v_loss = self._clipped_value_loss(
+          new_terminal_value,
+          mb_terminal_values,
+          mb_terminal_returns,
+          vf_clip,
+        )
+        shaped_v_loss = self._clipped_value_loss(
+          new_shaped_value,
+          mb_shaped_values,
+          mb_shaped_returns,
+          vf_clip,
+        )
+        component_v_loss = 0.5 * (terminal_v_loss + shaped_v_loss)
       entropy_loss = entropy.mean()
-      loss = pg_loss + config["vf_coef"] * v_loss - config["ent_coef"] * entropy_loss
+      win_prob_aux_loss, win_prob_aux_metrics = self._compute_win_prob_aux(state, idx)
+      value_loss_for_optim = total_v_loss + self._split_value_component_coef() * component_v_loss
+      loss = pg_loss + config["vf_coef"] * value_loss_for_optim - config["ent_coef"] * entropy_loss + win_prob_aux_loss
 
       self.values[idx] = newvalue.detach().float()
+      if split_value_enabled:
+        self.terminal_values[idx] = new_terminal_value.detach().float()
+        self.shaped_values[idx] = new_shaped_value.detach().float()
 
       profile("train_misc", epoch)
       losses["policy_loss"] += pg_loss.item() / self.total_minibatches
-      losses["value_loss"] += v_loss.item() / self.total_minibatches
+      losses["value_loss"] += value_loss_for_optim.item() / self.total_minibatches
+      losses["value_loss_total"] += total_v_loss.item() / self.total_minibatches
+      if split_value_enabled:
+        losses["value_loss_terminal"] += terminal_v_loss.item() / self.total_minibatches
+        losses["value_loss_shaped"] += shaped_v_loss.item() / self.total_minibatches
       losses["entropy"] += entropy_loss.item() / self.total_minibatches
       losses["old_approx_kl"] += old_approx_kl.item() / self.total_minibatches
       losses["approx_kl"] += approx_kl.item() / self.total_minibatches
       losses["clipfrac"] += clipfrac.item() / self.total_minibatches
       losses["importance"] += ratio.mean().item() / self.total_minibatches
+      if win_prob_enabled:
+        losses["win_prob_aux_loss"] += win_prob_aux_metrics["raw_loss"] / self.total_minibatches
+        losses["win_prob_aux_labeled_frac"] += win_prob_aux_metrics["labeled_frac"] / self.total_minibatches
+        win_prob_correct_sum += win_prob_aux_metrics["correct_sum"]
+        win_prob_brier_sum += win_prob_aux_metrics["brier_sum"]
+        win_prob_pred_sum += win_prob_aux_metrics["pred_sum"]
+        win_prob_target_sum += win_prob_aux_metrics["target_sum"]
+        win_prob_example_count += win_prob_aux_metrics["example_count"]
 
       profile("learn", epoch)
       loss.backward()
@@ -514,6 +648,34 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     var_y = y_true.var()
     explained_var = torch.nan if var_y == 0 else (1 - (y_true - y_pred).var() / var_y).item()
     losses["explained_variance"] = explained_var
+    if split_value_enabled:
+      terminal_y_pred = self.terminal_values[eval_mask].flatten()
+      terminal_y_true = (terminal_advantages[eval_mask] + self.terminal_values[eval_mask]).flatten()
+      terminal_var_y = terminal_y_true.var()
+      losses["explained_variance_terminal"] = (
+        torch.nan
+        if terminal_var_y == 0
+        else (1 - (terminal_y_true - terminal_y_pred).var() / terminal_var_y).item()
+      )
+      shaped_y_pred = self.shaped_values[eval_mask].flatten()
+      shaped_y_true = (shaped_advantages[eval_mask] + self.shaped_values[eval_mask]).flatten()
+      shaped_var_y = shaped_y_true.var()
+      losses["explained_variance_shaped"] = (
+        torch.nan
+        if shaped_var_y == 0
+        else (1 - (shaped_y_true - shaped_y_pred).var() / shaped_var_y).item()
+      )
+    if win_prob_enabled:
+      if win_prob_example_count > 0:
+        losses["win_prob_aux_accuracy"] = win_prob_correct_sum / win_prob_example_count
+        losses["win_prob_aux_brier"] = win_prob_brier_sum / win_prob_example_count
+        losses["win_prob_aux_pred_mean"] = win_prob_pred_sum / win_prob_example_count
+        losses["win_prob_aux_target_mean"] = win_prob_target_sum / win_prob_example_count
+      else:
+        losses["win_prob_aux_accuracy"] = 0.0
+        losses["win_prob_aux_brier"] = 0.0
+        losses["win_prob_aux_pred_mean"] = 0.0
+        losses["win_prob_aux_target_mean"] = 0.0
 
     profile.end()
     logs = None

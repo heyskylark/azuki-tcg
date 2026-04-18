@@ -11,6 +11,9 @@
 #include <unistd.h>
 
 #include "azuki/engine.h"
+#include "abilities/ability_system.h"
+#include "utils/deck_utils.h"
+#include "utils/status_util.h"
 
 #define PBRS_LEADER_WEIGHT 4.0f
 #define PBRS_GARDEN_ATTACK_WEIGHT 0.7f
@@ -54,6 +57,7 @@ typedef struct Log {
     float draw_rate;
     float timeout_truncation_rate;
     float auto_tick_truncation_rate;
+    float zero_legal_action_truncation_rate;
     float gameover_terminal_rate;
     float winner_terminal_rate;
     float curriculum_episode_cap;
@@ -88,6 +92,47 @@ typedef struct Log {
     float n;
 } Log;
 
+static inline const char* debug_card_code_for_entity(AzkEngine* engine,
+                                                     ecs_entity_t entity) {
+  if (engine == NULL || entity == 0) {
+    return "none";
+  }
+
+  const CardId* card_id = ecs_get(engine, entity, CardId);
+  if (card_id == NULL || card_id->code == NULL) {
+    return "no_card_id";
+  }
+
+  return card_id->code;
+}
+
+static inline void debug_log_hand_zone(AzkEngine* engine,
+                                       ecs_entity_t hand_zone,
+                                       const char* label) {
+  if (engine == NULL || hand_zone == 0 || label == NULL) {
+    return;
+  }
+
+  ecs_entities_t hand_cards = ecs_get_ordered_children(engine, hand_zone);
+  fprintf(stderr, "[ZeroMask] %s hand_count=%d cards=", label, (int)hand_cards.count);
+  for (int32_t i = 0; i < hand_cards.count; ++i) {
+    fprintf(stderr, "%s%s", i == 0 ? "" : ",",
+            debug_card_code_for_entity(engine, hand_cards.ids[i]));
+  }
+  fprintf(stderr, "\n");
+}
+
+static inline int debug_zero_mask_logging_enabled(void) {
+  static int enabled = -1;
+  if (enabled < 0) {
+    const char* value = getenv("AZK_DEBUG_ZERO_MASK");
+    enabled = (value != NULL && value[0] != '\0' && strcmp(value, "0") != 0)
+                  ? 1
+                  : 0;
+  }
+  return enabled;
+}
+
 // Mirrors include/utils/actions_util.h::AZK_USER_ACTION_VALUE_COUNT tuple layout.
 typedef struct {
   int32_t type;
@@ -96,11 +141,17 @@ typedef struct {
   int32_t subaction_3;
 } ActionVector;
 
+typedef struct {
+  CardInfo *cards;
+  size_t card_count;
+} TrainingDeckSpec;
+
 typedef struct Client Client;
 typedef enum EpisodeEndReason {
   EP_END_REASON_GAMEOVER = 0,
   EP_END_REASON_TIMEOUT_TRUNCATION = 1,
-  EP_END_REASON_AUTO_TICK_TRUNCATION = 2
+  EP_END_REASON_AUTO_TICK_TRUNCATION = 2,
+  EP_END_REASON_ZERO_LEGAL_ACTION_TRUNCATION = 3
 } EpisodeEndReason;
 
 typedef struct {
@@ -108,6 +159,8 @@ typedef struct {
   TrainingObservationData* observations; // MAX_PLAYERS_PER_MATCH
   ActionVector* actions;         // 1 MAX_PLAYERS_PER_MATCH rows of {type, subaction_1..3}
   float* rewards;                // MAX_PLAYERS_PER_MATCH scalars
+  float* terminal_rewards;       // MAX_PLAYERS_PER_MATCH scalars
+  float* shaped_rewards;         // MAX_PLAYERS_PER_MATCH scalars
   unsigned char* terminals;      // MAX_PLAYERS_PER_MATCH scalars {0,1}
   unsigned char* truncations;    // MAX_PLAYERS_PER_MATCH scalars {0,1}
   Log log;
@@ -117,10 +170,16 @@ typedef struct {
   AzkEngine* engine;
   uint32_t seed;
   uint32_t starter_rng_state;
+  uint32_t deck_rng_state;
+  TrainingDeckSpec *deck_pool;
+  size_t deck_pool_count;
+  int current_deck_indices[MAX_PLAYERS_PER_MATCH];
   int tick;
   AzkActionMaskSet action_masks[MAX_PLAYERS_PER_MATCH];
   float last_phi[MAX_PLAYERS_PER_MATCH];
   float episode_returns[MAX_PLAYERS_PER_MATCH];
+  float episode_terminal_returns[MAX_PLAYERS_PER_MATCH];
+  float episode_shaped_returns[MAX_PLAYERS_PER_MATCH];
   uint64_t completed_episodes;
   int current_episode_cap;
   float time_weight;
@@ -141,6 +200,138 @@ typedef struct {
   uint32_t episode_action_play_entity_to_alley[MAX_PLAYERS_PER_MATCH];
   uint32_t episode_action_play_entity_to_garden[MAX_PLAYERS_PER_MATCH];
 } CAzukiTCG;
+
+static inline void debug_log_zero_mask_state(CAzukiTCG* env,
+                                             const char* context) {
+  if (env == NULL || env->engine == NULL || context == NULL ||
+      !debug_zero_mask_logging_enabled()) {
+    return;
+  }
+
+  const GameState* gs = azk_engine_game_state(env->engine);
+  if (gs == NULL) {
+    fprintf(stderr, "[ZeroMask] context=%s missing game state\n", context);
+    return;
+  }
+
+  const int8_t active_player_index = gs->active_player_index;
+  if (active_player_index < 0 ||
+      active_player_index >= MAX_PLAYERS_PER_MATCH) {
+    fprintf(stderr,
+            "[ZeroMask] context=%s invalid active_player_index=%d\n",
+            context, (int)active_player_index);
+    return;
+  }
+
+  const TrainingActionMaskObs* obs_mask =
+      &env->observations[active_player_index].action_mask;
+  const TrainingAbilityContextObservationData* ability_ctx =
+      &env->observations[active_player_index].ability_context;
+  const bool requires_action = azk_engine_requires_action(env->engine);
+  const AbilityPhase ability_phase = azk_engine_get_ability_phase(env->engine);
+  const bool has_deck_reorders = azk_has_pending_deck_reorders(env->engine);
+  const bool has_passive_buffs = azk_has_pending_passive_buffs(env->engine);
+  const bool has_queued_effects = azk_has_queued_triggered_effects(env->engine);
+
+  AzkActionMaskSet fresh_mask = {0};
+  const bool built_fresh_mask = azk_build_action_mask_for_player(
+      env->engine, gs, active_player_index, &fresh_mask);
+
+  const ecs_entity_t active_player = gs->players[active_player_index];
+  const PlayerNumber* player_number =
+      ecs_get(env->engine, active_player, PlayerNumber);
+
+  const DeckReorderQueue* deck_queue =
+      ecs_singleton_get(env->engine, DeckReorderQueue);
+  const PassiveBuffQueue* passive_queue =
+      ecs_singleton_get(env->engine, PassiveBuffQueue);
+  const TriggeredEffectQueue* trigger_queue =
+      ecs_singleton_get(env->engine, TriggeredEffectQueue);
+
+  fprintf(
+      stderr,
+      "[ZeroMask] context=%s tick=%d phase=%d ability_phase=%d "
+      "active_player_index=%d player_entity=%llu player_number=%d "
+      "deck_indices=[%d,%d] obs_legal=%u requires_action=%d "
+      "fresh_mask_ok=%d fresh_legal=%u deck_reorders=%d(%u) "
+      "passive_buffs=%d(%u) queued_effects=%d(%u) "
+      "ability_ctx_phase=%d source_card_def_id=%d effect_target_type=%u "
+      "cost_target_type=%u selection_count=%u pending_confirmations=%u\n",
+      context,
+      env->tick,
+      (int)gs->phase,
+      (int)ability_phase,
+      (int)active_player_index,
+      (unsigned long long)active_player,
+      player_number != NULL ? (int)player_number->player_number : -1,
+      env->current_deck_indices[0],
+      env->current_deck_indices[1],
+      obs_mask->legal_action_count,
+      requires_action ? 1 : 0,
+      built_fresh_mask ? 1 : 0,
+      fresh_mask.legal_action_count,
+      has_deck_reorders ? 1 : 0,
+      deck_queue != NULL ? deck_queue->count : 0,
+      has_passive_buffs ? 1 : 0,
+      passive_queue != NULL ? passive_queue->count : 0,
+      has_queued_effects ? 1 : 0,
+      trigger_queue != NULL ? trigger_queue->count : 0,
+      (int)ability_ctx->phase,
+      ability_ctx->has_source_card_def_id
+          ? (int)ability_ctx->source_card_def_id
+          : -1,
+      (unsigned)ability_ctx->effect_target_type,
+      (unsigned)ability_ctx->cost_target_type,
+      (unsigned)ability_ctx->selection_count,
+      (unsigned)ability_ctx->pending_confirmation_count);
+
+  if (deck_queue != NULL && deck_queue->count > 0) {
+    for (uint8_t i = 0; i < deck_queue->count; ++i) {
+      fprintf(stderr,
+              "[ZeroMask] deck_queue[%u] deck=%llu card=%s to_top=%d\n",
+              (unsigned)i,
+              (unsigned long long)deck_queue->entries[i].deck,
+              debug_card_code_for_entity(env->engine,
+                                         deck_queue->entries[i].card),
+              deck_queue->entries[i].to_top ? 1 : 0);
+    }
+  }
+
+  if (passive_queue != NULL && passive_queue->count > 0) {
+    for (uint8_t i = 0; i < passive_queue->count; ++i) {
+      fprintf(stderr,
+              "[ZeroMask] passive_queue[%u] entity=%s source=%s atk=%d hp=%d "
+              "removal=%d\n",
+              (unsigned)i,
+              debug_card_code_for_entity(env->engine,
+                                         passive_queue->buffs[i].entity),
+              debug_card_code_for_entity(env->engine,
+                                         passive_queue->buffs[i].source),
+              (int)passive_queue->buffs[i].atk_modifier,
+              (int)passive_queue->buffs[i].hp_modifier,
+              passive_queue->buffs[i].is_removal ? 1 : 0);
+    }
+  }
+
+  if (trigger_queue != NULL && trigger_queue->count > 0) {
+    for (uint8_t i = 0; i < trigger_queue->count; ++i) {
+      fprintf(stderr,
+              "[ZeroMask] trigger_queue[%u] source=%s owner=%llu timing_tag=%u "
+              "action_index=%d\n",
+              (unsigned)i,
+              debug_card_code_for_entity(env->engine,
+                                         trigger_queue->effects[i].source_card),
+              (unsigned long long)trigger_queue->effects[i].owner,
+              (unsigned)trigger_queue->effects[i].timing_tag,
+              (int)trigger_queue->effects[i].action_index);
+    }
+  }
+
+  debug_log_hand_zone(env->engine, gs->zones[0].hand, "player0");
+  debug_log_hand_zone(env->engine, gs->zones[1].hand, "player1");
+  debug_log_hand_zone(env->engine, gs->zones[active_player_index].selection,
+                      "active_selection");
+}
 
 typedef struct {
   int initialized;
@@ -187,9 +378,62 @@ static inline uint32_t starter_seed_from_env_seed(uint32_t seed) {
   return seed ^ 0xA511E9B3u;
 }
 
+static inline uint32_t deck_seed_from_env_seed(uint32_t seed) {
+  return seed ^ 0x6D2B79F5u;
+}
+
 static inline int8_t next_starting_player(CAzukiTCG* env) {
   env->starter_rng_state = advance_episode_seed(env->starter_rng_state);
   return (int8_t)(env->starter_rng_state % (uint32_t)MAX_PLAYERS_PER_MATCH);
+}
+
+static inline void reset_current_deck_indices(CAzukiTCG* env) {
+  for (int player_index = 0; player_index < MAX_PLAYERS_PER_MATCH; ++player_index) {
+    env->current_deck_indices[player_index] = -1;
+  }
+}
+
+static inline size_t next_training_deck_index(CAzukiTCG* env) {
+  env->deck_rng_state = advance_episode_seed(env->deck_rng_state);
+  return (size_t)(env->deck_rng_state % (uint32_t)env->deck_pool_count);
+}
+
+static void free_training_deck_pool(CAzukiTCG* env) {
+  if (env == NULL || env->deck_pool == NULL) {
+    if (env != NULL) {
+      env->deck_pool_count = 0;
+      reset_current_deck_indices(env);
+    }
+    return;
+  }
+
+  for (size_t deck_index = 0; deck_index < env->deck_pool_count; ++deck_index) {
+    free(env->deck_pool[deck_index].cards);
+    env->deck_pool[deck_index].cards = NULL;
+    env->deck_pool[deck_index].card_count = 0;
+  }
+  free(env->deck_pool);
+  env->deck_pool = NULL;
+  env->deck_pool_count = 0;
+  reset_current_deck_indices(env);
+}
+
+static AzkEngine *create_env_engine(CAzukiTCG* env, int8_t starting_player) {
+  if (env->deck_pool_count == 0 || env->deck_pool == NULL) {
+    reset_current_deck_indices(env);
+    return azk_engine_create_with_starting_player(env->seed, starting_player);
+  }
+
+  const size_t player0_deck_index = next_training_deck_index(env);
+  const size_t player1_deck_index = next_training_deck_index(env);
+  env->current_deck_indices[0] = (int)player0_deck_index;
+  env->current_deck_indices[1] = (int)player1_deck_index;
+
+  const TrainingDeckSpec *player0_deck = &env->deck_pool[player0_deck_index];
+  const TrainingDeckSpec *player1_deck = &env->deck_pool[player1_deck_index];
+  return azk_engine_create_with_decks_and_starting_player(
+      env->seed, starting_player, player0_deck->cards, player0_deck->card_count,
+      player1_deck->cards, player1_deck->card_count);
 }
 
 static void init_env_profile_if_needed(void) {
@@ -444,6 +688,8 @@ static void reset_reward_tracking(CAzukiTCG* env) {
   env->time_decay = PBRS_TIME_DECAY_DEFAULT;
   for (int8_t player_index = 0; player_index < MAX_PLAYERS_PER_MATCH; ++player_index) {
     env->episode_returns[player_index] = 0.0f;
+    env->episode_terminal_returns[player_index] = 0.0f;
+    env->episode_shaped_returns[player_index] = 0.0f;
     env->episode_action_total[player_index] = 0;
     env->episode_action_noop[player_index] = 0;
     env->episode_action_attack[player_index] = 0;
@@ -477,6 +723,18 @@ static void reset_reward_tracking(CAzukiTCG* env) {
   }
 }
 
+static inline void zero_step_reward_components(CAzukiTCG* env) {
+  for (int8_t player_index = 0; player_index < MAX_PLAYERS_PER_MATCH; ++player_index) {
+    env->rewards[player_index] = 0.0f;
+    if (env->terminal_rewards != NULL) {
+      env->terminal_rewards[player_index] = 0.0f;
+    }
+    if (env->shaped_rewards != NULL) {
+      env->shaped_rewards[player_index] = 0.0f;
+    }
+  }
+}
+
 static void apply_terminal_rewards(CAzukiTCG* env) {
   const GameState* game_state = azk_engine_game_state(env->engine);
   if (game_state == NULL) {
@@ -494,11 +752,20 @@ static void apply_terminal_rewards(CAzukiTCG* env) {
     env->rewards[0] = 0.0f;
     env->rewards[1] = 0.0f;
   }
+  if (env->terminal_rewards != NULL) {
+    env->terminal_rewards[0] = env->rewards[0];
+    env->terminal_rewards[1] = env->rewards[1];
+  }
+  if (env->shaped_rewards != NULL) {
+    env->shaped_rewards[0] = 0.0f;
+    env->shaped_rewards[1] = 0.0f;
+  }
 }
 
 static void apply_truncation_rewards(CAzukiTCG* env, EpisodeEndReason reason) {
   float timeout_penalty = TRUNCATION_TIMEOUT_PENALTY;
-  if (reason == EP_END_REASON_AUTO_TICK_TRUNCATION) {
+  if (reason == EP_END_REASON_AUTO_TICK_TRUNCATION ||
+      reason == EP_END_REASON_ZERO_LEGAL_ACTION_TRUNCATION) {
     timeout_penalty = TRUNCATION_AUTO_TICK_PENALTY;
   }
 
@@ -515,11 +782,23 @@ static void apply_truncation_rewards(CAzukiTCG* env, EpisodeEndReason reason) {
 
   env->rewards[0] = leader_edge_term + board_edge_term - timeout_penalty;
   env->rewards[1] = -leader_edge_term - board_edge_term - timeout_penalty;
+  if (env->terminal_rewards != NULL) {
+    env->terminal_rewards[0] = env->rewards[0];
+    env->terminal_rewards[1] = env->rewards[1];
+  }
+  if (env->shaped_rewards != NULL) {
+    env->shaped_rewards[0] = 0.0f;
+    env->shaped_rewards[1] = 0.0f;
+  }
 }
 
 static void accumulate_step_rewards(CAzukiTCG* env) {
   for (int8_t player_index = 0; player_index < MAX_PLAYERS_PER_MATCH; ++player_index) {
     env->episode_returns[player_index] += env->rewards[player_index];
+    env->episode_terminal_returns[player_index] +=
+        env->terminal_rewards != NULL ? env->terminal_rewards[player_index] : 0.0f;
+    env->episode_shaped_returns[player_index] +=
+        env->shaped_rewards != NULL ? env->shaped_rewards[player_index] : 0.0f;
   }
 }
 
@@ -551,6 +830,8 @@ static void record_episode_stats(CAzukiTCG* env, EpisodeEndReason reason) {
     env->log.timeout_truncation_rate += 1.0f;
   } else if (reason == EP_END_REASON_AUTO_TICK_TRUNCATION) {
     env->log.auto_tick_truncation_rate += 1.0f;
+  } else if (reason == EP_END_REASON_ZERO_LEGAL_ACTION_TRUNCATION) {
+    env->log.zero_legal_action_truncation_rate += 1.0f;
   }
   if (game_state->winner == 0) {
     env->log.p0_winrate += 1.0f;
@@ -719,6 +1000,14 @@ static void apply_shaped_rewards(
   const float shaped_reward = shaping_scale * base_shaped_reward;
   env->rewards[acting_player_index] = shaped_reward;
   env->rewards[opponent_index] = -shaped_reward;
+  if (env->terminal_rewards != NULL) {
+    env->terminal_rewards[acting_player_index] = 0.0f;
+    env->terminal_rewards[opponent_index] = 0.0f;
+  }
+  if (env->shaped_rewards != NULL) {
+    env->shaped_rewards[acting_player_index] = shaped_reward;
+    env->shaped_rewards[opponent_index] = -shaped_reward;
+  }
 
   for (int8_t player_index = 0; player_index < MAX_PLAYERS_PER_MATCH; ++player_index) {
     env->last_phi[player_index] = phi_values[player_index];
@@ -948,9 +1237,10 @@ static int max_auto_ticks_per_step_limit(void) {
 
 void init(CAzukiTCG* env) {
   env->starter_rng_state = starter_seed_from_env_seed(env->seed);
+  env->deck_rng_state = deck_seed_from_env_seed(env->seed);
+  reset_current_deck_indices(env);
   const int8_t starting_player = next_starting_player(env);
-  env->engine = azk_engine_create_with_starting_player(env->seed,
-                                                       starting_player);
+  env->engine = create_env_engine(env, starting_player);
   env->tick = 0;
   env->completed_episodes = initial_completed_episodes_offset();
   env->current_episode_cap = current_episode_ticks_limit(env);
@@ -1019,14 +1309,20 @@ void c_reset(CAzukiTCG* env) {
   env->terminals[1] = NOT_DONE;
   env->truncations[0] = NOT_DONE;
   env->truncations[1] = NOT_DONE;
-  env->rewards[0] = 0.0f;
-  env->rewards[1] = 0.0f;
+  zero_step_reward_components(env);
   env->current_episode_cap = current_episode_ticks_limit(env);
 
   azk_engine_destroy(env->engine);
-  env->engine = azk_engine_create_with_starting_player(env->seed,
-                                                       starting_player);
+  env->engine = create_env_engine(env, starting_player);
   refresh_observations(env);
+  {
+    const int8_t active_player_index = tcg_active_player_index(env);
+    if (active_player_index >= 0 &&
+        env->observations[active_player_index].action_mask.legal_action_count ==
+            0) {
+      debug_log_zero_mask_state(env, "reset");
+    }
+  }
   reset_reward_tracking(env);
 }
 
@@ -1039,13 +1335,38 @@ void c_step(CAzukiTCG* env) {
   uint64_t auto_tick_count = 0;
 
   env->tick++;
-  env->rewards[0] = 0.0f;
-  env->rewards[1] = 0.0f;
+  zero_step_reward_components(env);
 
   const int8_t active_player_index = tcg_active_player_index(env);
   if (active_player_index < 0) {
     fprintf(stderr, "No active player available when stepping environment\n");
     abort();
+  }
+
+  const TrainingActionMaskObs *current_action_mask =
+      &env->observations[active_player_index].action_mask;
+  if (current_action_mask->legal_action_count == 0) {
+    debug_log_zero_mask_state(env, "step");
+    fprintf(
+        stderr,
+        "Zero legal actions detected at tick %d for active player %d; "
+        "deck_indices=[%d,%d], forcing truncation\n",
+        env->tick,
+        active_player_index,
+        env->current_deck_indices[0],
+        env->current_deck_indices[1]);
+    apply_truncation_rewards(env, EP_END_REASON_ZERO_LEGAL_ACTION_TRUNCATION);
+    accumulate_step_rewards(env);
+    env->truncations[0] = DONE;
+    env->truncations[1] = DONE;
+    record_episode_stats(env, EP_END_REASON_ZERO_LEGAL_ACTION_TRUNCATION);
+    if (g_env_profile.enabled) {
+      const uint64_t step_elapsed_ns = env_now_ns() - step_start_ns;
+      g_env_profile.step_calls++;
+      g_env_profile.total_step_ns += step_elapsed_ns;
+      maybe_report_env_profile();
+    }
+    return;
   }
 
   const ActionVector action = env->actions[active_player_index];
@@ -1084,7 +1405,7 @@ void c_step(CAzukiTCG* env) {
   record_action_choice(env, active_player_index, parsed_action.type);
   const bool noop_had_alternatives =
       (parsed_action.type == ACT_NOOP) &&
-      (env->observations[active_player_index].action_mask.legal_action_count > 1);
+      (current_action_mask->legal_action_count > 1);
 
   // Some sub-actions do not require a user action
   // We should progress those until a user action is required (or the game ends)
@@ -1160,6 +1481,7 @@ void c_step(CAzukiTCG* env) {
         fprintf(
           stderr,
           "Invalid action detected at tick %d in phase %d for active player %d: "
+          "deck_indices=[%d,%d], "
           "[%d, %d, %d, %d], action_in_mask=%d, legal_action_count=%u, "
           "action_in_fresh_mask=%d, fresh_legal_action_count=%u, "
           "ability_phase=%d, ability_ctx_phase=%d, "
@@ -1168,6 +1490,8 @@ void c_step(CAzukiTCG* env) {
           env->tick,
           (int)env->observations[active_player_index].phase,
           active_player_index,
+          env->current_deck_indices[0],
+          env->current_deck_indices[1],
           action.type,
           action.subaction_1,
           action.subaction_2,
@@ -1322,6 +1646,7 @@ void c_step(CAzukiTCG* env) {
 
 void c_close(CAzukiTCG* env) {
   azk_engine_destroy(env->engine);
+  free_training_deck_pool(env);
 }
 
 typedef struct {

@@ -16,8 +16,9 @@ import torch
 from pettingzoo.utils.conversions import turn_based_aec_to_parallel
 from azk_puffer import MultiagentEpisodeStats
 
-from policy.v2.tcg_policy import TCG, TCGLSTM
+from policy.v2.tcg_policy import TCGLSTM, build_policy_model
 from policy.v2 import tcg_sampler
+from training_deck_pool import load_training_deck_pool
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BUILD_PYTHON_DIR = REPO_ROOT / "build" / "python" / "src"
@@ -168,18 +169,24 @@ def make_azuki_env(*, seed: int | None = None, buf=None, **env_kwargs):
   env_kwargs.pop("native_envs_per_instance", None)
   env_kwargs.pop("native_log_interval", None)
   direct_parallel = bool(env_kwargs.pop("direct_parallel", False))
+  deck_pool = env_kwargs.pop("deck_pool", None)
+  deck_pool_path = env_kwargs.pop("deck_pool_path", None)
   if native:
     raise RuntimeError(
       "env.native is currently disabled: raw native packed observations use "
       "interleaved struct arrays that PufferLib tensor nativization cannot "
       "decode correctly yet."
     )
+  if deck_pool is not None and deck_pool_path is not None:
+    raise ValueError("Pass either env.deck_pool or env.deck_pool_path, not both")
+  if deck_pool is None:
+    deck_pool = load_training_deck_pool(deck_pool_path)
   if direct_parallel:
-    env = AzukiTCGParallel(seed=seed)
+    env = AzukiTCGParallel(seed=seed, deck_pool=deck_pool)
     env = MultiagentEpisodeStats(env)
     env = emulation.PettingZooPufferEnv(env, buf=buf, seed=seed)
     return env
-  env = AzukiTCG(seed=seed)
+  env = AzukiTCG(seed=seed, deck_pool=deck_pool)
   env = turn_based_aec_to_parallel(env)
   env = MultiagentEpisodeStats(env)
   env = emulation.PettingZooPufferEnv(env, buf=buf, seed=seed)
@@ -211,8 +218,10 @@ def build_vecenv(trainer_args: dict, *, backend=None, num_envs: int | None = Non
 
 
 def build_policy(vecenv, trainer_args: dict) -> torch.nn.Module:
-  base_policy = TCG(
+  policy_config = trainer_args.get("policy", {})
+  base_policy = build_policy_model(
     vecenv.driver_env,
+    policy_config=policy_config,
   )
   policy = TCGLSTM(
     vecenv.driver_env,
