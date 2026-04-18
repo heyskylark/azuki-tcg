@@ -369,13 +369,42 @@ Purpose: track the ordered work needed to move the v2 policy away from learned c
      - structured categorical/scalar features
    - Keep existing structured embeddings for `card_type`, `element`, action heads, phase, ability phase, and indices where they remain useful.
 
-10. [ ] Prototype a legal-action scorer actor branch.
+10. [x] Prototype a legal-action scorer actor branch.
    - Keep the current factorized `(primary, sub1, sub2, sub3)` actor as a control branch.
    - Build one candidate embedding per legal action row using the legal tuple list plus semantic card references gathered from the public `target_matrix`.
    - Compute a single logit per legal action row from the public recurrent state and candidate action embedding.
    - Train PPO on one masked softmax over legal rows instead of the current product of conditional subaction distributions.
    - Keep the emitted action format as the concrete 4-field tuple so env stepping, replay, and offline eval stay compatible.
    - Add sampler / replay / log-prob plumbing so factorized and legal-row-scoring actors can coexist behind model-version or config switches.
+   - current implementation notes:
+     - added `policy.actor_head_type = factorized | legal_action_scorer`
+     - added `policy.legal_action_scorer_use_references = true | false`
+     - legal-row candidate embeddings currently include:
+       - primary action embedding
+       - generic subaction index embeddings for `sub1/sub2/sub3`
+       - per-component argument-kind embeddings so identical integers in different semantic roles are separated
+       - optional public semantic references for resolvable components:
+         - hand card
+         - self garden slot
+         - self alley slot
+         - self garden-or-leader slot
+         - opponent defender index for attack targets
+         - selection zone slot
+     - components whose semantics are not publicly resolvable yet, such as generic ability-target indices, still fall back to generic index + argument-kind features rather than guessed card references
+     - the sampler now supports both:
+       - factorized staged masking over `(primary, sub1, sub2, sub3)`
+       - one masked softmax over legal rows with tuple replay-matching during PPO
+   - initial 3090 smoke test (`32` envs, `4096` timesteps, no league promotion flow) showed the legal-row branch runs end to end and stays in the same short-run metric regime as factorized control:
+     - legal-row scorer:
+       - `value_loss = 0.0137`
+       - `entropy = 0.9611`
+       - `explained_variance = 0.0578`
+     - factorized control:
+       - `value_loss = 0.0141`
+       - `entropy = 1.0548`
+       - `explained_variance = 0.0357`
+     - takeaway:
+       - implementation is stable enough to proceed to longer matched actor-branch comparisons
 
 11. [x] Add a privileged-critic branch with critic-only hidden-zone encoders.
    - Keep the actor path strictly public-only.

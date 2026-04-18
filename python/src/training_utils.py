@@ -25,6 +25,10 @@ BUILD_PYTHON_DIR = REPO_ROOT / "build" / "python" / "src"
 DEFAULT_CONFIG_PATH = REPO_ROOT / "python" / "config" / "azuki.ini"
 
 
+def _has_binding_artifact(path: Path) -> bool:
+  return any(path.glob("binding*.so")) or any(path.glob("binding*.pyd"))
+
+
 def _candidate_python_build_dirs() -> list[Path]:
   env_override = os.getenv("AZK_BUILD_PYTHON_DIR")
   candidates: list[Path] = []
@@ -48,11 +52,39 @@ def _candidate_python_build_dirs() -> list[Path]:
   return candidates
 
 
+def _existing_binding_dir_on_sys_path() -> Path | None:
+  for entry in sys.path:
+    if not entry:
+      continue
+    try:
+      candidate = Path(entry).expanduser()
+    except (TypeError, OSError):
+      continue
+    if not candidate.exists() or not candidate.is_dir():
+      continue
+    if _has_binding_artifact(candidate):
+      return candidate
+  return None
+
+
 def ensure_python_build_on_path() -> None:
+  env_override = os.getenv("AZK_BUILD_PYTHON_DIR")
+  if env_override:
+    candidate = Path(env_override).expanduser()
+    if candidate.exists() and candidate.is_dir() and _has_binding_artifact(candidate):
+      candidate_str = str(candidate)
+      if candidate_str not in sys.path:
+        sys.path.insert(0, candidate_str)
+      return
+
+  existing = _existing_binding_dir_on_sys_path()
+  if existing is not None:
+    return
+
   for candidate in _candidate_python_build_dirs():
     if not candidate.exists():
       continue
-    if not any(candidate.glob("binding*.so")) and not any(candidate.glob("binding*.pyd")):
+    if not _has_binding_artifact(candidate):
       continue
     candidate_str = str(candidate)
     if candidate_str not in sys.path:

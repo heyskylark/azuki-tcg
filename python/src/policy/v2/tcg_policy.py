@@ -8,6 +8,8 @@ from torch import nn
 
 from observation import (
   ACTION_TYPE_COUNT,
+  ALLEY_SIZE,
+  GARDEN_SIZE,
   MAX_ATTACHED_WEAPONS,
   MAX_DECK_SIZE,
   MAX_HAND_SIZE,
@@ -15,7 +17,7 @@ from observation import (
   MAX_SELECTION_ZONE_SIZE,
 )
 from policy.card_metadata_table import load_policy_card_metadata_table
-from policy.tcg_distribution import TCGActionDistribution
+from policy.tcg_distribution import TCGActionDistribution, TCGLegalActionDistribution
 
 MAX_PLAYERS_PER_MATCH = 2
 CARD_TYPE_COUNT = 7
@@ -27,8 +29,26 @@ PRIMARY_ACTION_ID_BATCH = tuple(range(PRIMARY_ACTION_COUNT))
 MAX_INDEX_SIZE = 50
 ACTION_COMPONENT_COUNT = 4
 ACT_NOOP = 0
+ACT_PLAY_ENTITY_TO_GARDEN = 1
+ACT_PLAY_ENTITY_TO_ALLEY = 2
 ACT_ATTACK = 6
 ACT_ATTACH_WEAPON_FROM_HAND = 7
+ACT_PLAY_SPELL_FROM_HAND = 8
+ACT_DECLARE_DEFENDER = 9
+ACT_GATE_PORTAL = 10
+ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY = 11
+ACT_ACTIVATE_ALLEY_ABILITY = 12
+ACT_SELECT_COST_TARGET = 13
+ACT_SELECT_EFFECT_TARGET = 14
+ACT_CONFIRM_ABILITY = 16
+ACT_SELECT_FROM_SELECTION = 18
+ACT_BOTTOM_DECK_CARD = 19
+ACT_BOTTOM_DECK_ALL = 20
+ACT_SELECT_TO_ALLEY = 21
+ACT_SELECT_TO_EQUIP = 22
+ACT_SELECT_TO_GARDEN = 23
+ACT_TOP_DECK_CARD = 24
+ACT_MULLIGAN_SHUFFLE = 25
 
 CARD_TYPE_ENC_OUTPUT_SIZE = 4
 ELEMENT_ENC_OUTPUT_SIZE = 4
@@ -65,6 +85,21 @@ PRIVILEGED_CRITIC_FEATURE_SCALE_DEFAULT = 1.0
 PROCESS_SET_HIDDEN_SIZE = 128
 LSTM_HIDDEN_SIZE = 4096
 POLICY_MODEL_VERSION_METADATA_V1 = "metadata_v1"
+ACTOR_HEAD_TYPE_FACTORIZED = "factorized"
+ACTOR_HEAD_TYPE_LEGAL_ACTION_SCORER = "legal_action_scorer"
+LEGAL_ACTION_SCORER_USE_REFERENCES_DEFAULT = True
+LEGAL_ACTION_ARG_KIND_UNUSED = 0
+LEGAL_ACTION_ARG_KIND_HAND = 1
+LEGAL_ACTION_ARG_KIND_SELF_GARDEN = 2
+LEGAL_ACTION_ARG_KIND_SELF_ALLEY = 3
+LEGAL_ACTION_ARG_KIND_SELF_GARDEN_OR_LEADER = 4
+LEGAL_ACTION_ARG_KIND_OPP_DEFENDER = 5
+LEGAL_ACTION_ARG_KIND_SELECTION = 6
+LEGAL_ACTION_ARG_KIND_ABILITY_INDEX = 7
+LEGAL_ACTION_ARG_KIND_BOOL = 8
+LEGAL_ACTION_ARG_KIND_GENERIC_TARGET = 9
+LEGAL_ACTION_ARG_KIND_COUNT = 10
+LEGAL_ACTION_ARG_KIND_EMBED_SIZE = 8
 
 
 def _numpy_dtype_to_torch(dtype: np.dtype) -> torch.dtype:
@@ -320,7 +355,7 @@ class TCGLSTM(LSTMWrapper):
     return encoded, None
 
   def forward_eval(self, observations, state):
-    lstm_inputs, target_matrix = self._split_encoded(
+    lstm_inputs, action_context = self._split_encoded(
       self.policy.encode_observations(observations, state=state)
     )
     batch_size = int(lstm_inputs.shape[0]) if torch.is_tensor(lstm_inputs) else None
@@ -339,7 +374,7 @@ class TCGLSTM(LSTMWrapper):
     state["hidden"] = hidden
     state["lstm_h"] = hidden
     state["lstm_c"] = c
-    logits, values = self.policy.decode_actions(hidden, target_matrix=target_matrix, state=state)
+    logits, values = self.policy.decode_actions(hidden, action_context=action_context, state=state)
     win_prob_logits = state.get("_azk_win_prob_logits")
     if torch.is_tensor(win_prob_logits):
       state["_azk_win_prob_logits"] = win_prob_logits.reshape(batch_size)
@@ -375,14 +410,14 @@ class TCGLSTM(LSTMWrapper):
       lstm_state = None
 
     x = x.reshape(B * TT, *space_shape)
-    lstm_inputs, target_matrix = self._split_encoded(self.policy.encode_observations(x, state))
+    lstm_inputs, action_context = self._split_encoded(self.policy.encode_observations(x, state))
 
     hidden = lstm_inputs.reshape(B, TT, self.input_size).transpose(0, 1)
     hidden, (lstm_h, lstm_c) = self.lstm.forward(hidden, lstm_state)
     hidden = hidden.float().transpose(0, 1)
 
     flat_hidden = hidden.reshape(B * TT, self.hidden_size)
-    logits, values = self.policy.decode_actions(flat_hidden, target_matrix=target_matrix, state=state)
+    logits, values = self.policy.decode_actions(flat_hidden, action_context=action_context, state=state)
     values = values.reshape(B, TT)
     win_prob_logits = state.get("_azk_win_prob_logits")
     if torch.is_tensor(win_prob_logits):
@@ -405,6 +440,8 @@ class TCG(nn.Module):
     env,
     *,
     model_version: str = POLICY_MODEL_VERSION_METADATA_V1,
+    actor_head_type: str = ACTOR_HEAD_TYPE_FACTORIZED,
+    legal_action_scorer_use_references: bool = LEGAL_ACTION_SCORER_USE_REFERENCES_DEFAULT,
     critic_head_type: str = CRITIC_HEAD_TYPE_FULL_LSTM_MLP,
     privileged_critic_enabled: bool = PRIVILEGED_CRITIC_ENABLED_DEFAULT,
     privileged_critic_embed_dim: int = PRIVILEGED_CRITIC_EMBED_DIM,
@@ -424,6 +461,8 @@ class TCG(nn.Module):
 
     self.is_continuous = False
     self.model_version = model_version
+    self.actor_head_type = str(actor_head_type)
+    self.legal_action_scorer_use_references = bool(legal_action_scorer_use_references)
     self.critic_head_type = str(critic_head_type)
     self.privileged_critic_enabled = bool(privileged_critic_enabled)
     self.privileged_critic_embed_dim = int(privileged_critic_embed_dim)
@@ -438,6 +477,14 @@ class TCG(nn.Module):
     self.split_value_heads_enabled = bool(split_value_heads_enabled)
     self.split_value_component_coef = float(split_value_component_coef)
     self.scalar_normalizer = ScalarRunningNorm()
+    if self.actor_head_type not in {
+      ACTOR_HEAD_TYPE_FACTORIZED,
+      ACTOR_HEAD_TYPE_LEGAL_ACTION_SCORER,
+    }:
+      raise ValueError(
+        f"Unsupported actor_head_type '{self.actor_head_type}'. "
+        f"Known values: {ACTOR_HEAD_TYPE_FACTORIZED}, {ACTOR_HEAD_TYPE_LEGAL_ACTION_SCORER}"
+      )
     if self.privileged_critic_embed_dim <= 0:
       raise ValueError(
         f"privileged_critic_embed_dim must be positive, got {self.privileged_critic_embed_dim}"
@@ -557,6 +604,14 @@ class TCG(nn.Module):
       nn.Flatten(),
     )
     self.register_buffer("primary_action_id_batch", torch.tensor(PRIMARY_ACTION_ID_BATCH, dtype=torch.long))
+    self.legal_action_subaction_encoder = nn.Embedding(
+      MAX_INDEX_SIZE + 1,
+      INDEX_ENC_OUTPUT_SIZE,
+    )
+    self.legal_action_arg_kind_encoder = nn.Embedding(
+      LEGAL_ACTION_ARG_KIND_COUNT,
+      LEGAL_ACTION_ARG_KIND_EMBED_SIZE,
+    )
 
     weapon_input_size = (
       CARD_METADATA_EMBED_SIZE
@@ -681,6 +736,23 @@ class TCG(nn.Module):
     self.q_bins3 = nn.Linear(LSTM_HIDDEN_SIZE, MAX_INDEX_SIZE)
     self.gate_1_embeder = nn.Embedding(PRIMARY_ACTION_COUNT, UNIT_EMBED_SIZE)
     self.gate_2_embeder = nn.Embedding(PRIMARY_ACTION_COUNT, UNIT_EMBED_SIZE)
+    legal_action_candidate_input_size = (
+      UNIT_EMBED_SIZE
+      + (INDEX_ENC_OUTPUT_SIZE * 3)
+      + (LEGAL_ACTION_ARG_KIND_EMBED_SIZE * 3)
+      + (UNIT_EMBED_SIZE * 3)
+      + 6
+    )
+    self.q_legal_action = nn.Linear(LSTM_HIDDEN_SIZE, UNIT_EMBED_SIZE)
+    self.legal_action_candidate_projector = SingleUnitProjection(
+      legal_action_candidate_input_size,
+      hidden_size=PROCESS_SET_HIDDEN_SIZE,
+      output_size=UNIT_EMBED_SIZE,
+    )
+    self.legal_action_candidate_bias = azk_pytorch.layer_init(
+      nn.Linear(UNIT_EMBED_SIZE, 1),
+      std=1,
+    )
 
     if self.critic_head_type == CRITIC_HEAD_TYPE_SHARED_PRIMARY:
       self.critic_projector = None
@@ -1379,6 +1451,11 @@ class TCG(nn.Module):
       return projected_hidden
     return self.critic_projector(flat_hidden)
 
+  def _shared_critic_projection(self, flat_hidden: torch.Tensor) -> torch.Tensor:
+    if self.actor_head_type == ACTOR_HEAD_TYPE_LEGAL_ACTION_SCORER:
+      return self.q_legal_action(flat_hidden)
+    return self.q_primary(flat_hidden)
+
   def _value_features(self, flat_hidden: torch.Tensor, projected_hidden: torch.Tensor, state=None):
     public_critic_features = self._public_critic_features(flat_hidden, projected_hidden)
     if not self.privileged_critic_enabled:
@@ -1438,8 +1515,8 @@ class TCG(nn.Module):
       azk_pytorch.layer_init(self.win_prob_fn, std=1)
 
   def forward(self, x, state=None):
-    target_vector, target_matrix = self.encode_observations(x, state=state)
-    actions, value = self.decode_actions(target_vector, target_matrix=target_matrix, state=state)
+    target_vector, action_context = self.encode_observations(x, state=state)
+    actions, value = self.decode_actions(target_vector, action_context=action_context, state=state)
     return actions, value
 
   def forward_train(self, x, state=None):
@@ -1546,11 +1623,21 @@ class TCG(nn.Module):
       dim=-2,
     )
 
+    action_context = {
+      "legacy_target_matrix": target_matrix,
+      "hand_matrix": hand_matrix,
+      "player_garden_matrix": player_garden_matrix,
+      "player_alley_matrix": player_alley_matrix,
+      "player_selection_matrix": player_selection_matrix,
+      "opponent_garden_matrix": opponent_garden_matrix,
+      "opponent_alley_matrix": opponent_alley_matrix,
+      "player_leader_vec": player_leader_vec.unsqueeze(-2),
+      "opponent_leader_vec": opponent_leader_vec.unsqueeze(-2),
+    }
+
     if squeeze_batch:
       target_vector = target_vector.squeeze(0)
-      target_matrix = target_matrix.squeeze(0)
-
-    return target_vector, target_matrix
+    return target_vector, action_context
 
   def build_primary_action_mask_tensor(self, observations):
     structured_obs, squeeze_batch, _ = self.__prepare_structured_observations(observations)
@@ -1560,14 +1647,414 @@ class TCG(nn.Module):
       return primary_mask.squeeze(0)
     return primary_mask
 
-  def decode_actions(self, flat_hidden, target_matrix=None, state=None):
-    if target_matrix is None:
-      raise ValueError("decode_actions requires target_matrix for unit selections")
+  def _prepare_action_context(self, action_context, *, device: torch.device):
+    if action_context is None:
+      raise ValueError("decode_actions requires action_context")
+    if torch.is_tensor(action_context):
+      target_matrix = action_context.to(device=device)
+      if target_matrix.dim() == 2:
+        target_matrix = target_matrix.unsqueeze(0)
+      elif target_matrix.dim() == 1:
+        target_matrix = target_matrix.unsqueeze(0).unsqueeze(0)
+      return {"legacy_target_matrix": target_matrix}
+    if not isinstance(action_context, dict):
+      raise TypeError(f"Unsupported action_context type: {type(action_context)!r}")
 
-    if target_matrix.dim() == 2:
-      target_matrix = target_matrix.unsqueeze(0)
-    elif target_matrix.dim() == 1:
-      target_matrix = target_matrix.unsqueeze(0).unsqueeze(0)
+    prepared = {}
+    for key, value in action_context.items():
+      if not torch.is_tensor(value):
+        continue
+      tensor = value.to(device=device)
+      if tensor.dim() == 1:
+        tensor = tensor.unsqueeze(0)
+      elif tensor.dim() == 2 and tensor.shape[-1] == UNIT_EMBED_SIZE:
+        tensor = tensor.unsqueeze(0)
+      prepared[key] = tensor
+    return prepared
+
+  def _lookup_action_context_tensor(self, action_context: dict, key: str) -> torch.Tensor:
+    tensor = action_context.get(key)
+    if not torch.is_tensor(tensor):
+      raise KeyError(f"Missing action_context tensor '{key}'")
+    return tensor
+
+  def _gather_zone_rows(self, matrix: torch.Tensor, indices: torch.Tensor) -> torch.Tensor:
+    if matrix.dim() != 3:
+      raise ValueError(f"Zone matrix must be rank 3, got shape {tuple(matrix.shape)}")
+    clamped = indices.clamp(0, matrix.size(1) - 1)
+    gather_index = clamped.unsqueeze(-1).expand(-1, -1, matrix.size(-1))
+    return matrix.gather(1, gather_index)
+
+  def _gather_garden_or_leader_refs(
+    self,
+    garden_matrix: torch.Tensor,
+    leader_matrix: torch.Tensor,
+    indices: torch.Tensor,
+  ) -> torch.Tensor:
+    refs = torch.zeros(
+      (*indices.shape, garden_matrix.size(-1)),
+      device=garden_matrix.device,
+      dtype=garden_matrix.dtype,
+    )
+    garden_mask = indices < GARDEN_SIZE
+    leader_mask = indices == GARDEN_SIZE
+    if garden_mask.any():
+      garden_refs = self._gather_zone_rows(garden_matrix, indices.clamp(0, GARDEN_SIZE - 1))
+      refs = torch.where(garden_mask.unsqueeze(-1), garden_refs, refs)
+    if leader_mask.any():
+      leader_refs = leader_matrix.expand(indices.shape[0], indices.shape[1], -1)
+      refs = torch.where(leader_mask.unsqueeze(-1), leader_refs, refs)
+    return refs
+
+  def _gather_opponent_defender_refs(
+    self,
+    opponent_garden_matrix: torch.Tensor,
+    opponent_leader_matrix: torch.Tensor,
+    opponent_alley_matrix: torch.Tensor,
+    indices: torch.Tensor,
+  ) -> torch.Tensor:
+    refs = torch.zeros(
+      (*indices.shape, opponent_garden_matrix.size(-1)),
+      device=opponent_garden_matrix.device,
+      dtype=opponent_garden_matrix.dtype,
+    )
+    garden_mask = indices < GARDEN_SIZE
+    leader_mask = indices == GARDEN_SIZE
+    alley_mask = (indices > GARDEN_SIZE) & (indices <= (GARDEN_SIZE + ALLEY_SIZE))
+    if garden_mask.any():
+      garden_refs = self._gather_zone_rows(
+        opponent_garden_matrix,
+        indices.clamp(0, GARDEN_SIZE - 1),
+      )
+      refs = torch.where(garden_mask.unsqueeze(-1), garden_refs, refs)
+    if leader_mask.any():
+      leader_refs = opponent_leader_matrix.expand(indices.shape[0], indices.shape[1], -1)
+      refs = torch.where(leader_mask.unsqueeze(-1), leader_refs, refs)
+    if alley_mask.any():
+      alley_index = (indices - (GARDEN_SIZE + 1)).clamp(0, ALLEY_SIZE - 1)
+      alley_refs = self._gather_zone_rows(opponent_alley_matrix, alley_index)
+      refs = torch.where(alley_mask.unsqueeze(-1), alley_refs, refs)
+    return refs
+
+  def _legal_action_arg_kinds(self, primary: torch.Tensor) -> torch.Tensor:
+    sub1_kind = torch.full_like(primary, LEGAL_ACTION_ARG_KIND_UNUSED)
+    sub2_kind = torch.full_like(primary, LEGAL_ACTION_ARG_KIND_UNUSED)
+    sub3_kind = torch.full_like(primary, LEGAL_ACTION_ARG_KIND_UNUSED)
+
+    hand_primary = (
+      (primary == ACT_PLAY_ENTITY_TO_GARDEN)
+      | (primary == ACT_PLAY_ENTITY_TO_ALLEY)
+      | (primary == ACT_ATTACH_WEAPON_FROM_HAND)
+      | (primary == ACT_PLAY_SPELL_FROM_HAND)
+    )
+    sub1_kind = torch.where(
+      hand_primary,
+      torch.full_like(sub1_kind, LEGAL_ACTION_ARG_KIND_HAND),
+      sub1_kind,
+    )
+    sub1_kind = torch.where(
+      primary == ACT_GATE_PORTAL,
+      torch.full_like(sub1_kind, LEGAL_ACTION_ARG_KIND_SELF_ALLEY),
+      sub1_kind,
+    )
+    sub1_kind = torch.where(
+      primary == ACT_ACTIVATE_ALLEY_ABILITY,
+      torch.full_like(sub1_kind, LEGAL_ACTION_ARG_KIND_ABILITY_INDEX),
+      sub1_kind,
+    )
+    sub1_kind = torch.where(
+      (primary == ACT_ATTACK) | (primary == ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY),
+      torch.full_like(sub1_kind, LEGAL_ACTION_ARG_KIND_SELF_GARDEN_OR_LEADER),
+      sub1_kind,
+    )
+    sub1_kind = torch.where(
+      primary == ACT_DECLARE_DEFENDER,
+      torch.full_like(sub1_kind, LEGAL_ACTION_ARG_KIND_SELF_GARDEN),
+      sub1_kind,
+    )
+    selection_primary = (
+      (primary == ACT_SELECT_FROM_SELECTION)
+      | (primary == ACT_SELECT_TO_ALLEY)
+      | (primary == ACT_SELECT_TO_EQUIP)
+      | (primary == ACT_SELECT_TO_GARDEN)
+      | (primary == ACT_TOP_DECK_CARD)
+      | (primary == ACT_BOTTOM_DECK_CARD)
+    )
+    sub1_kind = torch.where(
+      selection_primary,
+      torch.full_like(sub1_kind, LEGAL_ACTION_ARG_KIND_SELECTION),
+      sub1_kind,
+    )
+    sub1_kind = torch.where(
+      (primary == ACT_SELECT_COST_TARGET) | (primary == ACT_SELECT_EFFECT_TARGET),
+      torch.full_like(sub1_kind, LEGAL_ACTION_ARG_KIND_GENERIC_TARGET),
+      sub1_kind,
+    )
+
+    sub2_kind = torch.where(
+      primary == ACT_PLAY_ENTITY_TO_GARDEN,
+      torch.full_like(sub2_kind, LEGAL_ACTION_ARG_KIND_SELF_GARDEN),
+      sub2_kind,
+    )
+    sub2_kind = torch.where(
+      primary == ACT_PLAY_ENTITY_TO_ALLEY,
+      torch.full_like(sub2_kind, LEGAL_ACTION_ARG_KIND_SELF_ALLEY),
+      sub2_kind,
+    )
+    sub2_kind = torch.where(
+      primary == ACT_ATTACH_WEAPON_FROM_HAND,
+      torch.full_like(sub2_kind, LEGAL_ACTION_ARG_KIND_SELF_GARDEN_OR_LEADER),
+      sub2_kind,
+    )
+    sub2_kind = torch.where(
+      primary == ACT_GATE_PORTAL,
+      torch.full_like(sub2_kind, LEGAL_ACTION_ARG_KIND_SELF_GARDEN),
+      sub2_kind,
+    )
+    sub2_kind = torch.where(
+      primary == ACT_ATTACK,
+      torch.full_like(sub2_kind, LEGAL_ACTION_ARG_KIND_OPP_DEFENDER),
+      sub2_kind,
+    )
+    sub2_kind = torch.where(
+      primary == ACT_PLAY_SPELL_FROM_HAND,
+      torch.full_like(sub2_kind, LEGAL_ACTION_ARG_KIND_ABILITY_INDEX),
+      sub2_kind,
+    )
+    sub2_kind = torch.where(
+      primary == ACT_ACTIVATE_ALLEY_ABILITY,
+      torch.full_like(sub2_kind, LEGAL_ACTION_ARG_KIND_SELF_ALLEY),
+      sub2_kind,
+    )
+    sub2_kind = torch.where(
+      primary == ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY,
+      torch.full_like(sub2_kind, LEGAL_ACTION_ARG_KIND_ABILITY_INDEX),
+      sub2_kind,
+    )
+    sub2_kind = torch.where(
+      primary == ACT_SELECT_TO_ALLEY,
+      torch.full_like(sub2_kind, LEGAL_ACTION_ARG_KIND_SELF_ALLEY),
+      sub2_kind,
+    )
+    sub2_kind = torch.where(
+      primary == ACT_SELECT_TO_EQUIP,
+      torch.full_like(sub2_kind, LEGAL_ACTION_ARG_KIND_SELF_GARDEN_OR_LEADER),
+      sub2_kind,
+    )
+    sub2_kind = torch.where(
+      primary == ACT_SELECT_TO_GARDEN,
+      torch.full_like(sub2_kind, LEGAL_ACTION_ARG_KIND_SELF_GARDEN),
+      sub2_kind,
+    )
+
+    bool_primary = (
+      (primary == ACT_PLAY_ENTITY_TO_GARDEN)
+      | (primary == ACT_PLAY_ENTITY_TO_ALLEY)
+      | (primary == ACT_ATTACH_WEAPON_FROM_HAND)
+      | (primary == ACT_PLAY_SPELL_FROM_HAND)
+      | (primary == ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY)
+    )
+    sub3_kind = torch.where(
+      bool_primary,
+      torch.full_like(sub3_kind, LEGAL_ACTION_ARG_KIND_BOOL),
+      sub3_kind,
+    )
+    return torch.stack((sub1_kind, sub2_kind, sub3_kind), dim=-1)
+
+  def _gather_legal_action_refs(self, action_context: dict, arg_kinds: torch.Tensor, subactions: torch.Tensor):
+    hand_matrix = self._lookup_action_context_tensor(action_context, "hand_matrix")
+    player_garden_matrix = self._lookup_action_context_tensor(action_context, "player_garden_matrix")
+    player_alley_matrix = self._lookup_action_context_tensor(action_context, "player_alley_matrix")
+    player_selection_matrix = self._lookup_action_context_tensor(action_context, "player_selection_matrix")
+    opponent_garden_matrix = self._lookup_action_context_tensor(action_context, "opponent_garden_matrix")
+    opponent_alley_matrix = self._lookup_action_context_tensor(action_context, "opponent_alley_matrix")
+    player_leader_vec = self._lookup_action_context_tensor(action_context, "player_leader_vec")
+    opponent_leader_vec = self._lookup_action_context_tensor(action_context, "opponent_leader_vec")
+
+    refs = []
+    ref_valid = []
+    for component_index in range(3):
+      component_kind = arg_kinds[..., component_index]
+      component_subaction = subactions[..., component_index]
+      component_ref = torch.zeros(
+        (*component_subaction.shape, UNIT_EMBED_SIZE),
+        device=component_subaction.device,
+        dtype=hand_matrix.dtype,
+      )
+      component_has_ref = torch.zeros_like(component_subaction, dtype=torch.bool)
+
+      hand_mask = component_kind == LEGAL_ACTION_ARG_KIND_HAND
+      if hand_mask.any():
+        hand_refs = self._gather_zone_rows(hand_matrix, component_subaction)
+        component_ref = torch.where(hand_mask.unsqueeze(-1), hand_refs, component_ref)
+        component_has_ref |= hand_mask
+
+      self_garden_mask = component_kind == LEGAL_ACTION_ARG_KIND_SELF_GARDEN
+      if self_garden_mask.any():
+        garden_refs = self._gather_zone_rows(player_garden_matrix, component_subaction)
+        component_ref = torch.where(self_garden_mask.unsqueeze(-1), garden_refs, component_ref)
+        component_has_ref |= self_garden_mask
+
+      self_alley_mask = component_kind == LEGAL_ACTION_ARG_KIND_SELF_ALLEY
+      if self_alley_mask.any():
+        alley_refs = self._gather_zone_rows(player_alley_matrix, component_subaction)
+        component_ref = torch.where(self_alley_mask.unsqueeze(-1), alley_refs, component_ref)
+        component_has_ref |= self_alley_mask
+
+      selection_mask = component_kind == LEGAL_ACTION_ARG_KIND_SELECTION
+      if selection_mask.any():
+        selection_refs = self._gather_zone_rows(player_selection_matrix, component_subaction)
+        component_ref = torch.where(selection_mask.unsqueeze(-1), selection_refs, component_ref)
+        component_has_ref |= selection_mask
+
+      self_garden_or_leader_mask = component_kind == LEGAL_ACTION_ARG_KIND_SELF_GARDEN_OR_LEADER
+      if self_garden_or_leader_mask.any():
+        garden_or_leader_refs = self._gather_garden_or_leader_refs(
+          player_garden_matrix,
+          player_leader_vec,
+          component_subaction,
+        )
+        component_ref = torch.where(
+          self_garden_or_leader_mask.unsqueeze(-1),
+          garden_or_leader_refs,
+          component_ref,
+        )
+        component_has_ref |= self_garden_or_leader_mask & (component_subaction <= GARDEN_SIZE)
+
+      opp_defender_mask = component_kind == LEGAL_ACTION_ARG_KIND_OPP_DEFENDER
+      if opp_defender_mask.any():
+        defender_refs = self._gather_opponent_defender_refs(
+          opponent_garden_matrix,
+          opponent_leader_vec,
+          opponent_alley_matrix,
+          component_subaction,
+        )
+        component_ref = torch.where(opp_defender_mask.unsqueeze(-1), defender_refs, component_ref)
+        component_has_ref |= opp_defender_mask & (component_subaction <= (GARDEN_SIZE + ALLEY_SIZE))
+
+      refs.append(component_ref)
+      ref_valid.append(component_has_ref)
+
+    return torch.stack(refs, dim=-2), torch.stack(ref_valid, dim=-1)
+
+  def _build_legal_action_candidate_embeddings(
+    self,
+    flat_hidden: torch.Tensor,
+    action_context: dict,
+    legal_actions: torch.Tensor,
+  ) -> torch.Tensor:
+    primary = legal_actions[..., 0]
+    subactions = legal_actions[..., 1:]
+    arg_kinds = self._legal_action_arg_kinds(primary)
+
+    primary_emb = self.primary_action_encoder[0](primary.clamp(0, PRIMARY_ACTION_COUNT - 1))
+    subaction_idx = subactions.clamp(0, MAX_INDEX_SIZE - 1) + 1
+    subaction_emb = self.legal_action_subaction_encoder(subaction_idx)
+    arg_kind_emb = self.legal_action_arg_kind_encoder(arg_kinds)
+
+    if self.legal_action_scorer_use_references:
+      semantic_refs, semantic_ref_valid = self._gather_legal_action_refs(
+        action_context,
+        arg_kinds,
+        subactions,
+      )
+    else:
+      semantic_refs = torch.zeros(
+        (*subactions.shape, UNIT_EMBED_SIZE),
+        device=flat_hidden.device,
+        dtype=flat_hidden.dtype,
+      )
+      semantic_ref_valid = torch.zeros(
+        subactions.shape,
+        device=flat_hidden.device,
+        dtype=torch.bool,
+      )
+
+    normalized_subactions = subactions.float() / float(max(MAX_INDEX_SIZE - 1, 1))
+    scalar = torch.cat(
+      [
+        normalized_subactions,
+        semantic_ref_valid.float(),
+      ],
+      dim=-1,
+    )
+
+    batch_size, candidate_count, _ = legal_actions.shape
+    candidate_input = torch.cat(
+      [
+        primary_emb,
+        subaction_emb.reshape(batch_size, candidate_count, -1),
+        arg_kind_emb.reshape(batch_size, candidate_count, -1),
+        semantic_refs.reshape(batch_size, candidate_count, -1),
+        scalar,
+      ],
+      dim=-1,
+    )
+    flattened = candidate_input.reshape(batch_size * candidate_count, -1)
+    return self.legal_action_candidate_projector(flattened).reshape(
+      batch_size,
+      candidate_count,
+      UNIT_EMBED_SIZE,
+    )
+
+  def _build_factorized_action_distribution(
+    self,
+    flat_hidden: torch.Tensor,
+    target_matrix: torch.Tensor,
+    legal_actions: torch.Tensor,
+    legal_action_count: torch.Tensor,
+    primary_action_mask: torch.Tensor,
+  ) -> TCGActionDistribution:
+    projected_hidden = self.q_primary(flat_hidden)
+    unit1_projected_hidden = self.q_unit1(flat_hidden)
+    unit2_projected_hidden = self.q_unit2(flat_hidden)
+    bins2_projected_hidden = self.q_bins2(flat_hidden)
+    bins3_projected_hidden = self.q_bins3(flat_hidden)
+
+    primary_action_embeddings = self.primary_action_encoder[0](self.primary_action_id_batch)
+    primary_action_logits = projected_hidden @ primary_action_embeddings.T
+
+    gate_1_table = torch.sigmoid(self.gate_1_embeder(self.primary_action_id_batch))
+    gate_2_table = torch.sigmoid(self.gate_2_embeder(self.primary_action_id_batch))
+
+    return TCGActionDistribution(
+      primary_logits=primary_action_logits,
+      primary_action_mask=primary_action_mask,
+      legal_actions=legal_actions,
+      legal_action_count=legal_action_count,
+      target_matrix=target_matrix,
+      unit1_projection=unit1_projected_hidden,
+      unit2_projection=unit2_projected_hidden,
+      bins2_logits=bins2_projected_hidden,
+      bins3_logits=bins3_projected_hidden,
+      gate1_table=gate_1_table,
+      gate2_table=gate_2_table,
+    )
+
+  def _build_legal_action_distribution(
+    self,
+    flat_hidden: torch.Tensor,
+    action_context: dict,
+    legal_actions: torch.Tensor,
+    legal_action_count: torch.Tensor,
+  ) -> TCGLegalActionDistribution:
+    legal_action_query = self.q_legal_action(flat_hidden)
+    candidate_embeddings = self._build_legal_action_candidate_embeddings(
+      flat_hidden,
+      action_context,
+      legal_actions,
+    )
+    logits = (candidate_embeddings * legal_action_query.unsqueeze(1)).sum(dim=-1)
+    logits = logits + self.legal_action_candidate_bias(candidate_embeddings).squeeze(-1)
+    return TCGLegalActionDistribution(
+      legal_action_logits=logits,
+      legal_actions=legal_actions,
+      legal_action_count=legal_action_count,
+    )
+
+  def decode_actions(self, flat_hidden, action_context=None, state=None):
+    if flat_hidden.dim() == 1:
+      flat_hidden = flat_hidden.unsqueeze(0)
 
     mask_observations = state.get("_azk_mask_observations") if state is not None else self._cached_mask_observations
     if mask_observations is None:
@@ -1577,6 +2064,8 @@ class TCG(nn.Module):
     action_mask_struct = self.__get_struct_field(structured_mask_obs, "action_mask")
 
     device = flat_hidden.device
+    action_context = self._prepare_action_context(action_context, device=device)
+    target_matrix = self._lookup_action_context_tensor(action_context, "legacy_target_matrix")
     primary_action_mask = action_mask_struct["primary_action_mask"].to(dtype=torch.bool, device=device)
 
     # Support both observation layouts:
@@ -1605,46 +2094,25 @@ class TCG(nn.Module):
     ).to(device=device, dtype=torch.long)
     legal_action_count = action_mask_struct["legal_action_count"].to(device=device, dtype=torch.long).view(-1)
 
-    projected_hidden = self.q_primary(flat_hidden)
-    unit1_projected_hidden = self.q_unit1(flat_hidden)
-    unit2_projected_hidden = self.q_unit2(flat_hidden)
-    bins2_projected_hidden = self.q_bins2(flat_hidden)
-    bins3_projected_hidden = self.q_bins3(flat_hidden)
-
-    if projected_hidden.dim() == 1:
-      projected_hidden = projected_hidden.unsqueeze(0)
-    if unit1_projected_hidden.dim() == 1:
-      unit1_projected_hidden = unit1_projected_hidden.unsqueeze(0)
-    if unit2_projected_hidden.dim() == 1:
-      unit2_projected_hidden = unit2_projected_hidden.unsqueeze(0)
-    if bins2_projected_hidden.dim() == 1:
-      bins2_projected_hidden = bins2_projected_hidden.unsqueeze(0)
-    if bins3_projected_hidden.dim() == 1:
-      bins3_projected_hidden = bins3_projected_hidden.unsqueeze(0)
-
-    primary_action_embeddings = self.primary_action_encoder[0](self.primary_action_id_batch)
-    primary_action_logits = projected_hidden @ primary_action_embeddings.T
-
-    gate_1_table = torch.sigmoid(self.gate_1_embeder(self.primary_action_id_batch))
-    gate_2_table = torch.sigmoid(self.gate_2_embeder(self.primary_action_id_batch))
-
-    distribution = TCGActionDistribution(
-      primary_logits=primary_action_logits,
-      primary_action_mask=primary_action_mask,
-      legal_actions=legal_actions,
-      legal_action_count=legal_action_count,
-      target_matrix=target_matrix,
-      unit1_projection=unit1_projected_hidden,
-      unit2_projection=unit2_projected_hidden,
-      bins2_logits=bins2_projected_hidden,
-      bins3_logits=bins3_projected_hidden,
-      gate1_table=gate_1_table,
-      gate2_table=gate_2_table,
-    )
+    if self.actor_head_type == ACTOR_HEAD_TYPE_LEGAL_ACTION_SCORER:
+      distribution = self._build_legal_action_distribution(
+        flat_hidden,
+        action_context,
+        legal_actions,
+        legal_action_count=legal_action_count,
+      )
+    else:
+      distribution = self._build_factorized_action_distribution(
+        flat_hidden,
+        target_matrix,
+        legal_actions,
+        legal_action_count,
+        primary_action_mask,
+      )
 
     value_features = self._value_features(
       flat_hidden,
-      projected_hidden,
+      self._shared_critic_projection(flat_hidden),
       state=state,
     )
     if self.split_value_heads_enabled:
@@ -1665,6 +2133,15 @@ def build_policy_model(env, policy_config: dict | None = None, **kwargs) -> TCG:
   policy_config = policy_config or {}
   model_version = str(
     policy_config.get("model_version", POLICY_MODEL_VERSION_METADATA_V1)
+  )
+  actor_head_type = str(
+    policy_config.get("actor_head_type", ACTOR_HEAD_TYPE_FACTORIZED)
+  )
+  legal_action_scorer_use_references = bool(
+    policy_config.get(
+      "legal_action_scorer_use_references",
+      LEGAL_ACTION_SCORER_USE_REFERENCES_DEFAULT,
+    )
   )
   critic_head_type = str(
     policy_config.get("critic_head_type", CRITIC_HEAD_TYPE_FULL_LSTM_MLP)
@@ -1713,6 +2190,8 @@ def build_policy_model(env, policy_config: dict | None = None, **kwargs) -> TCG:
     return TCG(
       env,
       model_version=model_version,
+      actor_head_type=actor_head_type,
+      legal_action_scorer_use_references=legal_action_scorer_use_references,
       critic_head_type=critic_head_type,
       privileged_critic_enabled=privileged_critic_enabled,
       privileged_critic_embed_dim=privileged_critic_embed_dim,

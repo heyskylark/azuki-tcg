@@ -5,7 +5,7 @@ from typing import Callable, Tuple
 
 import torch
 
-from policy.tcg_distribution import TCGActionDistribution
+from policy.tcg_distribution import TCGActionDistribution, TCGLegalActionDistribution
 from policy.v2.tcg_policy import (
     ACTION_COMPONENT_COUNT,
     ACT_ATTACH_WEAPON_FROM_HAND,
@@ -58,6 +58,9 @@ def get_sampling_params() -> dict[str, float]:
 
 def tcg_sample_logits(logits, action=None):
     """Custom sampler that masks Azuki actions after the policy forward pass."""
+    if isinstance(logits, TCGLegalActionDistribution):
+        return _sample_legal_action_rows(logits, action=action)
+
     if not isinstance(logits, TCGActionDistribution):
         raise ValueError("logits is not a TCGActionDistribution")
 
@@ -183,6 +186,56 @@ def tcg_sample_logits(logits, action=None):
     return actions_out, total_logprob, total_entropy
 
 
+def _sample_legal_action_rows(
+    distribution: TCGLegalActionDistribution,
+    *,
+    action=None,
+):
+    device = distribution.legal_action_logits.device
+    batch, candidate_count = distribution.legal_action_logits.shape
+    row_indices = torch.arange(candidate_count, device=device).unsqueeze(0).expand(batch, -1)
+    row_mask = row_indices < distribution.legal_action_count.to(device=device, dtype=torch.long).view(-1, 1)
+    row_mask = _ensure_valid_mask(row_mask)
+
+    masked_logits = distribution.legal_action_logits.masked_fill(~row_mask, MASK_MIN_VALUE)
+    probs = torch.softmax(masked_logits, dim=-1)
+    log_probs = torch.log(probs + LOG_EPS)
+    entropy = -(probs * log_probs).sum(dim=-1)
+
+    original_action_shape = None
+    provided_action = None
+    if action is not None:
+        original_action_shape = action.shape
+        provided_action = action.to(device=device, dtype=torch.long).reshape(-1, ACTION_COMPONENT_COUNT)
+        if provided_action.shape[0] != batch:
+            raise ValueError(
+                f"Provided action batch ({provided_action.shape[0]}) "
+                f"does not match logits batch ({batch})"
+            )
+        row_choice = _match_provided_legal_rows(
+            distribution.legal_actions.to(device=device, dtype=torch.long),
+            distribution.legal_action_count.to(device=device, dtype=torch.long),
+            provided_action,
+        )
+    else:
+        row_choice = torch.multinomial(torch.nan_to_num(probs, nan=0.0), 1).squeeze(-1)
+
+    chosen_actions = distribution.legal_actions.to(device=device, dtype=torch.long)[
+        torch.arange(batch, device=device),
+        row_choice,
+    ]
+    total_logprob = log_probs.gather(-1, row_choice.unsqueeze(-1)).squeeze(-1)
+
+    if provided_action is not None:
+        actions_out = provided_action
+        if original_action_shape is not None:
+            actions_out = actions_out.reshape(original_action_shape)
+    else:
+        actions_out = chosen_actions
+
+    return actions_out, total_logprob, entropy
+
+
 def _sample_stage(
     logits: torch.Tensor,
     mask: torch.Tensor,
@@ -225,6 +278,20 @@ def _ensure_valid_mask(mask: torch.Tensor) -> torch.Tensor:
     mask[~valid.expand_as(mask)] = False
     mask[~valid.squeeze(-1), 0] = True
     return mask
+
+
+def _match_provided_legal_rows(
+    legal_actions: torch.Tensor,
+    legal_action_count: torch.Tensor,
+    provided_action: torch.Tensor,
+) -> torch.Tensor:
+    batch, candidate_count = legal_actions.shape[:2]
+    row_indices = torch.arange(candidate_count, device=legal_actions.device).unsqueeze(0).expand(batch, -1)
+    valid_rows = row_indices < legal_action_count.view(-1, 1)
+    matches = valid_rows & (legal_actions == provided_action.unsqueeze(1)).all(dim=-1)
+    any_match = matches.any(dim=-1)
+    first_match = matches.to(dtype=torch.int64).argmax(dim=-1)
+    return torch.where(any_match, first_match, torch.zeros_like(first_match))
 
 
 def _build_subaction_mask(

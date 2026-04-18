@@ -61,6 +61,12 @@ def _apply_checkpoint_resume_policy_config(trainer_args: dict, checkpoint: Path 
 
   for source_key, target_key, caster in (
     ("policy_model_version", "model_version", str),
+    ("policy_actor_head_type", "actor_head_type", str),
+    (
+      "policy_legal_action_scorer_use_references",
+      "legal_action_scorer_use_references",
+      bool,
+    ),
     ("policy_critic_head_type", "critic_head_type", str),
     ("policy_privileged_critic_enabled", "privileged_critic_enabled", bool),
     ("policy_privileged_critic_embed_dim", "privileged_critic_embed_dim", int),

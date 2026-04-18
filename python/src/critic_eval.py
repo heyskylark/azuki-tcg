@@ -98,6 +98,16 @@ def _build_trainer_args(
   if isinstance(model_version, str) and model_version:
     policy_cfg["model_version"] = model_version
 
+  actor_head_type = resume_cfg.get("policy_actor_head_type")
+  if isinstance(actor_head_type, str) and actor_head_type:
+    policy_cfg["actor_head_type"] = actor_head_type
+
+  legal_action_scorer_use_references = resume_cfg.get(
+    "policy_legal_action_scorer_use_references"
+  )
+  if isinstance(legal_action_scorer_use_references, bool):
+    policy_cfg["legal_action_scorer_use_references"] = legal_action_scorer_use_references
+
   critic_head_type = resume_cfg.get("policy_critic_head_type")
   if isinstance(critic_head_type, str) and critic_head_type:
     policy_cfg["critic_head_type"] = critic_head_type
@@ -726,6 +736,10 @@ def _evaluate_checkpoint_on_dataset(
 
   summary = {
     "checkpoint": str(checkpoint.resolve()),
+    "policy_actor_head_type": policy_cfg.get("actor_head_type", "factorized"),
+    "policy_legal_action_scorer_use_references": bool(
+      policy_cfg.get("legal_action_scorer_use_references", True)
+    ),
     "policy_critic_head_type": policy_cfg.get("critic_head_type", "full_lstm_mlp"),
     "policy_privileged_critic_enabled": bool(policy_cfg.get("privileged_critic_enabled", False)),
     "policy_privileged_critic_embed_dim": int(policy_cfg.get("privileged_critic_embed_dim", 64)),

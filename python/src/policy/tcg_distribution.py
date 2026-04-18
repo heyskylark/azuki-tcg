@@ -26,3 +26,15 @@ class TCGActionDistribution:
 
     def primary_actions(self) -> bool:
         return self.primary_action_mask.to(dtype=torch.bool).detach().cpu().sum(dim=-1).tolist()
+
+
+@dataclass(frozen=True)
+class TCGLegalActionDistribution:
+    """Container for a single masked softmax over legal action rows."""
+
+    legal_action_logits: torch.Tensor
+    legal_actions: torch.Tensor
+    legal_action_count: torch.Tensor
+
+    def batch_size(self) -> int:
+        return self.legal_action_logits.shape[0]
