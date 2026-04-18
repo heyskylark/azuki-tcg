@@ -794,7 +794,7 @@ def _resume_config_fingerprint(trainer_args: dict) -> dict[str, object]:
         "direct_parallel": bool(env_cfg.get("direct_parallel", False)),
         "deck_pool_path": str(resolve_training_deck_pool_path(env_cfg.get("deck_pool_path"))),
         "policy_model_version": str(policy_cfg.get("model_version", "metadata_v1")),
-        "policy_actor_head_type": str(policy_cfg.get("actor_head_type", "factorized")),
+        "policy_actor_head_type": str(policy_cfg.get("actor_head_type", "legal_action_scorer")),
         "policy_legal_action_scorer_use_references": bool(
             policy_cfg.get("legal_action_scorer_use_references", True)
         ),

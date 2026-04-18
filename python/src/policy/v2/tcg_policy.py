@@ -440,7 +440,7 @@ class TCG(nn.Module):
     env,
     *,
     model_version: str = POLICY_MODEL_VERSION_METADATA_V1,
-    actor_head_type: str = ACTOR_HEAD_TYPE_FACTORIZED,
+    actor_head_type: str = ACTOR_HEAD_TYPE_LEGAL_ACTION_SCORER,
     legal_action_scorer_use_references: bool = LEGAL_ACTION_SCORER_USE_REFERENCES_DEFAULT,
     critic_head_type: str = CRITIC_HEAD_TYPE_FULL_LSTM_MLP,
     privileged_critic_enabled: bool = PRIVILEGED_CRITIC_ENABLED_DEFAULT,
@@ -2135,7 +2135,7 @@ def build_policy_model(env, policy_config: dict | None = None, **kwargs) -> TCG:
     policy_config.get("model_version", POLICY_MODEL_VERSION_METADATA_V1)
   )
   actor_head_type = str(
-    policy_config.get("actor_head_type", ACTOR_HEAD_TYPE_FACTORIZED)
+    policy_config.get("actor_head_type", ACTOR_HEAD_TYPE_LEGAL_ACTION_SCORER)
   )
   legal_action_scorer_use_references = bool(
     policy_config.get(

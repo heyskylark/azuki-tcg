@@ -736,7 +736,7 @@ def _evaluate_checkpoint_on_dataset(
 
   summary = {
     "checkpoint": str(checkpoint.resolve()),
-    "policy_actor_head_type": policy_cfg.get("actor_head_type", "factorized"),
+    "policy_actor_head_type": policy_cfg.get("actor_head_type", "legal_action_scorer"),
     "policy_legal_action_scorer_use_references": bool(
       policy_cfg.get("legal_action_scorer_use_references", True)
     ),
