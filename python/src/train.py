@@ -801,6 +801,9 @@ def _resume_config_fingerprint(trainer_args: dict) -> dict[str, object]:
         "policy_critic_head_type": str(policy_cfg.get("critic_head_type", "full_lstm_mlp")),
         "policy_privileged_critic_enabled": bool(policy_cfg.get("privileged_critic_enabled", False)),
         "policy_privileged_critic_embed_dim": int(policy_cfg.get("privileged_critic_embed_dim", 64)),
+        "policy_privileged_critic_deck_encoder_type": str(
+            policy_cfg.get("privileged_critic_deck_encoder_type", "transformer")
+        ),
         "policy_privileged_critic_deck_heads": int(policy_cfg.get("privileged_critic_deck_heads", 4)),
         "policy_privileged_critic_deck_layers": int(policy_cfg.get("privileged_critic_deck_layers", 2)),
         "policy_privileged_critic_deck_ff_size": int(policy_cfg.get("privileged_critic_deck_ff_size", 256)),

@@ -122,6 +122,10 @@ def _build_trainer_args(
   if isinstance(privileged_critic_embed_dim, (int, float)):
     policy_cfg["privileged_critic_embed_dim"] = int(privileged_critic_embed_dim)
 
+  privileged_critic_deck_encoder_type = resume_cfg.get("policy_privileged_critic_deck_encoder_type")
+  if isinstance(privileged_critic_deck_encoder_type, str) and privileged_critic_deck_encoder_type:
+    policy_cfg["privileged_critic_deck_encoder_type"] = privileged_critic_deck_encoder_type
+
   privileged_critic_deck_heads = resume_cfg.get("policy_privileged_critic_deck_heads")
   if isinstance(privileged_critic_deck_heads, (int, float)):
     policy_cfg["privileged_critic_deck_heads"] = int(privileged_critic_deck_heads)
@@ -743,6 +747,9 @@ def _evaluate_checkpoint_on_dataset(
     "policy_critic_head_type": policy_cfg.get("critic_head_type", "full_lstm_mlp"),
     "policy_privileged_critic_enabled": bool(policy_cfg.get("privileged_critic_enabled", False)),
     "policy_privileged_critic_embed_dim": int(policy_cfg.get("privileged_critic_embed_dim", 64)),
+    "policy_privileged_critic_deck_encoder_type": str(
+      policy_cfg.get("privileged_critic_deck_encoder_type", "transformer")
+    ),
     "policy_privileged_critic_deck_heads": int(policy_cfg.get("privileged_critic_deck_heads", 4)),
     "policy_privileged_critic_deck_layers": int(policy_cfg.get("privileged_critic_deck_layers", 2)),
     "policy_privileged_critic_deck_ff_size": int(policy_cfg.get("privileged_critic_deck_ff_size", 256)),
@@ -887,6 +894,7 @@ def _print_eval_summary(payload: dict[str, Any]) -> None:
     print(
       "[critic-eval] "
       f"critic_head={result['policy_critic_head_type']} "
+      f"deck_encoder={result.get('policy_privileged_critic_deck_encoder_type', 'transformer')} "
       f"checkpoint={result['checkpoint']} "
       f"count={overall['count']} "
       f"mse={overall['mse']:.6f} "

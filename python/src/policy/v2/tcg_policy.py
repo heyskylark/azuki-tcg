@@ -78,6 +78,9 @@ PRIVILEGED_CRITIC_EMBED_DIM = UNIT_EMBED_SIZE
 PRIVILEGED_CRITIC_DECK_HEADS = 4
 PRIVILEGED_CRITIC_DECK_LAYERS = 2
 PRIVILEGED_CRITIC_DECK_FF_SIZE = 256
+PRIVILEGED_CRITIC_DECK_ENCODER_TYPE_TRANSFORMER = "transformer"
+PRIVILEGED_CRITIC_DECK_ENCODER_TYPE_GRU = "gru"
+PRIVILEGED_CRITIC_DECK_ENCODER_TYPE_DEFAULT = PRIVILEGED_CRITIC_DECK_ENCODER_TYPE_TRANSFORMER
 PRIVILEGED_CRITIC_FUSION_HIDDEN_SIZE = CRITIC_MLP_HIDDEN_SIZE
 PRIVILEGED_CRITIC_FUSION_PROJECTION_SIZE = CRITIC_MLP_PROJECTION_SIZE
 PRIVILEGED_CRITIC_FEATURE_SCALE_DEFAULT = 1.0
@@ -343,6 +346,52 @@ class MaskedTransformerDeckEncoder(nn.Module):
     return self.output_norm(encoded[:, 0, :])
 
 
+class MaskedGruDeckEncoder(nn.Module):
+  def __init__(
+    self,
+    model_dim: int = UNIT_EMBED_SIZE,
+    *,
+    num_layers: int = PRIVILEGED_CRITIC_DECK_LAYERS,
+  ):
+    super().__init__()
+    self.model_dim = int(model_dim)
+    self.encoder = nn.GRU(
+      input_size=model_dim,
+      hidden_size=model_dim,
+      num_layers=num_layers,
+      batch_first=True,
+      dropout=0.0,
+    )
+    self.output_norm = nn.LayerNorm(model_dim)
+    self.reset_parameters()
+
+  def reset_parameters(self) -> None:
+    self.encoder.reset_parameters()
+    self.output_norm.reset_parameters()
+
+  def forward(self, tokens: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+    if tokens.dim() != 3:
+      raise ValueError(f"Deck tokens must be rank 3, got shape {tuple(tokens.shape)}")
+    if mask.dim() != 2:
+      raise ValueError(f"Deck mask must be rank 2, got shape {tuple(mask.shape)}")
+
+    valid_mask = mask.to(dtype=torch.bool)
+    lengths = valid_mask.sum(dim=1).to(dtype=torch.long)
+    batch_size = tokens.shape[0]
+    encoded = tokens.new_zeros((batch_size, self.model_dim))
+    valid_rows = lengths > 0
+    if valid_rows.any():
+      packed = nn.utils.rnn.pack_padded_sequence(
+        tokens[valid_rows],
+        lengths[valid_rows].detach().cpu(),
+        batch_first=True,
+        enforce_sorted=False,
+      )
+      _, hidden = self.encoder(packed)
+      encoded[valid_rows] = hidden[-1]
+    return self.output_norm(encoded)
+
+
 class TCGLSTM(LSTMWrapper):
   def __init__(self, env, policy, input_size=None, hidden_size=LSTM_HIDDEN_SIZE):
     if input_size is None:
@@ -445,6 +494,7 @@ class TCG(nn.Module):
     critic_head_type: str = CRITIC_HEAD_TYPE_FULL_LSTM_MLP,
     privileged_critic_enabled: bool = PRIVILEGED_CRITIC_ENABLED_DEFAULT,
     privileged_critic_embed_dim: int = PRIVILEGED_CRITIC_EMBED_DIM,
+    privileged_critic_deck_encoder_type: str = PRIVILEGED_CRITIC_DECK_ENCODER_TYPE_DEFAULT,
     privileged_critic_deck_heads: int = PRIVILEGED_CRITIC_DECK_HEADS,
     privileged_critic_deck_layers: int = PRIVILEGED_CRITIC_DECK_LAYERS,
     privileged_critic_deck_ff_size: int = PRIVILEGED_CRITIC_DECK_FF_SIZE,
@@ -466,6 +516,7 @@ class TCG(nn.Module):
     self.critic_head_type = str(critic_head_type)
     self.privileged_critic_enabled = bool(privileged_critic_enabled)
     self.privileged_critic_embed_dim = int(privileged_critic_embed_dim)
+    self.privileged_critic_deck_encoder_type = str(privileged_critic_deck_encoder_type)
     self.privileged_critic_deck_heads = int(privileged_critic_deck_heads)
     self.privileged_critic_deck_layers = int(privileged_critic_deck_layers)
     self.privileged_critic_deck_ff_size = int(privileged_critic_deck_ff_size)
@@ -489,11 +540,24 @@ class TCG(nn.Module):
       raise ValueError(
         f"privileged_critic_embed_dim must be positive, got {self.privileged_critic_embed_dim}"
       )
+    if self.privileged_critic_deck_encoder_type not in {
+      PRIVILEGED_CRITIC_DECK_ENCODER_TYPE_TRANSFORMER,
+      PRIVILEGED_CRITIC_DECK_ENCODER_TYPE_GRU,
+    }:
+      raise ValueError(
+        "Unsupported privileged_critic_deck_encoder_type "
+        f"'{self.privileged_critic_deck_encoder_type}'. "
+        f"Known values: {PRIVILEGED_CRITIC_DECK_ENCODER_TYPE_TRANSFORMER}, "
+        f"{PRIVILEGED_CRITIC_DECK_ENCODER_TYPE_GRU}"
+      )
     if self.privileged_critic_deck_heads <= 0:
       raise ValueError(
         f"privileged_critic_deck_heads must be positive, got {self.privileged_critic_deck_heads}"
       )
-    if self.privileged_critic_embed_dim % self.privileged_critic_deck_heads != 0:
+    if (
+      self.privileged_critic_deck_encoder_type == PRIVILEGED_CRITIC_DECK_ENCODER_TYPE_TRANSFORMER
+      and self.privileged_critic_embed_dim % self.privileged_critic_deck_heads != 0
+    ):
       raise ValueError(
         "privileged_critic_embed_dim must be divisible by privileged_critic_deck_heads, "
         f"got embed_dim={self.privileged_critic_embed_dim} "
@@ -648,12 +712,18 @@ class TCG(nn.Module):
         hidden_size=PROCESS_SET_HIDDEN_SIZE,
         output_size=self.privileged_critic_embed_dim,
       )
-      self.privileged_deck_encoder = MaskedTransformerDeckEncoder(
-        self.privileged_critic_embed_dim,
-        num_heads=self.privileged_critic_deck_heads,
-        num_layers=self.privileged_critic_deck_layers,
-        ff_size=self.privileged_critic_deck_ff_size,
-      )
+      if self.privileged_critic_deck_encoder_type == PRIVILEGED_CRITIC_DECK_ENCODER_TYPE_GRU:
+        self.privileged_deck_encoder = MaskedGruDeckEncoder(
+          self.privileged_critic_embed_dim,
+          num_layers=self.privileged_critic_deck_layers,
+        )
+      else:
+        self.privileged_deck_encoder = MaskedTransformerDeckEncoder(
+          self.privileged_critic_embed_dim,
+          num_heads=self.privileged_critic_deck_heads,
+          num_layers=self.privileged_critic_deck_layers,
+          ff_size=self.privileged_critic_deck_ff_size,
+        )
 
     ikz_input_size = (
       CARD_METADATA_EMBED_SIZE
@@ -2152,6 +2222,12 @@ def build_policy_model(env, policy_config: dict | None = None, **kwargs) -> TCG:
   privileged_critic_embed_dim = int(
     policy_config.get("privileged_critic_embed_dim", PRIVILEGED_CRITIC_EMBED_DIM)
   )
+  privileged_critic_deck_encoder_type = str(
+    policy_config.get(
+      "privileged_critic_deck_encoder_type",
+      PRIVILEGED_CRITIC_DECK_ENCODER_TYPE_DEFAULT,
+    )
+  )
   privileged_critic_deck_heads = int(
     policy_config.get("privileged_critic_deck_heads", PRIVILEGED_CRITIC_DECK_HEADS)
   )
@@ -2195,6 +2271,7 @@ def build_policy_model(env, policy_config: dict | None = None, **kwargs) -> TCG:
       critic_head_type=critic_head_type,
       privileged_critic_enabled=privileged_critic_enabled,
       privileged_critic_embed_dim=privileged_critic_embed_dim,
+      privileged_critic_deck_encoder_type=privileged_critic_deck_encoder_type,
       privileged_critic_deck_heads=privileged_critic_deck_heads,
       privileged_critic_deck_layers=privileged_critic_deck_layers,
       privileged_critic_deck_ff_size=privileged_critic_deck_ff_size,

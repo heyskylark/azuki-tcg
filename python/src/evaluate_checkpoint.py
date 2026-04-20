@@ -70,6 +70,11 @@ def _apply_checkpoint_resume_policy_config(trainer_args: dict, checkpoint: Path 
     ("policy_critic_head_type", "critic_head_type", str),
     ("policy_privileged_critic_enabled", "privileged_critic_enabled", bool),
     ("policy_privileged_critic_embed_dim", "privileged_critic_embed_dim", int),
+    (
+      "policy_privileged_critic_deck_encoder_type",
+      "privileged_critic_deck_encoder_type",
+      str,
+    ),
     ("policy_privileged_critic_deck_heads", "privileged_critic_deck_heads", int),
     ("policy_privileged_critic_deck_layers", "privileged_critic_deck_layers", int),
     ("policy_privileged_critic_deck_ff_size", "privileged_critic_deck_ff_size", int),

@@ -265,6 +265,56 @@ Purpose: track the ordered work needed to move the v2 policy away from learned c
       - do not widen the fusion MLP by default
       - if doing one more critic-only follow-up, test `compactdeck` against control over multiple seeds
       - otherwise move on to the legal-action scorer actor branch
+  - ordered hidden-deck encoder is now switchable via:
+    - `policy.privileged_critic_deck_encoder_type = transformer | gru`
+    - checkpoint / eval restore plumbing preserves this choice in:
+      - `python/src/train.py`
+      - `python/src/evaluate_checkpoint.py`
+      - `python/src/critic_eval.py`
+    - reusable short-run driver added at `python/src/privileged_critic_deck_ablation.py`
+  - first short local 3090 deck-encoder ablation completed on:
+    - config `python/config/azuki_speed_3090_parallel.ini`
+    - command:
+      - `PYTHONPATH=python/src:build/python/src WANDB_MODE=disabled PYTORCH_ALLOC_CONF=expandable_segments:True python/.venv-codex/bin/python python/src/privileged_critic_deck_ablation.py --config python/config/azuki_speed_3090_parallel.ini --output-dir experiments/privileged_deck_encoder_ablation_1776717461 --device cuda --total-timesteps 16384 --num-envs 32 --num-workers 4 --vec-batch-size 32 --minibatch-size 1024 --max-minibatch-size 1024 --rollout-episodes 8 --rollout-max-steps 300 --critic-eval-episodes 16 --critic-eval-max-steps 300`
+    - note:
+      - the helper produced both checkpoints plus rollout datasets, but the full fixed replay pass was still slow enough that the run was stopped before `summary.json` completed
+      - for the initial comparison below, replay eval was rerun separately on a smaller trimmed dataset
+  - rollout action-ratio comparison from:
+    - `experiments/privileged_deck_encoder_ablation_1776717461/transformer_rollout_dataset.pt`
+    - `experiments/privileged_deck_encoder_ablation_1776717461/gru_rollout_dataset.pt`
+    - transformer:
+      - `8` episodes, `0` timeouts, average episode length `162.875`
+      - noop ratio `0.2295`
+      - top primary actions:
+        - `noop = 0.2295`
+        - `attack = 0.1566`
+        - `play_entity_to_alley = 0.1090`
+        - `select_effect_target = 0.1028`
+        - `gate_portal = 0.0890`
+    - GRU:
+      - `8` episodes, `0` timeouts, average episode length `157.625`
+      - noop ratio `0.2141`
+      - top primary actions:
+        - `noop = 0.2141`
+        - `attack = 0.1475`
+        - `play_entity_to_alley = 0.1110`
+        - `gate_portal = 0.0904`
+        - `select_effect_target = 0.0833`
+  - smaller fixed replay critic eval used:
+    - trimmed dataset `experiments/privileged_deck_encoder_ablation_1776717461/critic_eval_transformer_trim4_dataset.pt`
+    - results file `experiments/privileged_deck_encoder_ablation_1776717461/critic_eval_transformer_trim4_results.json`
+    - `603` replay rows from the first `4` transformer-collected episodes
+    - transformer checkpoint:
+      - value `mse = 9.2025`, `mae = 2.7491`, `explained_variance = 0.0006`
+      - win-prob `brier = 0.2501`, `log_loss = 0.6934`, `accuracy = 0.4710`, `ece = 0.0341`
+    - GRU checkpoint:
+      - value `mse = 9.3432`, `mae = 2.7845`, `explained_variance = -0.0087`
+      - win-prob `brier = 0.2508`, `log_loss = 0.6947`, `accuracy = 0.3566`, `ece = 0.1465`
+  - deck-encoder ablation takeaway so far:
+    - GRU slightly reduced noop rate in the short rollout sample
+    - transformer remained better on replay value error, win-prob accuracy, and win-prob calibration
+    - this is not enough evidence to promote GRU over the existing transformer hidden-deck encoder
+    - if we revisit GRU, do it as a follow-up multi-seed / longer-horizon ablation rather than a default replacement
 - Belief-head scope:
   - start with coarse metadata-space targets rather than exact hidden card IDs
   - examples:
@@ -419,6 +469,9 @@ Purpose: track the ordered work needed to move the v2 policy away from learned c
    - Compare public-only critic vs privileged critic with both online PPO metrics and `critic_eval.py` slices before promoting the branch.
 
 12. [ ] Add ablations for metadata representation choices and hidden-state modeling.
+   - partial progress:
+     - completed the first hidden-state modeling comparison for `privileged critic deck encoder: masked transformer vs GRU`
+     - current short-run result favors the transformer branch on replay critic quality; keep this item open for the rest of the ablation matrix and any longer multi-seed rerun
    - text only vs text + structured stats
    - text + subtype pool vs text + subtype + keyword pool
    - pooled subtype/keyword embeddings vs simple multi-hot baselines
