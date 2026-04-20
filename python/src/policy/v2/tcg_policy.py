@@ -88,6 +88,20 @@ POLICY_MODEL_VERSION_METADATA_V1 = "metadata_v1"
 ACTOR_HEAD_TYPE_FACTORIZED = "factorized"
 ACTOR_HEAD_TYPE_LEGAL_ACTION_SCORER = "legal_action_scorer"
 LEGAL_ACTION_SCORER_USE_REFERENCES_DEFAULT = True
+PUBLIC_CARD_ENCODER_TYPE_POOLED = "pooled"
+PUBLIC_CARD_ENCODER_TYPE_TRANSFORMER = "transformer"
+PUBLIC_CARD_TRANSFORMER_HEADS = 4
+PUBLIC_CARD_TRANSFORMER_LAYERS = 2
+PUBLIC_CARD_TRANSFORMER_FF_SIZE = 256
+PUBLIC_CARD_OWNER_COUNT = 2
+PUBLIC_CARD_ZONE_COUNT = 5
+PUBLIC_CARD_ZONE_DISCARD = 0
+PUBLIC_CARD_ZONE_GARDEN = 1
+PUBLIC_CARD_ZONE_ALLEY = 2
+PUBLIC_CARD_ZONE_LEADER = 3
+PUBLIC_CARD_ZONE_GATE = 4
+PUBLIC_CARD_ZONE_EMBED_SIZE = 8
+PUBLIC_CARD_OWNER_EMBED_SIZE = 4
 LEGAL_ACTION_ARG_KIND_UNUSED = 0
 LEGAL_ACTION_ARG_KIND_HAND = 1
 LEGAL_ACTION_ARG_KIND_SELF_GARDEN = 2
@@ -343,6 +357,68 @@ class MaskedTransformerDeckEncoder(nn.Module):
     return self.output_norm(encoded[:, 0, :])
 
 
+class MaskedPublicCardTransformerEncoder(nn.Module):
+  def __init__(
+    self,
+    model_dim: int = UNIT_EMBED_SIZE,
+    *,
+    num_summary_tokens: int = PUBLIC_CARD_OWNER_COUNT,
+    num_heads: int = PUBLIC_CARD_TRANSFORMER_HEADS,
+    num_layers: int = PUBLIC_CARD_TRANSFORMER_LAYERS,
+    ff_size: int = PUBLIC_CARD_TRANSFORMER_FF_SIZE,
+  ):
+    super().__init__()
+    self.model_dim = int(model_dim)
+    self.num_summary_tokens = int(num_summary_tokens)
+    encoder_layer = nn.TransformerEncoderLayer(
+      d_model=model_dim,
+      nhead=num_heads,
+      dim_feedforward=ff_size,
+      dropout=0.0,
+      activation="gelu",
+      batch_first=True,
+      norm_first=True,
+    )
+    self.encoder = nn.TransformerEncoder(encoder_layer, num_layers=num_layers)
+    self.summary_tokens = nn.Parameter(torch.zeros(1, self.num_summary_tokens, model_dim))
+    self.output_norm = nn.LayerNorm(model_dim)
+    self.reset_parameters()
+
+  def reset_parameters(self) -> None:
+    for module in self.encoder.modules():
+      if module is self.encoder:
+        continue
+      reset_parameters = getattr(module, "reset_parameters", None)
+      if callable(reset_parameters):
+        reset_parameters()
+    self.output_norm.reset_parameters()
+    nn.init.normal_(self.summary_tokens, std=0.02)
+
+  def forward(self, tokens: torch.Tensor, mask: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+    if tokens.dim() != 3:
+      raise ValueError(f"Public tokens must be rank 3, got shape {tuple(tokens.shape)}")
+    if mask.dim() != 2:
+      raise ValueError(f"Public token mask must be rank 2, got shape {tuple(mask.shape)}")
+
+    batch_size = tokens.shape[0]
+    summary_tokens = self.summary_tokens.expand(batch_size, -1, -1)
+    sequence = torch.cat([summary_tokens, tokens], dim=1)
+
+    summary_mask = torch.ones(
+      (batch_size, self.num_summary_tokens),
+      device=mask.device,
+      dtype=torch.bool,
+    )
+    valid_mask = torch.cat([summary_mask, mask.to(dtype=torch.bool)], dim=1)
+    key_padding_mask = ~valid_mask
+
+    encoded = self.encoder(sequence, src_key_padding_mask=key_padding_mask)
+    encoded = self.output_norm(encoded)
+    summary = encoded[:, :self.num_summary_tokens, :]
+    sequence_tokens = encoded[:, self.num_summary_tokens:, :]
+    return summary, sequence_tokens
+
+
 class TCGLSTM(LSTMWrapper):
   def __init__(self, env, policy, input_size=None, hidden_size=LSTM_HIDDEN_SIZE):
     if input_size is None:
@@ -442,6 +518,10 @@ class TCG(nn.Module):
     model_version: str = POLICY_MODEL_VERSION_METADATA_V1,
     actor_head_type: str = ACTOR_HEAD_TYPE_LEGAL_ACTION_SCORER,
     legal_action_scorer_use_references: bool = LEGAL_ACTION_SCORER_USE_REFERENCES_DEFAULT,
+    public_card_encoder_type: str = PUBLIC_CARD_ENCODER_TYPE_POOLED,
+    public_card_transformer_heads: int = PUBLIC_CARD_TRANSFORMER_HEADS,
+    public_card_transformer_layers: int = PUBLIC_CARD_TRANSFORMER_LAYERS,
+    public_card_transformer_ff_size: int = PUBLIC_CARD_TRANSFORMER_FF_SIZE,
     critic_head_type: str = CRITIC_HEAD_TYPE_FULL_LSTM_MLP,
     privileged_critic_enabled: bool = PRIVILEGED_CRITIC_ENABLED_DEFAULT,
     privileged_critic_embed_dim: int = PRIVILEGED_CRITIC_EMBED_DIM,
@@ -463,6 +543,10 @@ class TCG(nn.Module):
     self.model_version = model_version
     self.actor_head_type = str(actor_head_type)
     self.legal_action_scorer_use_references = bool(legal_action_scorer_use_references)
+    self.public_card_encoder_type = str(public_card_encoder_type)
+    self.public_card_transformer_heads = int(public_card_transformer_heads)
+    self.public_card_transformer_layers = int(public_card_transformer_layers)
+    self.public_card_transformer_ff_size = int(public_card_transformer_ff_size)
     self.critic_head_type = str(critic_head_type)
     self.privileged_critic_enabled = bool(privileged_critic_enabled)
     self.privileged_critic_embed_dim = int(privileged_critic_embed_dim)
@@ -484,6 +568,31 @@ class TCG(nn.Module):
       raise ValueError(
         f"Unsupported actor_head_type '{self.actor_head_type}'. "
         f"Known values: {ACTOR_HEAD_TYPE_FACTORIZED}, {ACTOR_HEAD_TYPE_LEGAL_ACTION_SCORER}"
+      )
+    if self.public_card_encoder_type not in {
+      PUBLIC_CARD_ENCODER_TYPE_POOLED,
+      PUBLIC_CARD_ENCODER_TYPE_TRANSFORMER,
+    }:
+      raise ValueError(
+        f"Unsupported public_card_encoder_type '{self.public_card_encoder_type}'. "
+        f"Known values: {PUBLIC_CARD_ENCODER_TYPE_POOLED}, {PUBLIC_CARD_ENCODER_TYPE_TRANSFORMER}"
+      )
+    if self.public_card_transformer_heads <= 0:
+      raise ValueError(
+        f"public_card_transformer_heads must be positive, got {self.public_card_transformer_heads}"
+      )
+    if UNIT_EMBED_SIZE % self.public_card_transformer_heads != 0:
+      raise ValueError(
+        "UNIT_EMBED_SIZE must be divisible by public_card_transformer_heads, "
+        f"got embed_dim={UNIT_EMBED_SIZE} heads={self.public_card_transformer_heads}"
+      )
+    if self.public_card_transformer_layers <= 0:
+      raise ValueError(
+        f"public_card_transformer_layers must be positive, got {self.public_card_transformer_layers}"
+      )
+    if self.public_card_transformer_ff_size <= 0:
+      raise ValueError(
+        f"public_card_transformer_ff_size must be positive, got {self.public_card_transformer_ff_size}"
       )
     if self.privileged_critic_embed_dim <= 0:
       raise ValueError(
@@ -612,6 +721,34 @@ class TCG(nn.Module):
       LEGAL_ACTION_ARG_KIND_COUNT,
       LEGAL_ACTION_ARG_KIND_EMBED_SIZE,
     )
+    self.public_card_zone_encoder = nn.Embedding(
+      PUBLIC_CARD_ZONE_COUNT,
+      PUBLIC_CARD_ZONE_EMBED_SIZE,
+    )
+    self.public_card_owner_encoder = nn.Embedding(
+      PUBLIC_CARD_OWNER_COUNT,
+      PUBLIC_CARD_OWNER_EMBED_SIZE,
+    )
+    public_card_token_input_size = (
+      UNIT_EMBED_SIZE
+      + INDEX_ENC_OUTPUT_SIZE
+      + PUBLIC_CARD_ZONE_EMBED_SIZE
+      + PUBLIC_CARD_OWNER_EMBED_SIZE
+      + 2
+    )
+    self.public_card_token_projector = SingleUnitProjection(
+      public_card_token_input_size,
+      hidden_size=PROCESS_SET_HIDDEN_SIZE,
+      output_size=UNIT_EMBED_SIZE,
+    )
+    self.public_card_transformer = None
+    if self.public_card_encoder_type == PUBLIC_CARD_ENCODER_TYPE_TRANSFORMER:
+      self.public_card_transformer = MaskedPublicCardTransformerEncoder(
+        UNIT_EMBED_SIZE,
+        num_heads=self.public_card_transformer_heads,
+        num_layers=self.public_card_transformer_layers,
+        ff_size=self.public_card_transformer_ff_size,
+      )
 
     weapon_input_size = (
       CARD_METADATA_EMBED_SIZE
@@ -726,7 +863,10 @@ class TCG(nn.Module):
       output_size=UNIT_EMBED_SIZE,
     )
 
-    self.zone_component_count = 14
+    if self.public_card_encoder_type == PUBLIC_CARD_ENCODER_TYPE_TRANSFORMER:
+      self.zone_component_count = 6
+    else:
+      self.zone_component_count = 14
     self.lstm_input_size = UNIT_EMBED_SIZE * (self.zone_component_count + 1)
 
     self.q_primary = nn.Linear(LSTM_HIDDEN_SIZE, UNIT_EMBED_SIZE)
@@ -1231,6 +1371,203 @@ class TCG(nn.Module):
     gate_input = torch.cat([card_emb, scalar], dim=-1)
     return self.gate_projector(gate_input)
 
+  def _zone_slot_valid_mask(self, slots):
+    slots = self.__normalize_zone_entries(slots)
+    card_def_ids = self.__stack_zone_field(slots, "card_def_id").long()
+    return card_def_ids >= 0
+
+  def _zone_slot_indices(self, slots):
+    slots = self.__normalize_zone_entries(slots)
+    return self.__stack_zone_field(slots, "zone_index").long().clamp(0, MAX_INDEX_SIZE - 1)
+
+  def _single_card_valid_mask(self, card_obs):
+    card_def_ids = self._squeeze_trailing_singleton(card_obs["card_def_id"]).long()
+    return card_def_ids >= 0
+
+  def _build_public_transformer_group(
+    self,
+    tokens: torch.Tensor,
+    mask: torch.Tensor,
+    zone_indices: torch.Tensor,
+    *,
+    zone_id: int,
+    owner_id: int,
+  ) -> torch.Tensor:
+    zone_indices = zone_indices.long().clamp(0, MAX_INDEX_SIZE - 1)
+    slot_emb = self._index_embedding(zone_indices)
+    zone_ids = torch.full_like(zone_indices, zone_id)
+    owner_ids = torch.full_like(zone_indices, owner_id)
+    zone_emb = self.public_card_zone_encoder(zone_ids)
+    owner_emb = self.public_card_owner_encoder(owner_ids)
+    scalar = torch.stack(
+      [
+        zone_indices.float() / float(max(MAX_INDEX_SIZE - 1, 1)),
+        mask.float(),
+      ],
+      dim=-1,
+    )
+    scalar = self.scalar_normalizer("public_card_token_scalar", scalar, mask=mask)
+    token_input = torch.cat([tokens, slot_emb, zone_emb, owner_emb, scalar], dim=-1)
+    projected = self.public_card_token_projector(token_input.reshape(-1, token_input.size(-1)))
+    projected = projected.reshape(tokens.shape[0], tokens.shape[1], UNIT_EMBED_SIZE)
+    return projected * mask.unsqueeze(-1).to(dtype=projected.dtype)
+
+  def _encode_public_cards_transformer(
+    self,
+    *,
+    player_discard_matrix: torch.Tensor,
+    player_discard_mask: torch.Tensor,
+    player_discard_indices: torch.Tensor,
+    player_garden_matrix: torch.Tensor,
+    player_garden_mask: torch.Tensor,
+    player_garden_indices: torch.Tensor,
+    player_alley_matrix: torch.Tensor,
+    player_alley_mask: torch.Tensor,
+    player_alley_indices: torch.Tensor,
+    player_leader_vec: torch.Tensor,
+    player_leader_mask: torch.Tensor,
+    player_gate_vec: torch.Tensor,
+    player_gate_mask: torch.Tensor,
+    opponent_discard_matrix: torch.Tensor,
+    opponent_discard_mask: torch.Tensor,
+    opponent_discard_indices: torch.Tensor,
+    opponent_garden_matrix: torch.Tensor,
+    opponent_garden_mask: torch.Tensor,
+    opponent_garden_indices: torch.Tensor,
+    opponent_alley_matrix: torch.Tensor,
+    opponent_alley_mask: torch.Tensor,
+    opponent_alley_indices: torch.Tensor,
+    opponent_leader_vec: torch.Tensor,
+    opponent_leader_mask: torch.Tensor,
+    opponent_gate_vec: torch.Tensor,
+    opponent_gate_mask: torch.Tensor,
+  ):
+    zero_player_slots = torch.zeros_like(player_leader_mask, dtype=torch.long)
+    zero_opponent_slots = torch.zeros_like(opponent_leader_mask, dtype=torch.long)
+    group_specs = [
+      (
+        "player_discard_matrix",
+        player_discard_matrix,
+        player_discard_mask,
+        player_discard_indices,
+        PUBLIC_CARD_ZONE_DISCARD,
+        0,
+      ),
+      (
+        "player_garden_matrix",
+        player_garden_matrix,
+        player_garden_mask,
+        player_garden_indices,
+        PUBLIC_CARD_ZONE_GARDEN,
+        0,
+      ),
+      (
+        "player_alley_matrix",
+        player_alley_matrix,
+        player_alley_mask,
+        player_alley_indices,
+        PUBLIC_CARD_ZONE_ALLEY,
+        0,
+      ),
+      (
+        "player_leader_vec",
+        player_leader_vec.unsqueeze(1),
+        player_leader_mask.unsqueeze(1),
+        zero_player_slots.unsqueeze(1),
+        PUBLIC_CARD_ZONE_LEADER,
+        0,
+      ),
+      (
+        "player_gate_vec",
+        player_gate_vec.unsqueeze(1),
+        player_gate_mask.unsqueeze(1),
+        zero_player_slots.unsqueeze(1),
+        PUBLIC_CARD_ZONE_GATE,
+        0,
+      ),
+      (
+        "opponent_discard_matrix",
+        opponent_discard_matrix,
+        opponent_discard_mask,
+        opponent_discard_indices,
+        PUBLIC_CARD_ZONE_DISCARD,
+        1,
+      ),
+      (
+        "opponent_garden_matrix",
+        opponent_garden_matrix,
+        opponent_garden_mask,
+        opponent_garden_indices,
+        PUBLIC_CARD_ZONE_GARDEN,
+        1,
+      ),
+      (
+        "opponent_alley_matrix",
+        opponent_alley_matrix,
+        opponent_alley_mask,
+        opponent_alley_indices,
+        PUBLIC_CARD_ZONE_ALLEY,
+        1,
+      ),
+      (
+        "opponent_leader_vec",
+        opponent_leader_vec.unsqueeze(1),
+        opponent_leader_mask.unsqueeze(1),
+        zero_opponent_slots.unsqueeze(1),
+        PUBLIC_CARD_ZONE_LEADER,
+        1,
+      ),
+      (
+        "opponent_gate_vec",
+        opponent_gate_vec.unsqueeze(1),
+        opponent_gate_mask.unsqueeze(1),
+        zero_opponent_slots.unsqueeze(1),
+        PUBLIC_CARD_ZONE_GATE,
+        1,
+      ),
+    ]
+
+    token_groups = []
+    mask_groups = []
+    group_spans: list[tuple[str, int, int]] = []
+    token_offset = 0
+    for name, tokens, mask, zone_indices, zone_id, owner_id in group_specs:
+      projected = self._build_public_transformer_group(
+        tokens,
+        mask,
+        zone_indices,
+        zone_id=zone_id,
+        owner_id=owner_id,
+      )
+      token_groups.append(projected)
+      mask_groups.append(mask.to(dtype=torch.bool))
+      group_count = int(projected.shape[1])
+      group_spans.append((name, token_offset, token_offset + group_count))
+      token_offset += group_count
+
+    all_tokens = torch.cat(token_groups, dim=1)
+    all_masks = torch.cat(mask_groups, dim=1)
+    summary_tokens, encoded_tokens = self.public_card_transformer(all_tokens, all_masks)
+
+    encoded_groups = {}
+    for name, start, end in group_spans:
+      encoded_groups[name] = encoded_tokens[:, start:end, :]
+
+    return {
+      "player_public_summary": summary_tokens[:, 0, :],
+      "opponent_public_summary": summary_tokens[:, 1, :],
+      "player_discard_matrix": encoded_groups["player_discard_matrix"],
+      "player_garden_matrix": encoded_groups["player_garden_matrix"],
+      "player_alley_matrix": encoded_groups["player_alley_matrix"],
+      "player_leader_vec": encoded_groups["player_leader_vec"],
+      "player_gate_vec": encoded_groups["player_gate_vec"],
+      "opponent_discard_matrix": encoded_groups["opponent_discard_matrix"],
+      "opponent_garden_matrix": encoded_groups["opponent_garden_matrix"],
+      "opponent_alley_matrix": encoded_groups["opponent_alley_matrix"],
+      "opponent_leader_vec": encoded_groups["opponent_leader_vec"],
+      "opponent_gate_vec": encoded_groups["opponent_gate_vec"],
+    }
+
   def _encode_global_context(self, structured_obs):
     ability = self.__get_struct_field(structured_obs, "ability_context")
     phase = self._squeeze_trailing_singleton(
@@ -1551,6 +1888,53 @@ class TCG(nn.Module):
     player_gate_vec = self._encode_gate(player["gate"], key_prefix="player")
     opponent_gate_vec = self._encode_gate(opponent["gate"], key_prefix="opponent")
 
+    if self.public_card_encoder_type == PUBLIC_CARD_ENCODER_TYPE_TRANSFORMER:
+      public_cards = self._encode_public_cards_transformer(
+        player_discard_matrix=player_discard_matrix,
+        player_discard_mask=self._zone_slot_valid_mask(player["discard"]),
+        player_discard_indices=self._zone_slot_indices(player["discard"]),
+        player_garden_matrix=player_garden_matrix,
+        player_garden_mask=self._zone_slot_valid_mask(player["garden"]),
+        player_garden_indices=self._zone_slot_indices(player["garden"]),
+        player_alley_matrix=player_alley_matrix,
+        player_alley_mask=self._zone_slot_valid_mask(player["alley"]),
+        player_alley_indices=self._zone_slot_indices(player["alley"]),
+        player_leader_vec=player_leader_vec,
+        player_leader_mask=self._single_card_valid_mask(player["leader"]),
+        player_gate_vec=player_gate_vec,
+        player_gate_mask=self._single_card_valid_mask(player["gate"]),
+        opponent_discard_matrix=opponent_discard_matrix,
+        opponent_discard_mask=self._zone_slot_valid_mask(opponent["discard"]),
+        opponent_discard_indices=self._zone_slot_indices(opponent["discard"]),
+        opponent_garden_matrix=opponent_garden_matrix,
+        opponent_garden_mask=self._zone_slot_valid_mask(opponent["garden"]),
+        opponent_garden_indices=self._zone_slot_indices(opponent["garden"]),
+        opponent_alley_matrix=opponent_alley_matrix,
+        opponent_alley_mask=self._zone_slot_valid_mask(opponent["alley"]),
+        opponent_alley_indices=self._zone_slot_indices(opponent["alley"]),
+        opponent_leader_vec=opponent_leader_vec,
+        opponent_leader_mask=self._single_card_valid_mask(opponent["leader"]),
+        opponent_gate_vec=opponent_gate_vec,
+        opponent_gate_mask=self._single_card_valid_mask(opponent["gate"]),
+      )
+      player_public_vec = public_cards["player_public_summary"]
+      opponent_public_vec = public_cards["opponent_public_summary"]
+      player_discard_matrix = public_cards["player_discard_matrix"]
+      player_garden_matrix = public_cards["player_garden_matrix"]
+      player_alley_matrix = public_cards["player_alley_matrix"]
+      player_leader_matrix = public_cards["player_leader_vec"]
+      player_gate_matrix = public_cards["player_gate_vec"]
+      opponent_discard_matrix = public_cards["opponent_discard_matrix"]
+      opponent_garden_matrix = public_cards["opponent_garden_matrix"]
+      opponent_alley_matrix = public_cards["opponent_alley_matrix"]
+      opponent_leader_matrix = public_cards["opponent_leader_vec"]
+      opponent_gate_matrix = public_cards["opponent_gate_vec"]
+    else:
+      player_leader_matrix = player_leader_vec.unsqueeze(-2)
+      player_gate_matrix = player_gate_vec.unsqueeze(-2)
+      opponent_leader_matrix = opponent_leader_vec.unsqueeze(-2)
+      opponent_gate_matrix = opponent_gate_vec.unsqueeze(-2)
+
     global_counts = torch.stack(
       [
         self._squeeze_trailing_singleton(player["hand_count"]).float(),
@@ -1582,26 +1966,40 @@ class TCG(nn.Module):
       )
     )
 
-    target_vector = torch.cat(
-      [
-        hand_vec,
-        player_discard_vec,
-        opponent_discard_vec,
-        player_garden_vec,
-        player_alley_vec,
-        player_selection_vec,
-        opponent_garden_vec,
-        opponent_alley_vec,
-        player_ikz_vec,
-        opponent_ikz_vec,
-        player_leader_vec,
-        player_gate_vec,
-        opponent_leader_vec,
-        opponent_gate_vec,
-        global_vec,
-      ],
-      dim=-1,
-    )
+    if self.public_card_encoder_type == PUBLIC_CARD_ENCODER_TYPE_TRANSFORMER:
+      target_vector = torch.cat(
+        [
+          hand_vec,
+          player_public_vec,
+          opponent_public_vec,
+          player_selection_vec,
+          player_ikz_vec,
+          opponent_ikz_vec,
+          global_vec,
+        ],
+        dim=-1,
+      )
+    else:
+      target_vector = torch.cat(
+        [
+          hand_vec,
+          player_discard_vec,
+          opponent_discard_vec,
+          player_garden_vec,
+          player_alley_vec,
+          player_selection_vec,
+          opponent_garden_vec,
+          opponent_alley_vec,
+          player_ikz_vec,
+          opponent_ikz_vec,
+          player_leader_vec,
+          player_gate_vec,
+          opponent_leader_vec,
+          opponent_gate_vec,
+          global_vec,
+        ],
+        dim=-1,
+      )
 
     target_matrix = torch.cat(
       [
@@ -1615,10 +2013,10 @@ class TCG(nn.Module):
         opponent_alley_matrix,
         player_ikz_matrix,
         opponent_ikz_matrix,
-        player_leader_vec.unsqueeze(-2),
-        player_gate_vec.unsqueeze(-2),
-        opponent_leader_vec.unsqueeze(-2),
-        opponent_gate_vec.unsqueeze(-2),
+        player_leader_matrix,
+        player_gate_matrix,
+        opponent_leader_matrix,
+        opponent_gate_matrix,
       ],
       dim=-2,
     )
@@ -1631,8 +2029,8 @@ class TCG(nn.Module):
       "player_selection_matrix": player_selection_matrix,
       "opponent_garden_matrix": opponent_garden_matrix,
       "opponent_alley_matrix": opponent_alley_matrix,
-      "player_leader_vec": player_leader_vec.unsqueeze(-2),
-      "opponent_leader_vec": opponent_leader_vec.unsqueeze(-2),
+      "player_leader_vec": player_leader_matrix,
+      "opponent_leader_vec": opponent_leader_matrix,
     }
 
     if squeeze_batch:
@@ -2143,6 +2541,18 @@ def build_policy_model(env, policy_config: dict | None = None, **kwargs) -> TCG:
       LEGAL_ACTION_SCORER_USE_REFERENCES_DEFAULT,
     )
   )
+  public_card_encoder_type = str(
+    policy_config.get("public_card_encoder_type", PUBLIC_CARD_ENCODER_TYPE_POOLED)
+  )
+  public_card_transformer_heads = int(
+    policy_config.get("public_card_transformer_heads", PUBLIC_CARD_TRANSFORMER_HEADS)
+  )
+  public_card_transformer_layers = int(
+    policy_config.get("public_card_transformer_layers", PUBLIC_CARD_TRANSFORMER_LAYERS)
+  )
+  public_card_transformer_ff_size = int(
+    policy_config.get("public_card_transformer_ff_size", PUBLIC_CARD_TRANSFORMER_FF_SIZE)
+  )
   critic_head_type = str(
     policy_config.get("critic_head_type", CRITIC_HEAD_TYPE_FULL_LSTM_MLP)
   )
@@ -2192,6 +2602,10 @@ def build_policy_model(env, policy_config: dict | None = None, **kwargs) -> TCG:
       model_version=model_version,
       actor_head_type=actor_head_type,
       legal_action_scorer_use_references=legal_action_scorer_use_references,
+      public_card_encoder_type=public_card_encoder_type,
+      public_card_transformer_heads=public_card_transformer_heads,
+      public_card_transformer_layers=public_card_transformer_layers,
+      public_card_transformer_ff_size=public_card_transformer_ff_size,
       critic_head_type=critic_head_type,
       privileged_critic_enabled=privileged_critic_enabled,
       privileged_critic_embed_dim=privileged_critic_embed_dim,

@@ -108,6 +108,22 @@ def _build_trainer_args(
   if isinstance(legal_action_scorer_use_references, bool):
     policy_cfg["legal_action_scorer_use_references"] = legal_action_scorer_use_references
 
+  public_card_encoder_type = resume_cfg.get("policy_public_card_encoder_type")
+  if isinstance(public_card_encoder_type, str) and public_card_encoder_type:
+    policy_cfg["public_card_encoder_type"] = public_card_encoder_type
+
+  public_card_transformer_heads = resume_cfg.get("policy_public_card_transformer_heads")
+  if isinstance(public_card_transformer_heads, (int, float)):
+    policy_cfg["public_card_transformer_heads"] = int(public_card_transformer_heads)
+
+  public_card_transformer_layers = resume_cfg.get("policy_public_card_transformer_layers")
+  if isinstance(public_card_transformer_layers, (int, float)):
+    policy_cfg["public_card_transformer_layers"] = int(public_card_transformer_layers)
+
+  public_card_transformer_ff_size = resume_cfg.get("policy_public_card_transformer_ff_size")
+  if isinstance(public_card_transformer_ff_size, (int, float)):
+    policy_cfg["public_card_transformer_ff_size"] = int(public_card_transformer_ff_size)
+
   critic_head_type = resume_cfg.get("policy_critic_head_type")
   if isinstance(critic_head_type, str) and critic_head_type:
     policy_cfg["critic_head_type"] = critic_head_type

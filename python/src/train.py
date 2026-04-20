@@ -798,6 +798,16 @@ def _resume_config_fingerprint(trainer_args: dict) -> dict[str, object]:
         "policy_legal_action_scorer_use_references": bool(
             policy_cfg.get("legal_action_scorer_use_references", True)
         ),
+        "policy_public_card_encoder_type": str(policy_cfg.get("public_card_encoder_type", "pooled")),
+        "policy_public_card_transformer_heads": int(
+            policy_cfg.get("public_card_transformer_heads", 4)
+        ),
+        "policy_public_card_transformer_layers": int(
+            policy_cfg.get("public_card_transformer_layers", 2)
+        ),
+        "policy_public_card_transformer_ff_size": int(
+            policy_cfg.get("public_card_transformer_ff_size", 256)
+        ),
         "policy_critic_head_type": str(policy_cfg.get("critic_head_type", "full_lstm_mlp")),
         "policy_privileged_critic_enabled": bool(policy_cfg.get("privileged_critic_enabled", False)),
         "policy_privileged_critic_embed_dim": int(policy_cfg.get("privileged_critic_embed_dim", 64)),

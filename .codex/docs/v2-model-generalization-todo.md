@@ -439,6 +439,153 @@ Purpose: track the ordered work needed to move the v2 policy away from learned c
    - privileged value head only vs privileged value head + separate public win-prob head
    - public win-prob trained from terminal labels only vs public win-prob plus privileged-target distillation
    - test attention only after the baseline metadata path is stable so gains are attributable
+   - current implementation status for the first public-token transformer ablation:
+     - added `policy.public_card_encoder_type = pooled | transformer`
+     - added transformer-specific knobs:
+       - `policy.public_card_transformer_heads`
+       - `policy.public_card_transformer_layers`
+       - `policy.public_card_transformer_ff_size`
+     - the transformer branch currently targets the always-visible public card slots only:
+       - self discard (`50`)
+       - self garden (`5`)
+       - self alley (`5`)
+       - self leader (`1`)
+       - self gate (`1`)
+       - opponent discard (`50`)
+       - opponent garden (`5`)
+       - opponent alley (`5`)
+       - opponent leader (`1`)
+       - opponent gate (`1`)
+       - total transformer context: `124` public-card tokens (`62 * 2`)
+     - each public token now carries:
+       - metadata-derived card semantics
+       - explicit owner embedding (`self | opponent`)
+       - explicit public-zone embedding (`discard | garden | alley | leader | gate`)
+       - explicit slot / index embedding
+     - the transformer returns:
+       - a self-public summary token for the LSTM input
+       - an opponent-public summary token for the LSTM input
+       - contextualized per-card public token embeddings that now feed the actor-side card-reference lookup path for garden / alley / leader targets
+     - non-public / non-transformer inputs still flow directly into the public LSTM:
+       - self hand pooled summary
+       - selection-zone pooled summary
+       - self IKZ pooled summary
+       - opponent IKZ pooled summary
+       - global context / counts / combat / recent-action summary
+     - discarded cards are included in the transformer branch for both players
+   - first local RTX 3090 comparison on the stable short-run shape:
+     - command shape for both branches:
+       - `--config python/config/azuki_speed_3090_parallel.ini`
+       - `--no-league-enable`
+       - `--vec.num-envs 32`
+       - `--vec.num-workers 4`
+       - `--vec.batch-size 32`
+       - `--vec.seed 1234`
+       - `--train.batch_size 1024`
+       - `--train.minibatch_size 256`
+       - `--train.total_timesteps 8192`
+     - branch-specific override:
+       - baseline control: `--policy.public_card_encoder_type pooled`
+       - ablation: `--policy.public_card_encoder_type transformer`
+     - both branches:
+       - completed cleanly on the local RTX 3090
+       - preserved `0%` zero-legal-action truncation on both seats
+     - tail-window (`epochs 5-8`) comparison:
+       - pooled control:
+         - `SPS = 150.15`
+         - `value_loss = 0.0441`
+         - `explained_variance = 0.0988`
+         - `approx_kl = 0.00381`
+         - `clipfrac = 0.04895`
+         - seat-0 action mix:
+           - `noop = 0.229`
+           - `attack = 0.136`
+           - `play = 0.338`
+           - `ability = 0.0656`
+           - `target = 0.229`
+       - public-token transformer:
+         - `SPS = 137.64`
+         - `value_loss = 0.0518`
+         - `explained_variance = 0.0469`
+         - `approx_kl = 0.01395`
+         - `clipfrac = 0.11438`
+         - seat-0 action mix:
+           - `noop = 0.199`
+           - `attack = 0.175`
+           - `play = 0.361`
+           - `ability = 0.0525`
+           - `target = 0.206`
+     - first takeaway:
+       - the transformer branch is implementation-stable and legally healthy
+       - on this short matched 3090 run, it is currently slower and less PPO-stable than the pooled control
+       - the next step, if this branch remains worth pursuing, is to retune the public transformer depth / width and rerun the comparison before considering promotion
+   - longer matched 3090 sweep on the same reduced shape:
+     - command shape for all runs:
+       - `--config python/config/azuki_speed_3090_parallel.ini`
+       - `--no-league-enable`
+       - `--vec.num-envs 32`
+       - `--vec.num-workers 4`
+       - `--vec.batch-size 32`
+       - `--train.batch_size 1024`
+       - `--train.minibatch_size 256`
+       - `--train.total_timesteps 51200`
+       - seeds: `1234`, `1235`, `1236`
+     - checkpoints:
+       - pooled:
+         - seed `1234`: `experiments/azuki_local_177649963764/model_azuki_local_000050.pt`
+         - seed `1235`: `experiments/azuki_local_177650075516/model_azuki_local_000050.pt`
+         - seed `1236`: `experiments/azuki_local_177650145027/model_azuki_local_000050.pt`
+       - transformer:
+         - seed `1234`: `experiments/azuki_local_177649998518/model_azuki_local_000050.pt`
+         - seed `1235`: `experiments/azuki_local_177650109968/model_azuki_local_000050.pt`
+         - seed `1236`: `experiments/azuki_local_177650179282/model_azuki_local_000050.pt`
+     - late-window aggregate over epochs `41-50` across all 3 seeds:
+       - pooled control:
+         - `SPS = 165.08`
+         - `value_loss = 0.0465`
+         - `explained_variance = 0.2402`
+         - `approx_kl = 0.00714`
+         - `clipfrac = 0.09443`
+         - `entropy = 0.8530`
+         - `win_prob_aux_accuracy = 0.8240`
+         - `win_prob_aux_brier = 0.2077`
+         - seat-0 action mix:
+           - `noop = 0.215`
+           - `attack = 0.183`
+           - `play = 0.327`
+           - `ability = 0.0619`
+           - `target = 0.209`
+       - public-token transformer:
+         - `SPS = 162.21`
+         - `value_loss = 0.0477`
+         - `explained_variance = 0.1551`
+         - `approx_kl = 0.00940`
+         - `clipfrac = 0.09401`
+         - `entropy = 0.8116`
+         - `win_prob_aux_accuracy = 0.5942`
+         - `win_prob_aux_brier = 0.2226`
+         - seat-0 action mix:
+           - `noop = 0.207`
+           - `attack = 0.209`
+           - `play = 0.313`
+           - `ability = 0.0654`
+           - `target = 0.202`
+     - head-to-head evaluation against the matched pooled checkpoint:
+       - backend: `Serial`
+       - episodes: `16`
+       - `--num-envs 8`
+       - `--max-steps 400`
+       - `--device cuda:0`
+       - results:
+         - seed `1234`: pooled `16-0`
+         - seed `1235`: pooled `13-3`
+         - seed `1236`: pooled `16-0`
+     - final takeaway after the 3-seed check:
+       - the transformer branch remains legal and trainable, but it does not beat the pooled control on this 3090 sweep
+       - across seeds it trends toward hotter updates, lower entropy, worse value tracking, and weaker public win-prob auxiliary behavior
+       - action mix consistently shifts toward `attack` and away from `noop` / `play`
+       - direct play is the decisive signal: pooled won `45/48` games across the 3 matched head-to-head checks
+       - keep `pooled` as the default public-card encoder; if this line is revisited later, it needs a narrower retune target rather than promotion as-is
 
 13. [ ] Expand training distribution once the new representation path is stable.
    - Completed first-stage rollout:
