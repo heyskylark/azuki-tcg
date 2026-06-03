@@ -16,6 +16,7 @@ import torch
 from pettingzoo.utils.conversions import turn_based_aec_to_parallel
 from azk_puffer import MultiagentEpisodeStats
 
+from deck_building import DeckBuildingParallelEnv
 from policy.v2.tcg_policy import TCGLSTM, build_policy_model
 from policy.v2 import tcg_sampler
 from training_deck_pool import load_training_deck_pool
@@ -201,6 +202,7 @@ def make_azuki_env(*, seed: int | None = None, buf=None, **env_kwargs):
   env_kwargs.pop("native_envs_per_instance", None)
   env_kwargs.pop("native_log_interval", None)
   direct_parallel = bool(env_kwargs.pop("direct_parallel", False))
+  deck_building_enabled = bool(env_kwargs.pop("deck_building_enabled", False))
   deck_pool = env_kwargs.pop("deck_pool", None)
   deck_pool_path = env_kwargs.pop("deck_pool_path", None)
   if native:
@@ -213,6 +215,12 @@ def make_azuki_env(*, seed: int | None = None, buf=None, **env_kwargs):
     raise ValueError("Pass either env.deck_pool or env.deck_pool_path, not both")
   if deck_pool is None:
     deck_pool = load_training_deck_pool(deck_pool_path)
+  if deck_building_enabled:
+    env = AzukiTCGParallel(seed=seed, deck_pool=deck_pool)
+    env = DeckBuildingParallelEnv(env, deck_pool=deck_pool, seed=seed)
+    env = MultiagentEpisodeStats(env)
+    env = emulation.PettingZooPufferEnv(env, buf=buf, seed=seed)
+    return env
   if direct_parallel:
     env = AzukiTCGParallel(seed=seed, deck_pool=deck_pool)
     env = MultiagentEpisodeStats(env)

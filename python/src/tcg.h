@@ -1326,6 +1326,44 @@ void c_reset(CAzukiTCG* env) {
   reset_reward_tracking(env);
 }
 
+void c_reset_with_decks(CAzukiTCG* env,
+                        const CardInfo *player0_deck,
+                        size_t player0_deck_count,
+                        const CardInfo *player1_deck,
+                        size_t player1_deck_count) {
+  const int8_t starting_player = next_starting_player(env);
+  env->tick = 0;
+  env->terminals[0] = NOT_DONE;
+  env->terminals[1] = NOT_DONE;
+  env->truncations[0] = NOT_DONE;
+  env->truncations[1] = NOT_DONE;
+  zero_step_reward_components(env);
+  env->current_episode_cap = current_episode_ticks_limit(env);
+  reset_current_deck_indices(env);
+
+  azk_engine_destroy(env->engine);
+  env->engine = azk_engine_create_with_decks_and_starting_player(
+      env->seed, starting_player, player0_deck, player0_deck_count,
+      player1_deck, player1_deck_count);
+  if (env->engine == NULL) {
+    const char *error_message = azk_engine_get_last_error();
+    fprintf(stderr,
+            "Failed to reset Azuki engine with explicit decks: %s\n",
+            error_message != NULL ? error_message : "unknown error");
+    abort();
+  }
+  refresh_observations(env);
+  {
+    const int8_t active_player_index = tcg_active_player_index(env);
+    if (active_player_index >= 0 &&
+        env->observations[active_player_index].action_mask.legal_action_count ==
+            0) {
+      debug_log_zero_mask_state(env, "reset_with_decks");
+    }
+  }
+  reset_reward_tracking(env);
+}
+
 void c_step(CAzukiTCG* env) {
   init_env_profile_if_needed();
   const uint64_t step_start_ns =

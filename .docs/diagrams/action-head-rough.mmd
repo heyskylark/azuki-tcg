@@ -1,0 +1,62 @@
+%% Rough v2 action-head diagram based on python/src/policy/v2/tcg_policy.py.
+%% Render with:
+%%   bunx @mermaid-js/mermaid-cli -i .docs/diagrams/action-head-rough.mmd -o .docs/diagrams/action-head-rough.svg
+
+flowchart TB
+  classDef input fill:#fff0bf,stroke:#f0b000,stroke-width:2px,color:#111
+  classDef state fill:#eadff7,stroke:#7e57c2,stroke-width:2px,color:#111
+  classDef fc fill:#eadff7,stroke:#7e57c2,stroke-width:2px,color:#111
+  classDef op fill:#d9ead3,stroke:#118a1a,stroke-width:2px,color:#111
+  classDef matrix fill:#eef4ff,stroke:#3b73b9,stroke-width:2px,color:#111
+  classDef output fill:#ffe9a6,stroke:#f0b000,stroke-width:2px,color:#111
+  classDef alt fill:#ffffff,stroke:#777,stroke-dasharray:4 3,color:#111
+
+  Lstm["LSTM hidden state<br/>4096"]:::state
+  LegalRows["action_mask.legal_actions<br/>up to 1,024 rows<br/>[primary, sub1, sub2, sub3]"]:::input
+  LegalCount["legal_action_count<br/>masks unused rows"]:::input
+  Context["action_context from observation encoder<br/>zone matrices + leader refs<br/>legacy target matrix is 224 x 64"]:::matrix
+
+  subgraph CandidateEmbedding["Build one embedding per legal action row"]
+    direction TB
+    Split["Split row into primary + 3 subactions"]:::op
+    ArgKinds["Derive arg kind per subaction from primary<br/>hand, self garden, self alley, defender,<br/>selection, ability index, bool, generic target"]:::op
+    PrimaryEmb["primary action embedding<br/>64"]:::fc
+    SubEmb["subaction index embeddings<br/>3 x 8"]:::fc
+    KindEmb["arg-kind embeddings<br/>3 x 8"]:::fc
+    SemanticRefs["semantic references<br/>gather up to 3 x 64 from encoded zones<br/>default legal_action_scorer_use_references = true"]:::matrix
+    Scalars["candidate scalars<br/>normalized subactions 3 + ref-valid flags 3"]:::input
+    CandidateInput["candidate feature vector<br/>64 + 24 + 24 + 192 + 6 = 310"]:::matrix
+    CandidateProj["legal_action_candidate_projector<br/>SingleUnitProjection 310 -> 128 -> 64"]:::fc
+  end
+
+  LegalRows --> Split
+  Split --> ArgKinds
+  Split --> PrimaryEmb
+  Split --> SubEmb
+  ArgKinds --> KindEmb
+  ArgKinds --> SemanticRefs
+  Split --> SemanticRefs
+  Context --> SemanticRefs
+  Split --> Scalars
+  SemanticRefs --> Scalars
+  PrimaryEmb --> CandidateInput
+  SubEmb --> CandidateInput
+  KindEmb --> CandidateInput
+  SemanticRefs --> CandidateInput
+  Scalars --> CandidateInput
+  CandidateInput --> CandidateProj
+
+  Query["q_legal_action<br/>4096 -> 64"]:::fc
+  Score["score each candidate<br/>dot(query, candidate_embedding)<br/>+ learned candidate bias"]:::op
+  Mask["mask rows >= legal_action_count"]:::op
+  Softmax["TCGLegalActionDistribution<br/>softmax / sample legal row"]:::op
+  Chosen["chosen action tuple<br/>[primary, sub1, sub2, sub3]"]:::output
+
+  Lstm --> Query --> Score
+  CandidateProj --> Score
+  LegalCount --> Mask
+  Score --> Mask --> Softmax --> Chosen
+
+  Factorized["Alternate code path when actor_head_type = factorized<br/>q_primary/q_unit/q_bins heads with staged sampler.<br/>Current configs use the legal-action scorer path above."]:::alt
+  Lstm -. optional alternate .-> Factorized
+  Context -. target_matrix .-> Factorized

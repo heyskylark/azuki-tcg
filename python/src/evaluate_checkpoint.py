@@ -58,6 +58,9 @@ def _apply_checkpoint_resume_policy_config(trainer_args: dict, checkpoint: Path 
   deck_pool_path = resume_cfg.get("deck_pool_path")
   if isinstance(deck_pool_path, str) and deck_pool_path:
     env_cfg["deck_pool_path"] = deck_pool_path
+  deck_building_enabled = resume_cfg.get("deck_building_enabled")
+  if isinstance(deck_building_enabled, bool):
+    env_cfg["deck_building_enabled"] = deck_building_enabled
 
   for source_key, target_key, caster in (
     ("policy_model_version", "model_version", str),
@@ -98,6 +101,8 @@ def _unwrap_base_env(env):
   current = getattr(env, "env", env)
   seen = set()
   while hasattr(current, "env"):
+    if getattr(current, "is_deck_building_wrapper", False):
+      break
     nxt = getattr(current, "env")
     if nxt is current or nxt in seen:
       break
@@ -110,6 +115,9 @@ def _unwrap_base_env(env):
 
 
 def _random_legal_action(base_env, rng: np.random.Generator):
+  random_legal_action = getattr(base_env, "random_legal_action", None)
+  if callable(random_legal_action):
+    return random_legal_action(rng)
   active_index = int(getattr(base_env, "_active_player_index", 0))
   raw_obs = base_env._raw_observation(active_index)
   mask = raw_obs.action_mask

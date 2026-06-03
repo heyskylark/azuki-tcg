@@ -64,6 +64,7 @@ RESUME_SOURCE_HASH_TARGETS = (
     "python/src/v2/tcg.py",
     "python/src/v2/tcg_parallel.py",
     "python/src/v2/observation.py",
+    "python/src/deck_building.py",
     "python/src/tcg.h",
     "python/src/train.py",
     "python/src/training_deck_pool.py",
@@ -884,6 +885,7 @@ def _resume_config_fingerprint(trainer_args: dict) -> dict[str, object]:
     return {
         "use_rnn": bool(train_cfg.get("use_rnn", False)),
         "direct_parallel": bool(env_cfg.get("direct_parallel", False)),
+        "deck_building_enabled": bool(env_cfg.get("deck_building_enabled", False)),
         "deck_pool_path": str(resolve_training_deck_pool_path(env_cfg.get("deck_pool_path"))),
         "policy_model_version": str(policy_cfg.get("model_version", "metadata_v1")),
         "policy_actor_head_type": str(policy_cfg.get("actor_head_type", "legal_action_scorer")),
@@ -1218,6 +1220,16 @@ def _load_model_weights(policy: torch.nn.Module, model_path: Path, *, device: st
   if not isinstance(state_dict, dict):
     raise ValueError(f"Unsupported checkpoint format (expected state_dict dict): {model_path}")
   cleaned = _strip_module_prefix(state_dict)
+  static_card_prefixes = (
+    "policy.static_",
+    "static_",
+  )
+  stale_static_keys = [
+    key for key in cleaned.keys()
+    if key.startswith(static_card_prefixes)
+  ]
+  for key in stale_static_keys:
+    cleaned.pop(key, None)
   materialized = _materialize_scalar_norm_buffers_from_state_dict(policy, cleaned)
   scalar_norm_keys = sum(1 for key in cleaned.keys() if "scalar_normalizer._rms_" in key)
   missing, unexpected = policy.load_state_dict(cleaned, strict=strict)
@@ -1225,7 +1237,8 @@ def _load_model_weights(policy: torch.nn.Module, model_path: Path, *, device: st
     "[resume] loaded model checkpoint: "
     f"path={model_path}, strict={strict}, missing_keys={len(missing)}, "
     f"unexpected_keys={len(unexpected)}, "
-    f"materialized_scalar_norm_features={materialized}, scalar_norm_state_keys={scalar_norm_keys}"
+    f"materialized_scalar_norm_features={materialized}, scalar_norm_state_keys={scalar_norm_keys}, "
+    f"filtered_static_card_keys={len(stale_static_keys)}"
   )
 
 

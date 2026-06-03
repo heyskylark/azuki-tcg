@@ -20,10 +20,16 @@ MAX_SELECTION_ZONE_SIZE = MAX_DECK_SIZE
 RECENT_ACTION_HISTORY_LEN = 4
 
 ACTION_TYPE_COUNT = 26
-SUBACTION_SELECTION_COUNT = MAX_DECK_SIZE
 MAX_LEGAL_ACTIONS_COUNT = 1024
+MAX_DECK_BUILD_CANDIDATES = MAX_LEGAL_ACTIONS_COUNT
+SUBACTION_SELECTION_COUNT = max(MAX_DECK_SIZE, MAX_DECK_BUILD_CANDIDATES)
 ACTION_COMPONENT_COUNT = 4
 LEGAL_ACTION_UNUSED = 0
+
+DECK_CONTEXT_MODE_BATTLE = 0
+DECK_CONTEXT_MODE_PICK_LEADER = 1
+DECK_CONTEXT_MODE_PICK_MAIN = 2
+DECK_CONTEXT_MODE_COUNT = 3
 
 PHASE_COUNT = 8
 ABILITY_PHASE_COUNT = 6
@@ -234,7 +240,7 @@ OBSERVATION_CTYPE = _TrainingObservationData
 OBSERVATION_STRUCT_SIZE = ctypes.sizeof(_TrainingObservationData)
 
 CARD_DEF_MIN = -1
-CARD_DEF_MAX = 255
+CARD_DEF_MAX = 32767
 ZONE_INDEX_MAX = 255
 STAT_MIN = -128
 STAT_MAX = 127
@@ -379,9 +385,9 @@ def _recent_action_space() -> spaces.Dict:
         {
             "valid": _bool_space(),
             "primary": spaces.Discrete(ACTION_TYPE_COUNT),
-            "sub1": _scalar_box(0, SUBACTION_SELECTION_COUNT - 1, dtype=np.uint8),
-            "sub2": _scalar_box(0, SUBACTION_SELECTION_COUNT - 1, dtype=np.uint8),
-            "sub3": _scalar_box(0, SUBACTION_SELECTION_COUNT - 1, dtype=np.uint8),
+            "sub1": _scalar_box(0, SUBACTION_SELECTION_COUNT - 1, dtype=np.uint16),
+            "sub2": _scalar_box(0, SUBACTION_SELECTION_COUNT - 1, dtype=np.uint16),
+            "sub3": _scalar_box(0, SUBACTION_SELECTION_COUNT - 1, dtype=np.uint16),
             "was_noop": _bool_space(),
         }
     )
@@ -424,8 +430,38 @@ def _action_mask_space() -> spaces.Dict:
     return spaces.Dict(
         {
             "primary_action_mask": spaces.MultiBinary(ACTION_TYPE_COUNT),
-            "legal_action_count": spaces.Discrete(MAX_LEGAL_ACTIONS_COUNT),
+            "legal_action_count": spaces.Discrete(MAX_LEGAL_ACTIONS_COUNT + 1),
             "legal_actions": _legal_actions_space(),
+        }
+    )
+
+
+def build_deck_context_space() -> spaces.Dict:
+    return spaces.Dict(
+        {
+            "mode": spaces.Discrete(DECK_CONTEXT_MODE_COUNT),
+            "gate_card_def_id": _scalar_box(CARD_DEF_MIN, CARD_DEF_MAX, dtype=np.int16),
+            "leader_card_def_id": _scalar_box(CARD_DEF_MIN, CARD_DEF_MAX, dtype=np.int16),
+            "main_card_def_ids": spaces.Box(
+                CARD_DEF_MIN,
+                CARD_DEF_MAX,
+                shape=(MAX_DECK_SIZE,),
+                dtype=np.int16,
+            ),
+            "main_count": _scalar_box(0, MAX_DECK_SIZE, dtype=np.uint8),
+            "candidate_card_def_ids": spaces.Box(
+                CARD_DEF_MIN,
+                CARD_DEF_MAX,
+                shape=(MAX_DECK_BUILD_CANDIDATES,),
+                dtype=np.int16,
+            ),
+            "candidate_copy_counts": spaces.Box(
+                0,
+                4,
+                shape=(MAX_DECK_BUILD_CANDIDATES,),
+                dtype=np.uint8,
+            ),
+            "candidate_count": spaces.Discrete(MAX_DECK_BUILD_CANDIDATES + 1),
         }
     )
 
@@ -787,6 +823,12 @@ def observation_to_dict(observation: Any) -> dict[str, Any]:
 
 
 __all__ = [
+    "DECK_CONTEXT_MODE_BATTLE",
+    "DECK_CONTEXT_MODE_COUNT",
+    "DECK_CONTEXT_MODE_PICK_LEADER",
+    "DECK_CONTEXT_MODE_PICK_MAIN",
+    "MAX_DECK_BUILD_CANDIDATES",
+    "build_deck_context_space",
     "build_observation_space",
     "observation_to_dict",
     "OBSERVATION_CTYPE",

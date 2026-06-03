@@ -237,6 +237,21 @@ class AzukiTCG(AECEnv):
       seed = int(seed)
 
     binding.env_reset(self.c_envs, seed)
+    return self._reset_local_state_after_native_reset()
+
+  def reset_with_decks(self, *, seed: int, player_decks):
+    seed = int(seed)
+    if len(player_decks) != self._agent_count:
+      raise ValueError(f"Expected {self._agent_count} explicit decks, got {len(player_decks)}")
+    binding.env_reset_with_decks(
+      self.c_envs,
+      seed,
+      tuple(player_decks[0]),
+      tuple(player_decks[1]),
+    )
+    return self._reset_local_state_after_native_reset()
+
+  def _reset_local_state_after_native_reset(self):
     self._actions.fill(0)
     self._terminal_rewards.fill(0.0)
     self._shaped_rewards.fill(0.0)
@@ -257,6 +272,24 @@ class AzukiTCG(AECEnv):
     self._obs_debug.observe_step(observations)
     observation = observations[self.agent_selection]
     return observation, self.infos[self.agent_selection]
+
+  def random_legal_action(self, rng: np.random.Generator):
+    active_index = int(self._active_player_index)
+    raw_obs = self._raw_observation(active_index)
+    mask = raw_obs.action_mask
+    legal_count = int(mask.legal_action_count)
+    if legal_count <= 0:
+      return np.asarray([0, 0, 0, 0], dtype=np.int32)
+    choice = int(rng.integers(0, legal_count))
+    return np.asarray(
+      [
+        int(mask.legal_primary[choice]),
+        int(mask.legal_sub1[choice]),
+        int(mask.legal_sub2[choice]),
+        int(mask.legal_sub3[choice]),
+      ],
+      dtype=np.int32,
+    )
 
   def step(self, action):
     if not self.agents:

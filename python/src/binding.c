@@ -1,5 +1,11 @@
 #include "tcg.h"
 
+#include <Python.h>
+
+static PyObject* env_reset_with_decks(PyObject* self, PyObject* args);
+
+#define MY_METHODS {"env_reset_with_decks", env_reset_with_decks, METH_VARARGS, "Reset the environment with two explicit deck specs"}
+
 #define Env CAzukiTCG
 #define MY_GET
 #include "env_binding.h"
@@ -38,6 +44,143 @@ static int parse_card_quantity(PyObject *value, const char *card_code) {
     return -1;
   }
   return (int)quantity;
+}
+
+static int parse_deck_spec(
+    PyObject *deck_obj,
+    const char *deck_label,
+    CardInfo **out_cards,
+    size_t *out_card_count) {
+  *out_cards = NULL;
+  *out_card_count = 0;
+  if (!PySequence_Check(deck_obj)) {
+    PyErr_Format(
+        PyExc_TypeError,
+        "%s must be a sequence of (card_id, quantity) pairs",
+        deck_label);
+    return -1;
+  }
+
+  const Py_ssize_t card_count = PySequence_Size(deck_obj);
+  if (card_count < 0) {
+    return -1;
+  }
+  if (card_count <= 0) {
+    PyErr_Format(PyExc_ValueError, "%s must contain at least one card entry", deck_label);
+    return -1;
+  }
+
+  CardInfo *cards = calloc((size_t)card_count, sizeof(CardInfo));
+  if (cards == NULL) {
+    PyErr_Format(PyExc_MemoryError, "Failed to allocate %s card array", deck_label);
+    return -1;
+  }
+
+  int total_cards = 0;
+  for (Py_ssize_t card_index = 0; card_index < card_count; ++card_index) {
+    PyObject *card_entry_obj = PySequence_GetItem(deck_obj, card_index);
+    if (card_entry_obj == NULL) {
+      free(cards);
+      return -1;
+    }
+
+    if (!PySequence_Check(card_entry_obj)) {
+      Py_DECREF(card_entry_obj);
+      free(cards);
+      PyErr_Format(
+          PyExc_TypeError,
+          "%s[%zd] must be a (card_id, quantity) pair",
+          deck_label,
+          card_index);
+      return -1;
+    }
+
+    const Py_ssize_t card_entry_size = PySequence_Size(card_entry_obj);
+    if (card_entry_size < 0) {
+      Py_DECREF(card_entry_obj);
+      free(cards);
+      return -1;
+    }
+    if (card_entry_size != 2) {
+      Py_DECREF(card_entry_obj);
+      free(cards);
+      PyErr_Format(
+          PyExc_ValueError,
+          "%s[%zd] must contain exactly 2 items: (card_id, quantity)",
+          deck_label,
+          card_index);
+      return -1;
+    }
+
+    PyObject *card_code_obj = PySequence_GetItem(card_entry_obj, 0);
+    PyObject *quantity_obj = PySequence_GetItem(card_entry_obj, 1);
+    if (card_code_obj == NULL || quantity_obj == NULL) {
+      Py_XDECREF(card_code_obj);
+      Py_XDECREF(quantity_obj);
+      Py_DECREF(card_entry_obj);
+      free(cards);
+      return -1;
+    }
+    if (!PyUnicode_Check(card_code_obj)) {
+      Py_DECREF(card_code_obj);
+      Py_DECREF(quantity_obj);
+      Py_DECREF(card_entry_obj);
+      free(cards);
+      PyErr_Format(PyExc_TypeError, "%s[%zd] card_id must be a string", deck_label, card_index);
+      return -1;
+    }
+
+    const char *card_code = PyUnicode_AsUTF8(card_code_obj);
+    if (card_code == NULL) {
+      Py_DECREF(card_code_obj);
+      Py_DECREF(quantity_obj);
+      Py_DECREF(card_entry_obj);
+      free(cards);
+      return -1;
+    }
+
+    CardDefId card_id;
+    if (lookup_card_def_id(card_code, &card_id) != 0) {
+      Py_DECREF(card_code_obj);
+      Py_DECREF(quantity_obj);
+      Py_DECREF(card_entry_obj);
+      free(cards);
+      return -1;
+    }
+
+    const int quantity = parse_card_quantity(quantity_obj, card_code);
+    if (quantity < 0) {
+      Py_DECREF(card_code_obj);
+      Py_DECREF(quantity_obj);
+      Py_DECREF(card_entry_obj);
+      free(cards);
+      return -1;
+    }
+
+    cards[card_index].card_id = card_id;
+    cards[card_index].card_count = quantity;
+    total_cards += quantity;
+    Py_DECREF(card_code_obj);
+    Py_DECREF(quantity_obj);
+    Py_DECREF(card_entry_obj);
+  }
+
+  const int expected_total_cards = REQUIRED_DECK_SIZE + REQUIRED_LEADER_SIZE +
+                                   REQUIRED_GATE_SIZE + REQUIRED_IKZ_PILE_SIZE;
+  if (total_cards != expected_total_cards) {
+    free(cards);
+    PyErr_Format(
+        PyExc_ValueError,
+        "%s resolves to %d total cards; expected %d",
+        deck_label,
+        total_cards,
+        expected_total_cards);
+    return -1;
+  }
+
+  *out_cards = cards;
+  *out_card_count = (size_t)card_count;
+  return 0;
 }
 
 static int load_training_deck_pool(Env *env, PyObject *deck_pool_obj) {
@@ -83,153 +226,19 @@ static int load_training_deck_pool(Env *env, PyObject *deck_pool_obj) {
       return -1;
     }
 
-    const Py_ssize_t card_count = PySequence_Size(deck_obj);
-    if (card_count < 0) {
+    CardInfo *cards = NULL;
+    size_t card_count = 0;
+    char deck_label[64];
+    snprintf(deck_label, sizeof(deck_label), "deck_pool[%zd]", deck_index);
+    if (parse_deck_spec(deck_obj, deck_label, &cards, &card_count) != 0) {
       Py_DECREF(deck_obj);
       free_training_deck_pool(env);
       return -1;
     }
-    if (card_count <= 0) {
-      Py_DECREF(deck_obj);
-      free_training_deck_pool(env);
-      PyErr_Format(PyExc_ValueError, "deck_pool[%zd] must contain at least one card entry", deck_index);
-      return -1;
-    }
-
-    CardInfo *cards = calloc((size_t)card_count, sizeof(CardInfo));
-    if (cards == NULL) {
-      Py_DECREF(deck_obj);
-      free_training_deck_pool(env);
-      PyErr_SetString(PyExc_MemoryError, "Failed to allocate deck card array");
-      return -1;
-    }
-
-    int total_cards = 0;
-    for (Py_ssize_t card_index = 0; card_index < card_count; ++card_index) {
-      PyObject *card_entry_obj = PySequence_GetItem(deck_obj, card_index);
-      if (card_entry_obj == NULL) {
-        free(cards);
-        Py_DECREF(deck_obj);
-        free_training_deck_pool(env);
-        return -1;
-      }
-
-      if (!PySequence_Check(card_entry_obj)) {
-        Py_DECREF(card_entry_obj);
-        free(cards);
-        Py_DECREF(deck_obj);
-        free_training_deck_pool(env);
-        PyErr_Format(
-            PyExc_TypeError,
-            "deck_pool[%zd][%zd] must be a (card_id, quantity) pair",
-            deck_index,
-            card_index);
-        return -1;
-      }
-
-      const Py_ssize_t card_entry_size = PySequence_Size(card_entry_obj);
-      if (card_entry_size < 0) {
-        Py_DECREF(card_entry_obj);
-        free(cards);
-        Py_DECREF(deck_obj);
-        free_training_deck_pool(env);
-        return -1;
-      }
-
-      if (card_entry_size != 2) {
-        Py_DECREF(card_entry_obj);
-        free(cards);
-        Py_DECREF(deck_obj);
-        free_training_deck_pool(env);
-        PyErr_Format(
-            PyExc_ValueError,
-            "deck_pool[%zd][%zd] must contain exactly 2 items: (card_id, quantity)",
-            deck_index,
-            card_index);
-        return -1;
-      }
-
-      PyObject *card_code_obj = PySequence_GetItem(card_entry_obj, 0);
-      PyObject *quantity_obj = PySequence_GetItem(card_entry_obj, 1);
-      if (card_code_obj == NULL || quantity_obj == NULL) {
-        Py_XDECREF(card_code_obj);
-        Py_XDECREF(quantity_obj);
-        Py_DECREF(card_entry_obj);
-        free(cards);
-        Py_DECREF(deck_obj);
-        free_training_deck_pool(env);
-        return -1;
-      }
-      if (!PyUnicode_Check(card_code_obj)) {
-        Py_DECREF(card_code_obj);
-        Py_DECREF(quantity_obj);
-        Py_DECREF(card_entry_obj);
-        free(cards);
-        Py_DECREF(deck_obj);
-        free_training_deck_pool(env);
-        PyErr_Format(PyExc_TypeError, "deck_pool[%zd][%zd] card_id must be a string", deck_index, card_index);
-        return -1;
-      }
-
-      const char *card_code = PyUnicode_AsUTF8(card_code_obj);
-      if (card_code == NULL) {
-        Py_DECREF(card_code_obj);
-        Py_DECREF(quantity_obj);
-        Py_DECREF(card_entry_obj);
-        free(cards);
-        Py_DECREF(deck_obj);
-        free_training_deck_pool(env);
-        return -1;
-      }
-
-      CardDefId card_id;
-      if (lookup_card_def_id(card_code, &card_id) != 0) {
-        Py_DECREF(card_code_obj);
-        Py_DECREF(quantity_obj);
-        Py_DECREF(card_entry_obj);
-        free(cards);
-        Py_DECREF(deck_obj);
-        free_training_deck_pool(env);
-        return -1;
-      }
-
-      const int quantity = parse_card_quantity(quantity_obj, card_code);
-      if (quantity < 0) {
-        Py_DECREF(card_code_obj);
-        Py_DECREF(quantity_obj);
-        Py_DECREF(card_entry_obj);
-        free(cards);
-        Py_DECREF(deck_obj);
-        free_training_deck_pool(env);
-        return -1;
-      }
-
-      cards[card_index].card_id = card_id;
-      cards[card_index].card_count = quantity;
-      total_cards += quantity;
-      Py_DECREF(card_code_obj);
-      Py_DECREF(quantity_obj);
-      Py_DECREF(card_entry_obj);
-    }
-
     Py_DECREF(deck_obj);
 
-    const int expected_total_cards = REQUIRED_DECK_SIZE + REQUIRED_LEADER_SIZE +
-                                     REQUIRED_GATE_SIZE + REQUIRED_IKZ_PILE_SIZE;
-    if (total_cards != expected_total_cards) {
-      free(cards);
-      free_training_deck_pool(env);
-      PyErr_Format(
-          PyExc_ValueError,
-          "deck_pool[%zd] resolves to %d total cards; expected %d",
-          deck_index,
-          total_cards,
-          expected_total_cards);
-      return -1;
-    }
-
     env->deck_pool[deck_index].cards = cards;
-    env->deck_pool[deck_index].card_count = (size_t)card_count;
+    env->deck_pool[deck_index].card_count = card_count;
   }
 
   return 0;
@@ -339,4 +348,53 @@ static int my_log(PyObject* dict, Log* log) {
     assign_to_dict(dict, "p1_avg_leader_health", log->p1_avg_leader_health);
     assign_to_dict(dict, "n", log->n);
     return 0;
+}
+
+static PyObject* env_reset_with_decks(PyObject* self, PyObject* args) {
+  (void)self;
+  if (PyTuple_Size(args) != 4) {
+    PyErr_SetString(PyExc_TypeError, "env_reset_with_decks requires 4 arguments: env_handle, seed, player0_deck, player1_deck");
+    return NULL;
+  }
+
+  Env* env = unpack_env(args);
+  if (env == NULL) {
+    return NULL;
+  }
+
+  PyObject* seed_arg = PyTuple_GetItem(args, 1);
+  if (!PyObject_TypeCheck(seed_arg, &PyLong_Type)) {
+    PyErr_SetString(PyExc_TypeError, "seed must be an integer");
+    return NULL;
+  }
+  env->seed = PyLong_AsLong(seed_arg);
+  if (PyErr_Occurred()) {
+    return NULL;
+  }
+  env->starter_rng_state = starter_seed_from_env_seed(env->seed);
+  env->deck_rng_state = deck_seed_from_env_seed(env->seed);
+
+  CardInfo *player0_cards = NULL;
+  CardInfo *player1_cards = NULL;
+  size_t player0_card_count = 0;
+  size_t player1_card_count = 0;
+  PyObject *player0_deck = PyTuple_GetItem(args, 2);
+  PyObject *player1_deck = PyTuple_GetItem(args, 3);
+  if (parse_deck_spec(player0_deck, "player0_deck", &player0_cards, &player0_card_count) != 0) {
+    return NULL;
+  }
+  if (parse_deck_spec(player1_deck, "player1_deck", &player1_cards, &player1_card_count) != 0) {
+    free(player0_cards);
+    return NULL;
+  }
+
+  c_reset_with_decks(
+      env,
+      player0_cards,
+      player0_card_count,
+      player1_cards,
+      player1_card_count);
+  free(player0_cards);
+  free(player1_cards);
+  Py_RETURN_NONE;
 }

@@ -9,7 +9,9 @@ from torch import nn
 from observation import (
   ACTION_TYPE_COUNT,
   ALLEY_SIZE,
+  DECK_CONTEXT_MODE_COUNT,
   GARDEN_SIZE,
+  MAX_DECK_BUILD_CANDIDATES,
   MAX_ATTACHED_WEAPONS,
   MAX_DECK_SIZE,
   MAX_HAND_SIZE,
@@ -31,6 +33,7 @@ ACTION_COMPONENT_COUNT = 4
 ACT_NOOP = 0
 ACT_PLAY_ENTITY_TO_GARDEN = 1
 ACT_PLAY_ENTITY_TO_ALLEY = 2
+ACT_DECK_PICK_CARD = 3
 ACT_ATTACK = 6
 ACT_ATTACH_WEAPON_FROM_HAND = 7
 ACT_PLAY_SPELL_FROM_HAND = 8
@@ -98,7 +101,8 @@ LEGAL_ACTION_ARG_KIND_SELECTION = 6
 LEGAL_ACTION_ARG_KIND_ABILITY_INDEX = 7
 LEGAL_ACTION_ARG_KIND_BOOL = 8
 LEGAL_ACTION_ARG_KIND_GENERIC_TARGET = 9
-LEGAL_ACTION_ARG_KIND_COUNT = 10
+LEGAL_ACTION_ARG_KIND_CARD_CANDIDATE = 10
+LEGAL_ACTION_ARG_KIND_COUNT = 11
 LEGAL_ACTION_ARG_KIND_EMBED_SIZE = 8
 
 
@@ -140,6 +144,7 @@ def _build_legal_action_arg_kind_table() -> torch.Tensor:
     [ACT_SELECT_COST_TARGET, ACT_SELECT_EFFECT_TARGET],
     0,
   ] = LEGAL_ACTION_ARG_KIND_GENERIC_TARGET
+  table[ACT_DECK_PICK_CARD, 0] = LEGAL_ACTION_ARG_KIND_CARD_CANDIDATE
 
   table[ACT_PLAY_ENTITY_TO_GARDEN, 1] = LEGAL_ACTION_ARG_KIND_SELF_GARDEN
   table[ACT_PLAY_ENTITY_TO_ALLEY, 1] = LEGAL_ACTION_ARG_KIND_SELF_ALLEY
@@ -341,6 +346,28 @@ class ProcessSetProcessor(nn.Module):
 
     pooled, _ = torch.max(set_embeddings, dim=-2)
     return set_embeddings, pooled
+
+
+class SumSetProcessor(nn.Module):
+  def __init__(self, input_size, hidden_size=PROCESS_SET_HIDDEN_SIZE, output_size=UNIT_EMBED_SIZE):
+    super().__init__()
+    self.fc1 = nn.Linear(input_size, hidden_size)
+    self.fc2 = nn.Linear(hidden_size, output_size)
+    self.act = nn.ReLU()
+    self.output_size = output_size
+
+  def forward(self, x, mask=None):
+    set_embeddings = self.fc2(self.act(self.fc1(x)))
+    if mask is None:
+      return set_embeddings, set_embeddings.sum(dim=-2)
+
+    if mask.dim() == set_embeddings.dim() - 1:
+      mask = mask.unsqueeze(-1)
+    mask = mask.to(dtype=torch.bool)
+    masked = set_embeddings * mask.to(dtype=set_embeddings.dtype)
+    count = mask.any(dim=-1).sum(dim=-1, keepdim=True).clamp(min=1)
+    pooled = masked.sum(dim=-2) / torch.sqrt(count.to(dtype=masked.dtype))
+    return masked, pooled
 
 
 class SingleUnitProjection(nn.Module):
@@ -601,24 +628,41 @@ class TCG(nn.Module):
         f"Known critic heads: {CRITIC_HEAD_TYPE_SHARED_PRIMARY}, {CRITIC_HEAD_TYPE_FULL_LSTM_MLP}"
       )
 
+    emulated_spec = getattr(env, "emulated", None)
+    if emulated_spec is None:
+      raise AttributeError("env must expose emulated metadata for nativize")
+    obs_dtype = emulated_spec.get("emulated_observation_dtype")
+    if obs_dtype is None:
+      raise AttributeError("env.emulated missing emulated_observation_dtype")
+    self._obs_struct_dtype = _build_native_dtype_from_numpy(obs_dtype)
+    self.deck_context_enabled = (
+      isinstance(self._obs_struct_dtype, dict) and "deck_context" in self._obs_struct_dtype
+    )
+    if self.deck_context_enabled and self.actor_head_type != ACTOR_HEAD_TYPE_LEGAL_ACTION_SCORER:
+      raise ValueError("deck_building_enabled requires actor_head_type='legal_action_scorer'")
+
     static_table = load_policy_card_metadata_table()
     self.static_vocab_size = static_table.vocab_size
     self.metadata_embedding_dim = static_table.embedding_dim
     self.keyword_vocab_size = static_table.keyword_vocab_size
-    self.register_buffer("static_card_present_mask", static_table.card_present_mask)
-    self.register_buffer("static_card_type", static_table.card_type_ids)
-    self.register_buffer("static_element", static_table.element_ids)
-    self.register_buffer("static_base_ikz_cost", static_table.ikz_cost)
-    self.register_buffer("static_base_attack", static_table.attack)
-    self.register_buffer("static_base_health", static_table.health)
-    self.register_buffer("static_base_gate_points", static_table.gate_points)
-    self.register_buffer("static_has_ability", static_table.has_ability)
-    self.register_buffer("static_ability_timing", static_table.ability_timing_ids)
-    self.register_buffer("static_ability_optional", static_table.ability_is_optional)
-    self.register_buffer("static_keyword_multi_hot", static_table.keyword_multi_hot)
-    self.register_buffer("static_name_embeddings", static_table.name_embeddings)
-    self.register_buffer("static_effect_embeddings", static_table.effect_embeddings)
-    self.register_buffer("static_subtype_pooled_embeddings", static_table.subtype_pooled_embeddings)
+    self.register_buffer("static_card_present_mask", static_table.card_present_mask, persistent=False)
+    self.register_buffer("static_card_type", static_table.card_type_ids, persistent=False)
+    self.register_buffer("static_element", static_table.element_ids, persistent=False)
+    self.register_buffer("static_base_ikz_cost", static_table.ikz_cost, persistent=False)
+    self.register_buffer("static_base_attack", static_table.attack, persistent=False)
+    self.register_buffer("static_base_health", static_table.health, persistent=False)
+    self.register_buffer("static_base_gate_points", static_table.gate_points, persistent=False)
+    self.register_buffer("static_has_ability", static_table.has_ability, persistent=False)
+    self.register_buffer("static_ability_timing", static_table.ability_timing_ids, persistent=False)
+    self.register_buffer("static_ability_optional", static_table.ability_is_optional, persistent=False)
+    self.register_buffer("static_keyword_multi_hot", static_table.keyword_multi_hot, persistent=False)
+    self.register_buffer("static_name_embeddings", static_table.name_embeddings, persistent=False)
+    self.register_buffer("static_effect_embeddings", static_table.effect_embeddings, persistent=False)
+    self.register_buffer(
+      "static_subtype_pooled_embeddings",
+      static_table.subtype_pooled_embeddings,
+      persistent=False,
+    )
 
     ability_timing_vocab = int(self.static_ability_timing.max().item()) + 1
     ability_timing_vocab = max(ability_timing_vocab, 1)
@@ -673,8 +717,13 @@ class TCG(nn.Module):
       MAX_INDEX_SIZE + 1,
       INDEX_ENC_OUTPUT_SIZE,
     )
+    legal_action_arg_kind_count = (
+      LEGAL_ACTION_ARG_KIND_COUNT
+      if self.deck_context_enabled
+      else LEGAL_ACTION_ARG_KIND_CARD_CANDIDATE
+    )
     self.legal_action_arg_kind_encoder = nn.Embedding(
-      LEGAL_ACTION_ARG_KIND_COUNT,
+      legal_action_arg_kind_count,
       LEGAL_ACTION_ARG_KIND_EMBED_SIZE,
     )
 
@@ -744,6 +793,24 @@ class TCG(nn.Module):
 
     self.leader_projector = SingleUnitProjection(leader_input_size)
     self.gate_projector = SingleUnitProjection(gate_input_size)
+    self.deck_mode_encoder = None
+    self.deck_context_card_processor = None
+    self.deck_context_projector = None
+    self.deck_candidate_projector = None
+    if self.deck_context_enabled:
+      self.deck_mode_encoder = nn.Embedding(DECK_CONTEXT_MODE_COUNT, PHASE_ENC_OUTPUT_SIZE)
+      deck_card_input_size = CARD_METADATA_EMBED_SIZE + 2
+      self.deck_context_card_processor = SumSetProcessor(deck_card_input_size)
+      self.deck_context_projector = SingleUnitProjection(
+        PHASE_ENC_OUTPUT_SIZE
+        + (CARD_METADATA_EMBED_SIZE * 2)
+        + UNIT_EMBED_SIZE
+        + 5
+      )
+      self.deck_candidate_projector = SingleUnitProjection(
+        CARD_METADATA_EMBED_SIZE + 3,
+        output_size=UNIT_EMBED_SIZE,
+      )
 
     context_input_size = (
       PHASE_ENC_OUTPUT_SIZE
@@ -791,7 +858,7 @@ class TCG(nn.Module):
       output_size=UNIT_EMBED_SIZE,
     )
 
-    self.zone_component_count = 14
+    self.zone_component_count = 15 if self.deck_context_enabled else 14
     self.lstm_input_size = UNIT_EMBED_SIZE * (self.zone_component_count + 1)
 
     self.q_primary = nn.Linear(LSTM_HIDDEN_SIZE, UNIT_EMBED_SIZE)
@@ -871,13 +938,6 @@ class TCG(nn.Module):
         std=1,
       )
 
-    emulated_spec = getattr(env, "emulated", None)
-    if emulated_spec is None:
-      raise AttributeError("env must expose emulated metadata for nativize")
-    obs_dtype = emulated_spec.get("emulated_observation_dtype")
-    if obs_dtype is None:
-      raise AttributeError("env.emulated missing emulated_observation_dtype")
-    self._obs_struct_dtype = _build_native_dtype_from_numpy(obs_dtype)
     self._cached_mask_observations = None
 
   def __policy_device(self) -> torch.device:
@@ -1296,6 +1356,125 @@ class TCG(nn.Module):
     gate_input = torch.cat([card_emb, scalar], dim=-1)
     return self.gate_projector(gate_input)
 
+  def _count_matching_cards_per_slot(self, card_def_ids: torch.Tensor, valid_mask: torch.Tensor) -> torch.Tensor:
+    same_card = card_def_ids.unsqueeze(1) == card_def_ids.unsqueeze(2)
+    same_card = same_card & valid_mask.unsqueeze(1) & valid_mask.unsqueeze(2)
+    return same_card.sum(dim=-1).float()
+
+  def _encode_deck_context(self, structured_obs):
+    phase = self._squeeze_trailing_singleton(
+      self.__get_struct_field(structured_obs, "phase")
+    )
+    if phase.dim() == 0:
+      phase = phase.unsqueeze(0)
+    batch_size = phase.shape[0]
+    device = phase.device
+
+    if not self.deck_context_enabled:
+      return (
+        torch.zeros((batch_size, UNIT_EMBED_SIZE), device=device, dtype=torch.float32),
+        torch.zeros(
+          (batch_size, MAX_DECK_BUILD_CANDIDATES, UNIT_EMBED_SIZE),
+          device=device,
+          dtype=torch.float32,
+        ),
+        torch.zeros((batch_size,), device=device, dtype=torch.long),
+      )
+
+    try:
+      deck_context = self.__get_struct_field(structured_obs, "deck_context")
+    except KeyError:
+      return (
+        torch.zeros((batch_size, UNIT_EMBED_SIZE), device=device, dtype=torch.float32),
+        torch.zeros(
+          (batch_size, MAX_DECK_BUILD_CANDIDATES, UNIT_EMBED_SIZE),
+          device=device,
+          dtype=torch.float32,
+        ),
+        torch.zeros((batch_size,), device=device, dtype=torch.long),
+      )
+
+    mode = self._squeeze_trailing_singleton(deck_context["mode"]).long().clamp(0, DECK_CONTEXT_MODE_COUNT - 1)
+    gate_card = self._squeeze_trailing_singleton(deck_context["gate_card_def_id"]).long()
+    leader_card = self._squeeze_trailing_singleton(deck_context["leader_card_def_id"]).long()
+    main_count = self._squeeze_trailing_singleton(deck_context["main_count"]).long().clamp(0, MAX_DECK_SIZE)
+    candidate_count = self._squeeze_trailing_singleton(deck_context["candidate_count"]).long().clamp(
+      0,
+      MAX_DECK_BUILD_CANDIDATES,
+    )
+
+    gate_idx, gate_valid = self._card_index_and_mask(gate_card)
+    leader_idx, leader_valid = self._card_index_and_mask(leader_card)
+    gate_emb = self._encode_card_metadata_from_index(gate_idx, valid_mask=gate_valid)
+    leader_emb = self._encode_card_metadata_from_index(leader_idx, valid_mask=leader_valid)
+
+    main_card_ids = deck_context["main_card_def_ids"].long()
+    if main_card_ids.dim() == 1:
+      main_card_ids = main_card_ids.unsqueeze(0)
+    main_idx, main_valid_by_id = self._card_index_and_mask(main_card_ids)
+    main_positions = torch.arange(main_card_ids.size(1), device=device).unsqueeze(0)
+    main_valid = main_valid_by_id & (main_positions < main_count.view(-1, 1))
+    main_emb = self._encode_card_metadata_from_index(main_idx, valid_mask=main_valid)
+    main_copy_counts = self._count_matching_cards_per_slot(main_card_ids, main_valid)
+    main_scalar = torch.stack(
+      [
+        main_copy_counts / 4.0,
+        main_valid.float(),
+      ],
+      dim=-1,
+    )
+    main_scalar = self.scalar_normalizer("deck_context_main_scalar", main_scalar, mask=main_valid)
+    _, main_vec = self.deck_context_card_processor(
+      torch.cat([main_emb, main_scalar], dim=-1),
+      mask=main_valid,
+    )
+
+    candidate_card_ids = deck_context["candidate_card_def_ids"].long()
+    if candidate_card_ids.dim() == 1:
+      candidate_card_ids = candidate_card_ids.unsqueeze(0)
+    candidate_idx, candidate_valid_by_id = self._card_index_and_mask(candidate_card_ids)
+    candidate_positions = torch.arange(candidate_card_ids.size(1), device=device).unsqueeze(0)
+    candidate_valid = candidate_valid_by_id & (candidate_positions < candidate_count.view(-1, 1))
+    candidate_emb = self._encode_card_metadata_from_index(candidate_idx, valid_mask=candidate_valid)
+    candidate_copy_counts = deck_context["candidate_copy_counts"].float()
+    if candidate_copy_counts.dim() == 1:
+      candidate_copy_counts = candidate_copy_counts.unsqueeze(0)
+    candidate_scalar = torch.stack(
+      [
+        candidate_copy_counts / 4.0,
+        candidate_valid.float(),
+        (mode.view(-1, 1).expand_as(candidate_copy_counts) > 0).float(),
+      ],
+      dim=-1,
+    )
+    candidate_scalar = self.scalar_normalizer(
+      "deck_context_candidate_scalar",
+      candidate_scalar,
+      mask=candidate_valid,
+    )
+    batch_size, candidate_slots, _ = candidate_emb.shape
+    candidate_matrix = self.deck_candidate_projector(
+      torch.cat([candidate_emb, candidate_scalar], dim=-1).reshape(batch_size * candidate_slots, -1)
+    ).reshape(batch_size, candidate_slots, UNIT_EMBED_SIZE)
+    candidate_matrix = candidate_matrix * candidate_valid.unsqueeze(-1).to(dtype=candidate_matrix.dtype)
+
+    mode_emb = self.deck_mode_encoder(mode)
+    scalar = torch.stack(
+      [
+        main_count.float(),
+        candidate_count.float(),
+        gate_valid.float(),
+        leader_valid.float(),
+        mode.float(),
+      ],
+      dim=-1,
+    )
+    scalar = self.scalar_normalizer("deck_context_scalar", scalar)
+    deck_context_vec = self.deck_context_projector(
+      torch.cat([mode_emb, gate_emb, leader_emb, main_vec, scalar], dim=-1)
+    )
+    return deck_context_vec, candidate_matrix, candidate_count
+
   def _encode_global_context(self, structured_obs):
     ability = self.__get_struct_field(structured_obs, "ability_context")
     phase = self._squeeze_trailing_singleton(
@@ -1615,6 +1794,7 @@ class TCG(nn.Module):
     opponent_leader_vec = self._encode_leader(opponent["leader"], key_prefix="opponent")
     player_gate_vec = self._encode_gate(player["gate"], key_prefix="player")
     opponent_gate_vec = self._encode_gate(opponent["gate"], key_prefix="opponent")
+    deck_context_vec, deck_candidate_matrix, deck_candidate_count = self._encode_deck_context(structured_obs)
 
     global_counts = torch.stack(
       [
@@ -1647,8 +1827,7 @@ class TCG(nn.Module):
       )
     )
 
-    target_vector = torch.cat(
-      [
+    target_vector_components = [
         hand_vec,
         player_discard_vec,
         opponent_discard_vec,
@@ -1663,10 +1842,11 @@ class TCG(nn.Module):
         player_gate_vec,
         opponent_leader_vec,
         opponent_gate_vec,
-        global_vec,
-      ],
-      dim=-1,
-    )
+    ]
+    if self.deck_context_enabled:
+      target_vector_components.append(deck_context_vec)
+    target_vector_components.append(global_vec)
+    target_vector = torch.cat(target_vector_components, dim=-1)
 
     target_matrix = torch.cat(
       [
@@ -1707,6 +1887,9 @@ class TCG(nn.Module):
         dim=-2,
       ),
     }
+    if self.deck_context_enabled:
+      action_context["deck_candidate_matrix"] = deck_candidate_matrix
+      action_context["deck_candidate_count"] = deck_candidate_count
 
     if squeeze_batch:
       target_vector = target_vector.squeeze(0)
@@ -1738,6 +1921,11 @@ class TCG(nn.Module):
       if not torch.is_tensor(value):
         continue
       tensor = value.to(device=device)
+      if key == "deck_candidate_count":
+        if tensor.dim() == 0:
+          tensor = tensor.unsqueeze(0)
+        prepared[key] = tensor.reshape(-1)
+        continue
       if tensor.dim() == 1:
         tensor = tensor.unsqueeze(0)
       elif tensor.dim() == 2 and tensor.shape[-1] == UNIT_EMBED_SIZE:
@@ -1796,6 +1984,9 @@ class TCG(nn.Module):
       action_context,
       "opponent_defender_matrix",
     )
+    deck_candidate_matrix = action_context.get("deck_candidate_matrix")
+    deck_candidate_count = action_context.get("deck_candidate_count")
+    has_deck_candidates = torch.is_tensor(deck_candidate_matrix) and torch.is_tensor(deck_candidate_count)
 
     refs = []
     ref_valid = []
@@ -1832,6 +2023,13 @@ class TCG(nn.Module):
         selection_refs = self._gather_zone_rows(player_selection_matrix, component_subaction)
         component_ref = torch.where(selection_mask.unsqueeze(-1), selection_refs, component_ref)
         component_has_ref |= selection_mask
+
+      candidate_mask = component_kind == LEGAL_ACTION_ARG_KIND_CARD_CANDIDATE
+      if candidate_mask.any() and has_deck_candidates:
+        candidate_refs = self._gather_zone_rows(deck_candidate_matrix, component_subaction)
+        component_ref = torch.where(candidate_mask.unsqueeze(-1), candidate_refs, component_ref)
+        candidate_valid = component_subaction < deck_candidate_count.view(-1, 1)
+        component_has_ref |= candidate_mask & candidate_valid
 
       self_garden_or_leader_mask = component_kind == LEGAL_ACTION_ARG_KIND_SELF_GARDEN_OR_LEADER
       if self_garden_or_leader_mask.any():
@@ -1871,7 +2069,9 @@ class TCG(nn.Module):
     arg_kinds = self._legal_action_arg_kinds(primary)
 
     primary_emb = self.primary_action_encoder[0](primary.clamp(0, PRIMARY_ACTION_COUNT - 1))
+    candidate_component = arg_kinds == LEGAL_ACTION_ARG_KIND_CARD_CANDIDATE
     subaction_idx = subactions.clamp(0, MAX_INDEX_SIZE - 1) + 1
+    subaction_idx = torch.where(candidate_component, torch.zeros_like(subaction_idx), subaction_idx)
     subaction_emb = self.legal_action_subaction_encoder(subaction_idx)
     arg_kind_emb = self.legal_action_arg_kind_encoder(arg_kinds)
 
@@ -1894,6 +2094,11 @@ class TCG(nn.Module):
       )
 
     normalized_subactions = subactions.float() / float(max(MAX_INDEX_SIZE - 1, 1))
+    normalized_subactions = torch.where(
+      candidate_component,
+      torch.zeros_like(normalized_subactions),
+      normalized_subactions,
+    )
     scalar = torch.cat(
       [
         normalized_subactions,
