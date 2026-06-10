@@ -81,9 +81,15 @@ int attack(
 ) {
   ecs_assert(world != NULL, ECS_INVALID_PARAMETER, "World is null");
   ecs_assert(intent != NULL, ECS_INVALID_PARAMETER, "AttackIntent is null");
+  if (world == NULL || intent == NULL) {
+    return -1;
+  }
 
   GameState *gs = ecs_singleton_get_mut(world, GameState);
   ecs_assert(gs != NULL, ECS_INVALID_PARAMETER, "GameState singleton missing");
+  if (gs == NULL) {
+    return -1;
+  }
 
   gs->last_combat = (LastCombatResult){0};
   tap_card(world, intent->attacking_card);
@@ -154,16 +160,47 @@ bool azk_transition_to_combat_resolve(ecs_world_t *world) {
 }
 
 void resolve_combat(ecs_world_t *world) {
+  ecs_assert(world != NULL, ECS_INVALID_PARAMETER, "World is null");
+  if (world == NULL) {
+    return;
+  }
+
   GameState *gs = ecs_singleton_get_mut(world, GameState);
   ecs_assert(gs != NULL, ECS_INVALID_PARAMETER, "GameState singleton missing");
+  if (gs == NULL) {
+    return;
+  }
 
-  ecs_assert(gs->combat_state.attacking_card != 0, ECS_INVALID_PARAMETER, "Combat state attacking card not set");
-  ecs_assert(gs->combat_state.defender_card != 0, ECS_INVALID_PARAMETER, "Combat state defender card not set");
+  // Combat state may be unset (combat never declared) or reference cards that
+  // no longer exist by the time combat resolves (e.g. removed by a response
+  // effect). Validate before dereferencing: the ecs_asserts below compile out
+  // in release builds, and ecs_get_mut on an invalid entity would crash
+  // inside flecs. Note: ecs_is_alive must only be called with a nonzero id.
+  const ecs_entity_t attacking_card = gs->combat_state.attacking_card;
+  const ecs_entity_t defending_card = gs->combat_state.defender_card;
+  const bool attacker_in_play =
+      attacking_card != 0 && ecs_is_alive(world, attacking_card);
+  const bool defender_in_play =
+      defending_card != 0 && ecs_is_alive(world, defending_card);
+  ecs_assert(attacker_in_play, ECS_INVALID_PARAMETER,
+             "Combat state attacking card not set or no longer alive");
+  ecs_assert(defender_in_play, ECS_INVALID_PARAMETER,
+             "Combat state defender card not set or no longer alive");
+  if (!attacker_in_play || !defender_in_play) {
+    cli_render_log("[Combat] resolve_combat skipped - invalid combat state");
+    gs->combat_state = (CombatState){0};
+    return;
+  }
 
-  CurStats *attacking_card_cur_stats = ecs_get_mut(world, gs->combat_state.attacking_card, CurStats);
+  CurStats *attacking_card_cur_stats = ecs_get_mut(world, attacking_card, CurStats);
   ecs_assert(attacking_card_cur_stats != NULL, ECS_INVALID_PARAMETER, "Attacking card cur stats not found");
-  CurStats *defender_card_cur_stats = ecs_get_mut(world, gs->combat_state.defender_card, CurStats);
+  CurStats *defender_card_cur_stats = ecs_get_mut(world, defending_card, CurStats);
   ecs_assert(defender_card_cur_stats != NULL, ECS_INVALID_PARAMETER, "Defender card cur stats not found");
+  if (attacking_card_cur_stats == NULL || defender_card_cur_stats == NULL) {
+    cli_render_log("[Combat] resolve_combat skipped - combatant missing CurStats");
+    gs->combat_state = (CombatState){0};
+    return;
+  }
   const bool attacker_is_leader =
       ecs_has(world, gs->combat_state.attacking_card, TLeader);
   const bool defender_is_leader =

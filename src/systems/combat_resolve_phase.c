@@ -13,7 +13,10 @@ static bool is_card_still_in_owner_battle_zone(ecs_world_t *world,
                                                ecs_entity_t card,
                                                const GameState *gs,
                                                bool allow_alley) {
-  if (card == 0) {
+  // Card may have been deleted outright (not just moved zones) before combat
+  // resolution; touching a dead entity would crash in release builds where
+  // flecs validity checks compile out.
+  if (card == 0 || !ecs_is_alive(world, card)) {
     return false;
   }
 

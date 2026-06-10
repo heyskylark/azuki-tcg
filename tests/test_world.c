@@ -1222,7 +1222,9 @@ test_azk01_018_reduces_only_combat_damage_for_equipped_leader(void) {
       .use_ikz_token = false,
       .ikz_card_count = 0,
   };
-  assert(attach_weapon_from_hand(world, &attach_intent) == 0);
+  int attach_result = attach_weapon_from_hand(world, &attach_intent);
+  assert(attach_result == 0);
+  (void)attach_result;
   assert(get_total_incoming_combat_damage_modifier(world, leader) == -1);
 
   AttackIntent attack_intent = {
@@ -1234,7 +1236,9 @@ test_azk01_018_reduces_only_combat_damage_for_equipped_leader(void) {
       .defender_index = 0,
       .attacker_is_leader = true,
   };
-  assert(attack(world, &attack_intent) == 0);
+  int attack_result = attack(world, &attack_intent);
+  assert(attack_result == 0);
+  (void)attack_result;
   resolve_combat(world);
 
   const CurStats *leader_stats = ecs_get(world, leader, CurStats);
@@ -1299,7 +1303,9 @@ test_azk01_018_does_not_reduce_combat_damage_for_nonleader_host(void) {
       .use_ikz_token = false,
       .ikz_card_count = 0,
   };
-  assert(attach_weapon_from_hand(world, &attach_intent) == 0);
+  int attach_result = attach_weapon_from_hand(world, &attach_intent);
+  assert(attach_result == 0);
+  (void)attach_result;
   assert(get_total_incoming_combat_damage_modifier(world, host) == 0);
 
   AttackIntent attack_intent = {
@@ -1311,7 +1317,9 @@ test_azk01_018_does_not_reduce_combat_damage_for_nonleader_host(void) {
       .defender_index = 0,
       .attacker_is_leader = false,
   };
-  assert(attack(world, &attack_intent) == 0);
+  int attack_result = attack(world, &attack_intent);
+  assert(attack_result == 0);
+  (void)attack_result;
   resolve_combat(world);
 
   const CurStats *host_stats = ecs_get(world, host, CurStats);
