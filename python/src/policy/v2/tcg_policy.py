@@ -2157,8 +2157,14 @@ class TCG(nn.Module):
   ) -> torch.Tensor:
     # Legal rows are packed at the front of the padded 1024-row table. Trim the
     # batch to the active prefix so we do not embed/project rows that cannot be sampled.
+    # Round the trim up to a power of two so torch.compile sees a bounded set of
+    # shapes (<=6 variants) instead of one graph per distinct max legal count.
     max_active_rows = int(legal_action_count.max().item()) if legal_action_count.numel() > 0 else 0
     active_candidate_count = max(1, min(max_active_rows, legal_actions.size(1)))
+    bucket = 32
+    while bucket < active_candidate_count:
+      bucket *= 2
+    active_candidate_count = min(bucket, legal_actions.size(1))
     return legal_actions[:, :active_candidate_count]
 
   def _build_factorized_action_distribution(
