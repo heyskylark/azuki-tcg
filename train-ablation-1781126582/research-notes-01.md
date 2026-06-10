@@ -131,6 +131,16 @@ run. Found via ASAN (build-asan/ + LD_PRELOAD libasan):
 - NOTE (pre-existing, not mine): `world_tests` segfaults at HEAD 716b37f in
   test_azk01_018_reduces_only_combat_damage_for_equipped_leader → resolve_combat → ecs_get_mut_id.
   Same crash before my changes. Needs separate fix; not blocking training (binding path differs).
+  → FIXED by subagent, commit 093b809 on ablation/entdeck-pick-eps: tests wrapped engine calls in
+  assert() (compiled out under NDEBUG) and resolve_combat had assert-only guards → release-build
+  segfault. Fix follows AGENTS.md call-then-assert pattern; also hardens
+  is_card_still_in_owner_battle_zone to fizzle combat when an entity died mid-response-window
+  (was UB in release). All tests pass in Debug, Release, and ASan+UBSan builds.
+  TODO before ablations: cherry-pick 093b809 onto skylark/model-deck-building + rebuild build/
+  (AFTER baseline finishes — no rebuilds while it runs). CAVEAT: the fizzle fix can subtly change
+  game outcomes vs the baseline engine (rare path; ASAN soaks never hit it). All ablation arms
+  share the new engine so cross-arm comparisons are clean; baseline-vs-ablation deltas carry a
+  small engine-version asterisk.
 
 ## 3. Ablation backlog (running list; mark ✓ done / ✗ dead end / → in flight)
 
