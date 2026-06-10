@@ -227,7 +227,12 @@ def make_azuki_env(*, seed: int | None = None, buf=None, **env_kwargs):
   if deck_building_enabled:
     env = AzukiTCGParallel(seed=seed, deck_pool=deck_pool)
     env = DeckBuildingParallelEnv(
-      env, deck_pool=deck_pool, seed=seed, fixed_deck_seats=fixed_deck_seats
+      env,
+      deck_pool=deck_pool,
+      seed=seed,
+      fixed_deck_seats=fixed_deck_seats,
+      snapshot_dir=env_kwargs.pop("deck_snapshot_dir", None),
+      snapshot_every=env_kwargs.pop("deck_snapshot_every", None),
     )
     env = MultiagentEpisodeStats(env)
     env = emulation.PettingZooPufferEnv(env, buf=buf, seed=seed)

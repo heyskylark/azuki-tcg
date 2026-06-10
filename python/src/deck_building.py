@@ -441,11 +441,15 @@ class DeckBuildingParallelEnv(ParallelEnv):
     seed: int | None = None,
     catalog: DeckBuildCatalog | None = None,
     fixed_deck_seats: tuple[int, ...] = (),
+    snapshot_dir: str | Path | None = None,
+    snapshot_every: int | None = None,
   ) -> None:
     super().__init__()
     self.env = env
     self._deck_pool = tuple(deck_pool)
     self._fixed_deck_seats = tuple(sorted(set(int(seat) for seat in fixed_deck_seats)))
+    self._snapshot_dir_arg = snapshot_dir
+    self._snapshot_every_arg = snapshot_every
     self.render_mode = getattr(env, "render_mode", "ansi")
     self.possible_agents = list(env.possible_agents)
     self.agents = self.possible_agents[:]
@@ -499,12 +503,17 @@ class DeckBuildingParallelEnv(ParallelEnv):
     self.terminations = {agent: False for agent in self.possible_agents}
     self.truncations = {agent: False for agent in self.possible_agents}
     self.infos = {agent: {} for agent in self.possible_agents}
-    snapshot_dir = os.getenv(SNAPSHOT_DIR_ENV, "").strip()
-    self._snapshot_dir = Path(snapshot_dir) if snapshot_dir else None
-    try:
-      self._snapshot_every = max(1, int(os.getenv(SNAPSHOT_EVERY_ENV, str(DEFAULT_SNAPSHOT_EVERY))))
-    except ValueError:
-      self._snapshot_every = DEFAULT_SNAPSHOT_EVERY
+    # Vec workers do not inherit launcher env vars; prefer constructor args
+    # (plumbed from env config) with env vars as an in-process fallback.
+    resolved_dir = self._snapshot_dir_arg or os.getenv(SNAPSHOT_DIR_ENV, "").strip()
+    self._snapshot_dir = Path(resolved_dir) if resolved_dir else None
+    if self._snapshot_every_arg is not None:
+      self._snapshot_every = max(1, int(self._snapshot_every_arg))
+    else:
+      try:
+        self._snapshot_every = max(1, int(os.getenv(SNAPSHOT_EVERY_ENV, str(DEFAULT_SNAPSHOT_EVERY))))
+      except ValueError:
+        self._snapshot_every = DEFAULT_SNAPSHOT_EVERY
     self._snapshot_path: Path | None = None
     self._completed_episode_count = 0
 
