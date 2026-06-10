@@ -1,0 +1,77 @@
+{
+  "description": "Focused local 3090 learner-path SPS sweep after policy-side card metadata caching.",
+  "control_overrides": {
+    "env.direct_parallel": true,
+    "league.enable": false,
+    "neptune": false,
+    "train.batch_size": 3840,
+    "train.compile": false,
+    "train.max_minibatch_size": 960,
+    "train.minibatch_size": 960,
+    "train.precision": "bfloat16",
+    "vec.batch_size": 120,
+    "vec.num_envs": 120,
+    "vec.num_workers": 4,
+    "vec.zero_copy": true,
+    "wandb": false
+  },
+  "variants": [
+    {
+      "label": "control",
+      "description": "Updated codepath control: bfloat16, 4 workers."
+    },
+    {
+      "label": "references_off",
+      "description": "Disable semantic legal-action references on the bfloat16 learner path.",
+      "overrides": {
+        "policy.legal_action_scorer_use_references": false
+      }
+    },
+    {
+      "label": "precision_float32",
+      "description": "Float32/TF32 learner path with 4 workers.",
+      "overrides": {
+        "train.precision": "float32"
+      }
+    },
+    {
+      "label": "workers_6",
+      "description": "Increase worker fanout while keeping bfloat16 learner settings.",
+      "overrides": {
+        "vec.num_workers": 6
+      }
+    },
+    {
+      "label": "workers_8",
+      "description": "Push env fanout higher while keeping bfloat16 learner settings.",
+      "overrides": {
+        "vec.num_workers": 8
+      }
+    },
+    {
+      "label": "precision_float32_workers_6",
+      "description": "Combine the best two safe knobs on the updated learner path.",
+      "overrides": {
+        "train.precision": "float32",
+        "vec.num_workers": 6
+      }
+    },
+    {
+      "label": "precision_float32_workers_8",
+      "description": "Test whether extra env fanout still helps the float32/TF32 learner path.",
+      "overrides": {
+        "train.precision": "float32",
+        "vec.num_workers": 8
+      }
+    },
+    {
+      "label": "precision_float32_workers_8_references_off",
+      "description": "Combine float32, 8 workers, and disabled semantic references on the scorer path.",
+      "overrides": {
+        "policy.legal_action_scorer_use_references": false,
+        "train.precision": "float32",
+        "vec.num_workers": 8
+      }
+    }
+  ]
+}

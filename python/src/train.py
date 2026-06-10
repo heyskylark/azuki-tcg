@@ -18,7 +18,12 @@ import torch
 
 from policy.v2 import tcg_sampler
 from league_manager import LeagueManager, parse_league_manager_config
-from league_training import LeagueConfig, LeaguePuffeRL, compute_league_active
+from league_training import (
+    LeagueConfig,
+    LeaguePuffeRL,
+    compute_frozen_matchup_ratio,
+    compute_league_active,
+)
 from playback import run_playback
 from training_deck_pool import resolve_training_deck_pool_path
 from training_utils import (
@@ -94,6 +99,23 @@ class _SamplerAnnealConfig:
 @dataclass(frozen=True)
 class _EntCoefAnnealConfig:
     ent_coef: _LinearAnneal
+
+
+@dataclass(frozen=True)
+class _TorchProfilerConfig:
+    output_dir: Path
+    warmup_epochs: int
+    active_epochs: int
+    row_limit: int
+    record_shapes: bool
+    profile_memory: bool
+    with_stack: bool
+    export_trace: bool
+    stop_after_capture: bool
+
+    @property
+    def total_profile_epochs(self) -> int:
+        return int(self.warmup_epochs + self.active_epochs)
 
 
 def parse_script_args() -> tuple[argparse.Namespace, list[str]]:
@@ -197,10 +219,22 @@ def parse_script_args() -> tuple[argparse.Namespace, list[str]]:
         help="Comma-separated opponent checkpoint file paths for league training.",
     )
     parser.add_argument(
+        "--league-frozen-ratio",
+        type=float,
+        default=None,
+        help=(
+            "Fraction of rollout rows that should be frozen league weights. "
+            "With 2-player games, 0.20 means roughly 20% frozen rows / 80% trainable rows."
+        ),
+    )
+    parser.add_argument(
         "--league-latest-ratio",
         type=float,
         default=None,
-        help="Fraction of matchups using latest learner as opponent (e.g. 0.85).",
+        help=(
+            "Legacy league knob: fraction of matchups using latest learner as opponent. "
+            "Prefer --league-frozen-ratio for row-level freeze control."
+        ),
     )
     parser.add_argument(
         "--league-randomize-learner-seat",
@@ -213,6 +247,64 @@ def parse_script_args() -> tuple[argparse.Namespace, list[str]]:
         type=int,
         default=None,
         help="Run pure self-play until this many learner steps, then activate league mixing/evals.",
+    )
+    parser.add_argument(
+        "--torch-profile",
+        action="store_true",
+        help="Capture a torch.profiler trace for a short training window on the active Azuki trainer path.",
+    )
+    parser.add_argument(
+        "--torch-profile-dir",
+        type=Path,
+        help="Directory for torch.profiler traces and summaries. Defaults under experiments/ when profiling is enabled.",
+    )
+    parser.add_argument(
+        "--torch-profile-warmup-epochs",
+        type=int,
+        default=1,
+        help="Number of epochs to use for profiler warmup before active capture begins.",
+    )
+    parser.add_argument(
+        "--torch-profile-active-epochs",
+        type=int,
+        default=1,
+        help="Number of epochs to capture with torch.profiler after warmup.",
+    )
+    parser.add_argument(
+        "--torch-profile-row-limit",
+        type=int,
+        default=40,
+        help="How many operator rows to keep in the saved top-op summaries.",
+    )
+    parser.add_argument(
+        "--torch-profile-record-shapes",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Record operator input shapes in the torch.profiler trace.",
+    )
+    parser.add_argument(
+        "--torch-profile-memory",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Record CPU/GPU memory usage in the torch.profiler trace.",
+    )
+    parser.add_argument(
+        "--torch-profile-with-stack",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Include Python stacks in the torch.profiler trace. This is slower and larger.",
+    )
+    parser.add_argument(
+        "--torch-profile-export-trace",
+        action=argparse.BooleanOptionalAction,
+        default=False,
+        help="Write TensorBoard-compatible trace files. Disabled by default to keep profiling lightweight.",
+    )
+    parser.add_argument(
+        "--torch-profile-stop-after-capture",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Stop training once the configured profiler warmup + active epochs have completed.",
     )
     return parser.parse_known_args()
 
@@ -832,6 +924,111 @@ def _write_json_atomic(path: Path, payload: dict) -> None:
     tmp.replace(path)
 
 
+def _default_torch_profile_dir() -> Path:
+    return Path("experiments") / f"torch_profile_{int(time.time())}"
+
+
+def _build_torch_profiler_config(script_args: argparse.Namespace) -> _TorchProfilerConfig | None:
+    enabled = bool(script_args.torch_profile or script_args.torch_profile_dir is not None)
+    if not enabled:
+        return None
+    if script_args.torch_profile_warmup_epochs < 0:
+        raise ValueError("--torch-profile-warmup-epochs must be >= 0")
+    if script_args.torch_profile_active_epochs <= 0:
+        raise ValueError("--torch-profile-active-epochs must be > 0")
+    if script_args.torch_profile_row_limit <= 0:
+        raise ValueError("--torch-profile-row-limit must be > 0")
+    return _TorchProfilerConfig(
+        output_dir=script_args.torch_profile_dir or _default_torch_profile_dir(),
+        warmup_epochs=int(script_args.torch_profile_warmup_epochs),
+        active_epochs=int(script_args.torch_profile_active_epochs),
+        row_limit=int(script_args.torch_profile_row_limit),
+        record_shapes=bool(script_args.torch_profile_record_shapes),
+        profile_memory=bool(script_args.torch_profile_memory),
+        with_stack=bool(script_args.torch_profile_with_stack),
+        export_trace=bool(script_args.torch_profile_export_trace),
+        stop_after_capture=bool(script_args.torch_profile_stop_after_capture),
+    )
+
+
+def _profiler_event_payload(event) -> dict[str, object]:
+    return {
+        "key": str(getattr(event, "key", "")),
+        "count": int(getattr(event, "count", 0)),
+        "self_cpu_time_total_us": float(getattr(event, "self_cpu_time_total", 0.0)),
+        "cpu_time_total_us": float(getattr(event, "cpu_time_total", 0.0)),
+        "self_cuda_time_total_us": float(getattr(event, "self_cuda_time_total", 0.0)),
+        "cuda_time_total_us": float(getattr(event, "cuda_time_total", 0.0)),
+        "self_cpu_memory_usage": int(getattr(event, "self_cpu_memory_usage", 0)),
+        "cpu_memory_usage": int(getattr(event, "cpu_memory_usage", 0)),
+        "self_cuda_memory_usage": int(getattr(event, "self_cuda_memory_usage", 0)),
+        "cuda_memory_usage": int(getattr(event, "cuda_memory_usage", 0)),
+    }
+
+
+def _top_profiler_events(rows: list[dict[str, object]], key: str, *, limit: int) -> list[dict[str, object]]:
+    return sorted(rows, key=lambda row: float(row.get(key, 0.0)), reverse=True)[:limit]
+
+
+def _numeric_last_stats_snapshot(trainer) -> dict[str, float]:
+    snapshot: dict[str, float] = {}
+    last_stats = getattr(trainer, "last_stats", {}) or {}
+    if not isinstance(last_stats, dict):
+        return snapshot
+    for key, value in last_stats.items():
+        if isinstance(value, bool):
+            continue
+        if isinstance(value, (int, float)) and math.isfinite(float(value)):
+            snapshot[str(key)] = float(value)
+    return snapshot
+
+
+def _write_torch_profiler_outputs(
+    profiler,
+    profile_cfg: _TorchProfilerConfig,
+    *,
+    trainer,
+    config_path: Path,
+) -> None:
+    profile_cfg.output_dir.mkdir(parents=True, exist_ok=True)
+    averages = profiler.key_averages()
+    rows = [_profiler_event_payload(event) for event in averages]
+
+    cpu_table = averages.table(sort_by="self_cpu_time_total", row_limit=profile_cfg.row_limit)
+    (profile_cfg.output_dir / "top_cpu_ops.txt").write_text(cpu_table)
+
+    cuda_sort_key = "self_cuda_time_total" if torch.cuda.is_available() else "self_cpu_time_total"
+    cuda_table = averages.table(sort_by=cuda_sort_key, row_limit=profile_cfg.row_limit)
+    (profile_cfg.output_dir / "top_cuda_ops.txt").write_text(cuda_table)
+
+    summary = {
+        "config": str(config_path.resolve()),
+        "profile_output_dir": str(profile_cfg.output_dir.resolve()),
+        "trace_dir": (
+            str((profile_cfg.output_dir / "traces").resolve())
+            if profile_cfg.export_trace
+            else None
+        ),
+        "warmup_epochs": profile_cfg.warmup_epochs,
+        "active_epochs": profile_cfg.active_epochs,
+        "row_limit": profile_cfg.row_limit,
+        "record_shapes": profile_cfg.record_shapes,
+        "profile_memory": profile_cfg.profile_memory,
+        "with_stack": profile_cfg.with_stack,
+        "export_trace": profile_cfg.export_trace,
+        "trainer_epoch": int(getattr(trainer, "epoch", 0)),
+        "global_step": int(getattr(trainer, "global_step", 0)),
+        "last_stats": _numeric_last_stats_snapshot(trainer),
+        "top_ops_by_self_cpu_time_us": _top_profiler_events(
+            rows, "self_cpu_time_total_us", limit=profile_cfg.row_limit
+        ),
+        "top_ops_by_self_cuda_time_us": _top_profiler_events(
+            rows, "self_cuda_time_total_us", limit=profile_cfg.row_limit
+        ),
+    }
+    _write_json_atomic(profile_cfg.output_dir / "summary.json", summary)
+
+
 def _save_checkpoint_metadata(model_path: Path, payload: dict) -> None:
     _write_json_atomic(_checkpoint_metadata_path(model_path), payload)
 
@@ -1316,10 +1513,19 @@ def _league_cfg(script_args: argparse.Namespace, trainer_args: dict) -> LeagueCo
     if not isinstance(league_cfg, dict):
         league_cfg = {}
 
+    frozen_ratio = script_args.league_frozen_ratio
+    if frozen_ratio is None:
+        raw_frozen_ratio = league_cfg.get("frozen_ratio")
+        if raw_frozen_ratio is not None:
+            frozen_ratio = float(raw_frozen_ratio)
+    if frozen_ratio is not None:
+        frozen_ratio = max(0.0, min(0.5, float(frozen_ratio)))
+
     latest_ratio = script_args.league_latest_ratio
-    if latest_ratio is None:
+    if latest_ratio is None and frozen_ratio is None:
         latest_ratio = float(league_cfg.get("latest_ratio", 0.85))
-    latest_ratio = max(0.0, min(1.0, float(latest_ratio)))
+    if latest_ratio is not None:
+        latest_ratio = max(0.0, min(1.0, float(latest_ratio)))
 
     randomize_learner_seat = script_args.league_randomize_learner_seat
     if randomize_learner_seat is None:
@@ -1335,6 +1541,7 @@ def _league_cfg(script_args: argparse.Namespace, trainer_args: dict) -> LeagueCo
 
     return LeagueConfig(
         enabled=True,
+        frozen_ratio=frozen_ratio,
         latest_ratio=latest_ratio,
         randomize_learner_seat=bool(randomize_learner_seat),
         seed=seed,
@@ -1347,6 +1554,7 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
     if not config_path.exists():
         raise FileNotFoundError(f"Config file not found: {config_path}")
 
+    torch_profile_cfg = _build_torch_profiler_config(script_args)
     trainer_args = load_training_config(config_path, forwarded_cli)
     trainer_args["train"]["env"] = trainer_args.get("env_name", "azuki_local")
     logger = None
@@ -1529,7 +1737,10 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
         print(
             "[league] enabled: "
             f"opponents={len(opponent_policies)}, "
-            f"latest_ratio={league_cfg.latest_ratio:.3f}, "
+            f"frozen_ratio_target="
+            f"{(0.0 if league_cfg.frozen_ratio is None else league_cfg.frozen_ratio):.3f}, "
+            f"frozen_matchup_ratio="
+            f"{(compute_frozen_matchup_ratio(frozen_row_ratio=league_cfg.frozen_ratio, agents_per_env=int(vecenv.driver_env.num_agents)) if league_cfg.frozen_ratio is not None else max(0.0, min(1.0, 1.0 - float(league_cfg.latest_ratio)))):.3f}, "
             f"activate_after_steps={league_cfg.activate_after_steps}"
         )
 
@@ -1544,6 +1755,13 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
         )
     else:
         trainer = pufferl.PuffeRL(trainer_args["train"], vecenv, policy, logger=logger)
+
+    if torch_profile_cfg is not None and trainer.total_epochs < torch_profile_cfg.total_profile_epochs:
+        raise ValueError(
+            "Profiler capture window exceeds available epochs: "
+            f"requested={torch_profile_cfg.total_profile_epochs}, available={trainer.total_epochs}. "
+            "Increase train.total_timesteps or reduce --torch-profile-warmup-epochs / --torch-profile-active-epochs."
+        )
 
     resume_completed_episode_tracker = _coerce_nonnegative_int(resume_env_completed_episodes)
     original_save_checkpoint = trainer.save_checkpoint
@@ -1658,6 +1876,43 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
 
     is_main_process = not torch.distributed.is_initialized() or torch.distributed.get_rank() == 0
 
+    torch_profiler = None
+    torch_record_function = None
+    torch_profile_context = contextlib.nullcontext()
+    profiled_epochs = 0
+    if torch_profile_cfg is not None:
+        from torch.profiler import ProfilerActivity, profile as torch_profile, record_function, schedule, tensorboard_trace_handler
+
+        torch_profile_cfg.output_dir.mkdir(parents=True, exist_ok=True)
+        trace_handler = None
+        if torch_profile_cfg.export_trace:
+            trace_dir = torch_profile_cfg.output_dir / "traces"
+            trace_dir.mkdir(parents=True, exist_ok=True)
+            trace_handler = tensorboard_trace_handler(str(trace_dir))
+        activities = [ProfilerActivity.CPU]
+        if str(train_cfg.get("device", "cpu")) == "cuda" and torch.cuda.is_available():
+            activities.append(ProfilerActivity.CUDA)
+        torch_record_function = record_function
+        torch_profile_context = torch_profile(
+            activities=activities,
+            schedule=schedule(wait=0, warmup=torch_profile_cfg.warmup_epochs, active=torch_profile_cfg.active_epochs, repeat=1),
+            on_trace_ready=trace_handler,
+            record_shapes=torch_profile_cfg.record_shapes,
+            profile_memory=torch_profile_cfg.profile_memory,
+            with_stack=torch_profile_cfg.with_stack,
+        )
+        print(
+            "[profile] torch profiler enabled: "
+            f"warmup_epochs={torch_profile_cfg.warmup_epochs}, "
+            f"active_epochs={torch_profile_cfg.active_epochs}, "
+            f"output_dir={torch_profile_cfg.output_dir}"
+        )
+
+    def maybe_record(name: str):
+        if torch_record_function is None:
+            return contextlib.nullcontext()
+        return torch_record_function(name)
+
     def maybe_run_playback(reason: str, checkpoint_path: Path):
         if not is_main_process:
             return
@@ -1692,117 +1947,143 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
 
     resume_health_pending = model_resume_path is not None
 
-    try:
-        while trainer.epoch < trainer.total_epochs:
-            anneal_step = int(trainer.global_step) + int(anneal_step_offset)
-            current_temp, current_smoothing = _apply_sampler_anneal(
-                sampler_anneal_config,
-                global_step=anneal_step,
-            )
-            current_ent_coef = _apply_ent_coef_anneal(
-                trainer,
-                ent_coef_anneal_config,
-                global_step=anneal_step,
-            )
-            trainer.stats["sampler/subaction_temperature"].append(float(current_temp))
-            trainer.stats["sampler/smoothing_eps"].append(float(current_smoothing))
-            trainer.stats["anneal/ent_coef"].append(float(current_ent_coef))
-            trainer.evaluate()
-            resume_completed_episode_tracker = _update_completed_episode_tracker(
-                resume_completed_episode_tracker, getattr(trainer, "stats", None)
-            )
-            if resume_health_pending:
-                snapshot = _rollout_health_snapshot(trainer)
-                if snapshot:
-                    print(
-                        "[resume] rollout health: "
-                        f"entropy={snapshot['entropy']:.6f}, "
-                        f"noop_selected_rate={snapshot['noop_selected_rate']:.6f}"
-                    )
-                    if snapshot["entropy"] < 0.2 and snapshot["noop_selected_rate"] > 0.9:
-                        print(
-                            "[resume] warning: rollout appears collapse-like before the first optimizer step. "
-                            "This usually indicates an incompatible or degraded checkpoint."
-                        )
-                resume_health_pending = False
-            logs = trainer.train()
-            if logs is not None:
-                resume_completed_episode_tracker = _update_completed_episode_tracker(
-                    resume_completed_episode_tracker, logs
+    with torch_profile_context as torch_profiler:
+        try:
+            while trainer.epoch < trainer.total_epochs:
+                anneal_step = int(trainer.global_step) + int(anneal_step_offset)
+                current_temp, current_smoothing = _apply_sampler_anneal(
+                    sampler_anneal_config,
+                    global_step=anneal_step,
                 )
-                print(f"[epoch {trainer.epoch}] {logs}")
-            league_active = compute_league_active(
-                global_step=int(trainer.global_step),
-                activate_after_steps=int(league_cfg.activate_after_steps),
-            )
-            trainer.stats["league/active"].append(1.0 if league_active else 0.0)
-            if league_enabled and league_manager is not None:
-                if league_active:
-                    pool_metrics = league_manager.pool_metrics()
-                    for key, value in pool_metrics.items():
-                        trainer.stats[key].append(float(value))
-            if league_enabled and league_manager is not None:
-                checkpoint_interval = int(trainer.config.get("checkpoint_interval", 0))
-                done_training = trainer.epoch >= trainer.total_epochs
-                if league_active and checkpoint_interval > 0 and (
-                    trainer.epoch % checkpoint_interval == 0 or done_training
+                current_ent_coef = _apply_ent_coef_anneal(
+                    trainer,
+                    ent_coef_anneal_config,
+                    global_step=anneal_step,
+                )
+                trainer.stats["sampler/subaction_temperature"].append(float(current_temp))
+                trainer.stats["sampler/smoothing_eps"].append(float(current_smoothing))
+                trainer.stats["anneal/ent_coef"].append(float(current_ent_coef))
+                with maybe_record("azk.evaluate"):
+                    trainer.evaluate()
+                resume_completed_episode_tracker = _update_completed_episode_tracker(
+                    resume_completed_episode_tracker, getattr(trainer, "stats", None)
+                )
+                if resume_health_pending:
+                    snapshot = _rollout_health_snapshot(trainer)
+                    if snapshot:
+                        print(
+                            "[resume] rollout health: "
+                            f"entropy={snapshot['entropy']:.6f}, "
+                            f"noop_selected_rate={snapshot['noop_selected_rate']:.6f}"
+                        )
+                        if snapshot["entropy"] < 0.2 and snapshot["noop_selected_rate"] > 0.9:
+                            print(
+                                "[resume] warning: rollout appears collapse-like before the first optimizer step. "
+                                "This usually indicates an incompatible or degraded checkpoint."
+                            )
+                    resume_health_pending = False
+                with maybe_record("azk.train"):
+                    logs = trainer.train()
+                if logs is not None:
+                    resume_completed_episode_tracker = _update_completed_episode_tracker(
+                        resume_completed_episode_tracker, logs
+                    )
+                    print(f"[epoch {trainer.epoch}] {logs}")
+                league_active = compute_league_active(
+                    global_step=int(trainer.global_step),
+                    activate_after_steps=int(league_cfg.activate_after_steps),
+                )
+                trainer.stats["league/active"].append(1.0 if league_active else 0.0)
+                if league_enabled and league_manager is not None:
+                    if league_active:
+                        pool_metrics = league_manager.pool_metrics()
+                        for key, value in pool_metrics.items():
+                            trainer.stats[key].append(float(value))
+                if league_enabled and league_manager is not None:
+                    checkpoint_interval = int(trainer.config.get("checkpoint_interval", 0))
+                    done_training = trainer.epoch >= trainer.total_epochs
+                    if league_active and checkpoint_interval > 0 and (
+                        trainer.epoch % checkpoint_interval == 0 or done_training
+                    ):
+                        checkpoint_raw = trainer.save_checkpoint()
+                        if checkpoint_raw:
+                            checkpoint_path = Path(checkpoint_raw)
+                            added = league_manager.maybe_add_checkpoint(checkpoint_path, epoch=trainer.epoch)
+                            if added is not None:
+                                metrics = league_manager.maybe_evaluate_and_promote(
+                                    epoch=trainer.epoch,
+                                    trainer_args=trainer_args,
+                                    vecenv=vecenv,
+                                    build_policy_fn=build_policy,
+                                    load_weights_fn=_load_model_weights,
+                                    learner_policy=policy,
+                                )
+                                if metrics:
+                                    for key, value in metrics.items():
+                                        if isinstance(value, (int, float)):
+                                            trainer.stats[key].append(float(value))
+                                        else:
+                                            print(f"[league] {key}={value}")
+
+                                refreshed_paths = [
+                                    Path(entry.checkpoint_path)
+                                    for entry in league_manager.opponent_entries_for_training()
+                                ]
+                                refreshed_policies = []
+                                for opp_path in refreshed_paths:
+                                    opp = build_policy(vecenv, trainer_args)
+                                    _load_model_weights(
+                                        opp,
+                                        opp_path,
+                                        device=str(train_cfg.get("device", "cpu")),
+                                        strict=False,
+                                    )
+                                    opp.eval()
+                                    refreshed_policies.append(opp)
+                                trainer.set_opponent_policies(refreshed_policies)
+                                print(
+                                    "[league] pool refreshed: "
+                                    f"opponents={len(refreshed_policies)}, champion={league_manager.state.champion_policy_id}"
+                                )
+                if (
+                    script_args.render_playback_interval > 0
+                    and trainer.epoch % script_args.render_playback_interval == 0
                 ):
                     checkpoint_raw = trainer.save_checkpoint()
                     if checkpoint_raw:
                         checkpoint_path = Path(checkpoint_raw)
-                        added = league_manager.maybe_add_checkpoint(checkpoint_path, epoch=trainer.epoch)
-                        if added is not None:
-                            metrics = league_manager.maybe_evaluate_and_promote(
-                                epoch=trainer.epoch,
-                                trainer_args=trainer_args,
-                                vecenv=vecenv,
-                                build_policy_fn=build_policy,
-                                load_weights_fn=_load_model_weights,
-                                learner_policy=policy,
-                            )
-                            if metrics:
-                                for key, value in metrics.items():
-                                    if isinstance(value, (int, float)):
-                                        trainer.stats[key].append(float(value))
-                                    else:
-                                        print(f"[league] {key}={value}")
+                        maybe_run_playback(f"epoch{trainer.epoch:06d}", checkpoint_path)
 
-                            refreshed_paths = [
-                                Path(entry.checkpoint_path)
-                                for entry in league_manager.opponent_entries_for_training()
-                            ]
-                            refreshed_policies = []
-                            for opp_path in refreshed_paths:
-                                opp = build_policy(vecenv, trainer_args)
-                                _load_model_weights(
-                                    opp,
-                                    opp_path,
-                                    device=str(train_cfg.get("device", "cpu")),
-                                    strict=False,
-                                )
-                                opp.eval()
-                                refreshed_policies.append(opp)
-                            trainer.set_opponent_policies(refreshed_policies)
-                            print(
-                                "[league] pool refreshed: "
-                                f"opponents={len(refreshed_policies)}, champion={league_manager.state.champion_policy_id}"
-                            )
-            if (
-                script_args.render_playback_interval > 0
-                and trainer.epoch % script_args.render_playback_interval == 0
-            ):
-                checkpoint_raw = trainer.save_checkpoint()
-                if checkpoint_raw:
-                    checkpoint_path = Path(checkpoint_raw)
-                    maybe_run_playback(f"epoch{trainer.epoch:06d}", checkpoint_path)
-    finally:
-        trainer.print_dashboard()
-        model_path_raw = trainer.close()
-        model_path = Path(model_path_raw) if model_path_raw else None
-        if logger is not None:
-            logger.close(str(model_path) if model_path else None)
-        if script_args.render_playback_final and model_path is not None:
-            maybe_run_playback("final", model_path)
+                if torch_profiler is not None:
+                    torch_profiler.step()
+                    profiled_epochs += 1
+                    if (
+                        torch_profile_cfg is not None
+                        and torch_profile_cfg.stop_after_capture
+                        and profiled_epochs >= torch_profile_cfg.total_profile_epochs
+                    ):
+                        print(
+                            "[profile] capture complete; stopping early after "
+                            f"{profiled_epochs} profiled epochs."
+                        )
+                        break
+        finally:
+            trainer.print_dashboard()
+            model_path_raw = trainer.close()
+            model_path = Path(model_path_raw) if model_path_raw else None
+            if logger is not None:
+                logger.close(str(model_path) if model_path else None)
+            if script_args.render_playback_final and model_path is not None:
+                maybe_run_playback("final", model_path)
+
+    if torch_profiler is not None and torch_profile_cfg is not None:
+        _write_torch_profiler_outputs(
+            torch_profiler,
+            torch_profile_cfg,
+            trainer=trainer,
+            config_path=config_path,
+        )
+        print(f"[profile] wrote trace and summaries to {torch_profile_cfg.output_dir}")
 
 
 def main():

@@ -9,13 +9,15 @@ import azk_puffer.pytorch as azk_pytorch
 import azk_puffer.trainer as pufferl
 from azk_puffer.core import unroll_nested_dict
 import numpy as np
+from policy.tcg_distribution import TCGActionDistribution, TCGLegalActionDistribution
 import torch
 
 
 @dataclass
 class LeagueConfig:
   enabled: bool = False
-  latest_ratio: float = 0.85
+  frozen_ratio: float | None = None
+  latest_ratio: float | None = 0.85
   randomize_learner_seat: bool = True
   seed: int = 0
   activate_after_steps: int = 0
@@ -32,13 +34,44 @@ def compute_learner_row_mask(
   return seat_indices == env_learner_seat[env_indices]
 
 
+def compute_trainable_row_mask(
+  env_ids: np.ndarray,
+  *,
+  agents_per_env: int,
+  env_learner_seat: np.ndarray,
+  env_use_latest: np.ndarray,
+  league_active: bool,
+) -> np.ndarray:
+  if not league_active:
+    return np.ones(env_ids.shape[0], dtype=np.bool_)
+
+  env_indices = (env_ids // agents_per_env).astype(np.int32)
+  learner_rows = compute_learner_row_mask(
+    env_ids,
+    agents_per_env=agents_per_env,
+    env_learner_seat=env_learner_seat,
+  )
+  return np.logical_or(learner_rows, env_use_latest[env_indices])
+
+
+def compute_frozen_matchup_ratio(
+  *,
+  frozen_row_ratio: float,
+  agents_per_env: int,
+) -> float:
+  if agents_per_env <= 1:
+    return 0.0
+  scaled = float(frozen_row_ratio) * float(agents_per_env) / float(agents_per_env - 1)
+  return float(max(0.0, min(1.0, scaled)))
+
+
 def compute_league_active(*, global_step: int, activate_after_steps: int) -> bool:
   threshold = int(max(0, activate_after_steps))
   return int(global_step) >= threshold
 
 
 class LeaguePuffeRL(pufferl.PuffeRL):
-  """PuffeRL variant with dual-policy league rollouts and learner-only updates."""
+  """PuffeRL variant with dual-policy league rollouts and latest-policy updates."""
 
   def __init__(self, config, vecenv, policy, opponent_policies, league_cfg: LeagueConfig, logger=None):
     super().__init__(config, vecenv, policy, logger=logger)
@@ -107,9 +140,19 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       global_step=int(self.global_step),
       activate_after_steps=int(self.league_cfg.activate_after_steps),
     )
-    latest_ratio = float(self.league_cfg.latest_ratio) if active else 1.0
-    latest_draw = self._rng.random(env_indices.size)
-    self._env_use_latest[env_indices] = latest_draw < latest_ratio
+    if not active:
+      self._env_use_latest[env_indices] = True
+    else:
+      if self.league_cfg.frozen_ratio is not None:
+        frozen_matchup_ratio = compute_frozen_matchup_ratio(
+          frozen_row_ratio=float(self.league_cfg.frozen_ratio),
+          agents_per_env=self._agents_per_env,
+        )
+      else:
+        latest_ratio = 1.0 if self.league_cfg.latest_ratio is None else float(self.league_cfg.latest_ratio)
+        frozen_matchup_ratio = float(max(0.0, min(1.0, 1.0 - latest_ratio)))
+      frozen_draw = self._rng.random(env_indices.size)
+      self._env_use_latest[env_indices] = frozen_draw >= frozen_matchup_ratio
     self._env_opp_policy[env_indices] = self._rng.integers(
       0, len(self.opponent_policies), size=env_indices.size, dtype=np.int32
     )
@@ -174,8 +217,16 @@ class LeaguePuffeRL(pufferl.PuffeRL):
         agents_per_env=self._agents_per_env,
         env_learner_seat=self._env_learner_seat,
       )
+      trainable_rows_np = compute_trainable_row_mask(
+        env_id_np,
+        agents_per_env=self._agents_per_env,
+        env_learner_seat=self._env_learner_seat,
+        env_use_latest=self._env_use_latest,
+        league_active=active,
+      )
     else:
       learner_rows_np = np.ones(batch_n, dtype=np.bool_)
+      trainable_rows_np = np.ones(batch_n, dtype=np.bool_)
 
     actions_out = torch.zeros((batch_n, *self.vecenv.single_action_space.shape), device=device, dtype=torch.int32)
     logprobs_out = torch.zeros(batch_n, device=device)
@@ -228,8 +279,9 @@ class LeaguePuffeRL(pufferl.PuffeRL):
           latest_state["lstm_c"] = self._learner_lstm_c[latest_idx_t]
         latest_logits, latest_values = self._safe_forward_eval(self.policy, o_device[latest_idx_t], latest_state)
         with torch.no_grad(), self.amp_context:
-          latest_actions, _, _ = azk_pytorch.sample_logits(latest_logits)
+          latest_actions, latest_logprobs, _ = azk_pytorch.sample_logits(latest_logits)
         actions_out[latest_idx_t] = latest_actions.to(dtype=torch.int32)
+        logprobs_out[latest_idx_t] = latest_logprobs.to(dtype=logprobs_out.dtype)
         values_out[latest_idx_t] = latest_values.flatten().to(dtype=values_out.dtype)
         if self._split_value_heads_enabled():
           terminal_value, shaped_value = self._component_values_from_state(
@@ -289,6 +341,7 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       values_out,
       terminal_values_out,
       shaped_values_out,
+      trainable_rows_np,
       learner_rows_np,
       env_indices,
     )
@@ -312,7 +365,7 @@ class LeaguePuffeRL(pufferl.PuffeRL):
         if torch.is_tensor(tensor):
           state[key] = tensor[:1]
 
-      if hasattr(logits, "primary_logits"):
+      if isinstance(logits, TCGActionDistribution):
         logits = type(logits)(
           primary_logits=logits.primary_logits[:1],
           primary_action_mask=logits.primary_action_mask[:1],
@@ -325,6 +378,12 @@ class LeaguePuffeRL(pufferl.PuffeRL):
           bins3_logits=logits.bins3_logits[:1],
           gate1_table=logits.gate1_table,
           gate2_table=logits.gate2_table,
+        )
+      elif isinstance(logits, TCGLegalActionDistribution):
+        logits = type(logits)(
+          legal_action_logits=logits.legal_action_logits[:1],
+          legal_actions=logits.legal_actions[:1],
+          legal_action_count=logits.legal_action_count[:1],
         )
       return logits, values[:1]
 
@@ -371,14 +430,15 @@ class LeaguePuffeRL(pufferl.PuffeRL):
         values_t,
         terminal_values_t,
         shaped_values_t,
+        trainable_rows_np,
         learner_rows_np,
         env_indices,
       ) = self._infer_actions(
         o_device, mask_t, env_id_np
       )
 
-      learner_step_mask = np.logical_and(mask.astype(np.bool_), learner_rows_np)
-      self.global_step += int(learner_step_mask.sum())
+      trainable_step_mask = np.logical_and(mask.astype(np.bool_), trainable_rows_np)
+      self.global_step += int(trainable_step_mask.sum())
 
       profile("eval_copy", epoch)
       with torch.no_grad():
@@ -403,7 +463,7 @@ class LeaguePuffeRL(pufferl.PuffeRL):
         if self._split_value_heads_enabled():
           self.terminal_values[batch_rows, l] = terminal_values_t.float()
           self.shaped_values[batch_rows, l] = shaped_values_t.float()
-        self._segment_is_trainable[batch_rows] = torch.as_tensor(learner_rows_np, device=device, dtype=torch.bool)
+        self._segment_is_trainable[batch_rows] = torch.as_tensor(trainable_rows_np, device=device, dtype=torch.bool)
         self._stamp_win_prob_rollout_metadata(batch_rows, l, env_id_np)
 
         self.ep_lengths[env_id_slice] += 1
@@ -431,7 +491,11 @@ class LeaguePuffeRL(pufferl.PuffeRL):
           else:
             self.stats[k].append(v)
 
+      trainable_fraction = float(np.mean(trainable_rows_np))
       self.stats["league/learner_row_fraction"].append(float(np.mean(learner_rows_np)))
+      self.stats["league/trainable_row_fraction"].append(trainable_fraction)
+      self.stats["league/frozen_row_fraction"].append(float(1.0 - trainable_fraction))
+      self.stats["league/frozen_matchup_fraction"].append(float(1.0 - np.mean(self._env_use_latest[env_indices])))
       self.stats["league/latest_opponent_fraction"].append(float(np.mean(self._env_use_latest[env_indices])))
       active = compute_league_active(
         global_step=int(self.global_step),

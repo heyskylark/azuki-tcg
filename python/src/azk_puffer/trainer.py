@@ -55,6 +55,9 @@ class PuffeRL:
     def __init__(self, config, vecenv, policy, logger=None):
         # Backend perf optimization
         torch.set_float32_matmul_precision('high')
+        if torch.cuda.is_available() and config['device'] == 'cuda':
+            torch.backends.cuda.matmul.allow_tf32 = True
+            torch.backends.cudnn.allow_tf32 = True
         torch.backends.cudnn.deterministic = config['torch_deterministic']
         torch.backends.cudnn.benchmark = True
 

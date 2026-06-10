@@ -102,6 +102,70 @@ LEGAL_ACTION_ARG_KIND_COUNT = 10
 LEGAL_ACTION_ARG_KIND_EMBED_SIZE = 8
 
 
+def _build_legal_action_arg_kind_table() -> torch.Tensor:
+  table = torch.full(
+    (PRIMARY_ACTION_COUNT, 3),
+    LEGAL_ACTION_ARG_KIND_UNUSED,
+    dtype=torch.long,
+  )
+
+  table[
+    [
+      ACT_PLAY_ENTITY_TO_GARDEN,
+      ACT_PLAY_ENTITY_TO_ALLEY,
+      ACT_ATTACH_WEAPON_FROM_HAND,
+      ACT_PLAY_SPELL_FROM_HAND,
+    ],
+    0,
+  ] = LEGAL_ACTION_ARG_KIND_HAND
+  table[ACT_GATE_PORTAL, 0] = LEGAL_ACTION_ARG_KIND_SELF_ALLEY
+  table[ACT_ACTIVATE_ALLEY_ABILITY, 0] = LEGAL_ACTION_ARG_KIND_ABILITY_INDEX
+  table[
+    [ACT_ATTACK, ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY],
+    0,
+  ] = LEGAL_ACTION_ARG_KIND_SELF_GARDEN_OR_LEADER
+  table[ACT_DECLARE_DEFENDER, 0] = LEGAL_ACTION_ARG_KIND_SELF_GARDEN
+  table[
+    [
+      ACT_SELECT_FROM_SELECTION,
+      ACT_SELECT_TO_ALLEY,
+      ACT_SELECT_TO_EQUIP,
+      ACT_SELECT_TO_GARDEN,
+      ACT_TOP_DECK_CARD,
+      ACT_BOTTOM_DECK_CARD,
+    ],
+    0,
+  ] = LEGAL_ACTION_ARG_KIND_SELECTION
+  table[
+    [ACT_SELECT_COST_TARGET, ACT_SELECT_EFFECT_TARGET],
+    0,
+  ] = LEGAL_ACTION_ARG_KIND_GENERIC_TARGET
+
+  table[ACT_PLAY_ENTITY_TO_GARDEN, 1] = LEGAL_ACTION_ARG_KIND_SELF_GARDEN
+  table[ACT_PLAY_ENTITY_TO_ALLEY, 1] = LEGAL_ACTION_ARG_KIND_SELF_ALLEY
+  table[ACT_ATTACH_WEAPON_FROM_HAND, 1] = LEGAL_ACTION_ARG_KIND_SELF_GARDEN_OR_LEADER
+  table[ACT_GATE_PORTAL, 1] = LEGAL_ACTION_ARG_KIND_SELF_GARDEN
+  table[ACT_ATTACK, 1] = LEGAL_ACTION_ARG_KIND_OPP_DEFENDER
+  table[ACT_PLAY_SPELL_FROM_HAND, 1] = LEGAL_ACTION_ARG_KIND_ABILITY_INDEX
+  table[ACT_ACTIVATE_ALLEY_ABILITY, 1] = LEGAL_ACTION_ARG_KIND_SELF_ALLEY
+  table[ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY, 1] = LEGAL_ACTION_ARG_KIND_ABILITY_INDEX
+  table[ACT_SELECT_TO_ALLEY, 1] = LEGAL_ACTION_ARG_KIND_SELF_ALLEY
+  table[ACT_SELECT_TO_EQUIP, 1] = LEGAL_ACTION_ARG_KIND_SELF_GARDEN_OR_LEADER
+  table[ACT_SELECT_TO_GARDEN, 1] = LEGAL_ACTION_ARG_KIND_SELF_GARDEN
+
+  table[
+    [
+      ACT_PLAY_ENTITY_TO_GARDEN,
+      ACT_PLAY_ENTITY_TO_ALLEY,
+      ACT_ATTACH_WEAPON_FROM_HAND,
+      ACT_PLAY_SPELL_FROM_HAND,
+      ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY,
+    ],
+    2,
+  ] = LEGAL_ACTION_ARG_KIND_BOOL
+  return table
+
+
 def _numpy_dtype_to_torch(dtype: np.dtype) -> torch.dtype:
   dtype = np.dtype(dtype)
   if dtype == np.dtype(np.int8):
@@ -604,6 +668,7 @@ class TCG(nn.Module):
       nn.Flatten(),
     )
     self.register_buffer("primary_action_id_batch", torch.tensor(PRIMARY_ACTION_ID_BATCH, dtype=torch.long))
+    self.register_buffer("legal_action_arg_kind_table", _build_legal_action_arg_kind_table())
     self.legal_action_subaction_encoder = nn.Embedding(
       MAX_INDEX_SIZE + 1,
       INDEX_ENC_OUTPUT_SIZE,
@@ -1629,10 +1694,18 @@ class TCG(nn.Module):
       "player_garden_matrix": player_garden_matrix,
       "player_alley_matrix": player_alley_matrix,
       "player_selection_matrix": player_selection_matrix,
-      "opponent_garden_matrix": opponent_garden_matrix,
-      "opponent_alley_matrix": opponent_alley_matrix,
-      "player_leader_vec": player_leader_vec.unsqueeze(-2),
-      "opponent_leader_vec": opponent_leader_vec.unsqueeze(-2),
+      "player_garden_or_leader_matrix": torch.cat(
+        [player_garden_matrix, player_leader_vec.unsqueeze(-2)],
+        dim=-2,
+      ),
+      "opponent_defender_matrix": torch.cat(
+        [
+          opponent_garden_matrix,
+          opponent_leader_vec.unsqueeze(-2),
+          opponent_alley_matrix,
+        ],
+        dim=-2,
+      ),
     }
 
     if squeeze_batch:
@@ -1687,189 +1760,42 @@ class TCG(nn.Module):
 
   def _gather_garden_or_leader_refs(
     self,
-    garden_matrix: torch.Tensor,
-    leader_matrix: torch.Tensor,
+    combined_matrix: torch.Tensor,
     indices: torch.Tensor,
   ) -> torch.Tensor:
-    refs = torch.zeros(
-      (*indices.shape, garden_matrix.size(-1)),
-      device=garden_matrix.device,
-      dtype=garden_matrix.dtype,
-    )
-    garden_mask = indices < GARDEN_SIZE
-    leader_mask = indices == GARDEN_SIZE
-    if garden_mask.any():
-      garden_refs = self._gather_zone_rows(garden_matrix, indices.clamp(0, GARDEN_SIZE - 1))
-      refs = torch.where(garden_mask.unsqueeze(-1), garden_refs, refs)
-    if leader_mask.any():
-      leader_refs = leader_matrix.expand(indices.shape[0], indices.shape[1], -1)
-      refs = torch.where(leader_mask.unsqueeze(-1), leader_refs, refs)
-    return refs
+    refs = self._gather_zone_rows(combined_matrix, indices.clamp(0, GARDEN_SIZE))
+    valid = (indices <= GARDEN_SIZE).unsqueeze(-1)
+    return refs * valid.to(dtype=refs.dtype)
 
   def _gather_opponent_defender_refs(
     self,
-    opponent_garden_matrix: torch.Tensor,
-    opponent_leader_matrix: torch.Tensor,
-    opponent_alley_matrix: torch.Tensor,
+    combined_matrix: torch.Tensor,
     indices: torch.Tensor,
   ) -> torch.Tensor:
-    refs = torch.zeros(
-      (*indices.shape, opponent_garden_matrix.size(-1)),
-      device=opponent_garden_matrix.device,
-      dtype=opponent_garden_matrix.dtype,
+    refs = self._gather_zone_rows(
+      combined_matrix,
+      indices.clamp(0, GARDEN_SIZE + ALLEY_SIZE),
     )
-    garden_mask = indices < GARDEN_SIZE
-    leader_mask = indices == GARDEN_SIZE
-    alley_mask = (indices > GARDEN_SIZE) & (indices <= (GARDEN_SIZE + ALLEY_SIZE))
-    if garden_mask.any():
-      garden_refs = self._gather_zone_rows(
-        opponent_garden_matrix,
-        indices.clamp(0, GARDEN_SIZE - 1),
-      )
-      refs = torch.where(garden_mask.unsqueeze(-1), garden_refs, refs)
-    if leader_mask.any():
-      leader_refs = opponent_leader_matrix.expand(indices.shape[0], indices.shape[1], -1)
-      refs = torch.where(leader_mask.unsqueeze(-1), leader_refs, refs)
-    if alley_mask.any():
-      alley_index = (indices - (GARDEN_SIZE + 1)).clamp(0, ALLEY_SIZE - 1)
-      alley_refs = self._gather_zone_rows(opponent_alley_matrix, alley_index)
-      refs = torch.where(alley_mask.unsqueeze(-1), alley_refs, refs)
-    return refs
+    valid = (indices <= (GARDEN_SIZE + ALLEY_SIZE)).unsqueeze(-1)
+    return refs * valid.to(dtype=refs.dtype)
 
   def _legal_action_arg_kinds(self, primary: torch.Tensor) -> torch.Tensor:
-    sub1_kind = torch.full_like(primary, LEGAL_ACTION_ARG_KIND_UNUSED)
-    sub2_kind = torch.full_like(primary, LEGAL_ACTION_ARG_KIND_UNUSED)
-    sub3_kind = torch.full_like(primary, LEGAL_ACTION_ARG_KIND_UNUSED)
-
-    hand_primary = (
-      (primary == ACT_PLAY_ENTITY_TO_GARDEN)
-      | (primary == ACT_PLAY_ENTITY_TO_ALLEY)
-      | (primary == ACT_ATTACH_WEAPON_FROM_HAND)
-      | (primary == ACT_PLAY_SPELL_FROM_HAND)
-    )
-    sub1_kind = torch.where(
-      hand_primary,
-      torch.full_like(sub1_kind, LEGAL_ACTION_ARG_KIND_HAND),
-      sub1_kind,
-    )
-    sub1_kind = torch.where(
-      primary == ACT_GATE_PORTAL,
-      torch.full_like(sub1_kind, LEGAL_ACTION_ARG_KIND_SELF_ALLEY),
-      sub1_kind,
-    )
-    sub1_kind = torch.where(
-      primary == ACT_ACTIVATE_ALLEY_ABILITY,
-      torch.full_like(sub1_kind, LEGAL_ACTION_ARG_KIND_ABILITY_INDEX),
-      sub1_kind,
-    )
-    sub1_kind = torch.where(
-      (primary == ACT_ATTACK) | (primary == ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY),
-      torch.full_like(sub1_kind, LEGAL_ACTION_ARG_KIND_SELF_GARDEN_OR_LEADER),
-      sub1_kind,
-    )
-    sub1_kind = torch.where(
-      primary == ACT_DECLARE_DEFENDER,
-      torch.full_like(sub1_kind, LEGAL_ACTION_ARG_KIND_SELF_GARDEN),
-      sub1_kind,
-    )
-    selection_primary = (
-      (primary == ACT_SELECT_FROM_SELECTION)
-      | (primary == ACT_SELECT_TO_ALLEY)
-      | (primary == ACT_SELECT_TO_EQUIP)
-      | (primary == ACT_SELECT_TO_GARDEN)
-      | (primary == ACT_TOP_DECK_CARD)
-      | (primary == ACT_BOTTOM_DECK_CARD)
-    )
-    sub1_kind = torch.where(
-      selection_primary,
-      torch.full_like(sub1_kind, LEGAL_ACTION_ARG_KIND_SELECTION),
-      sub1_kind,
-    )
-    sub1_kind = torch.where(
-      (primary == ACT_SELECT_COST_TARGET) | (primary == ACT_SELECT_EFFECT_TARGET),
-      torch.full_like(sub1_kind, LEGAL_ACTION_ARG_KIND_GENERIC_TARGET),
-      sub1_kind,
-    )
-
-    sub2_kind = torch.where(
-      primary == ACT_PLAY_ENTITY_TO_GARDEN,
-      torch.full_like(sub2_kind, LEGAL_ACTION_ARG_KIND_SELF_GARDEN),
-      sub2_kind,
-    )
-    sub2_kind = torch.where(
-      primary == ACT_PLAY_ENTITY_TO_ALLEY,
-      torch.full_like(sub2_kind, LEGAL_ACTION_ARG_KIND_SELF_ALLEY),
-      sub2_kind,
-    )
-    sub2_kind = torch.where(
-      primary == ACT_ATTACH_WEAPON_FROM_HAND,
-      torch.full_like(sub2_kind, LEGAL_ACTION_ARG_KIND_SELF_GARDEN_OR_LEADER),
-      sub2_kind,
-    )
-    sub2_kind = torch.where(
-      primary == ACT_GATE_PORTAL,
-      torch.full_like(sub2_kind, LEGAL_ACTION_ARG_KIND_SELF_GARDEN),
-      sub2_kind,
-    )
-    sub2_kind = torch.where(
-      primary == ACT_ATTACK,
-      torch.full_like(sub2_kind, LEGAL_ACTION_ARG_KIND_OPP_DEFENDER),
-      sub2_kind,
-    )
-    sub2_kind = torch.where(
-      primary == ACT_PLAY_SPELL_FROM_HAND,
-      torch.full_like(sub2_kind, LEGAL_ACTION_ARG_KIND_ABILITY_INDEX),
-      sub2_kind,
-    )
-    sub2_kind = torch.where(
-      primary == ACT_ACTIVATE_ALLEY_ABILITY,
-      torch.full_like(sub2_kind, LEGAL_ACTION_ARG_KIND_SELF_ALLEY),
-      sub2_kind,
-    )
-    sub2_kind = torch.where(
-      primary == ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY,
-      torch.full_like(sub2_kind, LEGAL_ACTION_ARG_KIND_ABILITY_INDEX),
-      sub2_kind,
-    )
-    sub2_kind = torch.where(
-      primary == ACT_SELECT_TO_ALLEY,
-      torch.full_like(sub2_kind, LEGAL_ACTION_ARG_KIND_SELF_ALLEY),
-      sub2_kind,
-    )
-    sub2_kind = torch.where(
-      primary == ACT_SELECT_TO_EQUIP,
-      torch.full_like(sub2_kind, LEGAL_ACTION_ARG_KIND_SELF_GARDEN_OR_LEADER),
-      sub2_kind,
-    )
-    sub2_kind = torch.where(
-      primary == ACT_SELECT_TO_GARDEN,
-      torch.full_like(sub2_kind, LEGAL_ACTION_ARG_KIND_SELF_GARDEN),
-      sub2_kind,
-    )
-
-    bool_primary = (
-      (primary == ACT_PLAY_ENTITY_TO_GARDEN)
-      | (primary == ACT_PLAY_ENTITY_TO_ALLEY)
-      | (primary == ACT_ATTACH_WEAPON_FROM_HAND)
-      | (primary == ACT_PLAY_SPELL_FROM_HAND)
-      | (primary == ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY)
-    )
-    sub3_kind = torch.where(
-      bool_primary,
-      torch.full_like(sub3_kind, LEGAL_ACTION_ARG_KIND_BOOL),
-      sub3_kind,
-    )
-    return torch.stack((sub1_kind, sub2_kind, sub3_kind), dim=-1)
+    clamped_primary = primary.clamp(0, PRIMARY_ACTION_COUNT - 1)
+    return self.legal_action_arg_kind_table[clamped_primary]
 
   def _gather_legal_action_refs(self, action_context: dict, arg_kinds: torch.Tensor, subactions: torch.Tensor):
     hand_matrix = self._lookup_action_context_tensor(action_context, "hand_matrix")
     player_garden_matrix = self._lookup_action_context_tensor(action_context, "player_garden_matrix")
     player_alley_matrix = self._lookup_action_context_tensor(action_context, "player_alley_matrix")
     player_selection_matrix = self._lookup_action_context_tensor(action_context, "player_selection_matrix")
-    opponent_garden_matrix = self._lookup_action_context_tensor(action_context, "opponent_garden_matrix")
-    opponent_alley_matrix = self._lookup_action_context_tensor(action_context, "opponent_alley_matrix")
-    player_leader_vec = self._lookup_action_context_tensor(action_context, "player_leader_vec")
-    opponent_leader_vec = self._lookup_action_context_tensor(action_context, "opponent_leader_vec")
+    player_garden_or_leader_matrix = self._lookup_action_context_tensor(
+      action_context,
+      "player_garden_or_leader_matrix",
+    )
+    opponent_defender_matrix = self._lookup_action_context_tensor(
+      action_context,
+      "opponent_defender_matrix",
+    )
 
     refs = []
     ref_valid = []
@@ -1910,8 +1836,7 @@ class TCG(nn.Module):
       self_garden_or_leader_mask = component_kind == LEGAL_ACTION_ARG_KIND_SELF_GARDEN_OR_LEADER
       if self_garden_or_leader_mask.any():
         garden_or_leader_refs = self._gather_garden_or_leader_refs(
-          player_garden_matrix,
-          player_leader_vec,
+          player_garden_or_leader_matrix,
           component_subaction,
         )
         component_ref = torch.where(
@@ -1924,9 +1849,7 @@ class TCG(nn.Module):
       opp_defender_mask = component_kind == LEGAL_ACTION_ARG_KIND_OPP_DEFENDER
       if opp_defender_mask.any():
         defender_refs = self._gather_opponent_defender_refs(
-          opponent_garden_matrix,
-          opponent_leader_vec,
-          opponent_alley_matrix,
+          opponent_defender_matrix,
           component_subaction,
         )
         component_ref = torch.where(opp_defender_mask.unsqueeze(-1), defender_refs, component_ref)
@@ -1997,6 +1920,17 @@ class TCG(nn.Module):
       UNIT_EMBED_SIZE,
     )
 
+  def _trim_active_legal_action_candidates(
+    self,
+    legal_actions: torch.Tensor,
+    legal_action_count: torch.Tensor,
+  ) -> torch.Tensor:
+    # Legal rows are packed at the front of the padded 1024-row table. Trim the
+    # batch to the active prefix so we do not embed/project rows that cannot be sampled.
+    max_active_rows = int(legal_action_count.max().item()) if legal_action_count.numel() > 0 else 0
+    active_candidate_count = max(1, min(max_active_rows, legal_actions.size(1)))
+    return legal_actions[:, :active_candidate_count]
+
   def _build_factorized_action_distribution(
     self,
     flat_hidden: torch.Tensor,
@@ -2039,16 +1973,20 @@ class TCG(nn.Module):
     legal_action_count: torch.Tensor,
   ) -> TCGLegalActionDistribution:
     legal_action_query = self.q_legal_action(flat_hidden)
+    active_legal_actions = self._trim_active_legal_action_candidates(
+      legal_actions,
+      legal_action_count,
+    )
     candidate_embeddings = self._build_legal_action_candidate_embeddings(
       flat_hidden,
       action_context,
-      legal_actions,
+      active_legal_actions,
     )
     logits = (candidate_embeddings * legal_action_query.unsqueeze(1)).sum(dim=-1)
     logits = logits + self.legal_action_candidate_bias(candidate_embeddings).squeeze(-1)
     return TCGLegalActionDistribution(
       legal_action_logits=logits,
-      legal_actions=legal_actions,
+      legal_actions=active_legal_actions,
       legal_action_count=legal_action_count,
     )
 

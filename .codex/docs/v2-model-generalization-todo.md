@@ -1303,6 +1303,123 @@ Purpose: track the ordered work needed to move the v2 policy away from learned c
     - keep split terminal/shaped heads parked as a non-default ablation until replay quality stops being seed-fragile
     - keep phase-conditioned critic heads on the backlog until after the larger confirmation run and any scale-up decision
     - continue using fixed-rollout critic evaluation plus trainer runs to judge whether changes improve calibration as well as variance tracking
+- [x] Add a lightweight SPS autoresearch harness before any cloud scale-up push.
+  - Keep the stable local 3090 shape fixed as the control branch while measuring throughput changes.
+  - Automate short matched probes that record:
+    - trainer phase timing (`Evaluate`, `Env`, `Copy`, `Forward`, `Learn`)
+    - native env timing via `AZK_ENV_PROFILE`
+    - SPS, truncation rate, action-mix sanity, VRAM, and CPU utilization
+  - Restrict the first search space to systems / config knobs:
+    - `vec.num_envs`
+    - `vec.num_workers`
+    - `vec.batch_size`
+    - `zero_copy`
+    - `env.direct_parallel`
+    - precision / compile flags
+    - league on vs off
+  - Do not mix architecture ablations into the same batch; use the autoresearch loop to localize whether SPS is env-bound, copy-bound, or learner-bound first.
+  - Implemented:
+    - runner: `python/src/sps_autoresearch.py`
+    - editable local search spec: `python/config/sps_autoresearch_3090.json`
+  - Default control branch pinned by the harness:
+    - `vec.num_envs = 120`
+    - `vec.num_workers = 4`
+    - `vec.batch_size = 120`
+    - `vec.zero_copy = true`
+    - `env.direct_parallel = true`
+    - `train.batch_size = 3840`
+    - `train.minibatch_size = 960`
+    - `train.max_minibatch_size = 960`
+    - `train.precision = bfloat16`
+    - `train.compile = false`
+    - `league.enable = false`
+  - Current default safe sweep variants:
+    - `control`
+    - `envs_96`
+    - `workers_2`
+    - `workers_6`
+    - `zero_copy_off`
+    - `direct_parallel_off`
+    - `precision_float32`
+    - `compile_on`
+    - `league_on`
+  - Output contract:
+    - per-run `train.log`
+    - parsed `epochs.jsonl`
+    - parsed `env_profile.jsonl`
+    - sampled `resource_samples.jsonl`
+    - per-run `summary.json`
+    - top-level ranked `summary.json`
+  - Operational notes:
+    - use the normal local probe budget for real comparisons:
+      - `--train.total_timesteps 30720`
+      - this yields the intended `8` local epochs on the stable `3840`-step batch
+    - adaptive mode now supports target-based stopping:
+      - default target metric is `tail_mean.SPS`
+      - stop when a run reaches `--target-value`
+      - `--require-guardrails` is on by default, so target hits only count if action-mix sanity passes
+      - use `--no-require-guardrails` only for harness smoke checks or intentionally metric-only searches
+    - adaptive summaries now report:
+      - `stop_reason`
+      - `target_reached`
+      - `incumbent_run_name`
+      - `target_result_run_name`
+    - very short smoke checks are still useful for harness validation, but they may report:
+      - `guardrails = unavailable`
+      - no sampled phase timings yet
+      - no `AZK_ENV_PROFILE` samples yet
+    - reason:
+      - episode-level action-mix stats only appear after episodes actually complete
+      - trainer phase profiling is sampled every `5` epochs in the current trainer
+      - native env profiling only emits once `AZK_ENV_PROFILE_EVERY` step calls are reached
+  - Example commands:
+    - list planned variants:
+      - `python/.venv-codex/bin/python python/src/sps_autoresearch.py --list-variants`
+    - run the default safe local sweep:
+      - `python/.venv-codex/bin/python python/src/sps_autoresearch.py --output-dir experiments/sps_autoresearch_<timestamp>`
+    - run the adaptive search until SPS reaches a target:
+      - `python/.venv-codex/bin/python python/src/sps_autoresearch.py --mode adaptive --target-value 470 --output-dir experiments/sps_autoresearch_adaptive_<timestamp>`
+    - run a metric-only adaptive smoke check that stops as soon as the short control branch clears the target:
+      - `python/.venv-codex/bin/python python/src/sps_autoresearch.py --mode adaptive --target-value 100 --no-require-guardrails --total-timesteps 7680 --tail-epochs 2 --env-profile-every 1000 --output-dir experiments/sps_autoresearch_adaptive_smoke_<timestamp>`
+    - run a short control-only harness smoke check:
+      - `python/.venv-codex/bin/python python/src/sps_autoresearch.py --control-only --total-timesteps 7680 --tail-epochs 2 --env-profile-every 1000 --output-dir experiments/sps_autoresearch_smoke_<timestamp>`
+  - Latest local 3090 follow-up after adding explicit TF32 backend enablement in `python/src/azk_puffer/trainer.py`:
+    - focused learner sweep spec:
+      - `python/config/sps_autoresearch_3090_learner.json`
+    - focused sweep runs:
+      - `experiments/sps_autoresearch_3090_learner_tf32_20260420/summary.json`
+      - `experiments/sps_autoresearch_3090_learner_tf32_workers8_20260420/summary.json`
+    - best safe short-run result so far:
+      - `precision_float32_workers_8`
+      - `tail_mean.SPS = 447.99`
+      - `+51.01 SPS` vs same-batch control (`396.97`)
+      - `guardrails = pass`
+      - `bound = learner_bound`
+      - `dominant_component = forward`
+    - nearby strong result:
+      - `precision_float32_workers_6`
+      - `tail_mean.SPS = 441.13`
+    - interpretation:
+      - the local 3090 is still forward-dominated on the current generalized-deck path
+      - extra env workers help somewhat, but the safe config-only search space still tops out well below the `500 SPS` stop target
+      - `torch.compile` is not a good short-run rescue knob right now; the earlier adaptive compile probe hit Dynamo `recompile_limit` warnings before producing useful probe epochs
+    - practical stop point:
+      - treat `~448 SPS` as the current safe single-box ceiling from config search alone
+      - the next meaningful jump will likely need deeper learner-path code changes or the planned many-actors / one-learner scale-up rather than more local config shuffling
+- [x] Fix league trainability semantics so latest-policy rows are trainable regardless of seat.
+  - Current-policy rows should always contribute gradients if they were acted by the latest learner weights.
+  - Only legacy league / ELO checkpoints should stay frozen.
+  - Frozen league checkpoints should only be paired against the current learner policy, never against other frozen league checkpoints.
+  - `league.frozen_ratio` is now the preferred knob:
+    - it targets frozen rollout-row fraction directly
+    - in 2-player games, `frozen_ratio = 0.20` means roughly `20%` frozen rows / `80%` trainable rows
+    - legacy `latest_ratio` remains as a backward-compatible fallback for older configs
+  - Verification metric:
+    - use `league/trainable_row_fraction` as the policy-origin-based rollout fraction
+    - keep `league/learner_row_fraction` only as the seat-based diagnostic
+  - Status:
+    - latest-opponent rows now store learner logprobs and values like any other current-policy row
+    - trainability is now keyed off policy origin instead of learner seat alone
 
 ## Truncation / Reset Resolution Notes
 

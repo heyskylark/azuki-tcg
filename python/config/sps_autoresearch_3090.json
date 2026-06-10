@@ -1,0 +1,98 @@
+{
+  "description": "Safe first-pass local 3090 SPS autoresearch sweep for the v2 generalized-deck training path.",
+  "control_overrides": {
+    "env.direct_parallel": true,
+    "league.enable": false,
+    "neptune": false,
+    "train.batch_size": 3840,
+    "train.compile": false,
+    "train.max_minibatch_size": 960,
+    "train.minibatch_size": 960,
+    "train.precision": "bfloat16",
+    "vec.batch_size": 120,
+    "vec.num_envs": 120,
+    "vec.num_workers": 4,
+    "vec.zero_copy": true,
+    "wandb": false
+  },
+  "adaptive_search_space": {
+    "env.direct_parallel": [true, false],
+    "league.enable": [false, true],
+    "policy.legal_action_scorer_use_references": [true, false],
+    "train.compile": [false, true],
+    "train.precision": ["bfloat16", "float32"],
+    "vec.num_envs": [72, 96, 120, 144],
+    "vec.num_workers": [2, 4, 6, 8],
+    "vec.zero_copy": [true, false]
+  },
+  "variants": [
+    {
+      "description": "Stable local 3090 control branch from the v2 generalization TODO.",
+      "label": "control"
+    },
+    {
+      "description": "Reduce env concurrency while keeping the learner batch shape fixed.",
+      "label": "envs_96",
+      "overrides": {
+        "vec.batch_size": 96,
+        "vec.num_envs": 96
+      }
+    },
+    {
+      "description": "Reduce worker fanout to test whether the run is coordination-bound.",
+      "label": "workers_2",
+      "overrides": {
+        "vec.num_workers": 2
+      }
+    },
+    {
+      "description": "Increase worker fanout to test whether env throughput improves.",
+      "label": "workers_6",
+      "overrides": {
+        "vec.num_workers": 6
+      }
+    },
+    {
+      "description": "Disable zero-copy to measure copy overhead sensitivity.",
+      "label": "zero_copy_off",
+      "overrides": {
+        "vec.zero_copy": false
+      }
+    },
+    {
+      "description": "Turn off direct-parallel env wrapping to isolate env wrapper overhead.",
+      "label": "direct_parallel_off",
+      "overrides": {
+        "env.direct_parallel": false
+      }
+    },
+    {
+      "description": "Use float32 to measure precision-driven learner throughput changes.",
+      "label": "precision_float32",
+      "overrides": {
+        "train.precision": "float32"
+      }
+    },
+    {
+      "description": "Disable semantic legal-action references to measure scorer overhead sensitivity.",
+      "label": "references_off",
+      "overrides": {
+        "policy.legal_action_scorer_use_references": false
+      }
+    },
+    {
+      "description": "Enable torch.compile to test whether learner kernels amortize on short probes.",
+      "label": "compile_on",
+      "overrides": {
+        "train.compile": true
+      }
+    },
+    {
+      "description": "Measure the end-to-end league overhead versus pure self-play.",
+      "label": "league_on",
+      "overrides": {
+        "league.enable": true
+      }
+    }
+  ]
+}
