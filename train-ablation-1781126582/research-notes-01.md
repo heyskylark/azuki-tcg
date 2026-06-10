@@ -205,6 +205,18 @@ torch.compile (fuses small ops — the right fix for launch-bound encoders).
 - **Final recipe: 332 → 722 SPS (2.2×)**: update_epochs=1 + vec async 240 + text-table precompute
   (the latter also unblocked memory). Config updated (azuki_deckbuild_3090.ini).
 
+### Baseline time-zero fingerprint (epoch 14, ~320k steps, near-random policy)
+Deck size is 50 main cards (51 picks/player; 102 picks/episode) — NOT 30 as first assumed.
+- copy_entropy_norm 0.976 (near-uniform picks), quad_count 0.355, unique ≈ 37/50
+- type shares: ENTITY .731 / SPELL .196 / WEAPON .073 (≈ pool base rates → no preference yet)
+- cost shares: 0-1: .246, 2-3: .419, 4-5: .266, 6+: .068 (avg ~2.9 = pool distribution)
+- losses: entropy 0.996, explained_variance 0.04, win_prob_aux acc 0.497 (chance)
+Archetype emergence = divergence from these numbers, esp. per-gate type shares and quad counts.
+NOTE: vec workers don't inherit env vars → baseline run writes NO deck snapshots; per-card
+analysis for the baseline uses dump_checkpoint_decks.py on saved checkpoints instead (better
+methodology anyway: fixed-policy samples at fixed training stages). Snapshot plumbing for future
+runs goes through env config keys (deck_snapshot_dir/every) now.
+
 ### 2026-06-10 ~16:00 — BASELINE LAUNCHED
 `base-deckbuild-01`: 60M steps (~23h @ 722 SPS), league fresh (deckbuild_v1), snapshots every
 25th episode → experiments/abl_snapshots/base-deckbuild-01, runlog
