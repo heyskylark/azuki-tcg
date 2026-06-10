@@ -231,6 +231,17 @@ winners to ≥100M confirmation; decision metrics (in priority order):
 3. cross-gate L1 divergence from snapshots (analyze_decks.py),
 4. losses/explained_variance, entropy trajectory, SPS.
 
+### FINDING (2026-06-10): sampler anneal knobs are dead code on the default path
+`tcg_sample_logits` routes legal-action-scorer outputs (the DEFAULT head) to
+`_sample_legal_action_rows`, which applies NO temperature and NO smoothing — the configured
+`subaction_temperature` / `smoothing_eps` anneals only affect the non-default factorized path.
+All recent training explored via raw softmax + entropy bonus only. Implications:
+(a) historical anneal settings were no-ops; (b) exploration ablations must patch the row sampler.
+Branch `ablation/entdeck-pick-eps` adds policy.deck_pick_smoothing_eps (uniform mix over pick
+candidates only, ByteRL Random-CB analog) + policy.legal_row_temperature (global row softmax
+temperature, makes the old knobs meaningful). Unit-tested: pick rows entropy 1.54 w/ eps=0.5,
+battle rows unaffected.
+
 ## 3.5 Baseline launch plan (base-deckbuild-01)
 - Config: azuki_deckbuild_3090.ini + `--train.update_epochs 1` (681 SPS vs 332 at ue=2; also
   matches OpenAI Five sample-reuse evidence) + compile if probe green.
