@@ -193,6 +193,11 @@ gather/cat/linear kernels → ~3% GPU efficiency, catastrophic in backward (laun
 The 4096 LSTM is NOT the problem (22ms). Model-size ablation won't fix speed; op fusion will.
 Levers probing now: update_epochs 2→1 (halves learn + matches OpenAI Five sample-reuse finding);
 torch.compile (fuses small ops — the right fix for launch-bound encoders).
+- **ue1 probe: 692 SPS steady** (2.1× over 332). Adopted for baseline.
+- compile max-autotune-no-cudagraphs: >12 min compiling without finishing an epoch → killed.
+  Also would recompile per distinct max-legal-count shape → added power-of-two bucketing to
+  `_trim_active_legal_action_candidates` (≤6 shape variants; masking already per-row by count;
+  CPU forward sanity-checked). Retesting compile with mode=default + bucketing.
 
 ### Memory/speed optimization (2026-06-10, required to even run deck building)
 Deck-context obs (30 deck slots + 80 candidates/row) OOM'd the 3090 at minibatch 8192: the policy
@@ -209,6 +214,20 @@ winners to ≥100M confirmation; decision metrics (in priority order):
    divergence (weapon share for LIGHTNING, spell share for Echoed Waves),
 3. cross-gate L1 divergence from snapshots (analyze_decks.py),
 4. losses/explained_variance, entropy trajectory, SPS.
+
+## 3.5 Baseline launch plan (base-deckbuild-01)
+- Config: azuki_deckbuild_3090.ini + `--train.update_epochs 1` (681 SPS vs 332 at ue=2; also
+  matches OpenAI Five sample-reuse evidence) + compile if probe green.
+- League: fresh `experiments/league/deckbuild_v1` (recreated at launch).
+- Snapshots: `experiments/abl_snapshots/base-deckbuild-01`, every 25th episode/env.
+- total_timesteps: sized to ~20h wall from measured SPS.
+- Mid-run analyses at ~25/50/75%: analyze_decks buckets, compare_runs trends, and
+  draft_vs_reference_eval on latest checkpoint (does drafting beat reference decks?).
+- Per-gate watch list: deckbuild_gatecard/*/type_share/WEAPON (Lightning gates should rise),
+  /SPELL (Echoed Waves), avg_cost (Rushfire should fall), leader split per gate,
+  deckbuild_result/gatecard/*/win.
+- Privileged critic check (verified): post-LSTM concat fusion — correct per informed-asym paper;
+  arms for A-PRIVCRITIC later: off (baseline) / full / hand-only / deck-count-histogram.
 
 ## 4. Key questions to answer
 - Does the model build legal-but-coherent decks (curve, type mix) per gate, or collapse to one deck?
