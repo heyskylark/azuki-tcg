@@ -73,6 +73,51 @@ RESUME_SOURCE_HASH_TARGETS = (
 )
 
 
+class _JsonlLogger:
+    """Local fallback logger writing one JSON line of numeric stats per epoch."""
+
+    def __init__(self, trainer_args: dict, path: Path):
+        tag = trainer_args.get("tag")
+        suffix = str(int(100 * time.time()))
+        self.run_id = f"{tag}_{suffix}" if tag else suffix
+        path = path if path.suffix == ".jsonl" else path / f"{self.run_id}.jsonl"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        self._handle = path.open("a", buffering=1, encoding="utf-8")
+        config_snapshot: dict[str, object] = {}
+        for section in ("train", "vec", "env", "policy", "league"):
+            section_cfg = trainer_args.get(section)
+            if isinstance(section_cfg, dict):
+                for key, value in section_cfg.items():
+                    if isinstance(value, (str, int, float, bool)) or value is None:
+                        config_snapshot[f"{section}.{key}"] = value
+        self._handle.write(
+            json.dumps(
+                {"_event": "start", "run_id": self.run_id, "ts": round(time.time(), 2), "config": config_snapshot}
+            )
+            + "\n"
+        )
+        print(f"[jsonl-logger] writing run metrics to {path}")
+
+    def log(self, logs, step):
+        row: dict[str, object] = {"_step": int(step), "ts": round(time.time(), 2)}
+        for key, value in logs.items():
+            if isinstance(value, bool):
+                continue
+            if isinstance(value, (int, float)) and math.isfinite(float(value)):
+                row[key] = float(value)
+        self._handle.write(json.dumps(row, separators=(",", ":")) + "\n")
+
+    def close(self, model_path=None):
+        try:
+            self._handle.write(
+                json.dumps({"_event": "close", "model_path": str(model_path or ""), "ts": round(time.time(), 2)})
+                + "\n"
+            )
+            self._handle.close()
+        except Exception:
+            pass
+
+
 @dataclass(frozen=True)
 class _LinearAnneal:
     initial: float
@@ -1687,6 +1732,8 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
         logger = pufferl.WandbLogger(trainer_args)
     elif trainer_args.get("neptune"):
         logger = pufferl.NeptuneLogger(trainer_args)
+    elif trainer_args.get("jsonl_log"):
+        logger = _JsonlLogger(trainer_args, Path(str(trainer_args["jsonl_log"])))
 
     policy = build_policy(vecenv, trainer_args)
     if model_resume_path is not None:

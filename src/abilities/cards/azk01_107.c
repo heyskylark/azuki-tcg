@@ -5,6 +5,8 @@
 #include "utils/card_utils.h"
 #include "utils/player_util.h"
 
+#include <stdio.h>
+
 bool azk01_107_validate(ecs_world_t *world, ecs_entity_t card,
                         ecs_entity_t owner) {
   (void)card;
@@ -43,7 +45,9 @@ void azk01_107_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
   }
 
   const ecs_entity_t token = ecs_new_w_pair(world, EcsIsA, prefab);
-  ecs_set_name(world, token, "IKZTokenCard");
+  char token_name[32];
+  snprintf(token_name, sizeof(token_name), "IKZTokenCard_%u", (uint32_t)token);
+  ecs_set_name(world, token, token_name);
   ecs_set(world, token, DamageTracker, {0});
   if (!ecs_get(world, token, CardConditionCountdown)) {
     ecs_set(world, token, CardConditionCountdown,
