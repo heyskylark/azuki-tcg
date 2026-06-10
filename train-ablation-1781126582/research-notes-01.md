@@ -170,6 +170,30 @@ Priority matrix (baseline = azuki_deckbuild_3090.ini recipe, unchanged):
   frozen_ratio mechanism (keep); per-param adaptive grad clip; entropy 0.01 confirmed sane;
   win-prob aux head usable as a draft-quality probe (already enabled).
 
+### SPS investigation (2026-06-10)
+Smoke run (720 envs, league on, deck building on) steady SPS ≈ 330 vs ~3,500-4,000 for Feb
+fixed-deck runs. Trainer perf breakdown over 5 epochs: train=276s (learn=262s!), eval rollout=75s
+(env=41s, eval_forward=33s). So the LEARN phase is ~7× the rollout cost — GPU near 21.9/23.5GB;
+hypothesis: allocator churn near ceiling + deck-context activations. Probes (no league, 7 epochs):
+mb4096, mb2048, and deck-building-OFF control at mb8192 — control distinguishes "deck building
+made learn slow" from "current stack (puffer v4/Muon) is slow everywhere".
+Deck-build env step cost measured: build steps 826µs vs battle steps 1696µs → deck phase ≈ +25%
+steps/episode at half cost; env is NOT the bottleneck.
+Probe results so far: mb4096 → 324 SPS (≈ mb8192's 332; minibatch NOT the lever; memory churn
+ruled out). Historical SPS check via wandb summaries: March (9mz25s8p, batch 23040) = 3,382 SPS;
+April runs = 450-469 BUT at 120 envs/batch 3840 (not comparable).
+**Control probe (deck building OFF, same stack): 612 SPS** → mostly a stack/model regression since
+March (~5.5×), deck building costs a further 1.85× (612→332).
+**bench_forward.py microbenchmark (bf16, deck building obs):**
+- forward_eval 1440 rows: 187ms (raw LSTMCell: 11ms → encoder+scorer = ~95% of cost)
+- train forward 8192 rows BPTT16: 361ms (raw nn.LSTM: 23ms)
+- train fwd+bwd: **5,390ms** — backward:forward ≈ 15:1 (normal ~2:1). Smoking gun.
+Diagnosis: the encoder does ~600 slot-encodes/row across 15 zones as hundreds of small
+gather/cat/linear kernels → ~3% GPU efficiency, catastrophic in backward (launch-bound).
+The 4096 LSTM is NOT the problem (22ms). Model-size ablation won't fix speed; op fusion will.
+Levers probing now: update_epochs 2→1 (halves learn + matches OpenAI Five sample-reuse finding);
+torch.compile (fuses small ops — the right fix for launch-bound encoders).
+
 ### Memory/speed optimization (2026-06-10, required to even run deck building)
 Deck-context obs (30 deck slots + 80 candidates/row) OOM'd the 3090 at minibatch 8192: the policy
 gathered [batch, slots, 1536]-dim raw text embeddings per zone before projecting. Replaced with a
