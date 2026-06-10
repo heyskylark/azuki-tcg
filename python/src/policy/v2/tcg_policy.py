@@ -861,6 +861,10 @@ class TCG(nn.Module):
     self.zone_component_count = 15 if self.deck_context_enabled else 14
     self.lstm_input_size = UNIT_EMBED_SIZE * (self.zone_component_count + 1)
 
+    self._text_table_cache: torch.Tensor | None = None
+    self._text_table_cache_version = -1
+    self._text_table_version = 0
+
     self.q_primary = nn.Linear(LSTM_HIDDEN_SIZE, UNIT_EMBED_SIZE)
     self.q_unit1 = nn.Linear(LSTM_HIDDEN_SIZE, UNIT_EMBED_SIZE)
     self.q_unit2 = nn.Linear(LSTM_HIDDEN_SIZE, UNIT_EMBED_SIZE)
@@ -1077,10 +1081,34 @@ class TCG(nn.Module):
       "ability_timing": self.static_ability_timing[idx],
       "ability_optional": self.static_ability_optional[idx],
       "keyword_multi_hot": self.static_keyword_multi_hot[idx],
-      "name_embedding": self.static_name_embeddings[idx],
-      "effect_embedding": self.static_effect_embeddings[idx],
-      "subtype_pooled_embedding": self.static_subtype_pooled_embeddings[idx],
     }
+
+  def _text_feature_table(self) -> torch.Tensor:
+    """Per-card projected text features [vocab, name+effect+subtype dims].
+
+    The text encoders are per-card functions of static tables, so encoding the
+    whole vocab once per forward and gathering small rows is exactly
+    equivalent to encoding per slot, but avoids materializing
+    [batch, slots, 1536] activations for every zone.
+    """
+    if (
+      self._text_table_cache is None
+      or self._text_table_cache_version != self._text_table_version
+    ):
+      self._text_table_cache = torch.cat(
+        [
+          self.name_text_encoder(self.static_name_embeddings),
+          self.effect_text_encoder(self.static_effect_embeddings),
+          self.subtype_text_encoder(self.static_subtype_pooled_embeddings),
+        ],
+        dim=-1,
+      )
+      self._text_table_cache_version = self._text_table_version
+    return self._text_table_cache
+
+  def _invalidate_text_feature_table(self) -> None:
+    self._text_table_version += 1
+    self._text_table_cache = None
 
   def _index_embedding(self, zone_indices: torch.Tensor):
     return self.index_encoder(zone_indices.long().clamp(0, MAX_INDEX_SIZE - 1))
@@ -1097,9 +1125,7 @@ class TCG(nn.Module):
     card_type_emb = self.card_type_encoder(static["card_type"])
     element_emb = self.element_encoder(static["element"])
     ability_timing_emb = self.ability_timing_encoder(static["ability_timing"])
-    name_emb = self.name_text_encoder(static["name_embedding"])
-    effect_emb = self.effect_text_encoder(static["effect_embedding"])
-    subtype_emb = self.subtype_text_encoder(static["subtype_pooled_embedding"])
+    text_emb = self._text_feature_table()[idx]
     keyword_emb = self.keyword_feature_encoder(static["keyword_multi_hot"])
 
     scalar = torch.stack(
@@ -1118,9 +1144,7 @@ class TCG(nn.Module):
 
     metadata_input = torch.cat(
       [
-        name_emb,
-        effect_emb,
-        subtype_emb,
+        text_emb,
         keyword_emb,
         card_type_emb,
         element_emb,
@@ -1767,6 +1791,7 @@ class TCG(nn.Module):
     return self.forward(x, state)
 
   def encode_observations(self, observations, state=None):
+    self._invalidate_text_feature_table()
     structured_obs, squeeze_batch, obs_tensor = self.__prepare_structured_observations(observations)
     self.__store_mask_observations(obs_tensor, state)
     self.__store_privileged_critic_features(

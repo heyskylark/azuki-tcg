@@ -270,7 +270,7 @@ def parse_script_args() -> tuple[argparse.Namespace, list[str]]:
         default=None,
         help=(
             "Fraction of rollout rows that should be frozen league weights. "
-            "With 2-player games, 0.20 means roughly 20% frozen rows / 80% trainable rows."
+            "With 2-player games, 0.20 means roughly 20%% frozen rows / 80%% trainable rows."
         ),
     )
     parser.add_argument(
