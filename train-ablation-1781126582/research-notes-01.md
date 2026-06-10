@@ -287,6 +287,22 @@ battle rows unaffected.
 - Privileged critic check (verified): post-LSTM concat fusion — correct per informed-asym paper;
   arms for A-PRIVCRITIC later: off (baseline) / full / hand-only / deck-count-histogram.
 
+## 3.6 Availability priors (essential for honest archetype claims)
+Per-element candidate pools (element + NORMAL cards):
+| pool | n | ENTITY | SPELL | WEAPON | avg cost | cost 0-1/2-3/4-5/6+ |
+|---|---|---|---|---|---|---|
+| LIGHTNING | 75 | .69 | .17 | **.13** | 2.79 | .25/.43/.28/.04 |
+| WATER | 78 | .71 | **.24** | .05 | 2.86 | .27/.42/.22/.09 |
+| FIRE | 80 | .78 | .17 | .05 | 2.88 | .25/.42/.26/.06 |
+| EARTH | 80 | .75 | .20 | .05 | **3.20** | .23/.38/.29/.11 |
+6/10 weapons are LIGHTNING; 11/38 spells are WATER; EARTH skews expensive. So element-level
+type-share differences are partly AVAILABILITY, not strategy. Methodology rules:
+1. Compare each gate's shares to its own element pool prior (above), not to other elements.
+2. The decisive strategy test is WITHIN-element gate pairs (identical pools):
+   Surge vs Stormchain (L), Hydromancy vs EchoedWaves (W), Rushfire vs Ragefire (F),
+   Devotion vs Stonehaven (E). Any composition gap there is pure strategy.
+3. Same logic for leaders within an element (2 leaders share the gate's pool).
+
 ## 4. Key questions to answer
 - Does the model build legal-but-coherent decks (curve, type mix) per gate, or collapse to one deck?
 - Do per-gate compositions diverge (weapons for LIGHTNING, spells for Echoed Waves, etc.)?
