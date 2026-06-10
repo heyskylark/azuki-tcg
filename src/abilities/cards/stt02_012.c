@@ -44,6 +44,9 @@ static int count_entities_in_zone(ecs_world_t *world, ecs_entity_t zone) {
 
 // Observer callback for entities entering/leaving the player's garden
 static void stt02_012_player_garden_observer(ecs_iter_t *it) {
+  if (ecs_is_fini(it->world) || ecs_should_quit(it->world)) {
+    return; // World teardown: zones/singletons may already be deleted.
+  }
   ecs_world_t *world = it->world;
   Stt02012ObserverCtx *ctx = it->ctx;
 
@@ -75,6 +78,9 @@ static void stt02_012_player_garden_observer(ecs_iter_t *it) {
 
 // Observer callback for entities entering/leaving the opponent's garden
 static void stt02_012_opponent_garden_observer(ecs_iter_t *it) {
+  if (ecs_is_fini(it->world) || ecs_should_quit(it->world)) {
+    return; // World teardown: zones/singletons may already be deleted.
+  }
   ecs_world_t *world = it->world;
   Stt02012ObserverCtx *ctx = it->ctx;
 

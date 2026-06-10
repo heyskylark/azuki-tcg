@@ -54,6 +54,9 @@ static void sync_top_beanz_buff(ecs_world_t *world, ecs_entity_t card,
 }
 
 static void azk01_073_garden_observer(ecs_iter_t *it) {
+  if (ecs_is_fini(it->world) || ecs_should_quit(it->world)) {
+    return; // World teardown: zones/singletons may already be deleted.
+  }
   Azk01073ObserverCtx *ctx = it->ctx;
   if (ctx == NULL) {
     return;

@@ -70,6 +70,9 @@ static void sync_yojin_defender(ecs_world_t *world, ecs_entity_t card,
 }
 
 static void azk01_052_player_garden_observer(ecs_iter_t *it) {
+  if (ecs_is_fini(it->world) || ecs_should_quit(it->world)) {
+    return; // World teardown: zones/singletons may already be deleted.
+  }
   Azk01052ObserverCtx *ctx = it->ctx;
   if (ctx == NULL) {
     return;
@@ -80,6 +83,9 @@ static void azk01_052_player_garden_observer(ecs_iter_t *it) {
 }
 
 static void azk01_052_opponent_garden_observer(ecs_iter_t *it) {
+  if (ecs_is_fini(it->world) || ecs_should_quit(it->world)) {
+    return; // World teardown: zones/singletons may already be deleted.
+  }
   Azk01052ObserverCtx *ctx = it->ctx;
   if (ctx == NULL) {
     return;

@@ -93,6 +93,18 @@ static void cleanup_attached_ability_entity(ecs_world_t *world,
     return;
   }
 
+  if (ecs_should_quit(world)) {
+    // World teardown: card cleanup callbacks adjust buffs on zone entities
+    // that may already be deleted. Only release the observer context, which
+    // every card allocates through the passive runtime.
+    if (ecs_has(world, ability_entity, PassiveObserverContext)) {
+      azk_cleanup_passive_observer_context(
+          world, ability_entity,
+          &(PassiveObserverCleanupOptions){.free_ctx = true});
+    }
+    return;
+  }
+
   const AbilityDef *ability_def =
       azk_get_ability_def_at(instance->card_def_id, instance->registry_order);
   if (ability_def != NULL && ability_def->cleanup_passive_observers != NULL) {

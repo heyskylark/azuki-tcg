@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass
 import json
+import os
+import time
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -42,6 +44,22 @@ LEADER_CARD_TYPE = "LEADER"
 GATE_CARD_TYPE = "GATE"
 NORMAL_ELEMENT = "NORMAL"
 
+# (metric name, native terminal-log info key) pairs surfaced per gate card.
+_BEHAVIOR_INFO_KEYS = (
+  ("attack_rate", "azk_attack_selected_rate"),
+  ("spell_rate", "azk_play_spell_from_hand_selected_rate"),
+  ("weapon_rate", "azk_attach_weapon_from_hand_selected_rate"),
+  ("portal_rate", "azk_gate_portal_selected_rate"),
+  ("play_entity_rate", "azk_play_selected_rate"),
+  ("noop_rate", "azk_noop_selected_rate"),
+  ("episode_length", "azk_episode_length"),
+  ("leader_health", "leader_health"),
+)
+
+SNAPSHOT_DIR_ENV = "AZK_DECKBUILD_SNAPSHOT_DIR"
+SNAPSHOT_EVERY_ENV = "AZK_DECKBUILD_SNAPSHOT_EVERY"
+DEFAULT_SNAPSHOT_EVERY = 25
+
 
 @dataclass(frozen=True)
 class DeckCardRecord:
@@ -49,6 +67,7 @@ class DeckCardRecord:
   card_def_id: int
   card_type: str
   element: str
+  ikz_cost: int = 0
 
 
 @dataclass(frozen=True)
@@ -115,12 +134,16 @@ def _load_policy_card_records(path: Path = POLICY_CARD_METADATA_PATH) -> tuple[D
       raise ValueError(f"Policy metadata record {index} has invalid card_type")
     if not isinstance(element, str) or not element:
       raise ValueError(f"Policy metadata record {index} has invalid element")
+    ikz_cost = record.get("ikz_cost", 0)
+    if isinstance(ikz_cost, bool) or not isinstance(ikz_cost, int) or ikz_cost < 0:
+      ikz_cost = 0
     out.append(
       DeckCardRecord(
         card_code=card_code,
         card_def_id=int(card_def_id),
         card_type=card_type.upper(),
         element=element.upper(),
+        ikz_cost=int(ikz_cost),
       )
     )
   return tuple(sorted(out, key=lambda card: card.card_def_id))
@@ -473,6 +496,14 @@ class DeckBuildingParallelEnv(ParallelEnv):
     self.terminations = {agent: False for agent in self.possible_agents}
     self.truncations = {agent: False for agent in self.possible_agents}
     self.infos = {agent: {} for agent in self.possible_agents}
+    snapshot_dir = os.getenv(SNAPSHOT_DIR_ENV, "").strip()
+    self._snapshot_dir = Path(snapshot_dir) if snapshot_dir else None
+    try:
+      self._snapshot_every = max(1, int(os.getenv(SNAPSHOT_EVERY_ENV, str(DEFAULT_SNAPSHOT_EVERY))))
+    except ValueError:
+      self._snapshot_every = DEFAULT_SNAPSHOT_EVERY
+    self._snapshot_path: Path | None = None
+    self._completed_episode_count = 0
 
   def observation_space(self, agent):
     return self._observation_space
@@ -686,6 +717,35 @@ class DeckBuildingParallelEnv(ParallelEnv):
       metrics[f"deckbuild/main_element_count/{element}"] = count
       metrics[f"deckbuild/main_element_share/{element}"] = count / main_total
 
+    costs = [records[card_id].ikz_cost for card_id in main_ids]
+    cost_total = max(len(costs), 1)
+    avg_cost = float(sum(costs)) / cost_total
+    bucket_counts = Counter(
+      "0_1" if cost <= 1 else "2_3" if cost <= 3 else "4_5" if cost <= 5 else "6_plus"
+      for cost in costs
+    )
+    metrics["deckbuild/main_avg_cost"] = avg_cost
+    for bucket in ("0_1", "2_3", "4_5", "6_plus"):
+      metrics[f"deckbuild/main_cost_share/{bucket}"] = float(bucket_counts.get(bucket, 0)) / cost_total
+
+    metrics[f"deckbuild/leader_card/{leader.card_code}"] = 1.0
+
+    # Sparse per-gate-card metrics: emitted only for the assigned gate, so the
+    # trainer's per-key mean is the conditional mean given that gate.
+    gate_prefix = f"deckbuild_gatecard/{gate.card_code}"
+    metrics[f"{gate_prefix}/game"] = 1.0
+    metrics[f"{gate_prefix}/avg_cost"] = avg_cost
+    metrics[f"{gate_prefix}/main_unique"] = float(unique_count)
+    metrics[f"{gate_prefix}/copy_entropy_norm"] = metrics["deckbuild/main_copy_entropy_norm"]
+    metrics[f"{gate_prefix}/gate_element_share"] = metrics["deckbuild/main_gate_element_share"]
+    for card_type in self._metric_main_types:
+      metrics[f"{gate_prefix}/type_share/{card_type}"] = (
+        float(type_counts.get(card_type, 0)) / main_total
+      )
+    for bucket in ("0_1", "2_3", "4_5", "6_plus"):
+      metrics[f"{gate_prefix}/cost_share/{bucket}"] = float(bucket_counts.get(bucket, 0)) / cost_total
+    metrics[f"{gate_prefix}/leader/{leader.card_code}"] = 1.0
+
     return metrics
 
   def _deckbuild_infos(self, *, include_step_metrics: bool) -> dict[int, dict[str, float]]:
@@ -741,7 +801,73 @@ class DeckBuildingParallelEnv(ParallelEnv):
       metrics[f"deckbuild_result/gate_pair_unordered_win_joint/{candidate_pair}"] = (
         win if is_pair else 0.0
       )
+
+    # Sparse per-gate-card result + playstyle metrics. Behavioral rates come from
+    # the native env's terminal log entries already present in `info`.
+    gate_prefix = f"deckbuild_result/gatecard/{gate.card_code}"
+    metrics[f"{gate_prefix}/game"] = 1.0
+    metrics[f"{gate_prefix}/win"] = win
+    for metric_name, info_key in _BEHAVIOR_INFO_KEYS:
+      value = info.get(info_key)
+      if isinstance(value, (int, float)) and not isinstance(value, bool):
+        metrics[f"{gate_prefix}/{metric_name}"] = float(value)
+    ability_total = 0.0
+    for info_key in (
+      "azk_activate_garden_or_leader_ability_selected_rate",
+      "azk_activate_alley_ability_selected_rate",
+    ):
+      value = info.get(info_key)
+      if isinstance(value, (int, float)) and not isinstance(value, bool):
+        ability_total += float(value)
+    metrics[f"{gate_prefix}/ability_rate"] = ability_total
     return metrics
+
+  def _deck_summary_for_player(self, player_index: int) -> dict[str, Any]:
+    state = self._states[player_index]
+    records = self._catalog.records_by_def_id
+    counts = state.main_copy_counts()
+    main_codes = {
+      records[card_def_id].card_code: int(quantity)
+      for card_def_id, quantity in sorted(counts.items())
+    }
+    main_ids = [card_id for card_id in state.main_card_def_ids[: state.main_count] if card_id >= 0]
+    costs = [records[card_id].ikz_cost for card_id in main_ids]
+    return {
+      "gate": records[state.gate_card_def_id].card_code if state.gate_card_def_id >= 0 else None,
+      "leader": records[state.leader_card_def_id].card_code if state.leader_card_def_id >= 0 else None,
+      "main": main_codes,
+      "avg_cost": round(float(sum(costs)) / max(len(costs), 1), 3),
+    }
+
+  def _maybe_write_deck_snapshot(self, infos: dict[int, dict[str, Any]]) -> None:
+    if self._snapshot_dir is None:
+      return
+    if self._completed_episode_count % self._snapshot_every != 0:
+      return
+    if self._snapshot_path is None:
+      self._snapshot_dir.mkdir(parents=True, exist_ok=True)
+      self._snapshot_path = self._snapshot_dir / f"decks_pid{os.getpid()}.jsonl"
+    players = []
+    for player_index, agent in enumerate(self.possible_agents):
+      info = infos.get(agent, {})
+      summary = self._deck_summary_for_player(player_index)
+      summary["win"] = float(info.get("win", 0.0) or 0.0)
+      for metric_name, info_key in _BEHAVIOR_INFO_KEYS:
+        value = info.get(info_key)
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+          summary[metric_name] = round(float(value), 4)
+      players.append(summary)
+    record = {
+      "ts": round(time.time(), 1),
+      "episode": self._completed_episode_count,
+      "seed": self._episode_seed,
+      "players": players,
+    }
+    try:
+      with self._snapshot_path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(record, separators=(",", ":")) + "\n")
+    except OSError:
+      pass
 
   def _start_battle(self) -> dict[int, dict[str, Any]]:
     player_decks = tuple(self._deck_spec_for_player(index) for index in range(self._agent_count))
@@ -806,12 +932,17 @@ class DeckBuildingParallelEnv(ParallelEnv):
       self.terminations = dict(terminations)
       self.truncations = dict(truncations)
       enriched_infos: dict[int, dict[str, Any]] = {}
+      episode_done = False
       for player_index, agent in enumerate(self.possible_agents):
         info = dict(infos.get(agent, {}))
         if bool(terminations.get(agent, False)) or bool(truncations.get(agent, False)):
+          episode_done = True
           info.update(self._deckbuild_result_metrics_for_player(player_index, info))
         enriched_infos[agent] = info
       self.infos = enriched_infos
+      if episode_done:
+        self._maybe_write_deck_snapshot(enriched_infos)
+        self._completed_episode_count += 1
       return self._battle_observations(observations), rewards, terminations, truncations, enriched_infos
 
     active_agent = self.possible_agents[self._active_player_index]
