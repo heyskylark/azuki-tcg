@@ -263,6 +263,10 @@ final checkpoints; same seed (42) for all arms; deckbuild metrics at matched ste
 NOTE: league state_path/opponent_dir are SHARED in the config — give each ablation its own
 league dir via `--league.state_path experiments/league/<tag>/league_state.json
 --league.opponent_dir experiments/league/<tag>/opponents` (REQUIRED to avoid cross-run pollution).
+NOTE 2: league candidates are only considered every train.checkpoint_interval epochs (250 in the
+baseline → first opponent at ~epoch 250 ≈ 5.8M steps; pure self-play before that). For 15M-step
+ablation arms add `--train.checkpoint_interval 100` so the league actually matters
+(~6 candidates/run); league-off arms unaffected.
 
 Run protocol: short runs 30-50M steps (~3-4h) for triage on 2 seeds where feasible; promote
 winners to ≥100M confirmation; decision metrics (in priority order):
