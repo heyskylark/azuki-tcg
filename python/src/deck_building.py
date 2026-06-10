@@ -440,9 +440,12 @@ class DeckBuildingParallelEnv(ParallelEnv):
     deck_pool: NativeDeckPool,
     seed: int | None = None,
     catalog: DeckBuildCatalog | None = None,
+    fixed_deck_seats: tuple[int, ...] = (),
   ) -> None:
     super().__init__()
     self.env = env
+    self._deck_pool = tuple(deck_pool)
+    self._fixed_deck_seats = tuple(sorted(set(int(seat) for seat in fixed_deck_seats)))
     self.render_mode = getattr(env, "render_mode", "ansi")
     self.possible_agents = list(env.possible_agents)
     self.agents = self.possible_agents[:]
@@ -515,6 +518,43 @@ class DeckBuildingParallelEnv(ParallelEnv):
     population = self._catalog.gate_def_id_population
     index = int(self._rng.integers(0, len(population)))
     return int(population[index])
+
+  def _fixed_state_from_deck(self, deck: NativeDeck) -> PlayerDeckBuildState:
+    records_by_code = self._catalog.records_by_code
+    gate_def_id = -1
+    leader_def_id = -1
+    main_ids: list[int] = []
+    for card_code, quantity in deck:
+      record = records_by_code.get(card_code)
+      if record is None:
+        raise ValueError(f"Fixed deck card '{card_code}' missing from policy card metadata")
+      if record.card_type == GATE_CARD_TYPE:
+        gate_def_id = record.card_def_id
+      elif record.card_type == LEADER_CARD_TYPE:
+        leader_def_id = record.card_def_id
+      elif record.card_type in MAIN_CARD_TYPES:
+        main_ids.extend([record.card_def_id] * int(quantity))
+    if gate_def_id < 0 or leader_def_id < 0 or len(main_ids) != MAX_DECK_SIZE:
+      raise ValueError(
+        f"Fixed deck must contain gate, leader, and {MAX_DECK_SIZE} main cards "
+        f"(got gate={gate_def_id}, leader={leader_def_id}, main={len(main_ids)})"
+      )
+    state = PlayerDeckBuildState.create(gate_def_id)
+    state.leader_card_def_id = int(leader_def_id)
+    for index, card_def_id in enumerate(main_ids):
+      state.main_card_def_ids[index] = int(card_def_id)
+    state.main_count = len(main_ids)
+    return state
+
+  def _initial_states(self) -> list[PlayerDeckBuildState]:
+    states: list[PlayerDeckBuildState] = []
+    for player_index in range(self._agent_count):
+      if player_index in self._fixed_deck_seats:
+        deck_index = int(self._rng.integers(0, len(self._deck_pool)))
+        states.append(self._fixed_state_from_deck(self._deck_pool[deck_index]))
+      else:
+        states.append(PlayerDeckBuildState.create(self._sample_gate_def_id()))
+    return states
 
   def _gate_element(self, state: PlayerDeckBuildState) -> str:
     gate = self._catalog.records_by_def_id.get(state.gate_card_def_id)
@@ -619,10 +659,7 @@ class DeckBuildingParallelEnv(ParallelEnv):
       seed = int(self._rng.integers(0, 2**31 - 1))
     self._episode_seed = int(seed)
     self._rng = np.random.default_rng(self._episode_seed)
-    self._states = [
-      PlayerDeckBuildState.create(self._sample_gate_def_id())
-      for _ in self.possible_agents
-    ]
+    self._states = self._initial_states()
     self._building = True
     self._active_player_index = 0
     self.agents = self.possible_agents[:]
@@ -630,6 +667,12 @@ class DeckBuildingParallelEnv(ParallelEnv):
     self.terminations = {agent: False for agent in self.possible_agents}
     self.truncations = {agent: False for agent in self.possible_agents}
     self.infos = {agent: {} for agent in self.possible_agents}
+    if all(state.is_complete for state in self._states):
+      return self._start_battle(), self.infos
+    if self._states[self._active_player_index].is_complete:
+      battle_observations = self._advance_active_builder()
+      if battle_observations is not None:
+        return battle_observations, self.infos
     return self._building_observations(), self.infos
 
   def _deck_spec_for_player(self, player_index: int) -> NativeDeck:

@@ -203,6 +203,15 @@ def make_azuki_env(*, seed: int | None = None, buf=None, **env_kwargs):
   env_kwargs.pop("native_log_interval", None)
   direct_parallel = bool(env_kwargs.pop("direct_parallel", False))
   deck_building_enabled = bool(env_kwargs.pop("deck_building_enabled", False))
+  fixed_seats_raw = env_kwargs.pop("deck_building_fixed_seats", None)
+  if fixed_seats_raw is None or fixed_seats_raw == "":
+    fixed_deck_seats: tuple[int, ...] = ()
+  elif isinstance(fixed_seats_raw, int):
+    fixed_deck_seats = (int(fixed_seats_raw),)
+  elif isinstance(fixed_seats_raw, (list, tuple)):
+    fixed_deck_seats = tuple(int(seat) for seat in fixed_seats_raw)
+  else:
+    fixed_deck_seats = tuple(int(part) for part in str(fixed_seats_raw).split(",") if part.strip())
   deck_pool = env_kwargs.pop("deck_pool", None)
   deck_pool_path = env_kwargs.pop("deck_pool_path", None)
   if native:
@@ -217,7 +226,9 @@ def make_azuki_env(*, seed: int | None = None, buf=None, **env_kwargs):
     deck_pool = load_training_deck_pool(deck_pool_path)
   if deck_building_enabled:
     env = AzukiTCGParallel(seed=seed, deck_pool=deck_pool)
-    env = DeckBuildingParallelEnv(env, deck_pool=deck_pool, seed=seed)
+    env = DeckBuildingParallelEnv(
+      env, deck_pool=deck_pool, seed=seed, fixed_deck_seats=fixed_deck_seats
+    )
     env = MultiagentEpisodeStats(env)
     env = emulation.PettingZooPufferEnv(env, buf=buf, seed=seed)
     return env
