@@ -223,6 +223,25 @@ total), gather 56-dim rows per slot. Exactly equivalent math (per-card function 
 verified bit-equal over full vocab on CPU. ~27× less gather memory per zone. Also fixed py3.14
 argparse '%' crash in train.py help string.
 
+### Ablation launch commands (fire after baseline analysis; ~15M steps ≈ 7h each at ~590 SPS)
+All use `scripts/launch_deckbuild_run.sh TAG STEPS [args...]` (detached; snapshots+jsonl auto).
+One at a time (single GPU). Baseline branch unless noted.
+- A-GAMMA:    `./scripts/launch_deckbuild_run.sh abl-gamma1 15000000 --train.gamma 1.0 --train.gae_lambda 0.97`
+- A-REUSE-2:  (reverse ablation; confirms ue1 was safe) `... abl-ue2 15000000 --train.update_epochs 2`
+- A-LEAGUE-0: `./scripts/launch_deckbuild_run.sh abl-league0 15000000 --league.frozen_ratio 0.0`
+- A-LEAGUE-25:`./scripts/launch_deckbuild_run.sh abl-league25 15000000 --league.frozen_ratio 0.25`
+- A-PRIVCRITIC: `./scripts/launch_deckbuild_run.sh abl-privcritic 15000000 --policy.privileged_critic_enabled true`
+- A-ENTDECK (branch ablation/entdeck-pick-eps, run from worktree w/ its own build):
+  `... abl-pickeps05 15000000 --policy.deck_pick_smoothing_eps 0.05`
+  `... abl-pickeps15 15000000 --policy.deck_pick_smoothing_eps 0.15`
+- A-SIZE: needs LSTM_HIDDEN_SIZE config knob (branch ablation/model-size, todo) — 2048 and 1024 arms.
+- A-SHAPANNEAL: env AZK_REWARD_SHAPING_ANNEAL=1 variant (edit launcher env or add passthrough).
+Comparison: compare_runs.py runlogs + analyze_decks.py snapshots + draft_vs_reference_eval on
+final checkpoints; same seed (42) for all arms; deckbuild metrics at matched step counts.
+NOTE: league state_path/opponent_dir are SHARED in the config — give each ablation its own
+league dir via `--league.state_path experiments/league/<tag>/league_state.json
+--league.opponent_dir experiments/league/<tag>/opponents` (REQUIRED to avoid cross-run pollution).
+
 Run protocol: short runs 30-50M steps (~3-4h) for triage on 2 seeds where feasible; promote
 winners to ≥100M confirmation; decision metrics (in priority order):
 1. deckbuild_result winrate trends per gate + overall win0_abs_delta (vs frozen league),
