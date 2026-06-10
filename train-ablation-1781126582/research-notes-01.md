@@ -197,7 +197,23 @@ torch.compile (fuses small ops — the right fix for launch-bound encoders).
 - compile max-autotune-no-cudagraphs: >12 min compiling without finishing an epoch → killed.
   Also would recompile per distinct max-legal-count shape → added power-of-two bucketing to
   `_trim_active_legal_action_candidates` (≤6 shape variants; masking already per-row by count;
-  CPU forward sanity-checked). Retesting compile with mode=default + bucketing.
+  CPU forward sanity-checked).
+- compile mode=default + bucketing: **inductor CUDA OOM during compile** + RecursionError →
+  compile shelved. Future work: compile only the zone-encoder subgraph, or smaller minibatch
+  during compile warmup.
+- vec.batch_size 240 (3 async sub-batches): 722 SPS (+4%). Adopted.
+- **Final recipe: 332 → 722 SPS (2.2×)**: update_epochs=1 + vec async 240 + text-table precompute
+  (the latter also unblocked memory). Config updated (azuki_deckbuild_3090.ini).
+
+### 2026-06-10 ~16:00 — BASELINE LAUNCHED
+`base-deckbuild-01`: 60M steps (~23h @ 722 SPS), league fresh (deckbuild_v1), snapshots every
+25th episode → experiments/abl_snapshots/base-deckbuild-01, runlog
+experiments/runlogs/base-deckbuild-01_178113228610.jsonl, detached pid (setsid), watchdog armed.
+Mid-run analyses planned at ~15M (~6h) and ~30M (~12h): analyze_decks buckets, compare_runs,
+draft_vs_reference_eval (CPU, small N during training).
+RULE while baseline runs: no branch switches or rebuilds in THIS working tree (workers may
+respawn and would import changed code / stale binding). Ablation code prep happens in a separate
+git worktree.
 
 ### Memory/speed optimization (2026-06-10, required to even run deck building)
 Deck-context obs (30 deck slots + 80 candidates/row) OOM'd the 3090 at minibatch 8192: the policy
