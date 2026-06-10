@@ -1633,6 +1633,20 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
 
     install_tcg_sampler()
 
+    static_policy_cfg = trainer_args.get("policy")
+    if isinstance(static_policy_cfg, dict):
+        static_pick_eps = _coerce_float(static_policy_cfg.get("deck_pick_smoothing_eps"))
+        static_row_temp = _coerce_float(static_policy_cfg.get("legal_row_temperature"))
+        if static_pick_eps is not None or static_row_temp is not None:
+            tcg_sampler.set_sampling_params(
+                deck_pick_smoothing_eps=static_pick_eps,
+                legal_row_temperature=static_row_temp,
+            )
+            print(
+                "[sampler] legal-row overrides: "
+                f"deck_pick_smoothing_eps={static_pick_eps}, legal_row_temperature={static_row_temp}"
+            )
+
     resume_checkpoint = script_args.resume_checkpoint
     if resume_checkpoint is None:
         fallback_resume = trainer_args.get("load_model_path")

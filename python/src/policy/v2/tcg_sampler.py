@@ -18,9 +18,14 @@ LOG_EPS = 1e-8
 DEFAULT_PRIMARY_TEMPERATURE = 1.0
 DEFAULT_SUBACTION_TEMPERATURE = 1.2
 DEFAULT_SMOOTHING_EPS = 0.05
+DEFAULT_LEGAL_ROW_TEMPERATURE = 1.0
+DEFAULT_DECK_PICK_SMOOTHING_EPS = 0.0
+DECK_PICK_PRIMARY = 3  # ActionType.DECK_PICK_CARD
 _RUNTIME_PRIMARY_TEMPERATURE = DEFAULT_PRIMARY_TEMPERATURE
 _RUNTIME_SUBACTION_TEMPERATURE = DEFAULT_SUBACTION_TEMPERATURE
 _RUNTIME_SMOOTHING_EPS = DEFAULT_SMOOTHING_EPS
+_RUNTIME_LEGAL_ROW_TEMPERATURE = DEFAULT_LEGAL_ROW_TEMPERATURE
+_RUNTIME_DECK_PICK_SMOOTHING_EPS = DEFAULT_DECK_PICK_SMOOTHING_EPS
 _FALLBACK_SAMPLE_LOGITS: Callable | None = None
 
 def set_fallback_sampler(func: Callable) -> None:
@@ -34,11 +39,15 @@ def set_sampling_params(
     primary_temperature: float | None = None,
     subaction_temperature: float | None = None,
     smoothing_eps: float | None = None,
+    legal_row_temperature: float | None = None,
+    deck_pick_smoothing_eps: float | None = None,
 ) -> None:
     """Update runtime sampling params used by the custom Azuki sampler."""
     global _RUNTIME_PRIMARY_TEMPERATURE
     global _RUNTIME_SUBACTION_TEMPERATURE
     global _RUNTIME_SMOOTHING_EPS
+    global _RUNTIME_LEGAL_ROW_TEMPERATURE
+    global _RUNTIME_DECK_PICK_SMOOTHING_EPS
 
     if primary_temperature is not None:
         _RUNTIME_PRIMARY_TEMPERATURE = max(float(primary_temperature), 1e-6)
@@ -46,6 +55,10 @@ def set_sampling_params(
         _RUNTIME_SUBACTION_TEMPERATURE = max(float(subaction_temperature), 1e-6)
     if smoothing_eps is not None:
         _RUNTIME_SMOOTHING_EPS = min(max(float(smoothing_eps), 0.0), 1.0)
+    if legal_row_temperature is not None:
+        _RUNTIME_LEGAL_ROW_TEMPERATURE = max(float(legal_row_temperature), 1e-6)
+    if deck_pick_smoothing_eps is not None:
+        _RUNTIME_DECK_PICK_SMOOTHING_EPS = min(max(float(deck_pick_smoothing_eps), 0.0), 1.0)
 
 
 def get_sampling_params() -> dict[str, float]:
@@ -53,6 +66,8 @@ def get_sampling_params() -> dict[str, float]:
         "primary_temperature": float(_RUNTIME_PRIMARY_TEMPERATURE),
         "subaction_temperature": float(_RUNTIME_SUBACTION_TEMPERATURE),
         "smoothing_eps": float(_RUNTIME_SMOOTHING_EPS),
+        "legal_row_temperature": float(_RUNTIME_LEGAL_ROW_TEMPERATURE),
+        "deck_pick_smoothing_eps": float(_RUNTIME_DECK_PICK_SMOOTHING_EPS),
     }
 
 
@@ -208,7 +223,20 @@ def _sample_legal_action_rows(
     row_mask = _ensure_valid_mask(row_mask)
 
     masked_logits = distribution.legal_action_logits.masked_fill(~row_mask, MASK_MIN_VALUE)
+    if _RUNTIME_LEGAL_ROW_TEMPERATURE != 1.0:
+        masked_logits = masked_logits / _RUNTIME_LEGAL_ROW_TEMPERATURE
     probs = torch.softmax(masked_logits, dim=-1)
+    if _RUNTIME_DECK_PICK_SMOOTHING_EPS > 0.0:
+        # Deck-build rows are homogeneous: every legal row is DECK_PICK_CARD.
+        legal_rows = row_mask.to(dtype=probs.dtype)
+        legal_count = legal_rows.sum(dim=-1, keepdim=True).clamp(min=1.0)
+        uniform = legal_rows / legal_count
+        is_pick_row = (
+            distribution.legal_actions[:, 0, 0].to(device=device, dtype=torch.long)
+            == DECK_PICK_PRIMARY
+        ).to(dtype=probs.dtype).unsqueeze(-1)
+        eps = _RUNTIME_DECK_PICK_SMOOTHING_EPS * is_pick_row
+        probs = (1.0 - eps) * probs + eps * uniform
     log_probs = torch.log(probs + LOG_EPS)
     entropy = -(probs * log_probs).sum(dim=-1)
 
