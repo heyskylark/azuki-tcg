@@ -395,6 +395,13 @@ type-share differences are partly AVAILABILITY, not strategy. Methodology rules:
   Memory model: base ~13GB + 0.8GB/opponent + bucket spike ~2.8GB@mb2048 → safe through
   pool ≈ 5-6 (30M stop point), OOM-bound near pool 9. LESSON for ablations: mb2048 + small pools.
 
+- OOM #3 root cause was NOT the learn minibatch: `_rollout_health_snapshot` (resume-only
+  diagnostic) forwarded the ENTIRE 23040-row rollout in one pass → [23040,1024,64] deck-candidate
+  tensor = 5.62GiB. Fixed by chunking (dim-0 aware for BPTT layout); fingerprints of saved
+  checkpoints patched with the new train.py hash (conscious certification, documented here).
+- RESUMED from ep750 (~16.2M, pool=3 reloaded) at mb2048: probe passes (entropy 1.64), memory
+  10.2GB post-probe, SPS ~300. 30M stop ≈ 13h away. A bonus ep750 checkpoint existed pre-crash.
+
 **Draft-vs-reference eval @ checkpoint ep500 (11.5M): drafter wins 45.8%** (48 eps seat-fair,
 0 timeouts; same policy both seats → isolates deck quality). Drafted decks ≈ reference parity
 (point estimate slightly under; N small). Track at every checkpoint — the slope is the metric.
