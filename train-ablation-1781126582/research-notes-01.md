@@ -278,6 +278,13 @@ NOTE 2: league candidates are only considered every train.checkpoint_interval ep
 baseline → first opponent at ~epoch 250 ≈ 5.8M steps; pure self-play before that). For 15M-step
 ablation arms add `--train.checkpoint_interval 100` so the league actually matters
 (~6 candidates/run); league-off arms unaffected.
+NOTE 3 (memory ceiling): every league pool entry is loaded as a FULL GPU model (~0.8GB each;
+measured 15.2GB@pool0 → 16.8GB@pool2). keep totals 6+4+3=13 → projected OOM near pool 9
+(~50M steps). Baseline stops at ~30M (pool ~5, ~19GB — safe). Ablation arms use small pools:
+`--league.keep_recent 2 --league.keep_mid 1 --league.keep_old 1`. FUTURE WORK: hold opponents on
+CPU, move only batch-assigned ones to GPU.
+SPS by pool size (league cost): 515 (pool 0) → 400 (pool 1) → 353 (pool 2) — frozen forwards
+fragment into small per-policy batches; expect ~330 steady. 30M ETA ≈ tomorrow morning.
 
 Run protocol: short runs 30-50M steps (~3-4h) for triage on 2 seeds where feasible; promote
 winners to ≥100M confirmation; decision metrics (in priority order):
