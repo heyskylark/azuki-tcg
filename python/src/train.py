@@ -1423,17 +1423,31 @@ def _rollout_health_snapshot(trainer) -> dict[str, float]:
     if not bool(trainer.config.get("use_rnn", False)):
         mb_obs = mb_obs.reshape(-1, *trainer.vecenv.single_observation_space.shape)
 
-    state = dict(action=mb_actions, lstm_h=None, lstm_c=None)
     amp_context = getattr(trainer, "amp_context", None)
     if amp_context is None:
         amp_context = contextlib.nullcontext()
 
+    # Forward in slices: a full-batch pass materializes [batch, 1024, 64]
+    # deck-candidate tensors (>5GB at batch 23040) and OOMs on resume.
+    # Dim 0 is segments under use_rnn (xTT rows each), flat rows otherwise.
+    bptt = max(1, int(trainer.config.get("bptt_horizon", 1)))
+    chunk = 2048 if not bool(trainer.config.get("use_rnn", False)) else max(1, 2048 // bptt)
+    entropy_sum = 0.0
+    entropy_count = 0
     with torch.no_grad(), amp_context:
-        logits, _ = trainer.policy(mb_obs, state)
-        _, _, entropy = azk_pytorch.sample_logits(logits, action=mb_actions)
+        for start in range(0, mb_obs.shape[0], chunk):
+            obs_chunk = mb_obs[start : start + chunk]
+            action_chunk = mb_actions[start : start + chunk]
+            state = dict(action=action_chunk, lstm_h=None, lstm_c=None)
+            logits, _ = trainer.policy(obs_chunk, state)
+            _, _, entropy = azk_pytorch.sample_logits(
+                logits, action=action_chunk.reshape(-1, action_chunk.shape[-1])
+            )
+            entropy_sum += float(entropy.sum().item())
+            entropy_count += int(entropy.numel())
 
     return {
-        "entropy": float(entropy.mean().item()),
+        "entropy": entropy_sum / max(entropy_count, 1),
         "noop_selected_rate": noop_selected_rate,
     }
 
