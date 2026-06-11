@@ -381,6 +381,20 @@ type-share differences are partly AVAILABILITY, not strategy. Methodology rules:
   Devotion .405. Rushfire collapsed .45→.28 (the meta now beats it; its Zero-leader pivot may be
   a compensation attempt).
 - Lightning weapon share .10-.11 ≈ prior .13 (still availability-level, NOT yet weapon-leaning).
+### 2026-06-11 ~03:00 — crash #2 (league eval) and OOM #3, resumed from ep500
+- Crash #2: first REAL league eval crashed training. `league_eval._unwrap_base_env` walked past
+  the deck wrapper to the battle env → stale `_active_player_index` during drafts → zeros sent
+  to the drafting seat → DeckBuildingParallelEnv ValueError → trainer died (hung shell).
+  evaluate_checkpoint.py had the sibling bug (stats wrapper forwards the marker but blocks
+  underscore attrs → always seat 0). Both fixed (neither file is resume-fingerprinted);
+  inline evaluator now verified over full draft episodes. Training rollouts were unaffected —
+  only eval/promotion was broken; explains why no promotion ever happened.
+- OOM #3 on resume: the MATURE ep500 policy immediately produces >512-legal-action states →
+  whole minibatch pads to the 1024-candidate bucket (4096×1024×310×4B ≈ 5.6GB spike) + 1.6GB
+  league opponents resident. Fix: --train.minibatch_size 2048 (CLI; not fingerprinted).
+  Memory model: base ~13GB + 0.8GB/opponent + bucket spike ~2.8GB@mb2048 → safe through
+  pool ≈ 5-6 (30M stop point), OOM-bound near pool 9. LESSON for ablations: mb2048 + small pools.
+
 **Draft-vs-reference eval @ checkpoint ep500 (11.5M): drafter wins 45.8%** (48 eps seat-fair,
 0 timeouts; same policy both seats → isolates deck quality). Drafted decks ≈ reference parity
 (point estimate slightly under; N small). Track at every checkpoint — the slope is the metric.
