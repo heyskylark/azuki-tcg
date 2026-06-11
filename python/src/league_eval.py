@@ -12,6 +12,11 @@ def _unwrap_base_env(env):
   current = getattr(env, "env", env)
   seen = set()
   while hasattr(current, "env"):
+    # Stop at the deck-building wrapper (class attr — wrapper __getattr__
+    # forwarding blocks underscore attrs like _active_player_index, and the
+    # battle env below it holds a STALE active player during the draft phase).
+    if getattr(type(current), "is_deck_building_wrapper", False):
+      break
     nxt = getattr(current, "env")
     if nxt is current or nxt in seen:
       break

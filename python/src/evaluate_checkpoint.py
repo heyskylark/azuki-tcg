@@ -101,7 +101,11 @@ def _unwrap_base_env(env):
   current = getattr(env, "env", env)
   seen = set()
   while hasattr(current, "env"):
-    if getattr(current, "is_deck_building_wrapper", False):
+    # Check the CLASS attribute: wrapper __getattr__ forwarding (e.g.
+    # MultiagentEpisodeStats) satisfies the marker one level early, but blocks
+    # underscore attrs like _active_player_index, so we must reach the actual
+    # wrapper instance.
+    if getattr(type(current), "is_deck_building_wrapper", False):
       break
     nxt = getattr(current, "env")
     if nxt is current or nxt in seen:
