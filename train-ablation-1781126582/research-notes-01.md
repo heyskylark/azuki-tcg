@@ -328,6 +328,18 @@ type-share differences are partly AVAILABILITY, not strategy. Methodology rules:
    Devotion vs Stonehaven (E). Any composition gap there is pure strategy.
 3. Same logic for leaders within an element (2 leaders share the gate's pool).
 
+## 3.7 Baseline v2 early dynamics (live observations)
+- 1.5M steps: quad_count spiked 0.36→1.16 (early pick fixation) then COLLAPSED to 0.08 by 2.9M;
+  unique rose to 39.6 (more spread than random's 37). Early stacking was transient value-noise.
+- 2.9M: episode_length 69 ticks, 100% winner terminals, 0 truncations, attack_rate 0.33 —
+  short, aggressive, decisive games.
+- **WATCH ITEM: gate_portal_selected_rate ≈ 0.004 at 2.9M** — the model barely uses the gate,
+  i.e. the archetype-defining mechanic almost never fires. If this persists, per-gate deck
+  differentiation has no gradient path (gate effects unseen → no reason to draft around them).
+  Candidate interventions if it stays ~0 by ~20M: portal-specific exploration bonus, shaped
+  reward for first portal/turn, or verifying portal legality isn't overly restrictive early
+  (needs alley entity + untapped gate).
+
 ## 4. Key questions to answer
 - Does the model build legal-but-coherent decks (curve, type mix) per gate, or collapse to one deck?
 - Do per-gate compositions diverge (weapons for LIGHTNING, spells for Echoed Waves, etc.)?
