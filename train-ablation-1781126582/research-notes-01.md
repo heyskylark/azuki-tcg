@@ -361,6 +361,27 @@ type-share differences are partly AVAILABILITY, not strategy. Methodology rules:
   (c1 weapon) + Raizan; Devotion concentrated Lone Journeyman x1.44; Stonehaven runs big bodies
   (Sandcoil Python c8, Rock Sloth c6) consistent with EARTH's expensive pool.
 
+## 3.8 MID-RUN ANALYSIS @ ~14M steps (2160 snapshot episodes, 5 buckets; CSV in results/)
+**Meta oscillation with a near-death of the differentiating mechanics, then recovery:**
+- portal_rate: .09 (b1) → .05 (b2) → **.002 (b3!)** → recovering → .06-.08 (b5)
+- SPELL share: .20 → .13 → **.04 (b3)** → .14-.20 (b5); weapons dipped similarly, recovered
+- bucket 3 was an entity-only aggro collapse (ENTITY .88-.94, eplen ~70, jaccard .35); league
+  activation (pool 1→2) coincides with the recovery — consistent with frozen opponents punishing
+  one-trick metas. The earlier 0.004 portal reading was this collapse, not an artifact.
+- LIKELY REWARD BIAS: shaping rewards garden attack + untapped counts → entity flooding is
+  locally optimal; spells/weapons/portals add no immediate shaped potential. Raises priority of
+  A-SHAPANNEAL and A-GAMMA (let terminal signal compete with shaping).
+**First genuine archetype signals (bucket 5, ~12-14M):**
+- Leader preferences: Rushfire→Zero 111:24 (self-damage combo leader), Devotion→Bobu 58:26;
+  other gates ~50/50. Per-gate leader differentiation WITHOUT global collapse.
+- Devotion drafts a big-body curve: avg_cost 3.75 vs EARTH availability prior 3.20
+  (Osunanami c10 ×1.69/deck, Sandcoil Python c8, Rock Sloth c6) — strategy beyond availability.
+- Universal staple: AZK01-014 Trade Guild Cavalry (NORMAL c5) top pick in EVERY gate (1.4-2.0×).
+- Win spread widening: Stormchain .675, Hydromancy .628, Surge .608 vs Rushfire .281,
+  Devotion .405. Rushfire collapsed .45→.28 (the meta now beats it; its Zero-leader pivot may be
+  a compensation attempt).
+- Lightning weapon share .10-.11 ≈ prior .13 (still availability-level, NOT yet weapon-leaning).
+
 ## 4. Key questions to answer
 - Does the model build legal-but-coherent decks (curve, type mix) per gate, or collapse to one deck?
 - Do per-gate compositions diverge (weapons for LIGHTNING, spells for Echoed Waves, etc.)?
