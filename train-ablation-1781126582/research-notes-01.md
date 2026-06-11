@@ -333,12 +333,26 @@ type-share differences are partly AVAILABILITY, not strategy. Methodology rules:
   unique rose to 39.6 (more spread than random's 37). Early stacking was transient value-noise.
 - 2.9M: episode_length 69 ticks, 100% winner terminals, 0 truncations, attack_rate 0.33 —
   short, aggressive, decisive games.
-- **WATCH ITEM: gate_portal_selected_rate ≈ 0.004 at 2.9M** — the model barely uses the gate,
-  i.e. the archetype-defining mechanic almost never fires. If this persists, per-gate deck
-  differentiation has no gradient path (gate effects unseen → no reason to draft around them).
-  Candidate interventions if it stays ~0 by ~20M: portal-specific exploration bonus, shaped
-  reward for first portal/turn, or verifying portal legality isn't overly restrictive early
-  (needs alley entity + untapped gate).
+- ~~WATCH ITEM: gate_portal_selected_rate ≈ 0.004 at 2.9M~~ → DOWNGRADED: continuous snapshot
+  data shows portal_rate steady at 0.08-0.09 across all buckets; the 0.004 was a single logging
+  window artifact (or transient dip). Keep on the dashboard but not alarming.
+- Oscillating deck concentration in self-play (pool still empty): unique 37→39.6→22→33.5,
+  quads 0.36→1.16→0.08→3.84→0.0 over 0→5.6M steps. Classic non-transitive draft-meta churn;
+  league activation (epoch 250+) should damp it. Seat winrate also swung (0.59 p0 → 0.38 p0).
+
+### First snapshot analysis (720 episodes, ≈0→5.5M steps, 3 buckets)
+- **Type shares ≈ availability priors everywhere** (L weapons .13-.14 ≈ prior .13; W spells
+  .24-.25 ≈ prior .24): no strategy-driven composition yet. Same-element L1 divergence 0.108 →
+  0.092 (availability-dominated); cross-element ~0.42.
+- **Win ordering emerging** (vs mixed opponents): Lightning gates lead (Surge .58-.61,
+  Stormchain .53-.63); Hydromancy lags (.43); Ragefire weakest early (.36→.45 recovering).
+- **Leader splits healthy ~50/50 within every gate** — no leader collapse (ByteRL warning not
+  manifesting at this stage).
+- **Episode lengths growing 84 → 109 → 137 ticks** across buckets: the opening all-aggression
+  meta is softening into longer games. attack_rate stays highest for Lightning gates (~0.26).
+- Early per-gate flavor in top cards despite similar aggregates: Surge tops = Lightning Shuriken
+  (c1 weapon) + Raizan; Devotion concentrated Lone Journeyman x1.44; Stonehaven runs big bodies
+  (Sandcoil Python c8, Rock Sloth c6) consistent with EARTH's expensive pool.
 
 ## 4. Key questions to answer
 - Does the model build legal-but-coherent decks (curve, type mix) per gate, or collapse to one deck?
