@@ -227,7 +227,18 @@ analysis for the baseline uses dump_checkpoint_decks.py on saved checkpoints ins
 methodology anyway: fixed-policy samples at fixed training stages). Snapshot plumbing for future
 runs goes through env config keys (deck_snapshot_dir/every) now.
 
-### 2026-06-10 ~16:00 — BASELINE LAUNCHED
+### 2026-06-10 ~18:20 — baseline v1 DIED at 1.04M steps (epoch ~46): CUDA OOM
+OOM during ROLLOUT eval-forward in `_gather_legal_action_refs` (768MB alloc, 23.1/23.6GB used):
+once play improved, some state exceeded 512 legal actions → candidate tensors jumped to the 1024
+bucket while steady-state allocation sat at ~22.4GB. The setsid wrapper shell kept the tag alive
+so the pgrep-based watchdog missed the death (log stalled 1h). No checkpoint yet (interval 250).
+FIXES: (1) train.minibatch_size 4096 (halves learn activation peak; probe showed no SPS cost);
+(2) relaunched as base-deckbuild-02 (fresh league dir, runlog ..._178113787430.jsonl) — this run
+also gets deck snapshots (env-config plumbing fixed); (3) watchdog now alerts on runlog
+staleness >12 min instead of pgrep. LESSON for all runs: legal-action-count growth couples play
+complexity to memory; keep ≥1.5GB headroom.
+
+### 2026-06-10 ~16:00 — BASELINE LAUNCHED (v1, superseded by v2 above)
 `base-deckbuild-01`: 60M steps (~23h @ 722 SPS), league fresh (deckbuild_v1), snapshots every
 25th episode → experiments/abl_snapshots/base-deckbuild-01, runlog
 experiments/runlogs/base-deckbuild-01_178113228610.jsonl, detached pid (setsid), watchdog armed.
