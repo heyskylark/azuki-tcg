@@ -381,6 +381,10 @@ type-share differences are partly AVAILABILITY, not strategy. Methodology rules:
   Devotion .405. Rushfire collapsed .45→.28 (the meta now beats it; its Zero-leader pivot may be
   a compensation attempt).
 - Lightning weapon share .10-.11 ≈ prior .13 (still availability-level, NOT yet weapon-leaning).
+**Draft-vs-reference eval @ checkpoint ep500 (11.5M): drafter wins 45.8%** (48 eps seat-fair,
+0 timeouts; same policy both seats → isolates deck quality). Drafted decks ≈ reference parity
+(point estimate slightly under; N small). Track at every checkpoint — the slope is the metric.
+Results JSON: results/bdv2_draftref_ep500.json.
 
 ## 4. Key questions to answer
 - Does the model build legal-but-coherent decks (curve, type mix) per gate, or collapse to one deck?
