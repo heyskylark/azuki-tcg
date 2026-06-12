@@ -426,6 +426,10 @@ Checkpoints: 250/500/750 (run dir ..._178113787430) + 1000/1250/1500 (..._178117
    at pool 5 but gentler (unique oscillation 30.6-38.5 vs 22-40 pre-league).
 6. Leader splits: mostly ~55/45 balanced at the end; the mid-run Rushfire→Zero 82% preference
    RELAXED back to 61/39 — leader specialization was itself a meta phase.
+**Draft-vs-reference TRAJECTORY: 45.8% @11.5M → 40.6% @31.7M (96 eps)** — drafted decks got
+WORSE against human reference decks as self-play progressed. Self-play overfitting signature:
+the cheap-aggro attractor wins internally but loses to balanced human curves. "Train longer"
+is NOT the fix; credit/exploration structure is.
 Verdict: the model clearly LEARNED to draft (staples, copy concentration, cost discipline,
 win-correlated choices) but converged to a low-diversity tempo meta where gate identity barely
 matters — consistent with shaped-reward bias toward board-attack tempo (garden-attack potential)
