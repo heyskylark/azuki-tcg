@@ -407,6 +407,32 @@ type-share differences are partly AVAILABILITY, not strategy. Methodology rules:
 (point estimate slightly under; N small). Track at every checkpoint — the slope is the metric.
 Results JSON: results/bdv2_draftref_ep500.json.
 
+## 3.9 BASELINE COMPLETE — base-deckbuild-02 stopped at ~31.7M (epoch 1500, 2026-06-11)
+Checkpoints: 250/500/750 (run dir ..._178113787430) + 1000/1250/1500 (..._178117983197).
+4,324 snapshot episodes; final-bucket (≈28-32M) findings:
+1. **Cheap-aggro attractor won.** avg_cost 2.27-2.36 in EVERY gate (mid-run Devotion's 3.75
+   big-body identity died → 2.33). Alley Thug (c1) staple ×2.4-3.0 in all decks. attack_rate
+   .27-.34, eplen 71-89, jaccard ~.32 (concentrated decks).
+2. **Weapons extinct** (.01-.06 share vs .13 Lightning availability; weapon_rate ≤.02);
+   **portal usage fell to .031-.041** (from .09). Gate-defining mechanics largely unused
+   at convergence.
+3. **Spells survived above availability**: .24-.34 share (Water gates .32-.34 > .24 prior);
+   Thunderclap c5 a Surge staple. Spell_rate in play .026-.062.
+4. **Same-element divergence COLLAPSED to .057** (from .108 early) — the attractor erased most
+   gate-specific identity. Exception: FIRE gates keep the most distinct, element-loyal decks
+   (elem_share .46, Cinderwake Seer + Lady Emberheart staples).
+5. **Meta rotation in win rates**: early Lightning-dominant (Surge .58-.61) → late Fire-favored
+   (Rushfire .28 mid → .64 final; Hydromancy .63 mid → .38 final). Non-transitive churn persists
+   at pool 5 but gentler (unique oscillation 30.6-38.5 vs 22-40 pre-league).
+6. Leader splits: mostly ~55/45 balanced at the end; the mid-run Rushfire→Zero 82% preference
+   RELAXED back to 61/39 — leader specialization was itself a meta phase.
+Verdict: the model clearly LEARNED to draft (staples, copy concentration, cost discipline,
+win-correlated choices) but converged to a low-diversity tempo meta where gate identity barely
+matters — consistent with shaped-reward bias toward board-attack tempo (garden-attack potential)
+and weak terminal credit to picks (γ^250 ≈ .08). EXACTLY the failure modes A-GAMMA,
+A-SHAPANNEAL, and A-ENTDECK target. (Engine-comparability asterisk: ablations run on the
+fizzle-fixed engine.)
+
 ## 4. Key questions to answer
 - Does the model build legal-but-coherent decks (curve, type mix) per gate, or collapse to one deck?
 - Do per-gate compositions diverge (weapons for LIGHTNING, spells for Echoed Waves, etc.)?
