@@ -1,5 +1,24 @@
 # Azuki TCG — Deck-Building & Training Ablation Research Notes (Part 01)
 
+> ## LIVE STATE (update on every major transition)
+> As of 2026-06-11 ~19:30:
+> - BASELINE DONE: base-deckbuild-02, ~31.7M steps. Findings in §3.8/3.9. Checkpoints in
+>   experiments/azuki_local_base-deckbuild-02_178113787430 (250/500/750) and ..._178117983197
+>   (1000/1250/1500). Draft-vs-ref: 45.8%@11.5M → 40.6%@31.7M (self-play overfit).
+> - RUNNING: abl-gamma1 (A-GAMMA: gamma 1.0, gae_lambda 0.97, 12M steps, mb2048,
+>   checkpoint_interval 100, league pool max 4 in experiments/league/abl-gamma1) — detached;
+>   watchdog monitor active. Log: /tmp/train_abl-gamma1.log; runlog experiments/runlogs/abl-gamma1_*.
+> - RUNNING: detached stage dumps (ep250/750/1500 → experiments/stage_dumps/stage{250,750,1500},
+>   60 eps each; status /tmp/stage_dumps_status.log) for per-card archetype evolution.
+> - Engine: combat-fizzle + world_tests fix cherry-picked (a7eace8); build/ rebuilt; ALL C tests
+>   pass. Ablations run on this engine (baseline ran pre-fix — small comparability asterisk).
+> - NEXT after abl-gamma1: compare vs baseline at matched 11.5M (compare_runs.py + analyze_decks
+>   on abl snapshot dir + draft_vs_reference_eval @ checkpoint ~ep500-1150). Then A-ENTDECK
+>   (worktree branch ablation/entdeck-pick-eps at ../azuki-tcg-abl — needs its own build) or
+>   A-SHAPANNEAL (env AZK_REWARD_SHAPING_ANNEAL=1 via launcher env passthrough).
+> - Ablation queue + exact commands: §3 "Ablation launch commands". Decision metrics in §3 tail.
+> - world_tests fix also on branch ablation/entdeck-pick-eps (093b809; cherry-picked to main branch).
+
 Started: 2026-06-10. Machine: RTX 3090 (24GB), 128GB RAM, 24 cores.
 Branch: `skylark/model-deck-building` (ablations get their own branches off this one).
 Goal: (1) long training runs verifying model-driven deck building + combat improvement, tracked
