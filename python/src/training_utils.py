@@ -259,6 +259,20 @@ def build_vecenv(trainer_args: dict, *, backend=None, num_envs: int | None = Non
   if seed is not None:
     vec_kwargs["seed"] = seed
   chosen_backend = vec_kwargs.get("backend")
+  if isinstance(chosen_backend, str) and chosen_backend.lower() == "jax":
+    from azk_puffer.jax_vector import JaxVecEnv
+
+    if bool(env_kwargs.get("deck_building_enabled", False)):
+      raise ValueError("vec.backend=Jax supports battle-only training; set env.deck_building_enabled=false")
+    if env_kwargs.get("deck_pool") is not None:
+      deck_pool = env_kwargs["deck_pool"]
+    else:
+      deck_pool = load_training_deck_pool(env_kwargs.get("deck_pool_path"))
+    return JaxVecEnv(
+      num_envs=int(vec_kwargs.get("num_envs", 1)),
+      deck_pool=deck_pool,
+      seed=int(vec_kwargs.get("seed", 0) or 0),
+    )
   if isinstance(chosen_backend, str):
     backend_attr = getattr(azk_vector, chosen_backend, None)
     if backend_attr is not None:
