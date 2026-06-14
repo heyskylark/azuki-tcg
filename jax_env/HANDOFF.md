@@ -187,3 +187,13 @@ After all divergences close: full `pytest jax_env/tests/` green (esp. `test_l3_f
 - Recompiling the C engine while a verify run holds the old `.so` is **mmap-safe** (running process keeps its loaded copy); behavior is unchanged by the env-gated debug.
 - Eager (`jax.disable_jit`) is correctness-equivalent to jit but slow; use it to *find* divergences, the C-only replay to *explain* them, the jit full-suite to *gate* them.
 - Determinism: both the C engine RNG and the Python `default_rng` must be seeded identically for reproducibility.
+
+---
+
+## 10. Target hardware (resuming on an RTX 3090, 24 GB VRAM)
+
+- **System RAM matters more than VRAM for the verify loop.** The ~6 h `engine_step` compile is a single-thread **CPU** XLA-HLO pass whose working set hit **~43 GB of system RAM** (not VRAM). Make sure the 3090 box has **≥48–64 GB system RAM**, or you'll thrash/OOM during compile. **Shrinking the selection-mask bound (§6.1) cuts both compile time *and* compile RAM** — do it first; it's the single biggest unblock on a workstation.
+- **24 GB VRAM bounds batch size, not correctness.** Per-env state is tiny, but the batched rollout (`vec.num_envs` / PPO `batch_size`) plus the compiled executable's intermediate buffers must fit 24 GB. Start conservative (e.g. a few hundred envs) and scale up; the env itself is GPU-resident so throughput should still dwarf the C env.
+- Keep `XLA_PYTHON_CLIENT_PREALLOCATE=false` (already set in `run_verify_single.sh`) so JAX doesn't grab all 24 GB up front — important when the C engine/binding also runs in-process for the parity tests.
+- Compile *time* is GPU-independent (CPU-bound HLO), so a 3090 won't be slower to compile than the pod — but it also won't be faster. The mask-shrink is the only real lever.
+- Verify CUDA/jaxlib match the 3090 (Ampere, sm_86): install the `jax[cuda12]` wheel matching the box's CUDA, and run `scripts/wait_for_cuda.sh` semantics aren't needed off-docker. Eager debugging (`JAX_PLATFORMS=cpu`) needs no GPU at all.
