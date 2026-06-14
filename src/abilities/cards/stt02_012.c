@@ -1,5 +1,8 @@
 #include "abilities/cards/stt02_012.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "abilities/passive/passive_runtime.h"
 #include "components/abilities.h"
 #include "components/components.h"
@@ -155,6 +158,12 @@ static void stt02_012_check_and_update_buff(ecs_world_t *world,
   }
 
   int difference = player_count - opponent_count;
+
+  if (getenv("DBG_PASSIVE"))
+    fprintf(stderr, "[C012] ent%llu p%u removal=%d(player_side=%d) counts P=%d O=%d diff=%d -> %s\n",
+            (unsigned long long)card, owner_player_num, (int)is_removal_event,
+            (int)is_player_garden, player_count, opponent_count, difference,
+            difference >= STT02_012_GARDEN_THRESHOLD ? "APPLY+1/+1" : "remove");
 
   cli_render_logf("[STT02-012] Garden counts: player=%d, opponent=%d, diff=%d (threshold=%d)",
                   player_count, opponent_count, difference, STT02_012_GARDEN_THRESHOLD);

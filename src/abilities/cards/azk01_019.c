@@ -1,5 +1,8 @@
 #include "abilities/cards/azk01_019.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "abilities/passive/passive_runtime.h"
 #include "components/abilities.h"
 #include "components/components.h"
@@ -54,11 +57,19 @@ static void update_jay_buff(ecs_world_t *world, ecs_entity_t card,
   }
 
   if (!card_is_in_play(world, card, player_num)) {
+    if (getenv("DBG_PASSIVE"))
+      fprintf(stderr, "[Cjay] ent%llu NOT in play -> remove\n",
+              (unsigned long long)card);
     azk_queue_passive_buff_update(world, card, card, 0, 0, true);
     return;
   }
 
-  if (owner_garden_has_only_normal_entities(world, player_num)) {
+  bool all_normal = owner_garden_has_only_normal_entities(world, player_num);
+  if (getenv("DBG_PASSIVE"))
+    fprintf(stderr, "[Cjay] ent%llu p%u in_play all_normal=%d -> %s +0/+2\n",
+            (unsigned long long)card, player_num, (int)all_normal,
+            all_normal ? "APPLY" : "remove");
+  if (all_normal) {
     azk_queue_passive_buff_update(world, card, card, 0, 2, false);
   } else {
     azk_queue_passive_buff_update(world, card, card, 0, 0, true);
