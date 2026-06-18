@@ -38,6 +38,7 @@ _ENTER_CONFIRM = np.array([1, 0, 0, 0, 1], np.bool_)
 _TRANSFER = np.array([1, 0, 0, 0, 0], np.bool_)
 _CLAMP_EFFECT = np.array([1, 0, 1, 0, 1], np.bool_)
 _COSTS_BEFORE = np.array([1, 1, 0, 0, 1], np.bool_)
+_STT01_005_ID = cards.CODE_TO_ID["STT01-005"]
 
 
 def _np(table):
@@ -108,7 +109,11 @@ def collect_targets(state: State, def_id, scope_is_cost, owner):
   portal_slot = state.ab_scratch[1].astype(jnp.int32)
   portaled_in_garden = state.zone[owner, portaled] == Zone.GARDEN
   portal_case = (
-      is_fg & portal_active & ~portaled_in_garden & (k == portal_slot)
+      is_fg
+      & portal_active
+      & ~portaled_in_garden
+      & (k == portal_slot)
+      & (fg_inst < 0)
   )
   inst = jnp.where(portal_case, portaled, inst)
   player = jnp.where(portal_case, owner, player)
@@ -359,9 +364,21 @@ def _enter_initial_phase(state: State, def_id, owner, begin_kind, do) -> State:
   # single costs dispatch covers both the costs-before-effect-selection path
   # and the immediate-resolve path (entry always has costs_applied == False;
   # the two predicates are disjoint and immediate ignores `remaining`)
-  apply_now = to_effect_pre & costs_before
+  has_costs = jnp.where(
+      def_id >= 0, _np(cards_impl.HAS_APPLY_COSTS)[jnp.maximum(def_id, 0)], False
+  )
+  apply_now = to_effect_pre & costs_before & has_costs
+  remaining_before_costs = count_targets(state, def_id, jnp.bool_(False), owner)
   state = _apply_costs(state, apply_now | immediate)
-  remaining = count_targets(state, def_id, jnp.bool_(False), owner)
+  remaining_after_costs = count_targets(state, def_id, jnp.bool_(False), owner)
+  # C action systems run under flecs deferral, so STT01-005's sacrifice/draw
+  # cost is not visible to the "after costs" hand-target recount. If the hand
+  # was empty before activation, C resolves immediately; otherwise it enters
+  # effect selection using the pre-cost hand count.
+  use_pre_cost_remaining = apply_now & (def_id == _STT01_005_ID)
+  remaining = jnp.where(
+      use_pre_cost_remaining, remaining_before_costs, remaining_after_costs
+  )
   eff_max_table = jnp.where(
       def_id >= 0, _np(tables.EFFECT_MAX)[jnp.maximum(def_id, 0)], 0
   ).astype(jnp.int32)
@@ -393,17 +410,36 @@ def _enter_initial_phase(state: State, def_id, owner, begin_kind, do) -> State:
   return _where_state(finished, cleared, state)
 
 
-def _effect_max_allowed(state: State, def_id, owner, begin_kind):
+def _effect_max_allowed(
+    state: State, def_id, owner, begin_kind, available_override=None
+):
   eff_max = jnp.where(def_id >= 0, _np(tables.EFFECT_MAX)[jnp.maximum(def_id, 0)], 0)
   clamp = _np(_CLAMP_EFFECT)[begin_kind]
-  available = count_targets(state, def_id, jnp.bool_(False), owner)
+  counted_available = count_targets(state, def_id, jnp.bool_(False), owner)
+  if available_override is None:
+    available = counted_available
+  else:
+    # C gate-portal begin pre-counts targets with the scratch state before the
+    # deferred placement lands. If that count is zero it falls back to a fresh
+    # begin-time recount; otherwise it keeps the pre-placement count.
+    override = jnp.asarray(available_override, jnp.int32)
+    available = jnp.where(
+        (override == 0) & (eff_max > 0), counted_available, override
+    )
   eff_min = jnp.where(def_id >= 0, _np(tables.EFFECT_MIN)[jnp.maximum(def_id, 0)], 0)
   clamped = jnp.minimum(available, eff_max)
   clamped = jnp.maximum(clamped, eff_min)  # context-init keeps max >= min
   return jnp.where(clamp, clamped, eff_max)
 
 
-def begin_ability(state: State, owner, src_inst, begin_kind, do) -> State:
+def begin_ability(
+    state: State,
+    owner,
+    src_inst,
+    begin_kind,
+    do,
+    effect_available_override=None,
+) -> State:
   """azk_trigger_* + azk_begin_ability for an IMPLEMENTED card.
 
   Precondition checks done by callers (timing, frozen, once-per-turn, cost
@@ -445,7 +481,9 @@ def begin_ability(state: State, owner, src_inst, begin_kind, do) -> State:
   # azk_init_ability_target_state(effect): min_required = min(def min, def
   # max), max_allowed = def max (clamped to availability for the clamp begin
   # variants, raised back to min). Hooks (on_cost_paid) may override both.
-  eff_init_max = _effect_max_allowed(state, def_id, owner, begin_kind)
+  eff_init_max = _effect_max_allowed(
+      state, def_id, owner, begin_kind, effect_available_override
+  )
   eff_min_table = jnp.where(
       def_id >= 0, _np(tables.EFFECT_MIN)[jnp.maximum(def_id, 0)], 0
   ).astype(jnp.int32)

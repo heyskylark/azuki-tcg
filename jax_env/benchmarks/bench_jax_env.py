@@ -23,11 +23,10 @@ import numpy as np
 def main() -> None:
   from training_deck_pool import load_training_deck_pool
 
-  from azuki_jax.engine.step import stabilize
   from azuki_jax.env import init_state
   from azuki_jax.masks import build_mask
   from azuki_jax.setup import build_deck_pool_tables
-  from azuki_jax.step import step as env_step
+  from azuki_jax.step import step_with_legal_count as env_step
 
   pool_native = load_training_deck_pool(
       str(REPO / ".codex/docs/azuki_tcg_decks_final.json")
@@ -40,14 +39,15 @@ def main() -> None:
     action = legal[idx].astype(jnp.int32)
     actions = jnp.stack([action, action])
     state, rewards, terms, truncs = env_step(
-        state, actions, prev_term, prev_trunc, pool
+        state, actions, prev_term, prev_trunc, pool, count
     )
     return state, terms, truncs
 
   batched_step = jax.jit(jax.vmap(one_env_step))
-  batched_init = jax.jit(
-      jax.vmap(lambda seed: stabilize(init_state(seed, pool)))
-  )
+  # Fresh reset already lands at the first mulligan decision point. Keeping
+  # stabilize() out of the reset jit avoids compiling the full auto-resolve
+  # loop before the benchmarked step function.
+  batched_init = jax.jit(jax.vmap(lambda seed: init_state(seed, pool)))
 
   batch_sizes = [int(x) for x in (sys.argv[1:] or ["32", "128", "512", "2048"])]
   steps = 200

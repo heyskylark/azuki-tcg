@@ -35,7 +35,10 @@ import numpy as np
 from jax import lax
 
 from azk_puffer.emulation import dtype_from_space
-from observation import build_observation_space
+from observation import (
+    MAX_SELECTION_ZONE_SIZE as OBS_SELECTION_ZONE_SIZE,
+    build_observation_space,
+)
 
 from azuki_jax import cards
 from azuki_jax.constants import (
@@ -45,7 +48,6 @@ from azuki_jax.constants import (
     MAX_ATTACHED_WEAPONS,
     MAX_DECK_SIZE,
     MAX_HAND_SIZE,
-    MAX_SELECTION_ZONE_SIZE,
     NUM_INSTANCES,
     Phase,
     Zone,
@@ -258,7 +260,11 @@ def _selection_block(state: State, q: int, size: int):
 
   zone_inst, _ = _list_block(state, q, Zone.SELECTION, size)
   k = jnp.arange(size)
-  ctx_raw = state.ab_sel_cards[:size].astype(jnp.int32)
+  ctx_raw = jnp.full((size,), -1, jnp.int32)
+  ctx_limit = min(size, state.ab_sel_cards.shape[0])
+  ctx_raw = ctx_raw.at[:ctx_limit].set(
+      state.ab_sel_cards[:ctx_limit].astype(jnp.int32)
+  )
   ctx_inst = jnp.where(
       (k < state.ab_sel_count) & (ctx_raw >= 0), ctx_raw, -1
   )
@@ -360,7 +366,7 @@ def _player_view(state: State, q: int):
       "ikz_area": _ikz_area_block(state, q),
       "ikz_pile_count": zone_count(state.zone[q], Zone.IKZ_PILE).astype(jnp.uint8),
       "leader": _leader_block(state, q),
-      "selection": _selection_block(state, q, MAX_SELECTION_ZONE_SIZE),
+      "selection": _selection_block(state, q, OBS_SELECTION_ZONE_SIZE),
       "selection_count": _selection_count(state, q),
   }
 

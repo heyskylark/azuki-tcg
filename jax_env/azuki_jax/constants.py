@@ -17,7 +17,14 @@ IKZ_AREA_SIZE = 10
 MAX_ATTACHED_WEAPONS = 10
 INITIAL_DRAW_COUNT = 7
 MAX_ABILITY_SELECTION = 8
-MAX_SELECTION_ZONE_SIZE = MAX_DECK_SIZE
+# Mask/selection-zone enumeration bound. The C engine allows up to MAX_DECK_SIZE
+# (50), but the largest selection any production deck (training distribution) or
+# parity-suite crafted deck actually surfaces is 11 (probe_max_selection_all.py;
+# production-pool max is 8). Capping at 16 covers that with margin and keeps the
+# engine_step XLA compile tractable (50 → multi-hour, 43GB RAM). Raise toward 50
+# only if a deck legitimately surfaces a larger selection (would re-inflate the
+# compile). State arrays (ab_sel_cards) and the mask both use this bound.
+MAX_SELECTION_ZONE_SIZE = 16
 MAX_TIMED_TAG_GRANTS = 8
 REQUIRED_DECK_SIZE = 50
 REQUIRED_LEADER_SIZE = 1

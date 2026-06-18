@@ -78,28 +78,7 @@ def _recent_actions_array(history: dict[int, list[tuple[int, int, int, int]]]):
   return out
 
 
-def _strip_unported_leader_rows(obs_dict) -> None:
-  """Remove leader-activation rows (type 11, sub1 == 5) from the C mask:
-  leaders are not ported yet, so the JAX enumerator intentionally omits them
-  (same normalization as the batch tests' comparable())."""
-  am = obs_dict["action_mask"]
-  la = am["legal_actions"]
-  n = int(am["legal_action_count"])
-  prim, s1 = la["legal_primary"], la["legal_sub1"]
-  keep = [k for k in range(n) if not (prim[k] == 11 and s1[k] == 5)]
-  if len(keep) == n:
-    return
-  for key in ("legal_primary", "legal_sub1", "legal_sub2", "legal_sub3"):
-    arr = la[key]
-    kept = arr[keep].copy()
-    arr[:] = 0
-    arr[: len(kept)] = kept
-  am["legal_action_count"] = len(keep)
-  if not any(prim[k] == 11 for k in range(len(keep))):
-    am["primary_action_mask"][11] = False
-
-
-def _c_packed_pair(cref, strip_leader_rows=False) -> np.ndarray:
+def _c_packed_pair(cref) -> np.ndarray:
   """Reference bytes: observation_to_dict -> emulate, as in training."""
   from azk_puffer.emulation import emulate
   from observation import observation_to_dict
@@ -110,8 +89,6 @@ def _c_packed_pair(cref, strip_leader_rows=False) -> np.ndarray:
   struct = buf.view(STRUCT_DTYPE)
   for player in (0, 1):
     obs_dict = observation_to_dict(cref.raw(player))
-    if strip_leader_rows:
-      _strip_unported_leader_rows(obs_dict)
     emulate(struct[player], obs_dict)
   return buf
 
@@ -137,14 +114,10 @@ def _ability_deck():
 
 @pytest.mark.parametrize("seed", [11, 222])
 def test_packed_observation_ability_deck(seed, make_cref):
-  _run_byte_equality(
-      seed, make_cref, _ability_deck(), ABILITY_DRIVER_TYPES,
-      strip_leader_rows=True,
-  )
+  _run_byte_equality(seed, make_cref, _ability_deck(), ABILITY_DRIVER_TYPES)
 
 
-def _run_byte_equality(seed, make_cref, deck, driver_types,
-                       strip_leader_rows=False):
+def _run_byte_equality(seed, make_cref, deck, driver_types):
   import jax
   import jax.numpy as jnp
 
@@ -165,7 +138,7 @@ def _run_byte_equality(seed, make_cref, deck, driver_types,
   history: dict[int, list[tuple[int, int, int, int]]] = {0: [], 1: []}
   rng = np.random.default_rng(seed)
   for step_index in range(400):
-    c_pair = _c_packed_pair(cref, strip_leader_rows)
+    c_pair = _c_packed_pair(cref)
     packed_state = state._replace(
         recent_actions=jnp.asarray(_recent_actions_array(history))
     )
@@ -192,7 +165,7 @@ def _run_byte_equality(seed, make_cref, deck, driver_types,
     c_terminal, c_trunc = cref.dones()
     if c_terminal or c_trunc:
       # final (post-terminal) observation must also match byte-for-byte
-      c_pair = _c_packed_pair(cref, strip_leader_rows)
+      c_pair = _c_packed_pair(cref)
       packed_state = state._replace(
           recent_actions=jnp.asarray(_recent_actions_array(history))
       )

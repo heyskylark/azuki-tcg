@@ -509,16 +509,25 @@ def end_turn(state: State, do=True) -> State:
 
     state = tick_timed_grants(state, player, GRANT_PHASE_END, do)
 
-  # 4) discard ALL equipped weapons (garden slot order, alley, then leader —
-  # per player, ending player first)
+  # 4) discard ALL equipped weapons. C walks zones in this exact sequence:
+  # ending garden, ending alley, next garden, next alley, ending leader,
+  # next leader. Slot zones use flecs ordered-children order, which is
+  # board_seq in the JAX state, not board slot index.
+  for player, zone in (
+      (p, Zone.GARDEN),
+      (p, Zone.ALLEY),
+      (nxt, Zone.GARDEN),
+      (nxt, Zone.ALLEY),
+  ):
+    z = state.zone[player]
+    hosts = z == zone
+    host_order = state.board_seq[player].astype(jnp.int32)
+    state = batch_detach_weapons(state, player, hosts, host_order, do=do)
+
   for player in (p, nxt):
     z = state.zone[player]
-    hosts = (z == Zone.GARDEN) | (z == Zone.ALLEY) | (z == Zone.LEADER)
-    host_order = (
-        jnp.where(z == Zone.ALLEY, 8, 0)
-        + jnp.where(z == Zone.LEADER, 16, 0)
-        + state.zpos[player].astype(jnp.int32)
-    )
+    hosts = z == Zone.LEADER
+    host_order = jnp.zeros((n,), jnp.int32)
     state = batch_detach_weapons(state, player, hosts, host_order, do=do)
 
   return state._replace(

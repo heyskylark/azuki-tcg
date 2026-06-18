@@ -134,6 +134,9 @@ def apply_mulligan(state: State, action_type) -> State:
 def _enter_board_slot(state: State, p, inst, zone, slot, do) -> State:
   """insert_card_into_zone_index: displace when full, set slot, garden tap
   rules (cooldown unless Charge; AttrGardenForceTapped enters tapped)."""
+  old_zone = state.zone[p, inst]
+  from_garden = old_zone == Zone.GARDEN
+  from_alley = old_zone == Zone.ALLEY
   displaced = card_at_slot(state, p, zone, slot)
   full = zone_count(state.zone[p], zone) >= GARDEN_SIZE
   do_displace = do & (displaced >= 0) & full
@@ -188,10 +191,49 @@ def _enter_board_slot(state: State, p, inst, zone, slot, do) -> State:
   )
   state = state._replace(grant_taunt=grant)
 
-  # garden ADD event (fires after the displacement's removal event, as in C)
-  from azuki_jax.engine.helpers import stt02_012_garden_event
+  # Watched zone events fire after the displacement's removal event, as in C.
+  from azuki_jax.engine.helpers import (
+      MAX_PASSIVE_BUFF_QUEUE,
+      passive_zone_event,
+      self_passive_event_count,
+      stt02_012_garden_event,
+  )
 
-  return stt02_012_garden_event(state, p, False, do & is_garden)
+  state = passive_zone_event(state, p, Zone.GARDEN, inst, False,
+                             do=do & from_garden)
+  state = passive_zone_event(state, p, Zone.ALLEY, inst, False,
+                             do=do & from_alley)
+  count_before_add = state.passive_queue_count.astype(jnp.int16)
+  add_self_count = self_passive_event_count(state, p, zone)
+  state = passive_zone_event(state, p, zone, inst, True,
+                             do=do & ((zone == Zone.GARDEN) | (zone == Zone.ALLEY)))
+
+  # C's garden-add observers put STT02-012 before the final self-passive
+  # observer. Replay the STT02 event against that queue count, then restore the
+  # final occupancy as if both the STT02 event and the self-passive batch ran.
+  adjusted_count = jnp.minimum(
+      count_before_add + jnp.maximum(add_self_count - 1, 0),
+      MAX_PASSIVE_BUFF_QUEUE,
+  ).astype(jnp.uint8)
+  stt_input = state._replace(
+      passive_queue_count=jnp.where(do & is_garden, adjusted_count,
+                                    state.passive_queue_count)
+  )
+  stt_state = stt02_012_garden_event(
+      stt_input, p, False, do & is_garden, inst
+  )
+  stt_queued = (
+      stt_state.passive_queue_count.astype(jnp.int16)
+      > adjusted_count.astype(jnp.int16)
+  ).astype(jnp.int16)
+  final_count = jnp.minimum(
+      count_before_add + add_self_count + stt_queued,
+      MAX_PASSIVE_BUFF_QUEUE,
+  ).astype(jnp.uint8)
+  return stt_state._replace(
+      passive_queue_count=jnp.where(do & is_garden, final_count,
+                                    stt_state.passive_queue_count)
+  )
 
 
 def apply_play_entity(state: State, placement_zone, hand_index, slot,
@@ -262,6 +304,13 @@ def apply_gate_portal(state: State, alley_index, garden_index, do=True) -> State
   )
   # validate against the PRE-placement garden (matches C's deferred insert)
   card_ok = cards_impl.validate_card(state, gate_def, p, safe_gate)
+  count_state = state._replace(
+      ab_source=safe_gate.astype(jnp.int8),
+      ab_owner=p.astype(jnp.int8),
+  )
+  pre_effect_available = runtime.count_targets(
+      count_state, gate_def, jnp.bool_(False), p.astype(jnp.int32)
+  )
 
   # coverage counter for unported gates
   state = state._replace(
@@ -291,6 +340,7 @@ def apply_gate_portal(state: State, alley_index, garden_index, do=True) -> State
   return runtime.begin_ability(
       state, p, safe_gate.astype(jnp.int32), runtime.BEGIN_GATE_PORTAL,
       begin & card_ok,
+      effect_available_override=pre_effect_available,
   )
 
 

@@ -353,6 +353,7 @@ def bottom_deck_from_play(state: State, p, inst, do) -> State:
   rest up). C does NOT reset stats/taps/statuses here."""
   do = jnp.asarray(do)
   from_garden = state.zone[p, inst] == Zone.GARDEN
+  from_alley = state.zone[p, inst] == Zone.ALLEY
   in_deck = state.zone[p] == Zone.DECK
   zpos_row = jnp.where(do & in_deck, state.zpos[p] + 1, state.zpos[p])
   zpos_row = zpos_row.at[inst].set(
@@ -367,9 +368,13 @@ def bottom_deck_from_play(state: State, p, inst, do) -> State:
   )
   # garden REMOVE event (STT02-012 observers fire on any reparent out of the
   # garden, including the AZK01-087 bottom-deck)
-  from azuki_jax.engine.helpers import stt02_012_garden_event
+  from azuki_jax.engine.helpers import passive_zone_event, stt02_012_garden_event
 
-  return stt02_012_garden_event(state, p, True, do & from_garden)
+  state = passive_zone_event(state, p, Zone.GARDEN, inst, False,
+                             do=do & from_garden)
+  state = passive_zone_event(state, p, Zone.ALLEY, inst, False,
+                             do=do & from_alley)
+  return stt02_012_garden_event(state, p, True, do & from_garden, inst)
 
 
 def ikz_grant_tapped(state: State, p, do) -> State:
@@ -442,9 +447,13 @@ def return_to_hand(state: State, p, inst, do) -> State:
   state = clear_temporary_state(state, p, inst, do=do)
 
   # garden REMOVE latch event (STT02-012 observers)
-  from azuki_jax.engine.helpers import stt02_012_garden_event
+  from azuki_jax.engine.helpers import passive_zone_event, stt02_012_garden_event
 
-  state = stt02_012_garden_event(state, p, True, do & (z == Zone.GARDEN))
+  state = passive_zone_event(state, p, Zone.GARDEN, inst, False,
+                             do=do & (z == Zone.GARDEN))
+  state = passive_zone_event(state, p, Zone.ALLEY, inst, False,
+                             do=do & (z == Zone.ALLEY))
+  state = stt02_012_garden_event(state, p, True, do & (z == Zone.GARDEN), inst)
 
   # --- AWhenReturnedToHand triggers (card_utils.c return_card_to_hand) ---
   from azuki_jax.engine.helpers import can_tap
@@ -636,6 +645,7 @@ _TRUE_TARGET = lambda state, scope, owner, tp, ti: jnp.asarray(True)  # noqa: E7
 _TRUE_SEL_TARGET = lambda state, owner, inst: jnp.asarray(True)  # noqa: E731
 
 IMPL_INDEX = np.zeros(cards.CARD_DEF_COUNT, np.int32)  # 0 = not implemented
+HAS_APPLY_COSTS = np.zeros(cards.CARD_DEF_COUNT, np.bool_)
 HAS_ON_COST_PAID = np.zeros(cards.CARD_DEF_COUNT, np.bool_)
 SEL_COMPLETE_IF_STILL = np.zeros(cards.CARD_DEF_COUNT, np.bool_)
 _EFFECT_FNS = [_noop]
@@ -649,6 +659,7 @@ for _slot, (_code, _hooks) in enumerate(sorted(_HOOKS.items()), start=1):
   _def_id = cards.CODE_TO_ID[_code]
   IMPL_INDEX[_def_id] = _slot
   tables.IMPLEMENTED[_def_id] = True
+  HAS_APPLY_COSTS[_def_id] = _hooks.get("costs") is not None
   HAS_ON_COST_PAID[_def_id] = _hooks.get("on_cost_paid") is not None
   SEL_COMPLETE_IF_STILL[_def_id] = bool(
       _hooks.get("selection_complete_if_still")

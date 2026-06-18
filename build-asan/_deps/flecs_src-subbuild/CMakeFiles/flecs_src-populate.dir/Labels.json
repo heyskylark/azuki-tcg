@@ -1,0 +1,46 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "/home/skylark/git/azuki-tcg/build-asan/_deps/flecs_src-subbuild/CMakeFiles/flecs_src-populate"
+		},
+		{
+			"file" : "/home/skylark/git/azuki-tcg/build-asan/_deps/flecs_src-subbuild/CMakeFiles/flecs_src-populate.rule"
+		},
+		{
+			"file" : "/home/skylark/git/azuki-tcg/build-asan/_deps/flecs_src-subbuild/CMakeFiles/flecs_src-populate-complete.rule"
+		},
+		{
+			"file" : "/home/skylark/git/azuki-tcg/build-asan/_deps/flecs_src-subbuild/flecs_src-populate-prefix/src/flecs_src-populate-stamp/flecs_src-populate-build.rule"
+		},
+		{
+			"file" : "/home/skylark/git/azuki-tcg/build-asan/_deps/flecs_src-subbuild/flecs_src-populate-prefix/src/flecs_src-populate-stamp/flecs_src-populate-configure.rule"
+		},
+		{
+			"file" : "/home/skylark/git/azuki-tcg/build-asan/_deps/flecs_src-subbuild/flecs_src-populate-prefix/src/flecs_src-populate-stamp/flecs_src-populate-download.rule"
+		},
+		{
+			"file" : "/home/skylark/git/azuki-tcg/build-asan/_deps/flecs_src-subbuild/flecs_src-populate-prefix/src/flecs_src-populate-stamp/flecs_src-populate-install.rule"
+		},
+		{
+			"file" : "/home/skylark/git/azuki-tcg/build-asan/_deps/flecs_src-subbuild/flecs_src-populate-prefix/src/flecs_src-populate-stamp/flecs_src-populate-mkdir.rule"
+		},
+		{
+			"file" : "/home/skylark/git/azuki-tcg/build-asan/_deps/flecs_src-subbuild/flecs_src-populate-prefix/src/flecs_src-populate-stamp/flecs_src-populate-patch.rule"
+		},
+		{
+			"file" : "/home/skylark/git/azuki-tcg/build-asan/_deps/flecs_src-subbuild/flecs_src-populate-prefix/src/flecs_src-populate-stamp/flecs_src-populate-test.rule"
+		},
+		{
+			"file" : "/home/skylark/git/azuki-tcg/build-asan/_deps/flecs_src-subbuild/flecs_src-populate-prefix/src/flecs_src-populate-stamp/flecs_src-populate-update.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"flecs_src-populate"
+		],
+		"name" : "flecs_src-populate"
+	}
+}

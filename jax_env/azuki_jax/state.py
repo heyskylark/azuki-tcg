@@ -84,8 +84,19 @@ class State(NamedTuple):
 
   # STT02-012 event latch: C evaluates its aura per garden add/remove EVENT
   # with an off-by-one on removals (flecs post-removal recount minus one);
-  # the result persists until the next garden event.
+  # pending queued events overwrite the latch in observer order, and the last
+  # queued decision persists after the passive drain.
   stt02_012_latch: jax.Array  # bool (2, N)
+  stt02_012_event_pending: jax.Array  # bool (2, N) drain needed
+  passive_queue_count: jax.Array  # uint8, C MAX_PASSIVE_BUFF_QUEUE occupancy
+
+  # Event-driven passive observer state for self-buff auras whose C behavior is
+  # not a pure current-board recompute. Observers register on the first entry
+  # into their watched play zone and persist; AZK01-010/019 preserve stale pair
+  # bookkeeping on own removal, while AZK01-073 removes its own garden buff.
+  passive_observer_registered: jax.Array  # bool (2, N)
+  passive_latched_atk: jax.Array  # int8 desired self-passive atk contribution
+  passive_latched_hp: jax.Array   # int8 desired self-passive hp contribution
 
   # pending damage redirects (AZK01-062 Pekiro), 8 slots
   # (C MAX_PENDING_DAMAGE_REDIRECTS)
@@ -231,6 +242,11 @@ def empty_state() -> State:
       bobu_expires_turn=_zeros((MAX_PLAYERS,), jnp.int16),
       reequip_prev_host=jnp.full(n, -1, jnp.int8),
       stt02_012_latch=_zeros(n, jnp.bool_),
+      stt02_012_event_pending=_zeros(n, jnp.bool_),
+      passive_queue_count=jnp.asarray(0, jnp.uint8),
+      passive_observer_registered=_zeros(n, jnp.bool_),
+      passive_latched_atk=_zeros(n, jnp.int8),
+      passive_latched_hp=_zeros(n, jnp.int8),
       redirect_src_player=jnp.full((8,), -1, jnp.int8),
       redirect_src_inst=jnp.full((8,), -1, jnp.int8),
       redirect_tgt_player=jnp.full((8,), -1, jnp.int8),

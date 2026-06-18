@@ -141,36 +141,37 @@ def _garden_all_normal(state: State) -> jax.Array:
   return jnp.all(~in_garden | ok, axis=1)
 
 
-def _self_in_play(state: State, code: str) -> jax.Array:
-  return _def_is(state, code) & (
-      (state.zone == Zone.GARDEN) | (state.zone == Zone.ALLEY)
-  )
-
-
 def _azk01_010(state: State):
-  cond = _self_in_play(state, "AZK01-010") & _garden_all_normal(state)[:, None]
-  atk = _i16(cond, 2)
+  atk = jnp.where(
+      _def_is(state, "AZK01-010"),
+      state.passive_latched_atk.astype(jnp.int16),
+      0,
+  )
   return atk, jnp.zeros_like(atk)
 
 
 def _azk01_019(state: State):
-  cond = _self_in_play(state, "AZK01-019") & _garden_all_normal(state)[:, None]
-  hp = _i16(cond, 2)
+  hp = jnp.where(
+      _def_is(state, "AZK01-019"),
+      state.passive_latched_hp.astype(jnp.int16),
+      0,
+  )
   return jnp.zeros_like(hp), hp
 
 
 # --- AZK01-073: own garden all Beanz entities (non-empty) -> +1/+1 self ----
 def _azk01_073(state: State):
-  in_garden = state.zone == Zone.GARDEN
-  beanz = _def_table(
-      state,
-      (cards.TYPE == CardType.ENTITY)
-      & cards.SUBTYPE_MATRIX[:, cards.subtype_index("Beanz")].astype(bool),
-  ).astype(jnp.bool_)
-  all_beanz = jnp.all(~in_garden | beanz, axis=1) & jnp.any(in_garden, axis=1)
-  cond = _def_is(state, "AZK01-073") & in_garden & all_beanz[:, None]
-  atk = _i16(cond, 1)
-  return atk, atk
+  atk = jnp.where(
+      _def_is(state, "AZK01-073"),
+      state.passive_latched_atk.astype(jnp.int16),
+      0,
+  )
+  hp = jnp.where(
+      _def_is(state, "AZK01-073"),
+      state.passive_latched_hp.astype(jnp.int16),
+      0,
+  )
+  return atk, hp
 
 
 # --- STT02-012: EVENT-LATCHED aura (+1/+1) — C observers evaluate per garden

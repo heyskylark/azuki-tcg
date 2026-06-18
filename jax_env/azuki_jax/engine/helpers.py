@@ -28,6 +28,7 @@ LIST_ZONES = (
     int(Zone.DECK), int(Zone.HAND), int(Zone.IKZ_PILE), int(Zone.IKZ_AREA),
     int(Zone.DISCARD), int(Zone.SELECTION),
 )
+MAX_PASSIVE_BUFF_QUEUE = 16
 
 # Timed tag grants (status_util.c TimedTagGrant): tag ids + tick phases.
 TAG_CHARGE = 1
@@ -291,7 +292,9 @@ def clear_temporary_state(state: State, p, inst, do=True) -> State:
   return state
 
 
-def stt02_012_garden_event(state: State, event_player, is_removal, do) -> State:
+def stt02_012_garden_event(
+    state: State, event_player, is_removal, do, event_inst=None
+) -> State:
   """Re-latch every STT02-012 on a garden add/remove event (C observers).
 
   Counts are taken POST-event; removal events subtract one more from the
@@ -322,8 +325,277 @@ def stt02_012_garden_event(state: State, event_player, is_removal, do) -> State:
   q = jnp.arange(2)[:, None]
   diff = counts[q] - counts[1 - q]  # (2, 1) per owner perspective
   new_latch = in_own_garden & (diff >= 2)
-  latch = jnp.where(do & any_012 & is_012, new_latch, state.stt02_012_latch)
-  return state._replace(stt02_012_latch=latch)
+  # C's check function returns immediately when the STT02-012 source is not in
+  # its owner's garden, unless there is already a passive buff pair to remove.
+  has_existing_pair = (
+      (state.passive_atk != 0)
+      | (state.passive_hp != 0)
+      | state.stt02_012_latch
+  )
+  queue_candidate = do & any_012 & is_012 & (in_own_garden | has_existing_pair)
+  if event_inst is not None:
+    event_mask = jnp.zeros_like(queue_candidate)
+    event_mask = event_mask.at[event_player, event_inst].set(True)
+    priority = queue_candidate & event_mask
+    non_priority = queue_candidate & ~event_mask
+    priority_count = jnp.sum(priority.astype(jnp.int16), dtype=jnp.int16)
+    priority_rank = (
+        jnp.cumsum(priority.astype(jnp.int16).reshape((-1,))) - 1
+    ).reshape(queue_candidate.shape)
+    non_priority_rank = (
+        priority_count
+        + jnp.cumsum(non_priority.astype(jnp.int16).reshape((-1,)))
+        - 1
+    ).reshape(queue_candidate.shape)
+    rank = jnp.where(priority, priority_rank, non_priority_rank)
+  else:
+    flat = queue_candidate.reshape((-1,))
+    rank = (jnp.cumsum(flat.astype(jnp.int16)) - 1).reshape(
+        queue_candidate.shape
+    )
+  queue = (
+      queue_candidate
+      & ((state.passive_queue_count.astype(jnp.int16) + rank) < MAX_PASSIVE_BUFF_QUEUE)
+  )
+  latch = jnp.where(queue, new_latch, state.stt02_012_latch)
+  pending = jnp.where(queue, True, state.stt02_012_event_pending)
+  queued = jnp.sum(queue_candidate.astype(jnp.int16), dtype=jnp.int16)
+  count = jnp.minimum(
+      state.passive_queue_count.astype(jnp.int16) + queued,
+      MAX_PASSIVE_BUFF_QUEUE,
+  ).astype(jnp.uint8)
+  return state._replace(
+      stt02_012_latch=latch,
+      stt02_012_event_pending=pending,
+      passive_queue_count=count,
+  )
+
+
+def _self_passive_amounts(state: State, p) -> tuple[jax.Array, jax.Array]:
+  """Desired self-buff passive amounts for player p on the current board."""
+  def_id = state.def_id[p]
+  z = state.zone[p]
+  valid = def_id >= 0
+  idx = jnp.maximum(def_id, 0)
+
+  in_garden = z == Zone.GARDEN
+  in_play = in_garden | (z == Zone.ALLEY)
+
+  normal_entity = jnp.where(
+      valid,
+      (_np(cards.TYPE)[idx] == 2) & (_np(cards.ELEMENT)[idx] == 0),
+      False,
+  )
+  all_normal = jnp.all(~in_garden | normal_entity)
+
+  beanz_idx = cards.subtype_index("Beanz")
+  beanz_entity = jnp.where(
+      valid,
+      (_np(cards.TYPE)[idx] == 2)
+      & _np(cards.SUBTYPE_MATRIX[:, beanz_idx])[idx].astype(jnp.bool_),
+      False,
+  )
+  all_beanz = jnp.all(~in_garden | beanz_entity) & jnp.any(in_garden)
+
+  is_010 = def_id == cards.CODE_TO_ID["AZK01-010"]
+  is_019 = def_id == cards.CODE_TO_ID["AZK01-019"]
+  is_073 = def_id == cards.CODE_TO_ID["AZK01-073"]
+
+  atk = (
+      jnp.where(is_010 & in_play & all_normal, 2, 0)
+      + jnp.where(is_073 & in_garden & all_beanz, 1, 0)
+  ).astype(jnp.int8)
+  hp = (
+      jnp.where(is_019 & in_play & all_normal, 2, 0)
+      + jnp.where(is_073 & in_garden & all_beanz, 1, 0)
+  ).astype(jnp.int8)
+  return atk, hp
+
+
+def self_passive_event_count(state: State, p, zone) -> jax.Array:
+  """Number of self-passive observers that consume queue slots for zone."""
+  def_id = state.def_id[p]
+  is_010 = def_id == cards.CODE_TO_ID["AZK01-010"]
+  is_019 = def_id == cards.CODE_TO_ID["AZK01-019"]
+  is_073 = def_id == cards.CODE_TO_ID["AZK01-073"]
+  watches_zone = (
+      ((is_010 | is_019) & ((zone == Zone.GARDEN) | (zone == Zone.ALLEY)))
+      | (is_073 & (zone == Zone.GARDEN))
+  )
+  return jnp.sum((is_010 | is_019 | is_073) & watches_zone, dtype=jnp.int16)
+
+
+def _self_passive_queue_rank(state: State, p, candidate) -> jax.Array:
+  """Rank candidates in the same stable order Flecs uses for these observers.
+
+  Card entities are allocated at a fixed stride in C after the prefab/player
+  setup. Flecs' observer storage iterates these callbacks by a hash-like key;
+  for the current world layout `(3 * entity_id) % 17` matches the observed
+  passive callback order and therefore the queue-cap behavior.
+  """
+  n = state.zone.shape[1]
+  ids = jnp.arange(n, dtype=jnp.int32)
+  entity_id = jnp.int32(896) + (jnp.asarray(p, jnp.int32) * jnp.int32(112)) + (
+      ids * jnp.int32(4)
+  )
+  key = (entity_id * jnp.int32(3)) % jnp.int32(17)
+  before = candidate[None, :] & (
+      (key[None, :] < key[:, None])
+      | ((key[None, :] == key[:, None]) & (ids[None, :] < ids[:, None]))
+  )
+  return jnp.sum(before.astype(jnp.int16), axis=1, dtype=jnp.int16)
+
+
+def passive_zone_event(state: State, p, zone, inst, is_add, do=True) -> State:
+  """Update latched self-passive contributions for one watched zone event.
+
+  Mirrors AZK01-010/019 garden+alley observers and AZK01-073 garden observer.
+  The first entry registers and evaluates immediately. AZK01-010/019 preserve
+  stale pair bookkeeping on their own removal; AZK01-073 removes its own pair
+  when it leaves the garden. Subsequent add events evaluate against the
+  post-entry board, matching the C observer lifecycle.
+  """
+  do = jnp.asarray(do)
+  p = jnp.asarray(p, jnp.int32)
+  zone = jnp.asarray(zone, jnp.int8)
+  inst = jnp.asarray(inst, jnp.int32)
+  is_add = jnp.asarray(is_add)
+
+  def_id = state.def_id[p]
+  n = state.zone.shape[1]
+  ids = jnp.arange(n, dtype=jnp.int32)
+
+  is_010 = def_id == cards.CODE_TO_ID["AZK01-010"]
+  is_019 = def_id == cards.CODE_TO_ID["AZK01-019"]
+  is_073 = def_id == cards.CODE_TO_ID["AZK01-073"]
+  is_self_source = is_010 | is_019 | is_073
+  watches_zone = (
+      ((is_010 | is_019) & ((zone == Zone.GARDEN) | (zone == Zone.ALLEY)))
+      | (is_073 & (zone == Zone.GARDEN))
+  )
+
+  registered = state.passive_observer_registered[p]
+  source_event = ids == inst
+  first_register = do & is_add & source_event & is_self_source & watches_zone & ~registered
+  own_remove = do & ~is_add & source_event & registered & (is_010 | is_019)
+  desired_atk, desired_hp = _self_passive_amounts(state, p)
+  has_existing_pair = (
+      (state.passive_latched_atk[p] != 0)
+      | (state.passive_latched_hp[p] != 0)
+      | (state.passive_atk[p] != 0)
+      | (state.passive_hp[p] != 0)
+  )
+  desired_nonzero = (desired_atk != 0) | (desired_hp != 0)
+  queue_candidate = do & watches_zone & (
+      # AZK01-010/019 always queue an apply-or-remove update when their
+      # owner garden/alley observer fires.
+      is_010
+      | is_019
+      # AZK01-073 only queues when its active state changes.
+      | (is_073 & (desired_nonzero != has_existing_pair))
+  )
+  rank = _self_passive_queue_rank(state, p, queue_candidate)
+  can_queue = (
+      queue_candidate
+      & ((state.passive_queue_count.astype(jnp.int16) + rank) < MAX_PASSIVE_BUFF_QUEUE)
+  )
+  update = do & is_self_source & watches_zone & (
+      first_register | registered
+  ) & ~own_remove & can_queue
+
+  queued = jnp.sum(queue_candidate.astype(jnp.int16), dtype=jnp.int16)
+  count = jnp.minimum(
+      state.passive_queue_count.astype(jnp.int16) + queued,
+      MAX_PASSIVE_BUFF_QUEUE,
+  ).astype(jnp.uint8)
+  return state._replace(
+      passive_observer_registered=state.passive_observer_registered.at[p].set(
+          registered | first_register
+      ),
+      passive_latched_atk=state.passive_latched_atk.at[p].set(
+          jnp.where(update, desired_atk, state.passive_latched_atk[p])
+      ),
+      passive_latched_hp=state.passive_latched_hp.at[p].set(
+          jnp.where(update, desired_hp, state.passive_latched_hp[p])
+      ),
+      passive_queue_count=count,
+  )
+
+
+def passive_zone_event_mask(state: State, p, zone, mask, order_key, is_add=False,
+                            do=True) -> State:
+  """Apply same-zone passive events for a batch mutation."""
+  del order_key
+  mask = mask & jnp.asarray(do)
+  any_mask = jnp.any(mask)
+  try:
+    if not bool(any_mask):
+      return state
+  except (TypeError, ValueError, jax.errors.TracerBoolConversionError):
+    pass
+
+  def body(st):
+    def_id = st.def_id[p]
+    is_010 = def_id == cards.CODE_TO_ID["AZK01-010"]
+    is_019 = def_id == cards.CODE_TO_ID["AZK01-019"]
+    is_073 = def_id == cards.CODE_TO_ID["AZK01-073"]
+    is_self_source = is_010 | is_019 | is_073
+    watches_zone = (
+        ((is_010 | is_019) & ((zone == Zone.GARDEN) | (zone == Zone.ALLEY)))
+        | (is_073 & (zone == Zone.GARDEN))
+    )
+    registered = st.passive_observer_registered[p]
+    is_add_arr = jnp.asarray(is_add)
+    event_count = jnp.sum(mask.astype(jnp.int16), dtype=jnp.int16)
+    first_register = (
+        is_add_arr & mask & is_self_source & watches_zone & ~registered
+    )
+    own_remove = (~is_add_arr) & mask & registered & (is_010 | is_019)
+    desired_atk, desired_hp = _self_passive_amounts(st, p)
+    has_existing_pair = (
+        (st.passive_latched_atk[p] != 0)
+        | (st.passive_latched_hp[p] != 0)
+        | (st.passive_atk[p] != 0)
+        | (st.passive_hp[p] != 0)
+    )
+    desired_nonzero = (desired_atk != 0) | (desired_hp != 0)
+    queue_candidate = watches_zone & (event_count > 0) & (
+        is_010
+        | is_019
+        | (is_073 & (desired_nonzero != has_existing_pair))
+    )
+    rank = _self_passive_queue_rank(st, p, queue_candidate)
+    can_queue = (
+        queue_candidate
+        & ((st.passive_queue_count.astype(jnp.int16) + rank) < MAX_PASSIVE_BUFF_QUEUE)
+    )
+    update = is_self_source & watches_zone & (
+        first_register | registered
+    ) & ~own_remove & can_queue
+    queued = jnp.sum(queue_candidate.astype(jnp.int16), dtype=jnp.int16) * event_count
+    count = jnp.minimum(
+        st.passive_queue_count.astype(jnp.int16) + queued,
+        MAX_PASSIVE_BUFF_QUEUE,
+    ).astype(jnp.uint8)
+    return st._replace(
+        passive_observer_registered=st.passive_observer_registered.at[p].set(
+            registered | first_register
+        ),
+        passive_latched_atk=st.passive_latched_atk.at[p].set(
+            jnp.where(update, desired_atk, st.passive_latched_atk[p])
+        ),
+        passive_latched_hp=st.passive_latched_hp.at[p].set(
+            jnp.where(update, desired_hp, st.passive_latched_hp[p])
+        ),
+        passive_queue_count=count,
+    )
+
+  try:
+    if bool(any_mask):
+      return body(state)
+  except (TypeError, ValueError, jax.errors.TracerBoolConversionError):
+    pass
+  return jax.lax.cond(any_mask, body, lambda st: st, state)
 
 
 def bobu_destroy_heal(state: State, p, eligible, do) -> State:
@@ -431,7 +703,11 @@ def discard(state: State, p, inst, *, reason_replacement=False,
       discarded_cards_turn=state.discarded_cards_turn.at[p].add(inc)
   )
   state = bobu_destroy_heal(state, p, bobu_eligible, do)
-  return stt02_012_garden_event(state, p, True, do & from_garden)
+  state = passive_zone_event(state, p, Zone.GARDEN, inst, False,
+                             do=do & from_garden)
+  state = passive_zone_event(state, p, Zone.ALLEY, inst, False,
+                             do=do & from_alley)
+  return stt02_012_garden_event(state, p, True, do & from_garden, inst)
 
 
 def detach_weapon_stat_fix(state: State, p, host, weapon, do=True) -> State:
@@ -461,6 +737,8 @@ def batch_discard(state: State, p, mask, order_key, do=True) -> State:
   that may discard from hand use the single-card `discard`)."""
   do = jnp.asarray(do)
   mask = mask & do
+  garden_mask = mask & (state.zone[p] == Zone.GARDEN)
+  alley_mask = mask & (state.zone[p] == Zone.ALLEY)
   any_from_garden = jnp.any(mask & (state.zone[p] == Zone.GARDEN))
   # bobu observer fires per discard_card_internal call in C; the latch clears
   # on the first match so one batched heal == the C sequence (all batch_discard
@@ -539,6 +817,12 @@ def batch_discard(state: State, p, mask, order_key, do=True) -> State:
       attached_to=reset_row(state.attached_to, -1),
   )
   state = bobu_destroy_heal(state, p, bobu_eligible, do)
+  state = passive_zone_event_mask(
+      state, p, Zone.GARDEN, garden_mask, order_key, is_add=False, do=True
+  )
+  state = passive_zone_event_mask(
+      state, p, Zone.ALLEY, alley_mask, order_key, is_add=False, do=True
+  )
   # one latch event after the batch: equals C's per-card event sequence
   # because only the LAST evaluation persists (same side, post-all counts)
   return stt02_012_garden_event(state, p, True, any_from_garden)

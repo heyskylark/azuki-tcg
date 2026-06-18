@@ -122,22 +122,22 @@ def _round(state: State) -> tuple[State, jax.Array]:
 
   total_atk, total_hp = _totals(state)
   in_play = _in_play(state)
-  # contributions only ever target in-play instances (each fn gates itself);
-  # belt and braces so out-of-play passive_* always lands on 0.
-  total_atk = jnp.where(in_play, total_atk, 0)
-  total_hp = jnp.where(in_play, total_hp, 0)
 
   delta_atk = total_atk - state.passive_atk.astype(jnp.int16)
   delta_hp = total_hp - state.passive_hp.astype(jnp.int16)
-  # out-of-play: zero the bookkeeping WITHOUT touching stats (discard/return
-  # already reset CurStats; C's stale pair removal there is unobservable).
-  delta_atk = jnp.where(in_play, delta_atk, 0)
-  delta_hp = jnp.where(in_play, delta_hp, 0)
+  # C modifier-pair apply/remove mutates CurStats even when the card is hidden
+  # in hand/discard; only death handling below is gated to in-play cards.
+  stat_delta_atk = delta_atk
+  stat_delta_hp = delta_hp
 
   # --- attack: clamp at 0 on change (apply_attack_modifier /
   # remove_attack_modifier both clamp) ---
   cur_atk = state.cur_atk.astype(jnp.int16)
-  new_atk = jnp.where(delta_atk != 0, jnp.maximum(cur_atk + delta_atk, 0), cur_atk)
+  new_atk = jnp.where(
+      stat_delta_atk != 0,
+      jnp.maximum(cur_atk + stat_delta_atk, 0),
+      cur_atk,
+  )
 
   # --- weapon -> host propagation (azk_process_passive_buff_queue): the
   # actually-applied weapon atk delta is added to the host's cur_atk, clamped
@@ -145,7 +145,7 @@ def _round(state: State) -> tuple[State, jax.Array]:
   # so one batched clamp == C's sequential per-entry clamps. ---
   n = state.zone.shape[1]
   attached = (state.zone == Zone.ATTACHED) & (state.attached_to >= 0)
-  wdelta = jnp.where(attached, delta_atk, 0)
+  wdelta = jnp.where(attached, stat_delta_atk, 0)
   host_idx = jnp.clip(state.attached_to.astype(jnp.int32), 0, n - 1)
   host_delta = jax.vmap(
       lambda d, h: jnp.zeros((n,), jnp.int16).at[h].add(d)
@@ -153,7 +153,7 @@ def _round(state: State) -> tuple[State, jax.Array]:
   new_atk = jnp.where(host_delta != 0, jnp.maximum(new_atk + host_delta, 0), new_atk)
 
   # --- health: unclamped (apply/remove_health_modifier) ---
-  new_hp = state.cur_hp.astype(jnp.int16) + delta_hp
+  new_hp = state.cur_hp.astype(jnp.int16) + stat_delta_hp
 
   state = state._replace(
       cur_atk=new_atk.astype(jnp.int8),
@@ -225,8 +225,25 @@ def recompute_passives(state: State) -> State:
   )
   relevant = (
       jnp.any(is_source & _in_play(state))
+      | (state.passive_queue_count != 0)
+      | jnp.any(state.stt02_012_event_pending)
+      | jnp.any(state.passive_latched_atk != 0)
+      | jnp.any(state.passive_latched_hp != 0)
       | jnp.any(state.passive_atk != 0)
       | jnp.any(state.passive_hp != 0)
   )
   gate = (state.ab_phase == 0) & (state.winner == -1)
-  return jax.lax.cond(gate & relevant, _two_rounds, lambda s: s, state)
+  drain = gate & relevant
+  out = jax.lax.cond(drain, _two_rounds, lambda s: s, state)
+  return out._replace(
+      stt02_012_event_pending=jnp.where(
+          drain,
+          jnp.zeros_like(out.stt02_012_event_pending),
+          out.stt02_012_event_pending,
+      ),
+      passive_queue_count=jnp.where(
+          drain,
+          jnp.asarray(0, out.passive_queue_count.dtype),
+          out.passive_queue_count,
+      ),
+  )

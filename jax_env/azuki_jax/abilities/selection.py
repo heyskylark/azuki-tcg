@@ -130,6 +130,13 @@ def move_matching_zone_to_selection(state: State, src_zone, match_row,
   new_zpos = jnp.where(take, sel_base + rank, new_zpos)
   new_zone = jnp.where(take, jnp.int8(Zone.SELECTION), state.zone[owner])
 
+  from_discard = jnp.asarray(src_zone, jnp.int8) == jnp.int8(Zone.DISCARD)
+  reset_stats = do & from_discard & take
+  def_id = state.def_id[owner]
+  valid = def_id >= 0
+  base_atk = jnp.where(valid, _np(cards.BASE_ATK)[jnp.maximum(def_id, 0)], 0)
+  base_hp = jnp.where(valid, _np(cards.BASE_HP)[jnp.maximum(def_id, 0)], 0)
+
   sel_cards = jnp.full((MAX_SELECTION_ZONE_SIZE,), -1, jnp.int8)
   sel_cards = sel_cards.at[jnp.where(take, rank, MAX_SELECTION_ZONE_SIZE)].set(
       idx.astype(jnp.int8), mode="drop"
@@ -142,6 +149,12 @@ def move_matching_zone_to_selection(state: State, src_zone, match_row,
       zone=state.zone.at[owner].set(jnp.where(do, new_zone, state.zone[owner])),
       zpos=state.zpos.at[owner].set(
           jnp.where(do, new_zpos.astype(jnp.int8), state.zpos[owner])
+      ),
+      cur_atk=state.cur_atk.at[owner].set(
+          jnp.where(reset_stats, base_atk.astype(jnp.int8), state.cur_atk[owner])
+      ),
+      cur_hp=state.cur_hp.at[owner].set(
+          jnp.where(reset_stats, base_hp.astype(jnp.int8), state.cur_hp[owner])
       ),
       ab_sel_cards=jnp.where(do, sel_cards, state.ab_sel_cards),
       ab_sel_count=jnp.where(do, count, state.ab_sel_count).astype(jnp.int8),
@@ -503,7 +516,7 @@ def process_selection_to_garden(state: State, sel_idx, slot, do) -> State:
 
 
 def process_selection_to_alley(state: State, sel_idx, slot, do) -> State:
-  from azuki_jax.engine.helpers import discard
+  from azuki_jax.engine.helpers import discard, passive_zone_event
   from azuki_jax.engine.triggers import queue_on_play
 
   do = jnp.asarray(do) & (state.ab_phase == AbilityPhase.SELECTION_PICK)
@@ -561,6 +574,7 @@ def process_selection_to_alley(state: State, sel_idx, slot, do) -> State:
           jnp.where(do, 0, state.next_play_cost_reduction[owner])
       ),
   )
+  state = passive_zone_event(state, owner, Zone.ALLEY, target, True, do=do)
   state = queue_on_play(state, owner, target, do=do)
 
   state = _record_pick(state, idx, target, do)

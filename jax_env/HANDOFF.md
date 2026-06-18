@@ -1,10 +1,585 @@
 # JAX Environment Conversion — Handoff & 1:1 Verification Status
 
+## Latest Stop Point — 2026-06-18 User-Requested Winddown
+
+The user explicitly stopped further code work after the step-60 probe and asked
+for this handoff to be updated. Do not continue editing code from this segment
+unless the user starts a new coding run.
+
+### Process State
+
+- All probes/traces were wound down.
+- Final process check:
+
+```bash
+pgrep -af "python/src/azk_puffer/jax_vector.py|\.venv/bin/python -u -"
+```
+
+- Result: no matches, exit code `1`.
+
+### New Probe Result
+
+The deterministic `JaxVecEnv(4, seed=1)` route was reproduced to bench step 60
+and stopped before `env.send(actions)`.
+
+Step 60 active/chosen summary:
+
+- `active=[1, 1, 1, 1]`
+- `chosen=[19, 6, 14, 6]`
+- attack rows were env `1` and env `3`
+
+Env `1` was already handled by the existing attack response path:
+
+- action `[6, 3, 5, 0]`
+- active player `1`
+- attacker `STT02-007` in garden slot `3`, instance `18`
+- defender was player `0` leader `STT03-001`
+- mask hits:
+  - `_attack_leader_response_fast_mask=True`
+  - all other inspected attack masks false
+
+Env `3` is the remaining generic row:
+
+- action `[6, 5, 3, 0]`
+- active player `1`
+- attacker is player `1` leader `AZK01-119`, instance `0`
+- defender is player `0` garden `STT02-003`, slot `3`, instance `23`
+- attacker has `STT01-012` attached, instance `42`
+- opposing response-like cards:
+  - player `0` leader `AZK01-125`
+  - two `STT02-016` cards in hand
+- all inspected attack fast masks were false
+- queues/context at the decision point were clean:
+  - `phase=MAIN`
+  - `ab_phase=NONE`
+  - `trig_count=0`
+  - `redirect_count=0`
+  - `passive_queue_count=0`
+  - `combat_attacker=-1`
+  - `winner=-1`
+
+Interpretation:
+
+- This is not safe to route through the plain attack-response declaration mask.
+- The generic engine queues the attacker's When Attacking chain, including
+  attached weapons. Here `STT01-012` is a weapon with When Attacking: mill one.
+- The likely correct narrow fast path is:
+  - declare leader attack into a garden target
+  - require exactly the clean `STT01-012` attached-weapon trigger shape
+  - apply `STT01-012`'s one-card mill/deckout behavior
+  - then open the defender response window
+  - only match rows where the defender really has a response, because the
+    helper should not skip directly to combat resolve
+
+### Partial Code Edit Present
+
+Important: one code edit was made immediately before the user stopped code work.
+It is intentionally documented here because it is not fully wired or validated.
+
+- `jax_env/azuki_jax/step.py` now contains a new helper:
+  - `step_attack_stt01_012_response_fast`
+- The helper is intended to model the env `3` shape above:
+  - leader attacker
+  - attached `STT01-012`
+  - direct mill via `mill_with_deckout`
+  - response-window entry for the defender
+- It has NOT been wired into `python/src/azk_puffer/jax_vector.py`.
+- It has NOT been syntax-checked or trace-validated after this latest edit.
+- No host mask exists yet.
+- No JIT wrapper, dispatch merge, trace counter, or remaining-mask exclusion has
+  been added yet.
+
+Recommended next action when code work resumes:
+
+1. Decide whether to keep and finish the partial
+   `step_attack_stt01_012_response_fast` helper or replace it with a different
+   narrow implementation.
+2. If keeping it, add the vector harness plumbing:
+   - import `step_attack_stt01_012_response_fast`
+   - add `_stt01_012_id`
+   - add `_attack_stt01_012_response_one`
+   - add `_attack_stt01_012_response_step_fn`
+   - add `_attack_stt01_012_response_fast_mask`
+   - include it in handled masks, trace output, merge dispatch, and remaining
+     mask exclusion
+3. Keep the mask conservative:
+   - `MAIN`, `ATTACK`, no active ability/context/queued effects
+   - attacker target is the leader (`action[1] == GARDEN_SIZE`)
+   - defender target exists and is leader or garden as supported by the helper
+   - active leader has exactly one attached `STT01-012` and no other
+     attack-declaration trigger sources
+   - no Kira redirect (`AZK01-034`) or other declaration-time trigger chain
+   - defender has a response option, using the same payable response checks as
+     the existing response masks
+   - no passive watcher or modifier shape outside what the helper models
+4. Then run:
+
+```bash
+PYTHONPATH=build/python/src:python/src:jax_env \
+  .venv/bin/python -m py_compile \
+  jax_env/azuki_jax/step.py \
+  python/src/azk_puffer/jax_vector.py
+
+git diff --check -- \
+  jax_env/azuki_jax/step.py \
+  python/src/azk_puffer/jax_vector.py \
+  jax_env/HANDOFF.md
+```
+
+5. Resume with the short-circuit trace command from the previous section and
+   confirm whether bench step 60 advances to the next frontier.
+
+## Latest Split-Action Frontier — 2026-06-18 Pause Handoff
+
+This section is the current handoff for continuing the split-action JAX vector
+work. It supersedes the older frontier sections below for the current branch
+state. The older sections remain useful for archaeology and for understanding
+why specific fast paths exist.
+
+### Current Stop Point
+
+- Active work was intentionally paused for a new coding-agent harness.
+- All long-running trace/probe Python processes were stopped. A final
+  `pgrep -af "python/src/azk_puffer/jax_vector.py|.venv/bin/python -u -"`
+  returned no matches.
+- No C engine files were changed in this pause segment; engine rebuild was not
+  required.
+- Files modified by this segment:
+  - `jax_env/azuki_jax/step.py`
+  - `python/src/azk_puffer/jax_vector.py`
+  - `jax_env/HANDOFF.md`
+
+### Validation Completed
+
+These checks passed after the latest code edits:
+
+```bash
+PYTHONPATH=build/python/src:python/src:jax_env \
+  .venv/bin/python -m py_compile \
+  jax_env/azuki_jax/step.py \
+  python/src/azk_puffer/jax_vector.py
+
+git diff --check -- \
+  jax_env/azuki_jax/step.py \
+  python/src/azk_puffer/jax_vector.py
+```
+
+No full `4 105` trace was completed after the final edit because work was
+paused at the user's request.
+
+### Latest Trace Frontier
+
+The latest short-circuit trace command was:
+
+```bash
+JAX_COMPILATION_CACHE_DIR=/tmp/jaxcache \
+PYTHONUNBUFFERED=1 \
+AZK_JAX_SPLIT_TRACE=1 \
+AZK_JAX_BENCH_TRACE=1 \
+PYTHONPATH=build/python/src:python/src:jax_env \
+timeout 900 .venv/bin/python -u python/src/azk_puffer/jax_vector.py 4 105 1 \
+| awk '/JaxVecEnv bench|construct:|async_reset|first send|second recv|bench step|generic=[1-9]/{print; fflush()} /generic=[1-9]/{exit}'
+```
+
+Current result:
+
+- The deterministic `JaxVecEnv(4, seed=1)` route is split-only through bench
+  step 59.
+- The first remaining generic fallback is bench step 60.
+- Step 60 starts with action types `6,14,19`.
+- The split trace line at step 60 showed:
+  - `effect_stt01_017=1`
+  - `bottom_deck=1`
+  - `attack_leader_response=1`
+  - `generic=1 generic_types=6`
+- `Act.ATTACK == 6`, so the next row to inspect is one unhandled attack row.
+- The step 60 generic row has not been probed yet. Start there.
+
+Suggested first probe for the next agent:
+
+- Reproduce the deterministic route to `step_i == 60`, stop before `env.send`.
+- Dump rows where the chosen active action type is `Act.ATTACK`.
+- Print active player, phase, legal rows, board zones, attacker/defender card
+  codes, combat state, trigger/redirect/passive counts, and mask hits for:
+  - `_attack_entity_response_fast_mask`
+  - `_attack_leader_response_fast_mask`
+  - `_attack_entity_mutual_destroy_fast_mask`
+  - `_attack_leader_simple_fast_mask`
+  - `_attack_azk01_004_leader_fast_mask`
+  - `_attack_stt01_006_effect_fast_mask`
+  - `_attack_azk01_060_confirm_fast_mask`
+- Then decide whether this is a safe mask widening or a new dedicated attack
+  fast path.
+
+### Fixes Landed In This Pause Segment
+
+#### AZK01-056 Reveal Flow
+
+- Added `step_play_azk01_056_reveal_fast`.
+- Added `step_select_azk01_056_pick_fast`.
+- Added `JaxVecEnv` masks, JIT wrappers, dispatch merges, trace counters, and
+  source ids for AZK01-056.
+- Added AZK01-056 support to selection pick/noop and bottom-deck cleanup
+  whitelists.
+- This covered the previously observed `play_azk01_056=1` row.
+
+#### STT02-001 Leader Response Ability
+
+- Added `step_activate_stt02_001_fast`.
+- Added `step_effect_stt02_001_fast`.
+- Added `JaxVecEnv` wrappers, masks, dispatch merges, trace counters, and
+  source id.
+- Behavior modeled:
+  - `[Response][Once/Turn] Pay 1 IKZ`.
+  - Target enemy leader or enemy garden entity.
+  - Apply `-1` attack until EOT.
+  - Clear ability context after the required target is selected.
+- This covered the previously observed response-window leader activation row.
+
+#### AZK01-040 / Attack Response Handling
+
+- Widened `_attack_entity_response_fast_mask` to allow clean attacks into
+  `AZK01-040` when its `When Attacked` response is the only special handling.
+- Widened `_effect_azk01_040_fast_mask` for selected leader target and skip
+  shapes and for clean attacker death handling.
+- The fast path now resolves clean pending combat after the AZK01-040 effect
+  where appropriate.
+
+#### AZK01-127 Response Spell Effect
+
+- Fixed `step_effect_azk01_127_fast` for the case where the response spell
+  kills the current combat attacker.
+- The fast path now clears the spell context, closes the response window when
+  the defender has no further response, transitions to combat resolve, and
+  runs combat resolution if no queued work remains.
+- Relaxed `_effect_azk01_127_fast_mask` to allow clean lethal damage to the
+  combat attacker. The old host mask rejected this because it did not account
+  for the subsequent combat fizzle/resolve behavior.
+- The earlier failing step 99 row was:
+  - active player 0
+  - action `[14, 3, 0, 0]`
+  - source `AZK01-127` in discard
+  - target enemy garden `AZK01-003` at 1 HP that was also the combat attacker
+  - now handled by `effect_azk01_127=1`.
+
+#### STT01-002 Optional Selection Skip
+
+- Extended `_selection_pick_noop_fast_mask` to include `STT01-002` when:
+  - `ab_costs_applied` is true
+  - `ab_scratch[2] == 2`
+  - selection pick count/pick max matches the existing shared skip fast path
+- This uses the existing `step_selection_pick_noop_fast`, which calls the
+  shared selection runtime. For STT01-002, skipping runs the registered
+  selection-complete hook that returns remaining selection cards to discard and
+  clears the context.
+- This fixed the former step 43 generic `NOOP` row:
+  - `phase=MAIN`
+  - `ab_phase=SELECTION_PICK`
+  - source `STT01-002`
+  - legal alternatives were `SELECT_TO_EQUIP`.
+
+#### STT03-006 Combat-Death Follow-Up
+
+- Extended `step_response_noop_entity_combat_fast` so destroyed `STT03-006`
+  is detected on either combat side, not only when it is the attacker.
+- The fast path now:
+  - tracks whether attacker-side or defender-side `STT03-006` was destroyed
+  - draws for the correct owner
+  - opens the mandatory discard-from-hand effect for the correct source and
+    owner when that owner still has a hand card
+  - sets `active_player` to the STT03-006 owner when that follow-up effect is
+    opened
+- Extended `_response_noop_entity_combat_fast_mask` so defender-side
+  `STT03-006` when-destroyed is allowed under the same clean no-passive-death
+  constraints as the attacker-side case.
+- This fixed:
+  - former step 44 generic response-window `NOOP`, where player 1
+    `STT02-007` attacked player 0 `STT03-006` and destroyed it
+  - former step 45 generic `STT03-006` effect target row, where the effect
+    source was in discard and needed `active_player == ab_owner`.
+
+### Important Current Caveats
+
+- Do not assume the older "frontier through step 99" notes below are the active
+  first-generic frontier. They came from broader traces that allowed earlier
+  generic fallbacks to compile and continue. With the newer fast-path fixes,
+  the current first generic fallback is step 60 attack type 6.
+- The split-fast approach is still compile-heavy. Short-circuit traces are the
+  fastest way to find the next unhandled row without waiting for generic
+  fallback compilation.
+- Keep using host masks conservatively. Most fixes in this segment were either
+  exact card-specific fast paths or narrow mask widenings tied to already-modeled
+  device behavior.
+- If touching C engine code later, rebuild engine/native before web service
+  work. No such rebuild was needed for this segment.
+
+## Latest Split-Action Frontier — 2026-06-18
+
+Continuation work on the JAX vector split fast paths advanced the deterministic
+`JaxVecEnv(4, seed=1)` benchmark frontier through step 45. The latest traced
+run now handles the former step-41 `AZK01-004` attack and `STT02-009` play rows
+with split fast paths; the next generic fallback is one response-window `NOOP`
+row at bench step 46.
+
+- Closed the latest 4-env frontier rows:
+  - Step 35 response-window entity-combat `NOOP` where both attacker and
+    defender die and the destroyed attacker is `STT03-006`. The fast path now
+    discards both entities, draws for `STT03-006`, and opens its mandatory
+    discard effect when the owner still has a hand card.
+  - Step 36 `STT03-006` effect selection, discarding the chosen friendly hand
+    card and clearing ability context.
+  - Step 36/37 `AZK01-009` spell setup and effect selection. The spell now pays
+    cost, discards from hand, opens a one-target effect, then grants Charge to
+    a cost-4-or-less garden entity.
+  - Step 39 clean response-window play of response-playable entities from hand
+    through the existing simple entity play kernel; this covered `AZK01-035`
+    played to alley.
+  - Step 39 clean leader attack by `AZK01-062` where the defending leader has
+    zero attack, so Pekiro's takes-damage timing is not relevant to the attack
+    resolution.
+  - Step 41 `AZK01-004` attacking a zero-attack leader with no responses. The
+    new fast path applies Alley Thug's +1 attack until end of turn before
+    resolving nonlethal leader combat damage.
+  - Step 41 `STT02-009` played from hand to alley. Dedicated play,
+    confirmation, cost-target, and optional effect-target fast paths now cover
+    Aya's on-play bounce flow when return-to-hand trigger/passive side effects
+    are clean.
+  - Main-NOOP host masks now allow permanent timed grants (`GRANT_PHASE_NONE`)
+    while still rejecting start/end-ticking timed grants that the simple cleanup
+    helpers do not process.
+  - The `AZK01-011` main-NOOP host mask now allows `GRANT_PHASE_END` timed
+    grants because that specialized step uses full `end_turn`, which performs
+    end-phase timed grant ticking. It still rejects `GRANT_PHASE_START` grants
+    because the following start-turn helper is intentionally narrow.
+- Latest traced frontier:
+  - Command used:
+    `PYTHONPATH=build/python/src:python/src:jax_env
+    AZK_JAX_SPLIT_TRACE=1 AZK_JAX_BENCH_TRACE=1 timeout 900
+    .venv/bin/python -u python/src/azk_puffer/jax_vector.py 4 60`.
+  - The run stays split-only through bench step 45. Bench step 41 now reports
+    `play_stt02_009=1`, `attack_azk01_004=1`, `generic=0`.
+  - Bench step 46 reports
+    `gate_simple=1`, `confirm_stt01_002=1`,
+    `main_noop_azk01_011=1`, `generic=1 generic_types=0`.
+    The traced process was stopped after this frontier row was identified.
+  - Remaining step 46 row:
+    - Env 0: active player 0, `RESPONSE_WINDOW`, action `[0, 0, 0, 0]`
+      (`NOOP`). Combat is player 1 `AZK01-036` attacking player 0
+      `AZK01-062`; both entities would die. The response entity-combat fast
+      path correctly rejects this because combat/destroy/takes-damage trigger
+      handling is not clean (`no_triggers` is false).
+- Validation passed after the edits:
+  - `PYTHONPATH=build/python/src:python/src:jax_env .venv/bin/python -m
+    py_compile jax_env/azuki_jax/step.py
+    python/src/azk_puffer/jax_vector.py`
+  - `git diff --check -- jax_env/azuki_jax/step.py
+    python/src/azk_puffer/jax_vector.py jax_env/HANDOFF.md`
+
+The older split-frontier sections below are historical debugging notes. They
+are still useful for archaeology, but this section supersedes their current
+frontier and validation status.
+
+## Latest Split-Action Frontier — 2026-06-17
+
+Continuation work on the JAX vector split fast paths advanced the deterministic
+`JaxVecEnv(4, seed=1)` benchmark frontier from step 27 to step 34.
+
+- Closed step 27: added a guarded response-window `NOOP` entity-combat fast
+  path for clean combat where the attacker dies and the defender survives.
+  The known row after `AZK01-127` now reports `response_noop=1`, `generic=0`.
+- Closed step 29:
+  - Added `AZK01-045` play/reveal and selection-pick fast paths for the
+    Obsidian top-5 reveal flow, plus bottom-deck cleanup coverage for its
+    remaining selection cards.
+  - Added `AZK01-002` immediate heal spell fast path. It pays/discards the
+    spell, increments play counters, clears next-play reduction, and heals the
+    owner leader through the same `heal_leader` helper the generic ability
+    uses.
+  - The traced row now shows `play_azk01_045=1`,
+    `spell_azk01_002=1`, `generic=0`.
+- Latest traced frontier:
+  - Command used:
+    `PYTHONPATH=build/python/src:python/src:jax_env
+    AZK_JAX_SPLIT_TRACE=1 AZK_JAX_BENCH_TRACE=1 timeout 900
+    .venv/bin/python -u python/src/azk_puffer/jax_vector.py 4 40`.
+  - The run stays split-only through bench step 33. Bench step 34 has
+    `generic=1 generic_types=10`.
+  - Step 34 remaining generic row is `GATE_PORTAL`: row 3, active player 0,
+    action `[10, 2, 2, 0]`, phase `MAIN`, `ab_phase=0`. It portals
+    `AZK01-006` from alley slot 2 to garden slot 2 via `STT04-002`.
+    The row otherwise looks simple, but `passive_queue_count=4`, so the
+    existing `gate_simple` mask rejects it. Do not just ignore that guard:
+    the likely next task is to handle/drain pending passive state before this
+    gate path, or prove the queue is stale and safe to clear in this exact
+    fast-path state.
+- Validation passed after the edits:
+  - `PYTHONPATH=build/python/src:python/src:jax_env .venv/bin/python -m
+    py_compile jax_env/azuki_jax/step.py
+    python/src/azk_puffer/jax_vector.py`
+  - `git diff --check -- jax_env/azuki_jax/step.py
+    python/src/azk_puffer/jax_vector.py`
+
+## Current Status — 2026-06-17 Continuation
+
+This section supersedes all older "remaining work" notes below for the current
+branch state. The lower sections are historical debugging notes and still useful
+for archaeology, but the passive-aura items described there have since been
+implemented and re-verified.
+
+- Production-pool parity is green on the main shards that previously failed:
+  - `jax_env/tests/test_l3_passives.py`: **10 passed** in
+    `3812.18s (1:03:32)`.
+  - `test_l3_fullpool.py::test_fullpool_mirror`: **18 passed** in
+    `5124.18s (1:25:24)`.
+  - `test_l3_fullpool.py::test_fullpool_cross`: all 18 cases reached 100% and
+    pytest exited `0`; the final summary line did not flush in the captured
+    terminal output.
+  - `test_obs_packing.py::test_packed_observation_ability_deck[222]`:
+    **1 passed** in `2308.40s (0:38:28)`.
+- Remaining verification caveat:
+  - A combined `test_l3_env.py` run passed the first seed, then the second seed
+    drove RSS to roughly 119 GB and was killed before OOM. A prior isolated
+    seed-77 run passed, and the latest passive/obs changes do not affect the
+    vanilla env deck path.
+- Final parity fixes in this continuation:
+  - Ported C-like sticky passive buff queue semantics for self-passive
+    `AZK01-010`, `AZK01-019`, `AZK01-073`, and `STT02-012` garden events,
+    including the observed Flecs callback ordering and queue cap behavior.
+  - Corrected `AZK01-073` to queue only on active-state transitions while
+    `AZK01-010/019` queue on watched garden/alley events.
+  - Removed stale test normalization that stripped leader activation rows from
+    C packed observations; leaders are now ported, and C/JAX compare the real
+    public ABI rows.
+- Fresh benchmark numbers:
+  - C raw binding: **7802.4 steps/s** (`128.2 us/step`) from
+    `PYTHONPATH=build/python/src:python/src timeout 180 .venv/bin/python -u
+    jax_env/benchmarks/bench_c_env.py 5000`.
+  - C full wrapper dict obs: **771.4 steps/s** (`1296.3 us/step`) from the
+    same run.
+  - C e2e PPO training (`azuki_speed_3090.ini`, 480 envs, 12 workers,
+    61,440 agent steps): epoch SPS **274.03** startup, then **582.65**,
+    **601.28**, **594.66**; steady-state average of the last three epochs is
+    about **592.86 SPS**.
+  - JAX lean `vmap(engine_step)` batch 512:
+    compile+first **3349.4s**, steady-state **569 env-steps/s**
+    (`899.21 ms/batch-step`).
+- E2E/vector benchmark caveat:
+  - JAX e2e PPO at 512 envs reached first-rollout compilation but produced no
+    epoch/SPS before the bounded run was terminated; GPU was idle while CPU RSS
+    climbed.
+  - A smaller 64-env JAX e2e probe behaved the same way: no first epoch before
+    termination, GPU idle, CPU RSS climbing.
+  - Current conclusion: the JAX engine is parity-viable, but the monolithic
+    first-step XLA compile makes the current trainer integration
+    non-benchmarkable for e2e SPS. The sim-only JAX number is also slower than
+    the C raw binding and slightly below the C wrapper/training e2e rate.
+  - JAX persistent cache is not solving this yet because large GPU executables
+    exceed the cache serialization limit observed during these runs.
+- Performance continuation notes after the e2e failure:
+  - Refactored `apply_user_action` and `micro_tick` away from straight-line
+    `jnp.where` masking toward `lax.cond`/`lax.switch` control flow. A
+    25-step eager C/JAX smoke (`diag_eager.py batch4 W 42 25`) stayed clean
+    after those control-flow edits.
+  - Added static-action step helpers and a split-action `JaxVecEnv` path
+    (`AZK_JAX_SPLIT_ACTIONS=1`, default) so the vector backend can compile
+    kernels by primary action type instead of only the monolithic dynamic step.
+  - Important JAX caveat observed: wrapping branchy scalar steps in `vmap`
+    reintroduced select-like branch evaluation, so the split-action path now
+    uses `lax.map` for the static action kernels.
+  - Added a pregame mulligan fast path in `JaxVecEnv`. Tiny vector probe:
+    `python/src/azk_puffer/jax_vector.py 1 1` now reports reset/observe
+    compile+run about **31s**, first pregame send compile+run about **1.5s**,
+    and completes at about **80 agent-steps/s** for that one-step smoke.
+  - Added a guarded main-phase `NOOP` fast path for rows with no ability FSM,
+    combat, existing trigger queue, pending passive drain, EOT trigger
+    candidates, or start-trigger candidates. It calls the existing
+    `apply_noop_main -> end_turn -> start_of_turn` helpers and keeps unsafe
+    rows on the generic split path. Shared engine eager parity smoke
+    (`diag_eager.py batch4 W 42 25`) still reports `no divergence in 25 steps`.
+  - Added a narrower simple-start / simple-main-NOOP path. The pregame
+    shortcut now resolves the post-mulligan `START_OF_TURN` auto phase instead
+    of exposing a zero-legal state to the trainer.
+  - Added narrow vector fast paths for the early random trajectory:
+    simple entity play, `STT01-003` on-play mill, `STT01-002` gate portal into
+    confirmation, optional confirmation decline/clear, simple weapon attach,
+    non-lethal no-response garden attack into leader, `AZK01-058` mutual
+    destruction into `STT01-003`, the `STT04-003` start-of-each-turn
+    self-damage path including the death case, `STT04-014` simple play,
+    `STT04-016`/`AZK01-059` spell/cost/effect handling, `AZK01-122` gate
+    selection placement, `AZK01-065` Fire Orb including chained `AZK01-059`
+    takes-damage resolution, `AZK01-121` leader activation, and response-window
+    attack declarations against garden entities. Each path is host-guarded and
+    unsafe rows stay on the generic split kernels.
+  - Verified vector progress:
+    - `jax_vector.py 1 3` now completes; type-2 play and type-10 gate portal
+      use fast paths.
+    - `jax_vector.py 1 10` now completes without generic kernels. Clean run:
+      reset compile+run **30.3s**, first pregame send **0.5s**, then 10 traced
+      steps complete at **2 agent-steps/s** (`1127.6 ms/step`) on the tiny
+      1-env probe.
+    - `jax_vector.py 1 20` now completes with `AZK_JAX_SPLIT_TRACE=1` and no
+      generic fallbacks. Latest traced run: reset compile+run **30.8s**, first
+      pregame send **0.6s**, all 20 bench steps stayed on split fast paths, and
+      the tiny 1-env probe reported **3 agent-steps/s** (`774.4 ms/step`).
+      This is still compile-heavy and not an e2e SPS result.
+    - A traced `jax_vector.py 1 100` probe now completes without generic
+      kernels. Latest traced run used
+      `AZK_JAX_SPLIT_ACTIONS=1 AZK_JAX_SPLIT_TRACE=1 AZK_JAX_BENCH_TRACE=1`
+      and reported **5 agent-steps/s** (`373.2 ms/step`) on the tiny 1-env
+      probe. This is still compile-heavy and not an e2e SPS result, but it
+      confirms the seed-1 random trajectory stays split-only through 100 bench
+      steps.
+    - Latest 4-env split frontier update:
+      - Added guarded fast paths for the next seed-1 4-env trajectory segment:
+        `STT01-004` confirm/pick handling, `STT04-004` confirm/effect, clean
+        response-window `NOOP` into leader combat, `STT02-002` zero-power gate
+        portal as a no-op extension of the simple gate path, `STT01-006`
+        attack/effect flow, zero-legal truncation rows, and `STT01-005` alley
+        activation plus its two discard-target selections.
+      - Also widened clean leader-attack response detection to include playable
+        response cards in hand, not just board/defender responses.
+      - Important compile note: `STT01-006` effect selection originally called
+        full `auto_resolve`, which pulled a large generic compile into the fast
+        path. It now uses the narrow `phase_gate` transition and the host mask
+        only admits rows that open a response window.
+      - Current traced command:
+        `PYTHONPATH=build/python/src:python/src:jax_env
+        AZK_JAX_SPLIT_TRACE=1 AZK_JAX_BENCH_TRACE=1 timeout 900
+        .venv/bin/python -u python/src/azk_puffer/jax_vector.py 4 60`.
+        The run is now split-only through bench step 16 for seed 1. Step 16
+        showed `effect_stt01_005=1`, `main_noop=1`, `pregame=1`,
+        `play_simple=1`, and `generic=0`.
+      - New frontier is bench step 17 with `generic=1`, action type `1`
+        (`PLAY_ENTITY_TO_GARDEN`). Probe identified the row as active player 1
+        playing `AZK01-033` (`Elder Hoshin`) from hand index 4 to garden slot
+        1. This card is an on-play selection-zone reveal card (top 5, reveal up
+        to one Steelborn, bottom the rest), so it should get a dedicated reveal
+        fast path rather than being folded into simple play.
+    - Late trace milestones now covered: step 91 `gate_simple`, step 92
+      `select_azk01_122`, step 93 `spell_azk01_065`, step 94
+      `effect_azk01_065`, step 95 `effect_azk01_059`, step 96
+      `activate_azk01_121`, step 97 `attack_entity_simple`, step 98
+      `main_noop`, and step 99 `attack_entity_response`.
+    - Latest lightweight validation: `py_compile` passed for
+      `jax_env/azuki_jax/step.py` and `python/src/azk_puffer/jax_vector.py`;
+      `git diff --check -- jax_env/azuki_jax/step.py
+      python/src/azk_puffer/jax_vector.py` passed after the step-17 frontier
+      changes.
+  - Remaining vector/e2e caveat: the split-fast approach is making the trainer
+    integration executable one action family at a time, but it is not yet a
+    full benchmarkable JAX e2e path. Generic fallbacks may still appear beyond
+    the current 100-step seed-1 frontier, and when they do they still trigger
+    large CPU-side XLA compiles with GPU idle.
+
 **Branch:** `skylark/train-optimizations`
 **Goal:** A JAX/XLA GPU re-implementation of the Azuki TCG environment that is **bit-exact 1:1** with the C engine, so policies trained in JAX (fast, GPU-batched) transfer to the C engine for inference/gameplay. The C engine remains the oracle and the gameplay/inference runtime.
 **Reference paper:** `optimizations/` (Karten et al. 2026, arXiv 2603.12145) — GPU-resident env design.
 
-> ⚠️ **READ FIRST — uncommitted state.** The *entire* `jax_env/` directory is **untracked in git** (so is `.venv/`, `optimizations/`, and the new config files). None of the JAX conversion or the parity fixes below are committed. **Commit `jax_env/` before/after moving systems** or the work is lost. Tracked working-tree changes are only the C-side debug instrumentation + `python/src/training_utils.py`.
+> ⚠️ **READ FIRST — uncommitted state.** This branch has many tracked JAX env
+> modifications plus several untracked benchmark/debug helpers. Do not assume the
+> historical note that "all of `jax_env/` is untracked" is still true. Run
+> `git status --short` before committing and stage only the intended parity,
+> benchmark, and integration files.
 
 ---
 
@@ -131,6 +706,19 @@ All in `jax_env/tests/`. Eager (`JAX_PLATFORMS=cpu`, `jax.disable_jit()`) avoids
    - Audit **all** auras in `cards_batch_passives.py` for the same class (AZK01-010, AZK01-019, AZK01-073, STT02-012, and the rest of the 9), not just the 4 observed.
 
 **Recommended approach:** instrument C flush boundaries (add an `fprintf` at `azuki_engine.c:404` printing ability-phase + queue count) to nail the exact remove/apply landing per step, then port the queue+observer mechanism. Verify each aura with `diag_c_only_pool.py … DBG_PASSIVE=1` vs `diag_eager.py pool`.
+
+#### 5.1.1 REFINED mechanism (session 2, 2026-06-14 — supersedes the §5.1 "deferred-insert entry-lag" framing)
+
+Step-correlated `DBG_PASSIVE` traces (`jax_env/tests/trace_019.py`, `trace_jax_019.py`, both new) for AZK01-019 in c10/m16 pin the real C rule. It is **observer-registration-scoped**, not a simple deferred-insert:
+
+- **First-EVER entry into play fires immediately.** When a self-buff passive is played for the first time (garden OR alley), C registers its observer and the init update evaluates with the card **in play** → the buff applies that step. Evidence (m16 s12361 step 44): `[Cjay] ent966 p0 in_play all_normal=1 -> APPLY +0/+2`, garden hp 3 at step 45 — **no lag**. So the §5.1 "fresh garden play lags" claim is WRONG; first plays do not lag.
+- **Re-entry after leaving play does NOT re-fire at entry, but the observer persists and re-fires on the NEXT garden/alley event.** `azk_sync_card_abilities` skips `init_passive_observers` while `PassiveObserverContext` exists (`components/abilities.c:344-346`). Evidence (c10 s7010): ent for AZK01-019 buffed during its first stint (alley step47 → garden move step52, hp 3), hp-buff correctly removed at step 89 (garden no longer all-Normal), card **leaves play** step 90, **re-enters** garden step 95 reading **hp 1 (unbuffed)** with NO `[Cjay]` firing 93–98, then **re-buffs to hp 3 by step 101** (a garden event between 98–101 re-fired the persisting observer). So a re-entry lags exactly until the next watched garden/alley event.
+- **Zone MOVE of an in-play card keeps its buff** (alley→garden gate-portal): observer persists, its EcsOnAdd fires → re-evaluates. Not a leave/re-entry.
+- Watched zones (re-confirmed from each card's `*_init_passive_observers`): AZK01-010/019 = own garden+alley; **AZK01-073 = own garden ONLY** (single observer, `azk01_073.c:95`); STT02-012 = both players' gardens.
+
+**Two heuristic attempts this session, both incomplete (reverted):** (a) a `passive_armed` latch armed at every garden/alley mutation hook — over/under-applied because the JAX mutation-hook set does not exactly equal C's ChildOf-observer firing set; (b) a `passive_left_play` "dead after first leave" gate — fixed the c10 step-98 over-apply (advanced to 101) but then under-applied at 101 because **C re-buffs after re-entry** (the observer is NOT permanently dead). Conclusion: the correct port is the full **event-driven sticky queue** (re-entry lags one event, then re-arms), and getting it bit-exact requires matching C's observer firing set precisely — the genuinely hard "multi-hour" part. STT02-012's c16/m16 divergence is the **separate** count-latch multi-event-netting bug (012 buffed at step 62, C removes at 69 via the last-event-not-landing flush split; JAX latch keeps the last decision).
+
+**Non-passive engine is otherwise verified 1:1**: a single-process jit suite run reached 47 tests (l1/l2/l3-abilities + batch1-4, which DO include AZK01-010/019/073/012 crafted decks) with **0 failures** before being OOM-killed by a concurrently-launched benchmark (run the suite ALONE — its compile peaks ~40 GB and the bench compile adds another ~40 GB > 125 GB). The passive divergences are specific to certain production-pool pairings (fullpool cases ~c10/c15/c16/m16), not the batch decks.
 
 ### 5.2 ⬛ Discrete: combat-death discard ordering (c11)
 `c11` (pool 11v12 s7011 @77): `discard1` same multiset, **transposed order** — C `[…,14,14,13]` vs JAX `[…,14,13,14]`, after 3 attacks (steps 73-75) killing multiple entities. The order entities enter the discard pile on simultaneous/sequential combat deaths differs. **Not yet pinned** — read C's death/discard order in `src/systems/combat_resolve_phase.c` + `src/utils/damage_util.c` (combat damage → death → `discard_card`) and match JAX's combat-death discard ordering (`engine/` combat + `cards_impl` discard). Likely an attacker-vs-defender or slot-order tiebreak. Add a `discard0/discard1` dump to `diag_evolution.py` window 71-77 to see it.

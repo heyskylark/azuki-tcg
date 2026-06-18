@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"/home/skylark/git/azuki-tcg/build-asan/_deps/flecs_src-subbuild/cmake_install.cmake"
+	],
+	"Parallel" : false
+}
