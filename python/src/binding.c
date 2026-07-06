@@ -3,8 +3,13 @@
 #include <Python.h>
 
 static PyObject* env_reset_with_decks(PyObject* self, PyObject* args);
+static PyObject* vec_drain_deck_records(PyObject* self, PyObject* args);
+static PyObject* obs_struct_sizes(PyObject* self, PyObject* args);
 
-#define MY_METHODS {"env_reset_with_decks", env_reset_with_decks, METH_VARARGS, "Reset the environment with two explicit deck specs"}
+#define MY_METHODS \
+  {"env_reset_with_decks", env_reset_with_decks, METH_VARARGS, "Reset the environment with two explicit deck specs"}, \
+  {"vec_drain_deck_records", vec_drain_deck_records, METH_VARARGS, "Drain per-episode drafted-deck records from a deck-building vec"}, \
+  {"obs_struct_sizes", obs_struct_sizes, METH_NOARGS, "Return (battle, deckbuild) packed observation struct sizes"}
 
 #define Env CAzukiTCG
 #define MY_GET
@@ -277,6 +282,8 @@ static PyObject* my_get(PyObject* dict, Env* env) {
   return dict;
 }
 
+static int load_draft_catalog(PyObject* kwargs);
+
 static int my_init(Env* env, PyObject* args, PyObject* kwargs) {
   env->seed = unpack(kwargs, "seed");
   if (PyErr_Occurred()) {
@@ -288,8 +295,17 @@ static int my_init(Env* env, PyObject* args, PyObject* kwargs) {
     return -1;
   }
 
+  PyObject *deck_building_obj = PyDict_GetItemString(kwargs, "deck_building");
+  if (deck_building_obj != NULL && PyObject_IsTrue(deck_building_obj)) {
+    if (load_draft_catalog(kwargs) != 0) {
+      free_training_deck_pool(env);
+      return -1;
+    }
+    env->deck_building = true;
+  }
+
   init(env);
-  if (env->engine == NULL) {
+  if (!env->deck_building && env->engine == NULL) {
     const char *error_message = azk_engine_get_last_error();
     PyErr_SetString(
         PyExc_RuntimeError,
@@ -397,4 +413,201 @@ static PyObject* env_reset_with_decks(PyObject* self, PyObject* args) {
   free(player0_cards);
   free(player1_cards);
   Py_RETURN_NONE;
+}
+
+// ---- Deck-building draft catalog + export drain -----------------------------
+
+static int parse_int16_list(PyObject* kwargs, const char* key, int16_t* out,
+                            int capacity, int* out_count) {
+  PyObject* obj = PyDict_GetItemString(kwargs, key);
+  if (obj == NULL) {
+    PyErr_Format(PyExc_ValueError, "deck_building requires kwarg '%s'", key);
+    return -1;
+  }
+  PyObject* seq = PySequence_Fast(obj, "draft catalog entries must be sequences");
+  if (seq == NULL) {
+    return -1;
+  }
+  const Py_ssize_t n = PySequence_Fast_GET_SIZE(seq);
+  if (n > capacity) {
+    Py_DECREF(seq);
+    PyErr_Format(PyExc_ValueError, "'%s' has %zd entries, capacity %d", key, n,
+                 capacity);
+    return -1;
+  }
+  for (Py_ssize_t i = 0; i < n; ++i) {
+    const long value = PyLong_AsLong(PySequence_Fast_GET_ITEM(seq, i));
+    if (PyErr_Occurred()) {
+      Py_DECREF(seq);
+      return -1;
+    }
+    out[i] = (int16_t)value;
+  }
+  Py_DECREF(seq);
+  *out_count = (int)n;
+  return 0;
+}
+
+static int parse_int_list(PyObject* kwargs, const char* key, int* out,
+                          int capacity, int* out_count) {
+  PyObject* obj = PyDict_GetItemString(kwargs, key);
+  if (obj == NULL) {
+    PyErr_Format(PyExc_ValueError, "deck_building requires kwarg '%s'", key);
+    return -1;
+  }
+  PyObject* seq = PySequence_Fast(obj, "draft catalog entries must be sequences");
+  if (seq == NULL) {
+    return -1;
+  }
+  const Py_ssize_t n = PySequence_Fast_GET_SIZE(seq);
+  if (n > capacity) {
+    Py_DECREF(seq);
+    PyErr_Format(PyExc_ValueError, "'%s' has %zd entries, capacity %d", key, n,
+                 capacity);
+    return -1;
+  }
+  for (Py_ssize_t i = 0; i < n; ++i) {
+    const long value = PyLong_AsLong(PySequence_Fast_GET_ITEM(seq, i));
+    if (PyErr_Occurred()) {
+      Py_DECREF(seq);
+      return -1;
+    }
+    out[i] = (int)value;
+  }
+  Py_DECREF(seq);
+  *out_count = (int)n;
+  return 0;
+}
+
+static int load_draft_catalog(PyObject* kwargs) {
+  if (g_draft_catalog.loaded) {
+    return 0;
+  }
+  AzkDraftCatalog cat = {0};
+  int count = 0;
+  if (parse_int16_list(kwargs, "draft_gate_def_ids", cat.gate_def_ids,
+                       AZK_DRAFT_MAX_GATES, &cat.gate_count) != 0 ||
+      parse_int16_list(kwargs, "draft_gate_population", cat.gate_population,
+                       AZK_DRAFT_MAX_POPULATION, &cat.population_count) != 0 ||
+      parse_int16_list(kwargs, "draft_leader_flat", cat.leader_flat,
+                       AZK_DRAFT_MAX_GATES * AZK_DRAFT_MAX_LEADERS, &count) != 0 ||
+      parse_int_list(kwargs, "draft_leader_offsets", cat.leader_offsets,
+                     AZK_DRAFT_MAX_GATES + 1, &count) != 0 ||
+      parse_int16_list(kwargs, "draft_main_flat", cat.main_flat,
+                       AZK_DRAFT_MAX_GATES * AZK_DRAFT_MAX_CANDIDATES, &count) != 0 ||
+      parse_int_list(kwargs, "draft_main_offsets", cat.main_offsets,
+                     AZK_DRAFT_MAX_GATES + 1, &count) != 0) {
+    return -1;
+  }
+  if (count != cat.gate_count + 1) {
+    PyErr_SetString(PyExc_ValueError,
+                    "draft offsets must have gate_count+1 entries");
+    return -1;
+  }
+  PyObject* ikz_obj = PyDict_GetItemString(kwargs, "draft_ikz_def_id");
+  if (ikz_obj == NULL) {
+    PyErr_SetString(PyExc_ValueError, "deck_building requires draft_ikz_def_id");
+    return -1;
+  }
+  cat.ikz_def_id = (int16_t)PyLong_AsLong(ikz_obj);
+  if (PyErr_Occurred()) {
+    return -1;
+  }
+  if (cat.gate_count <= 0 || cat.population_count <= 0) {
+    PyErr_SetString(PyExc_ValueError, "draft catalog must be non-empty");
+    return -1;
+  }
+  // Per-gate main lists must fit the per-player copy-count arrays.
+  for (int g = 0; g < cat.gate_count; ++g) {
+    const int len = cat.main_offsets[g + 1] - cat.main_offsets[g];
+    if (len <= 0 || len > AZK_DRAFT_MAX_CANDIDATES) {
+      PyErr_Format(PyExc_ValueError,
+                   "gate %d main candidate list length %d out of range", g, len);
+      return -1;
+    }
+  }
+  g_draft_catalog = cat;
+  g_draft_catalog.loaded = true;
+  return 0;
+}
+
+static PyObject* vec_drain_deck_records(PyObject* self, PyObject* args) {
+  (void)self;
+  VecEnv* vec = unpack_vecenv(args);
+  if (vec == NULL) {
+    return NULL;
+  }
+  PyObject* records = PyList_New(0);
+  if (records == NULL) {
+    return NULL;
+  }
+  for (int i = 0; i < vec->num_envs; ++i) {
+    Env* env = vec->envs[i];
+    if (!env->deck_record_valid) {
+      continue;
+    }
+    env->deck_record_valid = false;
+    PyObject* players = PyList_New(MAX_PLAYERS_PER_MATCH);
+    if (players == NULL) {
+      Py_DECREF(records);
+      return NULL;
+    }
+    for (int p = 0; p < MAX_PLAYERS_PER_MATCH; ++p) {
+      PyObject* main_list = PyList_New(REQUIRED_DECK_SIZE);
+      if (main_list == NULL) {
+        Py_DECREF(players);
+        Py_DECREF(records);
+        return NULL;
+      }
+      for (int c = 0; c < REQUIRED_DECK_SIZE; ++c) {
+        PyList_SET_ITEM(main_list, c,
+                        PyLong_FromLong(env->deck_record_main[p][c]));
+      }
+      PyObject* player = Py_BuildValue(
+          "{s:i,s:i,s:N,s:f,s:f,s:f,s:f,s:f,s:f,s:f,s:f,s:f}",
+          "gate", (int)env->deck_record_gate[p],
+          "leader", (int)env->deck_record_leader[p],
+          "main", main_list,
+          "win", env->deck_record_win[p],
+          "attack_rate", env->deck_record_behavior[p][0],
+          "spell_rate", env->deck_record_behavior[p][1],
+          "weapon_rate", env->deck_record_behavior[p][2],
+          "portal_rate", env->deck_record_behavior[p][3],
+          "play_entity_rate", env->deck_record_behavior[p][4],
+          "noop_rate", env->deck_record_behavior[p][5],
+          "ability_rate",
+          env->deck_record_behavior[p][6] + env->deck_record_behavior[p][7],
+          "leader_health", env->deck_record_leader_health[p]);
+      if (player == NULL) {
+        Py_DECREF(players);
+        Py_DECREF(records);
+        return NULL;
+      }
+      PyList_SET_ITEM(players, p, player);
+    }
+    PyObject* record = Py_BuildValue(
+        "{s:k,s:f,s:N}",
+        "seed", (unsigned long)env->deck_record_seed,
+        "episode_length", env->deck_record_episode_length,
+        "players", players);
+    if (record == NULL) {
+      Py_DECREF(records);
+      return NULL;
+    }
+    if (PyList_Append(records, record) < 0) {
+      Py_DECREF(record);
+      Py_DECREF(records);
+      return NULL;
+    }
+    Py_DECREF(record);
+  }
+  return records;
+}
+
+static PyObject* obs_struct_sizes(PyObject* self, PyObject* args) {
+  (void)self;
+  (void)args;
+  return Py_BuildValue("(kk)",
+                       (unsigned long)sizeof(TrainingObservationData),
+                       (unsigned long)sizeof(TrainingObservationDataDeckBuild));
 }

@@ -69,8 +69,17 @@ class InlineLeagueEvaluator(LeagueEvaluator):
     if episodes <= 0:
       return MatchResult(wins_a=0, wins_b=0, draws=0, episodes=0)
 
+    # The inline evaluator drives seats through the legacy wrapper chain
+    # (_active_player_index, per-seat infos, .done). Force the legacy env
+    # path even when training runs native — checkpoints work on both.
+    eval_args = dict(trainer_args)
+    eval_env_cfg = dict(eval_args.get("env", {}) or {})
+    eval_env_cfg["native"] = False
+    eval_env_cfg.pop("native_envs_per_instance", None)
+    eval_args["env"] = eval_env_cfg
+
     vecenv = build_vecenv(
-      trainer_args,
+      eval_args,
       backend=azk_vector.Serial,
       num_envs=1,
       seed=seed,

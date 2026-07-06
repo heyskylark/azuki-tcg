@@ -219,9 +219,12 @@ def make_azuki_env(*, seed: int | None = None, buf=None, **env_kwargs):
   if deck_pool is None:
     deck_pool = load_training_deck_pool(deck_pool_path)
   if native:
-    if deck_building_enabled or direct_parallel:
+    if direct_parallel:
+      raise ValueError("env.native is incompatible with direct_parallel")
+    if deck_building_enabled and fixed_deck_seats:
       raise ValueError(
-        "env.native is incompatible with deck_building_enabled/direct_parallel"
+        "deck_building_fixed_seats is not supported on the native path; "
+        "use the legacy path for fixed-seat evals"
       )
     from azk_native import AzukiNativeEnv
 
@@ -230,6 +233,9 @@ def make_azuki_env(*, seed: int | None = None, buf=None, **env_kwargs):
       deck_pool=deck_pool,
       buf=buf,
       seed=seed if seed is not None else 0,
+      deck_building=deck_building_enabled,
+      deck_snapshot_dir=env_kwargs.pop("deck_snapshot_dir", None),
+      deck_snapshot_every=env_kwargs.pop("deck_snapshot_every", None),
     )
   if deck_building_enabled:
     env = AzukiTCGParallel(seed=seed, deck_pool=deck_pool)

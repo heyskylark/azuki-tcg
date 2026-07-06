@@ -79,16 +79,18 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     self.opponent_policies = list(opponent_policies)
     self._rng = np.random.default_rng(int(league_cfg.seed))
 
-    self._agents_per_env = int(vecenv.driver_env.num_agents)
+    # Game-granular row grouping (see trainer.py): native driver envs pack
+    # many games per instance, but rows are [g0_p0, g0_p1, g1_p0, ...] on
+    # every path. agents_per_match=2 keeps matchup/seat assignment, frozen
+    # sampling, and resampling per GAME instead of per worker instance.
+    driver = vecenv.driver_env
+    self._agents_per_env = int(
+      getattr(driver, "agents_per_match", getattr(driver, "num_agents", 0))
+    )
     if self._agents_per_env <= 1:
       raise ValueError("League mode requires at least 2 agents per env")
 
-    if hasattr(vecenv, "num_environments"):
-      self._num_envs_total = int(vecenv.num_environments)
-    elif hasattr(vecenv, "envs"):
-      self._num_envs_total = int(len(vecenv.envs))
-    else:
-      self._num_envs_total = int(self.total_agents // self._agents_per_env)
+    self._num_envs_total = int(self.total_agents // self._agents_per_env)
 
     self._env_learner_seat = self._rng.integers(
       0, self._agents_per_env, size=self._num_envs_total, dtype=np.int32

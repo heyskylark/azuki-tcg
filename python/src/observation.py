@@ -236,8 +236,43 @@ class _TrainingObservationData(ctypes.Structure):
     ]
 
 
+class _TrainingDeckContextObservationData(ctypes.Structure):
+    # Mirrors AzkTrainingDeckContextData in python/src/tcg.h — order, types,
+    # and default (unpacked) alignment must stay in lockstep with the C side.
+    _fields_ = [
+        ("mode", ctypes.c_int32),
+        ("gate_card_def_id", ctypes.c_int16),
+        ("leader_card_def_id", ctypes.c_int16),
+        ("main_card_def_ids", ctypes.c_int16 * MAX_DECK_SIZE),
+        ("main_count", ctypes.c_uint8),
+        ("candidate_count", ctypes.c_int32),
+        ("candidate_card_def_ids", ctypes.c_int16 * MAX_DECK_BUILD_CANDIDATES),
+        ("candidate_copy_counts", ctypes.c_uint8 * MAX_DECK_BUILD_CANDIDATES),
+    ]
+
+
+class _TrainingObservationDataDeckBuild(ctypes.Structure):
+    # Battle struct plus the draft context. Kept as a separate top-level type
+    # so fixed-deck native training keeps its exact packed layout (and
+    # checkpoint compatibility); deck-building selects this one.
+    _fields_ = [
+        ("my_observation_data", _TrainingMyObservationData),
+        ("opponent_observation_data", _TrainingOpponentObservationData),
+        ("phase", ctypes.c_int32),
+        ("ability_context", _TrainingAbilityContextObservationData),
+        ("combat_context", _TrainingCombatContextObservationData),
+        ("self_recent_actions", _TrainingRecentActionObservationData * RECENT_ACTION_HISTORY_LEN),
+        ("opp_recent_actions", _TrainingRecentActionObservationData * RECENT_ACTION_HISTORY_LEN),
+        ("critic_privileged", _TrainingCriticPrivilegedObservationData),
+        ("action_mask", _TrainingActionMaskObs),
+        ("deck_context", _TrainingDeckContextObservationData),
+    ]
+
+
 OBSERVATION_CTYPE = _TrainingObservationData
 OBSERVATION_STRUCT_SIZE = ctypes.sizeof(_TrainingObservationData)
+DECKBUILD_OBSERVATION_CTYPE = _TrainingObservationDataDeckBuild
+DECKBUILD_OBSERVATION_STRUCT_SIZE = ctypes.sizeof(_TrainingObservationDataDeckBuild)
 
 CARD_DEF_MIN = -1
 CARD_DEF_MAX = 32767

@@ -46,6 +46,9 @@ def run_eval(
   trainer_args["train"]["device"] = device
   env_cfg = trainer_args.setdefault("env", {})
   env_cfg["deck_building_enabled"] = True
+  # Seat forcing and per-seat info reads need the legacy wrapper chain.
+  env_cfg["native"] = False
+  env_cfg.pop("native_envs_per_instance", None)
   env_cfg["deck_building_fixed_seats"] = str(fixed_seat)
   _apply_checkpoint_resume_policy_config(trainer_args, checkpoint)
   env_cfg["deck_building_fixed_seats"] = str(fixed_seat)

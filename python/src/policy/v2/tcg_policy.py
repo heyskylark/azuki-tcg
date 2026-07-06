@@ -884,7 +884,8 @@ class TCG(nn.Module):
     if self._native_layout:
       self._packed_specs = _build_packed_specs(obs_dtype)
       self._obs_struct_dtype = None
-      self.deck_context_enabled = False
+      dtype_names = getattr(np.dtype(obs_dtype), "names", None) or ()
+      self.deck_context_enabled = "deck_context" in dtype_names
     else:
       self._packed_specs = None
       self._obs_struct_dtype = _build_native_dtype_from_numpy(obs_dtype)
@@ -1388,7 +1389,7 @@ class TCG(nn.Module):
     ra_fields = ("valid", "primary", "sub1", "sub2", "sub3", "was_noop")
     cp = sp["critic_privileged"]
     am = sp["action_mask"]
-    return {
+    cobs = {
       "player": player,
       "opponent": opponent,
       "phase": ex(sp["phase"]),
@@ -1421,6 +1422,19 @@ class TCG(nn.Module):
         "legal_sub3": ex(am["legal_sub3"]),
       },
     }
+    if self.deck_context_enabled and "deck_context" in sp:
+      dc = sp["deck_context"]
+      cobs["deck_context"] = {
+        "mode": ex(dc["mode"]),
+        "gate_card_def_id": ex(dc["gate_card_def_id"]),
+        "leader_card_def_id": ex(dc["leader_card_def_id"]),
+        "main_card_def_ids": ex(dc["main_card_def_ids"]),
+        "main_count": ex(dc["main_count"]),
+        "candidate_card_def_ids": ex(dc["candidate_card_def_ids"]),
+        "candidate_copy_counts": ex(dc["candidate_copy_counts"]),
+        "candidate_count": ex(dc["candidate_count"]),
+      }
+    return cobs
 
   @staticmethod
   def _struct_get(container, *names):

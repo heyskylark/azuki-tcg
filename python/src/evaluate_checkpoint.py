@@ -171,6 +171,12 @@ def evaluate(
     f"subaction_temperature={temp_now:.6f}, smoothing_eps={smoothing_now:.6f}"
   )
 
+  # Checkpoint evaluation drives seats through the legacy wrapper chain;
+  # force the legacy env path even when the config trains native.
+  eval_env_cfg = dict(trainer_args.get("env", {}) or {})
+  eval_env_cfg["native"] = False
+  eval_env_cfg.pop("native_envs_per_instance", None)
+  trainer_args["env"] = eval_env_cfg
   vecenv = build_vecenv(
     trainer_args,
     backend=azk_vector.Serial,

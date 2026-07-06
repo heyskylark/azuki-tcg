@@ -112,13 +112,16 @@ class PuffeRL:
         self.ep_lengths = torch.zeros(total_agents, device=device, dtype=torch.int32)
         self.ep_indices = torch.arange(total_agents, device=device, dtype=torch.int32)
         self.free_idx = total_agents
-        self._agents_per_env = max(1, int(getattr(vecenv.driver_env, 'num_agents', 1)))
-        if hasattr(vecenv, 'num_environments'):
-            self._num_envs_total = int(vecenv.num_environments)
-        elif hasattr(vecenv, 'envs'):
-            self._num_envs_total = int(len(vecenv.envs))
-        else:
-            self._num_envs_total = max(1, int(total_agents // self._agents_per_env))
+        # Group rows by GAME, not by worker instance: a native driver_env packs
+        # many independent games (num_agents = 2 * envs_per_instance), but the
+        # global row layout is [g0_p0, g0_p1, g1_p0, ...] on every path, so
+        # game index = row // agents_per_match. Envs expose agents_per_match;
+        # falling back to num_agents preserves legacy 2-agent wrappers.
+        driver = vecenv.driver_env
+        self._agents_per_env = max(
+            1, int(getattr(driver, 'agents_per_match', getattr(driver, 'num_agents', 1)))
+        )
+        self._num_envs_total = max(1, int(total_agents // self._agents_per_env))
         self._env_episode_ids = np.arange(self._num_envs_total, dtype=np.int64)
         self._next_env_episode_id = int(self._num_envs_total)
         self.win_prob_targets = torch.zeros(segments, horizon, device=device)
