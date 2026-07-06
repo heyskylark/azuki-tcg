@@ -18,11 +18,14 @@
 >   3 decimals) — the model conditions on ELEMENT (availability pool), not on the GATE CARD.
 >   Gate mechanics are unused in play (portal ~0.03, weapons ~0.02) and uncorrelated-or-negative
 >   with winning → no gradient pressure for gate-conditional strategy. Equilibrium to break.
-> - ROUND 2 (running): §5. Arms on the new stack, 15M steps each, seed 42, mb2048,
->   checkpoint_interval 100, own league dirs (keep 2/1/1): ctrl2 (control), anneal1
->   (AZK_REWARD_SHAPING_ANNEAL=1 warmup 8 / ramp 25 per-env episodes — NOTE: anneal counts
->   PER-ENV episodes, ~46/env per 12M steps @720 envs; June defaults 2000/30000 would be a
->   silent no-op), combo1 (anneal + deck_pick_smoothing_eps 0.05 + ent boost).
+> - NATIVE PORT LANDED (§6.1, commits a13d66e/c4653eb): deck-building drafts in C,
+>   ~3.2-3.9k SPS with league (6× June). Parity-tested. League game-granularity +
+>   eval-layout bugs fixed (affected battle-only native too).
+> - ROUND 2 (running on NATIVE config): §5. Arms 15M steps each, seed 42, ckpt interval
+>   100, own league dirs (keep 2/1/1): ctrl2 → anneal1 (ANNEAL warmup 12 / ramp 40
+>   per-env episodes @480 games ≈ fade 1.9M→8.2M) → gateid1
+>   (policy.gate_id_embedding_enabled) → combo1 (anneal+gateid+pick-eps 0.05).
+>   Chain: run_round2.sh; watchdog monitor active; analyze_arm.sh per arm afterwards.
 > - entdeck knobs cherry-picked to this branch (3e4f0f7): policy.deck_pick_smoothing_eps,
 >   policy.legal_row_temperature. Functional check: pick-row entropy 0.196→1.381 @ eps 0.5,
 >   battle rows unaffected.
