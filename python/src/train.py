@@ -2161,6 +2161,10 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
 
 
 def main():
+    # Expandable segments avoid fragmentation OOMs from the mixed large/small
+    # transients (bucket-1024 decode vs everything else). The allocator reads
+    # this at the first CUDA allocation, so a set-if-unset here is effective.
+    os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
     script_args, forwarded_cli = parse_script_args()
     run_training(script_args, forwarded_cli)
 

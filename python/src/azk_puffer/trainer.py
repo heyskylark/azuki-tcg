@@ -158,9 +158,33 @@ class PuffeRL:
         self.uncompiled_policy = policy
         self.policy = policy
         if config['compile']:
-            self.policy = torch.compile(policy, mode=config['compile_mode'])
-            self.policy.forward_eval = torch.compile(policy, mode=config['compile_mode'])
-            pufferlib.pytorch.sample_logits = torch.compile(pufferlib.pytorch.sample_logits, mode=config['compile_mode'])
+            base = getattr(policy, 'policy', None)
+            if base is not None and hasattr(base, 'encode_observations') and hasattr(base, 'decode_actions'):
+                # Azuki TCG policy: compile the encode/decode hot paths and keep
+                # the LSTM cell + glue eager. The default recompile_limit (8) is
+                # load-bearing: the _PackedField.extract frames specialize per
+                # field spec and must cap to eager quickly, while the hot
+                # encoder/decoder graphs compile once per shape family. Raising
+                # the limit (or dynamo-disabling the canonicalizer) was measured
+                # 10-70% slower end to end.
+                # Keep the eager originals reachable: CUDA-graph capture must
+                # record the eager kernels (dynamo guards read the CUDA RNG
+                # seed, which is illegal inside stream capture).
+                base._eager_encode_observations = base.encode_observations
+                base._eager_decode_actions = base.decode_actions
+                base.encode_observations = torch.compile(base.encode_observations, mode=config['compile_mode'])
+                base.decode_actions = torch.compile(base.decode_actions, mode=config['compile_mode'])
+            else:
+                self.policy = torch.compile(policy, mode=config['compile_mode'])
+                self.policy.forward_eval = torch.compile(policy, mode=config['compile_mode'])
+                pufferlib.pytorch.sample_logits = torch.compile(pufferlib.pytorch.sample_logits, mode=config['compile_mode'])
+
+        # Manual CUDA graphs for the launch-bound rollout forward (Azuki
+        # policy only; captures one graph per legal-action trim bucket).
+        if config.get('cuda_graphs', False) and 'cuda' in str(config['device']):
+            enable_graphs = getattr(policy, 'enable_rollout_cuda_graphs', None)
+            if enable_graphs is not None:
+                enable_graphs()
 
         # Optimizer
         if config['optimizer'] == 'adam':
@@ -169,6 +193,7 @@ class PuffeRL:
                 lr=config['learning_rate'],
                 betas=(config['adam_beta1'], config['adam_beta2']),
                 eps=config['adam_eps'],
+                fused='cuda' in str(config['device']),
             )
         elif config['optimizer'] == 'muon':
             import heavyball
@@ -474,6 +499,11 @@ class PuffeRL:
                 self.lstm_c[k].zero_()
 
         self.full_rows = 0
+        # Python mirrors of ep_lengths/ep_indices for the slice reads below:
+        # reading the device tensors would sync the CPU against the whole
+        # enqueued forward on every step.
+        self._ep_len_py = {}
+        self._ep_row_py = {}
         self._reset_win_prob_rollout_buffers()
         self._reset_split_value_rollout_buffers()
         win_prob_enabled = self._win_prob_aux_enabled()
@@ -538,8 +568,10 @@ class PuffeRL:
                 reward_components_shaped = torch.where(done_dev, zeros, r_clipped)
 
                 # Fast path for fully vectorized envs
-                l = self.ep_lengths[env_id.start].item()
-                batch_rows = slice(self.ep_indices[env_id.start].item(), 1+self.ep_indices[env_id.stop - 1].item())
+                group = env_id.start
+                l = self._ep_len_py.get(group, 0)
+                row_start = self._ep_row_py.get(group, group)
+                batch_rows = slice(row_start, row_start + (env_id.stop - env_id.start))
 
                 if config['cpu_offload']:
                     self.observations[batch_rows, l] = o
@@ -575,10 +607,13 @@ class PuffeRL:
 
                 # Note: We are not yet handling masks in this version
                 self.ep_lengths[env_id] += 1
+                self._ep_len_py[group] = l + 1
                 if l+1 >= config['bptt_horizon']:
                     num_full = env_id.stop - env_id.start
                     self.ep_indices[env_id] = self.free_idx + torch.arange(num_full, device=config['device']).int()
                     self.ep_lengths[env_id] = 0
+                    self._ep_row_py[group] = self.free_idx
+                    self._ep_len_py[group] = 0
                     self.free_idx += num_full
                     self.full_rows += num_full
 
@@ -798,9 +833,10 @@ class PuffeRL:
                 win_prob_example_count += win_prob_aux_metrics['example_count']
 
             # Learn on accumulated minibatches
-            profile('learn', epoch)
+            profile('learn_backward', epoch)
             loss.backward()
             if (mb + 1) % self.accumulate_minibatches == 0:
+                profile('learn_opt', epoch)
                 torch.nn.utils.clip_grad_norm_(self.policy.parameters(), config['max_grad_norm'])
                 self.optimizer.step()
                 self.optimizer.zero_grad()
@@ -1000,7 +1036,8 @@ class PuffeRL:
         p.add_row(*fmt_perf('  Misc', b2, delta, profile.eval_misc, b2, c2))
         p.add_row(*fmt_perf('Train', b1, delta, profile.train, b2, c2))
         p.add_row(*fmt_perf('  Forward', b2, delta, profile.train_forward, b2, c2))
-        p.add_row(*fmt_perf('  Learn', b2, delta, profile.learn, b2, c2))
+        p.add_row(*fmt_perf('  Backward', b2, delta, profile.learn_backward, b2, c2))
+        p.add_row(*fmt_perf('  Optimizer', b2, delta, profile.learn_opt, b2, c2))
         p.add_row(*fmt_perf('  Copy', b2, delta, profile.train_copy, b2, c2))
         p.add_row(*fmt_perf('  Misc', b2, delta, profile.train_misc, b2, c2))
 

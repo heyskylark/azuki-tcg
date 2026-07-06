@@ -1,3 +1,5 @@
+import contextlib
+
 import azk_puffer.pytorch as azk_pytorch
 from azk_puffer.models import LSTMWrapper
 from gymnasium.wrappers.normalize import RunningMeanStd
@@ -626,6 +628,139 @@ class TCGLSTM(LSTMWrapper):
     state["lstm_c"] = lstm_c.detach()
     return logits, values
 
+  # --- CUDA-graph rollout ---------------------------------------------------
+  # The rollout forward is launch-bound (~1500 tiny kernels at batch ~1k, far
+  # above its FLOP cost). Shapes are static except the legal-action trim
+  # bucket (<=6 power-of-two variants), so we capture one graph per bucket and
+  # replay it in a single launch. Sampling stays eager so multinomial RNG is
+  # never captured. Capture runs lazily inside the trainer's no_grad+autocast
+  # context, so the recorded kernels match the eager execution exactly.
+
+  _CG_STATE_KEYS = (
+    "hidden",
+    "lstm_h",
+    "lstm_c",
+    "_azk_win_prob_logits",
+    "_azk_value_terminal",
+    "_azk_value_shaped",
+  )
+
+  def enable_rollout_cuda_graphs(self):
+    if getattr(self, "_cg_enabled", False):
+      return
+    if not bool(getattr(self.policy, "_native_layout", False)):
+      print("[cuda-graphs] rollout graphs require the native packed obs layout; keeping eager forward_eval")
+      return
+    self._cg_enabled = True
+    self._cg_broken = False
+    self._cg_graphs = {}
+    self._cg_static = None
+    self._cg_eager_forward_eval = self.forward_eval
+    self.forward_eval = self._forward_eval_cuda_graph
+
+  def _forward_eval_cuda_graph(self, observations, state):
+    h = state.get("lstm_h")
+    c = state.get("lstm_c")
+    if (
+      self._cg_broken
+      or h is None
+      or c is None
+      or not observations.is_cuda
+    ):
+      return self._cg_eager_forward_eval(observations, state)
+
+    if self._cg_static is None:
+      self._cg_static = (
+        torch.empty_like(observations),
+        torch.empty_like(h),
+        torch.empty_like(c),
+      )
+    s_obs, s_h, s_c = self._cg_static
+    if s_obs.shape != observations.shape or s_h.shape != h.shape:
+      return self._cg_eager_forward_eval(observations, state)
+    s_obs.copy_(observations, non_blocking=True)
+    s_h.copy_(h, non_blocking=True)
+    s_c.copy_(c, non_blocking=True)
+
+    counts = self.policy._packed_specs["action_mask"]["legal_action_count"].extract(s_obs)
+    bucket = self.policy._compute_legal_action_trim_bucket(counts)
+
+    entry = self._cg_graphs.get(bucket)
+    if entry is None:
+      try:
+        entry = self._cg_capture(bucket)
+      except Exception as exc:
+        print(f"[cuda-graphs] capture failed for bucket {bucket}: {exc!r}; falling back to eager rollout")
+        self._cg_broken = True
+        return self._cg_eager_forward_eval(observations, state)
+    graph, out_state, out_logits, out_values = entry
+    graph.replay()
+    for key in self._CG_STATE_KEYS:
+      if key in out_state:
+        state[key] = out_state[key]
+    return out_logits, out_values
+
+  def _cg_capture(self, bucket: int):
+    base = self.policy
+    s_obs, s_h, s_c = self._cg_static
+    base._trim_bucket_override = bucket
+    # If the trainer torch.compile'd encode/decode (train path), capture the
+    # eager originals instead: dynamo's guard machinery reads the CUDA RNG
+    # seed, which is illegal during stream capture. Replays never re-enter
+    # Python, so the train path keeps its compiled versions untouched.
+    swapped_methods = None
+    if hasattr(base, "_eager_encode_observations"):
+      swapped_methods = (base.encode_observations, base.decode_actions)
+      base.encode_observations = base._eager_encode_observations
+      base.decode_actions = base._eager_decode_actions
+    # The trainer calls this under an ambient autocast whose weight cache is
+    # freed when that context exits. A capture must never record pointers to
+    # those cached casts (freed memory on replay + silently stale weights
+    # after optimizer steps), so warmup+capture run with the cache disabled:
+    # casts become graph ops that re-read the live fp32 weights every replay.
+    if torch.is_autocast_enabled("cuda"):
+      autocast_ctx = torch.autocast(
+        "cuda",
+        dtype=torch.get_autocast_dtype("cuda"),
+        cache_enabled=False,
+      )
+    else:
+      autocast_ctx = contextlib.nullcontext()
+    from policy.v2 import tcg_sampler  # runtime import; sampler imports us
+
+    try:
+      with autocast_ctx:
+        side_stream = torch.cuda.Stream()
+        side_stream.wait_stream(torch.cuda.current_stream())
+        with torch.cuda.stream(side_stream):
+          for _ in range(3):
+            warm_state = {"lstm_h": s_h, "lstm_c": s_c}
+            warm_logits, _ = self._cg_eager_forward_eval(s_obs, warm_state)
+            tcg_sampler.tcg_sample_logits(warm_logits, action=None)
+        torch.cuda.current_stream().wait_stream(side_stream)
+
+        graph = torch.cuda.CUDAGraph()
+        capture_state = {"lstm_h": s_h, "lstm_c": s_c}
+        # Each bucket gets its own private memory pool: sharing a pool across
+        # graphs is only safe when they replay in capture order, and buckets
+        # replay in data-dependent order (sharing produced illegal accesses).
+        # Sampling is captured too (multinomial RNG is graph-safe: the default
+        # generator's offset advances per replay); the sampler returns the
+        # presampled static tensors when the distribution carries them.
+        with torch.cuda.graph(graph):
+          logits, values = self._cg_eager_forward_eval(s_obs, capture_state)
+          presampled = tcg_sampler.tcg_sample_logits(logits, action=None)
+      object.__setattr__(logits, "_azk_presampled", presampled)
+      object.__setattr__(logits, "_azk_presampled_params", tcg_sampler.get_sampling_params())
+      entry = (graph, capture_state, logits, values)
+      self._cg_graphs[bucket] = entry
+      print(f"[cuda-graphs] captured rollout graph for trim bucket {bucket}")
+      return entry
+    finally:
+      base._trim_bucket_override = None
+      if swapped_methods is not None:
+        base.encode_observations, base.decode_actions = swapped_methods
+
 
 class TCG(nn.Module):
   def __init__(
@@ -1055,6 +1190,8 @@ class TCG(nn.Module):
 
     self._cached_mask_observations = None
     self._cached_cobs = None
+    self._cached_trim_bucket = None
+    self._trim_bucket_override = None
 
   def __policy_device(self) -> torch.device:
     sample_param = next(self.parameters(), None)
@@ -2180,6 +2317,17 @@ class TCG(nn.Module):
       obs_tensor if obs_tensor is not None else observations, state
     )
     self._cached_cobs = cobs
+    # Cache the legal-action trim bucket for decode_actions. The .item() sync
+    # is nearly free here (only H2D copies are enqueued); in decode_actions it
+    # would stall the CPU behind the whole encode+LSTM launch queue. The
+    # override is set during CUDA-graph capture/replay, where a sync inside
+    # the captured region is illegal and the bucket is chosen by the caller.
+    if self._trim_bucket_override is not None:
+      self._cached_trim_bucket = self._trim_bucket_override
+    else:
+      self._cached_trim_bucket = self._compute_legal_action_trim_bucket(
+        cobs["action_mask"]["legal_action_count"]
+      )
     if state is not None:
       try:
         state["_azk_cobs"] = cobs
@@ -2415,58 +2563,55 @@ class TCG(nn.Module):
       )
       component_has_ref = torch.zeros_like(component_subaction, dtype=torch.bool)
 
+      # Each kind is gathered unconditionally: gating on `mask.any()` costs a
+      # GPU->CPU sync per branch (up to 21 per forward), which stalls the launch
+      # pipeline and breaks CUDA-graph/compile capture. The gathers are cheap.
       hand_mask = component_kind == LEGAL_ACTION_ARG_KIND_HAND
-      if hand_mask.any():
-        hand_refs = self._gather_zone_rows(hand_matrix, component_subaction)
-        component_ref = torch.where(hand_mask.unsqueeze(-1), hand_refs, component_ref)
-        component_has_ref |= hand_mask
+      hand_refs = self._gather_zone_rows(hand_matrix, component_subaction)
+      component_ref = torch.where(hand_mask.unsqueeze(-1), hand_refs, component_ref)
+      component_has_ref |= hand_mask
 
       self_garden_mask = component_kind == LEGAL_ACTION_ARG_KIND_SELF_GARDEN
-      if self_garden_mask.any():
-        garden_refs = self._gather_zone_rows(player_garden_matrix, component_subaction)
-        component_ref = torch.where(self_garden_mask.unsqueeze(-1), garden_refs, component_ref)
-        component_has_ref |= self_garden_mask
+      garden_refs = self._gather_zone_rows(player_garden_matrix, component_subaction)
+      component_ref = torch.where(self_garden_mask.unsqueeze(-1), garden_refs, component_ref)
+      component_has_ref |= self_garden_mask
 
       self_alley_mask = component_kind == LEGAL_ACTION_ARG_KIND_SELF_ALLEY
-      if self_alley_mask.any():
-        alley_refs = self._gather_zone_rows(player_alley_matrix, component_subaction)
-        component_ref = torch.where(self_alley_mask.unsqueeze(-1), alley_refs, component_ref)
-        component_has_ref |= self_alley_mask
+      alley_refs = self._gather_zone_rows(player_alley_matrix, component_subaction)
+      component_ref = torch.where(self_alley_mask.unsqueeze(-1), alley_refs, component_ref)
+      component_has_ref |= self_alley_mask
 
       selection_mask = component_kind == LEGAL_ACTION_ARG_KIND_SELECTION
-      if selection_mask.any():
-        selection_refs = self._gather_zone_rows(player_selection_matrix, component_subaction)
-        component_ref = torch.where(selection_mask.unsqueeze(-1), selection_refs, component_ref)
-        component_has_ref |= selection_mask
+      selection_refs = self._gather_zone_rows(player_selection_matrix, component_subaction)
+      component_ref = torch.where(selection_mask.unsqueeze(-1), selection_refs, component_ref)
+      component_has_ref |= selection_mask
 
-      candidate_mask = component_kind == LEGAL_ACTION_ARG_KIND_CARD_CANDIDATE
-      if candidate_mask.any() and has_deck_candidates:
+      if has_deck_candidates:
+        candidate_mask = component_kind == LEGAL_ACTION_ARG_KIND_CARD_CANDIDATE
         candidate_refs = self._gather_zone_rows(deck_candidate_matrix, component_subaction)
         component_ref = torch.where(candidate_mask.unsqueeze(-1), candidate_refs, component_ref)
         candidate_valid = component_subaction < deck_candidate_count.view(-1, 1)
         component_has_ref |= candidate_mask & candidate_valid
 
       self_garden_or_leader_mask = component_kind == LEGAL_ACTION_ARG_KIND_SELF_GARDEN_OR_LEADER
-      if self_garden_or_leader_mask.any():
-        garden_or_leader_refs = self._gather_garden_or_leader_refs(
-          player_garden_or_leader_matrix,
-          component_subaction,
-        )
-        component_ref = torch.where(
-          self_garden_or_leader_mask.unsqueeze(-1),
-          garden_or_leader_refs,
-          component_ref,
-        )
-        component_has_ref |= self_garden_or_leader_mask & (component_subaction <= GARDEN_SIZE)
+      garden_or_leader_refs = self._gather_garden_or_leader_refs(
+        player_garden_or_leader_matrix,
+        component_subaction,
+      )
+      component_ref = torch.where(
+        self_garden_or_leader_mask.unsqueeze(-1),
+        garden_or_leader_refs,
+        component_ref,
+      )
+      component_has_ref |= self_garden_or_leader_mask & (component_subaction <= GARDEN_SIZE)
 
       opp_defender_mask = component_kind == LEGAL_ACTION_ARG_KIND_OPP_DEFENDER
-      if opp_defender_mask.any():
-        defender_refs = self._gather_opponent_defender_refs(
-          opponent_defender_matrix,
-          component_subaction,
-        )
-        component_ref = torch.where(opp_defender_mask.unsqueeze(-1), defender_refs, component_ref)
-        component_has_ref |= opp_defender_mask & (component_subaction <= (GARDEN_SIZE + ALLEY_SIZE))
+      defender_refs = self._gather_opponent_defender_refs(
+        opponent_defender_matrix,
+        component_subaction,
+      )
+      component_ref = torch.where(opp_defender_mask.unsqueeze(-1), defender_refs, component_ref)
+      component_has_ref |= opp_defender_mask & (component_subaction <= (GARDEN_SIZE + ALLEY_SIZE))
 
       refs.append(component_ref)
       ref_valid.append(component_has_ref)
@@ -2540,6 +2685,16 @@ class TCG(nn.Module):
       UNIT_EMBED_SIZE,
     )
 
+  def _compute_legal_action_trim_bucket(self, legal_action_count: torch.Tensor) -> int:
+    # Round the trim up to a power of two so torch.compile / CUDA graphs see a
+    # bounded set of shapes (<=6 variants) instead of one per legal count.
+    max_active_rows = int(legal_action_count.long().max().item()) if legal_action_count.numel() > 0 else 0
+    active_candidate_count = max(1, max_active_rows)
+    bucket = 32
+    while bucket < active_candidate_count:
+      bucket *= 2
+    return bucket
+
   def _trim_active_legal_action_candidates(
     self,
     legal_actions: torch.Tensor,
@@ -2547,13 +2702,12 @@ class TCG(nn.Module):
   ) -> torch.Tensor:
     # Legal rows are packed at the front of the padded 1024-row table. Trim the
     # batch to the active prefix so we do not embed/project rows that cannot be sampled.
-    # Round the trim up to a power of two so torch.compile sees a bounded set of
-    # shapes (<=6 variants) instead of one graph per distinct max legal count.
-    max_active_rows = int(legal_action_count.max().item()) if legal_action_count.numel() > 0 else 0
-    active_candidate_count = max(1, min(max_active_rows, legal_actions.size(1)))
-    bucket = 32
-    while bucket < active_candidate_count:
-      bucket *= 2
+    # The bucket is normally computed (and synced) once in encode_observations,
+    # where the GPU queue is still short; syncing here would drain the whole
+    # enqueued encode+LSTM graph.
+    bucket = getattr(self, "_cached_trim_bucket", None)
+    if bucket is None:
+      bucket = self._compute_legal_action_trim_bucket(legal_action_count)
     active_candidate_count = min(bucket, legal_actions.size(1))
     return legal_actions[:, :active_candidate_count]
 

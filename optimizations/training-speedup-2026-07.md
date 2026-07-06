@@ -152,3 +152,121 @@ Phase totals (profiled-epoch counters, 100k): eval 45.2s → 5.1s
   table; at ~5k SPS the remaining split is ≈ learn 7s / eval-forward 3.6s /
   train-forward 2.3s per profiled window, so another ~1.5-2× is plausibly
   available if ever needed.
+
+# Round 2: 5,387 → 7,148 SPS (Muon) / 8,631 (Adam option) — 2026-07-05/06
+
+**Result: 7,148 SPS median-of-medians over 3× 200k runs on the shipped
+config (1.31-1.33× this round; 12.5× vs the original 574), with training
+semantics unchanged up to bf16/compile numerics: same optimizer, same
+sample/opt-step-per-env-step ratios, bit-exact eager encodings, zero illegal
+actions across all runs. Per-run steady medians: 7,058 / 7,199 / 7,148;
+losses at 200k: entropy 0.53±0.01, explained_var 0.34-0.40, win-prob acc
+0.74-0.85 — in line with the round-1 A/B trajectories.**
+
+**The 7.5-8k target is crossed only via the flagged optimizer option: fused
+Adam on the same stack measured 8,631 SPS, but needs an lr retune + quality
+revalidation (the probe at Muon's lr 0.015 collapses entropy). That decision
+is left open deliberately.**
+
+Protocol note: steady-state = median of epochs >3k SPS over a 200k run
+(compile+graph-capture warmup consumes the first ~4 epochs; the original
+100k protocol leaves too few clean epochs under a compiled config).
+
+Working log below; single-run medians (post-warmup epochs) unless noted.
+Baseline re-measured after instrumenting the trainer to split `learn` into
+`learn_backward` / `learn_opt` (profile + dashboard now show both).
+
+Profiled-window split at baseline (~14.8s): learn_backward 4.29, learn_opt
+3.15 (3 Muon/Newton-Schulz steps/epoch ≈ 210ms each), eval_forward 3.45,
+train_forward 2.33, env 1.43.
+
+| Config | Median SPS | Notes |
+|---|---|---|
+| A: baseline (a06b432, mb 8192) | **5,450** | matches recorded 5,387-5,457 |
+| B2: mb 15360 = 2x7680 accum | 4,932 | 2 opt steps but int-truncation quirk means +25% fwd/bwd samples -> net loss |
+| C: mb 12288 (2 chunks, no accum) | **5,829** | same 24,576 samples as baseline, 2 opt steps (learn_opt 3.15->2.06); needs expandable_segments |
+| D: C + de-synced forward | **5,949** | removed 21 `.any()` gates + `_ensure_valid_mask` branch + trim `.item()` moved early + trainer ep-index mirrors; bit-exact test passes |
+| E: D + compile encode/decode (mode=default) | 6,191 | recompile_limit=8 caps the pathological frames to eager fast; lucky window (see E4) |
+| E3: E + recompile_limit=64 (200k) | 5,528 | WORSE: letting dynamo recompile `_PackedField.extract` per field spec (~100 specs) burns minutes and regresses eval_forward 3.7->4.5/window |
+| F2: compile TCGLSTM.forward + dynamo-disabled canonicalizer | 1,700 | catastrophic: disable() inside the compiled train graph re-processes per call |
+| E4: E structure re-confirmed (200k) | 5,643 | high variance (5,012-6,644), mid-run recompile stalls; train side wins (-0.7s bwd) but rollout guard overhead (+0.3s) eats it |
+| G: 960 envs (update_epochs 1.6 to hold sample:env ratio) | OOM | bucket-1024 decode transient at batch 1920 collides with train peaks on 24GB |
+| G2: 720 envs | OOM | same (CUBLAS alloc) — 480 envs is the memory-optimal point on this card |
+| H3: D + manual CUDA-graph rollout | **6,579** | eval_forward 3.74->1.92s/window; one graph per trim bucket, private pools, autocast cache_enabled=False during capture (load-bearing: cached bf16 weight casts get freed + go stale) |
+| I2: H3 + train-side compile (encode/decode roots; capture swaps in eager originals) | **6,826** | backward 4.34->3.61, train_forward 2.37->2.02/window; dynamo guards read the CUDA RNG seed, so capture must record the eager fns |
+| K: I2 + vec.batch_size 6 (double-buffer) | **7,193** | env wait 1.50->0.38/window (two 480-agent groups alternate); rollout graphs recapture at batch 480 |
+| J: K + fused Adam (SPS probe only) | 8,631 | learn_opt 2.05->0.09/window; NOT quality-neutral: lr 0.015 is Muon-tuned, entropy collapses — adopting Adam = retune + revalidation decision |
+| L: K + sampling captured in-graph | 7,032 | no measurable win vs K (within noise); kept — fewer launches, params-snapshot guard for anneal configs |
+| **FINAL: shipped config, 3x200k** | **7,058 / 7,199 / 7,148 -> 7,148** | Muon, quality-neutral; window split ≈ bwd 3.6 / eval_fwd 2.5 / opt 2.05 / train_fwd 2.0 / env 0.38 |
+
+Post-stack ceiling notes: the remaining window is GPU compute (LSTM GEMMs +
+NS + backward), not launch overhead — the eval forward now costs ~2.5s/window
+of real math at the same total FLOPs. The next honest levers are the ones the
+round-1 report named as design decisions: the optimizer (Adam = 8.6k
+measured) or shrinking the 4096-hidden LSTM.
+
+Key findings so far:
+- `total_minibatches = int(update_epochs*batch/chunk)` truncates: the recorded
+  baseline actually consumes 24,576 of 30,720 sample-passes per epoch
+  ("1.6 update epochs"). Any accumulation config that hits the full 30,720
+  loses more on backward than it saves on optimizer steps. minibatch 12288
+  divides exactly into 2 chunks = baseline sample count with 2 opt steps.
+- `azuki_native_3090.ini` had an inert `min_batch_size` key (real knob is
+  `train.minibatch_size`).
+- Muon NS already runs in bf16 via heavyball stochastic_round; NS on the
+  (16384,4096) LSTM hh matrix alone is ~6.2 TFLOP/step -> ~130ms of the
+  ~210ms step. thinky_polar_express only applies to square matrices.
+- 2 optimizer steps/epoch is the floor: an effective minibatch of 24,576 via
+  accumulation is rejected by the trainer (`batch_size 15360 must be >=
+  minibatch_size`) — optimizer batches cannot span epochs.
+- max-autotune-no-cudagraphs never produced an epoch within ~11 min of
+  compile on this 12-core box; not viable here.
+
+## The shipped stack (config: azuki_native_3090.ini)
+
+1. **minibatch_size 12288** — same sample-passes as 8192 (int-truncation),
+   2 Muon steps/epoch instead of 3.
+2. **De-synced forward** — the 21 `if mask.any()` gates in
+   `_gather_legal_action_refs` compute unconditionally; `_ensure_valid_mask`
+   branch-free; the trim-bucket `.item()` moved to encode start (short queue);
+   trainer `ep_lengths/ep_indices` slice reads mirrored in Python ints.
+   Bit-exact vs baseline (test_native_obs_equivalence passes).
+3. **Manual CUDA graphs for the rollout forward** (`train.cuda_graphs`):
+   `TCGLSTM.enable_rollout_cuda_graphs()` captures encode+LSTM-cell+decode
+   *and sampling* per legal-action trim bucket and replays. Requirements
+   discovered the hard way:
+   - capture under `autocast(..., cache_enabled=False)` — otherwise the
+     graph records pointers to autocast's cached bf16 weight casts, which are
+     freed when the ambient context exits (illegal memory access) and would
+     be stale after optimizer steps anyway;
+   - one private memory pool per bucket graph — pool sharing is only safe
+     when replay order matches capture order, and buckets replay in
+     data-dependent order;
+   - capture the *eager* encode/decode (swap the compiled ones out during
+     capture) — dynamo guards read the CUDA RNG seed, illegal during capture;
+   - in-graph multinomial is fine (default generator advances per replay);
+     the sampler returns the graph's presampled static outputs, guarded by a
+     sampling-params snapshot so anneal configs fall back to eager sampling.
+4. **Train-side torch.compile** (`train.compile`, mode=default): compile
+   roots at `encode_observations`/`decode_actions`. The default
+   recompile_limit=8 is load-bearing (caps the per-field `_PackedField.extract`
+   frames to eager fast). Whole-rollout compile is a measured loss
+   (guard/wrapper overhead > fusion win at batch 960) — hence graphs for
+   rollout, compile for train.
+5. **vec.batch_size 6 double-buffering** — two 480-agent groups alternate;
+   env stepping hides behind the other group's forward (env wait
+   1.50 -> 0.38s/window).
+6. **expandable_segments allocator** (set-if-unset in train.py) — removes the
+   fragmentation OOM between the bucket-1024 decode transients and everything
+   else.
+
+Rollout/learn overlap (double-buffered training) was evaluated and skipped:
+after CUDA graphs the rollout is no longer launch-bound, so the premise
+(hiding launch gaps under learn) is gone; on one GPU both phases compete for
+the same SMs, and it introduces one-batch off-policy staleness — a training
+semantics change, not a pipeline optimization.
+
+Optimizer decision left open: fused Adam on this stack measured **8,631 SPS**
+(learn_opt 2.05 -> 0.09 s/window) but is NOT quality-neutral (lr 0.015 is
+Muon-tuned; entropy collapsed in the probe). Adopting it = lr retune + A/B
+revalidation.

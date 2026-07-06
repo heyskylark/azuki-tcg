@@ -59,6 +59,16 @@ def get_sampling_params() -> dict[str, float]:
 def tcg_sample_logits(logits, action=None):
     """Custom sampler that masks Azuki actions after the policy forward pass."""
     if isinstance(logits, TCGLegalActionDistribution):
+        if action is None:
+            # CUDA-graphed rollout: sampling was captured into the graph and
+            # these tensors are its static outputs, refreshed per replay. The
+            # params snapshot keeps anneal configs correct (they fall through
+            # to eager sampling on the same static logits).
+            presampled = getattr(logits, "_azk_presampled", None)
+            if presampled is not None and (
+                getattr(logits, "_azk_presampled_params", None) == get_sampling_params()
+            ):
+                return presampled
         return _sample_legal_action_rows(logits, action=action)
 
     if not isinstance(logits, TCGActionDistribution):
@@ -271,13 +281,11 @@ def _ensure_valid_mask(mask: torch.Tensor) -> torch.Tensor:
     if mask.dtype != torch.bool:
         mask = mask.to(dtype=torch.bool)
     valid = mask.any(dim=-1, keepdim=True)
-    if valid.all():
-        return mask
-
-    mask = mask.clone()
-    mask[~valid.expand_as(mask)] = False
-    mask[~valid.squeeze(-1), 0] = True
-    return mask
+    # Branch-free: rows with no legal entries fall back to "only column 0".
+    # (`if valid.all()` would force a GPU->CPU sync per call.)
+    first_col_only = torch.zeros_like(mask)
+    first_col_only[:, 0] = True
+    return torch.where(valid, mask, first_col_only)
 
 
 def _match_provided_legal_rows(
