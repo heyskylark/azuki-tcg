@@ -1,23 +1,37 @@
 # Azuki TCG — Deck-Building & Training Ablation Research Notes (Part 01)
 
 > ## LIVE STATE (update on every major transition)
-> As of 2026-06-11 ~19:30:
-> - BASELINE DONE: base-deckbuild-02, ~31.7M steps. Findings in §3.8/3.9. Checkpoints in
->   experiments/azuki_local_base-deckbuild-02_178113787430 (250/500/750) and ..._178117983197
->   (1000/1250/1500). Draft-vs-ref: 45.8%@11.5M → 40.6%@31.7M (self-play overfit).
-> - RUNNING: abl-gamma1 (A-GAMMA: gamma 1.0, gae_lambda 0.97, 12M steps, mb2048,
->   checkpoint_interval 100, league pool max 4 in experiments/league/abl-gamma1) — detached;
->   watchdog monitor active. Log: /tmp/train_abl-gamma1.log; runlog experiments/runlogs/abl-gamma1_*.
-> - RUNNING: detached stage dumps (ep250/750/1500 → experiments/stage_dumps/stage{250,750,1500},
->   60 eps each; status /tmp/stage_dumps_status.log) for per-card archetype evolution.
-> - Engine: combat-fizzle + world_tests fix cherry-picked (a7eace8); build/ rebuilt; ALL C tests
->   pass. Ablations run on this engine (baseline ran pre-fix — small comparability asterisk).
-> - NEXT after abl-gamma1: compare vs baseline at matched 11.5M (compare_runs.py + analyze_decks
->   on abl snapshot dir + draft_vs_reference_eval @ checkpoint ~ep500-1150). Then A-ENTDECK
->   (worktree branch ablation/entdeck-pick-eps at ../azuki-tcg-abl — needs its own build) or
->   A-SHAPANNEAL (env AZK_REWARD_SHAPING_ANNEAL=1 via launcher env passthrough).
-> - Ablation queue + exact commands: §3 "Ablation launch commands". Decision metrics in §3 tail.
-> - world_tests fix also on branch ablation/entdeck-pick-eps (093b809; cherry-picked to main branch).
+> As of 2026-07-06 (research resumed on branch skylark/C-train-optimizations):
+> - STACK CHANGE: training stack optimized 2026-07-05/06 (native obs path for fixed-deck,
+>   vectorized encode, metadata embedding table, GPU ScalarRunningNorm, CUDA-graph rollout,
+>   train-side compile). Deck-building runs stay on the legacy PettingZoo path but inherit the
+>   policy/trainer speedups: **measured ~1,820-1,920 SPS at pool 0 (vs 515 in June) — 3.5×**.
+>   CAVEAT: June checkpoints were trained on the pre-fix slot-scrambled encoder; probing them
+>   through the fixed encoder shifts their input distribution. Cross-stack comparisons carry an
+>   asterisk; round-2 arms compare only against round-2 arms (fresh ctrl2 control arm).
+> - GAMMA1 ANALYSIS DONE (was unfinished): §3.10. Verdict: γ=1.0 = faster early pick commitment
+>   (quad spike 7.5 vs 1.2) but same element-level attractor; NO same-element gate divergence;
+>   draft-vs-ref ~36% (≤ baseline 45.8% @11.5M, CIs overlap); higher value loss (0.041 vs 0.032);
+>   portal/weapon usage collapsed by 12M. NOT the lever alone.
+> - CENTRAL NEGATIVE RESULT (§3.10): in BOTH baseline and gamma1, same-element gate pairs draft
+>   statistically IDENTICAL decks (L1 divergence at bootstrap noise floor; type shares match to
+>   3 decimals) — the model conditions on ELEMENT (availability pool), not on the GATE CARD.
+>   Gate mechanics are unused in play (portal ~0.03, weapons ~0.02) and uncorrelated-or-negative
+>   with winning → no gradient pressure for gate-conditional strategy. Equilibrium to break.
+> - ROUND 2 (running): §5. Arms on the new stack, 15M steps each, seed 42, mb2048,
+>   checkpoint_interval 100, own league dirs (keep 2/1/1): ctrl2 (control), anneal1
+>   (AZK_REWARD_SHAPING_ANNEAL=1 warmup 8 / ramp 25 per-env episodes — NOTE: anneal counts
+>   PER-ENV episodes, ~46/env per 12M steps @720 envs; June defaults 2000/30000 would be a
+>   silent no-op), combo1 (anneal + deck_pick_smoothing_eps 0.05 + ent boost).
+> - entdeck knobs cherry-picked to this branch (3e4f0f7): policy.deck_pick_smoothing_eps,
+>   policy.legal_row_temperature. Functional check: pick-row entropy 0.196→1.381 @ eps 0.5,
+>   battle rows unaffected.
+> - Old artifacts: baseline checkpoints ep250-1500 (two run dirs), abl-gamma1 ep100-521,
+>   snapshots in experiments/abl_snapshots/{base-deckbuild-02,abl-gamma1}. Stage dumps
+>   experiments/stage_dumps: only stage250 partially completed (1 pid file) — abandoned.
+> - New tools in this dir: traj_compare.py (runlog trajectories with environment/{0,1}
+>   agent-averaging), gate_identity_probe.py (same-element L1 vs bootstrap noise floor,
+>   behavior→win correlations, leader splits).
 
 Started: 2026-06-10. Machine: RTX 3090 (24GB), 128GB RAM, 24 cores.
 Branch: `skylark/model-deck-building` (ablations get their own branches off this one).
@@ -456,8 +470,98 @@ and weak terminal credit to picks (γ^250 ≈ .08). EXACTLY the failure modes A-
 A-SHAPANNEAL, and A-ENTDECK target. (Engine-comparability asterisk: ablations run on the
 fizzle-fixed engine.)
 
+## 3.10 A-GAMMA COMPLETE — abl-gamma1 analysis (done 2026-07-06; run finished 06-12)
+Run: 12M steps (epoch 521), checkpoints 100..500+final, 1,444 snapshot episodes, runlog 46MB.
+Matched-step comparison to baseline first 12M (traj_compare.py, 2M bins):
+1. **Pick-credit hypothesis CONFIRMED, outcome hypothesis REFUTED.** γ=1.0 produced much
+   faster early deck commitment: quad_count spiked to 7.5 (vs baseline 1.2), unique 22 at 2M.
+   Stronger terminal credit DID reach the picks. But it converged to the same element-level
+   cheap-tempo attractor — faster credit for the same wrong signal.
+2. **No gate-conditional drafting in either run.** Same-element gate pairs are numerically
+   IDENTICAL through training (Surge/Stormchain weapon share .136/.137; Hydromancy/EchoedWaves
+   spell share .246/.247; Devotion/Stonehaven avg_cost 3.26/3.25 — every 2M bin). Snapshot
+   bootstrap test (gate_identity_probe.py): same-element L1 excess over noise floor ≈ 0 in all
+   4 elements for gamma1 (−0.011..+0.007); baseline at 31.7M has ONE real signal: LIGHTNING
+   pair excess +0.043. Element (= candidate pool) drives composition; the gate card does not.
+3. **Mechanics usage decayed under γ=1.0**: portal rate 0.042→0.003, weapon attach 0.033→0.010
+   by 12M (baseline recovered to 0.040/0.019 on its oscillation). Both runs' oscillations are
+   phase-shifted; gamma1 stopped mid-trough (12M) — partial confound, but no sign of γ=1.0
+   HELPING mechanics.
+4. **Behavior→win correlations (last-window snapshots)**: attack_rate +0.51 pooled (tempo wins);
+   portal ≈0 (baseline) / −0.12 (gamma1); weapon/spell ≈0-to-negative. As currently played,
+   gate mechanics don't pay. (Correlational + winner-biased, but consistent with shaping bias.)
+5. **Training health**: value_loss 0.041 vs 0.032 (expected — undiscounted return variance),
+   EV ≈ same (0.74), SPS lower (271 vs 375 — league pool loading earlier due to
+   checkpoint_interval 100). Draft-vs-ref final: 36.3% (80 eps) vs baseline 45.8% @11.5M
+   (48 eps) — overlapping CIs, no improvement.
+VERDICT: γ=1.0 alone ✗ dead end as the primary lever. The bottleneck is not credit strength
+but WHAT the battle meta rewards: shaped tempo. The draft can only learn gate identity if
+gate mechanics have positive value in play. → attack the reward bias + exploration
+(A-SHAPANNEAL, pick-eps, entropy), measure with the noise-floor-corrected divergence test.
+
+## 4.5 Probe results on old checkpoints (2026-07-06; June-checkpoint asterisk applies)
+New probes in this dir (all reusable on round-2 checkpoints):
+- **probe_gate_kl.py** (interventional gate swap with action replay; control replay KL == 0
+  exactly): gamma1@12M pick-distribution sensitivity to the gate card is **KL ≈ 0.00000,
+  TV ≤ 0.0002** for every same-element pair. The policy functionally ignores gate identity.
+- **Embedding geometry (root cause)**: projected 48-d metadata embeddings of gate cards on
+  trained checkpoints: Rushfire/Ragefire cos 0.9995 (L2 0.08 @ norm 2.5), Devotion/Stonehaven
+  0.9995, Surge/Stormchain 0.968, Hydromancy/EchoedWaves 0.973. The text-effect features that
+  distinguish same-element gates do not survive the learned projection → the policy CANNOT
+  condition on gate identity even if rewards demanded it. FIX SHIPPED: flag-gated
+  `policy.gate_id_embedding_enabled` (16-d learned per-card-id channel into gate zone encoder
+  + deck_context gate slot; commit 7ffca7b). Untrained flag-on already drops FIRE-pair
+  combined cos to 0.957.
+- **probe_deck_behavior.py** (forced weapon-heavy/spell-heavy/entity-only decks, fixed
+  opponent, availability-calibrated by a uniform-legal baseline): smoke-checkpoint
+  conditioning ratio ~1.1-1.3 (policy gap ≈ availability gap — no deliberate use yet).
+  Metric for round-2 arms: ratio ≫ 1.
+- **synergy_lift.py**: co-occurrence lift with sibling-differential mode (same-element sibling
+  = identical pool → availability-controlled). Baseline@31.7M shows small dlift pairs
+  (e.g., Stonehaven: Sanzu's Envoy+Tenraku dlift +3.6) — needs a permutation null before
+  claiming synergy (TODO).
+- Checkpoint-load fix: `_materialize_scalar_norm_buffers_from_state_dict` was broken for the
+  GPU-resident ScalarRunningNorm (device arg) since the round-2 optimization refactor — every
+  checkpoint load (incl. league opponent ingest) crashed. Fixed in 7ffca7b. Smoke checkpoint
+  round-trips cleanly (0 missing/unexpected keys).
+
+## 5. ROUND 2 (2026-07-06 →) — new stack, breaking the element-only equilibrium
+Hypotheses:
+- H1 reward bias: garden-attack potential shaping makes entity-flood tempo locally optimal;
+  mechanics (portal/weapon/spell) only pay via terminal outcome → anneal shaping to 0.05.
+- H2 exploration: mechanics are rare actions; policy never explores them enough in context to
+  learn their value → pick-eps for draft diversity; higher/slower-annealed entropy for battle.
+- H3 conditioning: policy may not functionally read the gate id from deck_context → KL probe
+  planned on round-2 checkpoints (same-element gate swap in obs → pick-logit KL ≈ 0?).
+Protocol: 15M steps/arm, seed 42, mb2048, checkpoint_interval 100, league keep 2/1/1, own
+league dirs, snapshots every 25th episode. ~2.3h/arm at 1.8k SPS (slows as pool grows).
+Decision metrics (in order):
+1. same-element L1 excess over bootstrap floor (gate_identity_probe.py) — the headline signal;
+2. mechanics usage rates (portal/weapon/spell) late-run + their win correlation;
+3. per-gate playstyle divergence at matched element (weapon_rate for L gates etc.);
+4. draft-vs-ref win rate (96+ eps, argmax) at final checkpoint — external validity;
+5. quad/unique trajectories + win-prob-aux acc (draft-quality probe).
+Arms (chain script: run_round2.sh — serial, ctrl2 → anneal1 → gateid1 → combo1, draft-vs-ref
+eval 96 eps argmax after each):
+- ctrl2: config unchanged (new-stack control).
+- anneal1: AZK_REWARD_SHAPING_ANNEAL=1, INITIAL 1.0, FINAL 0.05, WARMUP_EPISODES 8,
+  RAMP_EPISODES 25 (per-env! ≈ fade over 2M→10M agent-steps @720 envs).
+- gateid1: policy.gate_id_embedding_enabled=true (representation fix alone).
+- combo1: anneal + gateid + policy.deck_pick_smoothing_eps 0.05 (the ceiling arm).
+Later (if signal): factor combo1 back out; A-LEAGUE strength; A-PRIVCRITIC (critic sees decks);
+mechanic-targeted exploration (legal_row_temperature).
+Evidence bar for "model understands per-card strategy" (final report §):
+E1 gate-KL probe > 0 by a clear margin on gateid arms at matched steps (ctrl2 ≈ 0), rising
+   over checkpoints; E2 same-element L1 excess over noise floor > 0 and growing;
+E3 probe-B conditioning ratio ≫ 1 (uses what it has beyond availability);
+E4 sibling-differential synergy lifts surviving a permutation null with dwin > 0;
+E5 draft-vs-ref ≥ ctrl2 and not degrading with training (external validity).
+
 ## 4. Key questions to answer
 - Does the model build legal-but-coherent decks (curve, type mix) per gate, or collapse to one deck?
 - Do per-gate compositions diverge (weapons for LIGHTNING, spells for Echoed Waves, etc.)?
 - Does deck quality improve win rate vs fixed reference decks over training?
 - How do playstyles differ across gates (aggression metrics, attack frequency, game length)?
+- NEW (round 2): does the specific GATE CARD (not just element) causally shift picks and play?
+- NEW (round 2): do synergy pairs co-occur above chance (co-occurrence lift), and does the
+  policy USE what it drafts (deck→behavior coupling under forced-deck probes)?

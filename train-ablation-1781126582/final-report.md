@@ -38,12 +38,38 @@ margins; correlation with gate effects; examples from playback.)
 ## 7. Ablation results
 | Ablation | Arm | Steps | Outcome vs baseline | Verdict |
 |---|---|---|---|---|
-| (TBD) | | | | |
+| A-GAMMA | abl-gamma1 (γ=1.0, λ=.97) | 12M | Faster early pick commitment (quad 7.5 vs 1.2) but same element-level attractor; no gate divergence; draft-vs-ref 36% (≈baseline, CIs overlap); value_loss +28%; mechanics usage decayed | ✗ not the lever alone |
+| Round 2 | ctrl2 (new-stack control) | 15M | (running 2026-07-06) | |
+| Round 2 | anneal1 (shaping→0.05 by ~9M) | 15M | (queued) | |
+| Round 2 | gateid1 (gate-id embedding) | 15M | (queued) | |
+| Round 2 | combo1 (anneal+gateid+pick-eps .05) | 15M | (queued) | |
+
+### Root cause found before round 2 (2026-07-06)
+1. **Representation collapse**: projected metadata embeddings of same-element gate pairs are
+   near-identical on trained checkpoints (F/E pairs cos 0.9995) — the effect-text features that
+   distinguish gates don't survive the learned projection. Interventional replay probe: pick
+   distributions have KL ≈ 0 to a same-element gate swap. The policy cannot condition on the
+   gate card. Fix: flag-gated 16-d learned gate-id embedding (gateid1/combo1 arms).
+2. **Reward bias**: garden-attack potential shaping makes entity-flood tempo locally optimal;
+   portal/weapon/spell usage uncorrelated-or-negative with winning as played (probe on
+   snapshots). Fix: shaping anneal to 0.05 (anneal1/combo1 arms). NOTE: anneal counts PER-ENV
+   episodes (~46/env per 12M steps @720 envs) — June defaults would have been a silent no-op;
+   canary-verified env-var plumbing to workers (scale 1.0→0.525 on schedule).
+
+### Evidence bar for "understands per-card strategy" (probes in this dir)
+- E1 probe_gate_kl: pick-distribution KL to a same-element gate swap ≫ 0 (ctrl2 ≈ 0), growing
+  over checkpoints. E2 gate_identity_probe: same-element L1 excess over bootstrap noise floor
+  > 0, growing. E3 probe_deck_behavior: forced-deck conditioning ratio ≫ 1 vs uniform-legal
+  availability baseline. E4 synergy_lift sibling-differential pairs with permutation p < .05
+  and dwin > 0. E5 draft-vs-ref ≥ control and non-decreasing over training.
 
 ### Helpful and why
 (TBD)
 ### Dead ends and why
-(TBD — include: torch.compile attempts; anything that destabilized training.)
+- γ=1.0 alone (see table): stronger pick credit amplifies convergence to whatever the battle
+  meta rewards — with biased shaping, that's the same cheap-aggro attractor, reached faster.
+- torch.compile whole-policy (June): inductor OOM/recursion; shelved. Round-2 stack compiles
+  train-side subgraphs only (fixed-deck native config), not used for deck-building arms yet.
 
 ## 8. Literature applied
 - ByteRL LOCM (2303.04096): end-to-end draft+battle; OSFP; forced random picks; γ=1.
