@@ -21,6 +21,13 @@ class LeagueConfig:
   randomize_learner_seat: bool = True
   seed: int = 0
   activate_after_steps: int = 0
+  # OSFP-style windowed opponent sampling: every N epochs draw at most
+  # max_distinct_frozen pool members and assign all frozen games to them.
+  # Rollout then pays a fixed number of extra forwards per step regardless of
+  # pool size (per-distinct-policy batch splitting is the SPS sag). 0 = legacy
+  # per-game uniform draws over the whole pool.
+  frozen_window_epochs: int = 0
+  max_distinct_frozen: int = 1
 
 
 def compute_learner_row_mask(
@@ -97,6 +104,9 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     )
     self._env_opp_policy = np.zeros(self._num_envs_total, dtype=np.int32)
     self._env_use_latest = np.ones(self._num_envs_total, dtype=np.bool_)
+    self._window_policy_ids: np.ndarray | None = None
+    self._window_index = -1
+    self._refresh_frozen_window()
     self._resample_matchups(np.arange(self._num_envs_total, dtype=np.int32))
 
     self._segment_is_trainable = torch.zeros(self.segments, device=self.config["device"], dtype=torch.bool)
@@ -123,6 +133,31 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       opp.eval()
       for param in opp.parameters():
         param.requires_grad_(False)
+
+  def _refresh_frozen_window(self) -> None:
+    """Redraw the window's allowed frozen-policy ids when the window rolls.
+
+    Assignments only change for envs as they finish (via _resample_matchups),
+    so a window transition phases in over ~one episode and per-policy LSTM
+    stores stay consistent for in-flight games.
+    """
+    window_epochs = int(getattr(self.league_cfg, "frozen_window_epochs", 0) or 0)
+    pool_size = len(self.opponent_policies)
+    if window_epochs <= 0 or pool_size == 0:
+      self._window_policy_ids = None
+      return
+    window_index = int(getattr(self, "epoch", 0)) // window_epochs
+    if (
+      window_index == self._window_index
+      and self._window_policy_ids is not None
+      and self._window_policy_ids.size > 0
+      and int(self._window_policy_ids.max()) < pool_size
+    ):
+      return
+    self._window_index = window_index
+    k = max(1, int(getattr(self.league_cfg, "max_distinct_frozen", 1) or 1))
+    k = min(k, pool_size)
+    self._window_policy_ids = self._rng.choice(pool_size, size=k, replace=False).astype(np.int32)
 
   def _resample_matchups(self, env_indices: np.ndarray) -> None:
     if env_indices.size == 0:
@@ -155,9 +190,15 @@ class LeaguePuffeRL(pufferl.PuffeRL):
         frozen_matchup_ratio = float(max(0.0, min(1.0, 1.0 - latest_ratio)))
       frozen_draw = self._rng.random(env_indices.size)
       self._env_use_latest[env_indices] = frozen_draw >= frozen_matchup_ratio
-    self._env_opp_policy[env_indices] = self._rng.integers(
-      0, len(self.opponent_policies), size=env_indices.size, dtype=np.int32
-    )
+    if self._window_policy_ids is not None and self._window_policy_ids.size > 0:
+      picks = self._rng.integers(
+        0, self._window_policy_ids.size, size=env_indices.size
+      )
+      self._env_opp_policy[env_indices] = self._window_policy_ids[picks]
+    else:
+      self._env_opp_policy[env_indices] = self._rng.integers(
+        0, len(self.opponent_policies), size=env_indices.size, dtype=np.int32
+      )
 
   def set_opponent_policies(self, opponent_policies: list[torch.nn.Module]) -> None:
     self.opponent_policies = list(opponent_policies)
@@ -176,6 +217,10 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       self._opp_lstm_c = [
         torch.zeros(self.total_agents, hidden_size, device=device) for _ in self.opponent_policies
       ]
+    # Pool indices shift on refresh; force a window redraw against the new pool.
+    self._window_index = -1
+    self._window_policy_ids = None
+    self._refresh_frozen_window()
     self._resample_matchups(np.arange(self._num_envs_total, dtype=np.int32))
 
   def _episode_envs_from_done_mask(self, env_id: np.ndarray, done_mask: np.ndarray) -> np.ndarray:
@@ -394,6 +439,7 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     epoch = self.epoch
     profile("eval", epoch)
     profile("eval_misc", epoch, nest=True)
+    self._refresh_frozen_window()
 
     config = self.config
     device = config["device"]

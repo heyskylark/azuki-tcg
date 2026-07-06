@@ -1623,6 +1623,8 @@ def _league_cfg(script_args: argparse.Namespace, trainer_args: dict) -> LeagueCo
         randomize_learner_seat=bool(randomize_learner_seat),
         seed=seed,
         activate_after_steps=activate_after_steps,
+        frozen_window_epochs=int(league_cfg.get("frozen_window_epochs", 0) or 0),
+        max_distinct_frozen=int(league_cfg.get("max_distinct_frozen", 1) or 1),
     )
 
 

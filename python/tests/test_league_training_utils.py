@@ -258,5 +258,66 @@ class LeagueTrainingUtilsTests(unittest.TestCase):
     self.assertEqual(tuple(values.shape), (1, 1))
 
 
+
+class FrozenWindowSamplingTests(unittest.TestCase):
+  def _make_trainer(self, *, pool_size: int, window_epochs: int, k: int = 1, epoch: int = 0):
+    trainer = LeaguePuffeRL.__new__(LeaguePuffeRL)
+    trainer.league_cfg = LeagueConfig(
+      enabled=True,
+      frozen_ratio=0.5,
+      randomize_learner_seat=False,
+      frozen_window_epochs=window_epochs,
+      max_distinct_frozen=k,
+    )
+    trainer._rng = np.random.default_rng(0)
+    trainer.opponent_policies = [object() for _ in range(pool_size)]
+    trainer.epoch = epoch
+    trainer.global_step = 10_000
+    trainer._agents_per_env = 2
+    trainer._num_envs_total = 64
+    trainer._env_learner_seat = np.zeros(64, dtype=np.int32)
+    trainer._env_opp_policy = np.zeros(64, dtype=np.int32)
+    trainer._env_use_latest = np.ones(64, dtype=np.bool_)
+    trainer._window_policy_ids = None
+    trainer._window_index = -1
+    return trainer
+
+  def test_window_restricts_assignments_to_k_ids(self):
+    trainer = self._make_trainer(pool_size=6, window_epochs=8, k=1)
+    trainer._refresh_frozen_window()
+    trainer._resample_matchups(np.arange(64, dtype=np.int32))
+    distinct = set(np.unique(trainer._env_opp_policy).tolist())
+    self.assertEqual(len(distinct), 1)
+    self.assertTrue(all(0 <= i < 6 for i in distinct))
+
+  def test_window_redraws_on_epoch_boundary(self):
+    trainer = self._make_trainer(pool_size=6, window_epochs=4, k=1, epoch=0)
+    trainer._refresh_frozen_window()
+    first = trainer._window_policy_ids.copy()
+    trainer.epoch = 3
+    trainer._refresh_frozen_window()
+    np.testing.assert_array_equal(first, trainer._window_policy_ids)
+    seen = {int(first[0])}
+    for boundary_epoch in (4, 8, 12, 16, 20, 24):
+      trainer.epoch = boundary_epoch
+      trainer._refresh_frozen_window()
+      seen.add(int(trainer._window_policy_ids[0]))
+    self.assertGreater(len(seen), 1)
+
+  def test_disabled_window_uses_whole_pool(self):
+    trainer = self._make_trainer(pool_size=6, window_epochs=0)
+    trainer._refresh_frozen_window()
+    self.assertIsNone(trainer._window_policy_ids)
+    trainer._resample_matchups(np.arange(64, dtype=np.int32))
+    distinct = set(np.unique(trainer._env_opp_policy).tolist())
+    self.assertGreater(len(distinct), 2)
+
+  def test_window_survives_pool_shrink(self):
+    trainer = self._make_trainer(pool_size=6, window_epochs=8, k=2)
+    trainer._refresh_frozen_window()
+    trainer.opponent_policies = [object()]  # pool shrank below old ids
+    trainer._refresh_frozen_window()
+    self.assertTrue(int(trainer._window_policy_ids.max()) < 1)
+
 if __name__ == "__main__":
   unittest.main()
