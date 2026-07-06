@@ -91,6 +91,7 @@ def _apply_checkpoint_resume_policy_config(trainer_args: dict, checkpoint: Path 
     ("policy_win_prob_aux_coef", "win_prob_aux_coef", float),
     ("policy_split_value_heads_enabled", "split_value_heads_enabled", bool),
     ("policy_split_value_component_coef", "split_value_component_coef", float),
+    ("policy_gate_id_embedding_enabled", "gate_id_embedding_enabled", bool),
   ):
     value = resume_cfg.get(source_key)
     if isinstance(value, (bool, int, float, str)):

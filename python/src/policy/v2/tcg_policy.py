@@ -66,6 +66,7 @@ EFFECT_TEXT_ENC_OUTPUT_SIZE = 24
 SUBTYPE_TEXT_ENC_OUTPUT_SIZE = 16
 KEYWORD_FEATURE_ENC_OUTPUT_SIZE = 16
 CARD_METADATA_EMBED_SIZE = 48
+GATE_ID_EMBED_SIZE = 16
 ACTION_HISTORY_PRIMARY_ENC_OUTPUT_SIZE = 8
 ACTION_HISTORY_SUBACTION_ENC_OUTPUT_SIZE = 8
 ACTION_HISTORY_STEP_EMBED_SIZE = 16
@@ -783,6 +784,7 @@ class TCG(nn.Module):
     win_prob_aux_coef: float = WIN_PROB_AUX_COEF_DEFAULT,
     split_value_heads_enabled: bool = False,
     split_value_component_coef: float = SPLIT_VALUE_COMPONENT_COEF_DEFAULT,
+    gate_id_embedding_enabled: bool = False,
     **kwargs,
   ):
     super().__init__()
@@ -804,6 +806,13 @@ class TCG(nn.Module):
     self.win_prob_aux_coef = float(win_prob_aux_coef)
     self.split_value_heads_enabled = bool(split_value_heads_enabled)
     self.split_value_component_coef = float(split_value_component_coef)
+    # The projected card-metadata embeddings of same-element gate cards are
+    # near-identical (cos ~0.97-0.9995 measured on trained checkpoints): the
+    # text-effect features that distinguish them do not survive projection, so
+    # the policy cannot condition strategy on WHICH gate it was assigned. This
+    # learned per-card-id channel restores distinguishability for the gate
+    # slots only (deck_context gate + gate zone encoders).
+    self.gate_id_embedding_enabled = bool(gate_id_embedding_enabled)
     self.scalar_normalizer = ScalarRunningNorm()
     if self.actor_head_type not in {
       ACTOR_HEAD_TYPE_FACTORIZED,
@@ -1034,6 +1043,13 @@ class TCG(nn.Module):
       + 12
     )
     gate_input_size = CARD_METADATA_EMBED_SIZE + 4
+    self.gate_id_embedding = None
+    if self.gate_id_embedding_enabled:
+      self.gate_id_embedding = nn.Embedding(self.static_vocab_size, GATE_ID_EMBED_SIZE)
+      # Start near-neutral relative to the ~2.5-norm metadata embeddings so the
+      # identity channel informs without dominating early training.
+      nn.init.normal_(self.gate_id_embedding.weight, std=0.25)
+      gate_input_size += GATE_ID_EMBED_SIZE
 
     self.leader_projector = SingleUnitProjection(leader_input_size)
     self.gate_projector = SingleUnitProjection(gate_input_size)
@@ -1045,12 +1061,15 @@ class TCG(nn.Module):
       self.deck_mode_encoder = nn.Embedding(DECK_CONTEXT_MODE_COUNT, PHASE_ENC_OUTPUT_SIZE)
       deck_card_input_size = CARD_METADATA_EMBED_SIZE + 2
       self.deck_context_card_processor = SumSetProcessor(deck_card_input_size)
-      self.deck_context_projector = SingleUnitProjection(
+      deck_context_input_size = (
         PHASE_ENC_OUTPUT_SIZE
         + (CARD_METADATA_EMBED_SIZE * 2)
         + UNIT_EMBED_SIZE
         + 5
       )
+      if self.gate_id_embedding_enabled:
+        deck_context_input_size += GATE_ID_EMBED_SIZE
+      self.deck_context_projector = SingleUnitProjection(deck_context_input_size)
       self.deck_candidate_projector = SingleUnitProjection(
         CARD_METADATA_EMBED_SIZE + 3,
         output_size=UNIT_EMBED_SIZE,
@@ -1932,7 +1951,11 @@ class TCG(nn.Module):
     )
     scalar = self.scalar_normalizer(f"{key_prefix}_gate_scalar", scalar)
 
-    gate_input = torch.cat([card_emb, scalar], dim=-1)
+    parts = [card_emb, scalar]
+    if self.gate_id_embedding is not None:
+      id_emb = self.gate_id_embedding(idx) * valid_mask.to(card_emb.dtype).unsqueeze(-1)
+      parts.append(id_emb)
+    gate_input = torch.cat(parts, dim=-1)
     return self.gate_projector(gate_input)
 
   def _count_matching_cards_per_slot(self, card_def_ids: torch.Tensor, valid_mask: torch.Tensor) -> torch.Tensor:
@@ -2044,9 +2067,11 @@ class TCG(nn.Module):
       dim=-1,
     )
     scalar = self.scalar_normalizer("deck_context_scalar", scalar)
-    deck_context_vec = self.deck_context_projector(
-      torch.cat([mode_emb, gate_emb, leader_emb, main_vec, scalar], dim=-1)
-    )
+    context_parts = [mode_emb, gate_emb, leader_emb, main_vec, scalar]
+    if self.gate_id_embedding is not None:
+      gate_id_emb = self.gate_id_embedding(gate_idx) * gate_valid.to(gate_emb.dtype).unsqueeze(-1)
+      context_parts.insert(2, gate_id_emb)
+    deck_context_vec = self.deck_context_projector(torch.cat(context_parts, dim=-1))
     return deck_context_vec, candidate_matrix, candidate_count
 
   def _encode_global_context(self, cobs):
@@ -2894,6 +2919,7 @@ def build_policy_model(env, policy_config: dict | None = None, **kwargs) -> TCG:
   split_value_component_coef = float(
     policy_config.get("split_value_component_coef", SPLIT_VALUE_COMPONENT_COEF_DEFAULT)
   )
+  gate_id_embedding_enabled = bool(policy_config.get("gate_id_embedding_enabled", False))
 
   if model_version == POLICY_MODEL_VERSION_METADATA_V1:
     return TCG(
@@ -2914,6 +2940,7 @@ def build_policy_model(env, policy_config: dict | None = None, **kwargs) -> TCG:
       win_prob_aux_coef=win_prob_aux_coef,
       split_value_heads_enabled=split_value_heads_enabled,
       split_value_component_coef=split_value_component_coef,
+      gate_id_embedding_enabled=gate_id_embedding_enabled,
       **kwargs,
     )
 

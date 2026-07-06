@@ -367,6 +367,10 @@ def _materialize_scalar_norm_buffers_from_state_dict(
     ensure_buffers = getattr(scalar_norm, "_ensure_buffers", None)
     if scalar_norm is None or ensure_buffers is None:
         return 0
+    try:
+        policy_device = next(base_policy.parameters()).device
+    except StopIteration:
+        policy_device = torch.device("cpu")
 
     created = 0
     for key, value in state_dict.items():
@@ -383,7 +387,7 @@ def _materialize_scalar_norm_buffers_from_state_dict(
             continue
 
         feature_shape = tuple(int(dim) for dim in value.shape)
-        ensure_buffers(norm_key, feature_shape)
+        ensure_buffers(norm_key, feature_shape, policy_device)
         created += 1
 
     return created
@@ -956,6 +960,7 @@ def _resume_config_fingerprint(trainer_args: dict) -> dict[str, object]:
         "policy_win_prob_aux_coef": float(policy_cfg.get("win_prob_aux_coef", 0.1)),
         "policy_split_value_heads_enabled": bool(policy_cfg.get("split_value_heads_enabled", False)),
         "policy_split_value_component_coef": float(policy_cfg.get("split_value_component_coef", 0.5)),
+        "policy_gate_id_embedding_enabled": bool(policy_cfg.get("gate_id_embedding_enabled", False)),
         "schedule_env": _resume_env_var_fingerprint(),
         "source_hashes": _source_hash_fingerprint(),
     }

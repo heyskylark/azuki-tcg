@@ -198,25 +198,41 @@ class LegalActionRefGatherTest(unittest.TestCase):
 
 
 class LegalActionCandidateTrimTest(unittest.TestCase):
-    def test_trims_batch_to_active_legal_action_prefix(self) -> None:
+    # Trim buckets to powers of two with a floor of 32 so torch.compile /
+    # CUDA graphs see a bounded shape set; all active rows must be kept.
+    def test_trim_keeps_all_active_rows_within_bucket(self) -> None:
         tcg = object.__new__(TCG)
         legal_actions = torch.arange(2 * 8 * 4, dtype=torch.long).reshape(2, 8, 4)
         legal_action_count = torch.tensor([3, 5], dtype=torch.long)
 
         trimmed = tcg._trim_active_legal_action_candidates(legal_actions, legal_action_count)
 
-        self.assertEqual(trimmed.shape, (2, 5, 4))
-        self.assertTrue(torch.equal(trimmed, legal_actions[:, :5]))
+        # Bucket floor is 32, clamped to the table width (8): nothing trimmed.
+        self.assertEqual(trimmed.shape, (2, 8, 4))
+        self.assertTrue(torch.equal(trimmed, legal_actions))
 
-    def test_preserves_single_fallback_row_when_batch_has_no_legal_actions(self) -> None:
+    def test_trim_rounds_up_to_power_of_two_bucket(self) -> None:
+        tcg = object.__new__(TCG)
+        legal_actions = torch.arange(2 * 1024 * 4, dtype=torch.long).reshape(2, 1024, 4)
+        legal_action_count = torch.tensor([33, 70], dtype=torch.long)
+
+        trimmed = tcg._trim_active_legal_action_candidates(legal_actions, legal_action_count)
+
+        self.assertEqual(trimmed.shape, (2, 128, 4))
+        self.assertTrue(torch.equal(trimmed, legal_actions[:, :128]))
+
+    def test_preserves_fallback_rows_when_batch_has_no_legal_actions(self) -> None:
         tcg = object.__new__(TCG)
         legal_actions = torch.arange(2 * 6 * 4, dtype=torch.long).reshape(2, 6, 4)
         legal_action_count = torch.zeros(2, dtype=torch.long)
 
         trimmed = tcg._trim_active_legal_action_candidates(legal_actions, legal_action_count)
 
-        self.assertEqual(trimmed.shape, (2, 1, 4))
-        self.assertTrue(torch.equal(trimmed, legal_actions[:, :1]))
+        # Must keep at least one row for the sampler's fallback; bucket floor
+        # (32) clamps to the table width, so the whole table survives.
+        self.assertGreaterEqual(trimmed.shape[1], 1)
+        self.assertEqual(trimmed.shape, (2, 6, 4))
+        self.assertTrue(torch.equal(trimmed, legal_actions))
 
 if __name__ == "__main__":
     unittest.main()
