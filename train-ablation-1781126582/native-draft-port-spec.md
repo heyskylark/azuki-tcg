@@ -106,3 +106,35 @@ Status legend: [ ] todo, [x] done. Keep updated; this is the compaction-proof pl
 - SPS ladder on azuki_deckbuild_native_3090.ini: baseline → +compile → mb 4096→8192
 - soak 2M steps w/ league (promotion at epoch ~100 must survive)
 - re-run round-2 chain (run_round2.sh switched to native config): ctrl2/anneal1/gateid1/combo1
+
+## League flat-SPS patch (task 7 — APPLY ONLY AFTER combo1 EXITS; fresh arm
+## processes import league_training.py from disk)
+Diagnosis (user-confirmed): per-distinct-frozen-policy forward splitting in
+LeaguePuffeRL._infer_actions fragments the launch-bound 4096-LSTM forward; with
+pool 4 every step pays ~4 tiny extra forwards → 3.7k→1.6k SPS sag.
+Fix v1 (OSFP-style windowed sampling — cost independent of pool size):
+1. league_training.py LeagueConfig: add `frozen_window_epochs: int = 0` (0 = legacy
+   per-game draws) and `max_distinct_frozen: int = 1`.
+2. LeaguePuffeRL.__init__: `self._window_policy_ids = None; self._window_index = -1`.
+3. New `_refresh_frozen_window(self)`: window_index = epoch // frozen_window_epochs;
+   on change (or pool change) draw K=min(max_distinct_frozen, pool) distinct ids via
+   self._rng.choice(replace=False). Call at top of evaluate(). Validate ids < pool len.
+4. _resample_matchups: final draw uses `self._window_policy_ids` when not None
+   (indices into that array → policy ids), else legacy uniform-over-pool.
+   NOTE: assignments only change for FINISHED envs (existing behavior) so window
+   transitions are gradual over ~1 episode; per-policy LSTM stores unchanged.
+5. set_opponent_policies: reset `_window_index=-1; _window_policy_ids=None` BEFORE
+   its _resample_matchups call (pool indices shift on refresh).
+6. train.py:1619 LeagueConfig(...): plumb frozen_window_epochs=int(league_cfg.get(
+   "frozen_window_epochs", 0) or 0), max_distinct_frozen=int(league_cfg.get(
+   "max_distinct_frozen", 1) or 1).
+7. azuki_deckbuild_native_3090.ini [league]: frozen_window_epochs = 8,
+   max_distinct_frozen = 1.
+8. Unit test in python/tests/test_league_training_utils.py: with window set,
+   _resample_matchups only assigns ids from the window; window redraws on epoch
+   boundary and on set_opponent_policies.
+9. Benchmark: short 3M arm with pool pre-seeded (resume ctrl2 league dir or ckpt
+   interval 40) — expect ~3.2-3.5k flat at pool 4 vs 1.6-2k before.
+Secondary (later): single resident opponent-slot module with weight swapping
+(saves 0.8GB × pool); CUDA-graph recapture with static learner/frozen row split;
+lighter promotion evals (fewer episodes / larger intervals).
