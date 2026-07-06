@@ -199,7 +199,7 @@ def make_azuki_env(*, seed: int | None = None, buf=None, **env_kwargs):
   """Instantiate the wrapped Azuki env in the same order as training."""
   seed = seed if seed is not None else env_kwargs.pop("seed", None)
   native = bool(env_kwargs.pop("native", False))
-  env_kwargs.pop("native_envs_per_instance", None)
+  native_envs_per_instance = env_kwargs.pop("native_envs_per_instance", None)
   env_kwargs.pop("native_log_interval", None)
   direct_parallel = bool(env_kwargs.pop("direct_parallel", False))
   deck_building_enabled = bool(env_kwargs.pop("deck_building_enabled", False))
@@ -214,16 +214,23 @@ def make_azuki_env(*, seed: int | None = None, buf=None, **env_kwargs):
     fixed_deck_seats = tuple(int(part) for part in str(fixed_seats_raw).split(",") if part.strip())
   deck_pool = env_kwargs.pop("deck_pool", None)
   deck_pool_path = env_kwargs.pop("deck_pool_path", None)
-  if native:
-    raise RuntimeError(
-      "env.native is currently disabled: raw native packed observations use "
-      "interleaved struct arrays that PufferLib tensor nativization cannot "
-      "decode correctly yet."
-    )
   if deck_pool is not None and deck_pool_path is not None:
     raise ValueError("Pass either env.deck_pool or env.deck_pool_path, not both")
   if deck_pool is None:
     deck_pool = load_training_deck_pool(deck_pool_path)
+  if native:
+    if deck_building_enabled or direct_parallel:
+      raise ValueError(
+        "env.native is incompatible with deck_building_enabled/direct_parallel"
+      )
+    from azk_native import AzukiNativeEnv
+
+    return AzukiNativeEnv(
+      num_envs=int(native_envs_per_instance or 1),
+      deck_pool=deck_pool,
+      buf=buf,
+      seed=seed if seed is not None else 0,
+    )
   if deck_building_enabled:
     env = AzukiTCGParallel(seed=seed, deck_pool=deck_pool)
     env = DeckBuildingParallelEnv(

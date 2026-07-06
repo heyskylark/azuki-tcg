@@ -230,15 +230,84 @@ def _build_native_dtype_from_numpy(dtype: np.dtype, base_offset: int = 0):
   return (torch_dtype, (), int(base_offset), int(dtype.itemsize))
 
 
+class _PackedField:
+  """Leaf accessor for one field of the packed C observation struct.
+
+  Extraction is a zero-copy torch.as_strided view over the flat uint8
+  observation rows: (B, offset..)-strided at element granularity, with one
+  size/stride pair per enclosing struct-array level (zone slots, weapons).
+  """
+
+  __slots__ = ("torch_dtype", "view_dtype", "offset", "elem_bytes", "dims")
+
+  def __init__(self, torch_dtype, offset, elem_bytes, dims):
+    self.torch_dtype = torch_dtype
+    self.offset = int(offset)
+    self.elem_bytes = int(elem_bytes)
+    self.dims = tuple(dims)  # ((count, stride_bytes), ...) outermost first
+    if torch_dtype in (torch.bool, torch.uint8):
+      self.view_dtype = torch.uint8  # bools are read as raw bytes (consumers cast)
+    elif torch_dtype is torch.int8:
+      self.view_dtype = torch.int8
+    else:
+      self.view_dtype = torch_dtype
+    if self.offset % self.elem_bytes != 0:
+      raise ValueError(f"Packed field offset {offset} not aligned to {elem_bytes}")
+    for _, stride in self.dims:
+      if stride % self.elem_bytes != 0:
+        raise ValueError(f"Packed field stride {stride} not aligned to {elem_bytes}")
+
+  def extract(self, obs_u8: torch.Tensor) -> torch.Tensor:
+    batch, row_bytes = obs_u8.shape
+    esz = self.elem_bytes
+    if self.view_dtype is torch.uint8:
+      base = obs_u8
+    else:
+      base = obs_u8.view(self.view_dtype)
+    sizes = (batch, *(count for count, _ in self.dims))
+    strides = (row_bytes // esz, *(stride // esz for _, stride in self.dims))
+    return base.as_strided(sizes, strides, storage_offset=base.storage_offset() + self.offset // esz)
+
+
+def _build_packed_specs(dtype: np.dtype, base_offset: int = 0, dims=()):
+  """Walk a numpy structured dtype (mirroring the C struct) into _PackedField specs."""
+  dtype = np.dtype(dtype)
+  if dtype.fields:
+    out = {}
+    for name, (field_dtype, field_offset) in dtype.fields.items():
+      out[name] = _build_packed_specs(field_dtype, base_offset + int(field_offset), dims)
+    return out
+  if dtype.subdtype is not None:
+    scalar_dtype, subshape = dtype.subdtype
+    if len(subshape) != 1:
+      raise ValueError(f"Unsupported packed subarray shape {subshape}")
+    inner = np.dtype(scalar_dtype)
+    return _build_packed_specs(
+      inner, base_offset, dims + ((int(subshape[0]), int(inner.itemsize)),)
+    )
+  return _PackedField(_numpy_dtype_to_torch(dtype), base_offset, dtype.itemsize, dims)
+
+
+def _is_packed_native_dtype(obs_dtype: np.dtype) -> bool:
+  names = getattr(np.dtype(obs_dtype), "names", None) or ()
+  return "my_observation_data" in names
+
+
 class ScalarRunningNorm(nn.Module):
-  """Normalizes scalar/boolean tensors with running mean/std and clamps to [-clip, clip]."""
+  """Normalizes scalar/boolean tensors with running mean/std and clamps to [-clip, clip].
+
+  Fully GPU-resident: running moments are float64 device buffers updated with
+  a Chan parallel combine (same math as gymnasium's RunningMeanStd, which the
+  previous implementation round-tripped through numpy on every call). No
+  host<->device syncs occur in forward. Buffer names/dtypes are unchanged for
+  checkpoint compatibility.
+  """
 
   def __init__(self, *, clip: float = 5.0, eps: float = 1e-8, rms_epsilon: float = 1e-4):
     super().__init__()
     self.clip = clip
     self.eps = eps
     self.rms_epsilon = rms_epsilon
-    self._rms = {}
 
   def _buffer_names(self, key: str):
     return (
@@ -247,44 +316,63 @@ class ScalarRunningNorm(nn.Module):
       f"_rms_{key}_count",
     )
 
-  def _ensure_buffers(self, key: str, feature_shape):
+  def _ensure_buffers(self, key: str, feature_shape, device, ref_dtype=torch.float64):
     mean_name, var_name, count_name = self._buffer_names(key)
-    shape = torch.Size(feature_shape) if feature_shape else torch.Size([])
     if not hasattr(self, mean_name):
-      self.register_buffer(mean_name, torch.zeros(shape, dtype=torch.float64))
-      self.register_buffer(var_name, torch.ones(shape, dtype=torch.float64))
-      self.register_buffer(count_name, torch.tensor(self.rms_epsilon, dtype=torch.float64))
-
-  def _get_rms(self, key: str, feature_shape):
-    if key in self._rms:
-      return self._rms[key]
-
-    mean_name, var_name, count_name = self._buffer_names(key)
-    mean_buf = getattr(self, mean_name, None)
-    if mean_buf is not None:
-      var_buf = getattr(self, var_name)
-      count_buf = getattr(self, count_name)
-      rms = RunningMeanStd(shape=tuple(mean_buf.shape), epsilon=self.rms_epsilon)
-      rms.mean = mean_buf.detach().cpu().numpy()
-      rms.var = var_buf.detach().cpu().numpy()
-      rms.count = float(count_buf.detach().cpu().item())
+      shape = torch.Size(feature_shape) if feature_shape else torch.Size([])
+      self.register_buffer(mean_name, torch.zeros(shape, dtype=torch.float64, device=device))
+      self.register_buffer(var_name, torch.ones(shape, dtype=torch.float64, device=device))
+      self.register_buffer(
+        count_name, torch.tensor(self.rms_epsilon, dtype=torch.float64, device=device)
+      )
     else:
-      rms = RunningMeanStd(shape=feature_shape, epsilon=self.rms_epsilon)
-      self._ensure_buffers(key, feature_shape)
-    self._rms[key] = rms
-    return rms
+      mean_buf = getattr(self, mean_name)
+      if mean_buf.device != device:
+        setattr(self, mean_name, mean_buf.to(device))
+        setattr(self, var_name, getattr(self, var_name).to(device))
+        setattr(self, count_name, getattr(self, count_name).to(device))
+    return (
+      getattr(self, mean_name),
+      getattr(self, var_name),
+      getattr(self, count_name),
+    )
 
-  def _sync_buffers(self, key: str, rms: RunningMeanStd):
-    mean_name, var_name, count_name = self._buffer_names(key)
-    setattr(self, mean_name, torch.as_tensor(rms.mean, dtype=torch.float64))
-    setattr(self, var_name, torch.as_tensor(rms.var, dtype=torch.float64))
-    setattr(self, count_name, torch.tensor(rms.count, dtype=torch.float64))
-
-  def _get_stats(self, key: str, device: torch.device, dtype: torch.dtype):
-    mean_name, var_name, _ = self._buffer_names(key)
-    mean = getattr(self, mean_name).to(device=device, dtype=dtype)
-    var = getattr(self, var_name).to(device=device, dtype=dtype)
-    return mean, var
+  def _update_stats(self, key: str, tensor: torch.Tensor, mask: torch.Tensor | None) -> None:
+    feature_shape = () if tensor.dim() == 1 else (tensor.shape[-1],)
+    mean_buf, var_buf, count_buf = self._ensure_buffers(key, feature_shape, tensor.device)
+    with torch.no_grad():
+      x = tensor.detach().double()
+      if feature_shape:
+        x = x.reshape(-1, feature_shape[0])
+      else:
+        x = x.reshape(-1, 1)
+      if mask is not None:
+        mask_update = mask
+        if mask_update.dim() == tensor.dim():
+          mask_update = mask_update.any(dim=-1)
+        m = mask_update.reshape(-1, 1).double()
+        n = m.sum()
+        denom = n.clamp(min=1.0)
+        batch_mean = (x * m).sum(dim=0) / denom
+        batch_var = (((x - batch_mean) ** 2) * m).sum(dim=0) / denom
+      else:
+        n = torch.full((), float(x.shape[0]), dtype=torch.float64, device=x.device)
+        batch_mean = x.mean(dim=0)
+        batch_var = x.var(dim=0, unbiased=False)
+      if not feature_shape:
+        batch_mean = batch_mean.squeeze(0)
+        batch_var = batch_var.squeeze(0)
+      # Chan parallel combine; with n == 0 all update terms vanish, so no
+      # host-side branch on the (device-resident) count is needed.
+      total = count_buf + n
+      delta = batch_mean - mean_buf
+      new_mean = mean_buf + delta * (n / total)
+      m_a = var_buf * count_buf
+      m_b = batch_var * n
+      new_var = (m_a + m_b + (delta ** 2) * (count_buf * n / total)) / total
+      mean_buf.copy_(new_mean)
+      var_buf.copy_(new_var)
+      count_buf.copy_(total)
 
   def forward(self, key: str, tensor: torch.Tensor, mask: torch.Tensor | None = None) -> torch.Tensor:
     if tensor is None:
@@ -292,30 +380,44 @@ class ScalarRunningNorm(nn.Module):
 
     tensor = tensor.float()
     feature_shape = () if tensor.dim() == 1 else (tensor.shape[-1],)
-    rms = self._get_rms(key, feature_shape)
+    mean_buf, var_buf, _ = self._ensure_buffers(key, feature_shape, tensor.device)
 
     if self.training:
-      with torch.no_grad():
-        values_for_update = tensor
-        if mask is not None:
-          mask_update = mask
-          if mask_update.dim() == tensor.dim():
-            mask_update = mask_update.any(dim=-1)
-          values_for_update = tensor[mask_update]
-        np_values = values_for_update.detach().cpu().numpy()
-        if np_values.size > 0:
-          rms.update(np_values.reshape((-1, *feature_shape)) if feature_shape else np_values.reshape(-1))
-          self._sync_buffers(key, rms)
+      self._update_stats(key, tensor, mask)
 
-    mean, var = self._get_stats(key, tensor.device, tensor.dtype)
+    mean = mean_buf.to(dtype=tensor.dtype)
+    var = var_buf.to(dtype=tensor.dtype)
     normalized = (tensor - mean) / torch.sqrt(var + self.eps)
 
     if mask is not None:
       mask_broadcast = mask
       while mask_broadcast.dim() < normalized.dim():
         mask_broadcast = mask_broadcast.unsqueeze(-1)
-      normalized = torch.where(mask_broadcast, normalized, torch.zeros_like(normalized))
+      normalized = normalized * mask_broadcast.to(dtype=normalized.dtype)
 
+    return torch.clamp(normalized, -self.clip, self.clip)
+
+  def update_only(self, key: str, tensor: torch.Tensor, mask: torch.Tensor | None = None) -> None:
+    """Update running moments without producing a normalized output."""
+    if tensor is None or not self.training:
+      return
+    self._update_stats(key, tensor.float(), mask)
+
+  def normalize_only(self, key: str, tensor: torch.Tensor, mask: torch.Tensor | None = None) -> torch.Tensor:
+    """Normalize with current stats without updating them."""
+    if tensor is None:
+      return tensor
+    tensor = tensor.float()
+    feature_shape = () if tensor.dim() == 1 else (tensor.shape[-1],)
+    mean_buf, var_buf, _ = self._ensure_buffers(key, feature_shape, tensor.device)
+    mean = mean_buf.to(dtype=tensor.dtype)
+    var = var_buf.to(dtype=tensor.dtype)
+    normalized = (tensor - mean) / torch.sqrt(var + self.eps)
+    if mask is not None:
+      mask_broadcast = mask
+      while mask_broadcast.dim() < normalized.dim():
+        mask_broadcast = mask_broadcast.unsqueeze(-1)
+      normalized = normalized * mask_broadcast.to(dtype=normalized.dtype)
     return torch.clamp(normalized, -self.clip, self.clip)
 
 
@@ -634,10 +736,17 @@ class TCG(nn.Module):
     obs_dtype = emulated_spec.get("emulated_observation_dtype")
     if obs_dtype is None:
       raise AttributeError("env.emulated missing emulated_observation_dtype")
-    self._obs_struct_dtype = _build_native_dtype_from_numpy(obs_dtype)
-    self.deck_context_enabled = (
-      isinstance(self._obs_struct_dtype, dict) and "deck_context" in self._obs_struct_dtype
-    )
+    self._native_layout = bool(emulated_spec.get("native_layout", False)) or _is_packed_native_dtype(obs_dtype)
+    if self._native_layout:
+      self._packed_specs = _build_packed_specs(obs_dtype)
+      self._obs_struct_dtype = None
+      self.deck_context_enabled = False
+    else:
+      self._packed_specs = None
+      self._obs_struct_dtype = _build_native_dtype_from_numpy(obs_dtype)
+      self.deck_context_enabled = (
+        isinstance(self._obs_struct_dtype, dict) and "deck_context" in self._obs_struct_dtype
+      )
     if self.deck_context_enabled and self.actor_head_type != ACTOR_HEAD_TYPE_LEGAL_ACTION_SCORER:
       raise ValueError("deck_building_enabled requires actor_head_type='legal_action_scorer'")
 
@@ -864,6 +973,8 @@ class TCG(nn.Module):
     self._text_table_cache: torch.Tensor | None = None
     self._text_table_cache_version = -1
     self._text_table_version = 0
+    self._metadata_table_cache: torch.Tensor | None = None
+    self._metadata_table_cache_version = -1
 
     self.q_primary = nn.Linear(LSTM_HIDDEN_SIZE, UNIT_EMBED_SIZE)
     self.q_unit1 = nn.Linear(LSTM_HIDDEN_SIZE, UNIT_EMBED_SIZE)
@@ -943,6 +1054,7 @@ class TCG(nn.Module):
       )
 
     self._cached_mask_observations = None
+    self._cached_cobs = None
 
   def __policy_device(self) -> torch.device:
     sample_param = next(self.parameters(), None)
@@ -980,44 +1092,15 @@ class TCG(nn.Module):
 
     raise TypeError(f"Unsupported structured observation value type: {type(value)}")
 
-  def __detach_observation_tree(self, value):
-    if torch.is_tensor(value):
-      return value.detach()
-    if isinstance(value, dict):
-      return {
-        key: self.__detach_observation_tree(subvalue)
-        for key, subvalue in value.items()
-      }
-    if isinstance(value, tuple):
-      return tuple(self.__detach_observation_tree(subvalue) for subvalue in value)
-    if isinstance(value, list):
-      return [self.__detach_observation_tree(subvalue) for subvalue in value]
-    return value
-
-  def __prepare_structured_observations(self, observations):
-    if isinstance(observations, dict):
-      structured_obs = self.__tensorize_structured_observation(
-        observations,
-        self.__policy_device(),
-      )
-      return structured_obs, False, structured_obs
-
-    obs_tensor = observations if torch.is_tensor(observations) else torch.as_tensor(observations)
-    squeeze_batch = obs_tensor.dim() == 1
-    if squeeze_batch:
-      obs_tensor = obs_tensor.unsqueeze(0)
-    obs_tensor = obs_tensor.to(self.__policy_device())
-    structured_obs = azk_pytorch.nativize_tensor(obs_tensor, self._obs_struct_dtype)
-    return structured_obs, squeeze_batch, obs_tensor
-
-  def __store_mask_observations(self, obs_tensor: torch.Tensor, state):
-    detached = self.__detach_observation_tree(obs_tensor)
+  def __store_mask_observations(self, obs_tensor, state):
+    if torch.is_tensor(obs_tensor):
+      obs_tensor = obs_tensor.detach()
     if state is not None:
       try:
-        state["_azk_mask_observations"] = detached
+        state["_azk_mask_observations"] = obs_tensor
       except (TypeError, AttributeError):
         pass
-    self._cached_mask_observations = detached
+    self._cached_mask_observations = obs_tensor
 
   def __store_privileged_critic_features(self, features: torch.Tensor | None, state):
     if state is not None:
@@ -1027,35 +1110,328 @@ class TCG(nn.Module):
         pass
     self._cached_privileged_critic_features = features
 
-  def __get_struct_field(self, container, *names):
+  # --- canonical observation tree -------------------------------------------
+  # Every observation layout (packed C struct, legacy emulated dtype, raw
+  # structured dict) is normalized into one canonical tree: zones are dicts of
+  # whole-zone field tensors (B, S) (weapons: (B, S, W)), struct scalars are
+  # (B,) tensors. All encoders consume this form, so the per-slot Python
+  # loops (and their thousands of tiny autograd nodes) are gone.
+
+  def _canonical_observations(self, observations):
+    if isinstance(observations, dict):
+      structured = self.__tensorize_structured_observation(
+        observations, self.__policy_device()
+      )
+      return self._canonical_from_structured(structured), False, None
+
+    obs_tensor = observations if torch.is_tensor(observations) else torch.as_tensor(observations)
+    squeeze_batch = obs_tensor.dim() == 1
+    if squeeze_batch:
+      obs_tensor = obs_tensor.unsqueeze(0)
+    obs_tensor = obs_tensor.to(self.__policy_device())
+    if not obs_tensor.is_contiguous():
+      obs_tensor = obs_tensor.contiguous()
+    if self._native_layout:
+      cobs = self._canonical_from_packed(obs_tensor)
+    else:
+      structured = azk_pytorch.nativize_tensor(obs_tensor, self._obs_struct_dtype)
+      cobs = self._canonical_from_structured(structured)
+    return cobs, squeeze_batch, obs_tensor
+
+  def _canonical_from_packed(self, obs_u8: torch.Tensor):
+    sp = self._packed_specs
+    ex = lambda spec: spec.extract(obs_u8)  # noqa: E731
+
+    def tap(node):
+      return {
+        "tapped": ex(node["tap_state"]["tapped"]),
+        "cooldown": ex(node["tap_state"]["cooldown"]),
+      }
+
+    def weapons(node):
+      return {
+        "card_def_id": ex(node["weapons"]["card_def_id"]),
+        "cur_atk": ex(node["weapons"]["cur_atk"]),
+      }
+
+    def leader(node):
+      return {
+        "card_def_id": ex(node["card_def_id"]),
+        **tap(node),
+        "cur_atk": ex(node["cur_stats"]["cur_atk"]),
+        "cur_hp": ex(node["cur_stats"]["cur_hp"]),
+        "weapon_count": ex(node["weapon_count"]),
+        "weapons": weapons(node),
+        "has_charge": ex(node["has_charge"]),
+        "has_defender": ex(node["has_defender"]),
+        "has_infiltrate": ex(node["has_infiltrate"]),
+      }
+
+    def gate(node):
+      return {"card_def_id": ex(node["card_def_id"]), **tap(node)}
+
+    def card_zone(node):
+      return {"card_def_id": ex(node["card_def_id"]), "zone_index": ex(node["zone_index"])}
+
+    def board_zone(node):
+      return {
+        "card_def_id": ex(node["card_def_id"]),
+        "zone_index": ex(node["zone_index"]),
+        **tap(node),
+        "has_cur_stats": ex(node["has_cur_stats"]),
+        "cur_atk": ex(node["cur_stats"]["cur_atk"]),
+        "cur_hp": ex(node["cur_stats"]["cur_hp"]),
+        "weapon_count": ex(node["weapon_count"]),
+        "weapons": weapons(node),
+        "has_charge": ex(node["has_charge"]),
+        "has_defender": ex(node["has_defender"]),
+        "has_infiltrate": ex(node["has_infiltrate"]),
+        "is_frozen": ex(node["is_frozen"]),
+        "is_shocked": ex(node["is_shocked"]),
+        "is_effect_immune": ex(node["is_effect_immune"]),
+      }
+
+    def ikz_zone(node):
+      return {
+        "card_def_id": ex(node["card_def_id"]),
+        "zone_index": ex(node["zone_index"]),
+        **tap(node),
+      }
+
+    my = sp["my_observation_data"]
+    opp = sp["opponent_observation_data"]
+    player = {
+      "leader": leader(my["leader"]),
+      "gate": gate(my["gate"]),
+      "hand": card_zone(my["hand"]),
+      "alley": board_zone(my["alley"]),
+      "garden": board_zone(my["garden"]),
+      "discard": card_zone(my["discard"]),
+      "selection": board_zone(my["selection"]),
+      "ikz_area": ikz_zone(my["ikz_area"]),
+      "hand_count": ex(my["hand_count"]),
+      "deck_count": ex(my["deck_count"]),
+      "ikz_pile_count": ex(my["ikz_pile_count"]),
+      "selection_count": ex(my["selection_count"]),
+      "has_ikz_token": ex(my["has_ikz_token"]),
+    }
+    opponent = {
+      "leader": leader(opp["leader"]),
+      "gate": gate(opp["gate"]),
+      "alley": board_zone(opp["alley"]),
+      "garden": board_zone(opp["garden"]),
+      "discard": card_zone(opp["discard"]),
+      "ikz_area": ikz_zone(opp["ikz_area"]),
+      "hand_count": ex(opp["hand_count"]),
+      "deck_count": ex(opp["deck_count"]),
+      "ikz_pile_count": ex(opp["ikz_pile_count"]),
+      "has_ikz_token": ex(opp["has_ikz_token"]),
+    }
+    ability = sp["ability_context"]
+    combat = sp["combat_context"]
+    ra_fields = ("valid", "primary", "sub1", "sub2", "sub3", "was_noop")
+    cp = sp["critic_privileged"]
+    am = sp["action_mask"]
+    return {
+      "player": player,
+      "opponent": opponent,
+      "phase": ex(sp["phase"]),
+      "ability_context": {k: ex(ability[k]) for k in (
+        "phase", "pending_confirmation_count", "has_source_card_def_id",
+        "source_card_def_id", "cost_target_type", "effect_target_type",
+        "selection_count", "selection_picked", "selection_pick_max",
+        "active_player_index",
+      )},
+      "combat_context": {k: ex(combat[k]) for k in (
+        "combat_active", "response_window_active", "defender_intercepted",
+        "attacker_is_self", "attacker_is_leader", "attacker_is_garden",
+        "attacker_is_alley", "attacker_card_def_id", "attacker_slot_index",
+        "target_is_self", "target_is_leader", "target_is_garden",
+        "target_is_alley", "target_card_def_id", "target_slot_index",
+      )},
+      "self_recent_actions": {k: ex(sp["self_recent_actions"][k]) for k in ra_fields},
+      "opp_recent_actions": {k: ex(sp["opp_recent_actions"][k]) for k in ra_fields},
+      "critic_privileged": {
+        "opponent_hand": card_zone(cp["opponent_hand"]),
+        "self_deck": card_zone(cp["self_deck"]),
+        "opponent_deck": card_zone(cp["opponent_deck"]),
+      },
+      "action_mask": {
+        "primary_action_mask": ex(am["primary_action_mask"]),
+        "legal_action_count": ex(am["legal_action_count"]),
+        "legal_primary": ex(am["legal_primary"]),
+        "legal_sub1": ex(am["legal_sub1"]),
+        "legal_sub2": ex(am["legal_sub2"]),
+        "legal_sub3": ex(am["legal_sub3"]),
+      },
+    }
+
+  @staticmethod
+  def _struct_get(container, *names):
     for name in names:
-      if isinstance(container, dict):
-        if name in container:
-          return container[name]
-        continue
-      try:
+      if isinstance(container, dict) and name in container:
         return container[name]
-      except (KeyError, ValueError, TypeError, IndexError):
-        continue
     raise KeyError(f"Missing expected field. Tried: {names}")
 
-  def __normalize_zone_entries(self, zone_entries):
-    if isinstance(zone_entries, dict):
-      def _zone_key_sort_key(key):
-        if isinstance(key, int):
-          return (0, key)
-        if isinstance(key, str) and key.isdigit():
-          return (0, int(key))
-        return (1, str(key))
+  def _canonical_from_structured(self, structured):
+    """Canonicalize the legacy emulated layout (nativize output or raw dict tree).
 
-      return [zone_entries[key] for key in sorted(zone_entries.keys(), key=_zone_key_sort_key)]
-    return zone_entries
+    Zone slots arrive as ordered containers (dict field order == dtype
+    declaration order, or tuples); each field is stacked once per zone.
+    """
 
-  def __stack_zone_field(self, slots, field_name):
-    stacked = torch.stack([slot[field_name] for slot in slots], dim=1)
-    if stacked.size(-1) == 1:
-      stacked = stacked.squeeze(-1)
-    return stacked
+    def sq(value):
+      t = value if torch.is_tensor(value) else torch.as_tensor(value, device=self.__policy_device())
+      while t.dim() > 1 and t.size(-1) == 1:
+        t = t.squeeze(-1)
+      if t.dim() == 0:
+        t = t.reshape(1)
+      return t
+
+    def entries(zone):
+      if isinstance(zone, dict):
+        return list(zone.values())
+      return list(zone)
+
+    def stack_field(slots, name):
+      t = torch.stack([torch.as_tensor(s[name]) for s in slots], dim=1)
+      while t.dim() > 2 and t.size(-1) == 1:
+        t = t.squeeze(-1)
+      return t
+
+    def weapons_of(node):
+      w = entries(self._struct_get(node, "weapons"))
+      return {
+        "card_def_id": stack_field(w, "card_def_id"),
+        "cur_atk": stack_field(w, "cur_atk"),
+      }
+
+    def zone_weapons(slots):
+      per_slot = [weapons_of(s) for s in slots]
+      return {
+        "card_def_id": torch.stack([p["card_def_id"] for p in per_slot], dim=1),
+        "cur_atk": torch.stack([p["cur_atk"] for p in per_slot], dim=1),
+      }
+
+    def leader(node):
+      out = {k: sq(node[k]) for k in (
+        "card_def_id", "tapped", "cooldown", "cur_atk", "cur_hp",
+        "weapon_count", "has_charge", "has_defender", "has_infiltrate",
+      )}
+      out["weapons"] = weapons_of(node)
+      return out
+
+    def gate(node):
+      return {k: sq(node[k]) for k in ("card_def_id", "tapped", "cooldown")}
+
+    def card_zone(node):
+      slots = entries(node)
+      return {
+        "card_def_id": stack_field(slots, "card_def_id"),
+        "zone_index": stack_field(slots, "zone_index"),
+      }
+
+    def board_zone(node):
+      slots = entries(node)
+      out = {k: stack_field(slots, k) for k in (
+        "card_def_id", "zone_index", "tapped", "cooldown", "has_cur_stats",
+        "cur_atk", "cur_hp", "weapon_count", "has_charge", "has_defender",
+        "has_infiltrate", "is_frozen", "is_shocked", "is_effect_immune",
+      )}
+      out["weapons"] = zone_weapons(slots)
+      return out
+
+    def ikz_zone(node):
+      slots = entries(node)
+      return {k: stack_field(slots, k) for k in (
+        "card_def_id", "zone_index", "tapped", "cooldown",
+      )}
+
+    def recent(node):
+      slots = entries(node)
+      return {k: stack_field(slots, k) for k in (
+        "valid", "primary", "sub1", "sub2", "sub3", "was_noop",
+      )}
+
+    my = self._struct_get(structured, "player", "my_observation_data")
+    opp = self._struct_get(structured, "opponent", "opponent_observation_data")
+    player = {
+      "leader": leader(my["leader"]),
+      "gate": gate(my["gate"]),
+      "hand": card_zone(my["hand"]),
+      "alley": board_zone(my["alley"]),
+      "garden": board_zone(my["garden"]),
+      "discard": card_zone(my["discard"]),
+      "selection": board_zone(my["selection"]),
+      "ikz_area": ikz_zone(my["ikz_area"]),
+      **{k: sq(my[k]) for k in (
+        "hand_count", "deck_count", "ikz_pile_count", "selection_count", "has_ikz_token",
+      )},
+    }
+    opponent = {
+      "leader": leader(opp["leader"]),
+      "gate": gate(opp["gate"]),
+      "alley": board_zone(opp["alley"]),
+      "garden": board_zone(opp["garden"]),
+      "discard": card_zone(opp["discard"]),
+      "ikz_area": ikz_zone(opp["ikz_area"]),
+      **{k: sq(opp[k]) for k in (
+        "hand_count", "deck_count", "ikz_pile_count", "has_ikz_token",
+      )},
+    }
+    ability = self._struct_get(structured, "ability_context")
+    combat = self._struct_get(structured, "combat_context")
+    cp = self._struct_get(structured, "critic_privileged")
+    am = self._struct_get(structured, "action_mask")
+    legal = self._struct_get(am, "legal_actions")
+    cobs = {
+      "player": player,
+      "opponent": opponent,
+      "phase": sq(self._struct_get(structured, "phase")),
+      "ability_context": {k: sq(ability[k]) for k in (
+        "phase", "pending_confirmation_count", "has_source_card_def_id",
+        "source_card_def_id", "cost_target_type", "effect_target_type",
+        "selection_count", "selection_picked", "selection_pick_max",
+        "active_player_index",
+      )},
+      "combat_context": {k: sq(combat[k]) for k in (
+        "combat_active", "response_window_active", "defender_intercepted",
+        "attacker_is_self", "attacker_is_leader", "attacker_is_garden",
+        "attacker_is_alley", "attacker_card_def_id", "attacker_slot_index",
+        "target_is_self", "target_is_leader", "target_is_garden",
+        "target_is_alley", "target_card_def_id", "target_slot_index",
+      )},
+      "self_recent_actions": recent(self._struct_get(structured, "self_recent_actions")),
+      "opp_recent_actions": recent(self._struct_get(structured, "opp_recent_actions")),
+      "critic_privileged": {
+        "opponent_hand": card_zone(cp["opponent_hand"]),
+        "self_deck": card_zone(cp["self_deck"]),
+        "opponent_deck": card_zone(cp["opponent_deck"]),
+      },
+      "action_mask": {
+        "primary_action_mask": am["primary_action_mask"]
+        if torch.is_tensor(am["primary_action_mask"])
+        else torch.as_tensor(am["primary_action_mask"]),
+        "legal_action_count": sq(am["legal_action_count"]),
+        "legal_primary": legal["legal_primary"],
+        "legal_sub1": legal["legal_sub1"],
+        "legal_sub2": legal["legal_sub2"],
+        "legal_sub3": legal["legal_sub3"],
+      },
+    }
+    if self.deck_context_enabled and isinstance(structured, dict) and "deck_context" in structured:
+      dc = structured["deck_context"]
+      cobs["deck_context"] = {
+        "mode": sq(dc["mode"]),
+        "gate_card_def_id": sq(dc["gate_card_def_id"]),
+        "leader_card_def_id": sq(dc["leader_card_def_id"]),
+        "main_card_def_ids": dc["main_card_def_ids"],
+        "main_count": sq(dc["main_count"]),
+        "candidate_card_def_ids": dc["candidate_card_def_ids"],
+        "candidate_copy_counts": dc["candidate_copy_counts"],
+        "candidate_count": sq(dc["candidate_count"]),
+      }
+    return cobs
 
   def _squeeze_trailing_singleton(self, tensor: torch.Tensor):
     if tensor.dim() > 0 and tensor.size(-1) == 1:
@@ -1113,19 +1489,28 @@ class TCG(nn.Module):
   def _index_embedding(self, zone_indices: torch.Tensor):
     return self.index_encoder(zone_indices.long().clamp(0, MAX_INDEX_SIZE - 1))
 
-  def _encode_card_metadata_from_index(self, idx: torch.Tensor, valid_mask: torch.Tensor | None = None):
+  def _metadata_embedding_table(self) -> torch.Tensor:
+    """Per-card metadata embeddings [vocab, CARD_METADATA_EMBED_SIZE].
+
+    Computed once per forward over the (tiny) card vocab; per-occurrence
+    lookups then use nn.functional.embedding, whose backward is an optimized
+    scatter. The previous per-occurrence formulation advanced-indexed a
+    grad-requiring table with millions of indices per minibatch, and its
+    index_put backward dominated the entire training step.
+    """
+    if (
+      self._metadata_table_cache is not None
+      and self._metadata_table_cache_version == self._text_table_version
+    ):
+      return self._metadata_table_cache
+
+    device = self.static_card_type.device
+    idx = torch.arange(self.static_vocab_size, device=device)
     static = self._lookup_static(idx)
-
-    present_mask = static["present_mask"] > 0.5
-    if valid_mask is None:
-      valid_mask = present_mask
-    else:
-      valid_mask = valid_mask.to(dtype=torch.bool) & present_mask
-
     card_type_emb = self.card_type_encoder(static["card_type"])
     element_emb = self.element_encoder(static["element"])
     ability_timing_emb = self.ability_timing_encoder(static["ability_timing"])
-    text_emb = self._text_feature_table()[idx]
+    text_emb = self._text_feature_table()
     keyword_emb = self.keyword_feature_encoder(static["keyword_multi_hot"])
 
     scalar = torch.stack(
@@ -1140,7 +1525,7 @@ class TCG(nn.Module):
       ],
       dim=-1,
     )
-    scalar = self.scalar_normalizer("card_metadata_scalar", scalar, mask=valid_mask)
+    scalar = self.scalar_normalizer.normalize_only("card_metadata_scalar", scalar)
 
     metadata_input = torch.cat(
       [
@@ -1153,21 +1538,64 @@ class TCG(nn.Module):
       ],
       dim=-1,
     )
-    metadata_emb = self.card_metadata_projector(metadata_input)
+    table = self.card_metadata_projector(metadata_input)
+    self._metadata_table_cache = table
+    self._metadata_table_cache_version = self._text_table_version
+    return table
+
+  def _encode_card_metadata_from_index(self, idx: torch.Tensor, valid_mask: torch.Tensor | None = None):
+    present_mask = self.static_card_present_mask[idx] > 0.5
+    if valid_mask is None:
+      valid_mask = present_mask
+    else:
+      valid_mask = valid_mask.to(dtype=torch.bool) & present_mask
+
+    if self.training:
+      # Preserve the occurrence-weighted running-norm statistics of the
+      # per-occurrence formulation (values are pure buffer gathers, no grad).
+      with torch.no_grad():
+        static = self._lookup_static(idx)
+        scalar = torch.stack(
+          [
+            static["present_mask"],
+            static["base_ikz_cost"],
+            static["base_attack"],
+            static["base_health"],
+            static["base_gate_points"],
+            static["has_ability"],
+            static["ability_optional"],
+          ],
+          dim=-1,
+        )
+        self.scalar_normalizer.update_only("card_metadata_scalar", scalar, mask=valid_mask)
+
+    table = self._metadata_embedding_table()
+    metadata_emb = nn.functional.embedding(idx.reshape(-1), table).view(
+      *idx.shape, table.shape[-1]
+    )
 
     if valid_mask.dim() < metadata_emb.dim():
       valid_mask = valid_mask.unsqueeze(-1)
     return metadata_emb * valid_mask.to(dtype=metadata_emb.dtype)
 
-  def _encode_weapons(self, weapon_slots, weapon_count):
-    weapon_slots = self.__normalize_zone_entries(weapon_slots)
-    card_def_ids = self.__stack_zone_field(weapon_slots, "card_def_id")
+  def _encode_weapons(self, weapons, weapon_count):
+    """Encode a weapons block of shape (..., W); leading dims are flattened.
+
+    Called once per zone with all slots batched: (B, W) for leaders,
+    (B, S, W) for board zones.
+    """
+    card_def_ids = weapons["card_def_id"]
+    lead_shape = card_def_ids.shape[:-1]
+    max_slots = card_def_ids.shape[-1]
+    card_def_ids = card_def_ids.reshape(-1, max_slots)
+    cur_atk = weapons["cur_atk"].reshape(-1, max_slots).float()
+    weapon_count = weapon_count.reshape(-1)
+
     idx, valid_mask = self._card_index_and_mask(card_def_ids)
     static = self._lookup_static(idx)
 
     card_emb = self._encode_card_metadata_from_index(idx, valid_mask=valid_mask)
 
-    cur_atk = self.__stack_zone_field(weapon_slots, "cur_atk").float()
     scalar = torch.stack(
       [
         cur_atk,
@@ -1179,7 +1607,6 @@ class TCG(nn.Module):
       dim=-1,
     )
 
-    max_slots = scalar.size(1)
     slot_indices = torch.arange(max_slots, device=scalar.device).unsqueeze(0)
     count_mask = slot_indices < weapon_count.long().view(-1, 1)
     mask = valid_mask & count_mask
@@ -1187,12 +1614,11 @@ class TCG(nn.Module):
 
     weapon_input = torch.cat([card_emb, scalar], dim=-1)
     _, pooled = self.weapon_set_processor(weapon_input, mask=mask)
-    return pooled
+    return pooled.reshape(*lead_shape, pooled.shape[-1])
 
-  def _encode_hand_or_discard(self, slots, *, key_prefix: str, processor: ProcessSetProcessor):
-    slots = self.__normalize_zone_entries(slots)
-    card_def_ids = self.__stack_zone_field(slots, "card_def_id")
-    zone_indices = self.__stack_zone_field(slots, "zone_index")
+  def _encode_hand_or_discard(self, zone, *, key_prefix: str, processor: ProcessSetProcessor):
+    card_def_ids = zone["card_def_id"]
+    zone_indices = zone["zone_index"]
 
     idx, mask = self._card_index_and_mask(card_def_ids)
     static = self._lookup_static(idx)
@@ -1219,12 +1645,11 @@ class TCG(nn.Module):
     set_embeddings, pooled = processor(zone_input, mask=mask)
     return set_embeddings, pooled
 
-  def _encode_ikz_area(self, slots):
-    slots = self.__normalize_zone_entries(slots)
-    card_def_ids = self.__stack_zone_field(slots, "card_def_id")
-    zone_indices = self.__stack_zone_field(slots, "zone_index")
-    tapped = self.__stack_zone_field(slots, "tapped").float()
-    cooldown = self.__stack_zone_field(slots, "cooldown").float()
+  def _encode_ikz_area(self, zone):
+    card_def_ids = zone["card_def_id"]
+    zone_indices = zone["zone_index"]
+    tapped = zone["tapped"].float()
+    cooldown = zone["cooldown"].float()
 
     idx, mask = self._card_index_and_mask(card_def_ids)
     card_emb = self._encode_card_metadata_from_index(idx, valid_mask=mask)
@@ -1237,10 +1662,9 @@ class TCG(nn.Module):
     set_embeddings, pooled = self.ikz_set_processor(zone_input, mask=mask)
     return set_embeddings, pooled
 
-  def _encode_critic_privileged_zone_tokens(self, slots, *, key_prefix: str):
-    slots = self.__normalize_zone_entries(slots)
-    card_def_ids = self.__stack_zone_field(slots, "card_def_id")
-    zone_indices = self.__stack_zone_field(slots, "zone_index")
+  def _encode_critic_privileged_zone_tokens(self, zone, *, key_prefix: str):
+    card_def_ids = zone["card_def_id"]
+    zone_indices = zone["zone_index"]
 
     idx, mask = self._card_index_and_mask(card_def_ids)
     card_emb = self._encode_card_metadata_from_index(idx, valid_mask=mask)
@@ -1269,22 +1693,22 @@ class TCG(nn.Module):
     tokens = tokens * mask.unsqueeze(-1).to(dtype=tokens.dtype)
     return self.privileged_deck_encoder(tokens, mask)
 
-  def _encode_board_zone(self, slots, *, key_prefix: str):
-    slots = self.__normalize_zone_entries(slots)
-    card_def_ids = self.__stack_zone_field(slots, "card_def_id")
-    zone_indices = self.__stack_zone_field(slots, "zone_index")
-    tapped = self.__stack_zone_field(slots, "tapped").float()
-    cooldown = self.__stack_zone_field(slots, "cooldown").float()
-    has_cur_stats = self.__stack_zone_field(slots, "has_cur_stats").float()
-    cur_atk = self.__stack_zone_field(slots, "cur_atk").float()
-    cur_hp = self.__stack_zone_field(slots, "cur_hp").float()
-    has_charge = self.__stack_zone_field(slots, "has_charge").float()
-    has_defender = self.__stack_zone_field(slots, "has_defender").float()
-    has_infiltrate = self.__stack_zone_field(slots, "has_infiltrate").float()
-    is_frozen = self.__stack_zone_field(slots, "is_frozen").float()
-    is_shocked = self.__stack_zone_field(slots, "is_shocked").float()
-    is_effect_immune = self.__stack_zone_field(slots, "is_effect_immune").float()
-    weapon_count = self.__stack_zone_field(slots, "weapon_count")
+  def _encode_board_zone(self, zone, *, key_prefix: str):
+    card_def_ids = zone["card_def_id"]
+    zone_indices = zone["zone_index"]
+    tapped = zone["tapped"].float()
+    cooldown = zone["cooldown"].float()
+    has_cur_stats = zone["has_cur_stats"].float()
+    # The legacy dict path zeroed cur stats for cards without them; replicate.
+    cur_atk = zone["cur_atk"].float() * has_cur_stats
+    cur_hp = zone["cur_hp"].float() * has_cur_stats
+    has_charge = zone["has_charge"].float()
+    has_defender = zone["has_defender"].float()
+    has_infiltrate = zone["has_infiltrate"].float()
+    is_frozen = zone["is_frozen"].float()
+    is_shocked = zone["is_shocked"].float()
+    is_effect_immune = zone["is_effect_immune"].float()
+    weapon_count = zone["weapon_count"]
 
     idx, mask = self._card_index_and_mask(card_def_ids)
     static = self._lookup_static(idx)
@@ -1292,12 +1716,7 @@ class TCG(nn.Module):
     card_emb = self._encode_card_metadata_from_index(idx, valid_mask=mask)
     zone_emb = self._index_embedding(zone_indices)
 
-    weapon_embeddings = []
-    for slot in slots:
-      weapon_embeddings.append(
-        self._encode_weapons(slot["weapons"], slot["weapon_count"])
-      )
-    weapon_emb = torch.stack(weapon_embeddings, dim=1)
+    weapon_emb = self._encode_weapons(zone["weapons"], weapon_count)
 
     scalar = torch.stack(
       [
@@ -1328,24 +1747,23 @@ class TCG(nn.Module):
     return set_embeddings, pooled
 
   def _encode_leader(self, leader_obs, *, key_prefix: str):
-    card_def_ids = self._squeeze_trailing_singleton(leader_obs["card_def_id"]).long()
+    card_def_ids = leader_obs["card_def_id"].long()
     idx, valid_mask = self._card_index_and_mask(card_def_ids)
     static = self._lookup_static(idx)
 
-    weapon_count = self._squeeze_trailing_singleton(leader_obs["weapon_count"])
-    weapon_emb = self._encode_weapons(leader_obs["weapons"], weapon_count)
+    weapon_emb = self._encode_weapons(leader_obs["weapons"], leader_obs["weapon_count"])
 
     card_emb = self._encode_card_metadata_from_index(idx, valid_mask=valid_mask)
 
     scalar = torch.stack(
       [
-        self._squeeze_trailing_singleton(leader_obs["cur_atk"]).float(),
-        self._squeeze_trailing_singleton(leader_obs["cur_hp"]).float(),
-        self._squeeze_trailing_singleton(leader_obs["tapped"]).float(),
-        self._squeeze_trailing_singleton(leader_obs["cooldown"]).float(),
-        self._squeeze_trailing_singleton(leader_obs["has_charge"]).float(),
-        self._squeeze_trailing_singleton(leader_obs["has_defender"]).float(),
-        self._squeeze_trailing_singleton(leader_obs["has_infiltrate"]).float(),
+        leader_obs["cur_atk"].float(),
+        leader_obs["cur_hp"].float(),
+        leader_obs["tapped"].float(),
+        leader_obs["cooldown"].float(),
+        leader_obs["has_charge"].float(),
+        leader_obs["has_defender"].float(),
+        leader_obs["has_infiltrate"].float(),
         static["base_attack"],
         static["base_health"],
         static["base_ikz_cost"],
@@ -1360,7 +1778,7 @@ class TCG(nn.Module):
     return self.leader_projector(leader_input)
 
   def _encode_gate(self, gate_obs, *, key_prefix: str):
-    card_def_ids = self._squeeze_trailing_singleton(gate_obs["card_def_id"]).long()
+    card_def_ids = gate_obs["card_def_id"].long()
     idx, valid_mask = self._card_index_and_mask(card_def_ids)
     static = self._lookup_static(idx)
 
@@ -1368,8 +1786,8 @@ class TCG(nn.Module):
 
     scalar = torch.stack(
       [
-        self._squeeze_trailing_singleton(gate_obs["tapped"]).float(),
-        self._squeeze_trailing_singleton(gate_obs["cooldown"]).float(),
+        gate_obs["tapped"].float(),
+        gate_obs["cooldown"].float(),
         static["has_ability"],
         static["ability_optional"],
       ],
@@ -1385,12 +1803,8 @@ class TCG(nn.Module):
     same_card = same_card & valid_mask.unsqueeze(1) & valid_mask.unsqueeze(2)
     return same_card.sum(dim=-1).float()
 
-  def _encode_deck_context(self, structured_obs):
-    phase = self._squeeze_trailing_singleton(
-      self.__get_struct_field(structured_obs, "phase")
-    )
-    if phase.dim() == 0:
-      phase = phase.unsqueeze(0)
+  def _encode_deck_context(self, cobs):
+    phase = cobs["phase"]
     batch_size = phase.shape[0]
     device = phase.device
 
@@ -1405,9 +1819,8 @@ class TCG(nn.Module):
         torch.zeros((batch_size,), device=device, dtype=torch.long),
       )
 
-    try:
-      deck_context = self.__get_struct_field(structured_obs, "deck_context")
-    except KeyError:
+    deck_context = cobs.get("deck_context")
+    if deck_context is None:
       return (
         torch.zeros((batch_size, UNIT_EMBED_SIZE), device=device, dtype=torch.float32),
         torch.zeros(
@@ -1499,35 +1912,30 @@ class TCG(nn.Module):
     )
     return deck_context_vec, candidate_matrix, candidate_count
 
-  def _encode_global_context(self, structured_obs):
-    ability = self.__get_struct_field(structured_obs, "ability_context")
-    phase = self._squeeze_trailing_singleton(
-      self.__get_struct_field(structured_obs, "phase")
-    ).long().clamp(0, GAME_PHASE_COUNT - 1)
-    ability_phase = self._squeeze_trailing_singleton(
-      ability["phase"]
-    ).long().clamp(0, ABILITY_PHASE_COUNT - 1)
+  def _encode_global_context(self, cobs):
+    ability = cobs["ability_context"]
+    phase = cobs["phase"].long().clamp(0, GAME_PHASE_COUNT - 1)
+    ability_phase = ability["phase"].long().clamp(0, ABILITY_PHASE_COUNT - 1)
 
-    source_card = self._squeeze_trailing_singleton(ability["source_card_def_id"]).long()
+    source_card = ability["source_card_def_id"].long()
     source_idx, source_valid = self._card_index_and_mask(source_card)
 
     phase_emb = self.game_phase_encoder(phase)
     ability_phase_emb = self.ability_phase_encoder(ability_phase)
     source_emb = self._encode_card_metadata_from_index(source_idx, valid_mask=source_valid)
 
-    action_mask = self.__get_struct_field(structured_obs, "action_mask")
-    is_active = (self._squeeze_trailing_singleton(action_mask["legal_action_count"]) > 0).float()
+    is_active = (cobs["action_mask"]["legal_action_count"].long() > 0).float()
 
     scalar = torch.stack(
       [
-        self._squeeze_trailing_singleton(ability["pending_confirmation_count"]).float(),
-        self._squeeze_trailing_singleton(ability["has_source_card_def_id"]).float(),
-        self._squeeze_trailing_singleton(ability["cost_target_type"]).float(),
-        self._squeeze_trailing_singleton(ability["effect_target_type"]).float(),
-        self._squeeze_trailing_singleton(ability["selection_count"]).float(),
-        self._squeeze_trailing_singleton(ability["selection_picked"]).float(),
-        self._squeeze_trailing_singleton(ability["selection_pick_max"]).float(),
-        self._squeeze_trailing_singleton(ability["active_player_index"]).float(),
+        ability["pending_confirmation_count"].float(),
+        ability["has_source_card_def_id"].float(),
+        ability["cost_target_type"].float(),
+        ability["effect_target_type"].float(),
+        ability["selection_count"].float(),
+        ability["selection_picked"].float(),
+        ability["selection_pick_max"].float(),
+        ability["active_player_index"].float(),
         is_active,
       ],
       dim=-1,
@@ -1538,13 +1946,12 @@ class TCG(nn.Module):
     return self.global_context_projector(context_input)
 
   def _encode_recent_action_sequence(self, recent_actions, *, key_prefix: str):
-    recent_actions = self.__normalize_zone_entries(recent_actions)
-    valid = self.__stack_zone_field(recent_actions, "valid").to(dtype=torch.bool)
-    primary = self.__stack_zone_field(recent_actions, "primary").long()
-    sub1 = self.__stack_zone_field(recent_actions, "sub1").long()
-    sub2 = self.__stack_zone_field(recent_actions, "sub2").long()
-    sub3 = self.__stack_zone_field(recent_actions, "sub3").long()
-    was_noop = self.__stack_zone_field(recent_actions, "was_noop").float()
+    valid = recent_actions["valid"].to(dtype=torch.bool)
+    primary = recent_actions["primary"].long()
+    sub1 = recent_actions["sub1"].long()
+    sub2 = recent_actions["sub2"].long()
+    sub3 = recent_actions["sub3"].long()
+    was_noop = recent_actions["was_noop"].float()
 
     zero_primary = torch.zeros_like(primary)
     zero_sub = torch.zeros_like(sub1)
@@ -1579,17 +1986,12 @@ class TCG(nn.Module):
       return self.opp_recent_action_projector(flattened)
     raise ValueError(f"Unsupported recent action history key_prefix: {key_prefix}")
 
-  def _encode_recent_action_history(self, structured_obs):
-    phase = self._squeeze_trailing_singleton(
-      self.__get_struct_field(structured_obs, "phase")
-    )
-    if phase.dim() == 0:
-      phase = phase.unsqueeze(0)
+  def _encode_recent_action_history(self, cobs):
+    phase = cobs["phase"]
 
-    try:
-      self_recent_actions = self.__get_struct_field(structured_obs, "self_recent_actions")
-      opp_recent_actions = self.__get_struct_field(structured_obs, "opp_recent_actions")
-    except KeyError:
+    self_recent_actions = cobs.get("self_recent_actions")
+    opp_recent_actions = cobs.get("opp_recent_actions")
+    if self_recent_actions is None or opp_recent_actions is None:
       return torch.zeros(
         (phase.shape[0], UNIT_EMBED_SIZE),
         device=phase.device,
@@ -1608,28 +2010,19 @@ class TCG(nn.Module):
       torch.cat([self_history_vec, opp_history_vec], dim=-1)
     )
 
-  def _encode_combat_context(self, structured_obs):
-    phase = self._squeeze_trailing_singleton(
-      self.__get_struct_field(structured_obs, "phase")
-    )
-    if phase.dim() == 0:
-      phase = phase.unsqueeze(0)
+  def _encode_combat_context(self, cobs):
+    phase = cobs["phase"]
 
-    try:
-      combat_context = self.__get_struct_field(structured_obs, "combat_context")
-    except KeyError:
+    combat_context = cobs.get("combat_context")
+    if combat_context is None:
       return torch.zeros(
         (phase.shape[0], UNIT_EMBED_SIZE),
         device=phase.device,
         dtype=torch.float32,
       )
 
-    attacker_card = self._squeeze_trailing_singleton(
-      combat_context["attacker_card_def_id"]
-    ).long()
-    target_card = self._squeeze_trailing_singleton(
-      combat_context["target_card_def_id"]
-    ).long()
+    attacker_card = combat_context["attacker_card_def_id"].long()
+    target_card = combat_context["target_card_def_id"].long()
     attacker_idx, attacker_valid = self._card_index_and_mask(attacker_card)
     target_idx, target_valid = self._card_index_and_mask(target_card)
     attacker_card_emb = self._encode_card_metadata_from_index(
@@ -1639,34 +2032,28 @@ class TCG(nn.Module):
       target_idx, valid_mask=target_valid
     )
 
-    attacker_slot_idx = self._squeeze_trailing_singleton(
-      combat_context["attacker_slot_index"]
-    )
-    target_slot_idx = self._squeeze_trailing_singleton(
-      combat_context["target_slot_index"]
-    )
+    attacker_slot_idx = combat_context["attacker_slot_index"]
+    target_slot_idx = combat_context["target_slot_index"]
     attacker_slot_emb = self._index_embedding(attacker_slot_idx)
     target_slot_emb = self._index_embedding(target_slot_idx)
     attacker_slot_emb = attacker_slot_emb * attacker_valid.unsqueeze(-1).to(dtype=attacker_slot_emb.dtype)
     target_slot_emb = target_slot_emb * target_valid.unsqueeze(-1).to(dtype=target_slot_emb.dtype)
 
-    combat_active = self._squeeze_trailing_singleton(
-      combat_context["combat_active"]
-    ).to(dtype=torch.bool)
+    combat_active = combat_context["combat_active"].to(dtype=torch.bool)
     scalar = torch.stack(
       [
         combat_active.float(),
-        self._squeeze_trailing_singleton(combat_context["response_window_active"]).float(),
-        self._squeeze_trailing_singleton(combat_context["defender_intercepted"]).float(),
-        self._squeeze_trailing_singleton(combat_context["attacker_is_self"]).float(),
-        self._squeeze_trailing_singleton(combat_context["attacker_is_leader"]).float(),
-        self._squeeze_trailing_singleton(combat_context["attacker_is_garden"]).float(),
-        self._squeeze_trailing_singleton(combat_context["attacker_is_alley"]).float(),
+        combat_context["response_window_active"].float(),
+        combat_context["defender_intercepted"].float(),
+        combat_context["attacker_is_self"].float(),
+        combat_context["attacker_is_leader"].float(),
+        combat_context["attacker_is_garden"].float(),
+        combat_context["attacker_is_alley"].float(),
         attacker_slot_idx.float(),
-        self._squeeze_trailing_singleton(combat_context["target_is_self"]).float(),
-        self._squeeze_trailing_singleton(combat_context["target_is_leader"]).float(),
-        self._squeeze_trailing_singleton(combat_context["target_is_garden"]).float(),
-        self._squeeze_trailing_singleton(combat_context["target_is_alley"]).float(),
+        combat_context["target_is_self"].float(),
+        combat_context["target_is_leader"].float(),
+        combat_context["target_is_garden"].float(),
+        combat_context["target_is_alley"].float(),
         target_slot_idx.float(),
       ],
       dim=-1,
@@ -1684,19 +2071,14 @@ class TCG(nn.Module):
     )
     return self.combat_context_projector(combat_input)
 
-  def _encode_critic_privileged_features(self, structured_obs):
+  def _encode_critic_privileged_features(self, cobs):
     if not self.privileged_critic_enabled:
       return None
 
-    phase = self._squeeze_trailing_singleton(
-      self.__get_struct_field(structured_obs, "phase")
-    )
-    if phase.dim() == 0:
-      phase = phase.unsqueeze(0)
+    phase = cobs["phase"]
 
-    try:
-      critic_privileged = self.__get_struct_field(structured_obs, "critic_privileged")
-    except KeyError:
+    critic_privileged = cobs.get("critic_privileged")
+    if critic_privileged is None:
       return torch.zeros(
         (phase.shape[0], self.privileged_critic_embed_dim * 3),
         device=phase.device,
@@ -1791,16 +2173,25 @@ class TCG(nn.Module):
     return self.forward(x, state)
 
   def encode_observations(self, observations, state=None):
-    self._invalidate_text_feature_table()
-    structured_obs, squeeze_batch, obs_tensor = self.__prepare_structured_observations(observations)
-    self.__store_mask_observations(obs_tensor, state)
+    if self.training:
+      self._invalidate_text_feature_table()
+    cobs, squeeze_batch, obs_tensor = self._canonical_observations(observations)
+    self.__store_mask_observations(
+      obs_tensor if obs_tensor is not None else observations, state
+    )
+    self._cached_cobs = cobs
+    if state is not None:
+      try:
+        state["_azk_cobs"] = cobs
+      except (TypeError, AttributeError):
+        pass
     self.__store_privileged_critic_features(
-      self._encode_critic_privileged_features(structured_obs),
+      self._encode_critic_privileged_features(cobs),
       state,
     )
 
-    player = self.__get_struct_field(structured_obs, "player", "my_observation_data")
-    opponent = self.__get_struct_field(structured_obs, "opponent", "opponent_observation_data")
+    player = cobs["player"]
+    opponent = cobs["opponent"]
 
     hand_matrix, hand_vec = self._encode_hand_or_discard(player["hand"], key_prefix="hand", processor=self.hand_set_processor)
     player_discard_matrix, player_discard_vec = self._encode_hand_or_discard(player["discard"], key_prefix="player_discard", processor=self.discard_set_processor)
@@ -1819,27 +2210,27 @@ class TCG(nn.Module):
     opponent_leader_vec = self._encode_leader(opponent["leader"], key_prefix="opponent")
     player_gate_vec = self._encode_gate(player["gate"], key_prefix="player")
     opponent_gate_vec = self._encode_gate(opponent["gate"], key_prefix="opponent")
-    deck_context_vec, deck_candidate_matrix, deck_candidate_count = self._encode_deck_context(structured_obs)
+    deck_context_vec, deck_candidate_matrix, deck_candidate_count = self._encode_deck_context(cobs)
 
     global_counts = torch.stack(
       [
-        self._squeeze_trailing_singleton(player["hand_count"]).float(),
-        self._squeeze_trailing_singleton(player["deck_count"]).float(),
-        self._squeeze_trailing_singleton(player["ikz_pile_count"]).float(),
-        self._squeeze_trailing_singleton(player["selection_count"]).float(),
-        self._squeeze_trailing_singleton(player["has_ikz_token"]).float(),
-        self._squeeze_trailing_singleton(opponent["hand_count"]).float(),
-        self._squeeze_trailing_singleton(opponent["deck_count"]).float(),
-        self._squeeze_trailing_singleton(opponent["ikz_pile_count"]).float(),
-        self._squeeze_trailing_singleton(opponent["has_ikz_token"]).float(),
+        player["hand_count"].float(),
+        player["deck_count"].float(),
+        player["ikz_pile_count"].float(),
+        player["selection_count"].float(),
+        player["has_ikz_token"].float(),
+        opponent["hand_count"].float(),
+        opponent["deck_count"].float(),
+        opponent["ikz_pile_count"].float(),
+        opponent["has_ikz_token"].float(),
       ],
       dim=-1,
     )
     global_counts = self.scalar_normalizer("global_counts", global_counts)
     global_counts_vec = self.global_counts_projector(global_counts)
-    global_context_vec = self._encode_global_context(structured_obs)
-    combat_context_vec = self._encode_combat_context(structured_obs)
-    recent_action_history_vec = self._encode_recent_action_history(structured_obs)
+    global_context_vec = self._encode_global_context(cobs)
+    combat_context_vec = self._encode_combat_context(cobs)
+    recent_action_history_vec = self._encode_recent_action_history(cobs)
     global_vec = self.global_fusion_projector(
       torch.cat(
         [
@@ -1921,9 +2312,8 @@ class TCG(nn.Module):
     return target_vector, action_context
 
   def build_primary_action_mask_tensor(self, observations):
-    structured_obs, squeeze_batch, _ = self.__prepare_structured_observations(observations)
-    action_mask = self.__get_struct_field(structured_obs, "action_mask")
-    primary_mask = action_mask["primary_action_mask"].to(dtype=torch.bool)
+    cobs, squeeze_batch, _ = self._canonical_observations(observations)
+    primary_mask = cobs["action_mask"]["primary_action_mask"].to(dtype=torch.bool)
     if squeeze_batch and primary_mask.dim() > 1 and primary_mask.size(0) == 1:
       return primary_mask.squeeze(0)
     return primary_mask
@@ -2230,42 +2620,33 @@ class TCG(nn.Module):
     if flat_hidden.dim() == 1:
       flat_hidden = flat_hidden.unsqueeze(0)
 
-    mask_observations = state.get("_azk_mask_observations") if state is not None else self._cached_mask_observations
-    if mask_observations is None:
-      raise ValueError("mask_observations is None when decode_actions is called")
+    cobs = state.get("_azk_cobs") if state is not None else None
+    if cobs is None:
+      cobs = getattr(self, "_cached_cobs", None)
+    if cobs is None:
+      mask_observations = (
+        state.get("_azk_mask_observations") if state is not None else self._cached_mask_observations
+      )
+      if mask_observations is None:
+        raise ValueError("mask_observations is None when decode_actions is called")
+      cobs, _, _ = self._canonical_observations(mask_observations)
 
-    structured_mask_obs, _, _ = self.__prepare_structured_observations(mask_observations)
-    action_mask_struct = self.__get_struct_field(structured_mask_obs, "action_mask")
+    action_mask_struct = cobs["action_mask"]
 
     device = flat_hidden.device
     action_context = self._prepare_action_context(action_context, device=device)
     target_matrix = self._lookup_action_context_tensor(action_context, "legacy_target_matrix")
     primary_action_mask = action_mask_struct["primary_action_mask"].to(dtype=torch.bool, device=device)
 
-    # Support both observation layouts:
-    # - emulated: action_mask.legal_actions.{legal_primary,legal_sub1,legal_sub2,legal_sub3}
-    # - packed native: action_mask.{legal_primary,legal_sub1,legal_sub2,legal_sub3}
-    try:
-      legal_actions_struct = self.__get_struct_field(action_mask_struct, "legal_actions")
-      legal_primary = legal_actions_struct["legal_primary"]
-      legal_sub1 = legal_actions_struct["legal_sub1"]
-      legal_sub2 = legal_actions_struct["legal_sub2"]
-      legal_sub3 = legal_actions_struct["legal_sub3"]
-    except KeyError:
-      legal_primary = self.__get_struct_field(action_mask_struct, "legal_primary")
-      legal_sub1 = self.__get_struct_field(action_mask_struct, "legal_sub1")
-      legal_sub2 = self.__get_struct_field(action_mask_struct, "legal_sub2")
-      legal_sub3 = self.__get_struct_field(action_mask_struct, "legal_sub3")
-
     legal_actions = torch.stack(
       (
-        legal_primary,
-        legal_sub1,
-        legal_sub2,
-        legal_sub3,
+        action_mask_struct["legal_primary"].long(),
+        action_mask_struct["legal_sub1"].long(),
+        action_mask_struct["legal_sub2"].long(),
+        action_mask_struct["legal_sub3"].long(),
       ),
       dim=-1,
-    ).to(device=device, dtype=torch.long)
+    ).to(device=device)
     legal_action_count = action_mask_struct["legal_action_count"].to(device=device, dtype=torch.long).view(-1)
 
     if self.actor_head_type == ACTOR_HEAD_TYPE_LEGAL_ACTION_SCORER:

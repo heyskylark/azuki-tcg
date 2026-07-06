@@ -414,48 +414,48 @@ class PuffeRL:
         return finished_envs
 
     def _compute_win_prob_aux(self, state: dict, idx: torch.Tensor):
+        """Masked win-prob BCE with metrics kept as device tensors (no syncs)."""
         device = self.config['device']
-        zero_loss = torch.zeros((), device=device)
+        zero = torch.zeros((), device=device)
         metrics = {
             'enabled': False,
-            'raw_loss': 0.0,
-            'labeled_frac': 0.0,
-            'example_count': 0,
-            'correct_sum': 0.0,
-            'brier_sum': 0.0,
-            'pred_sum': 0.0,
-            'target_sum': 0.0,
+            'raw_loss': zero,
+            'labeled_frac': zero,
+            'example_count': zero,
+            'correct_sum': zero,
+            'brier_sum': zero,
+            'pred_sum': zero,
+            'target_sum': zero,
         }
         if not self._win_prob_aux_enabled():
-            return zero_loss, metrics
+            return zero, metrics
 
         metrics['enabled'] = True
         win_prob_logits = state.get('_azk_win_prob_logits')
         if not torch.is_tensor(win_prob_logits):
-            return zero_loss, metrics
+            return zero, metrics
 
         targets = self.win_prob_targets[idx].to(device=win_prob_logits.device, dtype=win_prob_logits.dtype)
-        labeled_mask = self.win_prob_target_mask[idx].to(device=win_prob_logits.device)
+        labeled = self.win_prob_target_mask[idx].to(device=win_prob_logits.device, dtype=win_prob_logits.dtype)
         if win_prob_logits.shape != targets.shape:
             win_prob_logits = win_prob_logits.view_as(targets)
 
-        metrics['labeled_frac'] = float(labeled_mask.float().mean().item())
-        labeled_count = int(labeled_mask.sum().item())
-        metrics['example_count'] = labeled_count
-        if labeled_count == 0:
-            return zero_loss, metrics
+        count = labeled.sum()
+        denom = count.clamp(min=1.0)
+        per_element = F.binary_cross_entropy_with_logits(win_prob_logits, targets, reduction='none')
+        raw_loss = (per_element * labeled).sum() / denom
 
-        logits = win_prob_logits[labeled_mask]
-        target_values = targets[labeled_mask]
-        raw_loss = F.binary_cross_entropy_with_logits(logits, target_values)
-        probs = torch.sigmoid(logits)
-        predictions = (probs >= 0.5).to(dtype=target_values.dtype)
+        with torch.no_grad():
+            probs = torch.sigmoid(win_prob_logits)
+            predictions = (probs >= 0.5).to(dtype=targets.dtype)
+            metrics['labeled_frac'] = labeled.mean()
+            metrics['example_count'] = count
+            metrics['raw_loss'] = raw_loss.detach()
+            metrics['correct_sum'] = ((predictions == targets).to(dtype=labeled.dtype) * labeled).sum()
+            metrics['brier_sum'] = (torch.square(probs - targets) * labeled).sum()
+            metrics['pred_sum'] = (probs * labeled).sum()
+            metrics['target_sum'] = (targets * labeled).sum()
 
-        metrics['raw_loss'] = float(raw_loss.detach().item())
-        metrics['correct_sum'] = float((predictions == target_values).float().sum().item())
-        metrics['brier_sum'] = float(torch.square(probs - target_values).sum().item())
-        metrics['pred_sum'] = float(probs.sum().item())
-        metrics['target_sum'] = float(target_values.sum().item())
         weighted_loss = raw_loss * self._win_prob_aux_coef()
         return weighted_loss, metrics
 
@@ -476,28 +476,35 @@ class PuffeRL:
         self.full_rows = 0
         self._reset_win_prob_rollout_buffers()
         self._reset_split_value_rollout_buffers()
+        win_prob_enabled = self._win_prob_aux_enabled()
+        if win_prob_enabled:
+            # Per-agent episode bookkeeping, all device-resident and rebased
+            # each epoch: ids advance by total_agents on episode end so they
+            # stay unique per agent-episode; the win table is keyed by them.
+            self.agent_episode_ids = torch.arange(
+                self.total_agents, device=device, dtype=torch.int64)
+            # Each agent's id advances by total_agents per episode end; an
+            # agent sees at most ceil(batch/agents_per_batch) recv rounds.
+            agents_per_batch = max(1, int(getattr(self.vecenv, 'agents_per_batch', self.total_agents)))
+            max_rounds = -(-int(config['batch_size']) // agents_per_batch)
+            win_table_size = self.total_agents * (max_rounds + 2)
+            self.episode_win_table = torch.full((win_table_size,), -1.0, device=device)
+
         while self.full_rows < self.segments:
             profile('env', epoch)
             o, r, d, t, info, env_id, mask = self.vecenv.recv()
 
             profile('eval_misc', epoch)
             env_id_np = np.asarray(env_id, dtype=np.int64)
-            env_id = slice(env_id_np[0], env_id_np[-1] + 1)
-            done_mask = np.asarray(d + t, dtype=np.bool_) # TODO: Handle truncations separately
+            env_id = slice(int(env_id_np[0]), int(env_id_np[-1]) + 1)
             self.global_step += int(mask.sum())
 
             profile('eval_copy', epoch)
             o = torch.as_tensor(o)
-            o_device = o.to(device)#, non_blocking=True)
-            r = torch.as_tensor(r).to(device)#, non_blocking=True)
-            d = torch.as_tensor(d).to(device)#, non_blocking=True)
-            reward_components_terminal_np, reward_components_shaped_np = self._extract_step_reward_components(
-                info,
-                env_id_np,
-                np.clip(np.asarray(r.cpu().numpy(), dtype=np.float32), -1.0, 1.0),
-            )
-            reward_components_terminal = torch.as_tensor(reward_components_terminal_np, device=device)
-            reward_components_shaped = torch.as_tensor(reward_components_shaped_np, device=device)
+            o_device = o.to(device, non_blocking=True)
+            r = torch.as_tensor(r).to(device, non_blocking=True)
+            d = torch.as_tensor(d).to(device, non_blocking=True)
+            t_dev = torch.as_tensor(t).to(device, non_blocking=True)
 
             profile('eval_forward', epoch)
             with torch.no_grad(), self.amp_context:
@@ -514,13 +521,21 @@ class PuffeRL:
 
                 logits, value = self.policy.forward_eval(o_device, state)
                 action, logprob, _ = pufferlib.pytorch.sample_logits(logits)
-                r = torch.clamp(r, -1, 1)
 
             profile('eval_copy', epoch)
             with torch.no_grad():
                 if config['use_rnn']:
                     self.lstm_h[env_id.start] = state['lstm_h']
                     self.lstm_c[env_id.start] = state['lstm_c']
+
+                # Reward components derive from (reward, done): the env
+                # guarantees rewards carry only the terminal component on
+                # episode-end steps and only the shaped component otherwise.
+                done_dev = d | t_dev
+                r_clipped = torch.clamp(r, -1, 1)
+                zeros = torch.zeros((), device=device, dtype=r_clipped.dtype)
+                reward_components_terminal = torch.where(done_dev, r_clipped, zeros)
+                reward_components_shaped = torch.where(done_dev, zeros, r_clipped)
 
                 # Fast path for fully vectorized envs
                 l = self.ep_lengths[env_id.start].item()
@@ -533,7 +548,7 @@ class PuffeRL:
 
                 self.actions[batch_rows, l] = action
                 self.logprobs[batch_rows, l] = logprob
-                self.rewards[batch_rows, l] = r
+                self.rewards[batch_rows, l] = r_clipped
                 self.terminal_reward_components[batch_rows, l] = reward_components_terminal
                 self.shaped_reward_components[batch_rows, l] = reward_components_shaped
                 self.terminals[batch_rows, l] = d.float()
@@ -545,7 +560,18 @@ class PuffeRL:
                     )
                     self.terminal_values[batch_rows, l] = terminal_value.detach().float()
                     self.shaped_values[batch_rows, l] = shaped_value.detach().float()
-                self._stamp_win_prob_rollout_metadata(batch_rows, l, env_id_np)
+
+                if win_prob_enabled:
+                    # Stamp episode ids for these rows and record win labels on
+                    # episode end (win := terminal end with positive terminal
+                    # reward; truncations label 0 — matching the env's
+                    # winner-based per-episode stats).
+                    ids = self.agent_episode_ids[env_id]
+                    self.win_prob_episode_ids[batch_rows, l] = ids
+                    win_now = (d & (r > 0)).float()
+                    prev = self.episode_win_table[ids]
+                    self.episode_win_table[ids] = torch.where(done_dev, win_now, prev)
+                    self.agent_episode_ids[env_id] = ids + done_dev.long() * self.total_agents
 
                 # Note: We are not yet handling masks in this version
                 self.ep_lengths[env_id] += 1
@@ -569,12 +595,19 @@ class PuffeRL:
                         self.stats[k].extend(v)
                     else:
                         self.stats[k].append(v)
-            self._assign_terminal_win_prob_targets(info, env_id_np, done_mask)
 
             profile('env', epoch)
             self.vecenv.send(action)
 
         profile('eval_misc', epoch)
+        if win_prob_enabled:
+            # Resolve per-row win targets from the episode table in one gather.
+            row_ids = self.win_prob_episode_ids.clamp(min=0)
+            wins = self.episode_win_table[row_ids]
+            labeled = (self.win_prob_episode_ids >= 0) & (wins >= 0)
+            self.win_prob_targets = torch.where(labeled, wins, torch.zeros_like(wins))
+            self.win_prob_target_mask = labeled
+
         self.free_idx = self.total_agents
         self.ep_indices = torch.arange(self.total_agents, device=device, dtype=torch.int32)
         self.ep_lengths.zero_()
@@ -607,7 +640,6 @@ class PuffeRL:
 
         for mb in range(self.total_minibatches):
             profile('train_misc', epoch)
-            self.amp_context.__enter__()
 
             shape = self.values.shape
             advantages = torch.zeros(shape, device=device)
@@ -676,8 +708,9 @@ class PuffeRL:
                 lstm_c=None,
             )
 
-            logits, newvalue = self.policy(mb_obs, state)
-            actions, newlogprob, entropy = pufferlib.pytorch.sample_logits(logits, action=mb_actions)
+            with self.amp_context:
+                logits, newvalue = self.policy(mb_obs, state)
+                actions, newlogprob, entropy = pufferlib.pytorch.sample_logits(logits, action=mb_actions)
 
             profile('train_misc', epoch)
             newlogprob = newlogprob.reshape(mb_logprobs.shape)
@@ -734,7 +767,6 @@ class PuffeRL:
 
             value_loss_for_optim = total_v_loss + self._split_value_component_coef() * component_v_loss
             loss = pg_loss + config['vf_coef']*value_loss_for_optim - config['ent_coef']*entropy_loss + win_prob_aux_loss
-            self.amp_context.__enter__() # TODO: AMP needs some debugging
 
             # This breaks vloss clipping?
             self.values[idx] = newvalue.detach().float()
@@ -742,19 +774,20 @@ class PuffeRL:
                 self.terminal_values[idx] = new_terminal_value.detach().float()
                 self.shaped_values[idx] = new_shaped_value.detach().float()
 
-            # Logging
+            # Logging: accumulate as device tensors; a single sync happens at
+            # the end of the epoch when the dashboard converts to floats.
             profile('train_misc', epoch)
-            losses['policy_loss'] += pg_loss.item() / self.total_minibatches
-            losses['value_loss'] += value_loss_for_optim.item() / self.total_minibatches
-            losses['value_loss_total'] += total_v_loss.item() / self.total_minibatches
+            losses['policy_loss'] += pg_loss.detach() / self.total_minibatches
+            losses['value_loss'] += value_loss_for_optim.detach() / self.total_minibatches
+            losses['value_loss_total'] += total_v_loss.detach() / self.total_minibatches
             if split_value_enabled:
-                losses['value_loss_terminal'] += terminal_v_loss.item() / self.total_minibatches
-                losses['value_loss_shaped'] += shaped_v_loss.item() / self.total_minibatches
-            losses['entropy'] += entropy_loss.item() / self.total_minibatches
-            losses['old_approx_kl'] += old_approx_kl.item() / self.total_minibatches
-            losses['approx_kl'] += approx_kl.item() / self.total_minibatches
-            losses['clipfrac'] += clipfrac.item() / self.total_minibatches
-            losses['importance'] += ratio.mean().item() / self.total_minibatches
+                losses['value_loss_terminal'] += terminal_v_loss.detach() / self.total_minibatches
+                losses['value_loss_shaped'] += shaped_v_loss.detach() / self.total_minibatches
+            losses['entropy'] += entropy_loss.detach() / self.total_minibatches
+            losses['old_approx_kl'] += old_approx_kl / self.total_minibatches
+            losses['approx_kl'] += approx_kl / self.total_minibatches
+            losses['clipfrac'] += clipfrac / self.total_minibatches
+            losses['importance'] += ratio.detach().mean() / self.total_minibatches
             if win_prob_enabled:
                 losses['win_prob_aux_loss'] += win_prob_aux_metrics['raw_loss'] / self.total_minibatches
                 losses['win_prob_aux_labeled_frac'] += win_prob_aux_metrics['labeled_frac'] / self.total_minibatches
@@ -800,16 +833,18 @@ class PuffeRL:
                 else (1 - (shaped_y_true - shaped_y_pred).var() / shaped_var_y).item()
             )
         if win_prob_enabled:
-            if win_prob_example_count > 0:
-                losses['win_prob_aux_accuracy'] = win_prob_correct_sum / win_prob_example_count
-                losses['win_prob_aux_brier'] = win_prob_brier_sum / win_prob_example_count
-                losses['win_prob_aux_pred_mean'] = win_prob_pred_sum / win_prob_example_count
-                losses['win_prob_aux_target_mean'] = win_prob_target_sum / win_prob_example_count
+            denom = win_prob_example_count
+            if torch.is_tensor(denom):
+                denom = denom.clamp(min=1.0)
             else:
-                losses['win_prob_aux_accuracy'] = 0.0
-                losses['win_prob_aux_brier'] = 0.0
-                losses['win_prob_aux_pred_mean'] = 0.0
-                losses['win_prob_aux_target_mean'] = 0.0
+                denom = max(denom, 1.0)
+            losses['win_prob_aux_accuracy'] = win_prob_correct_sum / denom
+            losses['win_prob_aux_brier'] = win_prob_brier_sum / denom
+            losses['win_prob_aux_pred_mean'] = win_prob_pred_sum / denom
+            losses['win_prob_aux_target_mean'] = win_prob_target_sum / denom
+
+        # Single host sync for all logged scalars.
+        losses = {k: (float(v.item()) if torch.is_tensor(v) else v) for k, v in losses.items()}
 
         profile.end()
         logs = None
@@ -1013,14 +1048,15 @@ class PuffeRL:
 
         print('\033[0;0H' + capture.get())
 
+try:
+    from pufferlib.torch_pufferl import compute_puff_advantage as upstream_compute_puff_advantage
+except Exception:
+    upstream_compute_puff_advantage = None
+
+
 def compute_puff_advantage(values, rewards, terminals,
         ratio, advantages, gamma, gae_lambda, vtrace_rho_clip, vtrace_c_clip):
     '''Use the upstream 4.0 kernel when available and fall back to a Python implementation.'''
-
-    try:
-        from pufferlib.torch_pufferl import compute_puff_advantage as upstream_compute_puff_advantage
-    except Exception:
-        upstream_compute_puff_advantage = None
 
     if upstream_compute_puff_advantage is not None:
         return upstream_compute_puff_advantage(
