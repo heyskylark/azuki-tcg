@@ -557,6 +557,56 @@ E3 probe-B conditioning ratio ≫ 1 (uses what it has beyond availability);
 E4 sibling-differential synergy lifts surviving a permutation null with dwin > 0;
 E5 draft-vs-ref ≥ ctrl2 and not degrading with training (external validity).
 
+## 6.1 NATIVE PORT LANDED (2026-07-06, commit a13d66e)
+- Draft phase fully in C (c_step_draft/c_reset draft branch); deck_context packed block
+  appended to the obs struct (12,604B rows vs 9,416 battle-only; sizes cross-checked at
+  import via binding.obs_struct_sizes). Catalog arrays passed from the wrapper's own
+  builder → candidate ordering parity by construction.
+- PARITY: test_native_deckbuild_equivalence.py — forced gates (AZK_DEBUG_FORCE_GATE_DEF_IDS)
+  + identical pick replay: all 102 draft steps bit-equal (modes incl. early-finisher
+  BATTLE mode, candidate ids/copies incl. 4-copy reindexing, mask rows, active player),
+  battle-transition deck_context equal, privileged decks sanitized; policy packed decode
+  equals struct; metric helper == legacy battle-start metrics to 1e-9. Plus existing
+  battle-only equivalence + all unit tests + ctest green.
+- LEAGUE BUG FIXED (affects battle-only native too): trainer/league grouped rows by worker
+  INSTANCE (80 rows) not game; matchups/seat draws/reward decomposition/win-prob labels were
+  worker-granular and matchup resampling ~never fired. Now game-granular via
+  driver_env.agents_per_match. Inline league evaluator + draftref + evaluate_checkpoint
+  force the legacy env path (they drive seats through wrapper internals).
+- SMOKE (native-smoke, 2.5M steps, league ckpt-interval 40): steady SPS median 3,215
+  (p90 3,916) with league pool active — first promotion at epoch 42 survived (fixed loader,
+  game-granular rows). 552 deckbuild metric keys flowing; snapshots written; values sane
+  (unique 33.9, cost 3.07, quads 0.94 at ~1M steps). vs 1,836 legacy / 515 June: ~6× June,
+  1.75× legacy-optimized. Memory 10GB/24GB at mb 4096.
+- Round-2 chain switched to azuki_deckbuild_native_3090.ini; anneal knobs recalibrated for
+  480 games (WARMUP 12 / RAMP 40 per-env episodes ≈ fade 1.9M→8.2M of 15M).
+
+## 6. NATIVE DECK-BUILDING PORT (2026-07-06, user directive: land before further ablations)
+Round-2 chain was killed ~40 min into ctrl2 (artifacts kept: experiments/runlogs/ctrl2_*,
+snapshots) — arms will re-run on the native path so all arms share one env path.
+Design (v1):
+- C draft phase inside the native vec env (env_binding.h/tcg.h): per-env DraftState
+  (gate/leader/main/copy-counts/candidate table per player), catalog computed at vec_init from
+  card defs + deck pool (gate population weighted by pool frequency; leader ids per element;
+  main candidates element+NORMAL in the wrapper's exact order). Step: validate DECK_PICK_CARD
+  (sub1 = candidate index, ≤4 copies, 50 mains), P0→P1, then assemble decks (gate+leader+main
+  +IKZ) and reset the engine with decks; auto-reset re-enters draft. Rewards 0 during draft.
+- Obs: packed struct extended with a deck_context block (mode, gate/leader def ids,
+  main ids[50], counts, candidate ids[1024] + copy counts[1024]) appended to the base
+  TrainingObservationData → separate deck-building obs dtype on the Python side
+  (AzukiNativeEnv gains deck_building flag + NATIVE_DECKBUILD_OBS_DTYPE); battle-only struct
+  unchanged (fixed-deck checkpoints unaffected). Battle steps keep deck_context (mode=BATTLE,
+  no candidates) exactly like the wrapper.
+- Metrics/snapshots stay in Python: C exports per-episode records (gate, leader, main[50],
+  win, behavior rates, eplen) via a drain call; AzukiNativeEnv computes the full
+  azk_step_deckbuild/* + gatecard metric surface per log window and writes snapshot JSONLs.
+- Parity: struct offset/sizeof cross-check exported by binding; bit-exact draft obs vs
+  DeckBuildingParallelEnv under forced gates (AZK_DEBUG_FORCE_GATE_DEF_IDS) + replayed picks
+  (methodology of test_native_obs_equivalence.py); metric key-surface equality.
+- League: LeaguePuffeRL row mechanics being verified for the 40-envs-per-instance layout
+  (mapper agent); cuda_graphs likely incompatible with league row-splitting — v1 runs
+  native + train-side compile, cuda_graphs off; revisit after benchmark.
+
 ## 4. Key questions to answer
 - Does the model build legal-but-coherent decks (curve, type mix) per gate, or collapse to one deck?
 - Do per-gate compositions diverge (weapons for LIGHTNING, spells for Echoed Waves, etc.)?

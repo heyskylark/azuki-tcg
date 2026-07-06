@@ -59,6 +59,40 @@ class LeagueEvaluator:
 
 
 class InlineLeagueEvaluator(LeagueEvaluator):
+  @staticmethod
+  def _rebuild_for_eval(policy, vecenv, eval_args, device: str, use_rnn: bool):
+    import numpy as np
+    import torch
+
+    from training_utils import build_policy
+
+    fresh = build_policy(vecenv, eval_args)
+    # Warm forward so lazily-created modules/buffers exist before the copy.
+    warm_obs = torch.as_tensor(
+      np.zeros((vecenv.num_agents, *vecenv.single_observation_space.shape),
+               dtype=vecenv.single_observation_space.dtype),
+      device=device,
+    )
+    warm_state = {"mask": torch.zeros(vecenv.num_agents, device=device)}
+    if use_rnn:
+      warm_state["lstm_h"] = torch.zeros(vecenv.num_agents, fresh.hidden_size, device=device)
+      warm_state["lstm_c"] = torch.zeros(vecenv.num_agents, fresh.hidden_size, device=device)
+    with torch.no_grad():
+      fresh.forward_eval(warm_obs, warm_state)
+
+    from train import _materialize_scalar_norm_buffers_from_state_dict, _strip_module_prefix
+
+    source = _strip_module_prefix(policy.state_dict())
+    _materialize_scalar_norm_buffers_from_state_dict(fresh, source)
+    missing, unexpected = fresh.load_state_dict(source, strict=False)
+    real_missing = [k for k in missing if "scalar_normalizer" not in k]
+    if real_missing or unexpected:
+      raise RuntimeError(
+        f"League eval policy rebuild mismatch: missing={real_missing[:5]} "
+        f"unexpected={list(unexpected)[:5]}"
+      )
+    return fresh
+
   def evaluate(self, trainer_args: dict, *, policy_a, policy_b, request: MatchRequest) -> MatchResult:
     from training_utils import build_vecenv
 
@@ -87,6 +121,13 @@ class InlineLeagueEvaluator(LeagueEvaluator):
     base_env = _unwrap_base_env(vecenv.envs[0])
     num_agents = int(vecenv.num_agents)
     use_rnn = bool(trainer_args.get("train", {}).get("use_rnn", True))
+
+    # The provided policies were built against the TRAINING vecenv; when
+    # training runs the native packed layout, their observation decode does
+    # not match this legacy eval env. Rebuild fresh policies against the eval
+    # env's spec and copy the (layout-agnostic) weights over.
+    policy_a = self._rebuild_for_eval(policy_a, vecenv, eval_args, device, use_rnn)
+    policy_b = self._rebuild_for_eval(policy_b, vecenv, eval_args, device, use_rnn)
 
     # Preserve caller mode (learner policy may be in train mode) and restore on exit.
     policy_a_was_training = bool(policy_a.training)

@@ -11,13 +11,12 @@ RESULTS=train-ablation-1781126582/results
 mkdir -p "$RESULTS" experiments/runlogs
 
 COMMON_ARGS=(
-  --config python/config/azuki_deckbuild_3090.ini
+  --config python/config/azuki_deckbuild_native_3090.ini
   --jsonl-log experiments/runlogs
   --env.deck_snapshot_every 25
   --league.keep_recent 2 --league.keep_mid 1 --league.keep_old 1
   --train.checkpoint_interval 100
-  --train.minibatch_size 2048
-  --train.seed 42
+    --train.seed 42
 )
 
 launch() {
@@ -52,7 +51,7 @@ draftref() {
   echo "[chain] $(date +%F_%T) draftref eval $TAG ckpt=$CKPT"
   PYTHONPATH=build/python/src:python/src \
   .venv/bin/python python/src/draft_vs_reference_eval.py \
-    --config python/config/azuki_deckbuild_3090.ini \
+    --config python/config/azuki_deckbuild_native_3090.ini \
     --checkpoint "$CKPT" --episodes 96 --argmax \
     --json "$RESULTS/round2_${TAG}_draftref.json" \
     > "/tmp/draftref_${TAG}.log" 2>&1 || echo "[chain] draftref $TAG failed (non-fatal)"
@@ -68,8 +67,8 @@ draftref ctrl2
 export AZK_REWARD_SHAPING_ANNEAL=1
 export AZK_REWARD_SHAPING_ANNEAL_INITIAL=1.0
 export AZK_REWARD_SHAPING_ANNEAL_FINAL=0.05
-export AZK_REWARD_SHAPING_ANNEAL_WARMUP_EPISODES=8
-export AZK_REWARD_SHAPING_ANNEAL_RAMP_EPISODES=25
+export AZK_REWARD_SHAPING_ANNEAL_WARMUP_EPISODES=12
+export AZK_REWARD_SHAPING_ANNEAL_RAMP_EPISODES=40
 launch anneal1 "$STEPS"
 draftref anneal1
 
@@ -84,8 +83,8 @@ draftref gateid1
 export AZK_REWARD_SHAPING_ANNEAL=1
 export AZK_REWARD_SHAPING_ANNEAL_INITIAL=1.0
 export AZK_REWARD_SHAPING_ANNEAL_FINAL=0.05
-export AZK_REWARD_SHAPING_ANNEAL_WARMUP_EPISODES=8
-export AZK_REWARD_SHAPING_ANNEAL_RAMP_EPISODES=25
+export AZK_REWARD_SHAPING_ANNEAL_WARMUP_EPISODES=12
+export AZK_REWARD_SHAPING_ANNEAL_RAMP_EPISODES=40
 launch combo1 "$STEPS" \
   --policy.gate_id_embedding_enabled true \
   --policy.deck_pick_smoothing_eps 0.05
