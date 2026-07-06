@@ -123,17 +123,27 @@ class JaxVecEnv:
     from azuki_jax.setup import build_deck_pool_tables
     from azuki_jax.step import (
         _simple_start_turn_no_triggers,
+        step_activate_stt01_001_fast,
         step_activate_stt02_001_fast,
         step_activate_azk01_070_fast,
+        step_activate_azk01_103_fast,
         step_activate_azk01_105_fast,
+        step_activate_azk01_119_fast,
         step_activate_azk01_121_fast,
+        step_activate_azk01_123_fast,
+        step_activate_azk01_125_fast,
         step_activate_stt03_001_fast,
+        step_activate_stt03_004_fast,
         step_activate_stt02_011_fast,
         step_activate_stt04_001_fast,
         step_activate_stt01_005_fast,
         step_attack_azk01_004_leader_fast,
+        step_attack_azk01_006_when_attacked_fast,
+        step_attack_azk01_014_effect_fast,
         step_attack_azk01_060_confirm_fast,
         step_attack_stt01_006_effect_fast,
+        step_attack_stt01_012_response_fast,
+        step_attack_leader_garden_simple_fast,
         step_attach_stt01_013_confirm_fast,
         step_attach_weapon_simple_fast,
         step_attack_entity_mutual_destroy_fast,
@@ -141,8 +151,13 @@ class JaxVecEnv:
         step_attack_leader_response_fast,
         step_bottom_deck_all_fast,
         step_bottom_deck_card_fast,
+        step_top_deck_card_fast,
         step_confirm_azk01_060_fast,
         step_confirm_azk01_060_response_fast,
+        step_confirm_azk01_006_when_attacked_fast,
+        step_confirm_azk01_022_fast,
+        step_confirm_azk01_024_fast,
+        step_confirm_azk01_124_fast,
         step_confirm_azk01_058_fast,
         step_confirm_clear_fast,
         step_confirm_stt01_002_fast,
@@ -150,72 +165,131 @@ class JaxVecEnv:
         step_confirm_stt01_013_fast,
         step_confirm_stt01_004_fast,
         step_confirm_stt02_009_fast,
+        step_confirm_stt02_010_fast,
         step_confirm_stt04_004_fast,
+        step_confirm_stt04_009_fast,
+        step_confirm_stt03_013_fast,
+        step_confirm_stt03_011_fast,
         step_declare_defender_fast,
+        step_activate_azk01_111_fast,
+        step_effect_azk01_029_fast,
         step_effect_azk01_032_fast,
+        step_effect_azk01_016_fast,
+        step_effect_azk01_017_fast,
+        step_effect_azk01_087_fast,
+        step_effect_azk01_005_fast,
+        step_effect_azk01_015_fast,
+        step_effect_azk01_020_fast,
+        step_effect_azk01_022_fast,
         step_effect_azk01_007_fast,
         step_effect_azk01_009_fast,
+        step_effect_azk01_117_fast,
+        step_effect_azk01_042_fast,
+        step_effect_azk01_014_fast,
         step_effect_azk01_040_fast,
         step_effect_azk01_058_fast,
+        step_effect_azk01_119_fast,
+        step_effect_azk01_062_fast,
         step_effect_azk01_059_fast,
         step_effect_azk01_065_fast,
         step_effect_azk01_070_fast,
+        step_effect_azk01_103_fast,
         step_effect_azk01_105_fast,
+        step_effect_azk01_111_fast,
+        step_effect_azk01_124_fast,
         step_effect_azk01_127_fast,
+        step_effect_azk01_128_fast,
+        step_effect_stt01_001_fast,
         step_effect_stt01_005_fast,
         step_effect_stt01_006_fast,
         step_effect_stt01_014_fast,
         step_effect_stt01_017_fast,
         step_effect_stt02_001_fast,
         step_effect_stt02_011_fast,
+        step_effect_azk01_123_fast,
+        step_effect_stt02_014_fast,
+        step_effect_stt02_015_fast,
         step_effect_stt02_016_fast,
         step_effect_stt02_009_fast,
         step_effect_stt03_002_fast,
+        step_effect_stt03_011_fast,
         step_effect_stt03_006_fast,
         step_effect_stt04_001_fast,
+        step_effect_stt04_002_fast,
         step_effect_stt04_004_fast,
+        step_effect_stt04_009_fast,
         step_effect_stt04_016_fast,
         step_gate_portal_simple_fast,
         step_main_noop_azk01_011_fast,
         step_main_noop_fast,
         step_main_noop_simple_fast,
         step_main_noop_stt04_003_fast,
+        step_main_noop_stt03_006_trigger_fast,
+        step_play_azk01_028_fast,
         step_play_azk01_007_effect_fast,
+        step_play_azk01_022_confirm_fast,
+        step_play_azk01_024_confirm_fast,
         step_play_azk01_003_reveal_fast,
         step_play_azk01_033_reveal_fast,
         step_play_azk01_045_reveal_fast,
         step_play_azk01_056_reveal_fast,
         step_play_azk01_097_reveal_fast,
+        step_play_stt04_005_reveal_fast,
         step_play_entity_simple_fast,
         step_play_stt01_007_confirm_fast,
         step_play_stt02_003_reveal_fast,
         step_play_stt02_013_reveal_fast,
         step_play_stt02_009_confirm_fast,
+        step_play_stt03_011_effect_fast,
         step_play_spell_azk01_002_fast,
+        step_play_spell_azk01_029_fast,
+        step_play_spell_azk01_031_fast,
         step_play_spell_azk01_032_fast,
         step_play_spell_azk01_009_fast,
+        step_play_spell_azk01_117_fast,
+        step_play_spell_azk01_042_fast,
         step_play_spell_azk01_065_fast,
+        step_play_spell_azk01_066_fast,
+        step_play_spell_azk01_086_fast,
         step_play_spell_azk01_127_fast,
+        step_play_spell_azk01_128_fast,
+        step_play_spell_azk01_016_fast,
+        step_play_spell_azk01_017_fast,
+        step_play_spell_azk01_020_fast,
         step_play_spell_stt01_017_fast,
+        step_play_spell_stt02_014_fast,
+        step_play_spell_stt02_015_fast,
         step_play_spell_stt02_016_fast,
+        step_play_spell_stt02_017_fast,
         step_play_spell_stt03_016_fast,
+        step_play_spell_stt04_015_fast,
         step_play_spell_stt04_016_fast,
         step_response_noop_azk01_040_fast,
+        step_response_noop_combat_fizzle_fast,
         step_response_noop_entity_combat_fast,
         step_response_noop_leader_combat_fast,
         step_selection_pick_noop_fast,
         step_select_azk01_097_fast,
         step_select_azk01_122_place_fast,
+        step_select_azk01_024_place_fast,
+        step_select_azk01_086_pick_fast,
         step_select_azk01_126_pick_fast,
+        step_select_cost_azk01_103_fast,
+        step_select_cost_azk01_124_fast,
+        step_select_cost_azk01_029_fast,
         step_select_cost_azk01_032_fast,
+        step_select_cost_azk01_024_fast,
+        step_select_cost_azk01_022_fast,
         step_select_cost_stt01_007_fast,
         step_select_cost_stt02_016_fast,
         step_select_stt01_002_equip_fast,
         step_select_stt02_003_pick_fast,
+        step_select_azk01_031_pick_fast,
         step_select_stt02_013_pick_fast,
         step_select_stt01_004_pick_fast,
         step_select_azk01_045_pick_fast,
         step_select_azk01_056_pick_fast,
+        step_select_stt04_005_pick_fast,
         step_select_cost_stt04_016_fast,
         step_select_cost_stt01_004_fast,
         step_select_cost_stt02_009_fast,
@@ -236,6 +310,16 @@ class JaxVecEnv:
 
     self.driver_env = JaxDriverEnv()
     self.num_environments = int(num_envs)
+    # Broad static kernels lower to sequential per-row bodies; dispatch
+    # gathers their matched rows into fixed chunks of this size so a lone
+    # matching row never pays a full-batch sweep. Keep it at 1: the broad
+    # body (the full generic engine switch) dominates compile cost at ANY
+    # leading shape — chunk 8 forced a fresh XLA compile of that body whose
+    # working set OOMed a 128 GB box, while the (1,...) executables are
+    # already cached by the parity gate. Per-row runtime is identical
+    # (lax.map body is sequential either way); only ~ms of per-invocation
+    # dispatch overhead is lost, and broad hits are rare by design.
+    self._broad_chunk = 1
     self.num_agents = self.driver_env.num_agents * self.num_environments
     self.agents_per_batch = self.num_agents
     self.single_observation_space = self.driver_env.single_observation_space
@@ -310,6 +394,20 @@ class JaxVecEnv:
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
+    def _main_noop_stt03_006_trigger_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_main_noop_stt03_006_trigger_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+
+    def _play_azk01_028_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_play_azk01_028_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
     def _main_noop_one(args):
       state, actions, prev_terms, prev_truncs, legal_count = args
       return step_main_noop_fast(
@@ -340,6 +438,24 @@ class JaxVecEnv:
 
       return jax.jit(jax.vmap(_play_entity_simple_one))
 
+    def _make_play_entity_static_fn(action_type: int):
+      action_type = int(action_type)
+
+      def _play_entity_static_one(
+          state, actions, prev_terms, prev_truncs, legal_count
+      ):
+        return env_step_static(
+            state,
+            actions,
+            prev_terms,
+            prev_truncs,
+            pool,
+            legal_count,
+            action_type,
+        )
+
+      return jax.jit(jax.vmap(_play_entity_static_one))
+
     def _make_play_azk01_007_effect_fn(placement_zone: int):
       placement_zone = int(placement_zone)
 
@@ -357,6 +473,13 @@ class JaxVecEnv:
         )
 
       return jax.jit(jax.vmap(_play_azk01_007_effect_one))
+
+    def _play_stt03_011_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_play_stt03_011_effect_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
 
     def _make_play_stt01_007_confirm_fn(placement_zone: int):
       placement_zone = int(placement_zone)
@@ -448,6 +571,24 @@ class JaxVecEnv:
 
       return jax.jit(jax.vmap(_play_azk01_056_reveal_one))
 
+    def _make_play_stt04_005_reveal_fn(placement_zone: int):
+      placement_zone = int(placement_zone)
+
+      def _play_stt04_005_reveal_one(
+          state, actions, prev_terms, prev_truncs, legal_count
+      ):
+        return step_play_stt04_005_reveal_fast(
+            state,
+            actions,
+            prev_terms,
+            prev_truncs,
+            pool,
+            legal_count,
+            placement_zone,
+        )
+
+      return jax.jit(jax.vmap(_play_stt04_005_reveal_one))
+
     def _make_play_azk01_097_reveal_fn(placement_zone: int):
       placement_zone = int(placement_zone)
 
@@ -520,6 +661,42 @@ class JaxVecEnv:
 
       return jax.jit(jax.vmap(_play_stt02_009_confirm_one))
 
+    def _make_play_azk01_022_confirm_fn(placement_zone: int):
+      placement_zone = int(placement_zone)
+
+      def _play_azk01_022_confirm_one(
+          state, actions, prev_terms, prev_truncs, legal_count
+      ):
+        return step_play_azk01_022_confirm_fast(
+            state,
+            actions,
+            prev_terms,
+            prev_truncs,
+            pool,
+            legal_count,
+            placement_zone,
+        )
+
+      return jax.jit(jax.vmap(_play_azk01_022_confirm_one))
+
+    def _make_play_azk01_024_confirm_fn(placement_zone: int):
+      placement_zone = int(placement_zone)
+
+      def _play_azk01_024_confirm_one(
+          state, actions, prev_terms, prev_truncs, legal_count
+      ):
+        return step_play_azk01_024_confirm_fast(
+            state,
+            actions,
+            prev_terms,
+            prev_truncs,
+            pool,
+            legal_count,
+            placement_zone,
+        )
+
+      return jax.jit(jax.vmap(_play_azk01_024_confirm_one))
+
     def _gate_portal_simple_one(
         state, actions, prev_terms, prev_truncs, legal_count
     ):
@@ -534,6 +711,20 @@ class JaxVecEnv:
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
+    def _play_spell_stt02_014_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_play_spell_stt02_014_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _play_spell_stt02_015_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_play_spell_stt02_015_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
     def _play_spell_stt02_016_one(
         state, actions, prev_terms, prev_truncs, legal_count
     ):
@@ -541,10 +732,59 @@ class JaxVecEnv:
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
+    def _play_spell_stt02_017_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_play_spell_stt02_017_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _play_spell_azk01_016_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_play_spell_azk01_016_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _play_spell_azk01_017_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_play_spell_azk01_017_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _play_spell_azk01_020_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_play_spell_azk01_020_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _play_spell_azk01_086_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_play_spell_azk01_086_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
     def _play_spell_stt01_017_one(
         state, actions, prev_terms, prev_truncs, legal_count
     ):
       return step_play_spell_stt01_017_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+
+    def _play_spell_azk01_029_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_play_spell_azk01_029_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+    def _play_spell_azk01_031_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_play_spell_azk01_031_fast(
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
@@ -569,6 +809,20 @@ class JaxVecEnv:
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
+    def _play_spell_azk01_117_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_play_spell_azk01_117_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _play_spell_azk01_042_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_play_spell_azk01_042_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
     def _play_spell_azk01_065_one(
         state, actions, prev_terms, prev_truncs, legal_count
     ):
@@ -583,10 +837,31 @@ class JaxVecEnv:
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
+    def _play_spell_azk01_128_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_play_spell_azk01_128_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
     def _play_spell_stt03_016_one(
         state, actions, prev_terms, prev_truncs, legal_count
     ):
       return step_play_spell_stt03_016_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _play_spell_stt04_015_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_play_spell_stt04_015_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _play_spell_azk01_066_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_play_spell_azk01_066_fast(
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
@@ -611,6 +886,41 @@ class JaxVecEnv:
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
+    def _select_cost_azk01_022_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_select_cost_azk01_022_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _select_cost_azk01_024_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_select_cost_azk01_024_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _select_cost_azk01_103_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_select_cost_azk01_103_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _select_cost_azk01_124_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_select_cost_azk01_124_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+
+    def _select_cost_azk01_029_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_select_cost_azk01_029_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
     def _select_cost_azk01_032_one(
         state, actions, prev_terms, prev_truncs, legal_count
     ):
@@ -632,6 +942,13 @@ class JaxVecEnv:
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
+    def _effect_stt04_009_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_effect_stt04_009_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
     def _effect_stt02_009_one(
         state, actions, prev_terms, prev_truncs, legal_count
     ):
@@ -639,10 +956,52 @@ class JaxVecEnv:
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
+    def _effect_azk01_022_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_effect_azk01_022_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _effect_azk01_014_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_effect_azk01_014_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+
+    def _effect_azk01_029_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_effect_azk01_029_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
     def _effect_azk01_032_one(
         state, actions, prev_terms, prev_truncs, legal_count
     ):
       return step_effect_azk01_032_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _effect_stt02_014_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_effect_stt02_014_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _effect_stt03_011_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_effect_stt03_011_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _effect_stt02_015_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_effect_stt02_015_fast(
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
@@ -667,6 +1026,55 @@ class JaxVecEnv:
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
+    def _effect_stt01_001_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_effect_stt01_001_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _effect_azk01_016_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_effect_azk01_016_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _effect_azk01_017_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_effect_azk01_017_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _effect_azk01_087_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_effect_azk01_087_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _effect_azk01_005_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_effect_azk01_005_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _effect_azk01_015_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_effect_azk01_015_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _effect_azk01_020_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_effect_azk01_020_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
     def _effect_stt01_006_one(
         state, actions, prev_terms, prev_truncs, legal_count
     ):
@@ -678,6 +1086,13 @@ class JaxVecEnv:
         state, actions, prev_terms, prev_truncs, legal_count
     ):
       return step_effect_stt03_002_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _effect_stt04_002_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_effect_stt04_002_fast(
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
@@ -702,10 +1117,24 @@ class JaxVecEnv:
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
+    def _activate_azk01_111_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_activate_azk01_111_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
     def _activate_stt01_005_one(
         state, actions, prev_terms, prev_truncs, legal_count
     ):
       return step_activate_stt01_005_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _activate_stt01_001_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_activate_stt01_001_fast(
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
@@ -749,10 +1178,59 @@ class JaxVecEnv:
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
+    def _confirm_stt04_009_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_confirm_stt04_009_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
     def _confirm_stt02_009_one(
         state, actions, prev_terms, prev_truncs, legal_count
     ):
       return step_confirm_stt02_009_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _confirm_stt02_010_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_confirm_stt02_010_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _confirm_azk01_022_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_confirm_azk01_022_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _confirm_azk01_124_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_confirm_azk01_124_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _confirm_azk01_024_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_confirm_azk01_024_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _confirm_stt03_013_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_confirm_stt03_013_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _confirm_stt03_011_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_confirm_stt03_011_fast(
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
@@ -777,6 +1255,13 @@ class JaxVecEnv:
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
+    def _confirm_azk01_006_when_attacked_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_confirm_azk01_006_when_attacked_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
     def _effect_azk01_007_one(
         state, actions, prev_terms, prev_truncs, legal_count
     ):
@@ -798,6 +1283,20 @@ class JaxVecEnv:
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
+    def _effect_azk01_117_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_effect_azk01_117_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _effect_azk01_042_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_effect_azk01_042_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
     def _effect_azk01_040_one(
         state, actions, prev_terms, prev_truncs, legal_count
     ):
@@ -812,10 +1311,24 @@ class JaxVecEnv:
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
+    def _effect_azk01_119_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_effect_azk01_119_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
     def _effect_azk01_059_one(
         state, actions, prev_terms, prev_truncs, legal_count
     ):
       return step_effect_azk01_059_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _effect_azk01_062_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_effect_azk01_062_fast(
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
@@ -840,6 +1353,13 @@ class JaxVecEnv:
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
+    def _effect_azk01_128_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_effect_azk01_128_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
     def _effect_stt04_001_one(
         state, actions, prev_terms, prev_truncs, legal_count
     ):
@@ -861,6 +1381,27 @@ class JaxVecEnv:
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
+    def _effect_azk01_123_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_effect_azk01_123_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _effect_azk01_124_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_effect_azk01_124_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _effect_azk01_103_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_effect_azk01_103_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
     def _effect_azk01_105_one(
         state, actions, prev_terms, prev_truncs, legal_count
     ):
@@ -868,10 +1409,38 @@ class JaxVecEnv:
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
+    def _effect_azk01_111_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_effect_azk01_111_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _activate_azk01_119_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_activate_azk01_119_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
     def _activate_azk01_121_one(
         state, actions, prev_terms, prev_truncs, legal_count
     ):
       return step_activate_azk01_121_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _activate_azk01_125_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_activate_azk01_125_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _activate_azk01_123_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_activate_azk01_123_fast(
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
@@ -886,6 +1455,13 @@ class JaxVecEnv:
         state, actions, prev_terms, prev_truncs, legal_count
     ):
       return step_activate_stt03_001_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _activate_stt03_004_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_activate_stt03_004_fast(
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
@@ -910,6 +1486,13 @@ class JaxVecEnv:
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
+    def _activate_azk01_103_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_activate_azk01_103_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
     def _activate_azk01_105_one(
         state, actions, prev_terms, prev_truncs, legal_count
     ):
@@ -921,6 +1504,13 @@ class JaxVecEnv:
         state, actions, prev_terms, prev_truncs, legal_count
     ):
       return step_select_azk01_003_pick_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _select_azk01_031_pick_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_select_azk01_031_pick_fast(
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
@@ -942,6 +1532,13 @@ class JaxVecEnv:
         state, actions, prev_terms, prev_truncs, legal_count
     ):
       return step_select_azk01_056_pick_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _select_stt04_005_pick_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_select_stt04_005_pick_fast(
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
@@ -980,6 +1577,13 @@ class JaxVecEnv:
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
+    def _select_azk01_086_pick_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_select_azk01_086_pick_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
     def _select_azk01_097_one(
         state, actions, prev_terms, prev_truncs, legal_count
     ):
@@ -1012,10 +1616,35 @@ class JaxVecEnv:
 
       return jax.jit(jax.vmap(_select_azk01_122_place_one))
 
+    def _make_select_azk01_024_place_fn(placement_zone: int):
+      placement_zone = int(placement_zone)
+
+      def _select_azk01_024_place_one(
+          state, actions, prev_terms, prev_truncs, legal_count
+      ):
+        return step_select_azk01_024_place_fast(
+            state,
+            actions,
+            prev_terms,
+            prev_truncs,
+            pool,
+            legal_count,
+            placement_zone,
+        )
+
+      return jax.jit(jax.vmap(_select_azk01_024_place_one))
+
     def _bottom_deck_card_one(
         state, actions, prev_terms, prev_truncs, legal_count
     ):
       return step_bottom_deck_card_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _top_deck_card_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_top_deck_card_fast(
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
@@ -1047,10 +1676,24 @@ class JaxVecEnv:
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
+    def _attack_leader_garden_simple_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_attack_leader_garden_simple_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
     def _attack_azk01_004_leader_one(
         state, actions, prev_terms, prev_truncs, legal_count
     ):
       return step_attack_azk01_004_leader_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _attack_azk01_014_effect_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_attack_azk01_014_effect_fast(
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
@@ -1061,10 +1704,24 @@ class JaxVecEnv:
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
+    def _attack_stt01_012_response_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_attack_stt01_012_response_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
     def _response_noop_leader_combat_one(
         state, actions, prev_terms, prev_truncs, legal_count
     ):
       return step_response_noop_leader_combat_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _response_noop_combat_fizzle_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_response_noop_combat_fizzle_fast(
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
@@ -1100,6 +1757,13 @@ class JaxVecEnv:
         state, actions, prev_terms, prev_truncs, legal_count
     ):
       return step_attack_stt01_006_effect_fast(
+          state, actions, prev_terms, prev_truncs, pool, legal_count
+      )
+
+    def _attack_azk01_006_when_attacked_one(
+        state, actions, prev_terms, prev_truncs, legal_count
+    ):
+      return step_attack_azk01_006_when_attacked_fast(
           state, actions, prev_terms, prev_truncs, pool, legal_count
       )
 
@@ -1154,13 +1818,30 @@ class JaxVecEnv:
     self._main_noop_azk01_011_step_fn = jax.jit(
         jax.vmap(_main_noop_azk01_011_one)
     )
+    self._main_noop_stt03_006_trigger_step_fn = jax.jit(
+        jax.vmap(_main_noop_stt03_006_trigger_one)
+    )
     self._main_noop_stt04_003_step_fn = jax.jit(
         jax.vmap(_main_noop_stt04_003_one)
     )
+    self._play_azk01_024_confirm_fns = {
+        int(Zone.GARDEN): _make_play_azk01_024_confirm_fn(Zone.GARDEN),
+        int(Zone.ALLEY): _make_play_azk01_024_confirm_fn(Zone.ALLEY),
+    }
+    self._play_azk01_028_step_fn = jax.jit(jax.vmap(_play_azk01_028_one))
     self._main_noop_step_fn = jax.jit(_main_noop_batch)
+    self._noop_static_step_fn = _make_step_type_fn(Act.NOOP)
     self._play_entity_simple_fns = {
         int(Zone.GARDEN): _make_play_entity_simple_fn(Zone.GARDEN),
         int(Zone.ALLEY): _make_play_entity_simple_fn(Zone.ALLEY),
+    }
+    self._play_entity_static_fns = {
+        int(Act.PLAY_ENTITY_TO_GARDEN): _make_play_entity_static_fn(
+            Act.PLAY_ENTITY_TO_GARDEN
+        ),
+        int(Act.PLAY_ENTITY_TO_ALLEY): _make_play_entity_static_fn(
+            Act.PLAY_ENTITY_TO_ALLEY
+        ),
     }
     self._play_azk01_007_effect_fns = {
         int(Zone.GARDEN): _make_play_azk01_007_effect_fn(Zone.GARDEN),
@@ -1186,6 +1867,10 @@ class JaxVecEnv:
         int(Zone.GARDEN): _make_play_azk01_056_reveal_fn(Zone.GARDEN),
         int(Zone.ALLEY): _make_play_azk01_056_reveal_fn(Zone.ALLEY),
     }
+    self._play_stt04_005_reveal_fns = {
+        int(Zone.GARDEN): _make_play_stt04_005_reveal_fn(Zone.GARDEN),
+        int(Zone.ALLEY): _make_play_stt04_005_reveal_fn(Zone.ALLEY),
+    }
     self._play_azk01_097_reveal_fns = {
         int(Zone.GARDEN): _make_play_azk01_097_reveal_fn(Zone.GARDEN),
         int(Zone.ALLEY): _make_play_azk01_097_reveal_fn(Zone.ALLEY),
@@ -1202,14 +1887,52 @@ class JaxVecEnv:
         int(Zone.GARDEN): _make_play_stt02_009_confirm_fn(Zone.GARDEN),
         int(Zone.ALLEY): _make_play_stt02_009_confirm_fn(Zone.ALLEY),
     }
+    self._play_azk01_022_confirm_fns = {
+        int(Zone.GARDEN): _make_play_azk01_022_confirm_fn(Zone.GARDEN),
+        int(Zone.ALLEY): _make_play_azk01_022_confirm_fn(Zone.ALLEY),
+    }
+    self._play_stt03_011_step_fn = jax.jit(jax.vmap(_play_stt03_011_one))
     self._play_spell_stt04_016_step_fn = jax.jit(
         jax.vmap(_play_spell_stt04_016_one)
+    )
+    self._play_spell_stt02_014_step_fn = jax.jit(
+        jax.vmap(_play_spell_stt02_014_one)
+    )
+    self._play_spell_stt02_015_step_fn = jax.jit(
+        jax.vmap(_play_spell_stt02_015_one)
     )
     self._play_spell_stt02_016_step_fn = jax.jit(
         jax.vmap(_play_spell_stt02_016_one)
     )
+    self._play_spell_stt02_017_step_fn = jax.jit(
+        jax.vmap(_play_spell_stt02_017_one)
+    )
+    self._play_spell_stt02_017_static_step_fn = _make_step_type_fn(
+        Act.PLAY_SPELL_FROM_HAND
+    )
+    self._play_spell_azk01_016_step_fn = jax.jit(
+        jax.vmap(_play_spell_azk01_016_one)
+    )
+    self._select_cost_azk01_024_step_fn = jax.jit(
+        jax.vmap(_select_cost_azk01_024_one)
+    )
+    self._play_spell_azk01_017_step_fn = jax.jit(
+        jax.vmap(_play_spell_azk01_017_one)
+    )
+    self._play_spell_azk01_020_step_fn = jax.jit(
+        jax.vmap(_play_spell_azk01_020_one)
+    )
+    self._play_spell_azk01_086_step_fn = jax.jit(
+        jax.vmap(_play_spell_azk01_086_one)
+    )
     self._play_spell_stt01_017_step_fn = jax.jit(
         jax.vmap(_play_spell_stt01_017_one)
+    )
+    self._play_spell_azk01_029_step_fn = jax.jit(
+        jax.vmap(_play_spell_azk01_029_one)
+    )
+    self._play_spell_azk01_031_step_fn = jax.jit(
+        jax.vmap(_play_spell_azk01_031_one)
     )
     self._play_spell_azk01_032_step_fn = jax.jit(
         jax.vmap(_play_spell_azk01_032_one)
@@ -1220,14 +1943,41 @@ class JaxVecEnv:
     self._play_spell_azk01_009_step_fn = jax.jit(
         jax.vmap(_play_spell_azk01_009_one)
     )
+    self._play_spell_azk01_117_step_fn = jax.jit(
+        jax.vmap(_play_spell_azk01_117_one)
+    )
+    self._play_spell_azk01_042_step_fn = jax.jit(
+        jax.vmap(_play_spell_azk01_042_one)
+    )
     self._play_spell_azk01_065_step_fn = jax.jit(
         jax.vmap(_play_spell_azk01_065_one)
     )
     self._play_spell_azk01_127_step_fn = jax.jit(
         jax.vmap(_play_spell_azk01_127_one)
     )
+    self._play_spell_azk01_128_step_fn = jax.jit(
+        jax.vmap(_play_spell_azk01_128_one)
+    )
     self._play_spell_stt03_016_step_fn = jax.jit(
         jax.vmap(_play_spell_stt03_016_one)
+    )
+    self._play_spell_stt04_015_step_fn = jax.jit(
+        jax.vmap(_play_spell_stt04_015_one)
+    )
+    self._play_spell_stt04_017_step_fn = _make_step_type_fn(
+        Act.PLAY_SPELL_FROM_HAND
+    )
+    self._play_spell_azk01_066_static_step_fn = (
+        self._play_spell_stt04_017_step_fn
+    )
+    self._play_spell_stt03_016_static_step_fn = (
+        self._play_spell_stt04_017_step_fn
+    )
+    self._play_spell_azk01_031_static_step_fn = (
+        self._play_spell_stt04_017_step_fn
+    )
+    self._play_spell_azk01_066_step_fn = jax.jit(
+        jax.vmap(_play_spell_azk01_066_one)
     )
     self._select_cost_stt04_016_step_fn = jax.jit(
         jax.vmap(_select_cost_stt04_016_one)
@@ -1238,26 +1988,83 @@ class JaxVecEnv:
     self._select_cost_stt02_009_step_fn = jax.jit(
         jax.vmap(_select_cost_stt02_009_one)
     )
+    self._select_cost_azk01_022_step_fn = jax.jit(
+        jax.vmap(_select_cost_azk01_022_one)
+    )
+    self._select_cost_azk01_103_step_fn = jax.jit(
+        jax.vmap(_select_cost_azk01_103_one)
+    )
+    self._select_cost_azk01_124_step_fn = jax.jit(
+        jax.vmap(_select_cost_azk01_124_one)
+    )
+    self._select_cost_azk01_029_step_fn = jax.jit(
+        jax.vmap(_select_cost_azk01_029_one)
+    )
     self._select_cost_azk01_032_step_fn = jax.jit(
         jax.vmap(_select_cost_azk01_032_one)
     )
     self._select_cost_stt02_016_step_fn = jax.jit(
         jax.vmap(_select_cost_stt02_016_one)
     )
+    self._select_cost_static_step_fn = _make_step_type_fn(
+        Act.SELECT_COST_TARGET
+    )
+    self._select_effect_static_step_fn = _make_step_type_fn(
+        Act.SELECT_EFFECT_TARGET
+    )
     self._effect_stt04_016_step_fn = jax.jit(jax.vmap(_effect_stt04_016_one))
+    self._effect_stt04_016_static_step_fn = _make_step_type_fn(
+        Act.SELECT_EFFECT_TARGET
+    )
+    self._effect_stt04_009_step_fn = jax.jit(jax.vmap(_effect_stt04_009_one))
     self._effect_stt02_009_step_fn = jax.jit(jax.vmap(_effect_stt02_009_one))
+    self._effect_azk01_022_step_fn = jax.jit(jax.vmap(_effect_azk01_022_one))
+    self._effect_azk01_014_step_fn = jax.jit(jax.vmap(_effect_azk01_014_one))
+    self._effect_azk01_016_step_fn = jax.jit(jax.vmap(_effect_azk01_016_one))
+    self._effect_azk01_087_step_fn = jax.jit(jax.vmap(_effect_azk01_087_one))
+    self._effect_azk01_017_step_fn = jax.jit(jax.vmap(_effect_azk01_017_one))
+    self._effect_azk01_005_step_fn = jax.jit(jax.vmap(_effect_azk01_005_one))
+    self._effect_azk01_015_step_fn = jax.jit(jax.vmap(_effect_azk01_015_one))
+    self._effect_azk01_020_step_fn = jax.jit(jax.vmap(_effect_azk01_020_one))
+    self._effect_azk01_029_step_fn = jax.jit(jax.vmap(_effect_azk01_029_one))
     self._effect_azk01_032_step_fn = jax.jit(jax.vmap(_effect_azk01_032_one))
+    self._effect_stt02_014_step_fn = jax.jit(
+        jax.vmap(_effect_stt02_014_one)
+    )
+    self._effect_stt02_015_step_fn = jax.jit(
+        jax.vmap(_effect_stt02_015_one)
+    )
     self._effect_stt02_016_step_fn = jax.jit(
         jax.vmap(_effect_stt02_016_one)
     )
+    self._effect_stt03_011_step_fn = jax.jit(jax.vmap(_effect_stt03_011_one))
     self._effect_stt01_017_step_fn = jax.jit(
         jax.vmap(_effect_stt01_017_one)
     )
+    self._effect_stt01_001_step_fn = jax.jit(jax.vmap(_effect_stt01_001_one))
     self._effect_stt02_011_step_fn = jax.jit(
         jax.vmap(_effect_stt02_011_one)
     )
+    self._confirm_azk01_024_step_fn = jax.jit(
+        jax.vmap(_confirm_azk01_024_one)
+    )
+    self._effect_azk01_123_step_fn = jax.jit(
+        jax.vmap(_effect_azk01_123_one)
+    )
+    self._effect_azk01_103_step_fn = jax.jit(
+        jax.vmap(_effect_azk01_103_one)
+    )
     self._effect_azk01_105_step_fn = jax.jit(
         jax.vmap(_effect_azk01_105_one)
+    )
+    self._effect_azk01_105_static_step_fn = _make_step_type_fn(
+        Act.SELECT_EFFECT_TARGET
+    )
+    self._effect_azk01_111_step_fn = jax.jit(
+        jax.vmap(_effect_azk01_111_one)
+    )
+    self._effect_azk01_124_step_fn = jax.jit(
+        jax.vmap(_effect_azk01_124_one)
     )
     self._effect_stt04_001_step_fn = jax.jit(jax.vmap(_effect_stt04_001_one))
     self._effect_stt02_001_step_fn = jax.jit(jax.vmap(_effect_stt02_001_one))
@@ -1268,7 +2075,41 @@ class JaxVecEnv:
         jax.vmap(_effect_stt01_014_one)
     )
     self._effect_stt03_002_step_fn = jax.jit(jax.vmap(_effect_stt03_002_one))
+    self._effect_stt04_002_step_fn = jax.jit(jax.vmap(_effect_stt04_002_one))
     self._effect_stt03_006_step_fn = jax.jit(jax.vmap(_effect_stt03_006_one))
+    self._effect_stt03_006_pending_combat_step_fn = _make_step_type_fn(
+        Act.SELECT_EFFECT_TARGET
+    )
+    self._select_cost_stt04_017_step_fn = _make_step_type_fn(
+        Act.SELECT_COST_TARGET
+    )
+    self._select_cost_stt04_016_static_step_fn = (
+        self._select_cost_stt04_017_step_fn
+    )
+    self._select_cost_azk01_024_static_step_fn = (
+        self._select_cost_stt04_017_step_fn
+    )
+    self._effect_stt04_017_step_fn = (
+        self._effect_stt03_006_pending_combat_step_fn
+    )
+    self._effect_stt04_001_static_step_fn = (
+        self._effect_stt03_006_pending_combat_step_fn
+    )
+    self._effect_azk01_062_static_step_fn = (
+        self._effect_stt03_006_pending_combat_step_fn
+    )
+    self._effect_stt02_015_static_step_fn = (
+        self._effect_stt03_006_pending_combat_step_fn
+    )
+    self._effect_stt01_017_static_step_fn = (
+        self._effect_stt03_006_pending_combat_step_fn
+    )
+    self._effect_azk01_124_static_step_fn = (
+        self._effect_stt03_006_pending_combat_step_fn
+    )
+    self._activate_azk01_111_step_fn = jax.jit(
+        jax.vmap(_activate_azk01_111_one)
+    )
     self._activate_stt01_005_step_fn = jax.jit(
         jax.vmap(_activate_stt01_005_one)
     )
@@ -1289,9 +2130,28 @@ class JaxVecEnv:
     self._confirm_stt04_004_step_fn = jax.jit(
         jax.vmap(_confirm_stt04_004_one)
     )
+    self._confirm_stt04_009_step_fn = jax.jit(
+        jax.vmap(_confirm_stt04_009_one)
+    )
     self._confirm_stt02_009_step_fn = jax.jit(
         jax.vmap(_confirm_stt02_009_one)
     )
+    self._confirm_stt02_010_step_fn = jax.jit(
+        jax.vmap(_confirm_stt02_010_one)
+    )
+    self._confirm_azk01_022_step_fn = jax.jit(
+        jax.vmap(_confirm_azk01_022_one)
+    )
+    self._confirm_azk01_124_step_fn = jax.jit(
+        jax.vmap(_confirm_azk01_124_one)
+    )
+    self._confirm_stt03_013_step_fn = jax.jit(
+        jax.vmap(_confirm_stt03_013_one)
+    )
+    self._confirm_stt03_011_step_fn = jax.jit(
+        jax.vmap(_confirm_stt03_011_one)
+    )
+    self._confirm_static_step_fn = _make_step_type_fn(Act.CONFIRM_ABILITY)
     self._confirm_azk01_058_step_fn = jax.jit(
         jax.vmap(_confirm_azk01_058_one)
     )
@@ -1300,6 +2160,9 @@ class JaxVecEnv:
     )
     self._confirm_azk01_060_response_step_fn = jax.jit(
         jax.vmap(_confirm_azk01_060_response_one)
+    )
+    self._confirm_azk01_006_when_attacked_step_fn = jax.jit(
+        jax.vmap(_confirm_azk01_006_when_attacked_one)
     )
     self._effect_azk01_007_step_fn = jax.jit(
         jax.vmap(_effect_azk01_007_one)
@@ -1310,6 +2173,15 @@ class JaxVecEnv:
     self._effect_azk01_009_step_fn = jax.jit(
         jax.vmap(_effect_azk01_009_one)
     )
+    self._effect_azk01_117_step_fn = jax.jit(
+        jax.vmap(_effect_azk01_117_one)
+    )
+    self._effect_azk01_119_step_fn = jax.jit(
+        jax.vmap(_effect_azk01_119_one)
+    )
+    self._effect_azk01_042_step_fn = jax.jit(
+        jax.vmap(_effect_azk01_042_one)
+    )
     self._effect_azk01_040_step_fn = jax.jit(
         jax.vmap(_effect_azk01_040_one)
     )
@@ -1319,23 +2191,53 @@ class JaxVecEnv:
     self._effect_azk01_059_step_fn = jax.jit(
         jax.vmap(_effect_azk01_059_one)
     )
+    self._effect_azk01_062_step_fn = jax.jit(
+        jax.vmap(_effect_azk01_062_one)
+    )
     self._effect_azk01_070_step_fn = jax.jit(
         jax.vmap(_effect_azk01_070_one)
     )
     self._effect_azk01_065_step_fn = jax.jit(
         jax.vmap(_effect_azk01_065_one)
     )
+    self._activate_azk01_119_step_fn = jax.jit(
+        jax.vmap(_activate_azk01_119_one)
+    )
     self._effect_azk01_127_step_fn = jax.jit(
         jax.vmap(_effect_azk01_127_one)
+    )
+    self._effect_azk01_127_static_step_fn = _make_step_type_fn(
+        Act.SELECT_EFFECT_TARGET
+    )
+    self._effect_azk01_128_step_fn = jax.jit(
+        jax.vmap(_effect_azk01_128_one)
     )
     self._activate_azk01_121_step_fn = jax.jit(
         jax.vmap(_activate_azk01_121_one)
     )
+    self._activate_azk01_125_step_fn = jax.jit(
+        jax.vmap(_activate_azk01_125_one)
+    )
+    self._activate_azk01_123_step_fn = jax.jit(
+        jax.vmap(_activate_azk01_123_one)
+    )
     self._activate_stt02_001_step_fn = jax.jit(
         jax.vmap(_activate_stt02_001_one)
     )
+    self._activate_stt01_001_step_fn = jax.jit(
+        jax.vmap(_activate_stt01_001_one)
+    )
     self._activate_stt03_001_step_fn = jax.jit(
         jax.vmap(_activate_stt03_001_one)
+    )
+    self._activate_stt03_004_step_fn = jax.jit(
+        jax.vmap(_activate_stt03_004_one)
+    )
+    self._activate_garden_static_step_fn = _make_step_type_fn(
+        Act.ACTIVATE_GARDEN_OR_LEADER_ABILITY
+    )
+    self._activate_alley_static_step_fn = _make_step_type_fn(
+        Act.ACTIVATE_ALLEY_ABILITY
     )
     self._activate_stt04_001_step_fn = jax.jit(
         jax.vmap(_activate_stt04_001_one)
@@ -1346,11 +2248,17 @@ class JaxVecEnv:
     self._activate_azk01_070_step_fn = jax.jit(
         jax.vmap(_activate_azk01_070_one)
     )
+    self._activate_azk01_103_step_fn = jax.jit(
+        jax.vmap(_activate_azk01_103_one)
+    )
     self._activate_azk01_105_step_fn = jax.jit(
         jax.vmap(_activate_azk01_105_one)
     )
     self._select_azk01_003_pick_step_fn = jax.jit(
         jax.vmap(_select_azk01_003_pick_one)
+    )
+    self._select_azk01_031_pick_step_fn = jax.jit(
+        jax.vmap(_select_azk01_031_pick_one)
     )
     self._select_azk01_033_pick_step_fn = jax.jit(
         jax.vmap(_select_azk01_033_pick_one)
@@ -1360,6 +2268,9 @@ class JaxVecEnv:
     )
     self._select_azk01_056_pick_step_fn = jax.jit(
         jax.vmap(_select_azk01_056_pick_one)
+    )
+    self._select_stt04_005_pick_step_fn = jax.jit(
+        jax.vmap(_select_stt04_005_pick_one)
     )
     self._select_stt02_003_pick_step_fn = jax.jit(
         jax.vmap(_select_stt02_003_pick_one)
@@ -1376,35 +2287,77 @@ class JaxVecEnv:
     self._select_azk01_126_pick_step_fn = jax.jit(
         jax.vmap(_select_azk01_126_pick_one)
     )
+    self._select_azk01_086_pick_step_fn = jax.jit(
+        jax.vmap(_select_azk01_086_pick_one)
+    )
     self._select_azk01_097_step_fn = jax.jit(
         jax.vmap(_select_azk01_097_one)
     )
     self._selection_pick_noop_step_fn = jax.jit(
         jax.vmap(_selection_pick_noop_one)
     )
+    self._select_from_selection_static_step_fn = _make_step_type_fn(
+        Act.SELECT_FROM_SELECTION
+    )
+    self._select_azk01_111_garden_step_fn = _make_step_type_fn(
+        Act.SELECT_TO_GARDEN
+    )
+    self._select_to_alley_static_step_fn = _make_step_type_fn(
+        Act.SELECT_TO_ALLEY
+    )
+    self._select_to_equip_static_step_fn = _make_step_type_fn(
+        Act.SELECT_TO_EQUIP
+    )
     self._select_azk01_122_place_fns = {
         int(Zone.GARDEN): _make_select_azk01_122_place_fn(Zone.GARDEN),
         int(Zone.ALLEY): _make_select_azk01_122_place_fn(Zone.ALLEY),
     }
+    self._select_azk01_024_place_fns = {
+        int(Zone.GARDEN): _make_select_azk01_024_place_fn(Zone.GARDEN),
+        int(Zone.ALLEY): _make_select_azk01_024_place_fn(Zone.ALLEY),
+    }
     self._bottom_deck_card_step_fn = jax.jit(jax.vmap(_bottom_deck_card_one))
+    self._top_deck_card_step_fn = jax.jit(jax.vmap(_top_deck_card_one))
     self._bottom_deck_all_step_fn = jax.jit(jax.vmap(_bottom_deck_all_one))
+    self._top_deck_card_static_step_fn = _make_step_type_fn(Act.TOP_DECK_CARD)
+    self._bottom_deck_card_static_step_fn = _make_step_type_fn(
+        Act.BOTTOM_DECK_CARD
+    )
+    self._bottom_deck_all_static_step_fn = _make_step_type_fn(
+        Act.BOTTOM_DECK_ALL
+    )
     self._attach_weapon_simple_step_fn = jax.jit(
         jax.vmap(_attach_weapon_simple_one)
     )
     self._attach_stt01_013_confirm_step_fn = jax.jit(
         jax.vmap(_attach_stt01_013_confirm_one)
     )
+    self._attach_weapon_static_step_fn = _make_step_type_fn(
+        Act.ATTACH_WEAPON_FROM_HAND
+    )
     self._attack_leader_simple_step_fn = jax.jit(
         jax.vmap(_attack_leader_simple_one)
+    )
+    self._attack_leader_garden_simple_step_fn = jax.jit(
+        jax.vmap(_attack_leader_garden_simple_one)
     )
     self._attack_azk01_004_leader_step_fn = jax.jit(
         jax.vmap(_attack_azk01_004_leader_one)
     )
+    self._attack_azk01_014_effect_step_fn = jax.jit(
+        jax.vmap(_attack_azk01_014_effect_one)
+    )
     self._attack_leader_response_step_fn = jax.jit(
         jax.vmap(_attack_leader_response_one)
     )
+    self._attack_stt01_012_response_step_fn = jax.jit(
+        jax.vmap(_attack_stt01_012_response_one)
+    )
     self._response_noop_leader_combat_step_fn = jax.jit(
         jax.vmap(_response_noop_leader_combat_one)
+    )
+    self._response_noop_combat_fizzle_step_fn = jax.jit(
+        jax.vmap(_response_noop_combat_fizzle_one)
     )
     self._response_noop_entity_combat_step_fn = jax.jit(
         jax.vmap(_response_noop_entity_combat_one)
@@ -1415,11 +2368,15 @@ class JaxVecEnv:
     self._attack_entity_mutual_destroy_step_fn = jax.jit(
         jax.vmap(_attack_entity_mutual_destroy_one)
     )
+    self._attack_queued_stt03_006_step_fn = _make_step_type_fn(Act.ATTACK)
     self._attack_azk01_060_confirm_step_fn = jax.jit(
         jax.vmap(_attack_azk01_060_confirm_one)
     )
     self._attack_stt01_006_effect_step_fn = jax.jit(
         jax.vmap(_attack_stt01_006_effect_one)
+    )
+    self._attack_azk01_006_when_attacked_step_fn = jax.jit(
+        jax.vmap(_attack_azk01_006_when_attacked_one)
     )
     self._declare_defender_step_fn = jax.jit(
         jax.vmap(_declare_defender_one)
@@ -1456,6 +2413,7 @@ class JaxVecEnv:
     )
     self._timing_is_response = np.asarray(ab_tables.TIMING_IS_RESPONSE, dtype=bool)
     self._has_ability = np.asarray(ab_tables.HAS_ABILITY, dtype=bool)
+    self._once_per_turn = np.asarray(ab_tables.ONCE_PER_TURN, dtype=bool)
     self._response_play_from_hand = np.asarray(
         ab_tables.RESPONSE_PLAY_FROM_HAND, dtype=bool
     )
@@ -1471,15 +2429,26 @@ class JaxVecEnv:
         ab_tables.ABILITY_IKZ_COST, dtype=np.int8
     )
     self._force_tapped = np.asarray(jax_cards.ATTR_GARDEN_FORCE_TAPPED, dtype=bool)
+    self._can_attack_alley = np.asarray(
+        jax_cards.ATTR_TARGET_TAPPED_UNTAPPED_ALLEY, dtype=bool
+    )
+    self._can_target_leader_only = np.asarray(
+        jax_cards.ATTR_TARGET_LEADER_ONLY, dtype=bool
+    )
     self._card_type = np.asarray(jax_cards.TYPE, dtype=np.int8)
     self._card_element = np.asarray(jax_cards.ELEMENT, dtype=np.int8)
     self._water_element = 2
+    self._earth_element = 3
     self._card_type_leader = int(CardType.LEADER)
     self._card_type_entity = int(CardType.ENTITY)
     self._card_type_weapon = int(CardType.WEAPON)
     self._card_type_spell = int(CardType.SPELL)
     self._black_jade = np.asarray(
         jax_cards.SUBTYPE_MATRIX[:, jax_cards.subtype_index("BlackJade")],
+        dtype=bool,
+    )
+    self._driftward = np.asarray(
+        jax_cards.SUBTYPE_MATRIX[:, jax_cards.subtype_index("Driftward")],
         dtype=bool,
     )
     self._watercrafting = np.asarray(
@@ -1490,12 +2459,28 @@ class JaxVecEnv:
         jax_cards.SUBTYPE_MATRIX[:, jax_cards.subtype_index("Steelborn")],
         dtype=bool,
     )
+    self._beanz = np.asarray(
+        jax_cards.SUBTYPE_MATRIX[:, jax_cards.subtype_index("Beanz")],
+        dtype=bool,
+    )
     self._obsidian = np.asarray(
         jax_cards.SUBTYPE_MATRIX[:, jax_cards.subtype_index("Obsidian")],
         dtype=bool,
     )
     self._scorchweaver = np.asarray(
         jax_cards.SUBTYPE_MATRIX[:, jax_cards.subtype_index("Scorchweaver")],
+        dtype=bool,
+    )
+    self._shao = np.asarray(
+        jax_cards.SUBTYPE_MATRIX[:, jax_cards.subtype_index("Shao")],
+        dtype=bool,
+    )
+    self._pyreskin = np.asarray(
+        jax_cards.SUBTYPE_MATRIX[:, jax_cards.subtype_index("Pyreskin")],
+        dtype=bool,
+    )
+    self._raizan = np.asarray(
+        jax_cards.SUBTYPE_MATRIX[:, jax_cards.subtype_index("Raizan")],
         dtype=bool,
     )
     self._counts_as_ikz = np.asarray(
@@ -1524,6 +2509,7 @@ class JaxVecEnv:
     self._act_select_cost = int(Act.SELECT_COST_TARGET)
     self._act_select_effect = int(Act.SELECT_EFFECT_TARGET)
     self._act_bottom_deck_card = int(Act.BOTTOM_DECK_CARD)
+    self._act_top_deck_card = int(Act.TOP_DECK_CARD)
     self._act_bottom_deck_all = int(Act.BOTTOM_DECK_ALL)
     self._act_noop = int(Act.NOOP)
     self._ability_confirmation = int(AbilityPhase.CONFIRMATION)
@@ -1560,12 +2546,14 @@ class JaxVecEnv:
     )
     self._simple_play_implemented_ids = np.asarray(
         [
+            jax_cards.CODE_TO_ID["AZK01-005"],
             jax_cards.CODE_TO_ID["STT01-003"],
             jax_cards.CODE_TO_ID["STT01-004"],
             jax_cards.CODE_TO_ID["STT02-005"],
             jax_cards.CODE_TO_ID["STT02-007"],
             jax_cards.CODE_TO_ID["STT03-009"],
             jax_cards.CODE_TO_ID["AZK01-098"],
+            jax_cards.CODE_TO_ID["AZK01-116"],
             jax_cards.CODE_TO_ID["STT04-004"],
         ],
         dtype=np.int16,
@@ -1584,6 +2572,7 @@ class JaxVecEnv:
         ],
         dtype=np.int16,
     )
+    self._stt01_001_id = int(jax_cards.CODE_TO_ID["STT01-001"])
     self._stt01_002_id = int(jax_cards.CODE_TO_ID["STT01-002"])
     self._stt01_003_id = int(jax_cards.CODE_TO_ID["STT01-003"])
     self._stt01_004_id = int(jax_cards.CODE_TO_ID["STT01-004"])
@@ -1591,8 +2580,13 @@ class JaxVecEnv:
     self._stt01_006_id = int(jax_cards.CODE_TO_ID["STT01-006"])
     self._stt01_007_id = int(jax_cards.CODE_TO_ID["STT01-007"])
     self._stt01_008_id = int(jax_cards.CODE_TO_ID["STT01-008"])
+    self._stt01_009_id = int(jax_cards.CODE_TO_ID["STT01-009"])
+    self._stt01_011_id = int(jax_cards.CODE_TO_ID["STT01-011"])
+    self._stt01_012_id = int(jax_cards.CODE_TO_ID["STT01-012"])
     self._stt01_013_id = int(jax_cards.CODE_TO_ID["STT01-013"])
     self._stt01_014_id = int(jax_cards.CODE_TO_ID["STT01-014"])
+    self._stt01_015_id = int(jax_cards.CODE_TO_ID["STT01-015"])
+    self._stt01_016_id = int(jax_cards.CODE_TO_ID["STT01-016"])
     self._stt01_017_id = int(jax_cards.CODE_TO_ID["STT01-017"])
     self._stt02_001_id = int(jax_cards.CODE_TO_ID["STT02-001"])
     self._stt02_002_id = int(jax_cards.CODE_TO_ID["STT02-002"])
@@ -1602,51 +2596,114 @@ class JaxVecEnv:
     self._stt02_011_id = int(jax_cards.CODE_TO_ID["STT02-011"])
     self._stt02_012_id = int(jax_cards.CODE_TO_ID["STT02-012"])
     self._stt02_013_id = int(jax_cards.CODE_TO_ID["STT02-013"])
+    self._stt02_014_id = int(jax_cards.CODE_TO_ID["STT02-014"])
+    self._stt02_015_id = int(jax_cards.CODE_TO_ID["STT02-015"])
     self._stt02_016_id = int(jax_cards.CODE_TO_ID["STT02-016"])
+    self._stt02_017_id = int(jax_cards.CODE_TO_ID["STT02-017"])
+    self._azk01_005_id = int(jax_cards.CODE_TO_ID["AZK01-005"])
+    self._azk01_016_id = int(jax_cards.CODE_TO_ID["AZK01-016"])
+    self._azk01_068_id = int(jax_cards.CODE_TO_ID["AZK01-068"])
+    self._azk01_017_id = int(jax_cards.CODE_TO_ID["AZK01-017"])
+    self._azk01_087_id = int(jax_cards.CODE_TO_ID["AZK01-087"])
+    self._azk01_020_id = int(jax_cards.CODE_TO_ID["AZK01-020"])
+    self._azk01_022_id = int(jax_cards.CODE_TO_ID["AZK01-022"])
+    self._azk01_024_id = int(jax_cards.CODE_TO_ID["AZK01-024"])
+    self._azk01_069_id = int(jax_cards.CODE_TO_ID["AZK01-069"])
     self._stt03_001_id = int(jax_cards.CODE_TO_ID["STT03-001"])
     self._stt03_002_id = int(jax_cards.CODE_TO_ID["STT03-002"])
+    self._stt03_004_id = int(jax_cards.CODE_TO_ID["STT03-004"])
     self._stt03_006_id = int(jax_cards.CODE_TO_ID["STT03-006"])
     self._stt03_009_id = int(jax_cards.CODE_TO_ID["STT03-009"])
+    self._stt03_011_id = int(jax_cards.CODE_TO_ID["STT03-011"])
+    self._stt03_013_id = int(jax_cards.CODE_TO_ID["STT03-013"])
+    self._azk01_103_id = int(jax_cards.CODE_TO_ID["AZK01-103"])
+    self._azk01_111_id = int(jax_cards.CODE_TO_ID["AZK01-111"])
     self._stt03_016_id = int(jax_cards.CODE_TO_ID["STT03-016"])
     self._azk01_002_id = int(jax_cards.CODE_TO_ID["AZK01-002"])
     self._azk01_003_id = int(jax_cards.CODE_TO_ID["AZK01-003"])
     self._azk01_004_id = int(jax_cards.CODE_TO_ID["AZK01-004"])
     self._azk01_007_id = int(jax_cards.CODE_TO_ID["AZK01-007"])
     self._azk01_009_id = int(jax_cards.CODE_TO_ID["AZK01-009"])
+    self._azk01_010_id = int(jax_cards.CODE_TO_ID["AZK01-010"])
+    self._azk01_006_id = int(jax_cards.CODE_TO_ID["AZK01-006"])
     self._azk01_011_id = int(jax_cards.CODE_TO_ID["AZK01-011"])
+    self._azk01_028_id = int(jax_cards.CODE_TO_ID["AZK01-028"])
+    self._azk01_029_id = int(jax_cards.CODE_TO_ID["AZK01-029"])
+    self._azk01_021_id = int(jax_cards.CODE_TO_ID["AZK01-021"])
+    self._azk01_031_id = int(jax_cards.CODE_TO_ID["AZK01-031"])
+    self._azk01_092_id = int(jax_cards.CODE_TO_ID["AZK01-092"])
+    self._azk01_019_id = int(jax_cards.CODE_TO_ID["AZK01-019"])
+    self._azk01_073_id = int(jax_cards.CODE_TO_ID["AZK01-073"])
+    self._azk01_014_id = int(jax_cards.CODE_TO_ID["AZK01-014"])
     self._azk01_032_id = int(jax_cards.CODE_TO_ID["AZK01-032"])
+    self._azk01_042_id = int(jax_cards.CODE_TO_ID["AZK01-042"])
     self._azk01_033_id = int(jax_cards.CODE_TO_ID["AZK01-033"])
+    self._azk01_039_id = int(jax_cards.CODE_TO_ID["AZK01-039"])
     self._azk01_040_id = int(jax_cards.CODE_TO_ID["AZK01-040"])
+    self._azk01_047_id = int(jax_cards.CODE_TO_ID["AZK01-047"])
     self._azk01_045_id = int(jax_cards.CODE_TO_ID["AZK01-045"])
     self._azk01_056_id = int(jax_cards.CODE_TO_ID["AZK01-056"])
+    self._azk01_119_id = int(jax_cards.CODE_TO_ID["AZK01-119"])
     self._azk01_034_id = int(jax_cards.CODE_TO_ID["AZK01-034"])
     self._azk01_036_id = int(jax_cards.CODE_TO_ID["AZK01-036"])
     self._azk01_058_id = int(jax_cards.CODE_TO_ID["AZK01-058"])
+    self._azk01_043_id = int(jax_cards.CODE_TO_ID["AZK01-043"])
+    self._azk01_095_id = int(jax_cards.CODE_TO_ID["AZK01-095"])
     self._azk01_059_id = int(jax_cards.CODE_TO_ID["AZK01-059"])
     self._azk01_060_id = int(jax_cards.CODE_TO_ID["AZK01-060"])
     self._azk01_065_id = int(jax_cards.CODE_TO_ID["AZK01-065"])
+    self._azk01_066_id = int(jax_cards.CODE_TO_ID["AZK01-066"])
+    self._azk01_015_id = int(jax_cards.CODE_TO_ID["AZK01-015"])
+    self._azk01_084_id = int(jax_cards.CODE_TO_ID["AZK01-084"])
+    self._azk01_086_id = int(jax_cards.CODE_TO_ID["AZK01-086"])
     self._azk01_070_id = int(jax_cards.CODE_TO_ID["AZK01-070"])
+    self._azk01_026_id = int(jax_cards.CODE_TO_ID["AZK01-026"])
+    self._azk01_091_id = int(jax_cards.CODE_TO_ID["AZK01-091"])
+    self._azk01_061_id = int(jax_cards.CODE_TO_ID["AZK01-061"])
     self._azk01_062_id = int(jax_cards.CODE_TO_ID["AZK01-062"])
     self._azk01_097_id = int(jax_cards.CODE_TO_ID["AZK01-097"])
     self._azk01_098_id = int(jax_cards.CODE_TO_ID["AZK01-098"])
     self._azk01_105_id = int(jax_cards.CODE_TO_ID["AZK01-105"])
+    self._azk01_116_id = int(jax_cards.CODE_TO_ID["AZK01-116"])
+    self._azk01_072_id = int(jax_cards.CODE_TO_ID["AZK01-072"])
+    self._azk01_117_id = int(jax_cards.CODE_TO_ID["AZK01-117"])
     self._azk01_120_id = int(jax_cards.CODE_TO_ID["AZK01-120"])
     self._azk01_121_id = int(jax_cards.CODE_TO_ID["AZK01-121"])
+    self._azk01_125_id = int(jax_cards.CODE_TO_ID["AZK01-125"])
+    self._azk01_123_id = int(jax_cards.CODE_TO_ID["AZK01-123"])
     self._azk01_122_id = int(jax_cards.CODE_TO_ID["AZK01-122"])
+    self._azk01_124_id = int(jax_cards.CODE_TO_ID["AZK01-124"])
     self._azk01_126_id = int(jax_cards.CODE_TO_ID["AZK01-126"])
     self._azk01_127_id = int(jax_cards.CODE_TO_ID["AZK01-127"])
+    self._azk01_128_id = int(jax_cards.CODE_TO_ID["AZK01-128"])
     self._stt04_001_id = int(jax_cards.CODE_TO_ID["STT04-001"])
     self._stt04_002_id = int(jax_cards.CODE_TO_ID["STT04-002"])
     self._stt04_003_id = int(jax_cards.CODE_TO_ID["STT04-003"])
     self._stt04_004_id = int(jax_cards.CODE_TO_ID["STT04-004"])
+    self._stt04_005_id = int(jax_cards.CODE_TO_ID["STT04-005"])
+    self._stt04_007_id = int(jax_cards.CODE_TO_ID["STT04-007"])
+    self._stt04_009_id = int(jax_cards.CODE_TO_ID["STT04-009"])
     self._stt04_014_id = int(jax_cards.CODE_TO_ID["STT04-014"])
+    self._stt04_017_id = int(jax_cards.CODE_TO_ID["STT04-017"])
+    self._stt04_015_id = int(jax_cards.CODE_TO_ID["STT04-015"])
     self._stt04_016_id = int(jax_cards.CODE_TO_ID["STT04-016"])
     self._azk01_044_id = int(jax_cards.CODE_TO_ID["AZK01-044"])
+    self._inherent_charge = np.asarray(jax_cards.INHERENT_CHARGE, dtype=bool)
     self._inherent_defender = np.asarray(jax_cards.INHERENT_DEFENDER, dtype=bool)
     self._inherent_infiltrate = np.asarray(
         jax_cards.INHERENT_INFILTRATE, dtype=bool
     )
     self._inherent_godmode = np.asarray(jax_cards.INHERENT_GODMODE, dtype=bool)
+    self._inherent_effect_immune = np.asarray(
+        jax_cards.INHERENT_EFFECT_IMMUNE, dtype=bool
+    )
+    self._innate_carapace = np.zeros_like(self._ikz_cost, dtype=np.int16)
+    self._innate_carapace[
+        int(jax_cards.CODE_TO_ID["AZK01-048"])
+    ] = 1
+    self._innate_carapace[
+        int(jax_cards.CODE_TO_ID["AZK01-109"])
+    ] = 1
     split_raw = os.getenv("AZK_JAX_SPLIT_ACTIONS", "1").strip().lower()
     self._split_actions = split_raw not in {"0", "false", "no", "off"}
 
@@ -1755,6 +2812,85 @@ class JaxVecEnv:
       self._step_type_fns[action_type] = fn
     return fn
 
+  def _response_board_validate_ok(self, states, rows, responder, zone_2d, defs_2d):
+    """Per-instance mirror of C's `def->validate` for board response abilities.
+
+    C defender_can_respond consults each board response ability's validate fn
+    (player_util.c:190). Only five cards carry a board response ability;
+    STT02-001's validate (enemy leader or garden entity exists) is always
+    true while a leader is in play, so it needs no term. The rest:
+      AZK01-125: owner discarded a card this turn
+      AZK01-026: in garden/alley with a hand card to discard
+      AZK01-070: in garden, untapped, not on cooldown (can_tap_card !ignore)
+      AZK01-091: in garden (its own presence satisfies "any garden entity")
+    Cards without a term keep validate == true, matching C's trivial
+    validates.
+    """
+    tapped = np.asarray(states.tapped)[rows, responder]
+    cooldown = np.asarray(states.cooldown)[rows, responder]
+    hand_any = np.any(zone_2d == self._zone_hand, axis=1)
+    discarded = (
+        np.asarray(states.discarded_cards_turn)[rows, responder].astype(np.int32)
+        > 0
+    )
+    ok = (defs_2d != self._azk01_125_id) | discarded[:, None]
+    ok &= (defs_2d != self._azk01_026_id) | hand_any[:, None]
+    ok &= (defs_2d != self._azk01_070_id) | (
+        (zone_2d == self._zone_garden) & ~tapped & (cooldown == 0)
+    )
+    ok &= (defs_2d != self._azk01_091_id) | (zone_2d == self._zone_garden)
+    return ok
+
+  def _run_broad_masked(
+      self,
+      fn,
+      mask_host,
+      states_acc,
+      rewards_acc,
+      terms_acc,
+      truncs_acc,
+      acts_dev,
+  ):
+    """Run a broad kernel on the mask's rows in fixed-size gathered chunks.
+
+    Broad static kernels execute one sequential body per row (lax.map), so
+    invoking them on the full batch costs O(batch) regardless of how few rows
+    they own. Gathering the matched rows bounds the work at
+    O(matched rounded up to _broad_chunk) and keeps compile shapes fixed.
+    Short chunks are padded by repeating the first row; padded results are
+    not scattered back.
+    """
+    jax_mod = self._jax
+    jnp = self._jnp
+    idx_all = np.flatnonzero(mask_host)
+    if idx_all.size == 0:
+      return states_acc, rewards_acc, terms_acc, truncs_acc
+    k = self._broad_chunk
+    legal_count = self._pending[5]
+    for start in range(0, int(idx_all.size), k):
+      chunk = idx_all[start : start + k]
+      n = int(chunk.size)
+      pad = chunk if n == k else np.concatenate(
+          [chunk, np.repeat(chunk[:1], k - n)]
+      )
+      pad_dev = jnp.asarray(pad)
+      gathered = jax_mod.tree.map(lambda x: x[pad_dev], self._states)
+      st_t, rw_t, tm_t, tr_t = fn(
+          gathered,
+          acts_dev[pad_dev],
+          self._terms[pad_dev],
+          self._truncs[pad_dev],
+          legal_count[pad_dev],
+      )
+      chunk_dev = jnp.asarray(chunk)
+      states_acc = jax_mod.tree.map(
+          lambda acc, upd: acc.at[chunk_dev].set(upd[:n]), states_acc, st_t
+      )
+      rewards_acc = rewards_acc.at[chunk_dev].set(rw_t[:n])
+      terms_acc = terms_acc.at[chunk_dev].set(tm_t[:n])
+      truncs_acc = truncs_acc.at[chunk_dev].set(tr_t[:n])
+    return states_acc, rewards_acc, terms_acc, truncs_acc
+
   def _split_step_by_action(self, acts: np.ndarray):
     jnp = self._jnp
     b = self.num_environments
@@ -1771,6 +2907,9 @@ class JaxVecEnv:
     play_alley_simple_mask_host = self._play_entity_simple_fast_mask(
         acts, chosen, phase, self._zone_alley, self._act_play_alley
     )
+    play_azk01_028_mask_host = self._play_azk01_028_fast_mask(
+        acts, chosen, phase
+    )
     play_azk01_007_garden_mask_host = (
         self._play_azk01_007_effect_fast_mask(
             acts, chosen, phase, self._zone_garden, self._act_play_garden
@@ -1780,6 +2919,9 @@ class JaxVecEnv:
         self._play_azk01_007_effect_fast_mask(
             acts, chosen, phase, self._zone_alley, self._act_play_alley
         )
+    )
+    play_stt03_011_garden_mask_host = self._play_stt03_011_effect_fast_mask(
+        acts, chosen, phase
     )
     play_stt01_007_garden_mask_host = (
         self._play_stt01_007_confirm_fast_mask(
@@ -1831,6 +2973,16 @@ class JaxVecEnv:
             acts, chosen, phase, self._zone_alley, self._act_play_alley
         )
     )
+    play_stt04_005_garden_mask_host = (
+        self._play_stt04_005_reveal_fast_mask(
+            acts, chosen, phase, self._zone_garden, self._act_play_garden
+        )
+    )
+    play_stt04_005_alley_mask_host = (
+        self._play_stt04_005_reveal_fast_mask(
+            acts, chosen, phase, self._zone_alley, self._act_play_alley
+        )
+    )
     play_azk01_097_garden_mask_host = (
         self._play_azk01_097_reveal_fast_mask(
             acts, chosen, phase, self._zone_garden, self._act_play_garden
@@ -1871,17 +3023,128 @@ class JaxVecEnv:
             acts, chosen, phase, self._zone_alley, self._act_play_alley
         )
     )
+    play_azk01_022_garden_mask_host = (
+        self._play_azk01_022_confirm_fast_mask(
+            acts, chosen, phase, self._zone_garden, self._act_play_garden
+        )
+    )
+    play_azk01_022_alley_mask_host = (
+        self._play_azk01_022_confirm_fast_mask(
+            acts, chosen, phase, self._zone_alley, self._act_play_alley
+        )
+    )
+    play_azk01_024_garden_mask_host = (
+        self._play_azk01_024_confirm_fast_mask(
+            acts, chosen, phase, self._zone_garden, self._act_play_garden
+        )
+    )
+    play_azk01_024_alley_mask_host = (
+        self._play_azk01_024_confirm_fast_mask(
+            acts, chosen, phase, self._zone_alley, self._act_play_alley
+        )
+    )
+    play_garden_covered_mask_host = (
+        play_garden_simple_mask_host
+        | play_azk01_028_mask_host
+        | play_azk01_007_garden_mask_host
+        | play_stt03_011_garden_mask_host
+        | play_stt01_007_garden_mask_host
+        | play_azk01_003_garden_mask_host
+        | play_azk01_033_garden_mask_host
+        | play_azk01_045_garden_mask_host
+        | play_azk01_056_garden_mask_host
+        | play_stt04_005_garden_mask_host
+        | play_azk01_097_garden_mask_host
+        | play_stt02_003_garden_mask_host
+        | play_stt02_013_garden_mask_host
+        | play_stt02_009_garden_mask_host
+        | play_azk01_022_garden_mask_host
+        | play_azk01_024_garden_mask_host
+    )
+    play_alley_covered_mask_host = (
+        play_alley_simple_mask_host
+        | play_azk01_007_alley_mask_host
+        | play_stt01_007_alley_mask_host
+        | play_azk01_003_alley_mask_host
+        | play_azk01_033_alley_mask_host
+        | play_azk01_045_alley_mask_host
+        | play_azk01_056_alley_mask_host
+        | play_stt04_005_alley_mask_host
+        | play_azk01_097_alley_mask_host
+        | play_stt02_003_alley_mask_host
+        | play_stt02_013_alley_mask_host
+        | play_stt02_009_alley_mask_host
+        | play_azk01_022_alley_mask_host
+        | play_azk01_024_alley_mask_host
+    )
+    play_entity_static_garden_mask_host = (
+        (
+            self._play_entity_static_bridge_fast_mask(
+                acts, chosen, phase, self._act_play_garden
+            )
+            & ~play_garden_covered_mask_host
+        )
+        | self._play_non_entity_static_mask(
+            acts, chosen, phase, self._act_play_garden
+        )
+    )
+    play_entity_static_alley_mask_host = (
+        (
+            self._play_entity_static_bridge_fast_mask(
+                acts, chosen, phase, self._act_play_alley
+            )
+            & ~play_alley_covered_mask_host
+        )
+        | self._play_non_entity_static_mask(
+            acts, chosen, phase, self._act_play_alley
+        )
+    )
     gate_portal_simple_mask_host = self._gate_portal_simple_fast_mask(
         acts, chosen, phase
     )
     play_spell_stt04_016_mask_host = self._play_spell_stt04_016_fast_mask(
         acts, chosen, phase
     )
+    play_spell_stt02_014_mask_host = self._play_spell_stt02_014_fast_mask(
+        acts, chosen, phase
+    )
+    play_spell_azk01_020_mask_host = self._play_spell_azk01_020_fast_mask(
+        acts, chosen, phase
+    )
+    play_spell_azk01_086_mask_host = self._play_spell_azk01_086_fast_mask(
+        acts, chosen, phase
+    )
+    play_spell_stt02_015_mask_host = self._play_spell_stt02_015_fast_mask(
+        acts, chosen, phase
+    )
     play_spell_stt02_016_mask_host = self._play_spell_stt02_016_fast_mask(
+        acts, chosen, phase
+    )
+    play_spell_stt02_017_mask_host = self._play_spell_stt02_017_fast_mask(
+        acts, chosen, phase
+    )
+    play_spell_stt02_017_static_mask_host = (
+        self._play_spell_stt02_017_static_mask(acts, chosen, phase)
+        & ~play_spell_stt02_017_mask_host
+    )
+    play_spell_azk01_016_mask_host = self._play_spell_azk01_016_fast_mask(
+        acts, chosen, phase
+    )
+    play_spell_azk01_017_mask_host = self._play_spell_azk01_017_fast_mask(
         acts, chosen, phase
     )
     play_spell_stt01_017_mask_host = self._play_spell_stt01_017_fast_mask(
         acts, chosen, phase
+    )
+    play_spell_azk01_029_mask_host = self._play_spell_azk01_029_fast_mask(
+        acts, chosen, phase
+    )
+    play_spell_azk01_031_mask_host = self._play_spell_azk01_031_fast_mask(
+        acts, chosen, phase
+    )
+    play_spell_azk01_031_static_mask_host = (
+        self._play_spell_azk01_031_static_mask(acts, chosen, phase)
+        & ~play_spell_azk01_031_mask_host
     )
     play_spell_azk01_032_mask_host = self._play_spell_azk01_032_fast_mask(
         acts, chosen, phase
@@ -1892,17 +3155,50 @@ class JaxVecEnv:
     play_spell_azk01_009_mask_host = self._play_spell_azk01_009_fast_mask(
         acts, chosen, phase
     )
+    play_spell_azk01_117_mask_host = self._play_spell_azk01_117_fast_mask(
+        acts, chosen, phase
+    )
+    play_spell_azk01_042_mask_host = self._play_spell_azk01_042_fast_mask(
+        acts, chosen, phase
+    )
     play_spell_azk01_065_mask_host = self._play_spell_azk01_065_fast_mask(
         acts, chosen, phase
     )
+    play_spell_azk01_066_mask_host = self._play_spell_azk01_066_fast_mask(
+        acts, chosen, phase
+    )
+    play_spell_azk01_066_static_mask_host = (
+        self._play_spell_azk01_066_static_mask(acts, chosen, phase)
+        & ~play_spell_azk01_066_mask_host
+    )
     play_spell_azk01_127_mask_host = self._play_spell_azk01_127_fast_mask(
+        acts, chosen, phase
+    )
+    play_spell_azk01_128_mask_host = self._play_spell_azk01_128_fast_mask(
         acts, chosen, phase
     )
     play_spell_stt03_016_mask_host = (
         self._play_spell_stt03_016_fast_mask(acts, chosen, phase)
     )
+    play_spell_stt03_016_static_mask_host = (
+        self._play_spell_stt03_016_static_mask(acts, chosen, phase)
+        & ~play_spell_stt03_016_mask_host
+    )
+    play_spell_stt04_015_mask_host = (
+        self._play_spell_stt04_015_fast_mask(acts, chosen, phase)
+    )
+    play_spell_stt04_017_mask_host = (
+        self._play_spell_stt04_017_static_mask(acts, chosen, phase)
+    )
+    select_cost_stt04_017_mask_host = (
+        self._select_cost_stt04_017_static_mask(acts, chosen)
+    )
     select_cost_stt04_016_mask_host = self._select_cost_stt04_016_fast_mask(
         acts, chosen
+    )
+    select_cost_stt04_016_static_mask_host = (
+        self._select_cost_stt04_016_static_mask(acts, chosen)
+        & ~select_cost_stt04_016_mask_host
     )
     select_cost_stt01_007_mask_host = self._select_cost_stt01_007_fast_mask(
         acts, chosen
@@ -1913,17 +3209,64 @@ class JaxVecEnv:
     select_cost_stt02_009_mask_host = self._select_cost_stt02_009_fast_mask(
         acts, chosen
     )
+    select_cost_azk01_022_mask_host = self._select_cost_azk01_022_fast_mask(
+        acts, chosen
+    )
+    select_cost_azk01_024_mask_host = self._select_cost_azk01_024_fast_mask(
+        acts, chosen
+    )
+    select_cost_azk01_024_static_mask_host = (
+        self._select_cost_azk01_024_static_mask(acts, chosen)
+        & ~select_cost_azk01_024_mask_host
+    )
+    select_cost_azk01_103_mask_host = self._select_cost_azk01_103_fast_mask(
+        acts, chosen
+    )
+    select_cost_azk01_124_mask_host = self._select_cost_azk01_124_fast_mask(
+        acts, chosen
+    )
+    select_cost_azk01_029_mask_host = self._select_cost_azk01_029_fast_mask(
+        acts, chosen
+    )
     select_cost_azk01_032_mask_host = self._select_cost_azk01_032_fast_mask(
         acts, chosen
     )
     select_cost_stt02_016_mask_host = self._select_cost_stt02_016_fast_mask(
         acts, chosen
     )
+    select_cost_static_mask_host = (
+        self._select_cost_static_mask(acts, chosen)
+        & ~select_cost_stt04_017_mask_host
+        & ~select_cost_stt04_016_mask_host
+        & ~select_cost_stt04_016_static_mask_host
+        & ~select_cost_stt01_007_mask_host
+        & ~select_cost_stt01_004_mask_host
+        & ~select_cost_stt02_009_mask_host
+        & ~select_cost_azk01_022_mask_host
+        & ~select_cost_azk01_024_mask_host
+        & ~select_cost_azk01_024_static_mask_host
+        & ~select_cost_azk01_103_mask_host
+        & ~select_cost_azk01_124_mask_host
+        & ~select_cost_azk01_029_mask_host
+        & ~select_cost_azk01_032_mask_host
+        & ~select_cost_stt02_016_mask_host
+    )
     effect_stt04_016_mask_host = self._effect_stt04_016_fast_mask(
+        acts, chosen
+    )
+    effect_stt04_016_static_mask_host = (
+        self._effect_stt04_016_static_mask(acts, chosen)
+        & ~effect_stt04_016_mask_host
+    )
+    effect_stt04_009_mask_host = self._effect_stt04_009_fast_mask(
         acts, chosen
     )
     effect_stt04_001_mask_host = self._effect_stt04_001_fast_mask(
         acts, chosen
+    )
+    effect_stt04_001_static_mask_host = (
+        self._effect_stt04_001_static_mask(acts, chosen)
+        & ~effect_stt04_001_mask_host
     )
     effect_stt04_004_mask_host = self._effect_stt04_004_fast_mask(
         acts, chosen
@@ -1934,10 +3277,38 @@ class JaxVecEnv:
     effect_stt01_006_mask_host = self._effect_stt01_006_fast_mask(
         acts, chosen
     )
+    effect_azk01_014_mask_host = self._effect_azk01_014_fast_mask(
+        acts, chosen
+    )
+    effect_azk01_016_mask_host = self._effect_azk01_016_fast_mask(
+        acts, chosen
+    )
+    effect_azk01_017_mask_host = self._effect_azk01_017_fast_mask(
+        acts, chosen
+    )
+    effect_azk01_087_mask_host = self._effect_azk01_087_fast_mask(
+        acts, chosen
+    )
+    effect_azk01_005_mask_host = self._effect_azk01_005_fast_mask(
+        acts, chosen
+    )
+    effect_azk01_015_mask_host = self._effect_azk01_015_fast_mask(
+        acts, chosen
+    )
+    effect_azk01_020_mask_host = self._effect_azk01_020_fast_mask(
+        acts, chosen
+    )
     effect_stt01_014_mask_host = self._effect_stt01_014_fast_mask(
         acts, chosen
     )
     effect_stt01_017_mask_host = self._effect_stt01_017_fast_mask(
+        acts, chosen
+    )
+    effect_stt01_017_static_mask_host = (
+        self._effect_stt01_017_static_mask(acts, chosen)
+        & ~effect_stt01_017_mask_host
+    )
+    effect_stt01_001_mask_host = self._effect_stt01_001_fast_mask(
         acts, chosen
     )
     effect_stt02_001_mask_host = self._effect_stt02_001_fast_mask(
@@ -1946,23 +3317,68 @@ class JaxVecEnv:
     effect_stt02_011_mask_host = self._effect_stt02_011_fast_mask(
         acts, chosen
     )
+    effect_azk01_123_mask_host = self._effect_azk01_123_fast_mask(
+        acts, chosen
+    )
+    effect_azk01_124_mask_host = self._effect_azk01_124_fast_mask(
+        acts, chosen
+    )
+    effect_azk01_124_static_mask_host = (
+        self._effect_azk01_124_static_mask(acts, chosen)
+        & ~effect_azk01_124_mask_host
+    )
     effect_azk01_105_mask_host = self._effect_azk01_105_fast_mask(
         acts, chosen
     )
+    effect_azk01_105_static_mask_host = (
+        self._effect_azk01_105_static_mask(acts, chosen)
+        & ~effect_azk01_105_mask_host
+    )
     effect_stt02_009_mask_host = self._effect_stt02_009_fast_mask(
+        acts, chosen
+    )
+    effect_azk01_022_mask_host = self._effect_azk01_022_fast_mask(
+        acts, chosen
+    )
+    effect_azk01_029_mask_host = self._effect_azk01_029_fast_mask(
         acts, chosen
     )
     effect_azk01_032_mask_host = self._effect_azk01_032_fast_mask(
         acts, chosen
     )
+    effect_stt02_014_mask_host = self._effect_stt02_014_fast_mask(
+        acts, chosen
+    )
+    effect_stt02_015_mask_host = self._effect_stt02_015_fast_mask(
+        acts, chosen
+    )
+    effect_stt02_015_static_mask_host = (
+        self._effect_stt02_015_static_mask(acts, chosen)
+        & ~effect_stt02_015_mask_host
+    )
     effect_stt02_016_mask_host = self._effect_stt02_016_fast_mask(
+        acts, chosen
+    )
+    effect_stt03_011_mask_host = self._effect_stt03_011_fast_mask(
         acts, chosen
     )
     effect_stt03_002_mask_host = self._effect_stt03_002_fast_mask(
         acts, chosen
     )
+    effect_stt04_002_mask_host = self._effect_stt04_002_fast_mask(
+        acts, chosen
+    )
+    effect_stt04_017_mask_host = self._effect_stt04_017_static_mask(
+        acts, chosen
+    )
+    effect_azk01_111_mask_host = self._effect_azk01_111_fast_mask(
+        acts, chosen
+    )
     effect_stt03_006_mask_host = self._effect_stt03_006_fast_mask(
         acts, chosen
+    )
+    effect_stt03_006_pending_combat_mask_host = (
+        self._effect_stt03_006_pending_combat_fast_mask(acts, chosen)
     )
     confirm_clear_mask_host = self._confirm_clear_fast_mask(acts, chosen)
     confirm_stt01_002_mask_host = self._confirm_stt01_002_fast_mask(
@@ -1980,7 +3396,28 @@ class JaxVecEnv:
     confirm_stt04_004_mask_host = self._confirm_stt04_004_fast_mask(
         acts, chosen
     )
+    confirm_stt04_009_mask_host = self._confirm_stt04_009_fast_mask(
+        acts, chosen
+    )
     confirm_stt02_009_mask_host = self._confirm_stt02_009_fast_mask(
+        acts, chosen
+    )
+    confirm_stt02_010_mask_host = self._confirm_stt02_010_fast_mask(
+        acts, chosen
+    )
+    confirm_azk01_022_mask_host = self._confirm_azk01_022_fast_mask(
+        acts, chosen
+    )
+    confirm_azk01_024_mask_host = self._confirm_azk01_024_fast_mask(
+        acts, chosen
+    )
+    confirm_azk01_124_mask_host = self._confirm_azk01_124_fast_mask(
+        acts, chosen
+    )
+    confirm_stt03_013_mask_host = self._confirm_stt03_013_fast_mask(
+        acts, chosen
+    )
+    confirm_stt03_011_mask_host = self._confirm_stt03_011_fast_mask(
         acts, chosen
     )
     confirm_azk01_058_mask_host = self._confirm_azk01_058_fast_mask(
@@ -1992,15 +3429,46 @@ class JaxVecEnv:
     confirm_azk01_060_response_mask_host = (
         self._confirm_azk01_060_response_fast_mask(acts, chosen)
     )
+    confirm_azk01_006_when_attacked_mask_host = (
+        self._confirm_azk01_006_when_attacked_fast_mask(acts, chosen)
+    )
     confirm_clear_mask_host = (
         confirm_clear_mask_host
         & ~confirm_azk01_060_mask_host
         & ~confirm_azk01_060_response_mask_host
+        & ~effect_stt03_002_mask_host
+    )
+    confirm_static_mask_host = (
+        self._confirm_static_mask(acts, chosen)
+        & ~confirm_clear_mask_host
+        & ~confirm_stt01_002_mask_host
+        & ~confirm_stt01_007_mask_host
+        & ~confirm_stt01_013_mask_host
+        & ~confirm_stt01_004_mask_host
+        & ~confirm_stt04_004_mask_host
+        & ~confirm_stt04_009_mask_host
+        & ~confirm_stt02_009_mask_host
+        & ~confirm_stt02_010_mask_host
+        & ~confirm_azk01_022_mask_host
+        & ~confirm_azk01_024_mask_host
+        & ~confirm_azk01_124_mask_host
+        & ~confirm_stt03_013_mask_host
+        & ~confirm_stt03_011_mask_host
+        & ~confirm_azk01_058_mask_host
+        & ~confirm_azk01_060_mask_host
+        & ~confirm_azk01_060_response_mask_host
+        & ~confirm_azk01_006_when_attacked_mask_host
     )
     effect_azk01_007_mask_host = self._effect_azk01_007_fast_mask(
         acts, chosen
     )
     effect_azk01_009_mask_host = self._effect_azk01_009_fast_mask(
+        acts, chosen
+    )
+    effect_azk01_117_mask_host = self._effect_azk01_117_fast_mask(
+        acts, chosen
+    )
+    effect_azk01_042_mask_host = self._effect_azk01_042_fast_mask(
         acts, chosen
     )
     effect_azk01_040_mask_host = self._effect_azk01_040_fast_mask(
@@ -2009,10 +3477,23 @@ class JaxVecEnv:
     effect_azk01_058_mask_host = self._effect_azk01_058_fast_mask(
         acts, chosen
     )
+    effect_azk01_119_mask_host = self._effect_azk01_119_fast_mask(
+        acts, chosen
+    )
     effect_azk01_059_mask_host = self._effect_azk01_059_fast_mask(
         acts, chosen
     )
+    effect_azk01_062_mask_host = self._effect_azk01_062_fast_mask(
+        acts, chosen
+    )
+    effect_azk01_062_static_mask_host = (
+        self._effect_azk01_062_static_mask(acts, chosen)
+        & ~effect_azk01_062_mask_host
+    )
     effect_azk01_070_mask_host = self._effect_azk01_070_fast_mask(
+        acts, chosen
+    )
+    effect_azk01_103_mask_host = self._effect_azk01_103_fast_mask(
         acts, chosen
     )
     effect_azk01_065_mask_host = self._effect_azk01_065_fast_mask(
@@ -2021,19 +3502,123 @@ class JaxVecEnv:
     effect_azk01_127_mask_host = self._effect_azk01_127_fast_mask(
         acts, chosen
     )
+    effect_azk01_127_static_mask_host = (
+        self._effect_azk01_127_static_mask(acts, chosen)
+        & ~effect_azk01_127_mask_host
+    )
+    effect_azk01_128_mask_host = self._effect_azk01_128_fast_mask(
+        acts, chosen
+    )
+    select_effect_covered_mask_host = (
+        effect_stt04_016_mask_host
+        | effect_stt04_016_static_mask_host
+        | effect_stt04_009_mask_host
+        | effect_stt04_001_mask_host
+        | effect_stt04_001_static_mask_host
+        | effect_stt04_004_mask_host
+        | effect_stt01_005_mask_host
+        | effect_stt01_006_mask_host
+        | effect_azk01_014_mask_host
+        | effect_azk01_016_mask_host
+        | effect_azk01_017_mask_host
+        | effect_azk01_087_mask_host
+        | effect_azk01_005_mask_host
+        | effect_azk01_015_mask_host
+        | effect_azk01_020_mask_host
+        | effect_stt01_014_mask_host
+        | effect_stt01_017_mask_host
+        | effect_stt01_017_static_mask_host
+        | effect_stt01_001_mask_host
+        | effect_stt02_001_mask_host
+        | effect_stt02_011_mask_host
+        | effect_azk01_123_mask_host
+        | effect_azk01_124_mask_host
+        | effect_azk01_124_static_mask_host
+        | effect_azk01_105_mask_host
+        | effect_azk01_105_static_mask_host
+        | effect_stt02_009_mask_host
+        | effect_azk01_022_mask_host
+        | effect_azk01_029_mask_host
+        | effect_azk01_032_mask_host
+        | effect_stt02_014_mask_host
+        | effect_stt02_015_mask_host
+        | effect_stt02_015_static_mask_host
+        | effect_stt02_016_mask_host
+        | effect_stt03_011_mask_host
+        | effect_stt03_002_mask_host
+        | effect_stt04_002_mask_host
+        | effect_stt04_017_mask_host
+        | effect_azk01_111_mask_host
+        | effect_stt03_006_mask_host
+        | effect_stt03_006_pending_combat_mask_host
+        | effect_azk01_007_mask_host
+        | effect_azk01_009_mask_host
+        | effect_azk01_117_mask_host
+        | effect_azk01_042_mask_host
+        | effect_azk01_040_mask_host
+        | effect_azk01_058_mask_host
+        | effect_azk01_119_mask_host
+        | effect_azk01_059_mask_host
+        | effect_azk01_062_mask_host
+        | effect_azk01_062_static_mask_host
+        | effect_azk01_070_mask_host
+        | effect_azk01_103_mask_host
+        | effect_azk01_065_mask_host
+        | effect_azk01_127_mask_host
+        | effect_azk01_127_static_mask_host
+        | effect_azk01_128_mask_host
+    )
+    select_effect_static_mask_host = (
+        self._select_effect_static_mask(acts, chosen)
+        & ~select_effect_covered_mask_host
+    )
     activate_stt04_001_mask_host = self._activate_stt04_001_fast_mask(
         acts, chosen, phase
     )
     activate_stt02_011_mask_host = self._activate_stt02_011_fast_mask(
         acts, chosen, phase
     )
+    activate_stt01_001_mask_host = self._activate_stt01_001_fast_mask(
+        acts, chosen, phase
+    )
     activate_stt02_001_mask_host = self._activate_stt02_001_fast_mask(
         acts, chosen, phase
+    )
+    activate_azk01_119_mask_host = self._activate_azk01_119_fast_mask(
+        acts, chosen, phase
+    )
+    activate_azk01_119_static_mask_host = (
+        self._activate_azk01_119_static_mask(acts, chosen, phase)
+        & ~activate_azk01_119_mask_host
     )
     activate_azk01_121_mask_host = self._activate_azk01_121_fast_mask(
         acts, chosen, phase
     )
+    activate_azk01_125_mask_host = self._activate_azk01_125_fast_mask(
+        acts, chosen, phase
+    )
+    activate_azk01_123_mask_host = self._activate_azk01_123_fast_mask(
+        acts, chosen, phase
+    )
     activate_stt03_001_mask_host = self._activate_stt03_001_fast_mask(
+        acts, chosen, phase
+    )
+    activate_stt03_004_mask_host = self._activate_stt03_004_fast_mask(
+        acts, chosen, phase
+    )
+    activate_stt03_004_garden_static_mask_host = (
+        self._activate_stt03_004_static_mask(
+            acts, chosen, phase, self._zone_garden, self._act_activate_garden
+        )
+        & ~activate_stt03_004_mask_host
+    )
+    activate_stt03_004_alley_static_mask_host = (
+        self._activate_stt03_004_static_mask(
+            acts, chosen, phase, self._zone_alley, self._act_activate_alley
+        )
+        & ~activate_stt03_004_mask_host
+    )
+    activate_azk01_111_mask_host = self._activate_azk01_111_fast_mask(
         acts, chosen, phase
     )
     activate_stt01_005_mask_host = self._activate_stt01_005_fast_mask(
@@ -2042,10 +3627,16 @@ class JaxVecEnv:
     activate_azk01_070_mask_host = self._activate_azk01_070_fast_mask(
         acts, chosen, phase
     )
+    activate_azk01_103_mask_host = self._activate_azk01_103_fast_mask(
+        acts, chosen, phase
+    )
     activate_azk01_105_mask_host = self._activate_azk01_105_fast_mask(
         acts, chosen, phase
     )
     select_azk01_003_pick_mask_host = self._select_azk01_003_pick_fast_mask(
+        acts, chosen
+    )
+    select_azk01_031_pick_mask_host = self._select_azk01_031_pick_fast_mask(
         acts, chosen
     )
     select_azk01_033_pick_mask_host = self._select_azk01_033_pick_fast_mask(
@@ -2055,6 +3646,9 @@ class JaxVecEnv:
         acts, chosen
     )
     select_azk01_056_pick_mask_host = self._select_azk01_056_pick_fast_mask(
+        acts, chosen
+    )
+    select_stt04_005_pick_mask_host = self._select_stt04_005_pick_fast_mask(
         acts, chosen
     )
     select_stt02_003_pick_mask_host = self._select_stt02_003_pick_fast_mask(
@@ -2069,7 +3663,14 @@ class JaxVecEnv:
     select_stt01_002_equip_mask_host = (
         self._select_stt01_002_equip_fast_mask(acts, chosen)
     )
+    select_stt01_002_equip_static_mask_host = (
+        self._select_stt01_002_equip_static_mask(acts, chosen)
+        & ~select_stt01_002_equip_mask_host
+    )
     select_azk01_126_pick_mask_host = self._select_azk01_126_pick_fast_mask(
+        acts, chosen
+    )
+    select_azk01_086_pick_mask_host = self._select_azk01_086_pick_fast_mask(
         acts, chosen
     )
     select_azk01_097_mask_host = self._select_azk01_097_fast_mask(
@@ -2077,6 +3678,21 @@ class JaxVecEnv:
     )
     selection_pick_noop_mask_host = self._selection_pick_noop_fast_mask(
         acts, chosen
+    )
+    select_from_selection_static_mask_host = (
+        self._select_from_selection_static_mask(acts, chosen)
+        & ~select_azk01_003_pick_mask_host
+        & ~select_azk01_031_pick_mask_host
+        & ~select_azk01_033_pick_mask_host
+        & ~select_azk01_045_pick_mask_host
+        & ~select_azk01_056_pick_mask_host
+        & ~select_stt04_005_pick_mask_host
+        & ~select_stt02_003_pick_mask_host
+        & ~select_stt02_013_pick_mask_host
+        & ~select_stt01_004_pick_mask_host
+        & ~select_azk01_126_pick_mask_host
+        & ~select_azk01_086_pick_mask_host
+        & ~select_azk01_097_mask_host
     )
     select_azk01_122_garden_mask_host = (
         self._select_azk01_122_place_fast_mask(
@@ -2088,17 +3704,75 @@ class JaxVecEnv:
             acts, chosen, self._zone_alley, self._act_select_to_alley
         )
     )
+    select_azk01_024_garden_mask_host = (
+        self._select_azk01_024_place_fast_mask(
+            acts, chosen, self._zone_garden, self._act_select_to_garden
+        )
+    )
+    select_azk01_024_alley_mask_host = (
+        self._select_azk01_024_place_fast_mask(
+            acts, chosen, self._zone_alley, self._act_select_to_alley
+        )
+    )
+    select_azk01_024_garden_static_mask_host = (
+        self._select_azk01_024_place_static_mask(
+            acts, chosen, self._zone_garden, self._act_select_to_garden
+        )
+        & ~select_azk01_024_garden_mask_host
+    )
+    select_azk01_024_alley_static_mask_host = (
+        self._select_azk01_024_place_static_mask(
+            acts, chosen, self._zone_alley, self._act_select_to_alley
+        )
+        & ~select_azk01_024_alley_mask_host
+    )
+    select_azk01_111_garden_mask_host = (
+        self._select_azk01_111_garden_fast_mask(acts, chosen)
+    )
+    select_to_garden_static_mask_host = (
+        (chosen == self._act_select_to_garden)
+        & ~select_stt02_013_pick_mask_host
+        & ~select_azk01_122_garden_mask_host
+        & ~select_azk01_024_garden_mask_host
+        & ~select_azk01_024_garden_static_mask_host
+        & ~select_azk01_111_garden_mask_host
+    )
+    select_to_alley_static_catchall_mask_host = (
+        (chosen == self._act_select_to_alley)
+        & ~select_stt02_013_pick_mask_host
+        & ~select_azk01_122_alley_mask_host
+        & ~select_azk01_024_alley_mask_host
+        & ~select_azk01_024_alley_static_mask_host
+    )
+    top_deck_card_mask_host = self._top_deck_azk01_031_fast_mask(acts, chosen)
+    top_deck_card_static_mask_host = (
+        self._top_deck_azk01_031_static_mask(acts, chosen)
+        & ~top_deck_card_mask_host
+    )
     bottom_deck_card_mask_host = self._bottom_deck_azk01_003_fast_mask(
         acts, chosen, all_cards=False
     )
+    bottom_deck_card_static_mask_host = (
+        self._bottom_deck_static_mask(acts, chosen, all_cards=False)
+        & ~bottom_deck_card_mask_host
+    )
     bottom_deck_all_mask_host = self._bottom_deck_azk01_003_fast_mask(
         acts, chosen, all_cards=True
+    )
+    bottom_deck_all_static_mask_host = (
+        self._bottom_deck_static_mask(acts, chosen, all_cards=True)
+        & ~bottom_deck_all_mask_host
     )
     attach_weapon_simple_mask_host = self._attach_weapon_simple_fast_mask(
         acts, chosen, phase
     )
     attach_stt01_013_confirm_mask_host = (
         self._attach_stt01_013_confirm_fast_mask(acts, chosen, phase)
+    )
+    attach_weapon_static_mask_host = (
+        self._attach_weapon_static_mask(acts, chosen, phase)
+        & ~attach_weapon_simple_mask_host
+        & ~attach_stt01_013_confirm_mask_host
     )
     declare_defender_mask_host = self._declare_defender_fast_mask(
         acts, chosen, phase
@@ -2112,11 +3786,20 @@ class JaxVecEnv:
     attack_stt01_006_effect_mask_host = (
         self._attack_stt01_006_effect_fast_mask(acts, chosen, phase)
     )
+    attack_azk01_006_when_attacked_mask_host = (
+        self._attack_azk01_006_when_attacked_fast_mask(acts, chosen, phase)
+    )
     attack_azk01_004_leader_mask_host = (
         self._attack_azk01_004_leader_fast_mask(acts, chosen, phase)
     )
+    attack_azk01_014_effect_mask_host = (
+        self._attack_azk01_014_effect_fast_mask(acts, chosen, phase)
+    )
     attack_leader_response_mask_host = (
         self._attack_leader_response_fast_mask(acts, chosen, phase)
+    )
+    attack_stt01_012_response_mask_host = (
+        self._attack_stt01_012_response_fast_mask(acts, chosen, phase)
     )
     attack_entity_response_mask_host = (
         self._attack_entity_response_fast_mask(acts, chosen, phase)
@@ -2124,8 +3807,35 @@ class JaxVecEnv:
     attack_leader_simple_mask_host = self._attack_leader_simple_fast_mask(
         acts, chosen, phase
     )
+    attack_leader_garden_simple_mask_host = (
+        self._attack_leader_garden_simple_fast_mask(acts, chosen, phase)
+    )
+    attack_queued_stt03_006_mask_host = (
+        self._attack_queued_stt03_006_fast_mask(acts, chosen, phase)
+    )
+    attack_static_mask_host = (
+        (chosen == self._act_attack)
+        & (phase == 2)
+        & (np.asarray(self._states.ab_phase) == 0)
+        & ~zero_legal_mask_host
+        & ~attack_entity_simple_mask_host
+        & ~attack_azk01_060_confirm_mask_host
+        & ~attack_stt01_006_effect_mask_host
+        & ~attack_azk01_006_when_attacked_mask_host
+        & ~attack_azk01_004_leader_mask_host
+        & ~attack_azk01_014_effect_mask_host
+        & ~attack_leader_response_mask_host
+        & ~attack_stt01_012_response_mask_host
+        & ~attack_entity_response_mask_host
+        & ~attack_leader_simple_mask_host
+        & ~attack_leader_garden_simple_mask_host
+        & ~attack_queued_stt03_006_mask_host
+    )
     response_noop_leader_combat_mask_host = (
         self._response_noop_leader_combat_fast_mask(acts, chosen, phase)
+    )
+    response_noop_combat_fizzle_mask_host = (
+        self._response_noop_combat_fizzle_fast_mask(acts, chosen, phase)
     )
     response_noop_entity_combat_mask_host = (
         self._response_noop_entity_combat_fast_mask(acts, chosen, phase)
@@ -2140,11 +3850,63 @@ class JaxVecEnv:
     main_noop_stt04_003_mask_host = self._main_noop_stt04_003_fast_mask(
         chosen, phase
     )
+    main_noop_stt03_006_trigger_mask_host = (
+        self._main_noop_stt03_006_trigger_fast_mask(chosen, phase)
+    )
+    main_noop_passive_mask_host = self._main_noop_passive_fast_mask(
+        chosen, phase
+    )
     main_noop_mask_host = (
-        self._main_noop_fast_mask(chosen, phase)
+        (
+            self._main_noop_fast_mask(chosen, phase)
+            & ~main_noop_simple_mask_host
+            & ~main_noop_azk01_011_mask_host
+            & ~main_noop_stt04_003_mask_host
+            & ~main_noop_stt03_006_trigger_mask_host
+        )
+        | main_noop_passive_mask_host
+    )
+    noop_static_mask_host = (
+        (chosen == self._act_noop)
+        & (np.asarray(self._states.ab_phase) == 0)
+        & (phase != 0)
+        & ~zero_legal_mask_host
+        & ~pregame_mask_host
+        & ~response_noop_leader_combat_mask_host
+        & ~response_noop_combat_fizzle_mask_host
+        & ~response_noop_entity_combat_mask_host
+        & ~response_noop_azk01_040_mask_host
         & ~main_noop_simple_mask_host
         & ~main_noop_azk01_011_mask_host
         & ~main_noop_stt04_003_mask_host
+        & ~main_noop_stt03_006_trigger_mask_host
+        & ~main_noop_mask_host
+    )
+    noop_stt04_017_cost_mask_host = self._noop_stt04_017_cost_static_mask(
+        acts, chosen
+    )
+    noop_residual_static_mask_host = (
+        (chosen == self._act_noop)
+        & (np.asarray(self._states.ab_phase) == self._ability_selection_pick)
+        & ~zero_legal_mask_host
+        & ~pregame_mask_host
+        & ~selection_pick_noop_mask_host
+        & ~select_azk01_097_mask_host
+        & ~response_noop_leader_combat_mask_host
+        & ~response_noop_combat_fizzle_mask_host
+        & ~response_noop_entity_combat_mask_host
+        & ~response_noop_azk01_040_mask_host
+        & ~main_noop_simple_mask_host
+        & ~main_noop_azk01_011_mask_host
+        & ~main_noop_stt04_003_mask_host
+        & ~main_noop_stt03_006_trigger_mask_host
+        & ~main_noop_mask_host
+        & ~noop_stt04_017_cost_mask_host
+    )
+    noop_static_mask_host = (
+        noop_static_mask_host
+        | noop_stt04_017_cost_mask_host
+        | noop_residual_static_mask_host
     )
     if os.getenv("AZK_JAX_SPLIT_TRACE", "0") != "0":
       remaining_mask = ~(
@@ -2152,8 +3914,12 @@ class JaxVecEnv:
           | pregame_mask_host
           | play_garden_simple_mask_host
           | play_alley_simple_mask_host
+          | play_entity_static_garden_mask_host
+          | play_entity_static_alley_mask_host
+          | play_azk01_028_mask_host
           | play_azk01_007_garden_mask_host
           | play_azk01_007_alley_mask_host
+          | play_stt03_011_garden_mask_host
           | play_stt01_007_garden_mask_host
           | play_stt01_007_alley_mask_host
           | play_azk01_003_garden_mask_host
@@ -2164,6 +3930,8 @@ class JaxVecEnv:
           | play_azk01_045_alley_mask_host
           | play_azk01_056_garden_mask_host
           | play_azk01_056_alley_mask_host
+          | play_stt04_005_garden_mask_host
+          | play_stt04_005_alley_mask_host
           | play_azk01_097_garden_mask_host
           | play_azk01_097_alley_mask_host
           | play_stt02_003_garden_mask_host
@@ -2172,95 +3940,205 @@ class JaxVecEnv:
           | play_stt02_013_alley_mask_host
           | play_stt02_009_garden_mask_host
           | play_stt02_009_alley_mask_host
+          | play_azk01_022_garden_mask_host
+          | play_azk01_022_alley_mask_host
+          | play_azk01_024_garden_mask_host
+          | play_azk01_024_alley_mask_host
           | gate_portal_simple_mask_host
           | play_spell_stt04_016_mask_host
+          | play_spell_stt02_014_mask_host
+          | play_spell_stt02_015_mask_host
           | play_spell_stt02_016_mask_host
+          | play_spell_stt02_017_mask_host
+          | play_spell_stt02_017_static_mask_host
+          | play_spell_azk01_016_mask_host
+          | play_spell_azk01_017_mask_host
+          | play_spell_azk01_020_mask_host
+          | play_spell_azk01_086_mask_host
           | play_spell_stt01_017_mask_host
+          | play_spell_azk01_029_mask_host
+          | play_spell_azk01_031_mask_host
+          | play_spell_azk01_031_static_mask_host
           | play_spell_azk01_032_mask_host
           | play_spell_azk01_002_mask_host
           | play_spell_azk01_009_mask_host
+          | play_spell_azk01_117_mask_host
+          | play_spell_azk01_042_mask_host
           | play_spell_azk01_065_mask_host
+          | play_spell_azk01_066_mask_host
+          | play_spell_azk01_066_static_mask_host
           | play_spell_azk01_127_mask_host
+          | play_spell_azk01_128_mask_host
           | play_spell_stt03_016_mask_host
+          | play_spell_stt03_016_static_mask_host
+          | play_spell_stt04_015_mask_host
+          | play_spell_stt04_017_mask_host
+          | select_cost_stt04_017_mask_host
           | select_cost_stt04_016_mask_host
+          | select_cost_stt04_016_static_mask_host
           | select_cost_stt01_007_mask_host
           | select_cost_stt01_004_mask_host
           | select_cost_stt02_009_mask_host
+          | select_cost_azk01_022_mask_host
+          | select_cost_azk01_024_mask_host
+          | select_cost_azk01_024_static_mask_host
+          | select_cost_azk01_103_mask_host
+          | select_cost_azk01_124_mask_host
+          | select_cost_azk01_029_mask_host
           | select_cost_azk01_032_mask_host
           | select_cost_stt02_016_mask_host
+          | select_cost_static_mask_host
           | effect_stt04_016_mask_host
+          | effect_stt04_016_static_mask_host
+          | effect_stt04_009_mask_host
           | effect_stt04_001_mask_host
+          | effect_stt04_001_static_mask_host
           | effect_stt04_004_mask_host
           | effect_stt01_005_mask_host
           | effect_stt01_006_mask_host
+          | effect_azk01_014_mask_host
           | effect_stt01_014_mask_host
           | effect_stt01_017_mask_host
+          | effect_stt01_017_static_mask_host
+          | effect_azk01_016_mask_host
+          | effect_azk01_017_mask_host
+          | effect_azk01_087_mask_host
+          | effect_azk01_005_mask_host
+          | effect_azk01_015_mask_host
+          | effect_azk01_020_mask_host
+          | effect_stt01_001_mask_host
           | effect_stt02_001_mask_host
           | effect_stt02_011_mask_host
           | effect_azk01_105_mask_host
+          | effect_azk01_105_static_mask_host
+          | effect_azk01_123_mask_host
+          | effect_azk01_124_mask_host
+          | effect_azk01_124_static_mask_host
           | effect_stt02_009_mask_host
+          | effect_azk01_022_mask_host
+          | effect_azk01_029_mask_host
+          | effect_stt02_014_mask_host
           | effect_azk01_032_mask_host
+          | effect_stt02_015_mask_host
+          | effect_stt02_015_static_mask_host
           | effect_stt02_016_mask_host
+          | effect_stt03_011_mask_host
           | effect_stt03_002_mask_host
+          | effect_stt04_002_mask_host
+          | effect_azk01_111_mask_host
           | effect_stt03_006_mask_host
+          | effect_stt03_006_pending_combat_mask_host
+          | effect_azk01_128_mask_host
           | confirm_clear_mask_host
           | confirm_stt01_002_mask_host
           | confirm_stt01_007_mask_host
           | confirm_stt01_013_mask_host
           | confirm_stt01_004_mask_host
           | confirm_stt02_009_mask_host
+          | confirm_stt02_010_mask_host
+          | confirm_azk01_022_mask_host
+          | confirm_azk01_024_mask_host
+          | confirm_azk01_124_mask_host
+          | confirm_stt03_011_mask_host
           | confirm_stt04_004_mask_host
+          | confirm_stt04_009_mask_host
           | confirm_azk01_058_mask_host
           | confirm_azk01_060_mask_host
           | confirm_azk01_060_response_mask_host
+          | confirm_azk01_006_when_attacked_mask_host
+          | confirm_static_mask_host
           | effect_azk01_007_mask_host
           | effect_azk01_009_mask_host
+          | effect_azk01_117_mask_host
+          | effect_azk01_042_mask_host
           | effect_azk01_040_mask_host
           | effect_azk01_058_mask_host
+          | effect_azk01_119_mask_host
           | effect_azk01_059_mask_host
+          | effect_azk01_062_mask_host
+          | effect_azk01_062_static_mask_host
           | effect_azk01_070_mask_host
+          | effect_azk01_103_mask_host
           | effect_azk01_065_mask_host
           | effect_azk01_127_mask_host
+          | effect_azk01_127_static_mask_host
+          | select_effect_static_mask_host
           | activate_stt04_001_mask_host
+          | activate_stt01_001_mask_host
           | activate_stt02_001_mask_host
           | activate_stt02_011_mask_host
+          | activate_azk01_119_mask_host
+          | activate_azk01_119_static_mask_host
           | activate_azk01_121_mask_host
+          | activate_azk01_125_mask_host
+          | activate_azk01_123_mask_host
           | activate_stt03_001_mask_host
+          | activate_stt03_004_mask_host
+          | activate_stt03_004_garden_static_mask_host
+          | activate_stt03_004_alley_static_mask_host
+          | activate_azk01_111_mask_host
           | activate_stt01_005_mask_host
           | activate_azk01_070_mask_host
+          | activate_azk01_103_mask_host
           | activate_azk01_105_mask_host
           | select_azk01_003_pick_mask_host
+          | select_azk01_031_pick_mask_host
           | select_azk01_033_pick_mask_host
           | select_azk01_045_pick_mask_host
           | select_azk01_056_pick_mask_host
+          | select_stt04_005_pick_mask_host
           | select_stt02_003_pick_mask_host
           | select_stt02_013_pick_mask_host
           | select_stt01_004_pick_mask_host
           | select_stt01_002_equip_mask_host
+          | select_stt01_002_equip_static_mask_host
           | select_azk01_126_pick_mask_host
+          | select_azk01_086_pick_mask_host
           | select_azk01_097_mask_host
           | selection_pick_noop_mask_host
+          | select_from_selection_static_mask_host
           | select_azk01_122_garden_mask_host
           | select_azk01_122_alley_mask_host
+          | select_azk01_024_garden_mask_host
+          | select_azk01_024_alley_mask_host
+          | select_azk01_024_garden_static_mask_host
+          | select_azk01_024_alley_static_mask_host
+          | select_azk01_111_garden_mask_host
+          | select_to_garden_static_mask_host
+          | select_to_alley_static_catchall_mask_host
+          | top_deck_card_mask_host
+          | top_deck_card_static_mask_host
           | bottom_deck_card_mask_host
+          | bottom_deck_card_static_mask_host
           | bottom_deck_all_mask_host
+          | bottom_deck_all_static_mask_host
           | attach_weapon_simple_mask_host
           | attach_stt01_013_confirm_mask_host
+          | attach_weapon_static_mask_host
           | declare_defender_mask_host
           | attack_azk01_060_confirm_mask_host
           | attack_stt01_006_effect_mask_host
+          | attack_azk01_006_when_attacked_mask_host
           | attack_azk01_004_leader_mask_host
+          | attack_azk01_014_effect_mask_host
           | attack_leader_response_mask_host
+          | attack_stt01_012_response_mask_host
           | attack_entity_response_mask_host
           | attack_entity_simple_mask_host
           | attack_leader_simple_mask_host
+          | attack_leader_garden_simple_mask_host
+          | attack_queued_stt03_006_mask_host
+          | attack_static_mask_host
           | response_noop_leader_combat_mask_host
+          | response_noop_combat_fizzle_mask_host
           | response_noop_entity_combat_mask_host
           | response_noop_azk01_040_mask_host
           | main_noop_simple_mask_host
           | main_noop_azk01_011_mask_host
           | main_noop_stt04_003_mask_host
+          | main_noop_stt03_006_trigger_mask_host
           | main_noop_mask_host
+          | noop_static_mask_host
       )
       remaining_types = ",".join(
           str(int(x)) for x in np.unique(chosen[remaining_mask])
@@ -2270,102 +4148,203 @@ class JaxVecEnv:
           f" zero_legal={int(zero_legal_mask_host.sum())}"
           f" pregame={int(pregame_mask_host.sum())}"
           f" play_simple={int(play_garden_simple_mask_host.sum() + play_alley_simple_mask_host.sum())}"
+          f" play_static={int(play_entity_static_garden_mask_host.sum() + play_entity_static_alley_mask_host.sum())}"
+          f" play_azk01_028={int(play_azk01_028_mask_host.sum())}"
           f" play_azk01_007={int(play_azk01_007_garden_mask_host.sum() + play_azk01_007_alley_mask_host.sum())}"
+          f" play_stt03_011={int(play_stt03_011_garden_mask_host.sum())}"
           f" play_stt01_007={int(play_stt01_007_garden_mask_host.sum() + play_stt01_007_alley_mask_host.sum())}"
           f" play_azk01_003={int(play_azk01_003_garden_mask_host.sum() + play_azk01_003_alley_mask_host.sum())}"
           f" play_azk01_033={int(play_azk01_033_garden_mask_host.sum() + play_azk01_033_alley_mask_host.sum())}"
           f" play_azk01_045={int(play_azk01_045_garden_mask_host.sum() + play_azk01_045_alley_mask_host.sum())}"
           f" play_azk01_056={int(play_azk01_056_garden_mask_host.sum() + play_azk01_056_alley_mask_host.sum())}"
+          f" play_stt04_005={int(play_stt04_005_garden_mask_host.sum() + play_stt04_005_alley_mask_host.sum())}"
           f" play_azk01_097={int(play_azk01_097_garden_mask_host.sum() + play_azk01_097_alley_mask_host.sum())}"
           f" play_stt02_003={int(play_stt02_003_garden_mask_host.sum() + play_stt02_003_alley_mask_host.sum())}"
           f" play_stt02_013={int(play_stt02_013_garden_mask_host.sum() + play_stt02_013_alley_mask_host.sum())}"
           f" play_stt02_009={int(play_stt02_009_garden_mask_host.sum() + play_stt02_009_alley_mask_host.sum())}"
+          f" play_azk01_022={int(play_azk01_022_garden_mask_host.sum() + play_azk01_022_alley_mask_host.sum())}"
           f" gate_simple={int(gate_portal_simple_mask_host.sum())}"
           f" spell_stt04_016={int(play_spell_stt04_016_mask_host.sum())}"
+          f" spell_stt02_014={int(play_spell_stt02_014_mask_host.sum())}"
+          f" spell_stt02_015={int(play_spell_stt02_015_mask_host.sum())}"
           f" spell_stt02_016={int(play_spell_stt02_016_mask_host.sum())}"
+          f" spell_stt02_017={int(play_spell_stt02_017_mask_host.sum())}"
+          f" spell_stt02_017_static={int(play_spell_stt02_017_static_mask_host.sum())}"
+          f" spell_azk01_016={int(play_spell_azk01_016_mask_host.sum())}"
+          f" spell_azk01_017={int(play_spell_azk01_017_mask_host.sum())}"
+          f" spell_azk01_020={int(play_spell_azk01_020_mask_host.sum())}"
           f" spell_stt01_017={int(play_spell_stt01_017_mask_host.sum())}"
+          f" spell_azk01_029={int(play_spell_azk01_029_mask_host.sum())}"
+          f" spell_azk01_031={int(play_spell_azk01_031_mask_host.sum())}"
+          f" spell_azk01_031_static={int(play_spell_azk01_031_static_mask_host.sum())}"
           f" spell_azk01_032={int(play_spell_azk01_032_mask_host.sum())}"
           f" spell_azk01_002={int(play_spell_azk01_002_mask_host.sum())}"
           f" spell_azk01_009={int(play_spell_azk01_009_mask_host.sum())}"
+          f" spell_azk01_117={int(play_spell_azk01_117_mask_host.sum())}"
+          f" spell_azk01_042={int(play_spell_azk01_042_mask_host.sum())}"
           f" spell_azk01_065={int(play_spell_azk01_065_mask_host.sum())}"
+          f" spell_azk01_066={int(play_spell_azk01_066_mask_host.sum())}"
+          f" spell_azk01_066_static={int(play_spell_azk01_066_static_mask_host.sum())}"
           f" spell_azk01_127={int(play_spell_azk01_127_mask_host.sum())}"
+          f" spell_azk01_128={int(play_spell_azk01_128_mask_host.sum())}"
           f" spell_stt03_016={int(play_spell_stt03_016_mask_host.sum())}"
+          f" spell_stt03_016_static={int(play_spell_stt03_016_static_mask_host.sum())}"
+          f" spell_stt04_015={int(play_spell_stt04_015_mask_host.sum())}"
+          f" spell_stt04_017={int(play_spell_stt04_017_mask_host.sum())}"
           f" cost_stt04_016={int(select_cost_stt04_016_mask_host.sum())}"
+          f" cost_stt04_016_static={int(select_cost_stt04_016_static_mask_host.sum())}"
+          f" cost_stt04_017={int(select_cost_stt04_017_mask_host.sum())}"
           f" cost_stt01_007={int(select_cost_stt01_007_mask_host.sum())}"
           f" cost_stt01_004={int(select_cost_stt01_004_mask_host.sum())}"
           f" cost_stt02_009={int(select_cost_stt02_009_mask_host.sum())}"
+          f" cost_azk01_022={int(select_cost_azk01_022_mask_host.sum())}"
+          f" cost_azk01_024={int(select_cost_azk01_024_mask_host.sum())}"
+          f" cost_azk01_024_static={int(select_cost_azk01_024_static_mask_host.sum())}"
+          f" cost_azk01_103={int(select_cost_azk01_103_mask_host.sum())}"
+          f" cost_azk01_124={int(select_cost_azk01_124_mask_host.sum())}"
+          f" cost_azk01_029={int(select_cost_azk01_029_mask_host.sum())}"
           f" cost_azk01_032={int(select_cost_azk01_032_mask_host.sum())}"
           f" cost_stt02_016={int(select_cost_stt02_016_mask_host.sum())}"
           f" effect_stt04_016={int(effect_stt04_016_mask_host.sum())}"
+          f" effect_stt04_016_static={int(effect_stt04_016_static_mask_host.sum())}"
+          f" effect_stt04_009={int(effect_stt04_009_mask_host.sum())}"
           f" effect_stt04_001={int(effect_stt04_001_mask_host.sum())}"
+          f" effect_stt04_001_static={int(effect_stt04_001_static_mask_host.sum())}"
           f" effect_stt04_004={int(effect_stt04_004_mask_host.sum())}"
           f" effect_stt01_005={int(effect_stt01_005_mask_host.sum())}"
           f" effect_stt01_006={int(effect_stt01_006_mask_host.sum())}"
+          f" effect_azk01_014={int(effect_azk01_014_mask_host.sum())}"
+          f" effect_azk01_016={int(effect_azk01_016_mask_host.sum())}"
+          f" effect_azk01_017={int(effect_azk01_017_mask_host.sum())}"
+          f" effect_azk01_087={int(effect_azk01_087_mask_host.sum())}"
+          f" effect_azk01_005={int(effect_azk01_005_mask_host.sum())}"
+          f" effect_azk01_015={int(effect_azk01_015_mask_host.sum())}"
+          f" effect_azk01_020={int(effect_azk01_020_mask_host.sum())}"
           f" effect_stt01_014={int(effect_stt01_014_mask_host.sum())}"
           f" effect_stt01_017={int(effect_stt01_017_mask_host.sum())}"
+          f" effect_stt01_017_static={int(effect_stt01_017_static_mask_host.sum())}"
+          f" effect_stt01_001={int(effect_stt01_001_mask_host.sum())}"
           f" effect_stt02_001={int(effect_stt02_001_mask_host.sum())}"
           f" effect_stt02_011={int(effect_stt02_011_mask_host.sum())}"
+          f" effect_azk01_123={int(effect_azk01_123_mask_host.sum())}"
+          f" effect_azk01_124={int(effect_azk01_124_mask_host.sum())}"
+          f" effect_azk01_124_static={int(effect_azk01_124_static_mask_host.sum())}"
           f" effect_azk01_105={int(effect_azk01_105_mask_host.sum())}"
+          f" effect_azk01_105_static={int(effect_azk01_105_static_mask_host.sum())}"
           f" effect_stt02_009={int(effect_stt02_009_mask_host.sum())}"
+          f" effect_azk01_022={int(effect_azk01_022_mask_host.sum())}"
+          f" effect_azk01_029={int(effect_azk01_029_mask_host.sum())}"
           f" effect_azk01_032={int(effect_azk01_032_mask_host.sum())}"
+          f" effect_stt02_014={int(effect_stt02_014_mask_host.sum())}"
+          f" effect_stt02_015={int(effect_stt02_015_mask_host.sum())}"
+          f" effect_stt02_015_static={int(effect_stt02_015_static_mask_host.sum())}"
           f" effect_stt02_016={int(effect_stt02_016_mask_host.sum())}"
+          f" effect_stt03_011={int(effect_stt03_011_mask_host.sum())}"
           f" effect_stt03_002={int(effect_stt03_002_mask_host.sum())}"
+          f" effect_stt04_002={int(effect_stt04_002_mask_host.sum())}"
+          f" effect_stt04_017={int(effect_stt04_017_mask_host.sum())}"
+          f" effect_azk01_111={int(effect_azk01_111_mask_host.sum())}"
           f" effect_stt03_006={int(effect_stt03_006_mask_host.sum())}"
+          f" effect_stt03_006_pending={int(effect_stt03_006_pending_combat_mask_host.sum())}"
+          f" effect_azk01_128={int(effect_azk01_128_mask_host.sum())}"
           f" confirm_clear={int(confirm_clear_mask_host.sum())}"
           f" confirm_stt01_002={int(confirm_stt01_002_mask_host.sum())}"
           f" confirm_stt01_007={int(confirm_stt01_007_mask_host.sum())}"
           f" confirm_stt01_013={int(confirm_stt01_013_mask_host.sum())}"
           f" confirm_stt01_004={int(confirm_stt01_004_mask_host.sum())}"
           f" confirm_stt02_009={int(confirm_stt02_009_mask_host.sum())}"
+          f" confirm_stt02_010={int(confirm_stt02_010_mask_host.sum())}"
+          f" confirm_azk01_022={int(confirm_azk01_022_mask_host.sum())}"
+          f" confirm_azk01_124={int(confirm_azk01_124_mask_host.sum())}"
+          f" confirm_stt03_011={int(confirm_stt03_011_mask_host.sum())}"
           f" confirm_stt04_004={int(confirm_stt04_004_mask_host.sum())}"
+          f" confirm_stt04_009={int(confirm_stt04_009_mask_host.sum())}"
           f" confirm_azk01_058={int(confirm_azk01_058_mask_host.sum())}"
           f" confirm_azk01_060={int(confirm_azk01_060_mask_host.sum())}"
           f" confirm_azk01_060_response={int(confirm_azk01_060_response_mask_host.sum())}"
+          f" confirm_azk01_006={int(confirm_azk01_006_when_attacked_mask_host.sum())}"
+          f" confirm_static={int(confirm_static_mask_host.sum())}"
           f" effect_azk01_007={int(effect_azk01_007_mask_host.sum())}"
           f" effect_azk01_009={int(effect_azk01_009_mask_host.sum())}"
+          f" effect_azk01_117={int(effect_azk01_117_mask_host.sum())}"
+          f" effect_azk01_042={int(effect_azk01_042_mask_host.sum())}"
           f" effect_azk01_040={int(effect_azk01_040_mask_host.sum())}"
           f" effect_azk01_058={int(effect_azk01_058_mask_host.sum())}"
+          f" effect_azk01_119={int(effect_azk01_119_mask_host.sum())}"
           f" effect_azk01_059={int(effect_azk01_059_mask_host.sum())}"
+          f" effect_azk01_062={int(effect_azk01_062_mask_host.sum())}"
+          f" effect_azk01_062_static={int(effect_azk01_062_static_mask_host.sum())}"
           f" effect_azk01_070={int(effect_azk01_070_mask_host.sum())}"
+          f" effect_azk01_103={int(effect_azk01_103_mask_host.sum())}"
           f" effect_azk01_065={int(effect_azk01_065_mask_host.sum())}"
           f" effect_azk01_127={int(effect_azk01_127_mask_host.sum())}"
+          f" effect_azk01_127_static={int(effect_azk01_127_static_mask_host.sum())}"
           f" activate_stt04_001={int(activate_stt04_001_mask_host.sum())}"
+          f" activate_stt01_001={int(activate_stt01_001_mask_host.sum())}"
           f" activate_stt02_001={int(activate_stt02_001_mask_host.sum())}"
           f" activate_stt02_011={int(activate_stt02_011_mask_host.sum())}"
+          f" activate_azk01_119={int(activate_azk01_119_mask_host.sum())}"
+          f" activate_azk01_119_static={int(activate_azk01_119_static_mask_host.sum())}"
           f" activate_azk01_121={int(activate_azk01_121_mask_host.sum())}"
+          f" activate_azk01_125={int(activate_azk01_125_mask_host.sum())}"
+          f" activate_azk01_123={int(activate_azk01_123_mask_host.sum())}"
           f" activate_stt03_001={int(activate_stt03_001_mask_host.sum())}"
+          f" activate_stt03_004={int(activate_stt03_004_mask_host.sum())}"
+          f" activate_stt03_004_static={int(activate_stt03_004_garden_static_mask_host.sum() + activate_stt03_004_alley_static_mask_host.sum())}"
+          f" activate_azk01_111={int(activate_azk01_111_mask_host.sum())}"
           f" activate_stt01_005={int(activate_stt01_005_mask_host.sum())}"
           f" activate_azk01_070={int(activate_azk01_070_mask_host.sum())}"
+          f" activate_azk01_103={int(activate_azk01_103_mask_host.sum())}"
           f" activate_azk01_105={int(activate_azk01_105_mask_host.sum())}"
           f" select_azk01_003={int(select_azk01_003_pick_mask_host.sum())}"
+          f" select_azk01_031={int(select_azk01_031_pick_mask_host.sum())}"
           f" select_azk01_033={int(select_azk01_033_pick_mask_host.sum())}"
           f" select_azk01_045={int(select_azk01_045_pick_mask_host.sum())}"
           f" select_azk01_056={int(select_azk01_056_pick_mask_host.sum())}"
+          f" select_stt04_005={int(select_stt04_005_pick_mask_host.sum())}"
           f" select_stt02_003={int(select_stt02_003_pick_mask_host.sum())}"
           f" select_stt02_013={int(select_stt02_013_pick_mask_host.sum())}"
           f" select_stt01_004={int(select_stt01_004_pick_mask_host.sum())}"
           f" select_stt01_002_equip={int(select_stt01_002_equip_mask_host.sum())}"
+          f" select_stt01_002_equip_static={int(select_stt01_002_equip_static_mask_host.sum())}"
           f" select_azk01_126={int(select_azk01_126_pick_mask_host.sum())}"
+          f" select_azk01_086={int(select_azk01_086_pick_mask_host.sum())}"
           f" select_azk01_097={int(select_azk01_097_mask_host.sum())}"
           f" selection_noop={int(selection_pick_noop_mask_host.sum())}"
+          f" select_from_selection_static={int(select_from_selection_static_mask_host.sum())}"
           f" select_azk01_122={int(select_azk01_122_garden_mask_host.sum() + select_azk01_122_alley_mask_host.sum())}"
+          f" select_azk01_024={int(select_azk01_024_garden_mask_host.sum() + select_azk01_024_alley_mask_host.sum())}"
+          f" select_azk01_024_static={int(select_azk01_024_garden_static_mask_host.sum() + select_azk01_024_alley_static_mask_host.sum())}"
+          f" select_azk01_111={int(select_azk01_111_garden_mask_host.sum())}"
+          f" top_deck={int(top_deck_card_mask_host.sum())}"
+          f" top_deck_static={int(top_deck_card_static_mask_host.sum())}"
           f" bottom_deck={int(bottom_deck_card_mask_host.sum() + bottom_deck_all_mask_host.sum())}"
+          f" bottom_deck_static={int(bottom_deck_card_static_mask_host.sum() + bottom_deck_all_static_mask_host.sum())}"
           f" attach_simple={int(attach_weapon_simple_mask_host.sum())}"
           f" attach_stt01_013={int(attach_stt01_013_confirm_mask_host.sum())}"
           f" declare_defender={int(declare_defender_mask_host.sum())}"
           f" attack_azk01_060={int(attack_azk01_060_confirm_mask_host.sum())}"
           f" attack_stt01_006={int(attack_stt01_006_effect_mask_host.sum())}"
+          f" attack_azk01_006={int(attack_azk01_006_when_attacked_mask_host.sum())}"
           f" attack_azk01_004={int(attack_azk01_004_leader_mask_host.sum())}"
+          f" attack_azk01_014={int(attack_azk01_014_effect_mask_host.sum())}"
           f" attack_leader_response={int(attack_leader_response_mask_host.sum())}"
+          f" attack_stt01_012={int(attack_stt01_012_response_mask_host.sum())}"
           f" attack_entity_response={int(attack_entity_response_mask_host.sum())}"
           f" attack_entity_simple={int(attack_entity_simple_mask_host.sum())}"
           f" attack_simple={int(attack_leader_simple_mask_host.sum())}"
-          f" response_noop={int(response_noop_leader_combat_mask_host.sum() + response_noop_entity_combat_mask_host.sum() + response_noop_azk01_040_mask_host.sum())}"
+          f" attack_leader_garden={int(attack_leader_garden_simple_mask_host.sum())}"
+          f" attack_queued_stt03_006={int(attack_queued_stt03_006_mask_host.sum())}"
+          f" attack_static={int(attack_static_mask_host.sum())}"
+          f" response_noop={int(response_noop_leader_combat_mask_host.sum() + response_noop_combat_fizzle_mask_host.sum() + response_noop_entity_combat_mask_host.sum() + response_noop_azk01_040_mask_host.sum())}"
+          f" response_fizzle={int(response_noop_combat_fizzle_mask_host.sum())}"
           f" response_noop_azk01_040={int(response_noop_azk01_040_mask_host.sum())}"
           f" main_noop_simple={int(main_noop_simple_mask_host.sum())}"
           f" main_noop_azk01_011={int(main_noop_azk01_011_mask_host.sum())}"
           f" main_noop_stt04_003={int(main_noop_stt04_003_mask_host.sum())}"
+          f" main_noop_stt03_006={int(main_noop_stt03_006_trigger_mask_host.sum())}"
           f" main_noop={int(main_noop_mask_host.sum())}"
+          f" noop_static={int(noop_static_mask_host.sum())}"
           f" generic={int(remaining_mask.sum())}"
           f" generic_types={remaining_types or '-'}",
           flush=True,
@@ -2543,6 +4522,27 @@ class JaxVecEnv:
         truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
     for placement_zone, play_mask_host in (
+        (self._zone_garden, play_stt04_005_garden_mask_host),
+        (self._zone_alley, play_stt04_005_alley_mask_host),
+    ):
+      if np.any(play_mask_host):
+        st_t, rw_t, tm_t, tr_t = self._play_stt04_005_reveal_fns[
+            placement_zone
+        ](
+            self._states,
+            acts_dev,
+            self._terms,
+            self._truncs,
+            self._pending[5],
+        )
+        mask = jnp.asarray(play_mask_host)
+        states_acc = merge_tree(states_acc, st_t, mask)
+        row_mask = mask[:, None]
+        rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+        terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+        truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    for placement_zone, play_mask_host in (
         (self._zone_garden, play_azk01_097_garden_mask_host),
         (self._zone_alley, play_azk01_097_alley_mask_host),
     ):
@@ -2562,6 +4562,21 @@ class JaxVecEnv:
         rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
         terms_acc = jnp.where(row_mask, tm_t, terms_acc)
         truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(play_stt03_011_garden_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._play_stt03_011_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(play_stt03_011_garden_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
     for placement_zone, play_mask_host in (
         (self._zone_garden, play_stt02_003_garden_mask_host),
@@ -2627,6 +4642,63 @@ class JaxVecEnv:
         truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
     for placement_zone, play_mask_host in (
+        (self._zone_garden, play_azk01_022_garden_mask_host),
+        (self._zone_alley, play_azk01_022_alley_mask_host),
+    ):
+      if np.any(play_mask_host):
+        st_t, rw_t, tm_t, tr_t = self._play_azk01_022_confirm_fns[
+            placement_zone
+        ](
+            self._states,
+            acts_dev,
+            self._terms,
+            self._truncs,
+            self._pending[5],
+        )
+        mask = jnp.asarray(play_mask_host)
+        states_acc = merge_tree(states_acc, st_t, mask)
+        row_mask = mask[:, None]
+        rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+        terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+        truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    for placement_zone, play_mask_host in (
+        (self._zone_garden, play_azk01_024_garden_mask_host),
+        (self._zone_alley, play_azk01_024_alley_mask_host),
+    ):
+      if np.any(play_mask_host):
+        st_t, rw_t, tm_t, tr_t = self._play_azk01_024_confirm_fns[
+            placement_zone
+        ](
+            self._states,
+            acts_dev,
+            self._terms,
+            self._truncs,
+            self._pending[5],
+        )
+        mask = jnp.asarray(play_mask_host)
+        states_acc = merge_tree(states_acc, st_t, mask)
+        row_mask = mask[:, None]
+        rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+        terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+        truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(play_azk01_028_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._play_azk01_028_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(play_azk01_028_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    for placement_zone, play_mask_host in (
         (self._zone_garden, play_garden_simple_mask_host),
         (self._zone_alley, play_alley_simple_mask_host),
     ):
@@ -2645,6 +4717,15 @@ class JaxVecEnv:
         terms_acc = jnp.where(row_mask, tm_t, terms_acc)
         truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
+
+    for action_type, play_mask_host in (
+        (self._act_play_garden, play_entity_static_garden_mask_host),
+        (self._act_play_alley, play_entity_static_alley_mask_host),
+    ):
+      if np.any(play_mask_host):
+        states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+            self._play_entity_static_fns[action_type], play_mask_host, states_acc, rewards_acc, terms_acc,
+            truncs_acc, acts_dev)
     if np.any(gate_portal_simple_mask_host):
       st_t, rw_t, tm_t, tr_t = self._gate_portal_simple_step_fn(
           self._states,
@@ -2675,6 +4756,36 @@ class JaxVecEnv:
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
+    if np.any(play_spell_stt02_014_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._play_spell_stt02_014_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(play_spell_stt02_014_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(play_spell_stt02_015_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._play_spell_stt02_015_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(play_spell_stt02_015_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
     if np.any(play_spell_stt02_016_mask_host):
       st_t, rw_t, tm_t, tr_t = self._play_spell_stt02_016_step_fn(
           self._states,
@@ -2684,6 +4795,86 @@ class JaxVecEnv:
           self._pending[5],
       )
       mask = jnp.asarray(play_spell_stt02_016_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(play_spell_stt02_017_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._play_spell_stt02_017_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(play_spell_stt02_017_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(play_spell_stt02_017_static_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._play_spell_stt02_017_static_step_fn, play_spell_stt02_017_static_mask_host, states_acc, rewards_acc, terms_acc,
+          truncs_acc, acts_dev)
+
+    if np.any(play_spell_azk01_016_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._play_spell_azk01_016_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(play_spell_azk01_016_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(play_spell_azk01_017_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._play_spell_azk01_017_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(play_spell_azk01_017_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(play_spell_azk01_020_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._play_spell_azk01_020_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(play_spell_azk01_020_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(play_spell_azk01_086_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._play_spell_azk01_086_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(play_spell_azk01_086_mask_host)
       states_acc = merge_tree(states_acc, st_t, mask)
       row_mask = mask[:, None]
       rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
@@ -2704,6 +4895,41 @@ class JaxVecEnv:
       rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+
+    if np.any(play_spell_azk01_029_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._play_spell_azk01_029_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(play_spell_azk01_029_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+    if np.any(play_spell_azk01_031_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._play_spell_azk01_031_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(play_spell_azk01_031_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(play_spell_azk01_031_static_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._play_spell_azk01_031_static_step_fn, play_spell_azk01_031_static_mask_host, states_acc, rewards_acc, terms_acc,
+          truncs_acc, acts_dev)
 
     if np.any(play_spell_azk01_032_mask_host):
       st_t, rw_t, tm_t, tr_t = self._play_spell_azk01_032_step_fn(
@@ -2750,6 +4976,36 @@ class JaxVecEnv:
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
+    if np.any(play_spell_azk01_117_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._play_spell_azk01_117_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(play_spell_azk01_117_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(play_spell_azk01_042_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._play_spell_azk01_042_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(play_spell_azk01_042_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
     if np.any(play_spell_azk01_065_mask_host):
       st_t, rw_t, tm_t, tr_t = self._play_spell_azk01_065_step_fn(
           self._states,
@@ -2765,6 +5021,26 @@ class JaxVecEnv:
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
+    if np.any(play_spell_azk01_066_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._play_spell_azk01_066_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(play_spell_azk01_066_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(play_spell_azk01_066_static_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._play_spell_azk01_066_static_step_fn, play_spell_azk01_066_static_mask_host, states_acc, rewards_acc, terms_acc,
+          truncs_acc, acts_dev)
+
     if np.any(play_spell_azk01_127_mask_host):
       st_t, rw_t, tm_t, tr_t = self._play_spell_azk01_127_step_fn(
           self._states,
@@ -2774,6 +5050,21 @@ class JaxVecEnv:
           self._pending[5],
       )
       mask = jnp.asarray(play_spell_azk01_127_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(play_spell_azk01_128_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._play_spell_azk01_128_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(play_spell_azk01_128_mask_host)
       states_acc = merge_tree(states_acc, st_t, mask)
       row_mask = mask[:, None]
       rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
@@ -2795,6 +5086,36 @@ class JaxVecEnv:
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
+    if np.any(play_spell_stt03_016_static_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._play_spell_stt03_016_static_step_fn, play_spell_stt03_016_static_mask_host, states_acc, rewards_acc, terms_acc,
+          truncs_acc, acts_dev)
+
+    if np.any(play_spell_stt04_015_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._play_spell_stt04_015_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(play_spell_stt04_015_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(play_spell_stt04_017_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._play_spell_stt04_017_step_fn, play_spell_stt04_017_mask_host, states_acc, rewards_acc, terms_acc,
+          truncs_acc, acts_dev)
+
+    if np.any(select_cost_stt04_017_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._select_cost_stt04_017_step_fn, select_cost_stt04_017_mask_host, states_acc, rewards_acc, terms_acc,
+          truncs_acc, acts_dev)
+
     if np.any(select_cost_stt04_016_mask_host):
       st_t, rw_t, tm_t, tr_t = self._select_cost_stt04_016_step_fn(
           self._states,
@@ -2810,6 +5131,11 @@ class JaxVecEnv:
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
+
+    if np.any(select_cost_stt04_016_static_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._select_cost_stt04_016_static_step_fn, select_cost_stt04_016_static_mask_host, states_acc, rewards_acc, terms_acc,
+          truncs_acc, acts_dev)
     if np.any(select_cost_stt01_007_mask_host):
       st_t, rw_t, tm_t, tr_t = self._select_cost_stt01_007_step_fn(
           self._states,
@@ -2839,6 +5165,36 @@ class JaxVecEnv:
       rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+    if np.any(select_cost_azk01_103_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._select_cost_azk01_103_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(select_cost_azk01_103_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(select_cost_azk01_124_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._select_cost_azk01_124_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(select_cost_azk01_124_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
 
     if np.any(select_cost_stt02_009_mask_host):
       st_t, rw_t, tm_t, tr_t = self._select_cost_stt02_009_step_fn(
@@ -2855,6 +5211,41 @@ class JaxVecEnv:
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
+    if np.any(select_cost_azk01_022_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._select_cost_azk01_022_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(select_cost_azk01_022_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(select_cost_azk01_024_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._select_cost_azk01_024_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(select_cost_azk01_024_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(select_cost_azk01_024_static_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._select_cost_azk01_024_static_step_fn, select_cost_azk01_024_static_mask_host, states_acc, rewards_acc, terms_acc,
+          truncs_acc, acts_dev)
+
     if np.any(select_cost_azk01_032_mask_host):
       st_t, rw_t, tm_t, tr_t = self._select_cost_azk01_032_step_fn(
           self._states,
@@ -2870,6 +5261,21 @@ class JaxVecEnv:
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
+
+    if np.any(select_cost_azk01_029_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._select_cost_azk01_029_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(select_cost_azk01_029_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
     if np.any(select_cost_stt02_016_mask_host):
       st_t, rw_t, tm_t, tr_t = self._select_cost_stt02_016_step_fn(
           self._states,
@@ -2885,6 +5291,11 @@ class JaxVecEnv:
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
+    if np.any(select_cost_static_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._select_cost_static_step_fn, select_cost_static_mask_host, states_acc, rewards_acc, terms_acc,
+          truncs_acc, acts_dev)
+
     if np.any(effect_stt04_016_mask_host):
       st_t, rw_t, tm_t, tr_t = self._effect_stt04_016_step_fn(
           self._states,
@@ -2894,6 +5305,26 @@ class JaxVecEnv:
           self._pending[5],
       )
       mask = jnp.asarray(effect_stt04_016_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(effect_stt04_016_static_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._effect_stt04_016_static_step_fn, effect_stt04_016_static_mask_host, states_acc, rewards_acc, terms_acc,
+          truncs_acc, acts_dev)
+
+    if np.any(effect_stt04_009_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._effect_stt04_009_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(effect_stt04_009_mask_host)
       states_acc = merge_tree(states_acc, st_t, mask)
       row_mask = mask[:, None]
       rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
@@ -2914,6 +5345,11 @@ class JaxVecEnv:
       rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(effect_stt04_001_static_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._effect_stt04_001_static_step_fn, effect_stt04_001_static_mask_host, states_acc, rewards_acc, terms_acc,
+          truncs_acc, acts_dev)
 
     if np.any(effect_stt04_004_mask_host):
       st_t, rw_t, tm_t, tr_t = self._effect_stt04_004_step_fn(
@@ -2945,6 +5381,96 @@ class JaxVecEnv:
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
+    if np.any(effect_azk01_016_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._effect_azk01_016_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(effect_azk01_016_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(effect_azk01_017_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._effect_azk01_017_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(effect_azk01_017_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(effect_azk01_087_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._effect_azk01_087_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(effect_azk01_087_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(effect_azk01_005_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._effect_azk01_005_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(effect_azk01_005_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(effect_azk01_015_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._effect_azk01_015_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(effect_azk01_015_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(effect_azk01_020_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._effect_azk01_020_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(effect_azk01_020_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
     if np.any(effect_stt01_006_mask_host):
       st_t, rw_t, tm_t, tr_t = self._effect_stt01_006_step_fn(
           self._states,
@@ -2954,6 +5480,21 @@ class JaxVecEnv:
           self._pending[5],
       )
       mask = jnp.asarray(effect_stt01_006_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(effect_azk01_014_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._effect_azk01_014_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(effect_azk01_014_mask_host)
       states_acc = merge_tree(states_acc, st_t, mask)
       row_mask = mask[:, None]
       rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
@@ -2990,6 +5531,26 @@ class JaxVecEnv:
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
+    if np.any(effect_stt01_017_static_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._effect_stt01_017_static_step_fn, effect_stt01_017_static_mask_host, states_acc, rewards_acc, terms_acc,
+          truncs_acc, acts_dev)
+
+    if np.any(effect_stt01_001_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._effect_stt01_001_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(effect_stt01_001_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
     if np.any(effect_stt02_001_mask_host):
       st_t, rw_t, tm_t, tr_t = self._effect_stt02_001_step_fn(
           self._states,
@@ -3004,6 +5565,21 @@ class JaxVecEnv:
       rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+    if np.any(effect_azk01_103_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._effect_azk01_103_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(effect_azk01_103_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
 
     if np.any(effect_stt02_011_mask_host):
       st_t, rw_t, tm_t, tr_t = self._effect_stt02_011_step_fn(
@@ -3020,6 +5596,41 @@ class JaxVecEnv:
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
+    if np.any(effect_azk01_123_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._effect_azk01_123_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(effect_azk01_123_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+
+    if np.any(effect_azk01_124_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._effect_azk01_124_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(effect_azk01_124_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(effect_azk01_124_static_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._effect_azk01_124_static_step_fn, effect_azk01_124_static_mask_host, states_acc, rewards_acc, terms_acc,
+          truncs_acc, acts_dev)
     if np.any(effect_azk01_105_mask_host):
       st_t, rw_t, tm_t, tr_t = self._effect_azk01_105_step_fn(
           self._states,
@@ -3034,6 +5645,11 @@ class JaxVecEnv:
       rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(effect_azk01_105_static_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._effect_azk01_105_static_step_fn, effect_azk01_105_static_mask_host, states_acc, rewards_acc, terms_acc,
+          truncs_acc, acts_dev)
 
     if np.any(effect_stt02_009_mask_host):
       st_t, rw_t, tm_t, tr_t = self._effect_stt02_009_step_fn(
@@ -3050,6 +5666,36 @@ class JaxVecEnv:
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
+    if np.any(effect_azk01_022_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._effect_azk01_022_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(effect_azk01_022_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+
+    if np.any(effect_azk01_029_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._effect_azk01_029_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(effect_azk01_029_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
     if np.any(effect_azk01_032_mask_host):
       st_t, rw_t, tm_t, tr_t = self._effect_azk01_032_step_fn(
           self._states,
@@ -3059,6 +5705,56 @@ class JaxVecEnv:
           self._pending[5],
       )
       mask = jnp.asarray(effect_azk01_032_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(effect_stt02_014_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._effect_stt02_014_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(effect_stt02_014_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+    if np.any(effect_stt02_015_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._effect_stt02_015_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(effect_stt02_015_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(effect_stt02_015_static_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._effect_stt02_015_static_step_fn, effect_stt02_015_static_mask_host, states_acc, rewards_acc, terms_acc,
+          truncs_acc, acts_dev)
+
+
+    if np.any(effect_stt03_011_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._effect_stt03_011_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(effect_stt03_011_mask_host)
       states_acc = merge_tree(states_acc, st_t, mask)
       row_mask = mask[:, None]
       rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
@@ -3095,6 +5791,41 @@ class JaxVecEnv:
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
+    if np.any(effect_stt04_002_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._effect_stt04_002_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(effect_stt04_002_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(effect_stt04_017_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._effect_stt04_017_step_fn, effect_stt04_017_mask_host, states_acc, rewards_acc, terms_acc,
+          truncs_acc, acts_dev)
+
+    if np.any(effect_azk01_111_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._effect_azk01_111_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(effect_azk01_111_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
     if np.any(effect_stt03_006_mask_host):
       st_t, rw_t, tm_t, tr_t = self._effect_stt03_006_step_fn(
           self._states,
@@ -3109,6 +5840,11 @@ class JaxVecEnv:
       rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(effect_stt03_006_pending_combat_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._effect_stt03_006_pending_combat_step_fn, effect_stt03_006_pending_combat_mask_host, states_acc, rewards_acc, terms_acc,
+          truncs_acc, acts_dev)
 
     if np.any(confirm_clear_mask_host):
       st_t, rw_t, tm_t, tr_t = self._confirm_clear_step_fn(
@@ -3200,6 +5936,21 @@ class JaxVecEnv:
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
+    if np.any(confirm_stt04_009_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._confirm_stt04_009_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(confirm_stt04_009_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
     if np.any(confirm_stt02_009_mask_host):
       st_t, rw_t, tm_t, tr_t = self._confirm_stt02_009_step_fn(
           self._states,
@@ -3209,6 +5960,96 @@ class JaxVecEnv:
           self._pending[5],
       )
       mask = jnp.asarray(confirm_stt02_009_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(confirm_stt02_010_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._confirm_stt02_010_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(confirm_stt02_010_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(confirm_azk01_022_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._confirm_azk01_022_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(confirm_azk01_022_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(confirm_azk01_024_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._confirm_azk01_024_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(confirm_azk01_024_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(confirm_stt03_013_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._confirm_stt03_013_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(confirm_stt03_013_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(confirm_stt03_011_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._confirm_stt03_011_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(confirm_stt03_011_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(confirm_azk01_124_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._confirm_azk01_124_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(confirm_azk01_124_mask_host)
       states_acc = merge_tree(states_acc, st_t, mask)
       row_mask = mask[:, None]
       rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
@@ -3260,6 +6101,26 @@ class JaxVecEnv:
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
+    if np.any(confirm_azk01_006_when_attacked_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._confirm_azk01_006_when_attacked_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(confirm_azk01_006_when_attacked_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(confirm_static_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._confirm_static_step_fn, confirm_static_mask_host, states_acc, rewards_acc, terms_acc,
+          truncs_acc, acts_dev)
+
     if np.any(effect_azk01_007_mask_host):
       st_t, rw_t, tm_t, tr_t = self._effect_azk01_007_step_fn(
           self._states,
@@ -3284,6 +6145,36 @@ class JaxVecEnv:
           self._pending[5],
       )
       mask = jnp.asarray(effect_azk01_009_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(effect_azk01_117_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._effect_azk01_117_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(effect_azk01_117_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(effect_azk01_042_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._effect_azk01_042_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(effect_azk01_042_mask_host)
       states_acc = merge_tree(states_acc, st_t, mask)
       row_mask = mask[:, None]
       rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
@@ -3320,6 +6211,21 @@ class JaxVecEnv:
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
+    if np.any(effect_azk01_119_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._effect_azk01_119_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(effect_azk01_119_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
     if np.any(effect_azk01_059_mask_host):
       st_t, rw_t, tm_t, tr_t = self._effect_azk01_059_step_fn(
           self._states,
@@ -3335,6 +6241,26 @@ class JaxVecEnv:
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
+    if np.any(effect_azk01_062_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._effect_azk01_062_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(effect_azk01_062_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+
+    if np.any(effect_azk01_062_static_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._effect_azk01_062_static_step_fn, effect_azk01_062_static_mask_host, states_acc, rewards_acc, terms_acc,
+          truncs_acc, acts_dev)
     if np.any(effect_azk01_070_mask_host):
       st_t, rw_t, tm_t, tr_t = self._effect_azk01_070_step_fn(
           self._states,
@@ -3380,6 +6306,31 @@ class JaxVecEnv:
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
+    if np.any(effect_azk01_127_static_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._effect_azk01_127_static_step_fn, effect_azk01_127_static_mask_host, states_acc, rewards_acc, terms_acc,
+          truncs_acc, acts_dev)
+
+    if np.any(effect_azk01_128_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._effect_azk01_128_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(effect_azk01_128_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(select_effect_static_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._select_effect_static_step_fn, select_effect_static_mask_host, states_acc, rewards_acc, terms_acc,
+          truncs_acc, acts_dev)
+
     if np.any(activate_stt04_001_mask_host):
       st_t, rw_t, tm_t, tr_t = self._activate_stt04_001_step_fn(
           self._states,
@@ -3389,6 +6340,21 @@ class JaxVecEnv:
           self._pending[5],
       )
       mask = jnp.asarray(activate_stt04_001_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(activate_stt01_001_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._activate_stt01_001_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(activate_stt01_001_mask_host)
       states_acc = merge_tree(states_acc, st_t, mask)
       row_mask = mask[:, None]
       rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
@@ -3425,6 +6391,26 @@ class JaxVecEnv:
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
+    if np.any(activate_azk01_119_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._activate_azk01_119_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(activate_azk01_119_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(activate_azk01_119_static_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._activate_garden_static_step_fn, activate_azk01_119_static_mask_host, states_acc, rewards_acc, terms_acc,
+          truncs_acc, acts_dev)
+
     if np.any(activate_azk01_121_mask_host):
       st_t, rw_t, tm_t, tr_t = self._activate_azk01_121_step_fn(
           self._states,
@@ -3440,6 +6426,36 @@ class JaxVecEnv:
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
+
+    if np.any(activate_azk01_125_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._activate_azk01_125_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(activate_azk01_125_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(activate_azk01_123_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._activate_azk01_123_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(activate_azk01_123_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
     if np.any(activate_stt03_001_mask_host):
       st_t, rw_t, tm_t, tr_t = self._activate_stt03_001_step_fn(
           self._states,
@@ -3449,6 +6465,55 @@ class JaxVecEnv:
           self._pending[5],
       )
       mask = jnp.asarray(activate_stt03_001_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(activate_stt03_004_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._activate_stt03_004_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(activate_stt03_004_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    for activate_mask_host, step_fn in (
+        (activate_stt03_004_garden_static_mask_host, self._activate_garden_static_step_fn),
+        (activate_stt03_004_alley_static_mask_host, self._activate_alley_static_step_fn),
+    ):
+      if np.any(activate_mask_host):
+        st_t, rw_t, tm_t, tr_t = step_fn(
+            self._states,
+            acts_dev,
+            self._terms,
+            self._truncs,
+            self._pending[5],
+        )
+        mask = jnp.asarray(activate_mask_host)
+        states_acc = merge_tree(states_acc, st_t, mask)
+        row_mask = mask[:, None]
+        rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+        terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+        truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(activate_azk01_111_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._activate_azk01_111_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(activate_azk01_111_mask_host)
       states_acc = merge_tree(states_acc, st_t, mask)
       row_mask = mask[:, None]
       rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
@@ -3469,6 +6534,21 @@ class JaxVecEnv:
       rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+    if np.any(activate_azk01_103_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._activate_azk01_103_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(activate_azk01_103_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
 
     if np.any(activate_azk01_070_mask_host):
       st_t, rw_t, tm_t, tr_t = self._activate_azk01_070_step_fn(
@@ -3509,6 +6589,21 @@ class JaxVecEnv:
           self._pending[5],
       )
       mask = jnp.asarray(select_azk01_003_pick_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(select_azk01_031_pick_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._select_azk01_031_pick_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(select_azk01_031_pick_mask_host)
       states_acc = merge_tree(states_acc, st_t, mask)
       row_mask = mask[:, None]
       rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
@@ -3559,6 +6654,21 @@ class JaxVecEnv:
       rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+    if np.any(select_stt04_005_pick_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._select_stt04_005_pick_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(select_stt04_005_pick_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
 
     if np.any(select_stt02_003_pick_mask_host):
       st_t, rw_t, tm_t, tr_t = self._select_stt02_003_pick_step_fn(
@@ -3620,6 +6730,11 @@ class JaxVecEnv:
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
+
+    if np.any(select_stt01_002_equip_static_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._select_to_equip_static_step_fn, select_stt01_002_equip_static_mask_host, states_acc, rewards_acc, terms_acc,
+          truncs_acc, acts_dev)
     if np.any(select_azk01_126_pick_mask_host):
       st_t, rw_t, tm_t, tr_t = self._select_azk01_126_pick_step_fn(
           self._states,
@@ -3629,6 +6744,21 @@ class JaxVecEnv:
           self._pending[5],
       )
       mask = jnp.asarray(select_azk01_126_pick_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(select_azk01_086_pick_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._select_azk01_086_pick_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(select_azk01_086_pick_mask_host)
       states_acc = merge_tree(states_acc, st_t, mask)
       row_mask = mask[:, None]
       rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
@@ -3665,6 +6795,11 @@ class JaxVecEnv:
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
+    if np.any(select_from_selection_static_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._select_from_selection_static_step_fn, select_from_selection_static_mask_host, states_acc, rewards_acc, terms_acc,
+          truncs_acc, acts_dev)
+
     for placement_zone, select_mask_host in (
         (self._zone_garden, select_azk01_122_garden_mask_host),
         (self._zone_alley, select_azk01_122_alley_mask_host),
@@ -3686,6 +6821,83 @@ class JaxVecEnv:
         terms_acc = jnp.where(row_mask, tm_t, terms_acc)
         truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
+    for placement_zone, select_mask_host in (
+        (self._zone_garden, select_azk01_024_garden_mask_host),
+        (self._zone_alley, select_azk01_024_alley_mask_host),
+    ):
+      if np.any(select_mask_host):
+        st_t, rw_t, tm_t, tr_t = self._select_azk01_024_place_fns[
+            placement_zone
+        ](
+            self._states,
+            acts_dev,
+            self._terms,
+            self._truncs,
+            self._pending[5],
+        )
+        mask = jnp.asarray(select_mask_host)
+        states_acc = merge_tree(states_acc, st_t, mask)
+        row_mask = mask[:, None]
+        rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+        terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+        truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+
+    for select_mask_host, step_fn in (
+        (select_azk01_024_garden_static_mask_host, self._select_azk01_111_garden_step_fn),
+        (select_azk01_024_alley_static_mask_host, self._select_to_alley_static_step_fn),
+    ):
+      if np.any(select_mask_host):
+        st_t, rw_t, tm_t, tr_t = step_fn(
+            self._states,
+            acts_dev,
+            self._terms,
+            self._truncs,
+            self._pending[5],
+        )
+        mask = jnp.asarray(select_mask_host)
+        states_acc = merge_tree(states_acc, st_t, mask)
+        row_mask = mask[:, None]
+        rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+        terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+        truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+    if np.any(select_azk01_111_garden_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._select_azk01_111_garden_step_fn, select_azk01_111_garden_mask_host, states_acc, rewards_acc, terms_acc,
+          truncs_acc, acts_dev)
+
+    if np.any(select_to_garden_static_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._select_azk01_111_garden_step_fn,
+          select_to_garden_static_mask_host, states_acc, rewards_acc,
+          terms_acc, truncs_acc, acts_dev)
+
+    if np.any(select_to_alley_static_catchall_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._select_to_alley_static_step_fn,
+          select_to_alley_static_catchall_mask_host, states_acc, rewards_acc,
+          terms_acc, truncs_acc, acts_dev)
+
+    if np.any(top_deck_card_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._top_deck_card_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(top_deck_card_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(top_deck_card_static_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._top_deck_card_static_step_fn, top_deck_card_static_mask_host, states_acc, rewards_acc, terms_acc,
+          truncs_acc, acts_dev)
+
     if np.any(bottom_deck_card_mask_host):
       st_t, rw_t, tm_t, tr_t = self._bottom_deck_card_step_fn(
           self._states,
@@ -3701,6 +6913,11 @@ class JaxVecEnv:
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
+    if np.any(bottom_deck_card_static_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._bottom_deck_card_static_step_fn, bottom_deck_card_static_mask_host, states_acc, rewards_acc, terms_acc,
+          truncs_acc, acts_dev)
+
     if np.any(bottom_deck_all_mask_host):
       st_t, rw_t, tm_t, tr_t = self._bottom_deck_all_step_fn(
           self._states,
@@ -3715,6 +6932,11 @@ class JaxVecEnv:
       rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(bottom_deck_all_static_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._bottom_deck_all_static_step_fn, bottom_deck_all_static_mask_host, states_acc, rewards_acc, terms_acc,
+          truncs_acc, acts_dev)
 
     if np.any(attach_weapon_simple_mask_host):
       st_t, rw_t, tm_t, tr_t = self._attach_weapon_simple_step_fn(
@@ -3746,6 +6968,11 @@ class JaxVecEnv:
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
+    if np.any(attach_weapon_static_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._attach_weapon_static_step_fn, attach_weapon_static_mask_host, states_acc, rewards_acc, terms_acc,
+          truncs_acc, acts_dev)
+
     if np.any(declare_defender_mask_host):
       st_t, rw_t, tm_t, tr_t = self._declare_defender_step_fn(
           self._states,
@@ -3770,6 +6997,21 @@ class JaxVecEnv:
           self._pending[5],
       )
       mask = jnp.asarray(attack_azk01_004_leader_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(attack_azk01_014_effect_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._attack_azk01_014_effect_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(attack_azk01_014_effect_mask_host)
       states_acc = merge_tree(states_acc, st_t, mask)
       row_mask = mask[:, None]
       rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
@@ -3821,6 +7063,36 @@ class JaxVecEnv:
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
+    if np.any(attack_azk01_006_when_attacked_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._attack_azk01_006_when_attacked_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(attack_azk01_006_when_attacked_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(attack_stt01_012_response_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._attack_stt01_012_response_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(attack_stt01_012_response_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
     attack_response_mask_host = (
         attack_leader_response_mask_host | attack_entity_response_mask_host
     )
@@ -3839,6 +7111,31 @@ class JaxVecEnv:
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
+
+    if np.any(attack_leader_garden_simple_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._attack_leader_garden_simple_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(attack_leader_garden_simple_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(attack_queued_stt03_006_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._attack_queued_stt03_006_step_fn, attack_queued_stt03_006_mask_host, states_acc, rewards_acc, terms_acc,
+          truncs_acc, acts_dev)
+
+    if np.any(attack_static_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._attack_queued_stt03_006_step_fn, attack_static_mask_host, states_acc, rewards_acc, terms_acc,
+          truncs_acc, acts_dev)
     if np.any(response_noop_leader_combat_mask_host):
       st_t, rw_t, tm_t, tr_t = self._response_noop_leader_combat_step_fn(
           self._states,
@@ -3848,6 +7145,21 @@ class JaxVecEnv:
           self._pending[5],
       )
       mask = jnp.asarray(response_noop_leader_combat_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
+    if np.any(response_noop_combat_fizzle_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._response_noop_combat_fizzle_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(response_noop_combat_fizzle_mask_host)
       states_acc = merge_tree(states_acc, st_t, mask)
       row_mask = mask[:, None]
       rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
@@ -3944,6 +7256,21 @@ class JaxVecEnv:
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
+    if np.any(main_noop_stt03_006_trigger_mask_host):
+      st_t, rw_t, tm_t, tr_t = self._main_noop_stt03_006_trigger_step_fn(
+          self._states,
+          acts_dev,
+          self._terms,
+          self._truncs,
+          self._pending[5],
+      )
+      mask = jnp.asarray(main_noop_stt03_006_trigger_mask_host)
+      states_acc = merge_tree(states_acc, st_t, mask)
+      row_mask = mask[:, None]
+      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
+      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
+      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+
     if np.any(main_noop_mask_host):
       st_t, rw_t, tm_t, tr_t = self._main_noop_step_fn(
           self._states,
@@ -3959,11 +7286,19 @@ class JaxVecEnv:
       terms_acc = jnp.where(row_mask, tm_t, terms_acc)
       truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
 
+    if np.any(noop_static_mask_host):
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          self._noop_static_step_fn, noop_static_mask_host, states_acc, rewards_acc, terms_acc,
+          truncs_acc, acts_dev)
+
     remaining = ~(
         zero_legal_mask_host
         | pregame_mask_host
         | play_garden_simple_mask_host
         | play_alley_simple_mask_host
+        | play_entity_static_garden_mask_host
+        | play_entity_static_alley_mask_host
+        | play_azk01_028_mask_host
         | play_azk01_007_garden_mask_host
         | play_azk01_007_alley_mask_host
         | play_stt01_007_garden_mask_host
@@ -3976,6 +7311,8 @@ class JaxVecEnv:
         | play_azk01_045_alley_mask_host
         | play_azk01_056_garden_mask_host
         | play_azk01_056_alley_mask_host
+        | play_stt04_005_garden_mask_host
+        | play_stt04_005_alley_mask_host
         | play_azk01_097_garden_mask_host
         | play_azk01_097_alley_mask_host
         | play_stt02_003_garden_mask_host
@@ -3984,95 +7321,208 @@ class JaxVecEnv:
         | play_stt02_013_alley_mask_host
         | play_stt02_009_garden_mask_host
         | play_stt02_009_alley_mask_host
+        | play_azk01_022_garden_mask_host
+        | play_azk01_022_alley_mask_host
+        | play_azk01_024_garden_mask_host
+        | play_azk01_024_alley_mask_host
         | gate_portal_simple_mask_host
         | play_spell_stt04_016_mask_host
+        | play_spell_stt02_014_mask_host
+        | play_spell_stt02_015_mask_host
         | play_spell_stt02_016_mask_host
+        | play_stt03_011_garden_mask_host
+        | play_spell_stt02_017_mask_host
+        | play_spell_stt02_017_static_mask_host
+        | play_spell_azk01_016_mask_host
+        | play_spell_azk01_017_mask_host
+        | play_spell_azk01_020_mask_host
+        | play_spell_azk01_086_mask_host
         | play_spell_stt01_017_mask_host
+        | play_spell_azk01_029_mask_host
+        | play_spell_azk01_031_mask_host
+        | play_spell_azk01_031_static_mask_host
         | play_spell_azk01_032_mask_host
         | play_spell_azk01_002_mask_host
         | play_spell_azk01_009_mask_host
+        | play_spell_azk01_117_mask_host
+        | play_spell_azk01_042_mask_host
         | play_spell_azk01_065_mask_host
+        | play_spell_azk01_066_mask_host
+        | play_spell_azk01_066_static_mask_host
         | play_spell_azk01_127_mask_host
+        | play_spell_azk01_128_mask_host
         | play_spell_stt03_016_mask_host
+        | play_spell_stt03_016_static_mask_host
+        | play_spell_stt04_015_mask_host
+        | play_spell_stt04_017_mask_host
+        | select_cost_stt04_017_mask_host
         | select_cost_stt04_016_mask_host
+        | select_cost_stt04_016_static_mask_host
         | select_cost_stt01_007_mask_host
         | select_cost_stt01_004_mask_host
         | select_cost_stt02_009_mask_host
+        | select_cost_azk01_022_mask_host
+        | select_cost_azk01_024_mask_host
+        | select_cost_azk01_024_static_mask_host
+        | select_cost_azk01_103_mask_host
+        | select_cost_azk01_124_mask_host
+        | select_cost_azk01_029_mask_host
         | select_cost_azk01_032_mask_host
         | select_cost_stt02_016_mask_host
+        | select_cost_static_mask_host
         | effect_stt04_016_mask_host
+        | effect_stt04_016_static_mask_host
+        | effect_stt04_009_mask_host
         | effect_stt04_001_mask_host
+        | effect_stt04_001_static_mask_host
         | effect_stt04_004_mask_host
         | effect_stt01_005_mask_host
         | effect_stt01_006_mask_host
+        | effect_azk01_014_mask_host
+        | effect_azk01_016_mask_host
+        | effect_azk01_017_mask_host
+        | effect_azk01_087_mask_host
+        | effect_azk01_005_mask_host
+        | effect_azk01_015_mask_host
+        | effect_azk01_020_mask_host
         | effect_stt01_014_mask_host
         | effect_stt01_017_mask_host
+        | effect_stt01_017_static_mask_host
+        | effect_stt01_001_mask_host
         | effect_stt02_001_mask_host
         | effect_stt02_011_mask_host
+        | effect_azk01_123_mask_host
+        | effect_azk01_124_mask_host
+        | effect_azk01_124_static_mask_host
         | effect_azk01_105_mask_host
+        | effect_azk01_105_static_mask_host
         | effect_stt02_009_mask_host
+        | effect_azk01_022_mask_host
+        | effect_azk01_029_mask_host
         | effect_azk01_032_mask_host
+        | effect_stt02_014_mask_host
+        | effect_stt02_015_mask_host
+        | effect_stt02_015_static_mask_host
         | effect_stt02_016_mask_host
+        | effect_stt03_011_mask_host
         | effect_stt03_002_mask_host
+        | effect_stt04_002_mask_host
+        | effect_stt04_017_mask_host
+        | effect_azk01_111_mask_host
         | effect_stt03_006_mask_host
+        | effect_stt03_006_pending_combat_mask_host
+        | effect_azk01_128_mask_host
+        | select_effect_static_mask_host
         | confirm_clear_mask_host
         | confirm_stt01_002_mask_host
         | confirm_stt01_007_mask_host
         | confirm_stt01_013_mask_host
         | confirm_stt01_004_mask_host
         | confirm_stt02_009_mask_host
+        | confirm_stt02_010_mask_host
+        | confirm_azk01_022_mask_host
+        | confirm_azk01_024_mask_host
+        | confirm_azk01_124_mask_host
+        | confirm_stt03_013_mask_host
+        | confirm_stt03_011_mask_host
         | confirm_stt04_004_mask_host
+        | confirm_stt04_009_mask_host
         | confirm_azk01_058_mask_host
         | confirm_azk01_060_mask_host
         | confirm_azk01_060_response_mask_host
+        | confirm_azk01_006_when_attacked_mask_host
+        | confirm_static_mask_host
         | effect_azk01_007_mask_host
         | effect_azk01_009_mask_host
+        | effect_azk01_117_mask_host
+        | effect_azk01_042_mask_host
         | effect_azk01_040_mask_host
         | effect_azk01_058_mask_host
+        | effect_azk01_119_mask_host
         | effect_azk01_059_mask_host
+        | effect_azk01_062_mask_host
+        | effect_azk01_062_static_mask_host
         | effect_azk01_070_mask_host
+        | effect_azk01_103_mask_host
         | effect_azk01_065_mask_host
         | effect_azk01_127_mask_host
+        | effect_azk01_127_static_mask_host
         | activate_stt04_001_mask_host
+        | activate_stt01_001_mask_host
         | activate_stt02_001_mask_host
         | activate_stt02_011_mask_host
+        | activate_azk01_119_mask_host
+        | activate_azk01_119_static_mask_host
         | activate_azk01_121_mask_host
+        | activate_azk01_125_mask_host
+        | activate_azk01_123_mask_host
         | activate_stt03_001_mask_host
+        | activate_stt03_004_mask_host
+        | activate_stt03_004_garden_static_mask_host
+        | activate_stt03_004_alley_static_mask_host
+        | activate_azk01_111_mask_host
         | activate_stt01_005_mask_host
         | activate_azk01_070_mask_host
+        | activate_azk01_103_mask_host
         | activate_azk01_105_mask_host
         | select_azk01_003_pick_mask_host
+        | select_azk01_031_pick_mask_host
         | select_azk01_033_pick_mask_host
         | select_azk01_045_pick_mask_host
         | select_azk01_056_pick_mask_host
+        | select_stt04_005_pick_mask_host
         | select_stt02_003_pick_mask_host
         | select_stt02_013_pick_mask_host
         | select_stt01_004_pick_mask_host
         | select_stt01_002_equip_mask_host
+        | select_stt01_002_equip_static_mask_host
         | select_azk01_126_pick_mask_host
+        | select_azk01_086_pick_mask_host
         | select_azk01_097_mask_host
         | selection_pick_noop_mask_host
+        | select_from_selection_static_mask_host
         | select_azk01_122_garden_mask_host
         | select_azk01_122_alley_mask_host
+        | select_azk01_024_garden_mask_host
+        | select_azk01_024_alley_mask_host
+        | select_azk01_024_garden_static_mask_host
+        | select_azk01_024_alley_static_mask_host
+        | select_azk01_111_garden_mask_host
+        | select_to_garden_static_mask_host
+        | select_to_alley_static_catchall_mask_host
+        | top_deck_card_mask_host
+        | top_deck_card_static_mask_host
         | bottom_deck_card_mask_host
+        | bottom_deck_card_static_mask_host
         | bottom_deck_all_mask_host
+        | bottom_deck_all_static_mask_host
         | attach_weapon_simple_mask_host
         | attach_stt01_013_confirm_mask_host
+        | attach_weapon_static_mask_host
         | declare_defender_mask_host
         | attack_azk01_060_confirm_mask_host
         | attack_stt01_006_effect_mask_host
+        | attack_azk01_006_when_attacked_mask_host
         | attack_azk01_004_leader_mask_host
+        | attack_azk01_014_effect_mask_host
         | attack_leader_response_mask_host
+        | attack_stt01_012_response_mask_host
         | attack_entity_response_mask_host
         | attack_entity_simple_mask_host
         | attack_leader_simple_mask_host
+        | attack_leader_garden_simple_mask_host
+        | attack_queued_stt03_006_mask_host
+        | attack_static_mask_host
         | response_noop_leader_combat_mask_host
+        | response_noop_combat_fizzle_mask_host
         | response_noop_entity_combat_mask_host
         | response_noop_azk01_040_mask_host
         | main_noop_simple_mask_host
         | main_noop_azk01_011_mask_host
         | main_noop_stt04_003_mask_host
+        | main_noop_stt03_006_trigger_mask_host
         | main_noop_mask_host
+        | noop_static_mask_host
     )
     action_types = [int(x) for x in np.unique(chosen[remaining])]
 
@@ -4080,19 +7530,9 @@ class JaxVecEnv:
       if action_type < 0 or action_type >= 26:
         raise ValueError(f"JAX split-step received invalid action type {action_type}")
       fn = self._get_step_type_fn(action_type)
-      st_t, rw_t, tm_t, tr_t = fn(
-          self._states,
-          acts_dev,
-          self._terms,
-          self._truncs,
-          self._pending[5],
-      )
-      mask = jnp.asarray(remaining & (chosen == action_type))
-      states_acc = merge_tree(states_acc, st_t, mask)
-      row_mask = mask[:, None]
-      rewards_acc = jnp.where(row_mask, rw_t, rewards_acc)
-      terms_acc = jnp.where(row_mask, tm_t, terms_acc)
-      truncs_acc = jnp.where(row_mask, tr_t, truncs_acc)
+      states_acc, rewards_acc, terms_acc, truncs_acc = self._run_broad_masked(
+          fn, remaining & (chosen == action_type), states_acc, rewards_acc,
+          terms_acc, truncs_acc, acts_dev)
 
     return states_acc, rewards_acc, terms_acc, truncs_acc
 
@@ -4122,9 +7562,26 @@ class JaxVecEnv:
     zone_host = np.asarray(states.zone)
     def_host = np.asarray(states.def_id)
 
-    no_eot_timing = ~self._timing_present(
-        zone_host, def_host, active, self._timing_eot
+    rows = np.arange(self.num_environments)
+    active_zone = zone_host[rows, active]
+    active_defs = def_host[rows, active]
+    active_safe_defs = np.maximum(active_defs, 0)
+    active_valid = active_defs >= 0
+    active_in_play = (
+        (active_zone == self._zone_garden)
+        | (active_zone == self._zone_alley)
+        | (active_zone == self._zone_leader)
     )
+    active_eot = (
+        active_in_play
+        & active_valid
+        & self._timing_eot[active_safe_defs]
+        & ~(
+            (active_defs == self._azk01_011_id)
+            & (active_zone != self._zone_garden)
+        )
+    )
+    no_eot_timing = ~np.any(active_eot, axis=1)
     no_start_timing = ~self._timing_present(
         zone_host, def_host, next_player, self._timing_start
     )
@@ -4152,6 +7609,85 @@ class JaxVecEnv:
         & no_start_each_timing
     )
 
+  def _main_noop_stt03_006_trigger_fast_mask(self, chosen, phase):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    trig_count = np.asarray(states.trig_count).astype(np.int32, copy=False)
+    trig_owner = np.asarray(states.trig_owner)[:, 0].astype(np.int32, copy=False)
+    trig_source = np.asarray(states.trig_source)[:, 0].astype(np.int32, copy=False)
+    trig_timing = np.asarray(states.trig_timing)[:, 0].astype(np.int32, copy=False)
+    trig_owner_safe = np.clip(trig_owner, 0, 1)
+    trig_source_safe = np.maximum(trig_source, 0)
+    zone_host = np.asarray(states.zone)
+    def_host = np.asarray(states.def_id)
+    owner_hand = np.any(zone_host[rows, trig_owner_safe] == self._zone_hand, axis=1)
+    return (
+        (phase == 2)  # Phase.MAIN
+        & (chosen == 0)  # Act.NOOP
+        & (np.asarray(states.ab_phase) == 0)
+        & (trig_count == 1)
+        & (trig_timing == 13)  # TIMING_WHEN_DESTROYED
+        & (def_host[rows, trig_owner_safe, trig_source_safe] == self._stt03_006_id)
+        & owner_hand
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+    )
+
+
+  def _main_noop_passive_fast_mask(self, chosen, phase):
+    states = self._states
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    next_player = (active + 1) % 2
+    zone_host = np.asarray(states.zone)
+    def_host = np.asarray(states.def_id)
+
+    rows = np.arange(self.num_environments)
+    active_zone = zone_host[rows, active]
+    active_defs = def_host[rows, active]
+    active_safe_defs = np.maximum(active_defs, 0)
+    active_valid = active_defs >= 0
+    active_in_play = (
+        (active_zone == self._zone_garden)
+        | (active_zone == self._zone_alley)
+        | (active_zone == self._zone_leader)
+    )
+    active_eot = (
+        active_in_play
+        & active_valid
+        & self._timing_eot[active_safe_defs]
+        & ~(
+            (active_defs == self._azk01_011_id)
+            & (active_zone != self._zone_garden)
+        )
+    )
+    no_eot_timing = ~np.any(active_eot, axis=1)
+    no_start_timing = ~self._timing_present(
+        zone_host, def_host, next_player, self._timing_start
+    )
+    no_start_each_timing = ~self._timing_present_any_player(
+        zone_host, def_host, self._timing_start_each
+    )
+    passive_pending = (
+        (np.asarray(states.passive_queue_count) != 0)
+        | np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+
+    return (
+        (phase == 2)  # Phase.MAIN
+        & (chosen == 0)  # Act.NOOP
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & passive_pending
+        & no_eot_timing
+        & no_start_timing
+        & no_start_each_timing
+    )
   def _main_noop_azk01_011_fast_mask(self, chosen, phase):
     states = self._states
     active = np.asarray(states.active_player).astype(np.int32, copy=False)
@@ -4199,6 +7735,10 @@ class JaxVecEnv:
         active_in_play
         & active_valid
         & self._timing_eot[active_safe_defs]
+        & ~(
+            (active_defs == self._azk01_011_id)
+            & (active_zone != self._zone_garden)
+        )
     )
     azk01_011_eot = (
         (active_zone == self._zone_garden)
@@ -4209,7 +7749,13 @@ class JaxVecEnv:
         & (np.sum(azk01_011_eot, axis=1) == 1)
     )
 
-    no_attached = ~np.any(zone_host == self._zone_attached, axis=(1, 2))
+    safe_defs = np.maximum(def_host, 0)
+    attached_cards = zone_host == self._zone_attached
+    attachments_supported = ~np.any(
+        attached_cards
+        & (self._card_type[safe_defs] != self._card_type_weapon),
+        axis=(1, 2),
+    )
     no_sacrifice = ~np.any(np.asarray(states.sacrifice_eot), axis=(1, 2))
 
     token_zone = zone_host[:, :, self._token_instance]
@@ -4259,7 +7805,14 @@ class JaxVecEnv:
     )
 
     board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
-    inert_watch = def_host == self._stt01_008_id
+    inert_watch = (
+        (def_host == self._stt01_008_id)
+        | (def_host == self._stt01_009_id)
+        | (def_host == self._stt01_011_id)
+        | (def_host == self._azk01_019_id)
+        | (def_host == self._stt02_012_id)
+        | (def_host == self._stt03_013_id)
+    )
     no_passive_watch = ~np.any(
         board & np.isin(def_host, self._simple_play_watch_ids) & ~inert_watch,
         axis=(1, 2),
@@ -4272,12 +7825,9 @@ class JaxVecEnv:
     return (
         base
         & only_single_azk01_011
-        & no_attached
+        & attachments_supported
         & no_sacrifice
         & no_token_cleanup
-        & no_eot_modifiers
-        & no_positive_start_status
-        & no_timed_grants
         & no_force_tapped
         & no_passive_watch
         & azk01_011_destroy_clean
@@ -4291,9 +7841,29 @@ class JaxVecEnv:
     def_host = np.asarray(states.def_id)
     rows = np.arange(self.num_environments)
 
-    no_eot_timing = ~self._timing_present(
-        zone_host, def_host, active, self._timing_eot
+    active_zone = zone_host[rows, active]
+    active_defs = def_host[rows, active]
+    active_safe_defs = np.maximum(active_defs, 0)
+    active_in_play = (
+        (active_zone == self._zone_garden)
+        | (active_zone == self._zone_alley)
+        | (active_zone == self._zone_leader)
     )
+    active_eot = (
+        active_in_play
+        & (active_defs >= 0)
+        & self._timing_eot[active_safe_defs]
+        & ~(
+            (active_defs == self._azk01_011_id)
+            & (active_zone != self._zone_garden)
+        )
+    )
+    tapped_azk01_011_eot = (
+        active_eot
+        & (active_defs == self._azk01_011_id)
+        & np.asarray(states.tapped)[rows, active]
+    )
+    no_eot_timing = ~np.any(active_eot & ~tapped_azk01_011_eot, axis=1)
     no_start_timing = ~self._timing_present(
         zone_host, def_host, next_player, self._timing_start
     )
@@ -4301,11 +7871,26 @@ class JaxVecEnv:
         (np.asarray(states.passive_queue_count) == 0)
         & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
     )
+    trig_count = np.asarray(states.trig_count).astype(np.int32, copy=False)
+    trig_owner = np.asarray(states.trig_owner)[:, 0].astype(np.int32, copy=False)
+    trig_source = np.asarray(states.trig_source)[:, 0].astype(np.int32, copy=False)
+    trig_timing = np.asarray(states.trig_timing)[:, 0].astype(np.int32, copy=False)
+    trig_owner_safe = np.clip(trig_owner, 0, 1)
+    trig_source_safe = np.clip(trig_source, 0, def_host.shape[2] - 1)
+    trig_zone = zone_host[rows, trig_owner_safe, trig_source_safe]
+    queued_dead_azk01_059 = (
+        (trig_count == 1)
+        & (trig_timing == 11)  # TIMING_WHEN_TAKES_DAMAGE
+        & (def_host[rows, trig_owner_safe, trig_source_safe] == self._azk01_059_id)
+        & (trig_zone != self._zone_garden)
+        & (trig_zone != self._zone_alley)
+    )
+    trig_clean = (trig_count == 0) | queued_dead_azk01_059
     base = (
         (phase == 2)  # Phase.MAIN
         & (chosen == 0)  # Act.NOOP
         & (np.asarray(states.ab_phase) == 0)
-        & (np.asarray(states.trig_count) == 0)
+        & trig_clean
         & (np.asarray(states.redirect_count) == 0)
         & (np.asarray(states.combat_attacker) < 0)
         & (np.asarray(states.winner) == -1)
@@ -4354,7 +7939,12 @@ class JaxVecEnv:
         & ~self._timing_when_destroyed[self._stt04_003_id]
     )
 
-    no_attached = ~np.any(zone_host == self._zone_attached, axis=(1, 2))
+    attached_cards = zone_host == self._zone_attached
+    attachments_supported = ~np.any(
+        attached_cards
+        & (self._card_type[safe_defs] != self._card_type_weapon),
+        axis=(1, 2),
+    )
     sacrifice = np.asarray(states.sacrifice_eot)
     sacrifice_ok = ~np.any(
         sacrifice
@@ -4368,17 +7958,12 @@ class JaxVecEnv:
         axis=(1, 2),
     )
 
-    token_zone = zone_host[:, :, self._token_instance]
-    token_tapped = np.asarray(states.tapped)[:, :, self._token_instance]
-    token_expires = np.asarray(states.ikz_token_expires_eot)
-    no_token_cleanup = ~np.any(
-        (token_zone == self._zone_token) & (token_tapped | token_expires),
-        axis=1,
-    )
 
     atk_eot = np.asarray(states.atk_buff_eot) != 0
-    atk_eot_zones = (zone_host == self._zone_garden) | (
-        zone_host == self._zone_leader
+    atk_eot_zones = (
+        (zone_host == self._zone_garden)
+        | (zone_host == self._zone_alley)
+        | (zone_host == self._zone_leader)
     )
     atk_eot_ok = ~np.any(atk_eot & ~atk_eot_zones, axis=(1, 2))
     other_eot_fields = (
@@ -4392,16 +7977,10 @@ class JaxVecEnv:
         axis=(0, 2, 3),
     )
 
-    no_positive_start_status = ~np.any(
+    no_unmodeled_start_status = ~np.any(
         (np.asarray(states.frozen_dur) > 0)
-        | (np.asarray(states.effect_immune_dur) > 0)
-        | (np.asarray(states.shocked_dur) != 0),
+        | (np.asarray(states.effect_immune_dur) > 0),
         axis=(1, 2),
-    )
-    no_start_timed_grants = ~np.any(
-        (np.asarray(states.timed_tag) != 0)
-        & (np.asarray(states.timed_phase) == 1),  # GRANT_PHASE_START
-        axis=(1, 2, 3),
     )
 
     active_zone = zone_host[rows, active]
@@ -4423,7 +8002,11 @@ class JaxVecEnv:
     )
 
     board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
-    inert_watch = def_host == self._stt01_008_id
+    seer_owner = np.any(seer, axis=2)
+    azk01_019_unaffected = (
+        (def_host == self._azk01_019_id) & ~seer_owner[:, :, None]
+    )
+    inert_watch = (def_host == self._stt01_008_id) | azk01_019_unaffected
     no_passive_watch = ~np.any(
         board & np.isin(def_host, self._simple_play_watch_ids) & ~inert_watch,
         axis=(1, 2),
@@ -4434,13 +8017,11 @@ class JaxVecEnv:
         & one_or_two_clean_seers
         & seer_damage_ok
         & seer_clean
-        & no_attached
+        & attachments_supported
         & sacrifice_ok
-        & no_token_cleanup
         & atk_eot_ok
         & no_other_eot_modifiers
-        & no_positive_start_status
-        & no_start_timed_grants
+        & no_unmodeled_start_status
         & no_force_tapped
         & no_passive_watch
     )
@@ -4529,10 +8110,13 @@ class JaxVecEnv:
     )
     no_passive_watch = ~np.any(watched_on_board, axis=1)
 
+    supported_source = (def_id == self._azk01_003_id) | (
+        def_id == self._azk01_021_id
+    )
     return (
         base
         & hand_exists
-        & (def_id == self._azk01_003_id)
+        & supported_source
         & (self._card_type[safe_def] == self._card_type_entity)
         & slot_ok
         & displaced_simple
@@ -4550,9 +8134,8 @@ class JaxVecEnv:
     def_host = np.asarray(states.def_id)
     attached_host = np.asarray(states.attached_to)
 
-    passive_clean = (
-        (np.asarray(states.passive_queue_count) == 0)
-        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    passive_events_clean = ~np.any(
+        np.asarray(states.stt02_012_event_pending), axis=(1, 2)
     )
     base = (
         (phase == 2)  # Phase.MAIN
@@ -4563,7 +8146,7 @@ class JaxVecEnv:
         & (np.asarray(states.combat_attacker) < 0)
         & (np.asarray(states.winner) == -1)
         & ~np.asarray(states.eot_abilities_queued)
-        & passive_clean
+        & passive_events_clean
     )
     if not np.any(base):
       return base
@@ -4621,6 +8204,129 @@ class JaxVecEnv:
         & (self._card_type[safe_def] == self._card_type_entity)
         & slot_ok
         & displaced_simple
+    )
+
+
+  def _play_stt03_011_effect_fast_mask(self, acts: np.ndarray, chosen, phase):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    opp = (active_safe + 1) % 2
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    tapped_host = np.asarray(states.tapped)
+    attached_host = np.asarray(states.attached_to)
+
+    passive_clean = (
+        (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    base = (
+        (phase == 2)  # Phase.MAIN
+        & (chosen == self._act_play_garden)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & passive_clean
+    )
+    if not np.any(base):
+      return base
+
+    active_acts = acts[rows, active_safe]
+    hand_index = active_acts[:, 1]
+    slot = active_acts[:, 2]
+    use_token = active_acts[:, 3] != 0
+    zone_row = zone_host[rows, active_safe]
+    zpos_row = zpos_host[rows, active_safe]
+    def_row = def_host[rows, active_safe]
+    tapped_row = tapped_host[rows, active_safe]
+    attached_row = attached_host[rows, active_safe]
+
+    hand_match = (zone_row == self._zone_hand) & (zpos_row == hand_index[:, None])
+    hand_exists = np.any(hand_match, axis=1)
+    hand_inst = np.argmax(hand_match, axis=1)
+    def_id = def_row[rows, hand_inst]
+    safe_def = np.maximum(def_id, 0)
+    next_reduction = np.asarray(states.next_play_cost_reduction)[
+        rows, active_safe
+    ].astype(np.int32, copy=False)
+    cost = np.maximum(self._ikz_cost[safe_def].astype(np.int32) - next_reduction, 0)
+
+    token_ready = (
+        (zone_row[:, self._token_instance] == self._zone_token)
+        & ~tapped_row[:, self._token_instance]
+    )
+    token_needed_ok = ~use_token | token_ready
+    payment_sources = np.sum(
+        (zone_row == self._zone_ikz_area) & ~tapped_row,
+        axis=1,
+    )
+    safe_row_defs = np.maximum(def_row, 0)
+    payment_sources += np.sum(
+        (zone_row == self._zone_garden)
+        & ~tapped_row
+        & self._counts_as_ikz[safe_row_defs],
+        axis=1,
+    )
+    payment_sources += (use_token & token_ready).astype(np.int32)
+    can_pay = token_needed_ok & (payment_sources >= cost)
+
+    slot_match = (zone_row == self._zone_garden) & (zpos_row == slot[:, None])
+    slot_occupied = np.any(slot_match, axis=1)
+    slot_inst = np.argmax(slot_match, axis=1)
+    zone_count = np.sum(zone_row == self._zone_garden, axis=1)
+    zone_full = zone_count >= self._garden_size
+    slot_ok = ~slot_occupied | zone_full
+    displaced_def = def_row[rows, slot_inst]
+    displaced_safe_def = np.maximum(displaced_def, 0)
+    displaced_has_attached = np.any(
+        (zone_row == self._zone_attached)
+        & (attached_row == slot_inst[:, None].astype(attached_row.dtype)),
+        axis=1,
+    )
+    displaced_simple = (
+        ~slot_occupied
+        | (
+            (displaced_def >= 0)
+            & ~self._timing_when_destroyed[displaced_safe_def]
+            & ~self._inherent_godmode[displaced_safe_def]
+            & ~displaced_has_attached
+        )
+    )
+
+    opp_zone = zone_host[rows, opp]
+    opp_defs = def_host[rows, opp]
+    opp_safe_defs = np.maximum(opp_defs, 0)
+    target_available = np.any(
+        (opp_zone == self._zone_garden)
+        & (opp_defs >= 0)
+        & (self._card_type[opp_safe_defs] == self._card_type_entity)
+        & self._has_base_stats[opp_safe_defs]
+        & (self._base_hp[opp_safe_defs].astype(np.int32) <= 2),
+        axis=1,
+    )
+    board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
+    inert_watch = (def_host == self._stt01_008_id) | (
+        def_host == self._stt03_013_id
+    )
+    watched_on_board = board & np.isin(def_host, self._simple_play_watch_ids)
+    no_passive_watch = ~np.any(watched_on_board & ~inert_watch, axis=(1, 2))
+
+    return (
+        base
+        & (active_acts[:, 0] == self._act_play_garden)
+        & hand_exists
+        & (def_id == self._stt03_011_id)
+        & (self._card_type[safe_def] == self._card_type_entity)
+        & can_pay
+        & slot_ok
+        & displaced_simple
+        & target_available
         & no_passive_watch
     )
 
@@ -4696,6 +8402,7 @@ class JaxVecEnv:
         board
         & np.isin(def_host, self._simple_play_watch_ids)
         & (def_host != self._stt01_008_id)
+        & (def_host != self._stt01_009_id)
     )
     no_passive_watch = ~np.any(watched_on_board, axis=(1, 2))
 
@@ -4787,7 +8494,6 @@ class JaxVecEnv:
         & slot_empty
         & not_full
         & (deck_count >= 5)
-        & top5_has_weapon
         & no_passive_watch
     )
 
@@ -4800,11 +8506,13 @@ class JaxVecEnv:
     zone_host = np.asarray(states.zone)
     zpos_host = np.asarray(states.zpos)
     def_host = np.asarray(states.def_id)
+    attached_host = np.asarray(states.attached_to)
 
-    passive_clean = (
-        (np.asarray(states.passive_queue_count) == 0)
-        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
-    )
+    # STT02-003 always opens reveal selection/bottom-deck work when admitted
+    # below, so recompute_passives is gated exactly like the generic static
+    # action. Preserve any deferred passive/STT02 bookkeeping through the
+    # ability context instead of rejecting the play.
+    passive_clean = np.ones(self.num_environments, dtype=bool)
     base = (
         (phase == 2)  # Phase.MAIN
         & (chosen == action_type)
@@ -4832,11 +8540,27 @@ class JaxVecEnv:
     def_id = def_row[rows, hand_inst]
     safe_def = np.maximum(def_id, 0)
 
-    slot_empty = ~np.any(
-        (zone_row == placement_zone) & (zpos_row == slot[:, None]),
+    slot_match = (zone_row == placement_zone) & (zpos_row == slot[:, None])
+    slot_occupied = np.any(slot_match, axis=1)
+    slot_inst = np.argmax(slot_match, axis=1)
+    zone_full = np.sum(zone_row == placement_zone, axis=1) >= self._garden_size
+    slot_ok = ~slot_occupied | zone_full
+    displaced_def = def_row[rows, slot_inst]
+    displaced_safe_def = np.maximum(displaced_def, 0)
+    displaced_has_attached = np.any(
+        (zone_row == self._zone_attached)
+        & (attached_host[rows, active] == slot_inst[:, None]),
         axis=1,
     )
-    not_full = np.sum(zone_row == placement_zone, axis=1) < self._garden_size
+    displaced_simple = (
+        ~slot_occupied
+        | (
+            (displaced_def >= 0)
+            & ~self._timing_when_destroyed[displaced_safe_def]
+            & ~self._inherent_godmode[displaced_safe_def]
+            & ~displaced_has_attached
+        )
+    )
     deck_count = np.sum(zone_row == self._zone_deck, axis=1)
 
     board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
@@ -4844,6 +8568,14 @@ class JaxVecEnv:
         board
         & np.isin(def_host, self._simple_play_watch_ids)
         & (def_host != self._stt01_008_id)
+        & (def_host != self._stt01_009_id)
+        & (def_host != self._stt01_011_id)
+        & (def_host != self._stt02_010_id)
+        & (def_host != self._azk01_010_id)
+        & (def_host != self._azk01_019_id)
+        & (def_host != self._azk01_073_id)
+        & (def_host != self._stt02_012_id)
+        & (def_host != self._stt03_013_id)
     )
     no_passive_watch = ~np.any(watched_on_board, axis=(1, 2))
 
@@ -4853,8 +8585,8 @@ class JaxVecEnv:
         & hand_exists
         & (def_id == self._stt02_003_id)
         & (self._card_type[safe_def] == self._card_type_entity)
-        & slot_empty
-        & not_full
+        & slot_ok
+        & displaced_simple
         & (deck_count > 0)
         & no_passive_watch
     )
@@ -4869,10 +8601,6 @@ class JaxVecEnv:
     zpos_host = np.asarray(states.zpos)
     def_host = np.asarray(states.def_id)
 
-    passive_clean = (
-        (np.asarray(states.passive_queue_count) == 0)
-        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
-    )
     base = (
         (phase == 2)  # Phase.MAIN
         & (chosen == action_type)
@@ -4882,7 +8610,6 @@ class JaxVecEnv:
         & (np.asarray(states.combat_attacker) < 0)
         & (np.asarray(states.winner) == -1)
         & ~np.asarray(states.eot_abilities_queued)
-        & passive_clean
     )
     if not np.any(base):
       return base
@@ -4908,10 +8635,14 @@ class JaxVecEnv:
     deck_count = np.sum(zone_row == self._zone_deck, axis=1)
 
     board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
+    stt03_013_inert = def_host == self._stt03_013_id
     watched_on_board = (
         board
         & np.isin(def_host, self._simple_play_watch_ids)
         & (def_host != self._stt01_008_id)
+        & (def_host != self._stt01_011_id)
+        & (def_host != self._stt02_012_id)
+        & ~stt03_013_inert
     )
     no_passive_watch = ~np.any(watched_on_board, axis=(1, 2))
 
@@ -4937,6 +8668,7 @@ class JaxVecEnv:
     zpos_host = np.asarray(states.zpos)
     def_host = np.asarray(states.def_id)
     tapped_host = np.asarray(states.tapped)
+    attached_host = np.asarray(states.attached_to)
 
     passive_clean = (
         (np.asarray(states.passive_queue_count) == 0)
@@ -4971,11 +8703,24 @@ class JaxVecEnv:
     def_id = def_row[rows, hand_inst]
     safe_def = np.maximum(def_id, 0)
 
-    slot_empty = ~np.any(
-        (zone_row == placement_zone) & (zpos_row == slot[:, None]),
+    slot_match = (zone_row == placement_zone) & (zpos_row == slot[:, None])
+    slot_occupied = np.any(slot_match, axis=1)
+    slot_inst = np.argmax(slot_match, axis=1)
+    zone_full = np.sum(zone_row == placement_zone, axis=1) >= self._garden_size
+    slot_ok = (
+        (slot >= 0)
+        & (slot < self._garden_size)
+        & (~slot_occupied | zone_full)
+    )
+    displaced_def = def_row[rows, slot_inst]
+    displaced_has_attached = np.any(
+        (zone_row == self._zone_attached)
+        & (attached_host[rows, active] == slot_inst[:, None].astype(attached_host.dtype)),
         axis=1,
     )
-    not_full = np.sum(zone_row == placement_zone, axis=1) < self._garden_size
+    displaced_simple = ~slot_occupied | (
+        (displaced_def >= 0) & ~displaced_has_attached
+    )
 
     next_reduction = np.asarray(states.next_play_cost_reduction)[
         rows, active
@@ -5019,10 +8764,15 @@ class JaxVecEnv:
     cost_available = np.any(garden_cost_target, axis=1) | played_can_pay_cost
 
     board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
+    active_axis = np.arange(2, dtype=np.int32)[None, :, None] == active[
+        :, None, None
+    ]
+    enemy_azk01_019 = (def_host == self._azk01_019_id) & ~active_axis
     watched_on_board = (
         board
         & np.isin(def_host, self._simple_play_watch_ids)
         & (def_host != self._stt01_008_id)
+        & ~enemy_azk01_019
     )
     no_passive_watch = ~np.any(watched_on_board, axis=(1, 2))
 
@@ -5032,8 +8782,288 @@ class JaxVecEnv:
         & hand_exists
         & (def_id == self._stt02_009_id)
         & (self._card_type[safe_def] == self._card_type_entity)
-        & slot_empty
-        & not_full
+        & slot_ok
+        & displaced_simple
+        & can_pay
+        & cost_available
+        & no_passive_watch
+    )
+
+  def _play_azk01_022_confirm_fast_mask(
+      self, acts: np.ndarray, chosen, phase, placement_zone: int, action_type: int
+  ):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    tapped_host = np.asarray(states.tapped)
+    attached_host = np.asarray(states.attached_to)
+
+    passive_clean = (placement_zone == self._zone_alley) | ~np.any(
+        np.asarray(states.stt02_012_event_pending), axis=(1, 2)
+    )
+    base = (
+        (phase == 2)  # Phase.MAIN
+        & (chosen == action_type)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & passive_clean
+    )
+    if not np.any(base):
+      return base
+
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+    hand_index = active_acts[:, 1]
+    slot = active_acts[:, 2]
+    use_token = active_acts[:, 3] != 0
+    zone_row = zone_host[rows, active]
+    zpos_row = zpos_host[rows, active]
+    def_row = def_host[rows, active]
+    tapped_row = tapped_host[rows, active]
+
+    hand_match = (zone_row == self._zone_hand) & (zpos_row == hand_index[:, None])
+    hand_exists = np.any(hand_match, axis=1)
+    hand_inst = np.argmax(hand_match, axis=1)
+    def_id = def_row[rows, hand_inst]
+    safe_def = np.maximum(def_id, 0)
+    hand_available_after_play = (
+        np.sum((zone_row == self._zone_hand) & (def_row >= 0), axis=1) > 1
+    )
+
+    slot_match = (zone_row == placement_zone) & (zpos_row == slot[:, None])
+    slot_occupied = np.any(slot_match, axis=1)
+    slot_inst = np.argmax(slot_match, axis=1)
+    zone_full = np.sum(zone_row == placement_zone, axis=1) >= self._garden_size
+    slot_ok = (
+        (slot >= 0)
+        & (slot < self._garden_size)
+        & (~slot_occupied | zone_full)
+    )
+    displaced_def = def_row[rows, slot_inst]
+    displaced_has_attached = np.any(
+        (zone_row == self._zone_attached)
+        & (attached_host[rows, active] == slot_inst[:, None].astype(attached_host.dtype)),
+        axis=1,
+    )
+    displaced_simple = ~slot_occupied | (
+        (displaced_def >= 0) & ~displaced_has_attached
+    )
+
+    next_reduction = np.asarray(states.next_play_cost_reduction)[
+        rows, active
+    ].astype(np.int32, copy=False)
+    cost = np.maximum(
+        self._ikz_cost[safe_def].astype(np.int32) - next_reduction,
+        0,
+    )
+    token_ready = (
+        (zone_row[:, self._token_instance] == self._zone_token)
+        & ~tapped_row[:, self._token_instance]
+    )
+    token_needed_ok = ~use_token | token_ready
+    safe_row_defs = np.maximum(def_row, 0)
+    payment_sources = np.sum(
+        (zone_row == self._zone_ikz_area) & ~tapped_row,
+        axis=1,
+    )
+    payment_sources += np.sum(
+        (zone_row == self._zone_garden)
+        & ~tapped_row
+        & self._counts_as_ikz[safe_row_defs],
+        axis=1,
+    )
+    payment_sources += (use_token & token_ready).astype(np.int32)
+    can_pay = token_needed_ok & (payment_sources >= cost)
+
+    safe_defs = np.maximum(def_host, 0)
+    garden_target = (
+        (zone_host == self._zone_garden)
+        & (def_host >= 0)
+        & (self._card_type[safe_defs] == self._card_type_entity)
+        & self._has_ikz_cost[safe_defs]
+        & (self._ikz_cost[safe_defs].astype(np.int32) <= 2)
+        & ~self._timing_when_returned[safe_defs]
+        & ~self._inherent_godmode[safe_defs]
+        & ~np.asarray(states.grant_godmode)
+    )
+    attached_to = attached_host
+    target_has_attached = np.zeros((self.num_environments, 2, zone_host.shape[2]), dtype=bool)
+    for player in (0, 1):
+      target_has_attached[:, player] = np.any(
+          (zone_host[:, player] == self._zone_attached)[:, None, :]
+          & (attached_to[:, player][..., None] == np.arange(zone_host.shape[2])[None, :, None]),
+          axis=2,
+      )
+    clean_garden_target = garden_target & ~target_has_attached
+    played_clean_target = (
+        (placement_zone == self._zone_garden)
+        & (def_id == self._azk01_022_id)
+        & (self._card_type[safe_def] == self._card_type_entity)
+        & self._has_ikz_cost[safe_def]
+        & (self._ikz_cost[safe_def].astype(np.int32) <= 2)
+        & ~self._timing_when_returned[safe_def]
+        & ~self._inherent_godmode[safe_def]
+    )
+    bounce_available = np.any(clean_garden_target, axis=(1, 2)) | played_clean_target
+
+    board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
+    stt02_012_alley_safe = (
+        (def_host == self._stt02_012_id) & (placement_zone == self._zone_alley)
+    )
+    watched_on_board = (
+        board
+        & np.isin(def_host, self._simple_play_watch_ids)
+        & (def_host != self._stt01_008_id)
+        & ~stt02_012_alley_safe
+    )
+    no_passive_watch = ~np.any(watched_on_board, axis=(1, 2))
+    no_stt02_010_observer = ~np.any(
+        (zone_host == self._zone_garden) & (def_host == self._stt02_010_id),
+        axis=(1, 2),
+    )
+
+    return (
+        base
+        & (active_acts[:, 0] == action_type)
+        & hand_exists
+        & (def_id == self._azk01_022_id)
+        & (self._card_type[safe_def] == self._card_type_entity)
+        & slot_ok
+        & displaced_simple
+        & can_pay
+        & hand_available_after_play
+        & bounce_available
+        & no_passive_watch
+        & no_stt02_010_observer
+    )
+
+
+  def _play_azk01_024_confirm_fast_mask(
+      self, acts: np.ndarray, chosen, phase, placement_zone: int, action_type: int
+  ):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    tapped_host = np.asarray(states.tapped)
+    attached_host = np.asarray(states.attached_to)
+
+    passive_clean = (
+        (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    base = (
+        (phase == 2)
+        & (chosen == action_type)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & passive_clean
+    )
+    if not np.any(base):
+      return base
+
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+    hand_index = active_acts[:, 1]
+    slot = active_acts[:, 2]
+    use_token = active_acts[:, 3] != 0
+    zone_row = zone_host[rows, active]
+    zpos_row = zpos_host[rows, active]
+    def_row = def_host[rows, active]
+    tapped_row = tapped_host[rows, active]
+
+    hand_match = (zone_row == self._zone_hand) & (zpos_row == hand_index[:, None])
+    hand_exists = np.any(hand_match, axis=1)
+    hand_inst = np.argmax(hand_match, axis=1)
+    def_id = def_row[rows, hand_inst]
+    safe_def = np.maximum(def_id, 0)
+
+    slot_match = (zone_row == placement_zone) & (zpos_row == slot[:, None])
+    slot_occupied = np.any(slot_match, axis=1)
+    slot_inst = np.argmax(slot_match, axis=1)
+    zone_full = np.sum(zone_row == placement_zone, axis=1) >= self._garden_size
+    slot_ok = (
+        (slot >= 0)
+        & (slot < self._garden_size)
+        & (~slot_occupied | zone_full)
+    )
+    displaced_def = def_row[rows, slot_inst]
+    displaced_has_attached = np.any(
+        (zone_row == self._zone_attached)
+        & (attached_host[rows, active] == slot_inst[:, None].astype(attached_host.dtype)),
+        axis=1,
+    )
+    displaced_simple = ~slot_occupied | (
+        (displaced_def >= 0) & ~displaced_has_attached
+    )
+
+    next_reduction = np.asarray(states.next_play_cost_reduction)[
+        rows, active
+    ].astype(np.int32, copy=False)
+    cost = np.maximum(
+        self._ikz_cost[safe_def].astype(np.int32) - next_reduction,
+        0,
+    )
+    token_ready = (
+        (zone_row[:, self._token_instance] == self._zone_token)
+        & ~tapped_row[:, self._token_instance]
+    )
+    token_needed_ok = ~use_token | token_ready
+    safe_row_defs = np.maximum(def_row, 0)
+    payment_sources = np.sum(
+        (zone_row == self._zone_ikz_area) & ~tapped_row,
+        axis=1,
+    )
+    payment_sources += np.sum(
+        (zone_row == self._zone_garden)
+        & ~tapped_row
+        & self._counts_as_ikz[safe_row_defs],
+        axis=1,
+    )
+    payment_sources += (use_token & token_ready).astype(np.int32)
+    can_pay = token_needed_ok & (payment_sources >= cost)
+
+    garden_cost_target = (
+        (zone_row == self._zone_garden)
+        & (def_row >= 0)
+        & (self._card_type[safe_row_defs] == self._card_type_entity)
+    )
+    played_cost_target = (
+        (placement_zone == self._zone_garden)
+        & (def_id == self._azk01_024_id)
+        & (self._card_type[safe_def] == self._card_type_entity)
+    )
+    cost_available = np.any(garden_cost_target, axis=1) | played_cost_target
+
+    board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
+    stt03_013_inert = def_host == self._stt03_013_id
+    no_passive_watch = ~np.any(
+        board
+        & np.isin(def_host, self._simple_play_watch_ids)
+        & (def_host != self._stt01_008_id)
+        & (def_host != self._stt02_012_id)
+        & ~stt03_013_inert,
+        axis=(1, 2),
+    )
+    return (
+        base
+        & (active_acts[:, 0] == action_type)
+        & hand_exists
+        & (def_id == self._azk01_024_id)
+        & (self._card_type[safe_def] == self._card_type_entity)
+        & slot_ok
+        & displaced_simple
         & can_pay
         & cost_available
         & no_passive_watch
@@ -5099,7 +9129,7 @@ class JaxVecEnv:
         base
         & (active_acts[:, 0] == action_type)
         & hand_exists
-        & (def_id == self._azk01_033_id)
+        & ((def_id == self._azk01_033_id) | (def_id == self._azk01_069_id))
         & (self._card_type[safe_def] == self._card_type_entity)
         & slot_empty
         & not_full
@@ -5117,10 +9147,6 @@ class JaxVecEnv:
     zpos_host = np.asarray(states.zpos)
     def_host = np.asarray(states.def_id)
 
-    passive_clean = (
-        (np.asarray(states.passive_queue_count) == 0)
-        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
-    )
     base = (
         (phase == 2)  # Phase.MAIN
         & (chosen == action_type)
@@ -5130,7 +9156,6 @@ class JaxVecEnv:
         & (np.asarray(states.combat_attacker) < 0)
         & (np.asarray(states.winner) == -1)
         & ~np.asarray(states.eot_abilities_queued)
-        & passive_clean
     )
     if not np.any(base):
       return base
@@ -5155,11 +9180,14 @@ class JaxVecEnv:
     not_full = np.sum(zone_row == placement_zone, axis=1) < self._garden_size
     deck_count = np.sum(zone_row == self._zone_deck, axis=1)
 
+    stt03_013_inert = def_host == self._stt03_013_id
     board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
     watched_on_board = (
         board
         & np.isin(def_host, self._simple_play_watch_ids)
         & (def_host != self._stt01_008_id)
+        & (def_host != self._stt02_012_id)
+        & ~stt03_013_inert
     )
     no_passive_watch = ~np.any(watched_on_board, axis=(1, 2))
 
@@ -5228,6 +9256,8 @@ class JaxVecEnv:
         board
         & np.isin(def_host, self._simple_play_watch_ids)
         & (def_host != self._stt01_008_id)
+        & (def_host != self._stt02_012_id)
+        & (def_host != self._stt03_013_id)
     )
     no_passive_watch = ~np.any(watched_on_board, axis=(1, 2))
 
@@ -5236,6 +9266,76 @@ class JaxVecEnv:
         & (active_acts[:, 0] == action_type)
         & hand_exists
         & (def_id == self._azk01_056_id)
+        & (self._card_type[safe_def] == self._card_type_entity)
+        & slot_empty
+        & not_full
+        & (deck_count > 0)
+        & no_passive_watch
+    )
+
+  def _play_stt04_005_reveal_fast_mask(
+      self, acts: np.ndarray, chosen, phase, placement_zone: int, action_type: int
+  ):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+
+    passive_clean = (
+        (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    base = (
+        (phase == 2)  # Phase.MAIN
+        & (chosen == action_type)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & passive_clean
+    )
+    if not np.any(base):
+      return base
+
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+    hand_index = active_acts[:, 1]
+    slot = active_acts[:, 2]
+    zone_row = zone_host[rows, active]
+    zpos_row = zpos_host[rows, active]
+    def_row = def_host[rows, active]
+
+    hand_match = (zone_row == self._zone_hand) & (zpos_row == hand_index[:, None])
+    hand_exists = np.any(hand_match, axis=1)
+    hand_inst = np.argmax(hand_match, axis=1)
+    def_id = def_row[rows, hand_inst]
+    safe_def = np.maximum(def_id, 0)
+
+    slot_empty = ~np.any(
+        (zone_row == placement_zone) & (zpos_row == slot[:, None]),
+        axis=1,
+    )
+    not_full = np.sum(zone_row == placement_zone, axis=1) < self._garden_size
+    deck_count = np.sum(zone_row == self._zone_deck, axis=1)
+
+    board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
+    watched_on_board = (
+        board
+        & np.isin(def_host, self._simple_play_watch_ids)
+        & (def_host != self._stt01_008_id)
+        & (def_host != self._stt02_012_id)
+        & (def_host != self._stt03_013_id)
+    )
+    no_passive_watch = ~np.any(watched_on_board, axis=(1, 2))
+
+    return (
+        base
+        & (active_acts[:, 0] == action_type)
+        & hand_exists
+        & (def_id == self._stt04_005_id)
         & (self._card_type[safe_def] == self._card_type_entity)
         & slot_empty
         & not_full
@@ -5326,6 +9426,368 @@ class JaxVecEnv:
         & cost_target_available
     )
 
+
+  def _play_spell_stt02_014_fast_mask(self, acts: np.ndarray, chosen, phase):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    opp = (active_safe + 1) % 2
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    tapped_host = np.asarray(states.tapped)
+
+    passive_clean = (
+        (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    base = (
+        (phase == 2)  # Phase.MAIN
+        & (chosen == self._act_play_spell)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & passive_clean
+    )
+    if not np.any(base):
+      return base
+
+    active_acts = acts[rows, active_safe]
+    hand_index = active_acts[:, 1]
+    ability_index = active_acts[:, 2]
+    use_token = active_acts[:, 3] != 0
+    zone_row = zone_host[rows, active_safe]
+    zpos_row = zpos_host[rows, active_safe]
+    def_row = def_host[rows, active_safe]
+    tapped_row = tapped_host[rows, active_safe]
+
+    hand_match = (zone_row == self._zone_hand) & (zpos_row == hand_index[:, None])
+    hand_exists = np.any(hand_match, axis=1)
+    hand_inst = np.argmax(hand_match, axis=1)
+    def_id = def_row[rows, hand_inst]
+    safe_def = np.maximum(def_id, 0)
+    next_reduction = np.asarray(states.next_play_cost_reduction)[
+        rows, active_safe
+    ].astype(np.int32, copy=False)
+    cost = np.maximum(self._ikz_cost[safe_def].astype(np.int32) - next_reduction, 0)
+
+    token_ready = (
+        (zone_row[:, self._token_instance] == self._zone_token)
+        & ~tapped_row[:, self._token_instance]
+    )
+    token_needed_ok = ~use_token | token_ready
+    payment_sources = np.sum(
+        (zone_row == self._zone_ikz_area) & ~tapped_row,
+        axis=1,
+    )
+    safe_row_defs = np.maximum(def_row, 0)
+    payment_sources += np.sum(
+        (zone_row == self._zone_garden)
+        & ~tapped_row
+        & self._counts_as_ikz[safe_row_defs],
+        axis=1,
+    )
+    payment_sources += (use_token & token_ready).astype(np.int32)
+    can_pay = token_needed_ok & (payment_sources >= cost)
+
+    opp_zone = zone_host[rows, opp]
+    opp_defs = def_host[rows, opp]
+    opp_safe_defs = np.maximum(opp_defs, 0)
+    target_available = np.any(
+        (opp_zone == self._zone_garden)
+        & (opp_defs >= 0)
+        & (self._card_type[opp_safe_defs] == self._card_type_entity)
+        & self._has_ikz_cost[opp_safe_defs]
+        & (self._ikz_cost[opp_safe_defs].astype(np.int32) <= 2),
+        axis=1,
+    )
+
+    return (
+        base
+        & (active_acts[:, 0] == self._act_play_spell)
+        & (ability_index == 0)
+        & hand_exists
+        & (def_id == self._stt02_014_id)
+        & (self._card_type[safe_def] == self._card_type_spell)
+        & can_pay
+        & target_available
+    )
+
+  def _play_spell_azk01_020_fast_mask(self, acts: np.ndarray, chosen, phase):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    tapped_host = np.asarray(states.tapped)
+
+    passive_clean = (
+        (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    main_shape = (phase == 2) & (np.asarray(states.combat_attacker) < 0)
+    response_shape = (phase == 3) & (np.asarray(states.combat_attacker) >= 0)
+    base = (
+        (chosen == self._act_play_spell)
+        & (main_shape | response_shape)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & passive_clean
+    )
+    if not np.any(base):
+      return base
+
+    active_acts = acts[rows, active_safe]
+    hand_index = active_acts[:, 1]
+    ability_index = active_acts[:, 2]
+    use_token = active_acts[:, 3] != 0
+    zone_row = zone_host[rows, active_safe]
+    zpos_row = zpos_host[rows, active_safe]
+    def_row = def_host[rows, active_safe]
+    tapped_row = tapped_host[rows, active_safe]
+
+    hand_match = (zone_row == self._zone_hand) & (zpos_row == hand_index[:, None])
+    hand_exists = np.any(hand_match, axis=1)
+    hand_inst = np.argmax(hand_match, axis=1)
+    def_id = def_row[rows, hand_inst]
+    safe_def = np.maximum(def_id, 0)
+    next_reduction = np.asarray(states.next_play_cost_reduction)[
+        rows, active_safe
+    ].astype(np.int32, copy=False)
+    cost = np.maximum(self._ikz_cost[safe_def].astype(np.int32) - next_reduction, 0)
+
+    token_ready = (
+        (zone_row[:, self._token_instance] == self._zone_token)
+        & ~tapped_row[:, self._token_instance]
+    )
+    token_needed_ok = ~use_token | token_ready
+    payment_sources = np.sum(
+        (zone_row == self._zone_ikz_area) & ~tapped_row,
+        axis=1,
+    )
+    safe_row_defs = np.maximum(def_row, 0)
+    payment_sources += np.sum(
+        (zone_row == self._zone_garden)
+        & ~tapped_row
+        & self._counts_as_ikz[safe_row_defs],
+        axis=1,
+    )
+    payment_sources += (use_token & token_ready).astype(np.int32)
+    can_pay = token_needed_ok & (payment_sources >= cost)
+
+    friendly_garden_entities = (
+        (zone_row == self._zone_garden)
+        & (def_row >= 0)
+        & (self._card_type[safe_row_defs] == self._card_type_entity)
+    )
+    target_available = np.sum(friendly_garden_entities, axis=1) >= 2
+
+    return (
+        base
+        & (active_acts[:, 0] == self._act_play_spell)
+        & (ability_index == 0)
+        & hand_exists
+        & (def_id == self._azk01_020_id)
+        & (self._card_type[safe_def] == self._card_type_spell)
+        & self._has_ability[safe_def]
+        & can_pay
+        & target_available
+    )
+
+  def _play_spell_azk01_086_fast_mask(self, acts: np.ndarray, chosen, phase):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    tapped_host = np.asarray(states.tapped)
+
+    passive_clean = ~np.any(
+        np.asarray(states.stt02_012_event_pending), axis=(1, 2)
+    )
+    base = (
+        (phase == 2)
+        & (chosen == self._act_play_spell)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & passive_clean
+    )
+    if not np.any(base):
+      return base
+
+    active_acts = acts[rows, active_safe]
+    hand_index = active_acts[:, 1]
+    ability_index = active_acts[:, 2]
+    use_token = active_acts[:, 3] != 0
+    zone_row = zone_host[rows, active_safe]
+    zpos_row = zpos_host[rows, active_safe]
+    def_row = def_host[rows, active_safe]
+    tapped_row = tapped_host[rows, active_safe]
+
+    hand_match = (zone_row == self._zone_hand) & (zpos_row == hand_index[:, None])
+    hand_exists = np.any(hand_match, axis=1)
+    hand_inst = np.argmax(hand_match, axis=1)
+    def_id = def_row[rows, hand_inst]
+    safe_def = np.maximum(def_id, 0)
+    next_reduction = np.asarray(states.next_play_cost_reduction)[
+        rows, active_safe
+    ].astype(np.int32, copy=False)
+    cost = np.maximum(self._ikz_cost[safe_def].astype(np.int32) - next_reduction, 0)
+
+    token_ready = (
+        (zone_row[:, self._token_instance] == self._zone_token)
+        & ~tapped_row[:, self._token_instance]
+    )
+    token_needed_ok = ~use_token | token_ready
+    payment_sources = np.sum(
+        (zone_row == self._zone_ikz_area) & ~tapped_row,
+        axis=1,
+    )
+    safe_row_defs = np.maximum(def_row, 0)
+    payment_sources += np.sum(
+        (zone_row == self._zone_garden)
+        & ~tapped_row
+        & self._counts_as_ikz[safe_row_defs],
+        axis=1,
+    )
+    payment_sources += (use_token & token_ready).astype(np.int32)
+    can_pay = token_needed_ok & (payment_sources >= cost)
+    normal_discard_entities = (
+        (zone_row == self._zone_discard)
+        & (def_row >= 0)
+        & (self._card_type[safe_row_defs] == self._card_type_entity)
+        & (self._card_element[safe_row_defs] == 0)
+        & self._has_ikz_cost[safe_row_defs]
+        & (self._ikz_cost[safe_row_defs].astype(np.int32) <= 6)
+    )
+    discard_weapons = (
+        (zone_row == self._zone_discard)
+        & (def_row >= 0)
+        & (self._card_type[safe_row_defs] == self._card_type_weapon)
+    )
+    is_azk01_084 = def_id == self._azk01_084_id
+    is_azk01_086 = def_id == self._azk01_086_id
+    eligible_discard = (
+        (is_azk01_084[:, None] & normal_discard_entities)
+        | (is_azk01_086[:, None] & discard_weapons)
+    )
+
+    return (
+        base
+        & (active_acts[:, 0] == self._act_play_spell)
+        & (ability_index == 0)
+        & hand_exists
+        & (is_azk01_084 | is_azk01_086)
+        & (self._card_type[safe_def] == self._card_type_spell)
+        & self._has_ability[safe_def]
+        & can_pay
+        & np.any(eligible_discard, axis=1)
+    )
+
+
+
+  def _play_spell_stt02_015_fast_mask(self, acts: np.ndarray, chosen, phase):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    tapped_host = np.asarray(states.tapped)
+
+    passive_clean = (
+        (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    base = (
+        (phase == 3)  # Phase.RESPONSE_WINDOW
+        & (chosen == self._act_play_spell)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) >= 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & passive_clean
+    )
+    if not np.any(base):
+      return base
+
+    active_acts = acts[rows, active_safe]
+    hand_index = active_acts[:, 1]
+    ability_index = active_acts[:, 2]
+    use_token = active_acts[:, 3] != 0
+    zone_row = zone_host[rows, active_safe]
+    zpos_row = zpos_host[rows, active_safe]
+    def_row = def_host[rows, active_safe]
+    tapped_row = tapped_host[rows, active_safe]
+
+    hand_match = (zone_row == self._zone_hand) & (zpos_row == hand_index[:, None])
+    hand_exists = np.any(hand_match, axis=1)
+    hand_inst = np.argmax(hand_match, axis=1)
+    def_id = def_row[rows, hand_inst]
+    safe_def = np.maximum(def_id, 0)
+    next_reduction = np.asarray(states.next_play_cost_reduction)[
+        rows, active_safe
+    ].astype(np.int32, copy=False)
+    cost = np.maximum(self._ikz_cost[safe_def].astype(np.int32) - next_reduction, 0)
+
+    token_ready = (
+        (zone_row[:, self._token_instance] == self._zone_token)
+        & ~tapped_row[:, self._token_instance]
+    )
+    token_needed_ok = ~use_token | token_ready
+    payment_sources = np.sum(
+        (zone_row == self._zone_ikz_area) & ~tapped_row,
+        axis=1,
+    )
+    safe_row_defs = np.maximum(def_row, 0)
+    payment_sources += np.sum(
+        (zone_row == self._zone_garden)
+        & ~tapped_row
+        & self._counts_as_ikz[safe_row_defs],
+        axis=1,
+    )
+    payment_sources += (use_token & token_ready).astype(np.int32)
+    can_pay = token_needed_ok & (payment_sources >= cost)
+
+    safe_defs = np.maximum(def_host, 0)
+    target_available = np.any(
+        (zone_host == self._zone_garden)
+        & (def_host >= 0)
+        & (self._card_type[safe_defs] == self._card_type_entity)
+        & self._has_ikz_cost[safe_defs]
+        & (self._ikz_cost[safe_defs].astype(np.int32) <= 3),
+        axis=(1, 2),
+    )
+
+    return (
+        base
+        & (active_acts[:, 0] == self._act_play_spell)
+        & (ability_index == 0)
+        & hand_exists
+        & (def_id == self._stt02_015_id)
+        & (self._card_type[safe_def] == self._card_type_spell)
+        & can_pay
+        & target_available
+    )
+
   def _play_spell_stt02_016_fast_mask(self, acts: np.ndarray, chosen, phase):
     states = self._states
     rows = np.arange(self.num_environments)
@@ -5393,11 +9855,6 @@ class JaxVecEnv:
     payment_sources += (use_token & token_ready).astype(np.int32)
     can_pay = token_needed_ok & (payment_sources >= cost)
 
-    inst_cols = np.arange(def_row.shape[1], dtype=np.int32)
-    other_hand_card = np.any(
-        (zone_row == self._zone_hand) & (inst_cols[None, :] != hand_inst[:, None]),
-        axis=1,
-    )
     opp_zone = zone_host[rows, opp]
     opp_defs = def_host[rows, opp]
     opp_safe_defs = np.maximum(opp_defs, 0)
@@ -5408,6 +9865,12 @@ class JaxVecEnv:
         axis=1,
     )
 
+    # STT02-016's additional cost is "Discard 1" from ANOTHER hand card
+    # (stt02_016_validate_cost_target excludes the spell itself). With no
+    # second hand card C opens the cost selection, finds zero targets, and
+    # fizzles the spell — leave that shape to the generic kernel.
+    discard_available = np.sum(zone_row == self._zone_hand, axis=1) >= 2
+
     return (
         base
         & (active_acts[:, 0] == self._act_play_spell)
@@ -5416,8 +9879,369 @@ class JaxVecEnv:
         & (def_id == self._stt02_016_id)
         & (self._card_type[safe_def] == self._card_type_spell)
         & can_pay
-        & other_hand_card
+        & discard_available
         & target_available
+    )
+
+
+  def _play_spell_azk01_016_fast_mask(self, acts: np.ndarray, chosen, phase):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    tapped_host = np.asarray(states.tapped)
+
+    passive_clean = (
+        (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    base = (
+        (phase == 2)  # Phase.MAIN
+        & (chosen == self._act_play_spell)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & passive_clean
+    )
+    if not np.any(base):
+      return base
+
+    active_acts = acts[rows, active_safe]
+    hand_index = active_acts[:, 1]
+    ability_index = active_acts[:, 2]
+    use_token = active_acts[:, 3] != 0
+    zone_row = zone_host[rows, active_safe]
+    zpos_row = zpos_host[rows, active_safe]
+    def_row = def_host[rows, active_safe]
+    tapped_row = tapped_host[rows, active_safe]
+
+    hand_match = (zone_row == self._zone_hand) & (zpos_row == hand_index[:, None])
+    hand_exists = np.any(hand_match, axis=1)
+    hand_inst = np.argmax(hand_match, axis=1)
+    def_id = def_row[rows, hand_inst]
+    safe_def = np.maximum(def_id, 0)
+    next_reduction = np.asarray(states.next_play_cost_reduction)[
+        rows, active_safe
+    ].astype(np.int32, copy=False)
+    cost = np.maximum(self._ikz_cost[safe_def].astype(np.int32) - next_reduction, 0)
+
+    token_ready = (
+        (zone_row[:, self._token_instance] == self._zone_token)
+        & ~tapped_row[:, self._token_instance]
+    )
+    token_needed_ok = ~use_token | token_ready
+    payment_sources = np.sum(
+        (zone_row == self._zone_ikz_area) & ~tapped_row,
+        axis=1,
+    )
+    safe_row_defs = np.maximum(def_row, 0)
+    payment_sources += np.sum(
+        (zone_row == self._zone_garden)
+        & ~tapped_row
+        & self._counts_as_ikz[safe_row_defs],
+        axis=1,
+    )
+    payment_sources += (use_token & token_ready).astype(np.int32)
+    can_pay = token_needed_ok & (payment_sources >= cost)
+
+    hand_count = np.sum(zone_row == self._zone_hand, axis=1)
+    deck_count = np.sum(zone_row == self._zone_deck, axis=1)
+    available_after_draw = hand_count - hand_exists.astype(np.int32) + np.minimum(
+        deck_count, 2
+    )
+
+    return (
+        base
+        & (active_acts[:, 0] == self._act_play_spell)
+        & (ability_index == 0)
+        & hand_exists
+        & (def_id == self._azk01_016_id)
+        & (self._card_type[safe_def] == self._card_type_spell)
+        & can_pay
+        & (deck_count >= 1)
+        & (available_after_draw >= 2)
+    )
+
+
+  def _play_spell_azk01_017_fast_mask(self, acts: np.ndarray, chosen, phase):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    tapped_host = np.asarray(states.tapped)
+
+    passive_clean = (
+        (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    base = (
+        (phase == 2)  # Phase.MAIN
+        & (chosen == self._act_play_spell)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & passive_clean
+    )
+    if not np.any(base):
+      return base
+
+    active_acts = acts[rows, active_safe]
+    hand_index = active_acts[:, 1]
+    ability_index = active_acts[:, 2]
+    use_token = active_acts[:, 3] != 0
+    zone_row = zone_host[rows, active_safe]
+    zpos_row = zpos_host[rows, active_safe]
+    def_row = def_host[rows, active_safe]
+    tapped_row = tapped_host[rows, active_safe]
+
+    hand_match = (zone_row == self._zone_hand) & (zpos_row == hand_index[:, None])
+    hand_exists = np.any(hand_match, axis=1)
+    hand_inst = np.argmax(hand_match, axis=1)
+    def_id = def_row[rows, hand_inst]
+    safe_def = np.maximum(def_id, 0)
+    next_reduction = np.asarray(states.next_play_cost_reduction)[
+        rows, active_safe
+    ].astype(np.int32, copy=False)
+    cost = np.maximum(self._ikz_cost[safe_def].astype(np.int32) - next_reduction, 0)
+
+    token_ready = (
+        (zone_row[:, self._token_instance] == self._zone_token)
+        & ~tapped_row[:, self._token_instance]
+    )
+    token_needed_ok = ~use_token | token_ready
+    payment_sources = np.sum(
+        (zone_row == self._zone_ikz_area) & ~tapped_row,
+        axis=1,
+    )
+    safe_row_defs = np.maximum(def_row, 0)
+    payment_sources += np.sum(
+        (zone_row == self._zone_garden)
+        & ~tapped_row
+        & self._counts_as_ikz[safe_row_defs],
+        axis=1,
+    )
+    payment_sources += (use_token & token_ready).astype(np.int32)
+    can_pay = token_needed_ok & (payment_sources >= cost)
+
+    safe_defs = np.maximum(def_host, 0)
+    any_garden = np.any(
+        (zone_host == self._zone_garden)
+        & (def_host >= 0)
+        & (self._card_type[safe_defs] == self._card_type_entity),
+        axis=(1, 2),
+    )
+    any_leader = np.any(
+        (zone_host == self._zone_leader) & (def_host >= 0),
+        axis=(1, 2),
+    )
+    opp = (active_safe + 1) % 2
+    opp_zone = zone_host[rows, opp]
+    opp_defs = def_host[rows, opp]
+    opp_safe_defs = np.maximum(opp_defs, 0)
+    enemy_garden = np.any(
+        (opp_zone == self._zone_garden)
+        & (opp_defs >= 0)
+        & (self._card_type[opp_safe_defs] == self._card_type_entity),
+        axis=1,
+    )
+    is_azk01_017 = def_id == self._azk01_017_id
+    is_azk01_087 = def_id == self._azk01_087_id
+    target_classes = any_garden.astype(np.int32) + any_leader.astype(np.int32)
+
+    return (
+        base
+        & (active_acts[:, 0] == self._act_play_spell)
+        & (ability_index == 0)
+        & hand_exists
+        & (is_azk01_017 | is_azk01_087)
+        & (self._card_type[safe_def] == self._card_type_spell)
+        & can_pay
+        & ((is_azk01_017 & (target_classes > 0)) | (is_azk01_087 & enemy_garden))
+    )
+  def _play_spell_stt02_017_fast_mask(self, acts: np.ndarray, chosen, phase):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    opp = (active_safe + 1) % 2
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    tapped_host = np.asarray(states.tapped)
+
+    passive_clean = (
+        (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
+    no_passive_watch = ~np.any(
+        board
+        & np.isin(def_host, self._simple_play_watch_ids)
+        & (def_host != self._stt01_008_id)
+        & (def_host != self._stt01_009_id)
+        & (def_host != self._stt01_011_id)
+        & (def_host != self._stt02_012_id),
+        axis=(1, 2),
+    )
+    base = (
+        (phase == 2)  # Phase.MAIN
+        & (chosen == self._act_play_spell)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & passive_clean
+    )
+    if not np.any(base):
+      return base
+
+    active_acts = acts[rows, active_safe]
+    hand_index = active_acts[:, 1]
+    ability_index = active_acts[:, 2]
+    use_token = active_acts[:, 3] != 0
+    zone_row = zone_host[rows, active_safe]
+    zpos_row = zpos_host[rows, active_safe]
+    def_row = def_host[rows, active_safe]
+    tapped_row = tapped_host[rows, active_safe]
+
+    hand_match = (zone_row == self._zone_hand) & (zpos_row == hand_index[:, None])
+    hand_exists = np.any(hand_match, axis=1)
+    hand_inst = np.argmax(hand_match, axis=1)
+    def_id = def_row[rows, hand_inst]
+    safe_def = np.maximum(def_id, 0)
+    next_reduction = np.asarray(states.next_play_cost_reduction)[
+        rows, active_safe
+    ].astype(np.int32, copy=False)
+    cost = np.maximum(self._ikz_cost[safe_def].astype(np.int32) - next_reduction, 0)
+
+    token_ready = (
+        (zone_row[:, self._token_instance] == self._zone_token)
+        & ~tapped_row[:, self._token_instance]
+    )
+    token_needed_ok = ~use_token | token_ready
+    payment_sources = np.sum(
+        (zone_row == self._zone_ikz_area) & ~tapped_row,
+        axis=1,
+    )
+    safe_row_defs = np.maximum(def_row, 0)
+    payment_sources += np.sum(
+        (zone_row == self._zone_garden)
+        & ~tapped_row
+        & self._counts_as_ikz[safe_row_defs],
+        axis=1,
+    )
+    payment_sources += (use_token & token_ready).astype(np.int32)
+    can_pay = token_needed_ok & (payment_sources >= cost)
+
+    leader_match = zone_row == self._zone_leader
+    leader_exists = np.any(leader_match, axis=1)
+    leader_inst = np.argmax(leader_match, axis=1)
+    leader_def = def_row[rows, leader_inst]
+    leader_shao = leader_exists & self._shao[np.maximum(leader_def, 0)]
+
+    opp_zone = zone_host[rows, opp]
+    opp_defs = def_host[rows, opp]
+    opp_safe_defs = np.maximum(opp_defs, 0)
+    opp_attached_to = np.asarray(states.attached_to)[rows, opp]
+    inst_cols = np.arange(opp_zone.shape[1], dtype=np.int32)
+    target_has_attached = np.any(
+        (opp_zone[:, None, :] == self._zone_attached)
+        & (opp_attached_to[:, None, :] == inst_cols[None, :, None]),
+        axis=2,
+    )
+    bounce_targets = (
+        (opp_zone == self._zone_garden)
+        & (opp_defs >= 0)
+        & (self._card_type[opp_safe_defs] == self._card_type_entity)
+        & self._has_ikz_cost[opp_safe_defs]
+        & (self._ikz_cost[opp_safe_defs].astype(np.int32) <= 4)
+    )
+    target_clean = (
+        ~target_has_attached
+        & ~self._timing_when_returned[opp_safe_defs]
+        & ~self._inherent_godmode[opp_safe_defs]
+    )
+    bounce_count = np.sum(bounce_targets, axis=1)
+    all_targets_clean = ~np.any(bounce_targets & ~target_clean, axis=1)
+
+    observer_when_returned = (
+        (zone_host == self._zone_garden)
+        & self._timing_when_returned[np.maximum(def_host, 0)]
+    )
+    observers_supported = ~np.any(
+        observer_when_returned & (def_host != self._stt02_010_id),
+        axis=(1, 2),
+    )
+
+    target_flow_ok = (bounce_count == 0) | (
+        no_passive_watch & all_targets_clean & observers_supported
+    )
+    return (
+        base
+        & (active_acts[:, 0] == self._act_play_spell)
+        & (ability_index == 0)
+        & hand_exists
+        & (def_id == self._stt02_017_id)
+        & (self._card_type[safe_def] == self._card_type_spell)
+        & can_pay
+        & leader_shao
+        & target_flow_ok
+    )
+
+  def _play_spell_stt02_017_static_mask(
+      self, acts: np.ndarray, chosen, phase
+  ):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    active_acts = acts[rows, active_safe]
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    zone_row = zone_host[rows, active_safe]
+    zpos_row = zpos_host[rows, active_safe]
+    def_row = def_host[rows, active_safe]
+    hand_index = active_acts[:, 1].astype(np.int32, copy=False)
+    hand_match = (zone_row == self._zone_hand) & (zpos_row == hand_index[:, None])
+    hand_exists = np.any(hand_match, axis=1)
+    hand_inst = np.argmax(hand_match, axis=1)
+    def_id = def_row[rows, hand_inst]
+    safe_def = np.maximum(def_id, 0)
+    leader_match = zone_row == self._zone_leader
+    leader_exists = np.any(leader_match, axis=1)
+    leader_inst = np.argmax(leader_match, axis=1)
+    leader_def = def_row[rows, leader_inst]
+    leader_shao = leader_exists & self._shao[np.maximum(leader_def, 0)]
+    return (
+        (phase == 2)  # Phase.MAIN
+        & (chosen == self._act_play_spell)
+        & (active_acts[:, 0] == self._act_play_spell)
+        & (active_acts[:, 2] == 0)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & hand_exists
+        & (def_id == self._stt02_017_id)
+        & (self._card_type[safe_def] == self._card_type_spell)
+        & leader_shao
     )
 
   def _play_spell_stt01_017_fast_mask(self, acts: np.ndarray, chosen, phase):
@@ -5507,6 +10331,220 @@ class JaxVecEnv:
         & self._has_ability[safe_def]
         & can_pay
         & np.any(enemy_garden_entity, axis=1)
+    )
+
+  def _play_spell_azk01_029_fast_mask(self, acts: np.ndarray, chosen, phase):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    opp = (active_safe + 1) % 2
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    tapped_host = np.asarray(states.tapped)
+
+    passive_clean = (
+        (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    base = (
+        (phase == 3)  # Phase.RESPONSE_WINDOW
+        & (chosen == self._act_play_spell)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) >= 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & passive_clean
+    )
+    if not np.any(base):
+      return base
+
+    active_acts = acts[rows, active_safe]
+    hand_index = active_acts[:, 1]
+    ability_index = active_acts[:, 2]
+    use_token = active_acts[:, 3] != 0
+    zone_row = zone_host[rows, active_safe]
+    zpos_row = zpos_host[rows, active_safe]
+    def_row = def_host[rows, active_safe]
+    tapped_row = tapped_host[rows, active_safe]
+
+    hand_match = (zone_row == self._zone_hand) & (zpos_row == hand_index[:, None])
+    hand_exists = np.any(hand_match, axis=1)
+    hand_inst = np.argmax(hand_match, axis=1)
+    def_id = def_row[rows, hand_inst]
+    safe_def = np.maximum(def_id, 0)
+    next_reduction = np.asarray(states.next_play_cost_reduction)[
+        rows, active_safe
+    ].astype(np.int32, copy=False)
+    cost = np.maximum(self._ikz_cost[safe_def].astype(np.int32) - next_reduction, 0)
+
+    token_ready = (
+        (zone_row[:, self._token_instance] == self._zone_token)
+        & ~tapped_row[:, self._token_instance]
+    )
+    token_needed_ok = ~use_token | token_ready
+    payment_sources = np.sum(
+        (zone_row == self._zone_ikz_area) & ~tapped_row,
+        axis=1,
+    )
+    safe_row_defs = np.maximum(def_row, 0)
+    payment_sources += np.sum(
+        (zone_row == self._zone_garden)
+        & ~tapped_row
+        & self._counts_as_ikz[safe_row_defs],
+        axis=1,
+    )
+    payment_sources += (use_token & token_ready).astype(np.int32)
+    can_pay = token_needed_ok & (payment_sources >= cost)
+
+    other_hand_count = np.sum((zone_row == self._zone_hand) & ~hand_match, axis=1)
+    target_available = (
+        np.any(zone_host[rows, active_safe] == self._zone_leader, axis=1)
+        | np.any(zone_host[rows, opp] == self._zone_leader, axis=1)
+        | np.any(
+            (zone_host[rows, active_safe] == self._zone_garden)
+            & (def_host[rows, active_safe] >= 0)
+            & (self._card_type[np.maximum(def_host[rows, active_safe], 0)] == self._card_type_entity),
+            axis=1,
+        )
+        | np.any(
+            (zone_host[rows, opp] == self._zone_garden)
+            & (def_host[rows, opp] >= 0)
+            & (self._card_type[np.maximum(def_host[rows, opp], 0)] == self._card_type_entity),
+            axis=1,
+        )
+    )
+
+    return (
+        base
+        & (active_acts[:, 0] == self._act_play_spell)
+        & (ability_index == 0)
+        & hand_exists
+        & (def_id == self._azk01_029_id)
+        & (self._card_type[safe_def] == self._card_type_spell)
+        & can_pay
+        & (other_hand_count >= 2)
+        & target_available
+    )
+
+
+  def _play_spell_azk01_031_fast_mask(self, acts: np.ndarray, chosen, phase):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    tapped_host = np.asarray(states.tapped)
+
+    passive_clean = (
+        (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    base = (
+        (phase == 2)  # Phase.MAIN
+        & (chosen == self._act_play_spell)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & passive_clean
+    )
+    if not np.any(base):
+      return base
+
+    active_acts = acts[rows, active_safe]
+    hand_index = active_acts[:, 1]
+    ability_index = active_acts[:, 2]
+    use_token = active_acts[:, 3] != 0
+    zone_row = zone_host[rows, active_safe]
+    zpos_row = zpos_host[rows, active_safe]
+    def_row = def_host[rows, active_safe]
+    tapped_row = tapped_host[rows, active_safe]
+
+    hand_match = (zone_row == self._zone_hand) & (zpos_row == hand_index[:, None])
+    hand_exists = np.any(hand_match, axis=1)
+    hand_inst = np.argmax(hand_match, axis=1)
+    def_id = def_row[rows, hand_inst]
+    safe_def = np.maximum(def_id, 0)
+    next_reduction = np.asarray(states.next_play_cost_reduction)[
+        rows, active_safe
+    ].astype(np.int32, copy=False)
+    cost = np.maximum(self._ikz_cost[safe_def].astype(np.int32) - next_reduction, 0)
+
+    token_ready = (
+        (zone_row[:, self._token_instance] == self._zone_token)
+        & ~tapped_row[:, self._token_instance]
+    )
+    token_needed_ok = ~use_token | token_ready
+    payment_sources = np.sum(
+        (zone_row == self._zone_ikz_area) & ~tapped_row,
+        axis=1,
+    )
+    safe_row_defs = np.maximum(def_row, 0)
+    payment_sources += np.sum(
+        (zone_row == self._zone_garden)
+        & ~tapped_row
+        & self._counts_as_ikz[safe_row_defs],
+        axis=1,
+    )
+    payment_sources += (use_token & token_ready).astype(np.int32)
+    can_pay = token_needed_ok & (payment_sources >= cost)
+
+    supported_spell = (def_id == self._azk01_031_id) | (
+        def_id == self._azk01_092_id
+    )
+    return (
+        base
+        & (active_acts[:, 0] == self._act_play_spell)
+        & (ability_index == 0)
+        & hand_exists
+        & supported_spell
+        & (self._card_type[safe_def] == self._card_type_spell)
+        & can_pay
+    )
+
+  def _play_spell_azk01_031_static_mask(self, acts: np.ndarray, chosen, phase):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    active_acts = acts[rows, active_safe]
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    hand_index = active_acts[:, 1].astype(np.int32, copy=False)
+    zone_row = zone_host[rows, active_safe]
+    zpos_row = zpos_host[rows, active_safe]
+    def_row = def_host[rows, active_safe]
+    hand_match = (zone_row == self._zone_hand) & (zpos_row == hand_index[:, None])
+    hand_exists = np.any(hand_match, axis=1)
+    hand_inst = np.argmax(hand_match, axis=1)
+    def_id = def_row[rows, hand_inst]
+    safe_def = np.maximum(def_id, 0)
+    supported_spell = (def_id == self._azk01_031_id) | (
+        def_id == self._azk01_092_id
+    )
+    return (
+        (phase == 2)  # Phase.MAIN
+        & (chosen == self._act_play_spell)
+        & (active_acts[:, 0] == self._act_play_spell)
+        & (active_acts[:, 2] == 0)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & hand_exists
+        & supported_spell
+        & (self._card_type[safe_def] == self._card_type_spell)
     )
 
   def _play_spell_azk01_032_fast_mask(self, acts: np.ndarray, chosen, phase):
@@ -5678,6 +10716,12 @@ class JaxVecEnv:
     )
 
   def _play_spell_azk01_009_fast_mask(self, acts: np.ndarray, chosen, phase):
+    # This vmapped kernel's XLA compile is a 40-90 GB giant whose
+    # executable exceeds the persistent-cache serialization limit, so
+    # every process would re-pay it at batch >1. Route these rows to
+    # the broad generic kernel (cached at (1,...), parity-proven).
+    if self.num_environments > 1:
+      return np.zeros(self.num_environments, dtype=bool)
     states = self._states
     rows = np.arange(self.num_environments)
     active = np.asarray(states.active_player).astype(np.int32, copy=False)
@@ -5763,6 +10807,198 @@ class JaxVecEnv:
         & target_available
     )
 
+  def _play_spell_azk01_117_fast_mask(self, acts: np.ndarray, chosen, phase):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    tapped_host = np.asarray(states.tapped)
+
+    passive_clean = (
+        (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    base = (
+        (phase == 2)  # Phase.MAIN
+        & (chosen == self._act_play_spell)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & passive_clean
+    )
+    if not np.any(base):
+      return base
+
+    active_acts = acts[rows, active_safe]
+    hand_index = active_acts[:, 1]
+    ability_index = active_acts[:, 2]
+    use_token = active_acts[:, 3] != 0
+    zone_row = zone_host[rows, active_safe]
+    zpos_row = zpos_host[rows, active_safe]
+    def_row = def_host[rows, active_safe]
+    tapped_row = tapped_host[rows, active_safe]
+
+    hand_match = (zone_row == self._zone_hand) & (zpos_row == hand_index[:, None])
+    hand_exists = np.any(hand_match, axis=1)
+    hand_inst = np.argmax(hand_match, axis=1)
+    def_id = def_row[rows, hand_inst]
+    safe_def = np.maximum(def_id, 0)
+    next_reduction = np.asarray(states.next_play_cost_reduction)[
+        rows, active_safe
+    ].astype(np.int32, copy=False)
+    cost = np.maximum(self._ikz_cost[safe_def].astype(np.int32) - next_reduction, 0)
+
+    token_ready = (
+        (zone_row[:, self._token_instance] == self._zone_token)
+        & ~tapped_row[:, self._token_instance]
+    )
+    token_needed_ok = ~use_token | token_ready
+    payment_sources = np.sum(
+        (zone_row == self._zone_ikz_area) & ~tapped_row,
+        axis=1,
+    )
+    safe_row_defs = np.maximum(def_row, 0)
+    payment_sources += np.sum(
+        (zone_row == self._zone_garden)
+        & ~tapped_row
+        & self._counts_as_ikz[safe_row_defs],
+        axis=1,
+    )
+    payment_sources += (use_token & token_ready).astype(np.int32)
+    can_pay = token_needed_ok & (payment_sources >= cost)
+
+    leader_match = zone_row == self._zone_leader
+    leader_exists = np.any(leader_match, axis=1)
+    leader_inst = np.argmax(leader_match, axis=1)
+    leader_def = def_row[rows, leader_inst]
+    leader_safe_def = np.maximum(leader_def, 0)
+    leader_clean = (
+        leader_exists
+        & (np.asarray(states.cur_hp)[rows, active_safe, leader_inst] > 0)
+        & ~self._timing_takes_damage[leader_safe_def]
+        & ~self._inherent_godmode[leader_safe_def]
+        & (np.asarray(states.carapace_perm)[rows, active_safe, leader_inst] == 0)
+        & (np.asarray(states.carapace_eot)[rows, active_safe, leader_inst] == 0)
+        & ~np.asarray(states.grant_godmode)[rows, active_safe, leader_inst]
+        & (np.asarray(states.effect_immune_dur)[rows, active_safe, leader_inst] == 0)
+    )
+
+    safe_all_defs = np.maximum(def_host, 0)
+    valid_target = (
+        (zone_host == self._zone_garden)
+        & (def_host >= 0)
+        & (self._card_type[safe_all_defs] == self._card_type_entity)
+        & self._has_ikz_cost[safe_all_defs]
+        & (self._ikz_cost[safe_all_defs].astype(np.int32) <= 5)
+    )
+    target_available = np.any(valid_target, axis=(1, 2))
+
+    return (
+        base
+        & (active_acts[:, 0] == self._act_play_spell)
+        & (ability_index == 0)
+        & hand_exists
+        & (def_id == self._azk01_117_id)
+        & (self._card_type[safe_def] == self._card_type_spell)
+        & can_pay
+        & leader_clean
+        & target_available
+    )
+
+  def _play_spell_azk01_042_fast_mask(self, acts: np.ndarray, chosen, phase):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    opp = (active_safe + 1) % 2
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    tapped_host = np.asarray(states.tapped)
+
+    passive_clean = (
+        (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    base = (
+        (phase == 2)  # Phase.MAIN
+        & (chosen == self._act_play_spell)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & passive_clean
+    )
+    if not np.any(base):
+      return base
+
+    active_acts = acts[rows, active_safe]
+    hand_index = active_acts[:, 1]
+    ability_index = active_acts[:, 2]
+    use_token = active_acts[:, 3] != 0
+    zone_row = zone_host[rows, active_safe]
+    zpos_row = zpos_host[rows, active_safe]
+    def_row = def_host[rows, active_safe]
+    tapped_row = tapped_host[rows, active_safe]
+
+    hand_match = (zone_row == self._zone_hand) & (zpos_row == hand_index[:, None])
+    hand_exists = np.any(hand_match, axis=1)
+    hand_inst = np.argmax(hand_match, axis=1)
+    def_id = def_row[rows, hand_inst]
+    safe_def = np.maximum(def_id, 0)
+    next_reduction = np.asarray(states.next_play_cost_reduction)[
+        rows, active_safe
+    ].astype(np.int32, copy=False)
+    cost = np.maximum(self._ikz_cost[safe_def].astype(np.int32) - next_reduction, 0)
+
+    token_ready = (
+        (zone_row[:, self._token_instance] == self._zone_token)
+        & ~tapped_row[:, self._token_instance]
+    )
+    token_needed_ok = ~use_token | token_ready
+    payment_sources = np.sum(
+        (zone_row == self._zone_ikz_area) & ~tapped_row,
+        axis=1,
+    )
+    safe_row_defs = np.maximum(def_row, 0)
+    payment_sources += np.sum(
+        (zone_row == self._zone_garden)
+        & ~tapped_row
+        & self._counts_as_ikz[safe_row_defs],
+        axis=1,
+    )
+    payment_sources += (use_token & token_ready).astype(np.int32)
+    can_pay = token_needed_ok & (payment_sources >= cost)
+
+    opp_defs = def_host[rows, opp]
+    opp_safe_defs = np.maximum(opp_defs, 0)
+    enemy_garden_entity = (
+        (zone_host[rows, opp] == self._zone_garden)
+        & (opp_defs >= 0)
+        & (self._card_type[opp_safe_defs] == self._card_type_entity)
+    )
+    target_count = np.sum(enemy_garden_entity, axis=1)
+
+    return (
+        base
+        & (active_acts[:, 0] == self._act_play_spell)
+        & (ability_index == 0)
+        & hand_exists
+        & (def_id == self._azk01_042_id)
+        & (self._card_type[safe_def] == self._card_type_spell)
+        & can_pay
+        & (target_count >= 3)
+    )
+
+
   def _play_spell_azk01_065_fast_mask(self, acts: np.ndarray, chosen, phase):
     states = self._states
     rows = np.arange(self.num_environments)
@@ -5835,7 +11071,7 @@ class JaxVecEnv:
     leader_safe_def = np.maximum(leader_def, 0)
     leader_clean = (
         leader_exists
-        & (np.asarray(states.cur_hp)[rows, active, leader_inst] > 3)
+        & (np.asarray(states.cur_hp)[rows, active, leader_inst] > 0)
         & ~self._timing_takes_damage[leader_safe_def]
         & ~self._inherent_godmode[leader_safe_def]
         & (np.asarray(states.carapace_perm)[rows, active, leader_inst] == 0)
@@ -5853,6 +11089,429 @@ class JaxVecEnv:
         & (self._card_type[safe_def] == self._card_type_spell)
         & can_pay
         & leader_clean
+    )
+
+  def _play_spell_azk01_066_fast_mask(self, acts: np.ndarray, chosen, phase):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    tapped_host = np.asarray(states.tapped)
+
+    passive_clean = (
+        (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    base = (
+        (phase == 2)  # Phase.MAIN
+        & (chosen == self._act_play_spell)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & passive_clean
+    )
+    if not np.any(base):
+      return base
+
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+    hand_index = active_acts[:, 1]
+    ability_index = active_acts[:, 2]
+    use_token = active_acts[:, 3] != 0
+    zone_row = zone_host[rows, active]
+    zpos_row = zpos_host[rows, active]
+    def_row = def_host[rows, active]
+    tapped_row = tapped_host[rows, active]
+
+    hand_match = (zone_row == self._zone_hand) & (zpos_row == hand_index[:, None])
+    hand_exists = np.any(hand_match, axis=1)
+    hand_inst = np.argmax(hand_match, axis=1)
+    def_id = def_row[rows, hand_inst]
+    safe_def = np.maximum(def_id, 0)
+    next_reduction = np.asarray(states.next_play_cost_reduction)[
+        rows, active
+    ].astype(np.int32, copy=False)
+    cost = np.maximum(self._ikz_cost[safe_def].astype(np.int32) - next_reduction, 0)
+
+    token_ready = (
+        (zone_row[:, self._token_instance] == self._zone_token)
+        & ~tapped_row[:, self._token_instance]
+    )
+    token_needed_ok = ~use_token | token_ready
+    payment_sources = np.sum(
+        (zone_row == self._zone_ikz_area) & ~tapped_row,
+        axis=1,
+    )
+    safe_row_defs = np.maximum(def_row, 0)
+    payment_sources += np.sum(
+        (zone_row == self._zone_garden)
+        & ~tapped_row
+        & self._counts_as_ikz[safe_row_defs],
+        axis=1,
+    )
+    payment_sources += (use_token & token_ready).astype(np.int32)
+    can_pay = token_needed_ok & (payment_sources >= cost)
+
+    safe_all_defs = np.maximum(def_host, 0)
+    affected = (
+        (zone_host == self._zone_leader)
+        | (
+            (zone_host == self._zone_garden)
+            & (self._card_type[safe_all_defs] == self._card_type_entity)
+        )
+    )
+    cur_hp = np.asarray(states.cur_hp).astype(np.int16, copy=False)
+    would_die = affected & (cur_hp <= 2)
+    target_hazards = (
+        self._timing_takes_damage[safe_all_defs]
+        | np.asarray(states.grant_godmode)
+        | self._inherent_godmode[safe_all_defs]
+        | (np.asarray(states.effect_immune_dur) != 0)
+        | (np.asarray(states.carapace_perm) != 0)
+        | (np.asarray(states.carapace_eot) != 0)
+        | (would_die & self._timing_when_destroyed[safe_all_defs])
+    )
+    targets_clean = ~np.any(affected & target_hazards, axis=(1, 2))
+
+    board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
+    passive_watch = board & np.isin(def_host, self._simple_play_watch_ids)
+    stt02_012_inactive_alley = (
+        (def_host == self._stt02_012_id) & (zone_host == self._zone_alley)
+    )
+    stt03_013_inactive_alley = (
+        (def_host == self._stt03_013_id) & (zone_host == self._zone_alley)
+    )
+    safe_passive_watch = (
+        (def_host == self._azk01_019_id)
+        | stt02_012_inactive_alley
+        | stt03_013_inactive_alley
+    )
+    passive_watch_ok = ~np.any(passive_watch & ~safe_passive_watch, axis=(1, 2))
+
+    return (
+        base
+        & (active_acts[:, 0] == self._act_play_spell)
+        & (ability_index == 0)
+        & hand_exists
+        & (def_id == self._azk01_066_id)
+        & (self._card_type[safe_def] == self._card_type_spell)
+        & ~self._timing_deals_damage[safe_def]
+        & can_pay
+        & targets_clean
+        & passive_watch_ok
+    )
+
+  def _play_spell_azk01_066_static_mask(self, acts: np.ndarray, chosen, phase):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    active_acts = acts[rows, active_safe]
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+
+    hand_index = active_acts[:, 1].astype(np.int32, copy=False)
+    zone_row = zone_host[rows, active_safe]
+    zpos_row = zpos_host[rows, active_safe]
+    def_row = def_host[rows, active_safe]
+    hand_match = (zone_row == self._zone_hand) & (zpos_row == hand_index[:, None])
+    hand_exists = np.any(hand_match, axis=1)
+    hand_inst = np.argmax(hand_match, axis=1)
+    def_id = def_row[rows, hand_inst]
+    safe_def = np.maximum(def_id, 0)
+    passive_clean = (
+        (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    return (
+        (phase == 2)  # Phase.MAIN
+        & (chosen == self._act_play_spell)
+        & (active_acts[:, 0] == self._act_play_spell)
+        & (active_acts[:, 2] == 0)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & passive_clean
+        & hand_exists
+        & (def_id == self._azk01_066_id)
+        & (self._card_type[safe_def] == self._card_type_spell)
+    )
+
+  def _play_spell_stt04_015_fast_mask(self, acts: np.ndarray, chosen, phase):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    opp = (active_safe + 1) % 2
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    tapped_host = np.asarray(states.tapped)
+
+    passive_clean = (
+        (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    base = (
+        (phase == 2)  # Phase.MAIN
+        & (chosen == self._act_play_spell)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & passive_clean
+    )
+    if not np.any(base):
+      return base
+
+    active_acts = acts[rows, active_safe]
+    hand_index = active_acts[:, 1]
+    ability_index = active_acts[:, 2]
+    use_token = active_acts[:, 3] != 0
+    zone_row = zone_host[rows, active_safe]
+    zpos_row = zpos_host[rows, active_safe]
+    def_row = def_host[rows, active_safe]
+    tapped_row = tapped_host[rows, active_safe]
+
+    hand_match = (zone_row == self._zone_hand) & (zpos_row == hand_index[:, None])
+    hand_exists = np.any(hand_match, axis=1)
+    hand_inst = np.argmax(hand_match, axis=1)
+    def_id = def_row[rows, hand_inst]
+    safe_def = np.maximum(def_id, 0)
+    next_reduction = np.asarray(states.next_play_cost_reduction)[
+        rows, active_safe
+    ].astype(np.int32, copy=False)
+    cost = np.maximum(self._ikz_cost[safe_def].astype(np.int32) - next_reduction, 0)
+
+    token_ready = (
+        (zone_row[:, self._token_instance] == self._zone_token)
+        & ~tapped_row[:, self._token_instance]
+    )
+    token_needed_ok = ~use_token | token_ready
+    payment_sources = np.sum(
+        (zone_row == self._zone_ikz_area) & ~tapped_row,
+        axis=1,
+    )
+    safe_row_defs = np.maximum(def_row, 0)
+    payment_sources += np.sum(
+        (zone_row == self._zone_garden)
+        & ~tapped_row
+        & self._counts_as_ikz[safe_row_defs],
+        axis=1,
+    )
+    payment_sources += (use_token & token_ready).astype(np.int32)
+    can_pay = token_needed_ok & (payment_sources >= cost)
+
+    own_leader_match = zone_row == self._zone_leader
+    own_leader_exists = np.any(own_leader_match, axis=1)
+    own_leader_inst = np.argmax(own_leader_match, axis=1)
+    own_leader_def = def_row[rows, own_leader_inst]
+    own_leader_safe_def = np.maximum(own_leader_def, 0)
+    opp_zone = zone_host[rows, opp]
+    opp_def = def_host[rows, opp]
+    enemy_leader_match = opp_zone == self._zone_leader
+    enemy_leader_exists = np.any(enemy_leader_match, axis=1)
+    enemy_leader_inst = np.argmax(enemy_leader_match, axis=1)
+    enemy_leader_def = opp_def[rows, enemy_leader_inst]
+    enemy_leader_safe_def = np.maximum(enemy_leader_def, 0)
+    own_leader_clean = (
+        own_leader_exists
+        & (np.asarray(states.cur_hp)[rows, active_safe, own_leader_inst] > 1)
+        & ~self._timing_takes_damage[own_leader_safe_def]
+        & ~self._inherent_godmode[own_leader_safe_def]
+        & (np.asarray(states.carapace_perm)[rows, active_safe, own_leader_inst] == 0)
+        & (np.asarray(states.carapace_eot)[rows, active_safe, own_leader_inst] == 0)
+        & ~np.asarray(states.grant_godmode)[rows, active_safe, own_leader_inst]
+        & (
+            np.asarray(states.effect_immune_dur)[rows, active_safe, own_leader_inst]
+            == 0
+        )
+    )
+    enemy_leader_clean = (
+        enemy_leader_exists
+        & (np.asarray(states.cur_hp)[rows, opp, enemy_leader_inst] > 2)
+        & ~self._timing_takes_damage[enemy_leader_safe_def]
+        & ~self._inherent_godmode[enemy_leader_safe_def]
+        & (np.asarray(states.carapace_perm)[rows, opp, enemy_leader_inst] == 0)
+        & (np.asarray(states.carapace_eot)[rows, opp, enemy_leader_inst] == 0)
+        & ~np.asarray(states.grant_godmode)[rows, opp, enemy_leader_inst]
+        & (
+            np.asarray(states.effect_immune_dur)[rows, opp, enemy_leader_inst]
+            == 0
+        )
+    )
+
+    return (
+        base
+        & (active_acts[:, 0] == self._act_play_spell)
+        & (ability_index == 0)
+        & hand_exists
+        & (def_id == self._stt04_015_id)
+        & (self._card_type[safe_def] == self._card_type_spell)
+        & can_pay
+        & own_leader_clean
+        & enemy_leader_clean
+    )
+
+  def _play_spell_stt04_017_static_mask(self, acts: np.ndarray, chosen, phase):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    active_acts = acts[rows, active_safe]
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+
+    hand_index = active_acts[:, 1].astype(np.int32, copy=False)
+    zone_row = zone_host[rows, active_safe]
+    zpos_row = zpos_host[rows, active_safe]
+    def_row = def_host[rows, active_safe]
+    hand_match = (zone_row == self._zone_hand) & (zpos_row == hand_index[:, None])
+    hand_exists = np.any(hand_match, axis=1)
+    hand_inst = np.argmax(hand_match, axis=1)
+    def_id = def_row[rows, hand_inst]
+    safe_def = np.maximum(def_id, 0)
+    passive_clean = (
+        (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    return (
+        (phase == 2)  # Phase.MAIN
+        & (chosen == self._act_play_spell)
+        & (active_acts[:, 0] == self._act_play_spell)
+        & (active_acts[:, 2] == 0)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & passive_clean
+        & hand_exists
+        & (def_id == self._stt04_017_id)
+        & (self._card_type[safe_def] == self._card_type_spell)
+    )
+
+  def _select_cost_stt04_017_static_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    target_match = (
+        (zone_host[rows, owner_safe] == self._zone_garden)
+        & (zpos_host[rows, owner_safe] == target_index[:, None])
+        & (target_index[:, None] >= 0)
+        & (target_index[:, None] < self._garden_size)
+    )
+    return (
+        (chosen == self._act_select_cost)
+        & (active_acts[:, 0] == self._act_select_cost)
+        & (np.asarray(states.ab_phase) == self._ability_cost_selection)
+        & (owner == active)
+        & (src >= 0)
+        & (source_def == self._stt04_017_id)
+        & (np.asarray(states.ab_cost_selected) < np.asarray(states.ab_cost_max))
+        & np.any(target_match, axis=1)
+        & (np.asarray(states.winner) == -1)
+    )
+
+  def _select_cost_stt04_016_static_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    target_match = (
+        (zone_host[rows, owner_safe] == self._zone_garden)
+        & (zpos_host[rows, owner_safe] == target_index[:, None])
+        & (target_index[:, None] >= 0)
+        & (target_index[:, None] < self._garden_size)
+    )
+    return (
+        (chosen == self._act_select_cost)
+        & (active_acts[:, 0] == self._act_select_cost)
+        & (np.asarray(states.ab_phase) == self._ability_cost_selection)
+        & (owner == active)
+        & (src >= 0)
+        & (source_def == self._stt04_016_id)
+        & (np.asarray(states.ab_cost_selected) == 0)
+        & (np.asarray(states.ab_cost_max) == 1)
+        & ~np.asarray(states.ab_costs_applied)
+        & np.any(target_match, axis=1)
+        & (np.asarray(states.winner) == -1)
+    )
+
+  def _noop_stt04_017_cost_static_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+    return (
+        (chosen == self._act_noop)
+        & (active_acts[:, 0] == self._act_noop)
+        & (np.asarray(states.ab_phase) == self._ability_cost_selection)
+        & (owner == active)
+        & (src >= 0)
+        & (source_def == self._stt04_017_id)
+        & (np.asarray(states.ab_cost_selected) > 0)
+        & (np.asarray(states.winner) == -1)
+    )
+
+  def _effect_stt04_017_static_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+    return (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+        & (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & (owner == active)
+        & (src >= 0)
+        & (source_def == self._stt04_017_id)
+        & np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.winner) == -1)
     )
 
   def _play_spell_azk01_127_fast_mask(self, acts: np.ndarray, chosen, phase):
@@ -5943,6 +11602,97 @@ class JaxVecEnv:
         & np.any(enemy_garden_entity, axis=1)
     )
 
+  def _play_spell_azk01_128_fast_mask(self, acts: np.ndarray, chosen, phase):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    opp = (active + 1) % 2
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    tapped_host = np.asarray(states.tapped)
+
+    passive_clean = (
+        (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    combat_attacker = np.asarray(states.combat_attacker).astype(np.int32, copy=False)
+    combat_defender_player = np.asarray(states.combat_defender_player).astype(
+        np.int32, copy=False
+    )
+    attacker_safe = np.clip(combat_attacker, 0, def_host.shape[2] - 1)
+    attacker_def = def_host[rows, opp, attacker_safe]
+    attacker_safe_def = np.maximum(attacker_def, 0)
+    attacker_is_valid = (
+        (combat_attacker >= 0)
+        & (combat_defender_player == active)
+        & (np.asarray(states.cur_hp)[rows, opp, attacker_safe] <= 2)
+    )
+    base = (
+        (phase == 3)  # Phase.RESPONSE_WINDOW
+        & (chosen == self._act_play_spell)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) >= 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & passive_clean
+        & attacker_is_valid
+    )
+    if not np.any(base):
+      return base
+
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+    hand_index = active_acts[:, 1]
+    ability_index = active_acts[:, 2]
+    use_token = active_acts[:, 3] != 0
+    zone_row = zone_host[rows, active]
+    zpos_row = zpos_host[rows, active]
+    def_row = def_host[rows, active]
+    tapped_row = tapped_host[rows, active]
+
+    hand_match = (zone_row == self._zone_hand) & (zpos_row == hand_index[:, None])
+    hand_exists = np.any(hand_match, axis=1)
+    hand_inst = np.argmax(hand_match, axis=1)
+    def_id = def_row[rows, hand_inst]
+    safe_def = np.maximum(def_id, 0)
+    next_reduction = np.asarray(states.next_play_cost_reduction)[
+        rows, active
+    ].astype(np.int32, copy=False)
+    cost = np.maximum(self._ikz_cost[safe_def].astype(np.int32) - next_reduction, 0)
+
+    token_ready = (
+        (zone_row[:, self._token_instance] == self._zone_token)
+        & ~tapped_row[:, self._token_instance]
+    )
+    token_needed_ok = ~use_token | token_ready
+    payment_sources = np.sum(
+        (zone_row == self._zone_ikz_area) & ~tapped_row,
+        axis=1,
+    )
+    safe_row_defs = np.maximum(def_row, 0)
+    payment_sources += np.sum(
+        (zone_row == self._zone_garden)
+        & ~tapped_row
+        & self._counts_as_ikz[safe_row_defs],
+        axis=1,
+    )
+    payment_sources += (use_token & token_ready).astype(np.int32)
+    can_pay = token_needed_ok & (payment_sources >= cost)
+
+    return (
+        base
+        & (active_acts[:, 0] == self._act_play_spell)
+        & (ability_index == 0)
+        & hand_exists
+        & (def_id == self._azk01_128_id)
+        & (self._card_type[safe_def] == self._card_type_spell)
+        & self._timing_is_response[safe_def]
+        & self._has_ability[safe_def]
+        & can_pay
+    )
+
   def _play_spell_stt03_016_fast_mask(self, acts: np.ndarray, chosen, phase):
     states = self._states
     rows = np.arange(self.num_environments)
@@ -6018,9 +11768,24 @@ class JaxVecEnv:
     marked_entity = marked & (
         self._card_type[opp_safe_defs] == self._card_type_entity
     )
-    no_destroy_triggers = ~np.any(
-        marked_entity & self._timing_when_destroyed[opp_safe_defs],
-        axis=1,
+    destroy_triggers = (
+        marked_entity & self._timing_when_destroyed[opp_safe_defs]
+    )
+    stt03_006_destroy_triggers = destroy_triggers & (
+        opp_defs == self._stt03_006_id
+    )
+    destroy_trigger_count = np.sum(destroy_triggers, axis=1)
+    stt03_006_destroy_trigger_count = np.sum(
+        stt03_006_destroy_triggers, axis=1
+    )
+    opp_has_hand = np.any(opp_zone == self._zone_hand, axis=1)
+    destroy_triggers_clean = (
+        (destroy_trigger_count == 0)
+        | (
+            (destroy_trigger_count == 1)
+            & (stt03_006_destroy_trigger_count == 1)
+            & opp_has_hand
+        )
     )
     no_godmode = ~np.any(
         marked_entity
@@ -6030,14 +11795,27 @@ class JaxVecEnv:
         ),
         axis=1,
     )
-    no_attached_opp = ~np.any(opp_zone == self._zone_attached, axis=1)
-    no_passive_death_watch = (
-        ~np.any(np.asarray(states.passive_observer_registered), axis=(1, 2))
-        & ~np.any(
-            (zone_host == self._zone_garden)
-            & (def_host == self._stt02_012_id),
-            axis=(1, 2),
+    attached_to = np.asarray(states.attached_to)[rows, opp].astype(np.int32, copy=False)
+    attached_host = np.clip(attached_to, 0, opp_zone.shape[1] - 1)
+    attached_to_marked = np.take_along_axis(marked_entity, attached_host, axis=1)
+    no_attached_marked = ~np.any(
+        (opp_zone == self._zone_attached) & attached_to_marked,
+        axis=1,
+    )
+    registered = np.asarray(states.passive_observer_registered)
+    marked_global = np.zeros_like(def_host, dtype=bool)
+    marked_global[rows, opp] = marked_entity
+    safe_registered = (
+        (
+            (def_host == self._azk01_019_id)
+            | (def_host == self._azk01_073_id)
+            | (def_host == self._stt02_012_id)
         )
+        & ~marked_global
+    )
+    no_passive_death_watch = ~np.any(
+        registered & ~safe_registered,
+        axis=(1, 2),
     )
 
     return (
@@ -6049,10 +11827,46 @@ class JaxVecEnv:
         & (self._card_type[safe_def] == self._card_type_spell)
         & can_pay
         & np.any(marked_entity, axis=1)
-        & no_destroy_triggers
+        & destroy_triggers_clean
         & no_godmode
-        & no_attached_opp
+        & no_attached_marked
         & no_passive_death_watch
+    )
+
+  def _play_spell_stt03_016_static_mask(self, acts: np.ndarray, chosen, phase):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    active_acts = acts[rows, active_safe]
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    hand_index = active_acts[:, 1].astype(np.int32, copy=False)
+    zone_row = zone_host[rows, active_safe]
+    zpos_row = zpos_host[rows, active_safe]
+    def_row = def_host[rows, active_safe]
+    hand_match = (zone_row == self._zone_hand) & (zpos_row == hand_index[:, None])
+    hand_exists = np.any(hand_match, axis=1)
+    hand_inst = np.argmax(hand_match, axis=1)
+    def_id = def_row[rows, hand_inst]
+    safe_def = np.maximum(def_id, 0)
+    return (
+        (phase == 2)  # Phase.MAIN
+        & (chosen == self._act_play_spell)
+        & (active_acts[:, 0] == self._act_play_spell)
+        & (active_acts[:, 2] == 0)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+        & hand_exists
+        & (def_id == self._stt03_016_id)
+        & (self._card_type[safe_def] == self._card_type_spell)
     )
 
   def _select_cost_stt04_016_fast_mask(self, acts: np.ndarray, chosen):
@@ -6125,13 +11939,77 @@ class JaxVecEnv:
         & ~self._timing_when_destroyed[target_safe_def]
         & ~target_protected
     )
-    target_clean = simple_stt04_003 | azk01_059_trigger
+    azk01_059_no_target = (
+        target_exists
+        & (target_def == self._azk01_059_id)
+        & (np.asarray(states.cur_hp)[rows, owner_safe, target_inst] > 1)
+        & ((np.asarray(states.once_per_turn_used)[rows, owner_safe, target_inst] & 1) == 0)
+        & ~has_other_garden_entity
+        & ~self._timing_deals_damage[target_safe_def]
+        & ~self._timing_when_destroyed[target_safe_def]
+        & ~target_protected
+    )
+    azk01_059_spent_lethal = (
+        target_exists
+        & (target_def == self._azk01_059_id)
+        & (np.asarray(states.cur_hp)[rows, owner_safe, target_inst] <= 1)
+        & (
+            (
+                np.asarray(states.once_per_turn_used)[
+                    rows, owner_safe, target_inst
+                ]
+                & 1
+            ) != 0
+        )
+        & ~self._timing_when_destroyed[target_safe_def]
+        & ~target_protected
+    )
+    azk01_062_redirect = (
+        target_exists
+        & (target_def == self._azk01_062_id)
+        & ((np.asarray(states.once_per_turn_used)[
+            rows, owner_safe, target_inst
+        ] & 1) == 0)
+        & (np.asarray(states.redirect_count) < 8)
+    )
+    stt04_009_trigger = (
+        target_exists
+        & (target_def == self._stt04_009_id)
+        & (np.asarray(states.cur_hp)[rows, owner_safe, target_inst] > 1)
+        & ((np.asarray(states.once_per_turn_used)[
+            rows, owner_safe, target_inst
+        ] & 1) == 0)
+        & ~self._timing_deals_damage[target_safe_def]
+        & ~self._timing_when_destroyed[target_safe_def]
+        & ~target_protected
+    )
+    simple_entity_damage = (
+        target_exists
+        & (self._card_type[target_safe_def] == self._card_type_entity)
+        & ~self._timing_takes_damage[target_safe_def]
+        & ~self._timing_deals_damage[target_safe_def]
+        & ~(
+            self._timing_when_destroyed[target_safe_def]
+            & (np.asarray(states.cur_hp)[rows, owner_safe, target_inst] <= 1)
+        )
+        & ~target_protected
+    )
+    target_clean = (
+        simple_entity_damage
+        | simple_stt04_003
+        | azk01_059_trigger
+        | azk01_059_no_target
+        | azk01_059_spent_lethal
+        | azk01_062_redirect
+        | stt04_009_trigger
+    )
 
     board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
     no_passive_watch = ~np.any(
         board
         & np.isin(def_host, self._simple_play_watch_ids)
-        & (def_host != self._stt01_008_id),
+        & (def_host != self._stt01_008_id)
+        & (def_host != self._azk01_019_id),
         axis=(1, 2),
     )
     clean = (
@@ -6243,24 +12121,225 @@ class JaxVecEnv:
         & (attached_host[rows, owner_safe] == target_inst[:, None]),
         axis=1,
     )
+    target_is_stt02_010 = target_def == self._stt02_010_id
+    stt02_010_garden = (
+        (zone_host == self._zone_garden) & (def_host == self._stt02_010_id)
+    )
+    stt02_010_count = np.sum(stt02_010_garden, axis=(1, 2))
+    only_returning_stt02_010 = target_is_stt02_010 & (stt02_010_count == 1)
+    opp = (owner_safe + 1) % 2
+    opp_zone = zone_host[rows, opp]
+    opp_defs = def_host[rows, opp]
+    opp_safe_defs = np.maximum(opp_defs, 0)
+    stt02_009_effect_available = np.any(
+        (opp_zone == self._zone_garden)
+        & (opp_defs >= 0)
+        & (self._card_type[opp_safe_defs] == self._card_type_entity)
+        & self._has_ikz_cost[opp_safe_defs]
+        & (self._ikz_cost[opp_safe_defs].astype(np.int32) <= 2),
+        axis=1,
+    )
+    stt02_010_remaining_after_cost = (
+        stt02_010_count - target_is_stt02_010.astype(np.int32)
+    )
+    returning_stt02_010_with_single_observer = (
+        target_is_stt02_010
+        & (stt02_010_remaining_after_cost == 1)
+        & stt02_009_effect_available
+    )
     target_clean = (
         target_exists
         & (self._card_type[target_safe_def] == self._card_type_entity)
         & self._has_ikz_cost[target_safe_def]
         & (self._ikz_cost[target_safe_def].astype(np.int32) >= 2)
         & ~target_has_attached
-        & ~self._timing_when_returned[target_safe_def]
+        & (
+            ~self._timing_when_returned[target_safe_def]
+            | only_returning_stt02_010
+            | returning_stt02_010_with_single_observer
+        )
     )
 
+    board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
+    active_axis = np.arange(2, dtype=np.int32)[None, :, None] == owner_safe[
+        :, None, None
+    ]
+    enemy_azk01_019 = (def_host == self._azk01_019_id) & ~active_axis
+    no_passive_watch = ~np.any(
+        board
+        & np.isin(def_host, self._simple_play_watch_ids)
+        & (def_host != self._stt01_008_id)
+        & (def_host != self._stt02_012_id)
+        & (def_host != self._stt02_010_id)
+        & ~enemy_azk01_019,
+        axis=(1, 2),
+    )
+    no_stt02_010_observer = stt02_010_count == 0
+    stt02_010_observer_ok = (
+        no_stt02_010_observer
+        | only_returning_stt02_010
+        | returning_stt02_010_with_single_observer
+        | ((stt02_010_count == 1) & stt02_009_effect_available)
+    )
+    clean = (
+        (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+        & no_passive_watch
+        & stt02_010_observer_ok
+    )
+    return (
+        (chosen == self._act_select_cost)
+        & (active_acts[:, 0] == self._act_select_cost)
+        & (np.asarray(states.ab_phase) == self._ability_cost_selection)
+        & source_ok
+        & target_clean
+        & clean
+    )
+
+  def _select_cost_azk01_022_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_022_id)
+        & (np.asarray(states.ab_cost_selected) == 0)
+        & (np.asarray(states.ab_cost_max) == 1)
+        & ~np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 1)
+        & (np.asarray(states.ab_eff_max) == 1)
+    )
+
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    zone_row = zone_host[rows, owner_safe]
+    zpos_row = zpos_host[rows, owner_safe]
+    target_match = (
+        (zone_row == self._zone_hand)
+        & (zpos_row == target_index[:, None])
+    )
+    target_exists = np.any(target_match, axis=1)
+    target_inst = np.argmax(target_match, axis=1)
+    target_ok = target_exists & (target_inst != src)
+
+    safe_defs = np.maximum(def_host, 0)
+    garden_target = (
+        (zone_host == self._zone_garden)
+        & (def_host >= 0)
+        & (self._card_type[safe_defs] == self._card_type_entity)
+        & self._has_ikz_cost[safe_defs]
+        & (self._ikz_cost[safe_defs].astype(np.int32) <= 2)
+        & ~self._timing_when_returned[safe_defs]
+        & ~self._inherent_godmode[safe_defs]
+        & ~np.asarray(states.grant_godmode)
+    )
+    no_stt02_010_observer = ~np.any(
+        (zone_host == self._zone_garden) & (def_host == self._stt02_010_id),
+        axis=(1, 2),
+    )
     board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
     no_passive_watch = ~np.any(
         board
         & np.isin(def_host, self._simple_play_watch_ids)
-        & (def_host != self._stt01_008_id),
+        & (def_host != self._stt01_008_id)
+        & (def_host != self._stt02_012_id)
+        & (def_host != self._azk01_019_id)
+        & (def_host != self._azk01_073_id)
+        & (def_host != self._stt03_013_id),
         axis=(1, 2),
     )
-    no_stt02_010_observer = ~np.any(
-        (zone_host == self._zone_garden) & (def_host == self._stt02_010_id),
+    clean = (
+        (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & np.any(garden_target, axis=(1, 2))
+        & no_passive_watch
+        & no_stt02_010_observer
+    )
+    return (
+        (chosen == self._act_select_cost)
+        & (active_acts[:, 0] == self._act_select_cost)
+        & (np.asarray(states.ab_phase) == self._ability_cost_selection)
+        & source_ok
+        & target_ok
+        & clean
+    )
+
+  def _select_cost_azk01_024_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    attached_host = np.asarray(states.attached_to)
+    source_def = def_host[rows, owner_safe, src_safe]
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_024_id)
+        & (np.asarray(states.ab_cost_selected) == 0)
+        & (np.asarray(states.ab_cost_max) == 1)
+        & ~np.asarray(states.ab_costs_applied)
+    )
+
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    zone_row = zone_host[rows, owner_safe]
+    zpos_row = zpos_host[rows, owner_safe]
+    def_row = def_host[rows, owner_safe]
+    target_match = (
+        (zone_row == self._zone_garden)
+        & (zpos_row == target_index[:, None])
+        & (target_index[:, None] < self._garden_size)
+    )
+    target_exists = np.any(target_match, axis=1)
+    target_inst = np.argmax(target_match, axis=1)
+    target_def = def_row[rows, target_inst]
+    target_safe_def = np.maximum(target_def, 0)
+    target_has_attached = np.any(
+        (zone_row == self._zone_attached)
+        & (attached_host[rows, owner_safe] == target_inst[:, None]),
+        axis=1,
+    )
+    target_clean = (
+        target_exists
+        & (self._card_type[target_safe_def] == self._card_type_entity)
+        & ~target_has_attached
+        & ~self._timing_when_returned[target_safe_def]
+    )
+
+    stt02_012_inactive_alley = (
+        (def_host == self._stt02_012_id) & (zone_host == self._zone_alley)
+    )
+    board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
+    no_passive_watch = ~np.any(
+        board
+        & np.isin(def_host, self._simple_play_watch_ids)
+        & (def_host != self._stt01_008_id)
+        & (def_host != self._stt01_009_id)
+        & (def_host != self._azk01_019_id)
+        & ~stt02_012_inactive_alley
+        & (def_host != self._azk01_073_id),
         axis=(1, 2),
     )
     clean = (
@@ -6271,7 +12350,6 @@ class JaxVecEnv:
         & (np.asarray(states.passive_queue_count) == 0)
         & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
         & no_passive_watch
-        & no_stt02_010_observer
     )
     return (
         (chosen == self._act_select_cost)
@@ -6279,6 +12357,198 @@ class JaxVecEnv:
         & (np.asarray(states.ab_phase) == self._ability_cost_selection)
         & source_ok
         & target_clean
+        & clean
+    )
+
+  def _select_cost_azk01_024_static_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    target_match = (
+        (zone_host[rows, owner_safe] == self._zone_garden)
+        & (zpos_host[rows, owner_safe] == target_index[:, None])
+        & (target_index[:, None] >= 0)
+        & (target_index[:, None] < self._garden_size)
+    )
+    return (
+        (chosen == self._act_select_cost)
+        & (active_acts[:, 0] == self._act_select_cost)
+        & (np.asarray(states.ab_phase) == self._ability_cost_selection)
+        & (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_024_id)
+        & (np.asarray(states.ab_cost_selected) == 0)
+        & (np.asarray(states.ab_cost_max) == 1)
+        & ~np.asarray(states.ab_costs_applied)
+        & np.any(target_match, axis=1)
+        & (np.asarray(states.winner) == -1)
+    )
+
+  def _select_cost_azk01_124_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    tapped_host = np.asarray(states.tapped)
+    attached_host = np.asarray(states.attached_to)
+    source_def = def_host[rows, owner_safe, src_safe]
+    scratch = np.asarray(states.ab_scratch)
+    portaled = np.clip(scratch[:, 0].astype(np.int32, copy=False), 0, def_host.shape[2] - 1)
+    portaled_def = def_host[rows, owner_safe, portaled]
+    gate_power = self._gate_points[np.maximum(portaled_def, 0)].astype(np.int32)
+
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    zone_row = zone_host[rows, owner_safe]
+    zpos_row = zpos_host[rows, owner_safe]
+    def_row = def_host[rows, owner_safe]
+    target_match = (
+        (zone_row == self._zone_garden)
+        & (zpos_row == target_index[:, None])
+    )
+    target_exists = np.any(target_match, axis=1)
+    target_inst = np.argmax(target_match, axis=1)
+    target_def = def_row[rows, target_inst]
+    target_safe_def = np.maximum(target_def, 0)
+    target_has_attached = np.any(
+        (zone_row == self._zone_attached)
+        & (attached_host[rows, owner_safe] == target_inst[:, None]),
+        axis=1,
+    )
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_124_id)
+        & ~np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_cost_selected) == 0)
+        & (np.asarray(states.ab_cost_max) == 1)
+        & (scratch[:, 2] == 1)
+    )
+    target_ok = (
+        target_exists
+        & (target_index >= 0)
+        & (target_index < self._garden_size)
+        & (target_inst != portaled)
+        & (target_def >= 0)
+        & (self._card_type[target_safe_def] == self._card_type_entity)
+        & ~tapped_host[rows, owner_safe, target_inst]
+        & self._has_ikz_cost[target_safe_def]
+        & (self._ikz_cost[target_safe_def].astype(np.int32) <= gate_power)
+        & (gate_power > 0)
+        & ~target_has_attached
+        & ~self._inherent_godmode[target_safe_def]
+    )
+    trig_count = np.asarray(states.trig_count).astype(np.int32, copy=False)
+    trig_owner = np.asarray(states.trig_owner)[:, 0].astype(np.int32, copy=False)
+    trig_source = np.asarray(states.trig_source)[:, 0].astype(np.int32, copy=False)
+    trig_timing = np.asarray(states.trig_timing)[:, 0].astype(np.int32, copy=False)
+    trig_owner_safe = np.clip(trig_owner, 0, 1)
+    trig_source_safe = np.maximum(trig_source, 0)
+    queued_stt03_013 = (
+        (trig_count == 1)
+        & (trig_timing == 15)  # TIMING_WHEN_ENTERS_GARDEN
+        & (def_host[rows, trig_owner_safe, trig_source_safe] == self._stt03_013_id)
+    )
+    clean = (
+        ((trig_count == 0) | queued_stt03_013)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    return (
+        (chosen == self._act_select_cost)
+        & (active_acts[:, 0] == self._act_select_cost)
+        & (np.asarray(states.ab_phase) == self._ability_cost_selection)
+        & source_ok
+        & target_ok
+        & clean
+    )
+
+  def _select_cost_azk01_103_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    attached_host = np.asarray(states.attached_to)
+    tapped_host = np.asarray(states.tapped)
+    source_def = def_host[rows, owner_safe, src_safe]
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_103_id)
+        & ~np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_cost_selected) == 0)
+        & (np.asarray(states.ab_cost_max) == 1)
+    )
+
+    target_slot = active_acts[:, 1].astype(np.int32, copy=False)
+    zone_row = zone_host[rows, owner_safe]
+    zpos_row = zpos_host[rows, owner_safe]
+    def_row = def_host[rows, owner_safe]
+    target_match = (
+        (zone_row == self._zone_garden)
+        & (zpos_row == target_slot[:, None])
+        & (target_slot[:, None] >= 0)
+        & (target_slot[:, None] < self._garden_size)
+    )
+    target_exists = np.any(target_match, axis=1)
+    target_inst = np.argmax(target_match, axis=1)
+    target_safe = np.maximum(target_inst, 0)
+    target_def = def_row[rows, target_safe]
+    target_safe_def = np.maximum(target_def, 0)
+    target_has_attached = np.any(
+        (zone_row == self._zone_attached)
+        & (attached_host[rows, owner_safe] == target_inst[:, None].astype(attached_host.dtype)),
+        axis=1,
+    )
+    target_ok = (
+        target_exists
+        & (target_inst != src_safe)
+        & (target_def >= 0)
+        & (self._card_type[target_safe_def] == self._card_type_entity)
+        & (self._card_element[target_safe_def] == self._earth_element)
+        & ~tapped_host[rows, owner_safe, target_safe]
+        & ~target_has_attached
+    )
+    clean = (
+        (np.asarray(states.ab_phase) == self._ability_cost_selection)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+    )
+    return (
+        (chosen == self._act_select_cost)
+        & (active_acts[:, 0] == self._act_select_cost)
+        & source_ok
+        & target_ok
         & clean
     )
 
@@ -6333,10 +12603,16 @@ class JaxVecEnv:
     )
 
     board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
+    inert_watch = (
+        (def_host == self._stt01_008_id)
+        | (def_host == self._stt01_009_id)
+        | (def_host == self._stt01_011_id)
+        | (def_host == self._azk01_019_id)
+        | (def_host == self._stt03_013_id)
+        | (def_host == self._stt02_012_id)
+    )
     no_passive_watch = ~np.any(
-        board
-        & np.isin(def_host, self._simple_play_watch_ids)
-        & (def_host != self._stt01_008_id),
+        board & np.isin(def_host, self._simple_play_watch_ids) & ~inert_watch,
         axis=(1, 2),
     )
     no_stt02_010_observer = ~np.any(
@@ -6361,6 +12637,71 @@ class JaxVecEnv:
         & target_clean
         & clean
     )
+
+  def _select_cost_azk01_029_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+    selected_count = np.asarray(states.ab_cost_selected).astype(np.int32, copy=False)
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_029_id)
+        & (selected_count < 2)
+        & (np.asarray(states.ab_cost_max) == 2)
+        & ~np.asarray(states.ab_costs_applied)
+    )
+
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    zone_row = zone_host[rows, owner_safe]
+    zpos_row = zpos_host[rows, owner_safe]
+    target_match = (
+        (zone_row == self._zone_hand)
+        & (zpos_row == target_index[:, None])
+        & (target_index[:, None] >= 0)
+    )
+    target_exists = np.any(target_match, axis=1)
+    target_inst = np.argmax(target_match, axis=1)
+    slots = np.arange(np.asarray(states.ab_cost_targets).shape[1])
+    already_selected = np.any(
+        (slots[None, :] < selected_count[:, None])
+        & (np.asarray(states.ab_cost_target_players) == owner_safe[:, None].astype(np.int8))
+        & (np.asarray(states.ab_cost_targets) == target_inst[:, None].astype(np.int8)),
+        axis=1,
+    )
+    target_ok = (
+        target_exists
+        & (target_inst != src_safe)
+        & ~already_selected
+    )
+
+    clean = (
+        (np.asarray(states.phase) == 3)  # Phase.RESPONSE_WINDOW
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) >= 0)
+        & (np.asarray(states.winner) == -1)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    return (
+        (chosen == self._act_select_cost)
+        & (active_acts[:, 0] == self._act_select_cost)
+        & (np.asarray(states.ab_phase) == self._ability_cost_selection)
+        & source_ok
+        & target_ok
+        & clean
+    )
+
 
   def _select_cost_stt02_016_fast_mask(self, acts: np.ndarray, chosen):
     states = self._states
@@ -6457,8 +12798,6 @@ class JaxVecEnv:
         & (np.asarray(states.redirect_count) == 0)
         & (np.asarray(states.combat_attacker) < 0)
         & (np.asarray(states.winner) == -1)
-        & (np.asarray(states.passive_queue_count) == 0)
-        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
     )
     return (
         (chosen == self._act_select_cost)
@@ -6496,28 +12835,49 @@ class JaxVecEnv:
     )
 
     target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    target_is_leader = target_index == self._garden_size
     zone_row = zone_host[rows, opp]
     zpos_row = zpos_host[rows, opp]
     def_row = def_host[rows, opp]
     attached_row = attached_host[rows, opp]
-    target_match = (
+    garden_match = (
         (zone_row == self._zone_garden)
         & (zpos_row == target_index[:, None])
+        & (target_index[:, None] >= 0)
         & (target_index[:, None] < self._garden_size)
     )
-    target_exists = np.any(target_match, axis=1)
-    target_inst = np.argmax(target_match, axis=1)
+    leader_match = zone_row == self._zone_leader
+    garden_exists = np.any(garden_match, axis=1)
+    leader_exists = np.any(leader_match, axis=1)
+    garden_inst = np.argmax(garden_match, axis=1)
+    leader_inst = np.argmax(leader_match, axis=1)
+    target_inst = np.where(target_is_leader, leader_inst, garden_inst)
+    target_exists = np.where(target_is_leader, leader_exists, garden_exists)
     target_def = def_row[rows, target_inst]
     target_safe_def = np.maximum(target_def, 0)
-    target_is_entity = self._card_type[target_safe_def] == self._card_type_entity
+    target_ok = (
+        (target_index >= 0)
+        & (target_index <= self._garden_size)
+        & target_exists
+        & (target_def >= 0)
+        & (
+            (
+                target_is_leader
+                & (self._card_type[target_safe_def] == self._card_type_leader)
+            )
+            | (
+                ~target_is_leader
+                & (self._card_type[target_safe_def] == self._card_type_entity)
+            )
+        )
+    )
     target_has_attached = np.any(
         (zone_row == self._zone_attached)
         & (attached_row == target_inst[:, None].astype(attached_row.dtype)),
         axis=1,
     )
     target_clean = (
-        target_exists
-        & target_is_entity
+        target_ok
         & ~target_has_attached
         & ~self._timing_takes_damage[target_safe_def]
         & ~self._timing_deals_damage[target_safe_def]
@@ -6526,14 +12886,34 @@ class JaxVecEnv:
         & (np.asarray(states.carapace_perm)[rows, opp, target_inst] == 0)
         & (np.asarray(states.carapace_eot)[rows, opp, target_inst] == 0)
         & ~np.asarray(states.grant_godmode)[rows, opp, target_inst]
+    )
+    stt03_006_destroy = (
+        target_ok
+        & (target_def == self._stt03_006_id)
+        & ~target_has_attached
+        & ~self._timing_takes_damage[target_safe_def]
+        & ~self._timing_deals_damage[target_safe_def]
+        & ~self._inherent_godmode[target_safe_def]
+        & (np.asarray(states.carapace_perm)[rows, opp, target_inst] == 0)
+        & (np.asarray(states.carapace_eot)[rows, opp, target_inst] == 0)
+        & ~np.asarray(states.grant_godmode)[rows, opp, target_inst]
         & (np.asarray(states.effect_immune_dur)[rows, opp, target_inst] == 0)
     )
+    target_clean = target_clean | stt03_006_destroy
 
     board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
+    inert_watch = (
+        (def_host == self._stt01_008_id)
+        | (def_host == self._stt01_009_id)
+        | (def_host == self._stt01_011_id)
+        | (def_host == self._azk01_010_id)
+        | (def_host == self._azk01_019_id)
+        | (def_host == self._azk01_073_id)
+        | (def_host == self._stt03_013_id)
+        | ((def_host == self._stt02_012_id) & (zone_host == self._zone_alley))
+    )
     no_passive_watch = ~np.any(
-        board
-        & np.isin(def_host, self._simple_play_watch_ids)
-        & (def_host != self._stt01_008_id),
+        board & np.isin(def_host, self._simple_play_watch_ids) & ~inert_watch,
         axis=(1, 2),
     )
     trig_count = np.asarray(states.trig_count).astype(np.int32, copy=False)
@@ -6541,34 +12921,305 @@ class JaxVecEnv:
     trig_source = np.asarray(states.trig_source)[:, 0].astype(np.int32, copy=False)
     trig_timing = np.asarray(states.trig_timing)[:, 0].astype(np.int32, copy=False)
     trig_source_safe = np.maximum(trig_source, 0)
+    trig_owner_safe = np.clip(trig_owner, 0, 1)
     queued_azk01_059 = (
         (trig_count == 1)
-        & (trig_owner == owner)
+        & (trig_owner >= 0)
         & (trig_source >= 0)
         & (trig_timing == 11)  # TIMING_WHEN_TAKES_DAMAGE
-        & (def_host[rows, owner_safe, trig_source_safe] == self._azk01_059_id)
+        & (def_host[rows, trig_owner_safe, trig_source_safe] == self._azk01_059_id)
         & (
             (np.asarray(states.once_per_turn_used)[
-                rows, owner_safe, trig_source_safe
+                rows, trig_owner_safe, trig_source_safe
             ] & 1) == 0
         )
     )
-    trigger_ok = (trig_count == 0) | queued_azk01_059
+    queued_azk01_062 = (
+        (trig_count == 1)
+        & (trig_owner >= 0)
+        & (trig_source >= 0)
+        & (trig_timing == 11)  # TIMING_WHEN_TAKES_DAMAGE
+        & (def_host[rows, trig_owner_safe, trig_source_safe] == self._azk01_062_id)
+    )
+    queued_stt04_009 = (
+        (trig_count == 1)
+        & (trig_owner >= 0)
+        & (trig_source >= 0)
+        & (trig_timing == 11)  # TIMING_WHEN_TAKES_DAMAGE
+        & (def_host[rows, trig_owner_safe, trig_source_safe] == self._stt04_009_id)
+        & np.asarray(states.last_dmg_from_effect)[
+            rows, trig_owner_safe, trig_source_safe
+        ]
+        & (
+            (np.asarray(states.once_per_turn_used)[
+                rows, trig_owner_safe, trig_source_safe
+            ] & 1) == 0
+        )
+    )
+    trigger_ok = (trig_count == 0) | queued_azk01_059 | queued_azk01_062 | queued_stt04_009
+    select = (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+        & target_clean
+    )
+    skip = (chosen == self._act_noop) & (active_acts[:, 0] == self._act_noop)
+    passive_ok = no_passive_watch | target_is_leader | skip
     clean = (
         trigger_ok
+        & ((np.asarray(states.redirect_count) == 0) | queued_azk01_062)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+        & passive_ok
+    )
+    return (
+        (select | skip)
+        & (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & source_ok
+        & clean
+    )
+
+  def _effect_stt04_016_static_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    opp = (owner_safe + 1) % 2
+    src_safe = np.maximum(src, 0)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    target_is_leader = target_index == self._garden_size
+    zone_row = zone_host[rows, opp]
+    zpos_row = zpos_host[rows, opp]
+    def_row = def_host[rows, opp]
+    garden_match = (
+        (zone_row == self._zone_garden)
+        & (zpos_row == target_index[:, None])
+        & (target_index[:, None] >= 0)
+        & (target_index[:, None] < self._garden_size)
+    )
+    leader_match = zone_row == self._zone_leader
+    garden_exists = np.any(garden_match, axis=1)
+    leader_exists = np.any(leader_match, axis=1)
+    garden_inst = np.argmax(garden_match, axis=1)
+    leader_inst = np.argmax(leader_match, axis=1)
+    target_inst = np.where(target_is_leader, leader_inst, garden_inst)
+    target_exists = np.where(target_is_leader, leader_exists, garden_exists)
+    target_def = def_row[rows, target_inst]
+    target_safe_def = np.maximum(target_def, 0)
+    target_ok = (
+        (target_index >= 0)
+        & (target_index <= self._garden_size)
+        & target_exists
+        & (target_def >= 0)
+        & (
+            (
+                target_is_leader
+                & (self._card_type[target_safe_def] == self._card_type_leader)
+            )
+            | (
+                ~target_is_leader
+                & (self._card_type[target_safe_def] == self._card_type_entity)
+            )
+        )
+    )
+    return (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+        & (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & (owner == active)
+        & (src >= 0)
+        & (source_def == self._stt04_016_id)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 0)
+        & (np.asarray(states.ab_eff_max) == 1)
+        & np.asarray(states.ab_costs_applied)
+        & target_ok
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+    )
+
+  def _effect_azk01_062_static_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+    return (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+        & (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_062_id)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 0)
+        & (np.asarray(states.ab_eff_max) == 1)
+        & (np.asarray(states.winner) == -1)
+    )
+
+  def _effect_stt04_009_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    opp = (owner_safe + 1) % 2
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    attached_host = np.asarray(states.attached_to)
+    cur_hp = np.asarray(states.cur_hp)
+    n_inst = def_host.shape[2]
+    src_safe = np.clip(src, 0, n_inst - 1)
+    source_def = def_host[rows, owner_safe, src_safe]
+
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    friendly_garden = target_index < self._garden_size
+    enemy_garden = (
+        (target_index >= self._garden_size)
+        & (target_index < 2 * self._garden_size)
+    )
+    own_leader = target_index == 2 * self._garden_size
+    enemy_leader = target_index == (2 * self._garden_size + 1)
+    target_is_garden = friendly_garden | enemy_garden
+    target_is_leader = own_leader | enemy_leader
+    target_player = np.where(friendly_garden | own_leader, owner_safe, opp)
+    target_slot = np.where(
+        friendly_garden,
+        target_index,
+        target_index - self._garden_size,
+    )
+    garden_match = (
+        (zone_host[rows, target_player] == self._zone_garden)
+        & (zpos_host[rows, target_player] == target_slot[:, None])
+        & (target_slot[:, None] >= 0)
+        & (target_slot[:, None] < self._garden_size)
+    )
+    leader_match = zone_host[rows, target_player] == self._zone_leader
+    garden_exists = np.any(garden_match, axis=1)
+    leader_exists = np.any(leader_match, axis=1)
+    garden_inst = np.where(garden_exists, np.argmax(garden_match, axis=1), -1)
+    leader_inst = np.where(leader_exists, np.argmax(leader_match, axis=1), -1)
+    target_inst = np.where(target_is_garden, garden_inst, leader_inst)
+    target_exists = np.where(target_is_garden, garden_exists, leader_exists)
+    target_safe = np.clip(target_inst, 0, n_inst - 1)
+    target_player_safe = np.clip(target_player, 0, 1)
+    target_def = def_host[rows, target_player_safe, target_safe]
+    target_safe_def = np.maximum(target_def, 0)
+    target_has_attached = np.any(
+        (zone_host[rows, target_player_safe] == self._zone_attached)
+        & (attached_host[rows, target_player_safe] == target_safe[:, None]),
+        axis=1,
+    )
+    same_source = (target_player_safe == owner_safe) & (target_inst == src)
+    damage = np.minimum(
+        np.asarray(states.last_dmg_taken)[rows, owner_safe, src_safe].astype(
+            np.int32, copy=False
+        ),
+        2,
+    )
+    target_ok = (
+        target_exists
+        & (target_def >= 0)
+        & ~same_source
+        & (damage > 0)
+        & (cur_hp[rows, target_player_safe, target_safe] > 0)
+        & (
+            (
+                target_is_leader
+                & (self._card_type[target_safe_def] == self._card_type_leader)
+            )
+            | (
+                target_is_garden
+                & (self._card_type[target_safe_def] == self._card_type_entity)
+            )
+        )
+        & (~target_has_attached | target_is_leader)
+        & ~self._timing_takes_damage[target_safe_def]
+        & ~self._timing_deals_damage[target_safe_def]
+        & ~self._timing_when_destroyed[target_safe_def]
+        & ~self._inherent_godmode[target_safe_def]
+        & (np.asarray(states.carapace_perm)[rows, target_player_safe, target_safe] == 0)
+        & (np.asarray(states.carapace_eot)[rows, target_player_safe, target_safe] == 0)
+        & ~np.asarray(states.grant_godmode)[rows, target_player_safe, target_safe]
+        & (
+            np.asarray(states.effect_immune_dur)[rows, target_player_safe, target_safe]
+            == 0
+        )
+    )
+    stt03_006_destroy = (
+        target_exists
+        & (target_def == self._stt03_006_id)
+        & ~same_source
+        & (damage > 0)
+        & (cur_hp[rows, target_player_safe, target_safe] > 0)
+        & target_is_garden
+        & ~target_has_attached
+        & ~self._timing_takes_damage[target_safe_def]
+        & ~self._timing_deals_damage[target_safe_def]
+        & ~self._inherent_godmode[target_safe_def]
+        & (np.asarray(states.carapace_perm)[rows, target_player_safe, target_safe] == 0)
+        & (np.asarray(states.carapace_eot)[rows, target_player_safe, target_safe] == 0)
+        & ~np.asarray(states.grant_godmode)[rows, target_player_safe, target_safe]
+        & (
+            np.asarray(states.effect_immune_dur)[rows, target_player_safe, target_safe]
+            == 0
+        )
+    )
+    target_ok = target_ok | stt03_006_destroy
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._stt04_009_id)
+        & (zone_host[rows, owner_safe, src_safe] == self._zone_garden)
+        & ~np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 1)
+        & (np.asarray(states.ab_eff_max) == 1)
+        & ((np.asarray(states.once_per_turn_used)[rows, owner_safe, src_safe] & 1) == 0)
+    )
+    trig_count = np.asarray(states.trig_count).astype(np.int32, copy=False)
+    trig_owner = np.asarray(states.trig_owner)[:, 0].astype(np.int32, copy=False)
+    trig_source = np.asarray(states.trig_source)[:, 0].astype(np.int32, copy=False)
+    trig_timing = np.asarray(states.trig_timing)[:, 0].astype(np.int32, copy=False)
+    trig_owner_safe = np.clip(trig_owner, 0, 1)
+    trig_source_safe = np.maximum(trig_source, 0)
+    queued_stt03_006 = (
+        (trig_count == 1)
+        & (trig_timing == 13)  # TIMING_WHEN_DESTROYED
+        & (def_host[rows, trig_owner_safe, trig_source_safe] == self._stt03_006_id)
+    )
+    clean = (
+        ((trig_count == 0) | queued_stt03_006)
         & (np.asarray(states.redirect_count) == 0)
         & (np.asarray(states.combat_attacker) < 0)
         & (np.asarray(states.winner) == -1)
         & (np.asarray(states.passive_queue_count) == 0)
         & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
-        & no_passive_watch
     )
     return (
         (chosen == self._act_select_effect)
         & (active_acts[:, 0] == self._act_select_effect)
         & (np.asarray(states.ab_phase) == self._ability_effect_selection)
         & source_ok
-        & target_clean
+        & target_ok
         & clean
     )
 
@@ -6625,40 +13276,158 @@ class JaxVecEnv:
     )
 
     board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
+    target_owner_axis = np.arange(2, dtype=np.int32)[None, :, None] == opp[
+        :, None, None
+    ]
+    target_owner_azk01_019 = (def_host == self._azk01_019_id) & target_owner_axis
     no_passive_watch = ~np.any(
         board
         & np.isin(def_host, self._simple_play_watch_ids)
-        & (def_host != self._stt01_008_id),
+        & (def_host != self._stt01_008_id)
+        & (def_host != self._stt02_012_id)
+        & (def_host != self._stt02_010_id)
+        & ~target_owner_azk01_019,
         axis=(1, 2),
     )
-    no_stt02_010_observer = ~np.any(
-        (zone_host == self._zone_garden) & (def_host == self._stt02_010_id),
-        axis=(1, 2),
+    stt02_010_observer = (
+        (zone_host == self._zone_garden) & (def_host == self._stt02_010_id)
     )
+    stt02_010_count = np.sum(stt02_010_observer, axis=(1, 2))
+    no_stt02_010_observer = stt02_010_count == 0
+    trig_count = np.asarray(states.trig_count).astype(np.int32, copy=False)
+    trig_owner = np.asarray(states.trig_owner)[:, 0].astype(np.int32, copy=False)
+    trig_source = np.asarray(states.trig_source)[:, 0].astype(np.int32, copy=False)
+    trig_timing = np.asarray(states.trig_timing)[:, 0].astype(np.int32, copy=False)
+    trig_owner_safe = np.clip(trig_owner, 0, 1)
+    trig_source_safe = np.maximum(trig_source, 0)
+    queued_stt02_010 = (
+        (trig_count > 0)
+        & (trig_timing == 8)  # TIMING_WHEN_RETURNED_TO_HAND
+        & (
+            def_host[rows, trig_owner_safe, trig_source_safe]
+            == self._stt02_010_id
+        )
+    )
+    trigger_ok = (trig_count == 0) | queued_stt02_010
     clean = (
-        (np.asarray(states.trig_count) == 0)
+        trigger_ok
         & (np.asarray(states.redirect_count) == 0)
         & (np.asarray(states.combat_attacker) < 0)
         & (np.asarray(states.winner) == -1)
-        & (np.asarray(states.passive_queue_count) == 0)
-        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
         & no_passive_watch
-        & no_stt02_010_observer
     )
+    stt02_010_queue_can_begin = queued_stt02_010 & (stt02_010_count == 1)
     select = (
         (chosen == self._act_select_effect)
         & (active_acts[:, 0] == self._act_select_effect)
         & target_clean
+        & (no_stt02_010_observer | stt02_010_queue_can_begin)
     )
     skip = (
         (chosen == self._act_noop)
         & (active_acts[:, 0] == self._act_noop)
+        & (no_stt02_010_observer | stt02_010_queue_can_begin)
     )
     return (
         (np.asarray(states.ab_phase) == self._ability_effect_selection)
         & source_ok
         & clean
         & (select | skip)
+    )
+
+  def _effect_azk01_022_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    active_acts = acts[rows, active_safe]
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    opp = (owner_safe + 1) % 2
+    src_safe = np.maximum(src, 0)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    attached_host = np.asarray(states.attached_to)
+    source_def = def_host[rows, owner_safe, src_safe]
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_022_id)
+        & np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 1)
+        & (np.asarray(states.ab_eff_max) == 1)
+    )
+
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    target_player = np.where(target_index < self._garden_size, owner_safe, opp)
+    target_slot = np.where(
+        target_index < self._garden_size,
+        target_index,
+        target_index - self._garden_size,
+    )
+    target_zone = zone_host[rows, target_player]
+    target_zpos = zpos_host[rows, target_player]
+    def_row = def_host[rows, target_player]
+    target_match = (
+        (target_zone == self._zone_garden)
+        & (target_zpos == target_slot[:, None])
+        & (target_index[:, None] >= 0)
+        & (target_index[:, None] < (2 * self._garden_size))
+    )
+    target_exists = np.any(target_match, axis=1)
+    target_inst = np.argmax(target_match, axis=1)
+    target_def = def_row[rows, target_inst]
+    target_safe_def = np.maximum(target_def, 0)
+    target_has_attached = np.any(
+        (target_zone == self._zone_attached)
+        & (attached_host[rows, target_player] == target_inst[:, None]),
+        axis=1,
+    )
+    target_ok = (
+        target_exists
+        & (self._card_type[target_safe_def] == self._card_type_entity)
+        & self._has_ikz_cost[target_safe_def]
+        & (self._ikz_cost[target_safe_def].astype(np.int32) <= 2)
+        & ~target_has_attached
+        & ~self._timing_when_returned[target_safe_def]
+        & ~self._inherent_godmode[target_safe_def]
+        & ~np.asarray(states.grant_godmode)[rows, target_player, target_inst]
+    )
+
+    no_stt02_010_observer = ~np.any(
+        (zone_host == self._zone_garden) & (def_host == self._stt02_010_id),
+        axis=(1, 2),
+    )
+    board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
+    passive_watch = board & np.isin(def_host, self._simple_play_watch_ids)
+    no_non_inert_watch = ~np.any(
+        passive_watch
+        & (def_host != self._stt01_008_id)
+        & (def_host != self._stt02_012_id)
+        & (def_host != self._azk01_019_id)
+        & (def_host != self._azk01_073_id)
+        & (def_host != self._stt03_013_id),
+        axis=(1, 2),
+    )
+    clean = (
+        (np.asarray(states.phase) == 2)  # Phase.MAIN
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & no_stt02_010_observer
+        & no_non_inert_watch
+    )
+    return (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+        & (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & source_ok
+        & target_ok
+        & clean
     )
 
   def _effect_azk01_032_fast_mask(self, acts: np.ndarray, chosen):
@@ -6714,10 +13483,16 @@ class JaxVecEnv:
     )
 
     board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
+    inert_watch = (
+        (def_host == self._stt01_008_id)
+        | (def_host == self._stt01_009_id)
+        | (def_host == self._stt01_011_id)
+        | (def_host == self._azk01_019_id)
+        | (def_host == self._stt03_013_id)
+        | (def_host == self._stt02_012_id)
+    )
     no_passive_watch = ~np.any(
-        board
-        & np.isin(def_host, self._simple_play_watch_ids)
-        & (def_host != self._stt01_008_id),
+        board & np.isin(def_host, self._simple_play_watch_ids) & ~inert_watch,
         axis=(1, 2),
     )
     no_stt02_010_observer = ~np.any(
@@ -6729,8 +13504,6 @@ class JaxVecEnv:
         & (np.asarray(states.redirect_count) == 0)
         & (np.asarray(states.combat_attacker) < 0)
         & (np.asarray(states.winner) == -1)
-        & (np.asarray(states.passive_queue_count) == 0)
-        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
         & no_passive_watch
         & no_stt02_010_observer
     )
@@ -6749,6 +13522,630 @@ class JaxVecEnv:
         & clean
         & (select | skip)
     )
+
+
+  def _effect_stt02_014_fast_mask(self, acts: np.ndarray, chosen):
+    # This vmapped kernel's XLA compile is a 40-90 GB giant whose
+    # executable exceeds the persistent-cache serialization limit, so
+    # every process would re-pay it at batch >1. Route these rows to
+    # the broad generic kernel (cached at (1,...), parity-proven).
+    if self.num_environments > 1:
+      return np.zeros(self.num_environments, dtype=bool)
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    active_acts = acts[rows, active_safe]
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    opp = (owner_safe + 1) % 2
+    src_safe = np.maximum(src, 0)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._stt02_014_id)
+        & ~np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 1)
+        & (np.asarray(states.ab_eff_max) == 1)
+    )
+
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    zone_row = zone_host[rows, opp]
+    zpos_row = zpos_host[rows, opp]
+    def_row = def_host[rows, opp]
+    target_match = (
+        (zone_row == self._zone_garden)
+        & (zpos_row == target_index[:, None])
+        & (target_index[:, None] >= 0)
+        & (target_index[:, None] < self._garden_size)
+    )
+    target_exists = np.any(target_match, axis=1)
+    target_inst = np.argmax(target_match, axis=1)
+    target_def = def_row[rows, target_inst]
+    target_safe_def = np.maximum(target_def, 0)
+    target_ok = (
+        target_exists
+        & (self._card_type[target_safe_def] == self._card_type_entity)
+        & self._has_ikz_cost[target_safe_def]
+        & (self._ikz_cost[target_safe_def].astype(np.int32) <= 2)
+    )
+
+    clean = (
+        (np.asarray(states.phase) == 2)  # Phase.MAIN
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    return (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+        & (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & source_ok
+        & target_ok
+        & clean
+    )
+
+  def _effect_azk01_020_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    active_acts = acts[rows, active_safe]
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_020_id)
+        & ~np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_eff_min) == 2)
+        & (np.asarray(states.ab_eff_max) == 2)
+        & (np.asarray(states.ab_eff_selected) < 2)
+    )
+
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    zone_row = zone_host[rows, owner_safe]
+    zpos_row = zpos_host[rows, owner_safe]
+    def_row = def_host[rows, owner_safe]
+    target_match = (
+        (zone_row == self._zone_garden)
+        & (zpos_row == target_index[:, None])
+        & (target_index[:, None] >= 0)
+        & (target_index[:, None] < self._garden_size)
+    )
+    target_exists = np.any(target_match, axis=1)
+    target_inst = np.argmax(target_match, axis=1)
+    target_def = def_row[rows, target_inst]
+    target_safe_def = np.maximum(target_def, 0)
+    already_selected = (
+        (np.asarray(states.ab_eff_selected) > 0)
+        & (np.asarray(states.ab_eff_target_players)[:, 0] == owner.astype(np.int8))
+        & (np.asarray(states.ab_eff_targets)[:, 0] == target_inst.astype(np.int8))
+    )
+    target_ok = (
+        target_exists
+        & (self._card_type[target_safe_def] == self._card_type_entity)
+        & ~already_selected
+    )
+
+    main_shape = (
+        (np.asarray(states.phase) == 2)
+        & (np.asarray(states.combat_attacker) < 0)
+    )
+    response_shape = (
+        (np.asarray(states.phase) == 3)
+        & (np.asarray(states.combat_attacker) >= 0)
+    )
+    clean = (
+        (main_shape | response_shape)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.winner) == -1)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    return (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+        & (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & source_ok
+        & target_ok
+        & clean
+    )
+
+  def _effect_azk01_005_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    opp = (owner_safe + 1) % 2
+    src_safe = np.maximum(src, 0)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_005_id)
+        & np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 0)
+        & (np.asarray(states.ab_eff_max) == 1)
+    )
+
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    target_match = (
+        (zone_host[rows, opp] == self._zone_garden)
+        & (zpos_host[rows, opp] == target_index[:, None])
+    )
+    target_exists = np.any(target_match, axis=1)
+    target_inst = np.argmax(target_match, axis=1)
+    target_def = def_host[rows, opp, target_inst]
+    target_safe_def = np.maximum(target_def, 0)
+    target_hp = np.asarray(states.cur_hp)[rows, opp, target_inst].astype(np.int32)
+    target_has_attached = np.any(
+        (zone_host[rows, opp] == self._zone_attached)
+        & (
+            np.asarray(states.attached_to)[rows, opp]
+            == target_inst[:, None].astype(np.asarray(states.attached_to).dtype)
+        ),
+        axis=1,
+    )
+    target_ok = (
+        (target_index >= 0)
+        & (target_index < self._garden_size)
+        & target_exists
+        & (target_def >= 0)
+        & (zone_host[rows, opp, target_inst] == self._zone_garden)
+        & (np.asarray(states.effect_immune_dur)[rows, opp, target_inst] == 0)
+    )
+    damage_clean = (
+        ~self._timing_takes_damage[target_safe_def]
+        & ~self._timing_deals_damage[target_safe_def]
+        & ~(self._timing_when_destroyed[target_safe_def] & (target_hp <= 1))
+        & ~self._inherent_godmode[target_safe_def]
+        & ~target_has_attached
+        & ~np.asarray(states.grant_godmode)[rows, opp, target_inst]
+        & (np.asarray(states.carapace_perm)[rows, opp, target_inst] == 0)
+        & (np.asarray(states.carapace_eot)[rows, opp, target_inst] == 0)
+    )
+    clean = (
+        (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+    )
+    select = (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+        & target_ok
+        & damage_clean
+    )
+    skip = (chosen == self._act_noop) & (active_acts[:, 0] == self._act_noop)
+    return (
+        (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & source_ok
+        & clean
+        & (select | skip)
+    )
+
+
+  def _effect_azk01_015_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    opp = (owner_safe + 1) % 2
+    src_safe = np.maximum(src, 0)
+    zone_host = np.asarray(states.zone)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_015_id)
+        & np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 1)
+        & (np.asarray(states.ab_eff_max) == 1)
+    )
+
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    target_player = np.where(target_index == 0, owner_safe, opp)
+    leader_match = zone_host[rows, target_player] == self._zone_leader
+    target_exists = np.any(leader_match, axis=1)
+    target_inst = np.argmax(leader_match, axis=1)
+    target_def = def_host[rows, target_player, target_inst]
+    target_safe_def = np.maximum(target_def, 0)
+    target_ok = (
+        (target_index >= 0)
+        & (target_index <= 1)
+        & target_exists
+        & (target_def >= 0)
+        & (self._card_type[target_safe_def] == self._card_type_leader)
+    )
+    damage_clean = (
+        ~self._timing_takes_damage[target_safe_def]
+        & ~self._timing_deals_damage[target_safe_def]
+        & ~self._inherent_godmode[target_safe_def]
+        & ~np.asarray(states.grant_godmode)[rows, target_player, target_inst]
+        & (np.asarray(states.carapace_perm)[rows, target_player, target_inst] == 0)
+        & (np.asarray(states.carapace_eot)[rows, target_player, target_inst] == 0)
+        & (np.asarray(states.effect_immune_dur)[rows, target_player, target_inst] == 0)
+    )
+    clean = (
+        (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+    )
+    return (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+        & (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & source_ok
+        & target_ok
+        & damage_clean
+        & clean
+    )
+
+  def _effect_stt03_011_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    active_acts = acts[rows, active_safe]
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    opp = (owner_safe + 1) % 2
+    src_safe = np.maximum(src, 0)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    attached_host = np.asarray(states.attached_to)
+    source_def = def_host[rows, owner_safe, src_safe]
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._stt03_011_id)
+        & ~np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 1)
+        & (np.asarray(states.ab_eff_max) == 1)
+    )
+
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    zone_row = zone_host[rows, opp]
+    zpos_row = zpos_host[rows, opp]
+    def_row = def_host[rows, opp]
+    target_match = (
+        (zone_row == self._zone_garden)
+        & (zpos_row == target_index[:, None])
+        & (target_index[:, None] >= 0)
+        & (target_index[:, None] < self._garden_size)
+    )
+    target_exists = np.any(target_match, axis=1)
+    target_inst = np.argmax(target_match, axis=1)
+    target_def = def_row[rows, target_inst]
+    target_safe_def = np.maximum(target_def, 0)
+    target_has_attached = np.any(
+        (zone_row == self._zone_attached)
+        & (attached_host[rows, opp] == target_inst[:, None]),
+        axis=1,
+    )
+    target_ok = (
+        target_exists
+        & (self._card_type[target_safe_def] == self._card_type_entity)
+        & self._has_base_stats[target_safe_def]
+        & (self._base_hp[target_safe_def].astype(np.int32) <= 2)
+        & ~target_has_attached
+        & ~self._timing_when_destroyed[target_safe_def]
+        & ~self._inherent_godmode[target_safe_def]
+        & ~np.asarray(states.grant_godmode)[rows, opp, target_inst]
+    )
+
+    board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
+    passive_watch = board & np.isin(def_host, self._simple_play_watch_ids)
+    no_non_inert_watch = ~np.any(
+        passive_watch & (def_host != self._stt01_008_id),
+        axis=(1, 2),
+    )
+    clean = (
+        (np.asarray(states.phase) == 2)  # Phase.MAIN
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & no_non_inert_watch
+    )
+    select = (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+        & target_ok
+    )
+    return (
+        (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & source_ok
+        & clean
+        & select
+    )
+
+  def _effect_stt02_015_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    active_acts = acts[rows, active_safe]
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    opp = (owner_safe + 1) % 2
+    src_safe = np.maximum(src, 0)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    attached_host = np.asarray(states.attached_to)
+    source_def = def_host[rows, owner_safe, src_safe]
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._stt02_015_id)
+        & ~np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 1)
+        & (np.asarray(states.ab_eff_max) == 1)
+    )
+
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    target_player = np.where(target_index < self._garden_size, owner_safe, opp)
+    target_slot = np.where(
+        target_index < self._garden_size,
+        target_index,
+        target_index - self._garden_size,
+    )
+    target_zone = zone_host[rows, target_player]
+    target_zpos = zpos_host[rows, target_player]
+    def_row = def_host[rows, target_player]
+    target_match = (
+        (target_zone == self._zone_garden)
+        & (target_zpos == target_slot[:, None])
+        & (target_index[:, None] >= 0)
+        & (target_index[:, None] < (2 * self._garden_size))
+    )
+    target_exists = np.any(target_match, axis=1)
+    target_inst = np.argmax(target_match, axis=1)
+    target_def = def_row[rows, target_inst]
+    target_safe_def = np.maximum(target_def, 0)
+    target_has_attached = np.any(
+        (target_zone == self._zone_attached)
+        & (attached_host[rows, target_player] == target_inst[:, None]),
+        axis=1,
+    )
+    target_ok = (
+        target_exists
+        & (self._card_type[target_safe_def] == self._card_type_entity)
+        & self._has_ikz_cost[target_safe_def]
+        & (self._ikz_cost[target_safe_def].astype(np.int32) <= 3)
+        & ~target_has_attached
+        & ~self._timing_when_returned[target_safe_def]
+        & ~self._inherent_godmode[target_safe_def]
+        & ~np.asarray(states.grant_godmode)[rows, target_player, target_inst]
+    )
+
+    no_stt02_010_observer = ~np.any(
+        (zone_host == self._zone_garden) & (def_host == self._stt02_010_id),
+        axis=(1, 2),
+    )
+    board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
+    passive_watch = board & np.isin(def_host, self._simple_play_watch_ids)
+    inert_watch = (
+        (def_host == self._stt01_008_id)
+        | (def_host == self._stt01_009_id)
+        | (def_host == self._stt01_011_id)
+        | (def_host == self._stt03_013_id)
+        | (def_host == self._azk01_019_id)
+        | (def_host == self._stt02_012_id)
+    )
+    no_non_inert_watch = ~np.any(passive_watch & ~inert_watch, axis=(1, 2))
+    clean = (
+        (np.asarray(states.phase) == 3)  # Phase.RESPONSE_WINDOW
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) >= 0)
+        & (np.asarray(states.winner) == -1)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+        & no_stt02_010_observer
+        & no_non_inert_watch
+    )
+    return (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+        & (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & source_ok
+        & target_ok
+        & clean
+    )
+
+  def _effect_stt02_015_static_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    active_acts = acts[rows, active_safe]
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    opp = (owner_safe + 1) % 2
+    src_safe = np.maximum(src, 0)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    target_player = np.where(target_index < self._garden_size, owner_safe, opp)
+    target_slot = np.where(
+        target_index < self._garden_size,
+        target_index,
+        target_index - self._garden_size,
+    )
+    target_match = (
+        (zone_host[rows, target_player] == self._zone_garden)
+        & (zpos_host[rows, target_player] == target_slot[:, None])
+        & (target_index[:, None] >= 0)
+        & (target_index[:, None] < (2 * self._garden_size))
+    )
+    target_exists = np.any(target_match, axis=1)
+    target_inst = np.argmax(target_match, axis=1)
+    target_def = def_host[rows, target_player, target_inst]
+    target_safe_def = np.maximum(target_def, 0)
+    target_ok = (
+        target_exists
+        & (self._card_type[target_safe_def] == self._card_type_entity)
+        & self._has_ikz_cost[target_safe_def]
+        & (self._ikz_cost[target_safe_def].astype(np.int32) <= 3)
+    )
+    return (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+        & (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & (owner == active)
+        & (src >= 0)
+        & (source_def == self._stt02_015_id)
+        & ~np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 1)
+        & (np.asarray(states.ab_eff_max) == 1)
+        & target_ok
+        & (np.asarray(states.phase) == 3)  # Phase.RESPONSE_WINDOW
+        & (np.asarray(states.winner) == -1)
+    )
+  def _effect_azk01_029_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    opp = (owner_safe + 1) % 2
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    n_inst = def_host.shape[2]
+    src_safe = np.clip(src, 0, n_inst - 1)
+    source_def = def_host[rows, owner_safe, src_safe]
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_029_id)
+        & np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 1)
+        & (np.asarray(states.ab_eff_max) == 1)
+    )
+
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    friendly_garden = target_index < self._garden_size
+    enemy_garden = (
+        (target_index >= self._garden_size)
+        & (target_index < 2 * self._garden_size)
+    )
+    own_leader = target_index == 2 * self._garden_size
+    enemy_leader = target_index == (2 * self._garden_size + 1)
+
+    own_garden_match = (
+        (zone_host[rows, owner_safe] == self._zone_garden)
+        & (zpos_host[rows, owner_safe] == target_index[:, None])
+    )
+    enemy_slot = target_index - self._garden_size
+    enemy_garden_match = (
+        (zone_host[rows, opp] == self._zone_garden)
+        & (zpos_host[rows, opp] == enemy_slot[:, None])
+    )
+    own_garden_exists = np.any(own_garden_match, axis=1)
+    enemy_garden_exists = np.any(enemy_garden_match, axis=1)
+    own_garden_inst = np.argmax(own_garden_match, axis=1)
+    enemy_garden_inst = np.argmax(enemy_garden_match, axis=1)
+
+    own_leader_match = zone_host[rows, owner_safe] == self._zone_leader
+    enemy_leader_match = zone_host[rows, opp] == self._zone_leader
+    own_leader_exists = np.any(own_leader_match, axis=1)
+    enemy_leader_exists = np.any(enemy_leader_match, axis=1)
+    own_leader_inst = np.argmax(own_leader_match, axis=1)
+    enemy_leader_inst = np.argmax(enemy_leader_match, axis=1)
+
+    target_player = np.where(
+        friendly_garden | own_leader,
+        owner_safe,
+        opp,
+    )
+    target_inst = np.where(
+        friendly_garden,
+        np.where(own_garden_exists, own_garden_inst, -1),
+        np.where(
+            enemy_garden,
+            np.where(enemy_garden_exists, enemy_garden_inst, -1),
+            np.where(
+                own_leader,
+                np.where(own_leader_exists, own_leader_inst, -1),
+                np.where(enemy_leader_exists, enemy_leader_inst, -1),
+            ),
+        ),
+    )
+    target_safe = np.clip(target_inst, 0, n_inst - 1)
+    target_player_safe = np.clip(target_player, 0, 1)
+    target_def = def_host[rows, target_player_safe, target_safe]
+    target_safe_def = np.maximum(target_def, 0)
+    target_is_entity = (
+        target_def >= 0
+    ) & (self._card_type[target_safe_def] == self._card_type_entity)
+    target_ok = (
+        ((friendly_garden | enemy_garden) & (target_inst >= 0) & target_is_entity)
+        | ((own_leader | enemy_leader) & (target_inst >= 0))
+    )
+
+    clean = (
+        (np.asarray(states.phase) == 3)  # Phase.RESPONSE_WINDOW
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) >= 0)
+        & (np.asarray(states.winner) == -1)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    return (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+        & (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & source_ok
+        & target_ok
+        & clean
+    )
+
 
   def _effect_stt02_016_fast_mask(self, acts: np.ndarray, chosen):
     states = self._states
@@ -6824,6 +14221,82 @@ class JaxVecEnv:
         (chosen == self._act_select_effect)
         & (active_acts[:, 0] == self._act_select_effect)
         & (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & source_ok
+        & target_ok
+        & clean
+    )
+
+  def _effect_stt01_001_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._stt01_001_id)
+        & np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 1)
+        & (np.asarray(states.ab_eff_max) == 1)
+    )
+
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    zone_row = zone_host[rows, owner_safe]
+    zpos_row = zpos_host[rows, owner_safe]
+    def_row = def_host[rows, owner_safe]
+    target_match = (
+        (zone_row == self._zone_garden)
+        & (zpos_row == target_index[:, None])
+        & (target_index[:, None] >= 0)
+        & (target_index[:, None] < self._garden_size)
+    )
+    target_exists = np.any(target_match, axis=1)
+    target_inst = np.argmax(target_match, axis=1)
+    target_def = def_row[rows, target_inst]
+    target_safe_def = np.maximum(target_def, 0)
+    attached = zone_row == self._zone_attached
+    attached_defs = def_row
+    attached_safe_defs = np.maximum(attached_defs, 0)
+    attached_to = np.asarray(states.attached_to)[rows, owner_safe]
+    inst_cols = np.arange(zone_row.shape[1], dtype=np.int32)
+    is_weapon = (
+        attached
+        & (self._card_type[attached_safe_defs] == self._card_type_weapon)
+    )
+    weapon_counts = np.sum(
+        is_weapon[:, :, None]
+        & (attached_to[:, :, None] == inst_cols[None, None, :]),
+        axis=1,
+    )
+    target_ok = (
+        target_exists
+        & (target_def >= 0)
+        & (self._card_type[target_safe_def] == self._card_type_entity)
+        & (weapon_counts[rows, target_inst] > 0)
+        & (np.asarray(states.cooldown)[rows, owner_safe, target_inst] != 0)
+    )
+    clean = (
+        (np.asarray(states.phase) == 2)  # Phase.MAIN
+        & (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    return (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
         & source_ok
         & target_ok
         & clean
@@ -6959,12 +14432,16 @@ class JaxVecEnv:
         & (self._card_type[target_safe_def] == self._card_type_entity)
         & (cur_hp[rows, owner_safe, target_inst] > 0)
     )
+    target_azk01_062_redirect = (
+        (target_def == self._azk01_062_id)
+        & ((np.asarray(states.once_per_turn_used)[rows, owner_safe, target_inst] & 1) == 0)
+    )
     no_damage_triggers = ~(
         self._timing_takes_damage[source_safe_def]
         | self._timing_deals_damage[source_safe_def]
-        | self._timing_takes_damage[target_safe_def]
+        | (self._timing_takes_damage[target_safe_def] & ~target_azk01_062_redirect)
         | self._timing_deals_damage[target_safe_def]
-        | self._timing_when_destroyed[target_safe_def]
+        | (self._timing_when_destroyed[target_safe_def] & ~target_azk01_062_redirect)
     )
     clean = (
         (np.asarray(states.trig_count) == 0)
@@ -6982,6 +14459,242 @@ class JaxVecEnv:
         & valid_target
         & no_damage_triggers
         & clean
+    )
+
+  def _effect_stt04_001_static_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+    return (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+        & (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & (owner == active)
+        & (src >= 0)
+        & (source_def == self._stt04_001_id)
+        & np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 1)
+        & (np.asarray(states.ab_eff_max) == 1)
+        & (np.asarray(states.winner) == -1)
+    )
+
+  def _effect_azk01_103_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    opp = (owner_safe + 1) % 2
+    src_safe = np.maximum(src, 0)
+    zone_host = np.asarray(states.zone)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_103_id)
+        & np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 1)
+        & (np.asarray(states.ab_eff_max) == 1)
+        & (np.asarray(states.ab_scratch)[:, 0] > 0)
+    )
+
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    target_player = np.where(target_index == 0, owner_safe, opp)
+    leader_match = zone_host[rows, target_player] == self._zone_leader
+    target_exists = np.any(leader_match, axis=1)
+    target_inst = np.argmax(leader_match, axis=1)
+    target_def = def_host[rows, target_player, target_inst]
+    target_safe_def = np.maximum(target_def, 0)
+    target_ok = (
+        (target_index >= 0)
+        & (target_index <= 1)
+        & target_exists
+        & (target_def >= 0)
+        & (self._card_type[target_safe_def] == self._card_type_leader)
+    )
+    damage_clean = (
+        ~self._timing_takes_damage[target_safe_def]
+        & ~self._timing_deals_damage[target_safe_def]
+        & (np.asarray(states.carapace_perm)[rows, target_player, target_inst] == 0)
+        & (np.asarray(states.carapace_eot)[rows, target_player, target_inst] == 0)
+        & (np.asarray(states.effect_immune_dur)[rows, target_player, target_inst] == 0)
+    )
+    clean = (
+        (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+    )
+    return (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+        & source_ok
+        & target_ok
+        & damage_clean
+        & clean
+    )
+
+
+  def _effect_azk01_124_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    opp = (owner_safe + 1) % 2
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    attached_host = np.asarray(states.attached_to)
+    source_def = def_host[rows, owner_safe, src_safe]
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_124_id)
+        & np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 0)
+        & (np.asarray(states.ab_eff_max) == 1)
+        & (np.asarray(states.ab_scratch)[:, 2] == 3)
+    )
+
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    opp_zone = zone_host[rows, opp]
+    opp_zpos = zpos_host[rows, opp]
+    target_match = (
+        (opp_zone == self._zone_garden)
+        & (opp_zpos == target_index[:, None])
+    )
+    target_exists = np.any(target_match, axis=1)
+    target_inst = np.argmax(target_match, axis=1)
+    target_def = def_host[rows, opp, target_inst]
+    target_safe_def = np.maximum(target_def, 0)
+    target_hp = np.asarray(states.cur_hp)[rows, opp, target_inst].astype(np.int16)
+    damage = np.asarray(states.ab_scratch)[:, 0].astype(np.int16, copy=False)
+    target_immune = (
+        self._inherent_effect_immune[target_safe_def]
+        | (np.asarray(states.effect_immune_dur)[rows, opp, target_inst] != 0)
+    )
+    target_dies = target_hp <= damage
+    target_stt03_006_trigger = (
+        target_dies & (target_def == self._stt03_006_id)
+    )
+    target_has_attached = np.any(
+        (opp_zone == self._zone_attached)
+        & (attached_host[rows, opp] == target_inst[:, None]),
+        axis=1,
+    )
+    damage_target_clean = (
+        ~target_has_attached
+        & ~self._timing_takes_damage[target_safe_def]
+        & ~self._timing_deals_damage[target_safe_def]
+        & ~(target_dies & self._timing_when_destroyed[target_safe_def] & ~target_stt03_006_trigger)
+        & ~self._inherent_godmode[target_safe_def]
+        & (np.asarray(states.carapace_perm)[rows, opp, target_inst] == 0)
+        & (np.asarray(states.carapace_eot)[rows, opp, target_inst] == 0)
+        & ~np.asarray(states.grant_godmode)[rows, opp, target_inst]
+    )
+    target_ok = (
+        target_exists
+        & (target_index >= 0)
+        & (target_index < self._garden_size)
+        & (target_def >= 0)
+        & (self._card_type[target_safe_def] == self._card_type_entity)
+        & (target_immune | damage_target_clean)
+    )
+    select = (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+        & target_ok
+    )
+    skip = (
+        (chosen == self._act_noop)
+        & (active_acts[:, 0] == self._act_noop)
+    )
+    trig_count = np.asarray(states.trig_count).astype(np.int32, copy=False)
+    trig_owner = np.asarray(states.trig_owner)[:, 0].astype(np.int32, copy=False)
+    trig_source = np.asarray(states.trig_source)[:, 0].astype(np.int32, copy=False)
+    trig_timing = np.asarray(states.trig_timing)[:, 0].astype(np.int32, copy=False)
+    trig_owner_safe = np.clip(trig_owner, 0, 1)
+    trig_source_safe = np.maximum(trig_source, 0)
+    queued_stt03_013 = (
+        (trig_count == 1)
+        & (trig_timing == 15)  # TIMING_WHEN_ENTERS_GARDEN
+        & (def_host[rows, trig_owner_safe, trig_source_safe] == self._stt03_013_id)
+    )
+    clean = (
+        (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & ((trig_count == 0) | queued_stt03_013)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    return source_ok & (select | skip) & clean
+
+  def _effect_azk01_124_static_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    opp = (owner_safe + 1) % 2
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    target_match = (
+        (zone_host[rows, opp] == self._zone_garden)
+        & (zpos_host[rows, opp] == target_index[:, None])
+        & (target_index[:, None] >= 0)
+        & (target_index[:, None] < self._garden_size)
+    )
+    target_exists = np.any(target_match, axis=1)
+    target_inst = np.argmax(target_match, axis=1)
+    target_def = def_host[rows, opp, target_inst]
+    target_safe_def = np.maximum(target_def, 0)
+    target_ok = (
+        target_exists
+        & (target_def >= 0)
+        & (self._card_type[target_safe_def] == self._card_type_entity)
+    )
+    return (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+        & (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_124_id)
+        & np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 0)
+        & (np.asarray(states.ab_eff_max) == 1)
+        & (np.asarray(states.ab_scratch)[:, 2] == 3)
+        & target_ok
+        & (np.asarray(states.winner) == -1)
     )
 
   def _effect_stt02_011_fast_mask(self, acts: np.ndarray, chosen):
@@ -7030,6 +14743,82 @@ class JaxVecEnv:
     )
     clean = (
         (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+    )
+    return (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+        & (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & source_ok
+        & valid_target
+        & clean
+    )
+
+
+  def _effect_azk01_123_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    trig_count = np.asarray(states.trig_count).astype(np.int32, copy=False)
+    trig_owner = np.asarray(states.trig_owner)[:, 0].astype(np.int32, copy=False)
+    trig_source = np.asarray(states.trig_source)[:, 0].astype(np.int32, copy=False)
+    trig_timing = np.asarray(states.trig_timing)[:, 0].astype(np.int32, copy=False)
+    trig_owner_safe = np.clip(trig_owner, 0, 1)
+    trig_source_safe = np.maximum(trig_source, 0)
+    pending_stt03_006_trigger = (
+        (trig_count == 1)
+        & (trig_timing == 13)  # TIMING_WHEN_DESTROYED
+        & (def_host[rows, trig_owner_safe, trig_source_safe] == self._stt03_006_id)
+        & np.any(zone_host[rows, trig_owner_safe] == self._zone_hand, axis=1)
+    )
+    trig_clean = (trig_count == 0) | pending_stt03_006_trigger
+
+
+    source_def = def_host[rows, owner_safe, src_safe]
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_123_id)
+        & (zone_host[rows, owner_safe, src_safe] == self._zone_leader)
+        & np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 1)
+        & (np.asarray(states.ab_eff_max) == 1)
+    )
+
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    owner_zone = zone_host[rows, owner_safe]
+    owner_zpos = zpos_host[rows, owner_safe]
+    target_match = (owner_zone == self._zone_garden) & (
+        owner_zpos == target_index[:, None]
+    )
+    target_exists = np.any(target_match, axis=1)
+    target_inst = np.argmax(target_match, axis=1)
+    target_def = def_host[rows, owner_safe, target_inst]
+    target_safe_def = np.maximum(target_def, 0)
+    valid_target = (
+        (target_index >= 0)
+        & (target_index < self._garden_size)
+        & target_exists
+        & (target_def >= 0)
+        & (self._card_type[target_safe_def] == self._card_type_entity)
+        & (np.asarray(states.cur_hp)[rows, owner_safe, target_inst] > 0)
+    )
+    clean = (
+        (np.asarray(states.phase) == 2)  # Phase.MAIN
+        & trig_clean
         & (np.asarray(states.redirect_count) == 0)
         & (np.asarray(states.combat_attacker) < 0)
         & (np.asarray(states.winner) == -1)
@@ -7127,16 +14916,31 @@ class JaxVecEnv:
         & (np.asarray(states.carapace_perm)[rows, opp, target_inst] == 0)
         & (np.asarray(states.carapace_eot)[rows, opp, target_inst] == 0)
         & ~np.asarray(states.grant_godmode)[rows, opp, target_inst]
-        & (np.asarray(states.effect_immune_dur)[rows, opp, target_inst] == 0)
     )
     board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
+    player_axis = np.arange(2, dtype=np.int32)[None, :, None]
+    enemy_azk01_019 = (
+        (def_host == self._azk01_019_id)
+        & (player_axis != owner_safe[:, None, None])
+    )
+    stt02_012_inactive_alley = (
+        (def_host == self._stt02_012_id) & (zone_host == self._zone_alley)
+    )
     no_passive_watch = ~np.any(
         board
         & np.isin(def_host, self._simple_play_watch_ids)
-        & (def_host != self._stt01_008_id),
+        & (def_host != self._stt01_008_id)
+        & (def_host != self._stt01_009_id)
+        & (def_host != self._stt01_011_id)
+        & (def_host != self._stt02_010_id)
+        & (def_host != self._azk01_010_id)
+        & ~enemy_azk01_019
+        & (def_host != self._azk01_073_id)
+        & (def_host != self._stt02_012_id)
+        & (def_host != self._stt03_013_id)
+        & ~stt02_012_inactive_alley,
         axis=(1, 2),
     )
-    no_attached = ~np.any(zone_host == self._zone_attached, axis=(1, 2))
     clean = (
         (np.asarray(states.phase) == 2)  # Phase.MAIN
         & (np.asarray(states.trig_count) == 0)
@@ -7147,7 +14951,6 @@ class JaxVecEnv:
         & ~np.asarray(states.eot_abilities_queued)
         & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
         & no_passive_watch
-        & no_attached
     )
     return (
         (chosen == self._act_select_effect)
@@ -7157,6 +14960,80 @@ class JaxVecEnv:
         & target_ok
         & damage_clean
         & clean
+    )
+
+  def _effect_azk01_105_static_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    opp = (owner_safe + 1) % 2
+    src_safe = np.maximum(src, 0)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_105_id)
+        & np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 1)
+        & (np.asarray(states.ab_eff_max) == 1)
+        & (np.asarray(states.ab_scratch)[:, 0] > 0)
+    )
+
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    target_is_leader = target_index == self._garden_size
+    zone_row = zone_host[rows, opp]
+    zpos_row = zpos_host[rows, opp]
+    def_row = def_host[rows, opp]
+    garden_match = (
+        (zone_row == self._zone_garden)
+        & (zpos_row == target_index[:, None])
+        & (target_index[:, None] >= 0)
+        & (target_index[:, None] < self._garden_size)
+    )
+    leader_match = zone_row == self._zone_leader
+    garden_exists = np.any(garden_match, axis=1)
+    leader_exists = np.any(leader_match, axis=1)
+    garden_inst = np.argmax(garden_match, axis=1)
+    leader_inst = np.argmax(leader_match, axis=1)
+    target_inst = np.where(target_is_leader, leader_inst, garden_inst)
+    target_exists = np.where(target_is_leader, leader_exists, garden_exists)
+    target_def = def_row[rows, target_inst]
+    target_safe_def = np.maximum(target_def, 0)
+    target_ok = (
+        (target_index >= 0)
+        & (target_index <= self._garden_size)
+        & target_exists
+        & (target_def >= 0)
+        & (
+            (
+                target_is_leader
+                & (self._card_type[target_safe_def] == self._card_type_leader)
+            )
+            | (
+                ~target_is_leader
+                & (self._card_type[target_safe_def] == self._card_type_entity)
+            )
+        )
+    )
+    return (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+        & (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & source_ok
+        & target_ok
+        & (np.asarray(states.phase) == 2)  # Phase.MAIN
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
     )
 
   def _effect_stt04_004_fast_mask(self, acts: np.ndarray, chosen):
@@ -7179,8 +15056,8 @@ class JaxVecEnv:
         (owner == active)
         & (src >= 0)
         & (source_def == self._stt04_004_id)
-        & (zone_host[rows, owner_safe, src_safe] == self._zone_alley)
-        & ~np.asarray(states.ab_costs_applied)
+        & (zone_host[rows, owner_safe, src_safe] == self._zone_discard)
+        & np.asarray(states.ab_costs_applied)
         & (np.asarray(states.ab_eff_selected) == 0)
         & (np.asarray(states.ab_eff_min) == 1)
         & (np.asarray(states.ab_eff_max) == 1)
@@ -7229,10 +15106,26 @@ class JaxVecEnv:
             rows, target_player, target_inst
         ] == 0)
     )
+    azk01_062_redirect = (
+        target_exists
+        & (target_def == self._azk01_062_id)
+        & (np.asarray(states.redirect_count) == 0)
+        & ((np.asarray(states.once_per_turn_used)[rows, target_player, target_inst] & 1) == 0)
+        & ~target_has_attached
+    )
 
     board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
+    stt02_012_inactive_alley = (
+        (def_host == self._stt02_012_id) & (zone_host == self._zone_alley)
+    )
+    stt03_013_inert = def_host == self._stt03_013_id
     no_passive_watch = ~np.any(
-        board & np.isin(def_host, self._simple_play_watch_ids),
+        board
+        & np.isin(def_host, self._simple_play_watch_ids)
+        & (def_host != self._stt01_008_id)
+        & (def_host != self._azk01_019_id)
+        & ~stt02_012_inactive_alley
+        & ~stt03_013_inert,
         axis=(1, 2),
     )
     clean = (
@@ -7249,9 +15142,364 @@ class JaxVecEnv:
         & (active_acts[:, 0] == self._act_select_effect)
         & (np.asarray(states.ab_phase) == self._ability_effect_selection)
         & source_ok
-        & target_clean
+        & (target_clean | azk01_062_redirect)
         & clean
     )
+
+  def _effect_azk01_016_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+
+    source_def = def_host[rows, owner_safe, src_safe]
+    source_azk01_016 = source_def == self._azk01_016_id
+    source_azk01_068 = source_def == self._azk01_068_id
+    eff_selected = np.asarray(states.ab_eff_selected).astype(np.int32, copy=False)
+    eff_min = np.asarray(states.ab_eff_min).astype(np.int32, copy=False)
+    eff_max = np.asarray(states.ab_eff_max).astype(np.int32, copy=False)
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_azk01_016 | source_azk01_068)
+        & np.asarray(states.ab_costs_applied)
+        & (eff_selected < eff_max)
+        & (
+            (source_azk01_016 & (eff_min == 2) & (eff_max == 2))
+            | (source_azk01_068 & (eff_min == 1) & (eff_max == 1))
+        )
+    )
+
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    owner_zone = zone_host[rows, owner_safe]
+    owner_zpos = zpos_host[rows, owner_safe]
+    target_match = (owner_zone == self._zone_hand) & (
+        owner_zpos == target_index[:, None]
+    )
+    target_exists = np.any(target_match, axis=1)
+    target_inst = np.argmax(target_match, axis=1)
+    selected = np.asarray(states.ab_eff_selected).astype(np.int32, copy=False)
+    prior_slots = np.arange(8, dtype=np.int32)[None, :]
+    prior_selected = (
+        prior_slots < selected[:, None]
+    ) & (np.asarray(states.ab_eff_targets).astype(np.int32) == target_inst[:, None])
+    target_ok = target_exists & (target_inst != src_safe) & ~np.any(
+        prior_selected, axis=1
+    )
+
+    clean = (
+        (np.asarray(states.phase) == 2)  # Phase.MAIN
+        & (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    return (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+        & source_ok
+        & target_ok
+        & clean
+    )
+
+  def _effect_azk01_017_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    active_acts = acts[rows, active_safe]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    opp = (owner_safe + 1) % 2
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    attached_host = np.asarray(states.attached_to)
+    cur_hp = np.asarray(states.cur_hp)
+
+    source_def = def_host[rows, owner_safe, src_safe]
+    source_safe_def = np.maximum(source_def, 0)
+    selected_count = np.asarray(states.ab_eff_selected).astype(
+        np.int32, copy=False
+    )
+    max_count = np.asarray(states.ab_eff_max).astype(np.int32, copy=False)
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_017_id)
+        & np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_eff_min) == 0)
+        & (max_count > 0)
+        & (selected_count < max_count)
+    )
+
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    target_is_leader = target_index >= 2 * self._garden_size
+    target_player = np.where(
+        target_index < self._garden_size,
+        owner_safe,
+        np.where(
+            target_index < 2 * self._garden_size,
+            opp,
+            np.where(target_index == 2 * self._garden_size, owner_safe, opp),
+        ),
+    )
+    target_slot = np.where(
+        target_index < self._garden_size,
+        target_index,
+        target_index - self._garden_size,
+    )
+    target_slot = np.clip(target_slot, 0, self._garden_size - 1)
+    target_zone = zone_host[rows, target_player]
+    target_zpos = zpos_host[rows, target_player]
+    garden_match = (target_zone == self._zone_garden) & (
+        target_zpos == target_slot[:, None]
+    )
+    leader_match = target_zone == self._zone_leader
+    garden_exists = np.any(garden_match, axis=1)
+    leader_exists = np.any(leader_match, axis=1)
+    garden_inst = np.argmax(garden_match, axis=1)
+    leader_inst = np.argmax(leader_match, axis=1)
+    target_exists = np.where(target_is_leader, leader_exists, garden_exists)
+    target_inst = np.where(target_is_leader, leader_inst, garden_inst)
+    target_def = def_host[rows, target_player, target_inst]
+    target_safe_def = np.maximum(target_def, 0)
+    target_zone_at_inst = zone_host[rows, target_player, target_inst]
+    target_has_attached = np.any(
+        (target_zone == self._zone_attached)
+        & (attached_host[rows, target_player] == target_inst[:, None]),
+        axis=1,
+    )
+
+    selected_targets = np.asarray(states.ab_eff_targets).astype(np.int32)
+    selected_players = np.asarray(states.ab_eff_target_players).astype(np.int32)
+    prior_slots = np.arange(selected_targets.shape[1], dtype=np.int32)[None, :]
+    prior_active = (
+        prior_slots < selected_count[:, None]
+    ) & (selected_targets >= 0)
+    prior_same = (
+        prior_active
+        & (selected_players == target_player[:, None])
+        & (selected_targets == target_inst[:, None])
+    )
+    prior_player_safe = np.clip(selected_players, 0, 1)
+    prior_inst = np.maximum(selected_targets, 0)
+    prior_zone = zone_host[rows[:, None], prior_player_safe, prior_inst]
+    prior_is_leader = prior_zone == self._zone_leader
+    prior_class = prior_active & (prior_is_leader == target_is_leader[:, None])
+
+    target_entity = (
+        (target_zone_at_inst == self._zone_garden)
+        & (self._card_type[target_safe_def] == self._card_type_entity)
+    )
+    target_clean = (
+        (target_index >= 0)
+        & (target_index < (2 * self._garden_size + 2))
+        & target_exists
+        & (target_def >= 0)
+        & (
+            (
+                target_is_leader
+                & (target_zone_at_inst == self._zone_leader)
+            )
+            | (~target_is_leader & target_entity)
+        )
+        & (cur_hp[rows, target_player, target_inst] > 0)
+        & (~target_has_attached | target_is_leader)
+        & ~np.any(prior_same | prior_class, axis=1)
+        & ~self._timing_takes_damage[target_safe_def]
+        & ~self._timing_deals_damage[target_safe_def]
+        & ~self._timing_when_destroyed[target_safe_def]
+        & ~self._inherent_godmode[target_safe_def]
+        & (np.asarray(states.carapace_perm)[rows, target_player, target_inst] == 0)
+        & (np.asarray(states.carapace_eot)[rows, target_player, target_inst] == 0)
+        & ~np.asarray(states.grant_godmode)[rows, target_player, target_inst]
+    )
+
+    first_inst = np.maximum(selected_targets[:, 0], 0)
+    first_player = selected_players[:, 0]
+    first_player_safe = np.clip(first_player, 0, 1)
+    first_zone = zone_host[rows, first_player_safe, first_inst]
+    first_def = def_host[rows, first_player_safe, first_inst]
+    first_safe_def = np.maximum(first_def, 0)
+    first_is_leader = first_zone == self._zone_leader
+    first_is_entity = (
+        (first_zone == self._zone_garden)
+        & (self._card_type[first_safe_def] == self._card_type_entity)
+    )
+    first_has_attached = np.any(
+        (zone_host[rows, first_player_safe] == self._zone_attached)
+        & (attached_host[rows, first_player_safe] == first_inst[:, None]),
+        axis=1,
+    )
+    first_clean = (
+        (selected_count > 0)
+        & (selected_targets[:, 0] >= 0)
+        & (first_def >= 0)
+        & (first_is_leader | first_is_entity)
+        & (cur_hp[rows, first_player_safe, first_inst] > 0)
+        & (~first_has_attached | first_is_leader)
+        & ~self._timing_takes_damage[first_safe_def]
+        & ~self._timing_deals_damage[first_safe_def]
+        & ~self._timing_when_destroyed[first_safe_def]
+        & ~self._inherent_godmode[first_safe_def]
+        & (np.asarray(states.carapace_perm)[
+            rows, first_player_safe, first_inst
+        ] == 0)
+        & (np.asarray(states.carapace_eot)[
+            rows, first_player_safe, first_inst
+        ] == 0)
+        & ~np.asarray(states.grant_godmode)[rows, first_player_safe, first_inst]
+    )
+    prior_targets_clean = (selected_count == 0) | first_clean
+
+    clean = (
+        (np.asarray(states.phase) == 2)  # Phase.MAIN
+        & (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.asarray(states.eot_abilities_queued)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+        & ~self._timing_deals_damage[source_safe_def]
+    )
+    select = (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+        & target_clean
+        & prior_targets_clean
+    )
+    skip = (
+        (chosen == self._act_noop)
+        & (active_acts[:, 0] == self._act_noop)
+        & prior_targets_clean
+    )
+    return (
+        (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & source_ok
+        & clean
+        & (select | skip)
+    )
+
+  def _effect_azk01_087_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    active_acts = acts[rows, active_safe]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    opp = (owner_safe + 1) % 2
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    attached_to = np.asarray(states.attached_to)
+    source_def = def_host[rows, owner_safe, src_safe]
+    selected_count = np.asarray(states.ab_eff_selected).astype(np.int32, copy=False)
+    eff_max = np.asarray(states.ab_eff_max).astype(np.int32, copy=False)
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_087_id)
+        & np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_eff_min) == 0)
+        & (eff_max == 2)
+        & (selected_count < eff_max)
+    )
+
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    opp_zone = zone_host[rows, opp]
+    opp_zpos = zpos_host[rows, opp]
+    opp_defs = def_host[rows, opp]
+    target_match = (opp_zone == self._zone_garden) & (
+        opp_zpos == target_index[:, None]
+    )
+    target_exists = np.any(target_match, axis=1)
+    target_inst = np.argmax(target_match, axis=1)
+    target_def = opp_defs[rows, target_inst]
+    target_safe_def = np.maximum(target_def, 0)
+    target_cost = self._ikz_cost[target_safe_def].astype(np.int32, copy=False)
+    selected_targets = np.asarray(states.ab_eff_targets).astype(np.int32)
+    selected_players = np.asarray(states.ab_eff_target_players).astype(np.int32)
+    prior_slots = np.arange(selected_targets.shape[1], dtype=np.int32)[None, :]
+    prior_active = prior_slots < selected_count[:, None]
+    prior_same = (
+        prior_active
+        & (selected_players == opp[:, None])
+        & (selected_targets == target_inst[:, None])
+    )
+    picked0 = np.maximum(selected_targets[:, 0], 0)
+    picked1 = np.maximum(selected_targets[:, 1], 0)
+    picked0_def = def_host[rows, opp, picked0]
+    picked1_def = def_host[rows, opp, picked1]
+    picked0_cost = np.where(
+        selected_count > 0,
+        self._ikz_cost[np.maximum(picked0_def, 0)].astype(np.int32, copy=False),
+        0,
+    )
+    picked1_cost = np.where(
+        selected_count > 1,
+        self._ikz_cost[np.maximum(picked1_def, 0)].astype(np.int32, copy=False),
+        0,
+    )
+    current_cost = picked0_cost + picked1_cost
+    target_attached = np.any(
+        (opp_zone == self._zone_attached)
+        & (attached_to[rows, opp] == target_inst[:, None]),
+        axis=1,
+    )
+    target_ok = (
+        (target_index >= 0)
+        & (target_index < self._garden_size)
+        & target_exists
+        & (target_def >= 0)
+        & (self._card_type[target_safe_def] == self._card_type_entity)
+        & self._has_ikz_cost[target_safe_def]
+        & (target_cost <= 5)
+        & ((current_cost + target_cost) <= 5)
+        & ~np.any(prior_same, axis=1)
+        & ~target_attached
+    )
+    clean = (
+        (np.asarray(states.phase) == 2)  # Phase.MAIN
+        & (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    select = (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+        & target_ok
+    )
+    skip = (
+        (chosen == self._act_noop)
+        & (active_acts[:, 0] == self._act_noop)
+    )
+    return clean & source_ok & (select | skip)
 
   def _effect_stt01_005_fast_mask(self, acts: np.ndarray, chosen):
     states = self._states
@@ -7268,14 +15516,16 @@ class JaxVecEnv:
     def_host = np.asarray(states.def_id)
 
     source_def = def_host[rows, owner_safe, src_safe]
+    eff_max = np.asarray(states.ab_eff_max)
     source_ok = (
         (owner == active)
         & (src >= 0)
         & (source_def == self._stt01_005_id)
         & np.asarray(states.ab_costs_applied)
-        & (np.asarray(states.ab_eff_selected) < 2)
-        & (np.asarray(states.ab_eff_min) == 2)
-        & (np.asarray(states.ab_eff_max) == 2)
+        & (np.asarray(states.ab_eff_min) == eff_max)
+        & (eff_max >= 1)
+        & (eff_max <= 2)
+        & (np.asarray(states.ab_eff_selected) < eff_max)
     )
 
     target_index = active_acts[:, 1].astype(np.int32, copy=False)
@@ -7356,6 +15606,10 @@ class JaxVecEnv:
         ),
         axis=1,
     )
+    target_hp = np.asarray(states.cur_hp)[rows, opp, target_inst].astype(
+        np.int16, copy=False
+    )
+    target_survives_damage = target_hp > 1
     target_clean = (
         target_exists
         & (target_index >= 0)
@@ -7365,18 +15619,95 @@ class JaxVecEnv:
             target_is_leader
             | (self._card_type[target_safe_def] == self._card_type_entity)
         )
-        & (np.asarray(states.cur_hp)[rows, opp, target_inst] > 0)
+        & (target_hp > 0)
         & ~target_has_attached
         & ~self._timing_takes_damage[target_safe_def]
         & ~self._timing_deals_damage[target_safe_def]
         & ~self._timing_when_destroyed[target_safe_def]
-        & ~self._inherent_godmode[target_safe_def]
+        & (~self._inherent_godmode[target_safe_def] | target_survives_damage)
         & (np.asarray(states.carapace_perm)[rows, opp, target_inst] == 0)
         & (np.asarray(states.carapace_eot)[rows, opp, target_inst] == 0)
-        & ~np.asarray(states.grant_godmode)[rows, opp, target_inst]
+        & (
+            ~np.asarray(states.grant_godmode)[rows, opp, target_inst]
+            | target_survives_damage
+        )
         & (np.asarray(states.effect_immune_dur)[rows, opp, target_inst] == 0)
     )
 
+    trig_count = np.asarray(states.trig_count).astype(np.int32, copy=False)
+    trig_owner = np.asarray(states.trig_owner)[:, 0].astype(np.int32, copy=False)
+    trig_source = np.asarray(states.trig_source)[:, 0].astype(np.int32, copy=False)
+    trig_timing = np.asarray(states.trig_timing)[:, 0].astype(np.int32, copy=False)
+    trig_owner_safe = np.clip(trig_owner, 0, 1)
+    trig_source_safe = np.maximum(trig_source, 0)
+    queued_stt01_012 = (
+        (trig_count == 1)
+        & (trig_owner == owner)
+        & (trig_source >= 0)
+        & (trig_timing == 6)  # TIMING_WHEN_ATTACKING
+        & (def_host[rows, trig_owner_safe, trig_source_safe] == self._stt01_012_id)
+    )
+    clean = (
+        ((trig_count == 0) | queued_stt01_012)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) >= 0)
+        & (np.asarray(states.winner) == -1)
+    )
+    return (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+        & (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & source_ok
+        & target_clean
+        & clean
+    )
+
+  def _effect_azk01_014_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+    source_azk01_014 = source_def == self._azk01_014_id
+    source_azk01_072 = source_def == self._azk01_072_id
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_azk01_014 | source_azk01_072)
+        & (zone_host[rows, owner_safe, src_safe] == self._zone_garden)
+        & ~np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 1)
+        & (np.asarray(states.ab_eff_max) == 1)
+        & (np.asarray(states.combat_attacker) == src)
+    )
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    zone_row = zone_host[rows, owner_safe]
+    zpos_row = zpos_host[rows, owner_safe]
+    target_match = (zone_row == self._zone_garden) & (
+        zpos_row == target_index[:, None]
+    )
+    target_exists = np.any(target_match, axis=1)
+    target_inst = np.argmax(target_match, axis=1)
+    target_def = def_host[rows, owner_safe, target_inst]
+    target_safe_def = np.maximum(target_def, 0)
+    target_beanz = self._beanz[target_safe_def]
+    target_ok = (
+        target_exists
+        & (target_index >= 0)
+        & (target_index < self._garden_size)
+        & (target_inst != src_safe)
+        & (target_def >= 0)
+        & (self._card_type[target_safe_def] == self._card_type_entity)
+        & (source_azk01_014 | (source_azk01_072 & target_beanz))
+    )
     clean = (
         (np.asarray(states.trig_count) == 0)
         & (np.asarray(states.redirect_count) == 0)
@@ -7390,7 +15721,7 @@ class JaxVecEnv:
         & (active_acts[:, 0] == self._act_select_effect)
         & (np.asarray(states.ab_phase) == self._ability_effect_selection)
         & source_ok
-        & target_clean
+        & target_ok
         & clean
     )
 
@@ -7470,6 +15801,13 @@ class JaxVecEnv:
   def _effect_stt01_017_fast_mask(self, acts: np.ndarray, chosen):
     states = self._states
     rows = np.arange(self.num_environments)
+    # The vmapped _effect_stt01_017_one kernel's XLA compile does not fit in
+    # 128 GB at training batch widths (observed hanging >60 min at 90+ GB at
+    # width 64). Above batch 1 route these rows to the broad
+    # effect_stt01_017_static alias — the generic kernel, cached at (1,...)
+    # and parity-proven by the gate. Batch-1 verifier coverage is unchanged.
+    if self.num_environments > 1:
+      return np.zeros(self.num_environments, dtype=bool)
     active = np.asarray(states.active_player).astype(np.int32, copy=False)
     active_safe = np.clip(active, 0, 1)
     active_acts = acts[rows, active_safe]
@@ -7522,6 +15860,7 @@ class JaxVecEnv:
     target_hp_ok = (target_hp > 1) | (
         (target_hp > 0) & ~np.isin(target_def, self._simple_play_watch_ids)
     )
+    target_after_damage = target_hp.astype(np.int16, copy=False) - np.int16(1)
     selected_targets = np.asarray(states.ab_eff_targets)
     selected_players = np.asarray(states.ab_eff_target_players)
     already_selected = (
@@ -7534,16 +15873,17 @@ class JaxVecEnv:
         & (target_def >= 0)
         & (self._card_type[target_safe_def] == self._card_type_entity)
         & target_hp_ok
-        & ~target_has_attached
         & ~already_selected
         & ~self._timing_takes_damage[target_safe_def]
         & ~self._timing_deals_damage[target_safe_def]
         & ~self._timing_when_destroyed[target_safe_def]
-        & ~self._inherent_godmode[target_safe_def]
+        & (~self._inherent_godmode[target_safe_def] | (target_after_damage >= 0))
         & (np.asarray(states.carapace_perm)[rows, opp, target_inst] == 0)
         & (np.asarray(states.carapace_eot)[rows, opp, target_inst] == 0)
-        & ~np.asarray(states.grant_godmode)[rows, opp, target_inst]
-        & (np.asarray(states.effect_immune_dur)[rows, opp, target_inst] == 0)
+        & (
+            ~np.asarray(states.grant_godmode)[rows, opp, target_inst]
+            | (target_after_damage >= 0)
+        )
     )
 
     first_inst = np.maximum(selected_targets[:, 0].astype(np.int32), 0)
@@ -7555,6 +15895,7 @@ class JaxVecEnv:
     first_hp_ok = (first_hp > 1) | (
         (first_hp > 0) & ~np.isin(first_def, self._simple_play_watch_ids)
     )
+    first_after_damage = first_hp.astype(np.int16, copy=False) - np.int16(1)
     first_has_attached = np.any(
         (zone_host[rows, first_player_safe] == self._zone_attached)
         & (attached_host[rows, first_player_safe] == first_inst[:, None]),
@@ -7567,28 +15908,41 @@ class JaxVecEnv:
         & (first_def >= 0)
         & (self._card_type[first_safe_def] == self._card_type_entity)
         & first_hp_ok
-        & ~first_has_attached
         & ~self._timing_takes_damage[first_safe_def]
         & ~self._timing_deals_damage[first_safe_def]
         & ~self._timing_when_destroyed[first_safe_def]
-        & ~self._inherent_godmode[first_safe_def]
+        & (~self._inherent_godmode[first_safe_def] | (first_after_damage >= 0))
         & (np.asarray(states.carapace_perm)[
             rows, first_player_safe, first_inst
         ] == 0)
         & (np.asarray(states.carapace_eot)[
             rows, first_player_safe, first_inst
         ] == 0)
-        & ~np.asarray(states.grant_godmode)[rows, first_player_safe, first_inst]
-        & (np.asarray(states.effect_immune_dur)[
+        & (
+            ~np.asarray(states.grant_godmode)[rows, first_player_safe, first_inst]
+            | (first_after_damage >= 0)
+        )
+    )
+    target_no_damage = target_clean & (
+        (target_hp > 1)
+        | (np.asarray(states.effect_immune_dur)[rows, opp, target_inst] != 0)
+    )
+    first_no_damage = first_clean & (
+        (first_hp > 1)
+        | (np.asarray(states.effect_immune_dur)[
             rows, first_player_safe, first_inst
-        ] == 0)
+        ] != 0)
     )
 
     board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
+    stt02_012_inactive_alley = (
+        (def_host == self._stt02_012_id) & (zone_host == self._zone_alley)
+    )
     no_passive_watch = ~np.any(
         board
         & np.isin(def_host, self._simple_play_watch_ids)
-        & (def_host != self._stt01_008_id),
+        & (def_host != self._stt01_008_id)
+        & ~stt02_012_inactive_alley,
         axis=(1, 2),
     )
     clean = (
@@ -7600,7 +15954,6 @@ class JaxVecEnv:
         & (np.asarray(states.passive_queue_count) == 0)
         & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
         & ~np.asarray(states.eot_abilities_queued)
-        & no_passive_watch
         & ~self._timing_deals_damage[source_safe_def]
     )
     select_allowed = target_clean & (
@@ -7617,11 +15970,75 @@ class JaxVecEnv:
         & (selected_count >= 1)
         & first_clean
     )
+    first_selection_only = select & (selected_count == 0)
+    finishing_clean = (
+        (select & (selected_count == 1) & first_clean & target_clean)
+        | (skip & first_clean)
+    )
+    passive_safe = no_passive_watch | first_selection_only | finishing_clean
     return (
         (np.asarray(states.ab_phase) == self._ability_effect_selection)
         & source_ok
         & clean
+        & passive_safe
         & (select | skip)
+    )
+
+  def _effect_stt01_017_static_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    active_acts = acts[rows, active_safe]
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    opp = (owner_safe + 1) % 2
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+    selected_count = np.asarray(states.ab_eff_selected).astype(np.int32, copy=False)
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    target_match = (
+        (zone_host[rows, opp] == self._zone_garden)
+        & (zpos_host[rows, opp] == target_index[:, None])
+        & (target_index[:, None] >= 0)
+        & (target_index[:, None] < self._garden_size)
+    )
+    target_exists = np.any(target_match, axis=1)
+    target_inst = np.argmax(target_match, axis=1)
+    target_def = def_host[rows, opp, target_inst]
+    target_safe_def = np.maximum(target_def, 0)
+    selected_targets = np.asarray(states.ab_eff_targets)
+    selected_players = np.asarray(states.ab_eff_target_players)
+    already_selected = (
+        (selected_count > 0)
+        & (selected_players[:, 0] == opp.astype(np.int8))
+        & (selected_targets[:, 0] == target_inst.astype(np.int8))
+    )
+    target_ok = (
+        target_exists
+        & (target_def >= 0)
+        & (self._card_type[target_safe_def] == self._card_type_entity)
+        & ~already_selected
+    )
+    return (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+        & (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & (owner == active)
+        & (src >= 0)
+        & (source_def == self._stt01_017_id)
+        & ~np.asarray(states.ab_costs_applied)
+        & (selected_count < 2)
+        & (np.asarray(states.ab_eff_min) == 1)
+        & (np.asarray(states.ab_eff_max) == 2)
+        & target_ok
+        & (np.asarray(states.phase) == 3)  # Phase.RESPONSE_WINDOW
+        & (np.asarray(states.combat_attacker) >= 0)
+        & (np.asarray(states.winner) == -1)
     )
 
   def _effect_stt03_002_fast_mask(self, acts: np.ndarray, chosen):
@@ -7682,22 +16099,222 @@ class JaxVecEnv:
         & ~self._inherent_defender[target_safe_def]
         & ~np.asarray(states.grant_defender)[rows, owner_safe, target_inst]
     )
+    trig_count = np.asarray(states.trig_count).astype(np.int32, copy=False)
+    trig_owner = np.asarray(states.trig_owner)[:, 0].astype(np.int32, copy=False)
+    trig_source = np.asarray(states.trig_source)[:, 0].astype(np.int32, copy=False)
+    trig_timing = np.asarray(states.trig_timing)[:, 0].astype(np.int32, copy=False)
+    trig_owner_safe = np.clip(trig_owner, 0, 1)
+    trig_source_safe = np.maximum(trig_source, 0)
+    queued_stt03_013 = (
+        (trig_count == 1)
+        & (trig_timing == 15)  # TIMING_WHEN_ENTERS_GARDEN
+        & (
+            def_host[rows, trig_owner_safe, trig_source_safe]
+            == self._stt03_013_id
+        )
+    )
+    trigger_ok = (trig_count == 0) | queued_stt03_013
 
+    clean = (
+        trigger_ok
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+    )
+    select = (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+        & target_ok
+    )
+    skip = (
+        (chosen == self._act_noop)
+        & (active_acts[:, 0] == self._act_noop)
+    )
+    return (
+        (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & source_ok
+        & clean
+        & (select | skip)
+    )
+
+  def _effect_stt04_002_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+
+    source_def = def_host[rows, owner_safe, src_safe]
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._stt04_002_id)
+        & (zone_host[rows, owner_safe, src_safe] == self._zone_gate)
+        & ~np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 0)
+        & (np.asarray(states.ab_eff_max) == 1)
+        & (np.asarray(states.ab_scratch)[:, 2] == 1)
+    )
+
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    zone_row = zone_host[rows, owner_safe]
+    zpos_row = zpos_host[rows, owner_safe]
+    def_row = def_host[rows, owner_safe]
+    target_match = (zone_row == self._zone_garden) & (
+        zpos_row == target_index[:, None]
+    )
+    target_exists = np.any(target_match, axis=1)
+    target_inst = np.argmax(target_match, axis=1)
+    target_def = def_row[rows, target_inst]
+    target_safe_def = np.maximum(target_def, 0)
+    target_ok = (
+        target_exists
+        & (target_index >= 0)
+        & (target_index < self._garden_size)
+        & (target_def >= 0)
+        & (self._card_type[target_safe_def] == self._card_type_entity)
+        & np.asarray(states.took_damage_turn)[rows, owner_safe, target_inst]
+    )
+    trig_count = np.asarray(states.trig_count).astype(np.int32, copy=False)
+    trig_owner = np.asarray(states.trig_owner)[:, 0].astype(np.int32, copy=False)
+    trig_source = np.asarray(states.trig_source)[:, 0].astype(np.int32, copy=False)
+    trig_timing = np.asarray(states.trig_timing)[:, 0].astype(np.int32, copy=False)
+    trig_owner_safe = np.clip(trig_owner, 0, 1)
+    trig_source_safe = np.maximum(trig_source, 0)
+    queued_stt03_013 = (
+        (trig_count == 1)
+        & (trig_timing == 15)  # TIMING_WHEN_ENTERS_GARDEN
+        & (
+            def_host[rows, trig_owner_safe, trig_source_safe]
+            == self._stt03_013_id
+        )
+    )
+    trigger_ok = (trig_count == 0) | queued_stt03_013
+
+    clean = (
+        trigger_ok
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+    )
+    select = (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+        & target_ok
+    )
+    skip = (
+        (chosen == self._act_noop)
+        & (active_acts[:, 0] == self._act_noop)
+    )
+    return (
+        (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & source_ok
+        & clean
+        & (select | skip)
+    )
+
+  def _effect_azk01_111_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    opp = (owner_safe + 1) % 2
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+    source_safe_def = np.maximum(source_def, 0)
+
+    owner_defs = def_host[rows, owner_safe]
+    owner_safe_defs = np.maximum(owner_defs, 0)
+    eligible_hand_entity = (
+        (zone_host[rows, owner_safe] == self._zone_hand)
+        & (self._card_type[owner_safe_defs] == self._card_type_entity)
+        & self._has_ikz_cost[owner_safe_defs]
+        & (self._ikz_cost[owner_safe_defs].astype(np.int32) <= 2)
+    )
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_111_id)
+        & np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 0)
+        & (np.asarray(states.ab_eff_max) == 1)
+    )
+
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    opp_zone = zone_host[rows, opp]
+    opp_zpos = zpos_host[rows, opp]
+    opp_defs = def_host[rows, opp]
+    target_match = (opp_zone == self._zone_garden) & (
+        opp_zpos == target_index[:, None]
+    )
+    target_exists = np.any(target_match, axis=1)
+    target_inst = np.argmax(target_match, axis=1)
+    target_def = opp_defs[rows, target_inst]
+    target_safe_def = np.maximum(target_def, 0)
+    target_hp = np.asarray(states.cur_hp)[rows, opp, target_inst].astype(np.int16)
+    target_dies = target_hp <= 2
+    target_has_attached = np.any(
+        (opp_zone == self._zone_attached)
+        & (
+            np.asarray(states.attached_to)[rows, opp]
+            == target_inst[:, None]
+        ),
+        axis=1,
+    )
+    target_ok = (
+        target_exists
+        & (target_index >= 0)
+        & (target_index < self._garden_size)
+        & (target_def >= 0)
+        & (self._card_type[target_safe_def] == self._card_type_entity)
+        & ~target_has_attached
+        & ~self._timing_takes_damage[target_safe_def]
+        & ~self._timing_deals_damage[target_safe_def]
+        & ~self._timing_deals_damage[source_safe_def]
+        & ~(self._timing_when_destroyed[target_safe_def] & target_dies)
+        & ~self._inherent_godmode[target_safe_def]
+        & (np.asarray(states.carapace_perm)[rows, opp, target_inst] == 0)
+        & (np.asarray(states.carapace_eot)[rows, opp, target_inst] == 0)
+        & ~np.asarray(states.grant_godmode)[rows, opp, target_inst]
+        & (np.asarray(states.effect_immune_dur)[rows, opp, target_inst] == 0)
+    )
     clean = (
         (np.asarray(states.trig_count) == 0)
         & (np.asarray(states.redirect_count) == 0)
         & (np.asarray(states.combat_attacker) < 0)
         & (np.asarray(states.winner) == -1)
-        & (np.asarray(states.passive_queue_count) == 0)
-        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+        & ~np.asarray(states.eot_abilities_queued)
     )
-    return (
+    select = (
         (chosen == self._act_select_effect)
         & (active_acts[:, 0] == self._act_select_effect)
-        & (np.asarray(states.ab_phase) == self._ability_effect_selection)
-        & source_ok
         & target_ok
+    )
+    skip = (
+        (chosen == self._act_noop)
+        & (active_acts[:, 0] == self._act_noop)
+    )
+    return (
+        (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & source_ok
         & clean
+        & (select | skip)
     )
 
   def _effect_stt03_006_fast_mask(self, acts: np.ndarray, chosen):
@@ -7721,8 +16338,6 @@ class JaxVecEnv:
         & (source_def == self._stt03_006_id)
         & (zone_host[rows, owner_safe, src_safe] == self._zone_discard)
         & np.asarray(states.ab_costs_applied)
-        & ~np.asarray(states.ab_restores_active)
-        & (np.asarray(states.ab_saved_active) < 0)
         & (np.asarray(states.ab_eff_selected) == 0)
         & (np.asarray(states.ab_eff_min) == 1)
         & (np.asarray(states.ab_eff_max) == 1)
@@ -7736,13 +16351,22 @@ class JaxVecEnv:
     )
     target_exists = np.any(hand_match, axis=1)
 
+    trig_count = np.asarray(states.trig_count).astype(np.int32, copy=False)
+    trig_owner = np.asarray(states.trig_owner)[:, 0].astype(np.int32, copy=False)
+    trig_source = np.asarray(states.trig_source)[:, 0].astype(np.int32, copy=False)
+    trig_timing = np.asarray(states.trig_timing)[:, 0].astype(np.int32, copy=False)
+    trig_owner_safe = np.clip(trig_owner, 0, 1)
+    trig_source_safe = np.maximum(trig_source, 0)
+    queued_stt03_006 = (
+        (trig_count == 1)
+        & (trig_timing == 13)  # TIMING_WHEN_DESTROYED
+        & (def_host[rows, trig_owner_safe, trig_source_safe] == self._stt03_006_id)
+    )
     clean = (
-        (np.asarray(states.trig_count) == 0)
+        ((trig_count == 0) | queued_stt03_006)
         & (np.asarray(states.redirect_count) == 0)
         & (np.asarray(states.combat_attacker) < 0)
         & (np.asarray(states.winner) == -1)
-        & (np.asarray(states.passive_queue_count) == 0)
-        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
     )
     return (
         (chosen == self._act_select_effect)
@@ -7751,6 +16375,51 @@ class JaxVecEnv:
         & source_ok
         & target_exists
         & clean
+    )
+
+  def _effect_stt03_006_pending_combat_fast_mask(
+      self, acts: np.ndarray, chosen
+  ):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    hand_match = (
+        (zone_host[rows, owner_safe] == self._zone_hand)
+        & (zpos_host[rows, owner_safe] == target_index[:, None])
+        & (target_index[:, None] >= 0)
+    )
+    target_exists = np.any(hand_match, axis=1)
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._stt03_006_id)
+        & (zone_host[rows, owner_safe, src_safe] == self._zone_discard)
+        & np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 1)
+        & (np.asarray(states.ab_eff_max) == 1)
+    )
+    return (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+        & (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & source_ok
+        & target_exists
+        & (np.asarray(states.combat_attacker) >= 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.winner) == -1)
     )
 
   def _select_azk01_003_pick_fast_mask(self, acts: np.ndarray, chosen):
@@ -7805,6 +16474,69 @@ class JaxVecEnv:
     )
     return in_selection & action_matches & source_ok & action_ok & clean
 
+  def _select_azk01_031_pick_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+
+    sel_cards = np.asarray(states.ab_sel_cards)
+    sel_count = np.asarray(states.ab_sel_count).astype(np.int32, copy=False)
+    idx = active_acts[:, 1].astype(np.int32, copy=False)
+    idx_safe = np.clip(idx, 0, sel_cards.shape[1] - 1)
+    inst = sel_cards[rows, idx_safe]
+    inst_safe = np.maximum(inst, 0)
+    target_def = def_host[rows, owner_safe, inst_safe]
+    target_safe_def = np.maximum(target_def, 0)
+
+    action_matches = (
+        (chosen == self._act_select_from_selection)
+        & (active_acts[:, 0] == self._act_select_from_selection)
+    )
+    in_selection = np.asarray(states.ab_phase) == self._ability_selection_pick
+    source_azk01_021 = source_def == self._azk01_021_id
+    source_azk01_031 = source_def == self._azk01_031_id
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_azk01_021 | source_azk01_031)
+        & (sel_count > 0)
+        & (
+            (source_azk01_021 & (sel_count <= 5))
+            | (source_azk01_031 & (sel_count <= 3))
+        )
+        & (np.asarray(states.ab_sel_pick_max) == 1)
+        & (np.asarray(states.ab_sel_picked_count) == 0)
+    )
+    action_ok = (
+        (idx >= 0)
+        & (idx < sel_count)
+        & (inst >= 0)
+        & (
+            (
+                source_azk01_031
+                & (self._card_element[target_safe_def] == self._water_element)
+            )
+            | (source_azk01_021 & self._driftward[target_safe_def])
+        )
+    )
+    clean = (
+        (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    return in_selection & action_matches & source_ok & action_ok & clean
+
   def _select_stt02_003_pick_fast_mask(self, acts: np.ndarray, chosen):
     states = self._states
     rows = np.arange(self.num_environments)
@@ -7846,13 +16578,20 @@ class JaxVecEnv:
         & (inst >= 0)
         & self._watercrafting[np.maximum(target_def, 0)]
     )
+    deferred_passive_ok = sel_count > 1
     clean = (
         (np.asarray(states.trig_count) == 0)
         & (np.asarray(states.redirect_count) == 0)
         & (np.asarray(states.combat_attacker) < 0)
         & (np.asarray(states.winner) == -1)
-        & (np.asarray(states.passive_queue_count) == 0)
-        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+        & (
+            (np.asarray(states.passive_queue_count) == 0)
+            | deferred_passive_ok
+        )
+        & (
+            ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+            | deferred_passive_ok
+        )
     )
     return in_selection & action_matches & source_ok & action_ok & clean
 
@@ -7866,7 +16605,10 @@ class JaxVecEnv:
     src = np.asarray(states.ab_source).astype(np.int32, copy=False)
     owner_safe = np.clip(owner, 0, 1)
     src_safe = np.maximum(src, 0)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
     def_host = np.asarray(states.def_id)
+    attached_host = np.asarray(states.attached_to)
     source_def = def_host[rows, owner_safe, src_safe]
 
     sel_cards = np.asarray(states.ab_sel_cards)
@@ -7878,38 +16620,135 @@ class JaxVecEnv:
     target_def = def_host[rows, owner_safe, inst_safe]
     target_safe_def = np.maximum(target_def, 0)
 
-    action_matches = (
+    to_hand = (
         (chosen == self._act_select_from_selection)
         & (active_acts[:, 0] == self._act_select_from_selection)
     )
+    to_alley = (
+        (chosen == self._act_select_to_alley)
+        & (active_acts[:, 0] == self._act_select_to_alley)
+    )
+    to_garden = (
+        (chosen == self._act_select_to_garden)
+        & (active_acts[:, 0] == self._act_select_to_garden)
+    )
     in_selection = np.asarray(states.ab_phase) == self._ability_selection_pick
+    source_is_stt02_013 = source_def == self._stt02_013_id
+    source_is_azk01_092 = source_def == self._azk01_092_id
     source_ok = (
         (owner == active)
         & (src >= 0)
-        & (source_def == self._stt02_013_id)
+        & (source_is_stt02_013 | source_is_azk01_092)
         & (sel_count > 0)
-        & (sel_count <= 3)
+        & (
+            ((sel_count <= 3) & source_is_stt02_013)
+            | ((sel_count <= 5) & source_is_azk01_092)
+        )
         & (np.asarray(states.ab_sel_pick_max) == 1)
         & (np.asarray(states.ab_sel_picked_count) == 0)
     )
-    action_ok = (
+    target_common = (
         (idx >= 0)
         & (idx < sel_count)
         & (inst >= 0)
         & (target_def >= 0)
+        & (zone_host[rows, owner_safe, inst_safe] == self._zone_selection)
         & self._has_ikz_cost[target_safe_def]
         & (self._ikz_cost[target_safe_def].astype(np.int32) <= 2)
         & (self._card_element[target_safe_def] == self._water_element)
     )
+
+    zone_row = zone_host[rows, owner_safe]
+    zpos_row = zpos_host[rows, owner_safe]
+    slot = active_acts[:, 2].astype(np.int32, copy=False)
+    slot_match = (zone_row == self._zone_alley) & (zpos_row == slot[:, None])
+    occupied = np.any(slot_match, axis=1)
+    occupied_inst = np.argmax(slot_match, axis=1)
+    full = np.sum(zone_row == self._zone_alley, axis=1) >= self._garden_size
+    occupied_has_attached = np.any(
+        (zone_row == self._zone_attached)
+        & (attached_host[rows, owner_safe] == occupied_inst[:, None]),
+        axis=1,
+    )
+    target_trigger_ok = (
+        ~self._timing_on_play[target_safe_def]
+        | np.isin(target_def, self._simple_play_implemented_ids)
+        | (target_def == self._azk01_021_id)
+        | (target_def == self._azk01_022_id)
+        | ((target_def == self._stt02_003_id) & to_alley)
+    )
+    # C's selection-to-alley processor (ability_system.c
+    # azk_process_selection_to_alley) moves the card without queueing any
+    # on-play trigger, and STT02-013's completion hook then bounces the pick
+    # to hand — so a placed on-play entity must NOT fire its trigger. The
+    # fast helper applies simple play triggers, so keep on-play targets on
+    # the generic kernel. (m14 step 181: STT02-007's on-play draw conjured
+    # an extra hand card.)
+    alley_ok = (
+        (slot >= 0)
+        & (slot < self._garden_size)
+        & (~occupied | full)
+        & (~occupied | ~occupied_has_attached)
+        & (self._card_type[target_safe_def] == self._card_type_entity)
+        & ~self._timing_on_play[target_safe_def]
+    )
+    garden_slot_match = (zone_row == self._zone_garden) & (
+        zpos_row == slot[:, None]
+    )
+    garden_occupied = np.any(garden_slot_match, axis=1)
+    garden_occupied_inst = np.argmax(garden_slot_match, axis=1)
+    garden_full = np.sum(zone_row == self._zone_garden, axis=1) >= self._garden_size
+    garden_occupied_has_attached = np.any(
+        (zone_row == self._zone_attached)
+        & (attached_host[rows, owner_safe] == garden_occupied_inst[:, None]),
+        axis=1,
+    )
+    garden_ok = (
+        (slot >= 0)
+        & (slot < self._garden_size)
+        & (~garden_occupied | garden_full)
+        & (~garden_occupied | ~garden_occupied_has_attached)
+        & (self._card_type[target_safe_def] == self._card_type_entity)
+        & ~self._timing_on_play[target_safe_def]
+    )
+
+    board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
+    no_passive_watch = ~np.any(
+        board
+        & np.isin(def_host, self._simple_play_watch_ids)
+        & (def_host != self._stt01_008_id)
+        & (def_host != self._stt01_009_id)
+        & (def_host != self._stt01_011_id)
+        & (def_host != self._stt02_010_id)
+        & (def_host != self._azk01_010_id)
+        & (def_host != self._azk01_019_id)
+        & (def_host != self._stt02_012_id)
+        & (def_host != self._azk01_073_id)
+        & (def_host != self._stt03_013_id),
+        axis=(1, 2),
+    )
+    deferred_passive_ok = to_alley | to_garden
     clean = (
         (np.asarray(states.trig_count) == 0)
         & (np.asarray(states.redirect_count) == 0)
         & (np.asarray(states.combat_attacker) < 0)
         & (np.asarray(states.winner) == -1)
-        & (np.asarray(states.passive_queue_count) == 0)
-        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+        & (
+            (np.asarray(states.passive_queue_count) == 0)
+            | deferred_passive_ok
+        )
+        & (
+            ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+            | deferred_passive_ok
+        )
+        & no_passive_watch
     )
-    return in_selection & action_matches & source_ok & action_ok & clean
+    action_ok = target_common & (
+        to_hand
+        | (to_alley & alley_ok)
+        | (to_garden & source_is_azk01_092 & garden_ok)
+    )
+    return in_selection & source_ok & action_ok & clean
 
   def _select_azk01_033_pick_fast_mask(self, acts: np.ndarray, chosen):
     states = self._states
@@ -7937,20 +16776,27 @@ class JaxVecEnv:
         & (active_acts[:, 0] == self._act_select_from_selection)
     )
     in_selection = np.asarray(states.ab_phase) == self._ability_selection_pick
+    source_azk01_033 = source_def == self._azk01_033_id
+    source_azk01_069 = source_def == self._azk01_069_id
     source_ok = (
         (owner == active)
         & (src >= 0)
-        & (source_def == self._azk01_033_id)
+        & (source_azk01_033 | source_azk01_069)
         & (sel_count > 0)
         & (sel_count <= 5)
         & (np.asarray(states.ab_sel_pick_max) == 1)
         & (np.asarray(states.ab_sel_picked_count) == 0)
     )
+    target_safe_def = np.maximum(target_def, 0)
+    subtype_ok = (
+        (source_azk01_033 & self._steelborn[target_safe_def])
+        | (source_azk01_069 & self._beanz[target_safe_def])
+    )
     action_ok = (
         (idx >= 0)
         & (idx < sel_count)
         & (inst >= 0)
-        & self._steelborn[np.maximum(target_def, 0)]
+        & subtype_ok
     )
     clean = (
         (np.asarray(states.trig_count) == 0)
@@ -8064,6 +16910,57 @@ class JaxVecEnv:
     )
     return in_selection & action_matches & source_ok & action_ok & clean
 
+  def _select_stt04_005_pick_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+
+    sel_cards = np.asarray(states.ab_sel_cards)
+    sel_count = np.asarray(states.ab_sel_count).astype(np.int32, copy=False)
+    idx = active_acts[:, 1].astype(np.int32, copy=False)
+    idx_safe = np.clip(idx, 0, sel_cards.shape[1] - 1)
+    inst = sel_cards[rows, idx_safe]
+    inst_safe = np.maximum(inst, 0)
+    target_def = def_host[rows, owner_safe, inst_safe]
+
+    action_matches = (
+        (chosen == self._act_select_from_selection)
+        & (active_acts[:, 0] == self._act_select_from_selection)
+    )
+    in_selection = np.asarray(states.ab_phase) == self._ability_selection_pick
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._stt04_005_id)
+        & (sel_count > 0)
+        & (sel_count <= 5)
+        & (np.asarray(states.ab_sel_pick_max) == 1)
+        & (np.asarray(states.ab_sel_picked_count) == 0)
+    )
+    action_ok = (
+        (idx >= 0)
+        & (idx < sel_count)
+        & (inst >= 0)
+        & self._pyreskin[np.maximum(target_def, 0)]
+    )
+    clean = (
+        (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    return in_selection & action_matches & source_ok & action_ok & clean
+
   def _select_stt01_004_pick_fast_mask(self, acts: np.ndarray, chosen):
     states = self._states
     rows = np.arange(self.num_environments)
@@ -8165,9 +17062,42 @@ class JaxVecEnv:
         target_index == self._garden_size, leader_host_exists, garden_host_exists
     )
 
-    max_cost = np.asarray(states.ab_scratch)[:, 0].astype(np.int32, copy=False)
-    allowed_on_play = ~self._timing_on_play[target_safe_def] | (
-        target_def == self._stt01_013_id
+    source_stt01_002 = (
+        (source_def == self._stt01_002_id)
+        & np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_scratch)[:, 2] == 2)
+    )
+    source_azk01_120 = (
+        (source_def == self._azk01_120_id)
+        & np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_scratch)[:, 2] == 1)
+    )
+    source_azk01_098 = (
+        (source_def == self._azk01_098_id)
+        & np.asarray(states.ab_costs_applied)
+    )
+    portal_inst = np.clip(
+        np.asarray(states.ab_scratch)[:, 0].astype(np.int32, copy=False),
+        0,
+        def_host.shape[2] - 1,
+    )
+    portal_def = def_host[rows, owner_safe, portal_inst]
+    portal_safe_def = np.maximum(portal_def, 0)
+    portal_power = self._gate_points[portal_safe_def].astype(np.int32, copy=False)
+    max_cost = np.where(
+        source_azk01_120,
+        portal_power,
+        np.where(
+            source_azk01_098,
+            3,
+            np.asarray(states.ab_scratch)[:, 0].astype(np.int32, copy=False),
+        ),
+    )
+    allowed_on_play = (
+        source_azk01_120
+        | ~self._timing_on_play[target_safe_def]
+        | (target_def == self._stt01_013_id)
+        | (target_def == self._stt01_014_id)
     )
     trigger_ok = (
         allowed_on_play
@@ -8182,12 +17112,13 @@ class JaxVecEnv:
     source_ok = (
         (owner == active)
         & (src >= 0)
-        & (source_def == self._stt01_002_id)
+        & (source_stt01_002 | source_azk01_120 | source_azk01_098)
         & (sel_count > 0)
         & (np.asarray(states.ab_sel_pick_max) == 1)
         & (np.asarray(states.ab_sel_picked_count) == 0)
-        & np.asarray(states.ab_costs_applied)
-        & (np.asarray(states.ab_scratch)[:, 2] == 2)
+    )
+    prev_host = np.asarray(states.reequip_prev_host)[rows, owner_safe, inst_safe].astype(
+        np.int32, copy=False
     )
     action_ok = (
         (idx >= 0)
@@ -8203,17 +17134,90 @@ class JaxVecEnv:
         & (target_index >= 0)
         & (target_index <= self._garden_size)
         & host_exists
+        & (~source_azk01_120 | (prev_host < 0) | (host_inst != prev_host))
         & trigger_ok
     )
+    deferred_passive_ok = source_stt01_002 | source_azk01_120
     clean = (
         (np.asarray(states.trig_count) == 0)
         & (np.asarray(states.redirect_count) == 0)
         & (np.asarray(states.combat_attacker) < 0)
         & (np.asarray(states.winner) == -1)
-        & (np.asarray(states.passive_queue_count) == 0)
-        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+        & (
+            (np.asarray(states.passive_queue_count) == 0)
+            | deferred_passive_ok
+        )
+        & (
+            ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+            | deferred_passive_ok
+        )
     )
     return in_selection & action_matches & source_ok & action_ok & clean
+
+  def _select_stt01_002_equip_static_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+    sel_cards = np.asarray(states.ab_sel_cards)
+    sel_count = np.asarray(states.ab_sel_count).astype(np.int32, copy=False)
+    idx = active_acts[:, 1].astype(np.int32, copy=False)
+    idx_safe = np.clip(idx, 0, sel_cards.shape[1] - 1)
+    inst = sel_cards[rows, idx_safe]
+    inst_safe = np.maximum(inst, 0)
+    target_def = def_host[rows, owner_safe, inst_safe]
+    target_safe_def = np.maximum(target_def, 0)
+    target_index = active_acts[:, 2].astype(np.int32, copy=False)
+    owner_zone = zone_host[rows, owner_safe]
+    owner_zpos = zpos_host[rows, owner_safe]
+    garden_host_match = (owner_zone == self._zone_garden) & (
+        owner_zpos == target_index[:, None]
+    )
+    leader_host_match = owner_zone == self._zone_leader
+    host_exists = np.where(
+        target_index == self._garden_size,
+        np.any(leader_host_match, axis=1),
+        np.any(garden_host_match, axis=1),
+    )
+    max_cost = np.asarray(states.ab_scratch)[:, 0].astype(np.int32, copy=False)
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._stt01_002_id)
+        & np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_scratch)[:, 2] == 2)
+        & (sel_count > 0)
+        & (np.asarray(states.ab_sel_pick_max) == 1)
+        & (np.asarray(states.ab_sel_picked_count) == 0)
+    )
+    action_ok = (
+        (idx >= 0)
+        & (idx < sel_count)
+        & (inst >= 0)
+        & (zone_host[rows, owner_safe, inst_safe] == self._zone_selection)
+        & (self._card_type[target_safe_def] == self._card_type_weapon)
+        & self._has_ikz_cost[target_safe_def]
+        & (self._ikz_cost[target_safe_def].astype(np.int32) <= max_cost)
+        & (target_index >= 0)
+        & (target_index <= self._garden_size)
+        & host_exists
+    )
+    return (
+        (chosen == self._act_select_to_equip)
+        & (active_acts[:, 0] == self._act_select_to_equip)
+        & (np.asarray(states.ab_phase) == self._ability_selection_pick)
+        & source_ok
+        & action_ok
+        & (np.asarray(states.winner) == -1)
+    )
 
   def _select_azk01_126_pick_fast_mask(self, acts: np.ndarray, chosen):
     states = self._states
@@ -8277,7 +17281,72 @@ class JaxVecEnv:
         & (np.asarray(states.redirect_count) == 0)
         & (np.asarray(states.combat_attacker) < 0)
         & (np.asarray(states.winner) == -1)
-        & (np.asarray(states.passive_queue_count) == 0)
+    )
+    return in_selection & action_matches & source_ok & action_ok & clean
+
+  def _select_azk01_086_pick_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    zone_host = np.asarray(states.zone)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+
+    sel_cards = np.asarray(states.ab_sel_cards)
+    sel_count = np.asarray(states.ab_sel_count).astype(np.int32, copy=False)
+    pick_max = np.asarray(states.ab_sel_pick_max).astype(np.int32, copy=False)
+    picked = np.asarray(states.ab_sel_picked_count).astype(np.int32, copy=False)
+    idx = active_acts[:, 1].astype(np.int32, copy=False)
+    idx_safe = np.clip(idx, 0, sel_cards.shape[1] - 1)
+    inst = sel_cards[rows, idx_safe]
+    inst_safe = np.maximum(inst, 0)
+    target_def = def_host[rows, owner_safe, inst_safe]
+    target_safe_def = np.maximum(target_def, 0)
+
+    action_matches = (
+        (chosen == self._act_select_from_selection)
+        & (active_acts[:, 0] == self._act_select_from_selection)
+    )
+    in_selection = np.asarray(states.ab_phase) == self._ability_selection_pick
+    source_azk01_084 = source_def == self._azk01_084_id
+    source_azk01_086 = source_def == self._azk01_086_id
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_azk01_084 | source_azk01_086)
+        & (sel_count > 0)
+        & (pick_max > 0)
+        & (picked < pick_max)
+        & np.asarray(states.ab_costs_applied)
+    )
+    target_weapon = self._card_type[target_safe_def] == self._card_type_weapon
+    target_normal_entity = (
+        (self._card_type[target_safe_def] == self._card_type_entity)
+        & (self._card_element[target_safe_def] == 0)
+        & self._has_ikz_cost[target_safe_def]
+        & (self._ikz_cost[target_safe_def].astype(np.int32) <= 6)
+    )
+    action_ok = (
+        (idx >= 0)
+        & (idx < sel_count)
+        & (inst >= 0)
+        & (zone_host[rows, owner_safe, inst_safe] == self._zone_selection)
+        & (
+            (source_azk01_086 & target_weapon)
+            | (source_azk01_084 & target_normal_entity)
+        )
+    )
+    clean = (
+        (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
         & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
     )
     return in_selection & action_matches & source_ok & action_ok & clean
@@ -8354,15 +17423,46 @@ class JaxVecEnv:
         & np.asarray(states.ab_costs_applied)
         & (np.asarray(states.ab_scratch)[:, 2] == 2)
     )
+    source_azk01_120 = (
+        (source_def == self._azk01_120_id)
+        & np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_scratch)[:, 2] == 1)
+    )
+    source_azk01_086 = (
+        (source_def == self._azk01_086_id)
+        & np.asarray(states.ab_costs_applied)
+    )
     supported_source = (
         (source_def == self._azk01_003_id)
+        | (source_def == self._azk01_021_id)
         | (source_def == self._azk01_033_id)
         | (source_def == self._azk01_045_id)
         | (source_def == self._azk01_056_id)
+        | (source_def == self._stt04_005_id)
         | (source_def == self._stt02_003_id)
         | (source_def == self._stt02_013_id)
+        | (source_def == self._azk01_031_id)
         | (source_def == self._stt01_004_id)
         | source_stt01_002
+        | source_azk01_120
+        | source_azk01_086
+        | (source_def == self._azk01_122_id)
+        | (source_def == self._azk01_069_id)
+        | (source_def == self._azk01_092_id)
+    )
+    pick_max = np.asarray(states.ab_sel_pick_max).astype(np.int32, copy=False)
+    picked = np.asarray(states.ab_sel_picked_count).astype(np.int32, copy=False)
+    pick_shape_ok = (
+        (
+            source_azk01_086
+            & (pick_max > 0)
+            & (picked <= pick_max)
+        )
+        | (
+            ~source_azk01_086
+            & (pick_max == 1)
+            & (picked == 0)
+        )
     )
 
     action_matches = (
@@ -8373,23 +17473,121 @@ class JaxVecEnv:
         & (src >= 0)
         & supported_source
         & (np.asarray(states.ab_sel_count).astype(np.int32, copy=False) > 0)
-        & (np.asarray(states.ab_sel_pick_max) == 1)
-        & (np.asarray(states.ab_sel_picked_count) == 0)
+        & pick_shape_ok
     )
+    deferred_passive_ok = source_stt01_002 | source_azk01_120
     clean = (
         (np.asarray(states.ab_phase) == self._ability_selection_pick)
         & (np.asarray(states.trig_count) == 0)
         & (np.asarray(states.redirect_count) == 0)
         & (np.asarray(states.combat_attacker) < 0)
         & (np.asarray(states.winner) == -1)
-        & (np.asarray(states.passive_queue_count) == 0)
-        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+        & (
+            (np.asarray(states.passive_queue_count) == 0)
+            | deferred_passive_ok
+        )
+        & (
+            ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+            | deferred_passive_ok
+        )
     )
     return clean & action_matches & source_ok
+
+  def _select_from_selection_static_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    active_acts = acts[rows, active_safe].astype(np.int32, copy=False)
+    legal = np.asarray(self._pending[4]).astype(np.int32, copy=False)
+    legal_count = np.asarray(self._pending[5]).astype(np.int32, copy=False)
+    legal_slots = np.arange(legal.shape[1], dtype=np.int32)[None, :]
+    legal_live = legal_slots < legal_count[:, None]
+    legal_match = np.all(legal == active_acts[:, None, :], axis=2)
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    return (
+        (chosen == self._act_select_from_selection)
+        & (active_acts[:, 0] == self._act_select_from_selection)
+        & np.any(legal_live & legal_match, axis=1)
+        & (np.asarray(states.ab_phase) == self._ability_selection_pick)
+        & (owner == active)
+        & (src >= 0)
+        & (np.asarray(states.ab_sel_count).astype(np.int32, copy=False) > 0)
+        & (np.asarray(states.winner) == -1)
+    )
+
+  def _select_azk01_111_garden_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+
+    sel_cards = np.asarray(states.ab_sel_cards)
+    sel_count = np.asarray(states.ab_sel_count).astype(np.int32, copy=False)
+    idx = active_acts[:, 1].astype(np.int32, copy=False)
+    idx_safe = np.clip(idx, 0, sel_cards.shape[1] - 1)
+    inst = sel_cards[rows, idx_safe]
+    inst_safe = np.maximum(inst, 0)
+    target_def = def_host[rows, owner_safe, inst_safe]
+    target_safe_def = np.maximum(target_def, 0)
+
+    action_matches = (
+        (chosen == self._act_select_to_garden)
+        & (active_acts[:, 0] == self._act_select_to_garden)
+    )
+    source_ok = (
+        (np.asarray(states.ab_phase) == self._ability_selection_pick)
+        & (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_111_id)
+        & (sel_count > 0)
+        & (np.asarray(states.ab_sel_pick_max) == 1)
+        & (np.asarray(states.ab_sel_picked_count) == 0)
+        & np.asarray(states.ab_costs_applied)
+    )
+    target_ok = (
+        (idx >= 0)
+        & (idx < sel_count)
+        & (inst >= 0)
+        & (zone_host[rows, owner_safe, inst_safe] == self._zone_selection)
+        & (target_def >= 0)
+        & (self._card_type[target_safe_def] == self._card_type_entity)
+        & self._has_ikz_cost[target_safe_def]
+        & (self._ikz_cost[target_safe_def].astype(np.int32) <= 2)
+    )
+
+    slot = active_acts[:, 2].astype(np.int32, copy=False)
+    zone_row = zone_host[rows, owner_safe]
+    zpos_row = zpos_host[rows, owner_safe]
+    slot_match = (zone_row == self._zone_garden) & (zpos_row == slot[:, None])
+    slot_occupied = np.any(slot_match, axis=1)
+    garden_full = np.sum(zone_row == self._zone_garden, axis=1) >= self._garden_size
+    slot_ok = (
+        (slot >= 0)
+        & (slot < self._garden_size)
+        & (~slot_occupied | garden_full)
+    )
+    return action_matches & source_ok & target_ok & slot_ok
 
   def _select_azk01_122_place_fast_mask(
       self, acts: np.ndarray, chosen, placement_zone: int, action_type: int
   ):
+    # This vmapped kernel's XLA compile is a 40-90 GB giant whose
+    # executable exceeds the persistent-cache serialization limit, so
+    # every process would re-pay it at batch >1. Route these rows to
+    # the broad generic kernel (cached at (1,...), parity-proven).
+    if self.num_environments > 1:
+      return np.zeros(self.num_environments, dtype=bool)
     states = self._states
     rows = np.arange(self.num_environments)
     active = np.asarray(states.active_player).astype(np.int32, copy=False)
@@ -8445,7 +17643,10 @@ class JaxVecEnv:
         (idx >= 0)
         & (idx < sel_count)
         & (inst >= 0)
-        & (zone_host[rows, owner_safe, inst_safe] == self._zone_selection)
+        & (
+            (zone_host[rows, owner_safe, inst_safe] == self._zone_selection)
+            | (zone_host[rows, owner_safe, inst_safe] == self._zone_hand)
+        )
         & (target_def >= 0)
         & (self._card_type[target_safe_def] == self._card_type_entity)
         & self._has_ikz_cost[target_safe_def]
@@ -8487,18 +17688,182 @@ class JaxVecEnv:
     target_timing = self._timing_on_play[target_safe_def]
     if placement_zone == self._zone_garden:
       target_timing = target_timing | self._timing_enter_garden[target_safe_def]
-    target_trigger_ok = ~target_timing
+    target_trigger_ok = ~target_timing | (
+        (target_def == self._stt04_004_id)
+        | (target_def == self._stt04_005_id)
+        | (target_def == self._azk01_056_id)
+    )
+
+    owner_board = (
+        (zone_host[rows, owner_safe] == self._zone_garden)
+        | (zone_host[rows, owner_safe] == self._zone_alley)
+    )
+    owner_defs = def_host[rows, owner_safe]
+    played_passive_ok = target_def == self._stt01_008_id
+    no_passive_watch = (
+        ~np.any(
+            owner_board
+            & np.isin(owner_defs, self._simple_play_watch_ids)
+            & (owner_defs != self._stt01_008_id),
+            axis=1,
+        )
+        & (~np.isin(target_def, self._simple_play_watch_ids) | played_passive_ok)
+    )
+    trig_count = np.asarray(states.trig_count).astype(np.int32, copy=False)
+    trig_owner = np.asarray(states.trig_owner)[:, 0].astype(np.int32, copy=False)
+    trig_source = np.asarray(states.trig_source)[:, 0].astype(np.int32, copy=False)
+    trig_timing = np.asarray(states.trig_timing)[:, 0].astype(np.int32, copy=False)
+    trig_owner_safe = np.clip(trig_owner, 0, 1)
+    trig_source_safe = np.maximum(trig_source, 0)
+    queued_azk01_059 = (
+        (trig_count == 1)
+        & (trig_owner >= 0)
+        & (trig_source >= 0)
+        & (trig_timing == 11)  # TIMING_WHEN_TAKES_DAMAGE
+        & (def_host[rows, trig_owner_safe, trig_source_safe] == self._azk01_059_id)
+        & (
+            (np.asarray(states.once_per_turn_used)[
+                rows, trig_owner_safe, trig_source_safe
+            ] & 1)
+            == 0
+        )
+    )
+    trigger_ok = (trig_count == 0) | queued_azk01_059
+    clean = (
+        (np.asarray(states.ab_phase) == self._ability_selection_pick)
+        & trigger_ok
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+        & no_passive_watch
+    )
+    return (
+        clean
+        & action_matches
+        & source_ok
+        & target_ok
+        & slot_ok
+        & displaced_simple
+        & target_trigger_ok
+    )
+
+  def _select_azk01_024_place_fast_mask(
+      self, acts: np.ndarray, chosen, placement_zone: int, action_type: int
+  ):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    # C's selection-to-ALLEY processor is a raw reparent with
+    # {tapped,cooldown}=false and NO play counters or on-play trigger
+    # (ability_system.c azk_process_selection_to_alley); the fast helper
+    # places via _enter_board_slot (play-style cooldown + counters). Keep
+    # alley placements on the generic kernel, whose
+    # process_selection_to_alley mirrors C exactly. (c16 retry step 231:
+    # STT02-003 placed to alley picked up a spurious cooldown.)
+    if int(placement_zone) == int(self._zone_alley):
+      return np.zeros(self.num_environments, dtype=bool)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    attached_host = np.asarray(states.attached_to)
+    source_def = def_host[rows, owner_safe, src_safe]
+
+    sel_cards = np.asarray(states.ab_sel_cards)
+    sel_count = np.asarray(states.ab_sel_count).astype(np.int32, copy=False)
+    idx = active_acts[:, 1].astype(np.int32, copy=False)
+    idx_safe = np.clip(idx, 0, sel_cards.shape[1] - 1)
+    inst = sel_cards[rows, idx_safe]
+    inst_safe = np.maximum(inst, 0)
+    target_def = def_host[rows, owner_safe, inst_safe]
+    target_safe_def = np.maximum(target_def, 0)
+
+    action_matches = (
+        (chosen == action_type)
+        & (active_acts[:, 0] == action_type)
+    )
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_024_id)
+        & (sel_count > 0)
+        & (np.asarray(states.ab_sel_pick_max) == 1)
+        & (np.asarray(states.ab_sel_picked_count) == 0)
+        & np.asarray(states.ab_costs_applied)
+    )
+    target_ok = (
+        (idx >= 0)
+        & (idx < sel_count)
+        & (inst >= 0)
+        & (zone_host[rows, owner_safe, inst_safe] == self._zone_selection)
+        & (target_def >= 0)
+        & (self._card_type[target_safe_def] == self._card_type_entity)
+        & self._has_ikz_cost[target_safe_def]
+        & (self._ikz_cost[target_safe_def].astype(np.int32) <= 2)
+    )
+
+    slot = active_acts[:, 2].astype(np.int32, copy=False)
+    zone_row = zone_host[rows, owner_safe]
+    zpos_row = zpos_host[rows, owner_safe]
+    def_row = def_host[rows, owner_safe]
+    attached_row = attached_host[rows, owner_safe]
+    slot_match = (zone_row == placement_zone) & (zpos_row == slot[:, None])
+    slot_occupied = np.any(slot_match, axis=1)
+    slot_inst = np.argmax(slot_match, axis=1)
+    zone_full = np.sum(zone_row == placement_zone, axis=1) >= self._garden_size
+    slot_ok = (
+        (slot >= 0)
+        & (slot < self._garden_size)
+        & (~slot_occupied | zone_full)
+    )
+    displaced_def = def_row[rows, slot_inst]
+    displaced_safe_def = np.maximum(displaced_def, 0)
+    displaced_has_attached = np.any(
+        (zone_row == self._zone_attached)
+        & (attached_row == slot_inst[:, None].astype(attached_row.dtype)),
+        axis=1,
+    )
+    displaced_simple = (
+        ~slot_occupied
+        | (
+            (displaced_def >= 0)
+            & ~self._timing_when_destroyed[displaced_safe_def]
+            & ~self._inherent_godmode[displaced_safe_def]
+            & ~displaced_has_attached
+        )
+    )
+
+    target_timing = self._timing_on_play[target_safe_def]
+    if placement_zone == self._zone_garden:
+      target_timing = target_timing | self._timing_enter_garden[target_safe_def]
+    deck_count = np.sum(zone_row == self._zone_deck, axis=1)
+    target_stt02_003_reveal = (target_def == self._stt02_003_id) & (deck_count > 0)
+    target_trigger_ok = (
+        ~target_timing
+        | np.isin(target_def, self._simple_play_implemented_ids)
+        | (target_def == self._azk01_022_id)
+        | target_stt02_003_reveal
+    )
 
     board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
-    played_passive_ok = target_def == self._stt01_008_id
     no_passive_watch = (
         ~np.any(
             board
             & np.isin(def_host, self._simple_play_watch_ids)
-            & (def_host != self._stt01_008_id),
+            & (def_host != self._stt01_008_id)
+            & (def_host != self._stt01_009_id)
+            & (def_host != self._azk01_019_id)
+            & (def_host != self._azk01_073_id),
             axis=(1, 2),
         )
-        & (~np.isin(target_def, self._simple_play_watch_ids) | played_passive_ok)
+        & ~np.isin(target_def, self._simple_play_watch_ids)
     )
     clean = (
         (np.asarray(states.ab_phase) == self._ability_selection_pick)
@@ -8520,6 +17885,65 @@ class JaxVecEnv:
         & target_trigger_ok
     )
 
+  def _select_azk01_024_place_static_mask(
+      self, acts: np.ndarray, chosen, placement_zone: int, action_type: int
+  ):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+    sel_cards = np.asarray(states.ab_sel_cards)
+    sel_count = np.asarray(states.ab_sel_count).astype(np.int32, copy=False)
+    idx = active_acts[:, 1].astype(np.int32, copy=False)
+    idx_safe = np.clip(idx, 0, sel_cards.shape[1] - 1)
+    inst = sel_cards[rows, idx_safe]
+    inst_safe = np.maximum(inst, 0)
+    target_def = def_host[rows, owner_safe, inst_safe]
+    target_safe_def = np.maximum(target_def, 0)
+    slot = active_acts[:, 2].astype(np.int32, copy=False)
+    zone_row = zone_host[rows, owner_safe]
+    slot_occupied = np.any(
+        (zone_row == placement_zone)
+        & (zpos_host[rows, owner_safe] == slot[:, None]),
+        axis=1,
+    )
+    zone_full = np.sum(zone_row == placement_zone, axis=1) >= self._garden_size
+    slot_ok = (
+        (slot >= 0)
+        & (slot < self._garden_size)
+        & (~slot_occupied | zone_full)
+    )
+    return (
+        (chosen == action_type)
+        & (active_acts[:, 0] == action_type)
+        & (np.asarray(states.ab_phase) == self._ability_selection_pick)
+        & (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_024_id)
+        & (sel_count > 0)
+        & (np.asarray(states.ab_sel_pick_max) == 1)
+        & (np.asarray(states.ab_sel_picked_count) == 0)
+        & np.asarray(states.ab_costs_applied)
+        & (idx >= 0)
+        & (idx < sel_count)
+        & (inst >= 0)
+        & (zone_host[rows, owner_safe, inst_safe] == self._zone_selection)
+        & (target_def >= 0)
+        & (self._card_type[target_safe_def] == self._card_type_entity)
+        & self._has_ikz_cost[target_safe_def]
+        & (self._ikz_cost[target_safe_def].astype(np.int32) <= 2)
+        & slot_ok
+        & (np.asarray(states.winner) == -1)
+    )
+
   def _bottom_deck_azk01_003_fast_mask(
       self, acts: np.ndarray, chosen, all_cards: bool
   ):
@@ -8537,6 +17961,7 @@ class JaxVecEnv:
     sel_cards = np.asarray(states.ab_sel_cards)
     sel_count = np.asarray(states.ab_sel_count).astype(np.int32, copy=False)
     live_selection = sel_cards >= 0
+    live_count = np.sum(live_selection, axis=1)
 
     action_type = (
         self._act_bottom_deck_all if all_cards else self._act_bottom_deck_card
@@ -8547,24 +17972,75 @@ class JaxVecEnv:
         (owner == active)
         & (src >= 0)
         & (
-            (source_def == self._azk01_003_id)
+            (source_def == self._azk01_021_id)
+            | (source_def == self._azk01_003_id)
             | (source_def == self._azk01_033_id)
             | (source_def == self._azk01_045_id)
             | (source_def == self._azk01_056_id)
+            | (source_def == self._stt04_005_id)
             | (source_def == self._stt02_003_id)
             | (source_def == self._stt02_013_id)
+            | (source_def == self._azk01_031_id)
             | (source_def == self._stt01_004_id)
+            | (source_def == self._azk01_069_id)
+            | (source_def == self._azk01_092_id)
         )
         & (sel_count > 0)
         & (sel_count <= 5)
     )
+    trig_count = np.asarray(states.trig_count).astype(np.int32, copy=False)
+    passive_clean = (
+        (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    trig_owner = np.asarray(states.trig_owner)[:, 0].astype(np.int32, copy=False)
+    trig_source = np.asarray(states.trig_source)[:, 0].astype(np.int32, copy=False)
+    trig_timing = np.asarray(states.trig_timing)[:, 0].astype(np.int32, copy=False)
+    trig_owner_safe = np.clip(trig_owner, 0, 1)
+    trig_source_safe = np.maximum(trig_source, 0)
+    queued_azk01_059 = (
+        (trig_count == 1)
+        & (trig_owner >= 0)
+        & (trig_source >= 0)
+        & (trig_timing == 11)  # TIMING_WHEN_TAKES_DAMAGE
+        & (def_host[rows, trig_owner_safe, trig_source_safe] == self._azk01_059_id)
+        & (
+            (np.asarray(states.once_per_turn_used)[
+                rows, trig_owner_safe, trig_source_safe
+            ] & 1)
+            == 0
+        )
+    )
+    queued_stt02_003_on_play = (
+        (trig_count == 1)
+        & (trig_owner >= 0)
+        & (trig_source >= 0)
+        & (trig_timing == 0)  # TIMING_ON_PLAY
+        & (def_host[rows, trig_owner_safe, trig_source_safe] == self._stt02_003_id)
+    )
+    queued_clean = (trig_count == 0) & passive_clean
+    deferred_stt02_003_bottom = (
+        (source_def == self._stt02_003_id)
+        & (trig_count == 0)
+    )
+    deferred_stt04_005_bottom = (
+        (source_def == self._stt04_005_id)
+        & (trig_count == 0)
+    )
+    queued_ok = (
+        queued_clean
+        | deferred_stt02_003_bottom
+        | deferred_stt04_005_bottom
+        | ((source_def == self._stt02_013_id) & queued_stt02_003_on_play & passive_clean)
+        | (source_def == self._azk01_092_id)
+        | (source_def == self._stt01_004_id)
+        | ((source_def == self._azk01_056_id) & queued_azk01_059 & passive_clean)
+    )
     clean = (
-        (np.asarray(states.trig_count) == 0)
-        & (np.asarray(states.redirect_count) == 0)
+        (np.asarray(states.redirect_count) == 0)
         & (np.asarray(states.combat_attacker) < 0)
         & (np.asarray(states.winner) == -1)
-        & (np.asarray(states.passive_queue_count) == 0)
-        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+        & queued_ok
     )
     if all_cards:
       action_ok = np.any(live_selection, axis=1)
@@ -8578,8 +18054,280 @@ class JaxVecEnv:
       )
     return in_bottom & action_matches & source_ok & action_ok & clean
 
-  def _play_entity_simple_fast_mask(
-      self, acts: np.ndarray, chosen, phase, placement_zone: int, action_type: int
+  def _top_deck_azk01_031_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+    sel_cards = np.asarray(states.ab_sel_cards)
+    sel_count = np.asarray(states.ab_sel_count).astype(np.int32, copy=False)
+
+    action_matches = (
+        (chosen == self._act_top_deck_card)
+        & (active_acts[:, 0] == self._act_top_deck_card)
+    )
+    in_bottom = np.asarray(states.ab_phase) == self._ability_bottom_deck
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_031_id)
+        & (sel_count > 0)
+        & (sel_count <= 3)
+    )
+    idx = active_acts[:, 1].astype(np.int32, copy=False)
+    idx_safe = np.clip(idx, 0, sel_cards.shape[1] - 1)
+    action_ok = (
+        (idx >= 0)
+        & (idx < sel_count)
+        & (sel_cards[rows, idx_safe] >= 0)
+    )
+    clean = (
+        (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    return in_bottom & action_matches & source_ok & action_ok & clean
+
+  def _top_deck_azk01_031_static_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    source_def = np.asarray(states.def_id)[rows, owner_safe, src_safe]
+    sel_cards = np.asarray(states.ab_sel_cards)
+    sel_count = np.asarray(states.ab_sel_count).astype(np.int32, copy=False)
+
+    idx = active_acts[:, 1].astype(np.int32, copy=False)
+    idx_safe = np.clip(idx, 0, sel_cards.shape[1] - 1)
+    action_ok = (
+        (idx >= 0)
+        & (idx < sel_count)
+        & (sel_cards[rows, idx_safe] >= 0)
+    )
+    return (
+        (chosen == self._act_top_deck_card)
+        & (active_acts[:, 0] == self._act_top_deck_card)
+        & (np.asarray(states.ab_phase) == self._ability_bottom_deck)
+        & (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_031_id)
+        & (sel_count > 0)
+        & (sel_count <= 3)
+        & action_ok
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+    )
+
+  def _bottom_deck_static_mask(
+      self, acts: np.ndarray, chosen, all_cards: bool
+  ):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    source_def = np.asarray(states.def_id)[rows, owner_safe, src_safe]
+    sel_cards = np.asarray(states.ab_sel_cards)
+    sel_count = np.asarray(states.ab_sel_count).astype(np.int32, copy=False)
+
+    action_type = (
+        self._act_bottom_deck_all if all_cards else self._act_bottom_deck_card
+    )
+    if all_cards:
+      action_ok = np.any(sel_cards >= 0, axis=1)
+    else:
+      idx = active_acts[:, 1].astype(np.int32, copy=False)
+      idx_safe = np.clip(idx, 0, sel_cards.shape[1] - 1)
+      action_ok = (
+          (idx >= 0)
+          & (idx < sel_count)
+          & (sel_cards[rows, idx_safe] >= 0)
+      )
+    source_ok = (
+        (source_def == self._azk01_021_id)
+        | (source_def == self._azk01_003_id)
+        | (source_def == self._azk01_033_id)
+        | (source_def == self._azk01_045_id)
+        | (source_def == self._azk01_056_id)
+        | (source_def == self._stt04_005_id)
+        | (source_def == self._stt02_003_id)
+        | (source_def == self._stt02_013_id)
+        | (source_def == self._azk01_031_id)
+        | (source_def == self._stt01_004_id)
+        | (source_def == self._azk01_069_id)
+        | (source_def == self._azk01_092_id)
+    )
+    return (
+        (chosen == action_type)
+        & (active_acts[:, 0] == action_type)
+        & (np.asarray(states.ab_phase) == self._ability_bottom_deck)
+        & (owner == active)
+        & (src >= 0)
+        & source_ok
+        & (sel_count > 0)
+        & (sel_count <= 5)
+        & action_ok
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+    )
+
+  def _play_azk01_028_fast_mask(self, acts: np.ndarray, chosen, phase):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    tapped_host = np.asarray(states.tapped)
+
+    passive_clean = (
+        (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    base = (
+        (phase == 2)  # Phase.MAIN
+        & ((chosen == self._act_play_garden) | (chosen == self._act_play_alley))
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & passive_clean
+    )
+    if not np.any(base):
+      return base
+
+    active_acts = acts[rows, active_safe]
+    hand_index = active_acts[:, 1]
+    slot = active_acts[:, 2]
+    use_token = active_acts[:, 3] != 0
+    zone_row = zone_host[rows, active_safe]
+    zpos_row = zpos_host[rows, active_safe]
+    def_row = def_host[rows, active_safe]
+    tapped_row = tapped_host[rows, active_safe]
+
+    hand_match = (zone_row == self._zone_hand) & (zpos_row == hand_index[:, None])
+    hand_exists = np.any(hand_match, axis=1)
+    hand_inst = np.argmax(hand_match, axis=1)
+    def_id = def_row[rows, hand_inst]
+    safe_def = np.maximum(def_id, 0)
+    next_reduction = np.asarray(states.next_play_cost_reduction)[
+        rows, active_safe
+    ].astype(np.int32, copy=False)
+    cost = np.maximum(self._ikz_cost[safe_def].astype(np.int32) - next_reduction, 0)
+
+    token_ready = (
+        (zone_row[:, self._token_instance] == self._zone_token)
+        & ~tapped_row[:, self._token_instance]
+    )
+    token_needed_ok = ~use_token | token_ready
+    payment_sources = np.sum(
+        (zone_row == self._zone_ikz_area) & ~tapped_row,
+        axis=1,
+    )
+    safe_row_defs = np.maximum(def_row, 0)
+    payment_sources += np.sum(
+        (zone_row == self._zone_garden)
+        & ~tapped_row
+        & self._counts_as_ikz[safe_row_defs],
+        axis=1,
+    )
+    payment_sources += (use_token & token_ready).astype(np.int32)
+    can_pay = token_needed_ok & (payment_sources >= cost)
+
+    target_zone = np.where(
+        active_acts[:, 0] == self._act_play_garden,
+        self._zone_garden,
+        self._zone_alley,
+    )
+    slot_match = (zone_row == target_zone[:, None]) & (zpos_row == slot[:, None])
+    slot_empty = ~np.any(slot_match, axis=1)
+    zone_count = np.sum(zone_row == target_zone[:, None], axis=1)
+    zone_has_room = zone_count < self._garden_size
+
+    attached_to = np.asarray(states.attached_to)
+    inst_cols = np.arange(zone_host.shape[2], dtype=np.int32)
+    has_attached = np.any(
+        (zone_host[:, :, None, :] == self._zone_attached)
+        & (attached_to[:, :, None, :] == inst_cols[None, None, :, None]),
+        axis=3,
+    )
+    garden_entity_targets = (
+        (zone_host == self._zone_garden)
+        & (def_host >= 0)
+        & (self._card_type[np.maximum(def_host, 0)] == self._card_type_entity)
+    )
+    target_clean = (
+        ~has_attached
+        & ~self._timing_when_returned[np.maximum(def_host, 0)]
+        & ~self._inherent_godmode[np.maximum(def_host, 0)]
+    )
+    all_targets_clean = ~np.any(
+        garden_entity_targets & ~target_clean,
+        axis=(1, 2),
+    )
+    bounce_count = np.sum(garden_entity_targets, axis=(1, 2))
+
+    board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
+    inert_stt01_008 = (def_host == self._stt01_008_id) & ~has_attached
+    no_passive_watch = ~np.any(
+        board
+        & np.isin(def_host, self._simple_play_watch_ids)
+        & ~inert_stt01_008
+        & (def_host != self._stt01_011_id),
+        axis=(1, 2),
+    )
+    no_stt02_010_observer = ~np.any(
+        (zone_host == self._zone_garden) & (def_host == self._stt02_010_id),
+        axis=(1, 2),
+    )
+
+    play_action = (
+        (active_acts[:, 0] == self._act_play_garden)
+        | (active_acts[:, 0] == self._act_play_alley)
+    )
+    return (
+        base
+        & play_action
+        & hand_exists
+        & (def_id == self._azk01_028_id)
+        & (self._card_type[safe_def] == self._card_type_entity)
+        & can_pay
+        & (slot >= 0)
+        & (slot < self._garden_size)
+        & slot_empty
+        & zone_has_room
+        & (bounce_count > 0)
+        & all_targets_clean
+        & no_passive_watch
+        & no_stt02_010_observer
+    )
+
+  def _play_entity_static_bridge_fast_mask(
+      self, acts: np.ndarray, chosen, phase, action_type: int
   ):
     states = self._states
     rows = np.arange(self.num_environments)
@@ -8587,12 +18335,7 @@ class JaxVecEnv:
     zone_host = np.asarray(states.zone)
     zpos_host = np.asarray(states.zpos)
     def_host = np.asarray(states.def_id)
-    attached_host = np.asarray(states.attached_to)
 
-    passive_clean = (
-        (np.asarray(states.passive_queue_count) == 0)
-        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
-    )
     main_phase = (phase == 2) & (np.asarray(states.combat_attacker) < 0)
     response_phase = (phase == 3) & (np.asarray(states.combat_attacker) >= 0)
     base = (
@@ -8603,7 +18346,97 @@ class JaxVecEnv:
         & (np.asarray(states.redirect_count) == 0)
         & (np.asarray(states.winner) == -1)
         & ~np.asarray(states.eot_abilities_queued)
-        & passive_clean
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    if not np.any(base):
+      return base
+
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+    hand_index = active_acts[:, 1]
+    zone_row = zone_host[rows, active]
+    zpos_row = zpos_host[rows, active]
+    def_row = def_host[rows, active]
+    hand_match = (zone_row == self._zone_hand) & (zpos_row == hand_index[:, None])
+    hand_exists = np.any(hand_match, axis=1)
+    hand_inst = np.argmax(hand_match, axis=1)
+    def_id = def_row[rows, hand_inst]
+    safe_def = np.maximum(def_id, 0)
+    timing_ok = main_phase | self._response_play_from_hand[safe_def]
+    return (
+        base
+        & (active_acts[:, 0] == action_type)
+        & hand_exists
+        & (def_id >= 0)
+        & (self._card_type[safe_def] == self._card_type_entity)
+        & timing_ok
+    )
+
+  def _play_non_entity_static_mask(
+      self, acts: np.ndarray, chosen, phase, action_type: int
+  ):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    active_acts = acts[rows, active_safe].astype(np.int32, copy=False)
+    legal = np.asarray(self._pending[4]).astype(np.int32, copy=False)
+    legal_count = np.asarray(self._pending[5]).astype(np.int32, copy=False)
+    legal_slots = np.arange(legal.shape[1], dtype=np.int32)[None, :]
+    legal_live = legal_slots < legal_count[:, None]
+    legal_match = np.all(legal == active_acts[:, None, :], axis=2)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    hand_index = active_acts[:, 1]
+    zone_row = zone_host[rows, active_safe]
+    zpos_row = zpos_host[rows, active_safe]
+    def_row = def_host[rows, active_safe]
+    hand_match = (zone_row == self._zone_hand) & (zpos_row == hand_index[:, None])
+    hand_exists = np.any(hand_match, axis=1)
+    hand_inst = np.argmax(hand_match, axis=1)
+    def_id = def_row[rows, hand_inst]
+    safe_def = np.maximum(def_id, 0)
+    main_phase = (phase == 2) & (np.asarray(states.combat_attacker) < 0)
+    response_phase = (phase == 3) & (np.asarray(states.combat_attacker) >= 0)
+    timing_ok = main_phase | self._response_play_from_hand[safe_def]
+    return (
+        (main_phase | response_phase)
+        & (chosen == action_type)
+        & (active_acts[:, 0] == action_type)
+        & np.any(legal_live & legal_match, axis=1)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & hand_exists
+        & (def_id >= 0)
+        & (self._card_type[safe_def] != self._card_type_entity)
+        & timing_ok
+    )
+
+  def _play_entity_simple_fast_mask(
+      self, acts: np.ndarray, chosen, phase, placement_zone: int, action_type: int
+  ):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    attached_host = np.asarray(states.attached_to)
+    tapped_host = np.asarray(states.tapped)
+
+    main_phase = (phase == 2) & (np.asarray(states.combat_attacker) < 0)
+    response_phase = (phase == 3) & (np.asarray(states.combat_attacker) >= 0)
+    base = (
+        (main_phase | response_phase)
+        & (chosen == action_type)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
     )
     if not np.any(base):
       return base
@@ -8615,6 +18448,7 @@ class JaxVecEnv:
     zpos_row = zpos_host[rows, active]
     def_row = def_host[rows, active]
     attached_row = attached_host[rows, active]
+    tapped_row = tapped_host[rows, active]
 
     hand_match = (zone_row == self._zone_hand) & (zpos_row == hand_index[:, None])
     hand_exists = np.any(hand_match, axis=1)
@@ -8656,13 +18490,129 @@ class JaxVecEnv:
     leader_exists = np.any(leader_match, axis=1)
     leader_inst = np.argmax(leader_match, axis=1)
     leader_def = def_row[rows, leader_inst]
+    leader_safe_def = np.maximum(leader_def, 0)
     leader_scorchweaver = leader_exists & self._scorchweaver[
         np.maximum(leader_def, 0)
     ]
     stt04_014_invalid = (
         (def_id == self._stt04_014_id) & ~leader_scorchweaver
     )
+    leader_element = self._card_element[leader_safe_def]
+    azk01_015_play = (def_id == self._azk01_015_id) & leader_exists
+    use_token = active_acts[:, 3] != 0
+    next_reduction = np.asarray(states.next_play_cost_reduction)[
+        rows, active
+    ].astype(np.int32, copy=False)
+    cost = np.maximum(
+        self._ikz_cost[safe_def].astype(np.int32) - next_reduction, 0
+    )
+    token_ready = (
+        (zone_row[:, self._token_instance] == self._zone_token)
+        & ~tapped_row[:, self._token_instance]
+    )
+    token_selected = use_token & token_ready & (cost > 0)
+    pre_tapped_ikz = (
+        (
+            (zone_row[:, self._token_instance] == self._zone_token)
+            & tapped_row[:, self._token_instance]
+        )
+        | np.any((zone_row == self._zone_ikz_area) & tapped_row, axis=1)
+    )
+    untapped_ikz_area_count = np.sum(
+        (zone_row == self._zone_ikz_area) & ~tapped_row,
+        axis=1,
+    )
+    ikz_area_selected = (untapped_ikz_area_count > 0) & (
+        cost > token_selected.astype(np.int32)
+    )
+    azk01_015_water_effect = (
+        azk01_015_play & (leader_element == 2)
+        & (pre_tapped_ikz | token_selected | ikz_area_selected)
+    )
+    leader_cur_hp = np.asarray(states.cur_hp)[rows, active, leader_inst]
+    leader_base_hp = self._base_hp[leader_safe_def]
+    azk01_015_earth_effect = (
+        azk01_015_play & (leader_element == 3) & (leader_cur_hp < leader_base_hp)
+    )
+    has_charge = (
+        self._inherent_charge[safe_def]
+        | np.asarray(states.grant_charge)[rows, active, hand_inst]
+    )
+    azk01_015_lightning_effect = (
+        azk01_015_play & (leader_element == 1) & ~has_charge
+    )
+    azk01_015_fire_effect = azk01_015_play & (leader_element == 4)
+    supported_implemented = supported_implemented | azk01_015_water_effect
+    supported_implemented = supported_implemented | azk01_015_earth_effect
+    supported_implemented = supported_implemented | azk01_015_lightning_effect
+    supported_implemented = supported_implemented | azk01_015_fire_effect
     supported_implemented = supported_implemented | stt04_014_invalid
+    stt02_009_garden_cost_target = (
+        (zone_row == self._zone_garden)
+        & (def_row >= 0)
+        & (self._card_type[np.maximum(def_row, 0)] == self._card_type_entity)
+        & self._has_ikz_cost[np.maximum(def_row, 0)]
+        & (self._ikz_cost[np.maximum(def_row, 0)].astype(np.int32) >= 2)
+    )
+    stt02_009_played_cost_target = (
+        (placement_zone == self._zone_garden)
+        & (def_id == self._stt02_009_id)
+        & self._has_ikz_cost[safe_def]
+        & (self._ikz_cost[safe_def].astype(np.int32) >= 2)
+    )
+    stt02_009_no_confirm = (
+        (def_id == self._stt02_009_id)
+        & ~(
+            np.any(stt02_009_garden_cost_target, axis=1)
+            | stt02_009_played_cost_target
+        )
+    )
+    supported_implemented = supported_implemented | stt02_009_no_confirm
+    stt02_012_garden = (
+        (placement_zone == self._zone_garden)
+        & (def_id == self._stt02_012_id)
+    )
+    stt02_012_alley = (
+        (placement_zone == self._zone_alley)
+        & (def_id == self._stt02_012_id)
+    )
+    supported_implemented = supported_implemented | stt02_012_garden | stt02_012_alley
+    azk01_068_garden_no_effect = (
+        (placement_zone == self._zone_garden)
+        & (def_id == self._azk01_068_id)
+    )
+    supported_implemented = supported_implemented | azk01_068_garden_no_effect
+    stt01_009_play = def_id == self._stt01_009_id
+    stt03_011_alley_no_effect = (
+        (placement_zone == self._zone_alley)
+        & (def_id == self._stt03_011_id)
+    )
+    supported_implemented = supported_implemented | stt03_011_alley_no_effect
+    stt03_013_garden_confirm = (
+        (placement_zone == self._zone_garden)
+        & (def_id == self._stt03_013_id)
+    )
+    supported_implemented = supported_implemented | stt03_013_garden_confirm
+    stt03_013_alley_no_effect = (
+        (placement_zone == self._zone_alley)
+        & (def_id == self._stt03_013_id)
+    )
+    azk01_116_leader_clean = (
+        (def_id != self._azk01_116_id)
+        | (
+            leader_exists
+            & (np.asarray(states.cur_hp)[rows, active, leader_inst] > 3)
+            & ~self._timing_takes_damage[leader_safe_def]
+            & ~self._inherent_godmode[leader_safe_def]
+            & (np.asarray(states.carapace_perm)[rows, active, leader_inst] == 0)
+            & (np.asarray(states.carapace_eot)[rows, active, leader_inst] == 0)
+            & ~np.asarray(states.grant_godmode)[rows, active, leader_inst]
+            & (
+                np.asarray(states.effect_immune_dur)[rows, active, leader_inst]
+                == 0
+            )
+        )
+    )
     implemented_trigger_ok = ~(
         timing
         & self._implemented[safe_def]
@@ -8670,12 +18620,33 @@ class JaxVecEnv:
     )
 
     board = (zone_row == self._zone_garden) | (zone_row == self._zone_alley)
+    stt02_012_inactive_alley = (
+        (def_row == self._stt02_012_id) & (zone_row == self._zone_alley)
+    )
+    stt03_013_inert = def_row == self._stt03_013_id
     watched_on_board = (
         board
         & np.isin(def_row, self._simple_play_watch_ids)
         & (def_row != self._stt01_008_id)
+        & (def_row != self._stt01_009_id)
+        & (def_row != self._stt01_011_id)
+        & (def_row != self._azk01_010_id)
+        & (def_row != self._azk01_019_id)
+        & (def_row != self._stt02_012_id)
+        & ~stt02_012_inactive_alley
+        & ~stt03_013_inert
     )
-    played_passive_ok = def_id == self._stt01_008_id
+    played_passive_ok = (
+        (def_id == self._stt01_008_id)
+        | stt01_009_play
+        | (def_id == self._stt01_011_id)
+        | (def_id == self._azk01_010_id)
+        | (def_id == self._azk01_019_id)
+        | stt02_012_garden
+        | stt02_012_alley
+        | stt03_013_garden_confirm
+        | stt03_013_alley_no_effect
+    )
     no_passive_watch = (
         ~np.any(watched_on_board, axis=1)
         & (~np.isin(def_id, self._simple_play_watch_ids) | played_passive_ok)
@@ -8691,6 +18662,7 @@ class JaxVecEnv:
         & displaced_simple
         & implemented_trigger_ok
         & no_passive_watch
+        & azk01_116_leader_clean
     )
 
   def _gate_portal_simple_fast_mask(self, acts: np.ndarray, chosen, phase):
@@ -8702,19 +18674,14 @@ class JaxVecEnv:
     def_host = np.asarray(states.def_id)
     tapped_host = np.asarray(states.tapped)
 
-    passive_events_clean = ~np.any(
-        np.asarray(states.stt02_012_event_pending), axis=(1, 2)
-    )
     base = (
         (phase == 2)  # Phase.MAIN
         & (chosen == self._act_gate_portal)
         & (np.asarray(states.ab_phase) == 0)
-        & (np.asarray(states.trig_count) == 0)
         & (np.asarray(states.redirect_count) == 0)
         & (np.asarray(states.combat_attacker) < 0)
         & (np.asarray(states.winner) == -1)
         & ~np.asarray(states.eot_abilities_queued)
-        & passive_events_clean
     )
     if not np.any(base):
       return base
@@ -8727,6 +18694,26 @@ class JaxVecEnv:
     def_row = def_host[rows, active]
     tapped_row = tapped_host[rows, active]
     attached_row = np.asarray(states.attached_to)[rows, active]
+    trig_count = np.asarray(states.trig_count).astype(np.int32, copy=False)
+    trig_owner = np.asarray(states.trig_owner)[:, 0].astype(np.int32, copy=False)
+    trig_source = np.asarray(states.trig_source)[:, 0].astype(np.int32, copy=False)
+    trig_timing = np.asarray(states.trig_timing)[:, 0].astype(np.int32, copy=False)
+    trig_owner_safe = np.clip(trig_owner, 0, 1)
+    trig_source_safe = np.maximum(trig_source, 0)
+    queued_azk01_059 = (
+        (trig_count == 1)
+        & (trig_owner >= 0)
+        & (trig_source >= 0)
+        & (trig_timing == 11)  # TIMING_WHEN_TAKES_DAMAGE
+        & (def_host[rows, trig_owner_safe, trig_source_safe] == self._azk01_059_id)
+        & (
+            (np.asarray(states.once_per_turn_used)[
+                rows, trig_owner_safe, trig_source_safe
+            ] & 1)
+            == 0
+        )
+    )
+    trigger_ok = (trig_count == 0) | queued_azk01_059
 
     gate_match = zone_row == self._zone_gate
     gate_exists = np.any(gate_match, axis=1)
@@ -8788,6 +18775,10 @@ class JaxVecEnv:
         & (gate_power[:, None] > 0)
         & other_host
     )
+    azk01_120_has_targets = (
+        (gate_def == self._azk01_120_id)
+        & np.any(reequip_eligible, axis=1)
+    )
     azk01_120_fizzles = (
         (gate_def == self._azk01_120_id)
         & ~np.any(reequip_eligible, axis=1)
@@ -8800,16 +18791,17 @@ class JaxVecEnv:
     garden_full = garden_count >= self._garden_size
     slot_ok = ~garden_occupied | garden_full
     displaced_def = def_row[rows, garden_inst]
-    displaced_safe_def = np.maximum(displaced_def, 0)
+    displaced_has_attached = np.any(
+        (zone_row == self._zone_attached)
+        & (attached_row == garden_inst[:, None].astype(attached_row.dtype)),
+        axis=1,
+    )
     displaced_simple = (
         ~garden_occupied
-        | (
-            (displaced_def >= 0)
-            & ~self._timing_when_destroyed[displaced_safe_def]
-            & ~self._inherent_godmode[displaced_safe_def]
-        )
+        | ((displaced_def >= 0) & ~displaced_has_attached)
     )
     no_enter_trigger = ~self._timing_enter_garden[safe_portaled_def]
+    enter_trigger_ok = no_enter_trigger | (portaled_def == self._stt03_013_id)
 
     stt03_target_ok = (
         (gate_def == self._stt03_002_id)
@@ -8862,10 +18854,41 @@ class JaxVecEnv:
             axis=1,
         )
     )
+    stt03_002_has_targets = (
+        (gate_def == self._stt03_002_id)
+        & (np.any(stonehaven_after_portal, axis=1) | portaled_stonehaven_target)
+    )
     stt03_002_no_targets = (
         (gate_def == self._stt03_002_id)
         & ~np.any(stonehaven_after_portal, axis=1)
         & ~portaled_stonehaven_target
+    )
+    azk01_124_cost_targets = (
+        garden_after_portal
+        & entity_after_portal
+        & self._has_ikz_cost[safe_defs]
+        & (self._ikz_cost[safe_defs].astype(np.int32) <= gate_power[:, None])
+        & ~tapped_row
+    )
+    azk01_124_target_has_attached = np.any(
+        (zone_row == self._zone_attached)
+        & (attached_row >= 0)
+        & np.take_along_axis(azk01_124_cost_targets, attached_row.clip(0), axis=1),
+        axis=1,
+    )
+    azk01_124_clean_cost_targets = azk01_124_cost_targets
+    azk01_124_has_targets = (
+        (gate_def == self._azk01_124_id)
+        & np.any(azk01_124_clean_cost_targets, axis=1)
+        & ~azk01_124_target_has_attached
+    )
+    azk01_124_no_targets = (
+        (gate_def == self._azk01_124_id)
+        & ~np.any(azk01_124_cost_targets, axis=1)
+    )
+    stt04_002_has_targets = (
+        (gate_def == self._stt04_002_id)
+        & (np.any(damaged_after_portal, axis=1) | portaled_damaged)
     )
     stt04_002_no_targets = (
         (gate_def == self._stt04_002_id)
@@ -8876,21 +18899,37 @@ class JaxVecEnv:
         (gate_def == self._stt01_002_id)
         | (gate_def == self._stt02_002_id)
         | (gate_def == self._azk01_122_id)
+        | azk01_120_has_targets
         | azk01_120_fizzles
         | azk01_126_ok
         | azk01_126_fizzles
         | azk01_122_fizzles
-        | stt03_target_ok
+        | stt03_002_has_targets
         | stt03_002_no_targets
+        | stt04_002_has_targets
         | stt04_002_no_targets
+        | azk01_124_has_targets
+        | azk01_124_no_targets
     )
     gate_ok = gate_untapped & supported_gate
 
+    stt01_009_inactive_alley = (
+        (def_row == self._stt01_009_id) & (zone_row == self._zone_alley)
+    )
+    stt03_013_inert = def_row == self._stt03_013_id
     board = (zone_row == self._zone_garden) | (zone_row == self._zone_alley)
     watched_on_board = (
         board
         & np.isin(def_row, self._simple_play_watch_ids)
         & (def_row != self._stt01_008_id)
+        & (def_row != self._stt01_009_id)
+        & (def_row != self._stt01_011_id)
+        & (def_row != self._azk01_010_id)
+        & (def_row != self._azk01_019_id)
+        & (def_row != self._azk01_073_id)
+        & ~stt01_009_inactive_alley
+        & (def_row != self._stt02_012_id)
+        & ~stt03_013_inert
     )
     portaled_has_weapon = np.any(
         (zone_row == self._zone_attached)
@@ -8899,8 +18938,14 @@ class JaxVecEnv:
         axis=1,
     )
     portaled_passive_ok = (
-        (portaled_def == self._stt01_008_id)
-        & ~portaled_has_weapon
+        ((portaled_def == self._stt01_008_id) & ~portaled_has_weapon)
+        | (portaled_def == self._stt01_009_id)
+        | (portaled_def == self._stt01_011_id)
+        | (portaled_def == self._azk01_010_id)
+        | (portaled_def == self._azk01_019_id)
+        | (portaled_def == self._azk01_073_id)
+        | (portaled_def == self._stt02_012_id)
+        | (portaled_def == self._stt03_013_id)
     )
     no_passive_watch = (
         ~np.any(watched_on_board, axis=1)
@@ -8912,12 +18957,13 @@ class JaxVecEnv:
 
     return (
         base
+        & trigger_ok
         & gate_ok
         & alley_ok
         & valid_portaled
         & slot_ok
         & displaced_simple
-        & no_enter_trigger
+        & enter_trigger_ok
         & no_passive_watch
     )
 
@@ -8970,6 +19016,39 @@ class JaxVecEnv:
     optional = np.asarray(states.ab_is_optional)
     action_matches = active_acts[:, 0] == chosen
     safe_clear = np.asarray(states.combat_attacker) < 0
+    trig_count = np.asarray(states.trig_count).astype(np.int32, copy=False)
+    trig_owner = np.asarray(states.trig_owner)[:, 0].astype(np.int32, copy=False)
+    trig_source = np.asarray(states.trig_source)[:, 0].astype(np.int32, copy=False)
+    trig_timing = np.asarray(states.trig_timing)[:, 0].astype(np.int32, copy=False)
+    trig_owner_safe = np.clip(trig_owner, 0, 1)
+    trig_source_safe = np.maximum(trig_source, 0)
+    queued_stt02_010 = (
+        (trig_count > 0)
+        & (trig_timing == 8)  # TIMING_WHEN_RETURNED_TO_HAND
+        & (
+            def_host[rows, trig_owner_safe, trig_source_safe]
+            == self._stt02_010_id
+        )
+    )
+    queued_stt03_006 = (
+        (trig_count > 0)
+        & (trig_timing == 13)  # TIMING_WHEN_DESTROYED
+        & (
+            def_host[rows, trig_owner_safe, trig_source_safe]
+            == self._stt03_006_id
+        )
+    )
+    queued_stt03_013 = (
+        (trig_count > 0)
+        & (trig_timing == 15)  # TIMING_WHEN_ENTERS_GARDEN
+        & (
+            def_host[rows, trig_owner_safe, trig_source_safe]
+            == self._stt03_013_id
+        )
+    )
+    queue_clear_ok = (
+        (trig_count == 0) | queued_stt02_010 | queued_stt03_006 | queued_stt03_013
+    )
     decline = (
         (chosen == self._act_noop)
         & in_confirm
@@ -9003,7 +19082,210 @@ class JaxVecEnv:
         & (np.asarray(states.ab_eff_min) == 0)
         & (np.asarray(states.ab_eff_max) == 1)
     )
-    return (decline | stt01002_confirm | stt03002_skip | stt01014_skip) & safe_clear
+    return (
+        (decline | stt01002_confirm | stt03002_skip | stt01014_skip)
+        & safe_clear
+        & queue_clear_ok
+    )
+
+  def _confirm_static_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    active_acts = acts[rows, active_safe].astype(np.int32, copy=False)
+    legal = np.asarray(self._pending[4]).astype(np.int32, copy=False)
+    legal_count = np.asarray(self._pending[5]).astype(np.int32, copy=False)
+    legal_slots = np.arange(legal.shape[1], dtype=np.int32)[None, :]
+    legal_live = legal_slots < legal_count[:, None]
+    legal_match = np.all(legal == active_acts[:, None, :], axis=2)
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    return (
+        (chosen == self._act_confirm)
+        & (active_acts[:, 0] == self._act_confirm)
+        & np.any(legal_live & legal_match, axis=1)
+        & (np.asarray(states.ab_phase) == self._ability_confirmation)
+        & (owner == active)
+        & (src >= 0)
+        & (np.asarray(states.winner) == -1)
+    )
+
+  def _select_cost_static_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    active_acts = acts[rows, active_safe].astype(np.int32, copy=False)
+    legal = np.asarray(self._pending[4]).astype(np.int32, copy=False)
+    legal_count = np.asarray(self._pending[5]).astype(np.int32, copy=False)
+    legal_slots = np.arange(legal.shape[1], dtype=np.int32)[None, :]
+    legal_live = legal_slots < legal_count[:, None]
+    legal_match = np.all(legal == active_acts[:, None, :], axis=2)
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    return (
+        (chosen == self._act_select_cost)
+        & (active_acts[:, 0] == self._act_select_cost)
+        & np.any(legal_live & legal_match, axis=1)
+        & (np.asarray(states.ab_phase) == self._ability_cost_selection)
+        & (owner == active)
+        & (src >= 0)
+        & (np.asarray(states.winner) == -1)
+    )
+
+  def _select_effect_static_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    active_acts = acts[rows, active_safe].astype(np.int32, copy=False)
+    legal = np.asarray(self._pending[4]).astype(np.int32, copy=False)
+    legal_count = np.asarray(self._pending[5]).astype(np.int32, copy=False)
+    legal_slots = np.arange(legal.shape[1], dtype=np.int32)[None, :]
+    legal_live = legal_slots < legal_count[:, None]
+    legal_match = np.all(legal == active_acts[:, None, :], axis=2)
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    return (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+        & np.any(legal_live & legal_match, axis=1)
+        & (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & (owner == active)
+        & (src >= 0)
+        & (np.asarray(states.winner) == -1)
+    )
+
+  def _confirm_stt03_011_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+    clean = (
+        (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+        & (np.asarray(states.ab_sel_count) == 0)
+    )
+    return (
+        (chosen == self._act_confirm)
+        & (active_acts[:, 0] == self._act_confirm)
+        & (np.asarray(states.ab_phase) == self._ability_confirmation)
+        & (owner == active)
+        & (src >= 0)
+        & (source_def == self._stt03_011_id)
+        & np.asarray(states.ab_is_optional)
+        & ~np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_cost_selected) == 0)
+        & (np.asarray(states.ab_cost_max) == 0)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 0)
+        & (np.asarray(states.ab_eff_max) == 1)
+        & clean
+    )
+
+  def _confirm_stt03_013_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+    action_matches = active_acts[:, 0] == chosen
+    confirm = (
+        (chosen == self._act_confirm)
+        & (active_acts[:, 0] == self._act_confirm)
+    )
+    decline = (
+        (chosen == self._act_noop)
+        & (active_acts[:, 0] == self._act_noop)
+    )
+    clean = (
+        (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+        & (np.asarray(states.ab_sel_count) == 0)
+    )
+    return (
+        (confirm | decline)
+        & action_matches
+        & (np.asarray(states.ab_phase) == self._ability_confirmation)
+        & (owner == active)
+        & (src >= 0)
+        & (source_def == self._stt03_013_id)
+        & np.asarray(states.ab_is_optional)
+        & ~np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_cost_selected) == 0)
+        & (np.asarray(states.ab_cost_max) == 0)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 0)
+        & (np.asarray(states.ab_eff_max) == 0)
+        & clean
+    )
+
+  def _confirm_azk01_006_when_attacked_fast_mask(
+      self, acts: np.ndarray, chosen
+  ):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+    confirm_or_decline = (
+        (chosen == self._act_confirm) | (chosen == self._act_noop)
+    )
+    clean = (
+        (np.asarray(states.phase) == 4)  # Phase.COMBAT_RESOLVE
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) >= 0)
+        & (np.asarray(states.combat_defender_player) == active)
+        & (np.asarray(states.winner) == -1)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+        & (np.asarray(states.ab_sel_count) == 0)
+    )
+    return (
+        confirm_or_decline
+        & (active_acts[:, 0] == chosen)
+        & (np.asarray(states.ab_phase) == self._ability_confirmation)
+        & (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_006_id)
+        & np.asarray(states.ab_is_optional)
+        & ~np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_cost_selected) == 0)
+        & (np.asarray(states.ab_cost_max) == 0)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 0)
+        & (np.asarray(states.ab_eff_max) == 0)
+        & clean
+    )
 
   def _confirm_stt01_002_fast_mask(self, acts: np.ndarray, chosen):
     states = self._states
@@ -9027,16 +19309,26 @@ class JaxVecEnv:
         self._gate_points[np.maximum(portaled_def, 0)],
         0,
     ).astype(np.int32)
+    source_stt01_002 = (source_def == self._stt01_002_id) & (scratch[:, 2] == 1)
+    source_azk01_098 = (
+        (source_def == self._azk01_098_id)
+        & (zone_host[rows, owner_safe, src_safe] == self._zone_alley)
+        & ~np.asarray(states.tapped)[rows, owner_safe, src_safe]
+        & (np.asarray(states.cooldown)[rows, owner_safe, src_safe] == 0)
+    )
+    max_cost = np.where(source_azk01_098, 3, gate_power).astype(np.int32)
+    src_zone = np.where(source_azk01_098, self._zone_hand, self._zone_discard)
+
 
     zone_row = zone_host[rows, owner_safe]
     def_row = def_host[rows, owner_safe]
     safe_defs = np.maximum(def_row, 0)
     eligible = (
-        (zone_row == self._zone_discard)
+        (zone_row == src_zone[:, None])
         & (self._card_type[safe_defs] == self._card_type_weapon)
         & self._has_ikz_cost[safe_defs]
-        & (self._ikz_cost[safe_defs].astype(np.int32) <= gate_power[:, None])
-        & (gate_power[:, None] > 0)
+        & (self._ikz_cost[safe_defs].astype(np.int32) <= max_cost[:, None])
+        & (max_cost[:, None] > 0)
     )
     has_eligible = np.any(eligible, axis=1)
 
@@ -9045,8 +19337,6 @@ class JaxVecEnv:
         & (np.asarray(states.redirect_count) == 0)
         & (np.asarray(states.combat_attacker) < 0)
         & (np.asarray(states.winner) == -1)
-        & (np.asarray(states.passive_queue_count) == 0)
-        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
         & (np.asarray(states.ab_sel_count) == 0)
     )
     return (
@@ -9055,7 +19345,7 @@ class JaxVecEnv:
         & (np.asarray(states.ab_phase) == self._ability_confirmation)
         & (owner == active)
         & (src >= 0)
-        & (source_def == self._stt01_002_id)
+        & (source_stt01_002 | source_azk01_098)
         & np.asarray(states.ab_is_optional)
         & ~np.asarray(states.ab_costs_applied)
         & (np.asarray(states.ab_cost_selected) == 0)
@@ -9063,7 +19353,6 @@ class JaxVecEnv:
         & (np.asarray(states.ab_eff_selected) == 0)
         & (np.asarray(states.ab_eff_min) == 0)
         & (np.asarray(states.ab_eff_max) == 0)
-        & (scratch[:, 2] == 1)
         & has_eligible
         & clean
     )
@@ -9211,8 +19500,6 @@ class JaxVecEnv:
         & (np.asarray(states.redirect_count) == 0)
         & (np.asarray(states.combat_attacker) < 0)
         & (np.asarray(states.winner) == -1)
-        & (np.asarray(states.passive_queue_count) == 0)
-        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
     )
     return (
         (chosen == self._act_confirm)
@@ -9273,6 +19560,131 @@ class JaxVecEnv:
         & clean
     )
 
+  def _confirm_azk01_124_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_124_id)
+        & np.asarray(states.ab_is_optional)
+        & ~np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_cost_selected) == 0)
+        & (np.asarray(states.ab_cost_max) == 1)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 0)
+        & (np.asarray(states.ab_scratch)[:, 2] == 1)
+    )
+    trig_count = np.asarray(states.trig_count).astype(np.int32, copy=False)
+    trig_owner = np.asarray(states.trig_owner)[:, 0].astype(np.int32, copy=False)
+    trig_source = np.asarray(states.trig_source)[:, 0].astype(np.int32, copy=False)
+    trig_timing = np.asarray(states.trig_timing)[:, 0].astype(np.int32, copy=False)
+    trig_owner_safe = np.clip(trig_owner, 0, 1)
+    trig_source_safe = np.maximum(trig_source, 0)
+    queued_stt03_013 = (
+        (trig_count == 1)
+        & (trig_timing == 15)  # TIMING_WHEN_ENTERS_GARDEN
+        & (def_host[rows, trig_owner_safe, trig_source_safe] == self._stt03_013_id)
+    )
+    clean = (
+        ((trig_count == 0) | queued_stt03_013)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    return (
+        (chosen == self._act_confirm)
+        & (active_acts[:, 0] == self._act_confirm)
+        & (np.asarray(states.ab_phase) == self._ability_confirmation)
+        & source_ok
+        & clean
+    )
+
+  def _confirm_stt04_009_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    def_host = np.asarray(states.def_id)
+    zone_host = np.asarray(states.zone)
+    source_def = def_host[rows, owner_safe, src_safe]
+    player_ids = np.arange(2, dtype=np.int32)[None, :, None]
+    inst_ids = np.arange(def_host.shape[2], dtype=np.int32)[None, None, :]
+    not_source = (player_ids != owner_safe[:, None, None]) | (
+        inst_ids != src_safe[:, None, None]
+    )
+    target_available = np.any(
+        (
+            (
+                (zone_host == self._zone_garden)
+                & (
+                    self._card_type[np.maximum(def_host, 0)]
+                    == self._card_type_entity
+                )
+            )
+            | (zone_host == self._zone_leader)
+        )
+        & not_source,
+        axis=(1, 2),
+    )
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._stt04_009_id)
+        & (zone_host[rows, owner_safe, src_safe] == self._zone_garden)
+        & np.asarray(states.ab_is_optional)
+        & ~np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_cost_max) == 0)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 1)
+        & (np.asarray(states.ab_eff_max) == 1)
+        & np.asarray(states.last_dmg_from_effect)[rows, owner_safe, src_safe]
+        & ((np.asarray(states.once_per_turn_used)[rows, owner_safe, src_safe] & 1) == 0)
+    )
+    trig_count = np.asarray(states.trig_count).astype(np.int32, copy=False)
+    trig_owner = np.asarray(states.trig_owner)[:, 0].astype(np.int32, copy=False)
+    trig_source = np.asarray(states.trig_source)[:, 0].astype(np.int32, copy=False)
+    trig_timing = np.asarray(states.trig_timing)[:, 0].astype(np.int32, copy=False)
+    trig_owner_safe = np.clip(trig_owner, 0, 1)
+    trig_source_safe = np.maximum(trig_source, 0)
+    queued_stt03_006 = (
+        (trig_count == 1)
+        & (trig_timing == 13)  # TIMING_WHEN_DESTROYED
+        & (def_host[rows, trig_owner_safe, trig_source_safe] == self._stt03_006_id)
+    )
+    clean = (
+        ((trig_count == 0) | queued_stt03_006)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    return (
+        (chosen == self._act_confirm)
+        & (active_acts[:, 0] == self._act_confirm)
+        & (np.asarray(states.ab_phase) == self._ability_confirmation)
+        & source_ok
+        & target_available
+        & clean
+    )
+
   def _confirm_stt02_009_fast_mask(self, acts: np.ndarray, chosen):
     states = self._states
     rows = np.arange(self.num_environments)
@@ -9326,6 +19738,195 @@ class JaxVecEnv:
         & clean
     )
 
+  def _confirm_stt02_010_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    def_host = np.asarray(states.def_id)
+    zone_host = np.asarray(states.zone)
+    source_def = def_host[rows, owner_safe, src_safe]
+    deck_available = np.any(zone_host[rows, owner_safe] == self._zone_deck, axis=1)
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._stt02_010_id)
+        & (zone_host[rows, owner_safe, src_safe] == self._zone_garden)
+        & ~np.asarray(states.tapped)[rows, owner_safe, src_safe]
+        & deck_available
+    )
+    trig_count = np.asarray(states.trig_count).astype(np.int32, copy=False)
+    trig_owner = np.asarray(states.trig_owner)[:, 0].astype(np.int32, copy=False)
+    trig_source = np.asarray(states.trig_source)[:, 0].astype(np.int32, copy=False)
+    trig_timing = np.asarray(states.trig_timing)[:, 0].astype(np.int32, copy=False)
+    trig_owner_safe = np.clip(trig_owner, 0, 1)
+    trig_source_safe = np.maximum(trig_source, 0)
+    queued_supported = (
+        (trig_count == 0)
+        | (
+            (trig_count > 0)
+            & (
+                (
+                    (trig_timing == 8)  # TIMING_WHEN_RETURNED_TO_HAND
+                    & (
+                        def_host[rows, trig_owner_safe, trig_source_safe]
+                        == self._stt02_010_id
+                    )
+                )
+                | (
+                    (trig_timing == 13)  # TIMING_WHEN_DESTROYED
+                    & (
+                        def_host[rows, trig_owner_safe, trig_source_safe]
+                        == self._stt03_006_id
+                    )
+                )
+                | (
+                    (trig_timing == 15)  # TIMING_WHEN_ENTERS_GARDEN
+                    & (
+                        def_host[rows, trig_owner_safe, trig_source_safe]
+                        == self._stt03_013_id
+                    )
+                )
+            )
+        )
+    )
+    clean = (
+        (np.asarray(states.phase) == 2)  # Phase.MAIN
+        & queued_supported
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    return (
+        (chosen == self._act_confirm)
+        & (active_acts[:, 0] == self._act_confirm)
+        & (np.asarray(states.ab_phase) == self._ability_confirmation)
+        & np.asarray(states.ab_is_optional)
+        & source_ok
+        & ~np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_cost_selected) == 0)
+        & (np.asarray(states.ab_cost_max) == 0)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 0)
+        & (np.asarray(states.ab_eff_max) == 0)
+        & clean
+    )
+
+  def _confirm_azk01_022_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    def_host = np.asarray(states.def_id)
+    zone_host = np.asarray(states.zone)
+    source_def = def_host[rows, owner_safe, src_safe]
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_022_id)
+    )
+
+    zone_row = zone_host[rows, owner_safe]
+    hand_available = np.any(
+        (zone_row == self._zone_hand) & (def_host[rows, owner_safe] >= 0),
+        axis=1,
+    )
+    safe_defs = np.maximum(def_host, 0)
+    bounce_available = np.any(
+        (zone_host == self._zone_garden)
+        & (def_host >= 0)
+        & (self._card_type[safe_defs] == self._card_type_entity)
+        & self._has_ikz_cost[safe_defs]
+        & (self._ikz_cost[safe_defs].astype(np.int32) <= 2)
+        & ~self._timing_when_returned[safe_defs]
+        & ~self._inherent_godmode[safe_defs]
+        & ~np.asarray(states.grant_godmode),
+        axis=(1, 2),
+    )
+    no_stt02_010_observer = ~np.any(
+        (zone_host == self._zone_garden) & (def_host == self._stt02_010_id),
+        axis=(1, 2),
+    )
+    clean = (
+        (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & no_stt02_010_observer
+    )
+    return (
+        (chosen == self._act_confirm)
+        & (active_acts[:, 0] == self._act_confirm)
+        & (np.asarray(states.ab_phase) == self._ability_confirmation)
+        & np.asarray(states.ab_is_optional)
+        & source_ok
+        & ~np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_cost_selected) == 0)
+        & (np.asarray(states.ab_cost_max) == 1)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 1)
+        & (np.asarray(states.ab_eff_max) == 1)
+        & hand_available
+        & bounce_available
+        & clean
+    )
+
+  def _confirm_azk01_024_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    src_safe = np.maximum(src, 0)
+    def_host = np.asarray(states.def_id)
+    source_def = def_host[rows, owner_safe, src_safe]
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_024_id)
+    )
+    clean = (
+        (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    confirm = (
+        (chosen == self._act_confirm)
+        & (active_acts[:, 0] == self._act_confirm)
+    )
+    decline = (
+        (chosen == self._act_noop)
+        & (active_acts[:, 0] == self._act_noop)
+    )
+    return (
+        (confirm | decline)
+        & (np.asarray(states.ab_phase) == self._ability_confirmation)
+        & np.asarray(states.ab_is_optional)
+        & source_ok
+        & ~np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_cost_selected) == 0)
+        & (np.asarray(states.ab_cost_max) == 1)
+        & clean
+    )
+
   def _confirm_azk01_058_fast_mask(self, acts: np.ndarray, chosen):
     states = self._states
     rows = np.arange(self.num_environments)
@@ -9365,7 +19966,15 @@ class JaxVecEnv:
     board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
     passive_watch = board & np.isin(def_host, self._simple_play_watch_ids)
     no_non_inert_watch = ~np.any(
-        passive_watch & (def_host != self._stt01_008_id),
+        passive_watch
+        & (def_host != self._stt01_008_id)
+        & (def_host != self._stt01_009_id)
+        & (def_host != self._stt01_011_id)
+        & (def_host != self._azk01_010_id)
+        & (def_host != self._azk01_019_id)
+        & (def_host != self._azk01_073_id)
+        & (def_host != self._stt02_012_id)
+        & (def_host != self._stt03_013_id),
         axis=(1, 2),
     )
     leader_exists = np.any(zone_host == self._zone_leader, axis=(1, 2))
@@ -9410,6 +20019,10 @@ class JaxVecEnv:
         (chosen == self._act_noop)
         & (active_acts[:, 0] == self._act_noop)
     )
+    confirm = (
+        (chosen == self._act_confirm)
+        & (active_acts[:, 0] == self._act_confirm)
+    )
     source_ok = (
         (owner == active)
         & (src >= 0)
@@ -9429,6 +20042,29 @@ class JaxVecEnv:
     opp_zone = zone_host[rows, opp]
     opp_defs = def_host[rows, opp]
     opp_safe_defs = np.maximum(opp_defs, 0)
+    opp_tapped = np.asarray(states.tapped)[rows, opp]
+    token_ready = (
+        (opp_zone[:, self._token_instance] == self._zone_token)
+        & ~opp_tapped[:, self._token_instance]
+    )
+    payment_sources = np.sum(
+        (opp_zone == self._zone_ikz_area) & ~opp_tapped,
+        axis=1,
+    )
+    payment_sources += np.sum(
+        (opp_zone == self._zone_garden)
+        & ~opp_tapped
+        & self._counts_as_ikz[opp_safe_defs],
+        axis=1,
+    )
+    payment_sources += token_ready.astype(np.int32)
+    next_reduction = np.asarray(states.next_play_cost_reduction)[
+        rows, opp
+    ].astype(np.int32, copy=False)
+    response_cost = np.maximum(
+        self._ikz_cost[opp_safe_defs].astype(np.int32) - next_reduction[:, None],
+        0,
+    )
     attacker_infiltrate = (
         self._inherent_infiltrate[safe_source_def]
         | np.asarray(states.grant_infiltrate)[rows, owner_safe, src_safe]
@@ -9446,6 +20082,35 @@ class JaxVecEnv:
         & ~attacker_infiltrate
         & ~np.asarray(states.combat_intercepted)
     )
+    response_hand = (opp_zone == self._zone_hand) & (
+        (
+            (self._card_type[opp_safe_defs] == self._card_type_spell)
+            & self._timing_is_response[opp_safe_defs]
+            & self._has_ability[opp_safe_defs]
+        )
+        | self._response_play_from_hand[opp_safe_defs]
+    ) & (response_cost <= payment_sources[:, None])
+    in_board = (
+        (opp_zone == self._zone_garden)
+        | (opp_zone == self._zone_alley)
+        | (opp_zone == self._zone_leader)
+    )
+    response_board = (
+        in_board
+        & self._timing_is_response[opp_safe_defs]
+        & self._has_ability[opp_safe_defs]
+        & (
+            self._ability_ikz_cost[opp_safe_defs].astype(np.int32)
+            <= payment_sources[:, None]
+        )
+        & self._response_board_validate_ok(
+            states, rows, opp, opp_zone, opp_safe_defs
+        )
+    )
+    has_nondefender_response = (
+        np.any(response_hand, axis=1)
+        | np.any(response_board, axis=1)
+    )
     clean = (
         (np.asarray(states.trig_count) == 0)
         & (np.asarray(states.redirect_count) == 0)
@@ -9454,7 +20119,15 @@ class JaxVecEnv:
         & (np.asarray(states.passive_queue_count) == 0)
         & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
     )
-    return in_confirm & decline & source_ok & can_declare_defender & clean
+    return (
+        in_confirm
+        & source_ok
+        & clean
+        & (
+            (decline & (can_declare_defender | has_nondefender_response))
+            | (confirm & has_nondefender_response)
+        )
+    )
 
   def _confirm_azk01_060_fast_mask(self, acts: np.ndarray, chosen):
     states = self._states
@@ -9551,8 +20224,22 @@ class JaxVecEnv:
 
     cur_atk = np.asarray(states.cur_atk).astype(np.int16, copy=False)
     cur_hp = np.asarray(states.cur_hp).astype(np.int16, copy=False)
-    damage_to_defender = cur_atk[rows, owner_safe, src_safe]
-    damage_to_attacker = cur_atk[rows, opp, defender_safe]
+    attacker_carapace = (
+        self._innate_carapace[safe_attacker_def]
+        + np.asarray(states.carapace_perm)[rows, owner_safe, src_safe].astype(np.int16)
+        + np.asarray(states.carapace_eot)[rows, owner_safe, src_safe].astype(np.int16)
+    )
+    defender_carapace = (
+        self._innate_carapace[safe_defender_def]
+        + np.asarray(states.carapace_perm)[rows, opp, defender_safe].astype(np.int16)
+        + np.asarray(states.carapace_eot)[rows, opp, defender_safe].astype(np.int16)
+    )
+    damage_to_defender = np.maximum(
+        cur_atk[rows, owner_safe, src_safe] - defender_carapace, 0
+    )
+    damage_to_attacker = np.maximum(
+        cur_atk[rows, opp, defender_safe] - attacker_carapace, 0
+    )
     attacker_hp = cur_hp[rows, owner_safe, src_safe]
     defender_hp = cur_hp[rows, opp, defender_safe]
     clean_combat_damage = (
@@ -9561,9 +20248,36 @@ class JaxVecEnv:
         & (attacker_hp > 0)
         & (defender_hp > 0)
     )
+    defender_azk01_062_combat_fizzle = (
+        (defender_def == self._azk01_062_id)
+        & (damage_to_defender > 0)
+    )
 
     opp_defs = def_host[rows, opp]
     opp_safe_defs = np.maximum(opp_defs, 0)
+    opp_tapped = np.asarray(states.tapped)[rows, opp]
+    token_ready = (
+        (opp_zone[:, self._token_instance] == self._zone_token)
+        & ~opp_tapped[:, self._token_instance]
+    )
+    payment_sources = np.sum(
+        (opp_zone == self._zone_ikz_area) & ~opp_tapped,
+        axis=1,
+    )
+    payment_sources += np.sum(
+        (opp_zone == self._zone_garden)
+        & ~opp_tapped
+        & self._counts_as_ikz[opp_safe_defs],
+        axis=1,
+    )
+    payment_sources += token_ready.astype(np.int32)
+    next_reduction = np.asarray(states.next_play_cost_reduction)[
+        rows, opp
+    ].astype(np.int32, copy=False)
+    response_cost = np.maximum(
+        self._ikz_cost[opp_safe_defs].astype(np.int32) - next_reduction[:, None],
+        0,
+    )
     response_hand = (opp_zone == self._zone_hand) & (
         (
             (self._card_type[opp_safe_defs] == self._card_type_spell)
@@ -9571,7 +20285,7 @@ class JaxVecEnv:
             & self._has_ability[opp_safe_defs]
         )
         | self._response_play_from_hand[opp_safe_defs]
-    )
+    ) & (response_cost <= payment_sources[:, None])
     in_board = (
         (opp_zone == self._zone_garden)
         | (opp_zone == self._zone_alley)
@@ -9581,6 +20295,13 @@ class JaxVecEnv:
         in_board
         & self._timing_is_response[opp_safe_defs]
         & self._has_ability[opp_safe_defs]
+        & (
+            self._ability_ikz_cost[opp_safe_defs].astype(np.int32)
+            <= payment_sources[:, None]
+        )
+        & self._response_board_validate_ok(
+            states, rows, opp, opp_zone, opp_safe_defs
+        )
     )
     defender_cards = (
         (opp_zone == self._zone_garden)
@@ -9609,7 +20330,7 @@ class JaxVecEnv:
         & ~self._timing_after_attacking[safe_attacker_def]
         & ~self._timing_when_attacked[safe_defender_def]
         & ~self._timing_takes_damage[safe_attacker_def]
-        & ~self._timing_takes_damage[safe_defender_def]
+        & (~self._timing_takes_damage[safe_defender_def] | defender_azk01_062_combat_fizzle)
         & ~self._timing_deals_damage[safe_attacker_def]
         & ~self._timing_deals_damage[safe_defender_def]
         & ~self._timing_when_destroyed[safe_attacker_def]
@@ -9627,7 +20348,15 @@ class JaxVecEnv:
         )
     )
     passive_watch_ok = (
-        ~np.any(passive_watch & (def_host != self._stt01_008_id), axis=(1, 2))
+        ~np.any(
+            passive_watch
+            & (def_host != self._stt01_008_id)
+            & (def_host != self._azk01_019_id)
+            & (def_host != self._stt02_012_id)
+            & (def_host != self._stt03_013_id)
+            & (def_host != self._azk01_073_id),
+            axis=(1, 2),
+        )
         & ~np.any(stt01_008_active, axis=(1, 2))
     )
     clean = (
@@ -9648,7 +20377,11 @@ class JaxVecEnv:
             target_is_leader
             & confirm
             & no_nondefender_response
-            & (confirmed_damage_to_defender < defender_hp)
+        )
+        | (
+            target_is_leader
+            & (chosen == self._act_noop)
+            & no_response
         )
     )
     return (
@@ -9751,7 +20484,15 @@ class JaxVecEnv:
     board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
     passive_watch = board & np.isin(def_host, self._simple_play_watch_ids)
     no_non_inert_watch = ~np.any(
-        passive_watch & (def_host != self._stt01_008_id),
+        passive_watch
+        & (def_host != self._stt01_008_id)
+        & (def_host != self._stt01_009_id)
+        & (def_host != self._stt01_011_id)
+        & (def_host != self._azk01_010_id)
+        & (def_host != self._azk01_019_id)
+        & (def_host != self._azk01_073_id)
+        & (def_host != self._stt02_012_id)
+        & (def_host != self._stt03_013_id),
         axis=(1, 2),
     )
     clean = (
@@ -9894,33 +20635,96 @@ class JaxVecEnv:
         )
     )
 
-    damage_to_attacker = cur_atk[rows, owner_safe, safe_defender].astype(np.int16)
-    damage_to_defender = cur_atk[rows, attacker_p, safe_attacker].astype(np.int16)
+    attacker_carapace = (
+        self._innate_carapace[safe_attacker_def]
+        + np.asarray(states.carapace_perm)[rows, attacker_p, safe_attacker].astype(np.int16)
+        + np.asarray(states.carapace_eot)[rows, attacker_p, safe_attacker].astype(np.int16)
+    )
+    defender_carapace = (
+        self._innate_carapace[safe_defender_def]
+        + np.asarray(states.carapace_perm)[rows, owner_safe, safe_defender].astype(np.int16)
+        + np.asarray(states.carapace_eot)[rows, owner_safe, safe_defender].astype(np.int16)
+    )
+    damage_to_attacker = np.maximum(
+        cur_atk[rows, owner_safe, safe_defender].astype(np.int16) - attacker_carapace,
+        0,
+    )
+    damage_to_defender = np.maximum(
+        cur_atk[rows, attacker_p, safe_attacker].astype(np.int16) - defender_carapace,
+        0,
+    )
     attacker_hp = cur_hp[rows, attacker_p, safe_attacker].astype(np.int16)
     defender_hp = cur_hp[rows, owner_safe, safe_defender].astype(np.int16)
     attacker_after = attacker_hp - damage_to_attacker
     defender_after = defender_hp - damage_to_defender
     clean_damage = (
-        (damage_to_defender > 0)
+        (damage_to_defender >= 0)
         & (damage_to_attacker >= 0)
         & (attacker_hp > 0)
         & (defender_hp > 0)
     )
     attacker_dies = clean_damage & (attacker_after <= 0)
     defender_dies = clean_damage & (defender_after <= 0)
-    no_passive_death_watch = (
-        ~np.any(np.asarray(states.passive_observer_registered), axis=(1, 2))
-        & ~np.any(
-            (zone_host == self._zone_garden)
-            & (def_host == self._stt02_012_id),
-            axis=(1, 2),
+    inst_axis = np.arange(def_host.shape[2], dtype=np.int32)[None, :]
+    attacker_other_garden_entity = np.any(
+        (zone_host[rows, attacker_p] == self._zone_garden)
+        & (inst_axis != safe_attacker[:, None])
+        & (def_host[rows, attacker_p] >= 0)
+        & (
+            self._card_type[np.maximum(def_host[rows, attacker_p], 0)]
+            == self._card_type_entity
+        ),
+        axis=1,
+    )
+    attacker_azk01_059_trigger = (
+        (attacker_def == self._azk01_059_id)
+        & (damage_to_attacker > 0)
+        & (attacker_after > 0)
+        & (
+            (np.asarray(states.once_per_turn_used)[
+                rows, attacker_p, safe_attacker
+            ] & 1)
+            == 0
         )
+        & attacker_other_garden_entity
+    )
+    attacker_azk01_062_combat_fizzle = (
+        (attacker_def == self._azk01_062_id)
+        & (damage_to_attacker > 0)
+    )
+    defender_azk01_062_combat_fizzle = (
+        (defender_def == self._azk01_062_id)
+        & (damage_to_defender > 0)
+    )
+    board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
+    passive_watch = board & np.isin(def_host, self._simple_play_watch_ids)
+    stt03_013_inert = def_host == self._stt03_013_id
+    recompute_safe_watch = (
+        (def_host == self._stt01_008_id)
+        | (def_host == self._stt01_009_id)
+        | (def_host == self._stt01_011_id)
+        | (def_host == self._stt02_010_id)
+        | (def_host == self._azk01_010_id)
+        | (def_host == self._azk01_019_id)
+        | (def_host == self._azk01_073_id)
+        | (def_host == self._stt02_012_id)
+        | stt03_013_inert
+    )
+    passive_death_ok = ~np.any(
+        passive_watch & ~recompute_safe_watch,
+        axis=(1, 2),
     )
     trigger_ok = ~(
         self._timing_after_attacking[safe_attacker_def]
-        | self._timing_takes_damage[safe_attacker_def]
+        | (
+            self._timing_takes_damage[safe_attacker_def]
+            & ~(attacker_azk01_059_trigger | attacker_azk01_062_combat_fizzle)
+        )
         | self._timing_deals_damage[safe_attacker_def]
-        | self._timing_takes_damage[safe_defender_def]
+        | (
+            self._timing_takes_damage[safe_defender_def]
+            & ~defender_azk01_062_combat_fizzle
+        )
         | self._timing_deals_damage[safe_defender_def]
         | (self._timing_when_destroyed[safe_attacker_def] & attacker_dies)
         | (self._timing_when_destroyed[safe_defender_def] & defender_dies)
@@ -9946,24 +20750,35 @@ class JaxVecEnv:
         & ~self._inherent_godmode[safe_defender_def]
     )
 
+    attacker_stale = ~(
+        (attacker_zone == self._zone_garden)
+        | (attacker_zone == self._zone_leader)
+    )
+    combat_shape_ok = (
+        attacker_stale
+        | (
+            (attacker_zone == self._zone_garden)
+            & (attacker_def >= 0)
+            & (self._card_type[safe_attacker_def] == self._card_type_entity)
+            & np.asarray(states.tapped)[rows, attacker_p, safe_attacker]
+            & no_attached
+            & clean_damage
+            & ((attacker_after > 0) | (attacker_dies & passive_death_ok))
+            & ((defender_after > 0) | (defender_dies & passive_death_ok))
+            & trigger_ok
+            & no_modifiers
+        )
+    )
+
     return (
         in_effect
         & (skip_action | select_target_clean)
         & source_ok
         & clean
-        & (attacker_zone == self._zone_garden)
         & (defender_zone == self._zone_garden)
-        & (attacker_def >= 0)
         & (defender_def == self._azk01_040_id)
-        & (self._card_type[safe_attacker_def] == self._card_type_entity)
         & (self._card_type[safe_defender_def] == self._card_type_entity)
-        & np.asarray(states.tapped)[rows, attacker_p, safe_attacker]
-        & no_attached
-        & clean_damage
-        & ((attacker_after > 0) | (attacker_dies & no_passive_death_watch))
-        & ((defender_after > 0) | (defender_dies & no_passive_death_watch))
-        & trigger_ok
-        & no_modifiers
+        & combat_shape_ok
     )
 
   def _effect_azk01_007_fast_mask(self, acts: np.ndarray, chosen):
@@ -10017,26 +20832,17 @@ class JaxVecEnv:
         & (np.asarray(states.ab_eff_min) == 1)
         & (np.asarray(states.ab_eff_max) == 1)
     )
-    board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
-    passive_watch = board & np.isin(def_host, self._simple_play_watch_ids)
-    no_non_inert_watch = ~np.any(
-        passive_watch & (def_host != self._stt01_008_id),
-        axis=(1, 2),
-    )
     clean = (
         (np.asarray(states.trig_count) == 0)
         & (np.asarray(states.redirect_count) == 0)
         & (np.asarray(states.combat_attacker) < 0)
         & (np.asarray(states.winner) == -1)
-        & (np.asarray(states.passive_queue_count) == 0)
-        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
     )
     return (
         in_effect
         & action_matches
         & source_ok
         & target_ok
-        & no_non_inert_watch
         & clean
     )
 
@@ -10067,7 +20873,7 @@ class JaxVecEnv:
         & (src >= 0)
         & (source_def == self._azk01_070_id)
         & (zone_host[rows, owner_safe, src_safe] == self._zone_garden)
-        & np.asarray(states.ab_costs_applied)
+        & ~np.asarray(states.ab_costs_applied)
         & (selected_count == 0)
         & (np.asarray(states.ab_eff_min) == 1)
         & (np.asarray(states.ab_eff_max) == 1)
@@ -10095,7 +20901,13 @@ class JaxVecEnv:
     no_non_inert_watch = ~np.any(
         board
         & np.isin(def_host, self._simple_play_watch_ids)
-        & (def_host != self._stt01_008_id),
+        & (def_host != self._stt01_008_id)
+        & (def_host != self._stt01_009_id)
+        & (def_host != self._stt01_011_id)
+        & (def_host != self._stt02_012_id)
+        & (def_host != self._stt03_013_id)
+        & (def_host != self._azk01_019_id)
+        & (def_host != self._azk01_073_id),
         axis=(1, 2),
     )
     clean = (
@@ -10184,11 +20996,103 @@ class JaxVecEnv:
         & (np.asarray(states.ab_eff_min) == 1)
         & (np.asarray(states.ab_eff_max) == 1)
     )
-    board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
-    passive_watch = board & np.isin(def_host, self._simple_play_watch_ids)
-    no_non_inert_watch = ~np.any(
-        passive_watch & (def_host != self._stt01_008_id),
-        axis=(1, 2),
+    clean = (
+        (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    return (
+        in_effect
+        & action_matches
+        & source_ok
+        & target_ok
+        & clean
+    )
+
+  def _effect_azk01_117_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    opp = (owner_safe + 1) % 2
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    n_inst = def_host.shape[2]
+    src_safe = np.clip(src, 0, n_inst - 1)
+    source_def = def_host[rows, owner_safe, src_safe]
+
+    leader_match = zone_host[rows, owner_safe] == self._zone_leader
+    leader_exists = np.any(leader_match, axis=1)
+    leader_inst = np.argmax(leader_match, axis=1)
+    leader_def = def_host[rows, owner_safe, leader_inst]
+    leader_safe_def = np.maximum(leader_def, 0)
+    leader_clean = (
+        leader_exists
+        & (np.asarray(states.cur_hp)[rows, owner_safe, leader_inst] > 0)
+        & ~self._timing_takes_damage[leader_safe_def]
+        & ~self._inherent_godmode[leader_safe_def]
+        & (np.asarray(states.carapace_perm)[rows, owner_safe, leader_inst] == 0)
+        & (np.asarray(states.carapace_eot)[rows, owner_safe, leader_inst] == 0)
+        & ~np.asarray(states.grant_godmode)[rows, owner_safe, leader_inst]
+        & (np.asarray(states.effect_immune_dur)[rows, owner_safe, leader_inst] == 0)
+    )
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    friendly_garden = target_index < self._garden_size
+    enemy_garden = (
+        (target_index >= self._garden_size)
+        & (target_index < 2 * self._garden_size)
+    )
+    target_player = np.where(friendly_garden, owner_safe, opp)
+    target_slot = np.where(
+        friendly_garden,
+        target_index,
+        target_index - self._garden_size,
+    )
+    target_match = (
+        (zone_host[rows, target_player] == self._zone_garden)
+        & (zpos_host[rows, target_player] == target_slot[:, None])
+        & (target_slot[:, None] >= 0)
+        & (target_slot[:, None] < self._garden_size)
+    )
+    target_exists = np.any(target_match, axis=1)
+    target_inst = np.where(target_exists, np.argmax(target_match, axis=1), -1)
+    target_safe = np.clip(target_inst, 0, n_inst - 1)
+    target_player_safe = np.clip(target_player, 0, 1)
+    target_def = def_host[rows, target_player_safe, target_safe]
+    target_safe_def = np.maximum(target_def, 0)
+    target_ok = (
+        (friendly_garden | enemy_garden)
+        & target_exists
+        & (target_def >= 0)
+        & (self._card_type[target_safe_def] == self._card_type_entity)
+        & self._has_ikz_cost[target_safe_def]
+        & (self._ikz_cost[target_safe_def].astype(np.int32) <= 5)
+    )
+
+    in_effect = np.asarray(states.ab_phase) == self._ability_effect_selection
+    action_matches = (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+    )
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_117_id)
+        & (zone_host[rows, owner_safe, src_safe] == self._zone_discard)
+        & ~np.asarray(states.ab_costs_applied)
+        & ~np.asarray(states.ab_restores_active)
+        & (np.asarray(states.ab_saved_active) < 0)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 1)
+        & (np.asarray(states.ab_eff_max) == 1)
     )
     clean = (
         (np.asarray(states.trig_count) == 0)
@@ -10203,9 +21107,150 @@ class JaxVecEnv:
         & action_matches
         & source_ok
         & target_ok
-        & no_non_inert_watch
+        & leader_clean
         & clean
     )
+
+  def _effect_azk01_042_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    opp = (owner_safe + 1) % 2
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    attached_host = np.asarray(states.attached_to)
+    n_inst = def_host.shape[2]
+    src_safe = np.clip(src, 0, n_inst - 1)
+    source_def = def_host[rows, owner_safe, src_safe]
+
+    selected_count = np.asarray(states.ab_eff_selected).astype(
+        np.int32, copy=False
+    )
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    target_match = (
+        (zone_host[rows, opp] == self._zone_garden)
+        & (zpos_host[rows, opp] == target_index[:, None])
+        & (target_index[:, None] >= 0)
+        & (target_index[:, None] < self._garden_size)
+    )
+    target_exists = np.any(target_match, axis=1)
+    target_inst = np.where(target_exists, np.argmax(target_match, axis=1), -1)
+    target_safe = np.clip(target_inst, 0, n_inst - 1)
+    target_def = def_host[rows, opp, target_safe]
+    target_safe_def = np.maximum(target_def, 0)
+    prev_slots = np.arange(states.ab_eff_targets.shape[1])[None, :]
+    already_selected = np.any(
+        (prev_slots < selected_count[:, None])
+        & (np.asarray(states.ab_eff_target_players) == opp[:, None].astype(np.int8))
+        & (np.asarray(states.ab_eff_targets) == target_safe[:, None].astype(np.int8)),
+        axis=1,
+    )
+    target_ok = (
+        target_exists
+        & (target_def >= 0)
+        & (self._card_type[target_safe_def] == self._card_type_entity)
+        & ~already_selected
+    )
+
+    in_effect = np.asarray(states.ab_phase) == self._ability_effect_selection
+    action_matches = (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+    )
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_042_id)
+        & (zone_host[rows, owner_safe, src_safe] == self._zone_discard)
+        & ~np.asarray(states.ab_costs_applied)
+        & ~np.asarray(states.ab_restores_active)
+        & (np.asarray(states.ab_saved_active) < 0)
+        & (selected_count < 3)
+        & (np.asarray(states.ab_eff_min) == 3)
+        & (np.asarray(states.ab_eff_max) == 3)
+    )
+
+    clean = (
+        (np.asarray(states.phase) == 2)  # Phase.MAIN
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+
+    finish = selected_count == 2
+    candidate_players = np.stack(
+        [
+            np.asarray(states.ab_eff_target_players)[:, 0].astype(np.int32),
+            np.asarray(states.ab_eff_target_players)[:, 1].astype(np.int32),
+            opp,
+        ],
+        axis=1,
+    )
+    candidate_insts = np.stack(
+        [
+            np.asarray(states.ab_eff_targets)[:, 0].astype(np.int32),
+            np.asarray(states.ab_eff_targets)[:, 1].astype(np.int32),
+            target_safe,
+        ],
+        axis=1,
+    )
+    damage_amounts = np.asarray([3, 2, 1], dtype=np.int16)
+    final_damage_clean = np.ones(self.num_environments, dtype=bool)
+    for k in range(3):
+      cand_player = np.clip(candidate_players[:, k], 0, 1)
+      cand_inst = np.clip(candidate_insts[:, k], 0, n_inst - 1)
+      cand_def = def_host[rows, cand_player, cand_inst]
+      cand_safe_def = np.maximum(cand_def, 0)
+      immune = (
+          self._inherent_effect_immune[cand_safe_def]
+          | (np.asarray(states.effect_immune_dur)[rows, cand_player, cand_inst] != 0)
+      )
+      adjusted = (
+          damage_amounts[k]
+          - np.asarray(states.carapace_perm)[rows, cand_player, cand_inst].astype(np.int16)
+          - np.asarray(states.carapace_eot)[rows, cand_player, cand_inst].astype(np.int16)
+      )
+      applies = (cand_def >= 0) & ~immune & (adjusted > 0)
+      next_hp = (
+          np.asarray(states.cur_hp)[rows, cand_player, cand_inst].astype(np.int16)
+          - adjusted
+      )
+      godmode = (
+          self._inherent_godmode[cand_safe_def]
+          | np.asarray(states.grant_godmode)[rows, cand_player, cand_inst]
+      )
+      dies = applies & (next_hp <= 0) & ~godmode
+      target_has_attached = np.any(
+          (zone_host[rows, cand_player] == self._zone_attached)
+          & (attached_host[rows, cand_player] == cand_inst[:, None]),
+          axis=1,
+      )
+      hazard = (
+          (applies & self._timing_takes_damage[cand_safe_def])
+          | (applies & self._timing_deals_damage[np.maximum(source_def, 0)])
+          | (dies & self._timing_when_destroyed[cand_safe_def])
+          | (dies & target_has_attached)
+      )
+      final_damage_clean &= ~hazard
+
+    return (
+        in_effect
+        & action_matches
+        & source_ok
+        & target_ok
+        & clean
+        & (~finish | final_damage_clean)
+    )
+
 
   def _effect_azk01_059_fast_mask(self, acts: np.ndarray, chosen):
     states = self._states
@@ -10255,16 +21300,56 @@ class JaxVecEnv:
         & (np.asarray(states.ab_eff_max) == 1)
         & ((np.asarray(states.once_per_turn_used)[rows, owner_safe, src_safe] & 1) == 0)
     )
-    board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
-    passive_watch = board & np.isin(def_host, self._simple_play_watch_ids)
+    owner_board = (
+        (zone_host[rows, owner_safe] == self._zone_garden)
+        | (zone_host[rows, owner_safe] == self._zone_alley)
+    )
+    owner_defs = def_host[rows, owner_safe]
+    passive_watch = owner_board & np.isin(owner_defs, self._simple_play_watch_ids)
     no_non_inert_watch = ~np.any(
-        passive_watch & (def_host != self._stt01_008_id),
-        axis=(1, 2),
+        passive_watch & (owner_defs != self._stt01_008_id),
+        axis=1,
+    )
+    combat_pending_response = (
+        (np.asarray(states.phase) == 3)  # Phase.RESPONSE_WINDOW
+        & (np.asarray(states.combat_attacker) >= 0)
+        & (np.asarray(states.combat_defender) >= 0)
+    )
+    trig_count = np.asarray(states.trig_count).astype(np.int32, copy=False)
+    trig_owner = np.asarray(states.trig_owner)[:, 0].astype(np.int32, copy=False)
+    trig_source = np.asarray(states.trig_source)[:, 0].astype(np.int32, copy=False)
+    trig_timing = np.asarray(states.trig_timing)[:, 0].astype(np.int32, copy=False)
+    trig_owner_safe = np.clip(trig_owner, 0, 1)
+    trig_source_safe = np.clip(trig_source, 0, n_inst - 1)
+    queued_def = def_host[rows, trig_owner_safe, trig_source_safe]
+    queued_zone = zone_host[rows, trig_owner_safe, trig_source_safe]
+    queued_other_garden_entity = np.any(
+        (zone_host[rows, trig_owner_safe] == self._zone_garden)
+        & (np.arange(n_inst, dtype=np.int32)[None, :] != trig_source_safe[:, None])
+        & (def_host[rows, trig_owner_safe] >= 0)
+        & (
+            self._card_type[np.maximum(def_host[rows, trig_owner_safe], 0)]
+            == self._card_type_entity
+        ),
+        axis=1,
+    )
+    queued_azk01_059 = (
+        (trig_count == 1)
+        & (trig_timing == 11)  # TIMING_WHEN_TAKES_DAMAGE
+        & (queued_def == self._azk01_059_id)
+        & ((np.asarray(states.once_per_turn_used)[
+            rows, trig_owner_safe, trig_source_safe
+        ] & 1) == 0)
+        & (
+            (queued_zone == self._zone_garden)
+            | (queued_zone == self._zone_alley)
+        )
+        & queued_other_garden_entity
     )
     clean = (
-        (np.asarray(states.trig_count) == 0)
+        ((trig_count == 0) | queued_azk01_059)
         & (np.asarray(states.redirect_count) == 0)
-        & (np.asarray(states.combat_attacker) < 0)
+        & ((np.asarray(states.combat_attacker) < 0) | combat_pending_response)
         & (np.asarray(states.winner) == -1)
         & (np.asarray(states.passive_queue_count) == 0)
         & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
@@ -10278,6 +21363,129 @@ class JaxVecEnv:
         & clean
     )
 
+
+  def _effect_azk01_062_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    active_acts = acts[rows, active_safe]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    opp = (owner_safe + 1) % 2
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    n_inst = def_host.shape[2]
+    src_safe = np.clip(src, 0, n_inst - 1)
+    source_def = def_host[rows, owner_safe, src_safe]
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_062_id)
+        & (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 0)
+        & (np.asarray(states.ab_eff_max) == 1)
+    )
+
+    redirect_slots = np.arange(8, dtype=np.int32)
+    redirect_match = np.any(
+        (redirect_slots[None, :] < np.asarray(states.redirect_count)[:, None])
+        & (
+            np.asarray(states.redirect_tgt_player).astype(np.int32, copy=False)
+            == owner_safe[:, None]
+        )
+        & (
+            np.asarray(states.redirect_tgt_inst).astype(np.int32, copy=False)
+            == src_safe[:, None]
+        ),
+        axis=1,
+    )
+
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    friendly_garden = (target_index >= 0) & (target_index < self._garden_size)
+    enemy_garden = (
+        (target_index >= self._garden_size)
+        & (target_index < 2 * self._garden_size)
+    )
+    target_player = np.where(friendly_garden, owner_safe, opp)
+    target_slot = np.where(
+        friendly_garden,
+        target_index,
+        target_index - self._garden_size,
+    )
+    target_match = (
+        (zone_host[rows, target_player] == self._zone_garden)
+        & (zpos_host[rows, target_player] == target_slot[:, None])
+        & (target_slot[:, None] >= 0)
+        & (target_slot[:, None] < self._garden_size)
+    )
+    target_exists = np.any(target_match, axis=1)
+    target_inst = np.where(target_exists, np.argmax(target_match, axis=1), -1)
+    target_safe = np.clip(target_inst, 0, n_inst - 1)
+    target_player_safe = np.clip(target_player, 0, 1)
+    target_def = def_host[rows, target_player_safe, target_safe]
+    target_safe_def = np.maximum(target_def, 0)
+    target_hp = np.asarray(states.cur_hp)[rows, target_player_safe, target_safe]
+    target_azk01_062 = target_def == self._azk01_062_id
+    target_ok = (
+        (friendly_garden | enemy_garden)
+        & target_exists
+        & (target_def >= 0)
+        & (self._card_type[target_safe_def] == self._card_type_entity)
+        & ((target_player_safe != owner_safe) | (target_safe != src_safe))
+    )
+    target_clean = (
+        target_ok
+        & (~self._timing_takes_damage[target_safe_def] | target_azk01_062)
+        & ~self._timing_deals_damage[target_safe_def]
+        & (
+            ~self._timing_when_destroyed[target_safe_def]
+            | (target_hp > 1)
+        )
+    )
+
+    combat_attacker = np.asarray(states.combat_attacker).astype(
+        np.int32,
+        copy=False,
+    )
+    phase_host = np.asarray(states.phase)
+    combat_context_ok = (
+        (combat_attacker < 0)
+        | (
+            (combat_attacker >= 0)
+            & ((phase_host == 2) | (phase_host == 3))  # MAIN or RESPONSE_WINDOW
+        )
+    )
+    trig_count = np.asarray(states.trig_count).astype(np.int32, copy=False)
+    trig_owner = np.asarray(states.trig_owner)[:, 0].astype(np.int32, copy=False)
+    trig_source = np.asarray(states.trig_source)[:, 0].astype(np.int32, copy=False)
+    trig_owner_safe = np.clip(trig_owner, 0, 1)
+    trig_source_safe = np.clip(trig_source, 0, n_inst - 1)
+    queued_azk01_062_redirect = (
+        (trig_count > 0)
+        & (np.asarray(states.trig_timing)[:, 0].astype(np.int32, copy=False) == 11)
+        & (def_host[rows, trig_owner_safe, trig_source_safe] == self._azk01_062_id)
+        & (np.asarray(states.redirect_count) > 0)
+    )
+    clean = (
+        ((trig_count == 0) | queued_azk01_062_redirect)
+        & (np.asarray(states.redirect_count) > 0)
+        & combat_context_ok
+        & (np.asarray(states.winner) == -1)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    select = (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+        & target_clean
+    )
+    skip = (chosen == self._act_noop) & (active_acts[:, 0] == self._act_noop)
+    return (select | skip) & source_ok & redirect_match & clean
   def _effect_azk01_065_fast_mask(self, acts: np.ndarray, chosen):
     states = self._states
     rows = np.arange(self.num_environments)
@@ -10348,6 +21556,7 @@ class JaxVecEnv:
     target_player_safe = np.clip(target_player, 0, 1)
     target_def = def_host[rows, target_player_safe, target_safe]
     target_safe_def = np.maximum(target_def, 0)
+    target_hp = np.asarray(states.cur_hp)[rows, target_player_safe, target_safe]
     target_is_entity = (
         target_def >= 0
     ) & (self._card_type[target_safe_def] == self._card_type_entity)
@@ -10362,7 +21571,7 @@ class JaxVecEnv:
     own_leader_safe_def = np.maximum(own_leader_def, 0)
     self_damage_clean = (
         own_leader_exists
-        & (np.asarray(states.cur_hp)[rows, owner_safe, own_leader_safe] > 3)
+        & (np.asarray(states.cur_hp)[rows, owner_safe, own_leader_safe] > 0)
         & ~self._timing_takes_damage[own_leader_safe_def]
         & ~self._inherent_godmode[own_leader_safe_def]
         & (np.asarray(states.carapace_perm)[rows, owner_safe, own_leader_safe] == 0)
@@ -10433,7 +21642,40 @@ class JaxVecEnv:
             ] == 0
         )
     )
-    target_clean = target_base_clean | target_azk01_059_trigger
+    target_azk01_062_redirect = (
+        target_ok
+        & (target_def == self._azk01_062_id)
+        & (np.asarray(states.redirect_count) == 0)
+        & ~self._timing_deals_damage[target_safe_def]
+        & ~self._timing_when_destroyed[target_safe_def]
+        & ~target_has_attached
+        & ~self._inherent_godmode[target_safe_def]
+        & ~np.asarray(states.grant_godmode)[rows, target_player_safe, target_safe]
+    )
+    target_stt04_009_dead_fizzle = (
+        target_ok
+        & (target_def == self._stt04_009_id)
+        & (target_hp > 0)
+        & (target_hp <= 5)
+        & ~self._timing_deals_damage[target_safe_def]
+        & ~self._timing_when_destroyed[target_safe_def]
+        & ~target_has_attached
+        & ~self._inherent_godmode[target_safe_def]
+        & (np.asarray(states.carapace_perm)[rows, target_player_safe, target_safe] == 0)
+        & (np.asarray(states.carapace_eot)[rows, target_player_safe, target_safe] == 0)
+        & ~np.asarray(states.grant_godmode)[rows, target_player_safe, target_safe]
+        & (
+            np.asarray(states.effect_immune_dur)[
+                rows, target_player_safe, target_safe
+            ] == 0
+        )
+    )
+    target_clean = (
+        target_base_clean
+        | target_azk01_059_trigger
+        | target_azk01_062_redirect
+        | target_stt04_009_dead_fizzle
+    )
 
     in_effect = np.asarray(states.ab_phase) == self._ability_effect_selection
     action_matches = (
@@ -10452,8 +21694,13 @@ class JaxVecEnv:
     )
     board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
     passive_watch = board & np.isin(def_host, self._simple_play_watch_ids)
+    stt03_013_inert = def_host == self._stt03_013_id
     no_non_inert_watch = ~np.any(
-        passive_watch & (def_host != self._stt01_008_id),
+        passive_watch
+        & (def_host != self._stt01_008_id)
+        & (def_host != self._azk01_019_id)
+        & (def_host != self._stt02_012_id)
+        & ~stt03_013_inert,
         axis=(1, 2),
     )
     clean = (
@@ -10474,7 +21721,90 @@ class JaxVecEnv:
         & clean
     )
 
+
+  def _effect_azk01_119_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    active_acts = acts[rows, active_safe]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    attached_host = np.asarray(states.attached_to)
+    n_inst = def_host.shape[2]
+    src_safe = np.clip(src, 0, n_inst - 1)
+    source_def = def_host[rows, owner_safe, src_safe]
+
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    zone_row = zone_host[rows, owner_safe]
+    zpos_row = zpos_host[rows, owner_safe]
+    def_row = def_host[rows, owner_safe]
+    target_match = (
+        (zone_row == self._zone_garden)
+        & (zpos_row == target_index[:, None])
+        & (target_index[:, None] >= 0)
+        & (target_index[:, None] < self._garden_size)
+    )
+    target_exists = np.any(target_match, axis=1)
+    target_inst = np.argmax(target_match, axis=1)
+    target_def = def_row[rows, target_inst]
+    target_safe_def = np.maximum(target_def, 0)
+    safe_defs = np.maximum(def_row, 0)
+    attached = zone_row == self._zone_attached
+    is_weapon = (
+        attached
+        & (self._card_type[safe_defs] == self._card_type_weapon)
+    )
+    inst_cols = np.arange(n_inst, dtype=np.int32)
+    weapon_counts = np.sum(
+        is_weapon[:, :, None]
+        & (attached_host[rows, owner_safe, :, None] == inst_cols[None, None, :]),
+        axis=1,
+    )
+    target_ok = (
+        target_exists
+        & (target_def >= 0)
+        & (self._card_type[target_safe_def] == self._card_type_entity)
+        & (weapon_counts[rows, target_inst] > 0)
+    )
+
+    in_effect = np.asarray(states.ab_phase) == self._ability_effect_selection
+    action_matches = (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+    )
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_119_id)
+        & np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 1)
+        & (np.asarray(states.ab_eff_max) == 1)
+    )
+    clean = (
+        (np.asarray(states.phase) == 2)  # Phase.MAIN
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    return in_effect & action_matches & source_ok & target_ok & clean
+
   def _effect_azk01_127_fast_mask(self, acts: np.ndarray, chosen):
+    # This vmapped kernel's XLA compile is a 40-90 GB giant whose
+    # executable exceeds the persistent-cache serialization limit, so
+    # every process would re-pay it at batch >1. Route these rows to
+    # the broad generic kernel (cached at (1,...), parity-proven).
+    if self.num_environments > 1:
+      return np.zeros(self.num_environments, dtype=bool)
     states = self._states
     rows = np.arange(self.num_environments)
     active = np.asarray(states.active_player).astype(np.int32, copy=False)
@@ -10506,37 +21836,105 @@ class JaxVecEnv:
     target_safe_def = np.maximum(target_def, 0)
     target_hp = np.asarray(states.cur_hp)[rows, opp, target_safe]
     lethal_target = target_hp <= 1
-    target_has_attached = np.any(
+    target_attached = (
         (zone_host[rows, opp] == self._zone_attached)
         & (
             attached_host[rows, opp]
             == target_safe[:, None].astype(attached_host.dtype)
+        )
+    )
+    target_has_attached = np.any(target_attached, axis=1)
+    target_attached_safe_defs = np.maximum(def_host[rows, opp], 0)
+    target_attached_supported = ~np.any(
+        target_attached
+        & (
+            self._card_type[target_attached_safe_defs]
+            != self._card_type_weapon
         ),
         axis=1,
     )
     board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
-    inert_watch = def_host == self._stt01_008_id
+    inert_watch = (
+        (def_host == self._stt01_008_id)
+        | (def_host == self._stt01_009_id)
+        | (def_host == self._stt01_011_id)
+        | (def_host == self._azk01_010_id)
+        | (def_host == self._azk01_019_id)
+        | (def_host == self._azk01_073_id)
+        | (def_host == self._stt02_012_id)
+        | (def_host == self._stt03_013_id)
+    )
     no_non_inert_watch = ~np.any(
         board & np.isin(def_host, self._simple_play_watch_ids) & ~inert_watch,
         axis=(1, 2),
     )
-    target_clean = (
+    inst_cols = np.arange(n_inst, dtype=np.int32)[None, :]
+    has_other_garden_entity = np.any(
+        (zone_host[rows, opp] == self._zone_garden)
+        & (def_host[rows, opp] >= 0)
+        & (self._card_type[np.maximum(def_host[rows, opp], 0)] == self._card_type_entity)
+        & (inst_cols != target_safe[:, None]),
+        axis=1,
+    )
+    base_target_ok = (
         target_exists
         & (target_index >= 0)
         & (target_index < self._garden_size)
         & (target_def >= 0)
         & (self._card_type[target_safe_def] == self._card_type_entity)
         & (target_hp > 0)
+        & (~self._inherent_godmode[target_safe_def] | ~lethal_target)
+        & (np.asarray(states.carapace_perm)[rows, opp, target_safe] == 0)
+        & (np.asarray(states.carapace_eot)[rows, opp, target_safe] == 0)
+        & (~np.asarray(states.grant_godmode)[rows, opp, target_safe] | ~lethal_target)
+    )
+    azk01_062_redirect_target = (
+        base_target_ok
+        & (target_def == self._azk01_062_id)
+        & (np.asarray(states.redirect_count) == 0)
+        & (
+            (np.asarray(states.once_per_turn_used)[rows, opp, target_safe] & 1)
+            == 0
+        )
+    )
+    direct_damage_target = (
+        base_target_ok
         & (~lethal_target | no_non_inert_watch)
         & (target_def != self._azk01_062_id)
-        & ~target_has_attached
+        & target_attached_supported
         & ~self._timing_takes_damage[target_safe_def]
         & ~self._timing_deals_damage[target_safe_def]
         & ~self._timing_when_destroyed[target_safe_def]
-        & ~self._inherent_godmode[target_safe_def]
+    )
+    stt04_007_trigger_target = (
+        base_target_ok
+        & (target_def == self._stt04_007_id)
+        & (target_hp > 1)
+        & ((np.asarray(states.once_per_turn_used)[rows, opp, target_safe] & 1) == 0)
+    )
+    stt04_009_trigger_target = (
+        base_target_ok
+        & (target_def == self._stt04_009_id)
+        & (target_hp > 1)
+        & ((np.asarray(states.once_per_turn_used)[rows, opp, target_safe] & 1) == 0)
         & (np.asarray(states.carapace_perm)[rows, opp, target_safe] == 0)
         & (np.asarray(states.carapace_eot)[rows, opp, target_safe] == 0)
-        & ~np.asarray(states.grant_godmode)[rows, opp, target_safe]
+        & (np.asarray(states.effect_immune_dur)[rows, opp, target_safe] == 0)
+    )
+    azk01_059_trigger_target = (
+        base_target_ok
+        & (target_def == self._azk01_059_id)
+        & (target_hp > 1)
+        & ~target_has_attached
+        & ((np.asarray(states.once_per_turn_used)[rows, opp, target_safe] & 1) == 0)
+        & has_other_garden_entity
+    )
+    target_clean = (
+        direct_damage_target
+        | azk01_062_redirect_target
+        | azk01_059_trigger_target
+        | stt04_007_trigger_target
+        | stt04_009_trigger_target
     )
 
     in_effect = np.asarray(states.ab_phase) == self._ability_effect_selection
@@ -10564,6 +21962,321 @@ class JaxVecEnv:
         & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
     )
     return in_effect & action_matches & source_ok & target_clean & clean
+
+  def _effect_azk01_127_static_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    opp = (owner_safe + 1) % 2
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    n_inst = def_host.shape[2]
+    src_safe = np.clip(src, 0, n_inst - 1)
+    source_def = def_host[rows, owner_safe, src_safe]
+
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    target_match = (
+        (zone_host[rows, opp] == self._zone_garden)
+        & (zpos_host[rows, opp] == target_index[:, None])
+        & (target_index[:, None] >= 0)
+        & (target_index[:, None] < self._garden_size)
+    )
+    target_exists = np.any(target_match, axis=1)
+    target_inst = np.argmax(target_match, axis=1)
+    target_def = def_host[rows, opp, target_inst]
+    target_safe_def = np.maximum(target_def, 0)
+    target_ok = (
+        target_exists
+        & (target_def >= 0)
+        & (self._card_type[target_safe_def] == self._card_type_entity)
+        & (np.asarray(states.cur_hp)[rows, opp, target_inst] > 0)
+    )
+    return (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+        & (np.asarray(states.ab_phase) == self._ability_effect_selection)
+        & (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_127_id)
+        & ~np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 1)
+        & (np.asarray(states.ab_eff_max) == 1)
+        & target_ok
+        & (np.asarray(states.phase) == 3)  # Phase.RESPONSE_WINDOW
+        & (np.asarray(states.combat_attacker) >= 0)
+        & (np.asarray(states.winner) == -1)
+    )
+
+  def _effect_azk01_128_fast_mask(self, acts: np.ndarray, chosen):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+
+    owner = np.asarray(states.ab_owner).astype(np.int32, copy=False)
+    src = np.asarray(states.ab_source).astype(np.int32, copy=False)
+    owner_safe = np.clip(owner, 0, 1)
+    opp = (owner_safe + 1) % 2
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    attached_host = np.asarray(states.attached_to)
+    n_inst = def_host.shape[2]
+    src_safe = np.clip(src, 0, n_inst - 1)
+    source_def = def_host[rows, owner_safe, src_safe]
+
+    combat_attacker = np.asarray(states.combat_attacker).astype(np.int32, copy=False)
+    target_index = active_acts[:, 1].astype(np.int32, copy=False)
+    target_match = (
+        (zone_host[rows, opp] == self._zone_garden)
+        & (zpos_host[rows, opp] == target_index[:, None])
+        & (target_index[:, None] >= 0)
+        & (target_index[:, None] < self._garden_size)
+    )
+    target_exists = np.any(target_match, axis=1)
+    target_inst = np.argmax(target_match, axis=1)
+    target_safe = np.clip(target_inst, 0, n_inst - 1)
+    target_def = def_host[rows, opp, target_safe]
+    target_safe_def = np.maximum(target_def, 0)
+    target_hp = np.asarray(states.cur_hp)[rows, opp, target_safe]
+    attacker_safe = np.clip(combat_attacker, 0, n_inst - 1)
+    attacker_def = def_host[rows, opp, attacker_safe]
+    attacker_safe_def = np.maximum(attacker_def, 0)
+    generic_target_available = (
+        (combat_attacker >= 0)
+        & (zone_host[rows, opp, attacker_safe] == self._zone_garden)
+        & (self._card_type[attacker_safe_def] == self._card_type_entity)
+        & (np.asarray(states.cur_hp)[rows, opp, attacker_safe] <= 2)
+    )
+    board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
+    inert_watch = (
+        (def_host == self._stt01_008_id)
+        | (def_host == self._stt01_009_id)
+        | (def_host == self._stt01_011_id)
+        | (def_host == self._azk01_010_id)
+        | (def_host == self._azk01_019_id)
+        | (def_host == self._azk01_073_id)
+        | (def_host == self._stt02_012_id)
+        | (def_host == self._stt03_013_id)
+    )
+    no_non_inert_watch = ~np.any(
+        board & np.isin(def_host, self._simple_play_watch_ids) & ~inert_watch,
+        axis=(1, 2),
+    )
+    target_stt03_006_trigger = (
+        (target_def == self._stt03_006_id)
+        & self._timing_when_destroyed[target_safe_def]
+    )
+    target_clean = (
+        target_exists
+        & (target_index >= 0)
+        & (target_index < self._garden_size)
+        & (target_inst == combat_attacker)
+        & (target_def >= 0)
+        & (self._card_type[target_safe_def] == self._card_type_entity)
+        & (target_hp > 0)
+        & (target_hp <= 2)
+        & no_non_inert_watch
+        & ~(self._timing_when_destroyed[target_safe_def] & ~target_stt03_006_trigger)
+        & ~self._inherent_godmode[target_safe_def]
+        & ~np.asarray(states.grant_godmode)[rows, opp, target_safe]
+    )
+
+    in_effect = np.asarray(states.ab_phase) == self._ability_effect_selection
+    select_action = (
+        (chosen == self._act_select_effect)
+        & (active_acts[:, 0] == self._act_select_effect)
+    )
+    skip_action = (
+        (chosen == self._act_noop)
+        & (active_acts[:, 0] == self._act_noop)
+    )
+    source_ok = (
+        (owner == active)
+        & (src >= 0)
+        & (source_def == self._azk01_128_id)
+        & ~np.asarray(states.ab_costs_applied)
+        & (np.asarray(states.ab_eff_selected) == 0)
+        & (np.asarray(states.ab_eff_min) == 1)
+        & (np.asarray(states.ab_eff_max) == 1)
+    )
+    clean = (
+        (np.asarray(states.phase) == 3)  # Phase.RESPONSE_WINDOW
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) >= 0)
+        & (np.asarray(states.combat_defender_player).astype(np.int32, copy=False) == owner)
+        & (np.asarray(states.winner) == -1)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    return (
+        in_effect
+        & source_ok
+        & clean
+        & ((select_action & target_clean) | (skip_action & ~generic_target_available))
+    )
+
+  def _activate_azk01_125_fast_mask(self, acts: np.ndarray, chosen, phase):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    active_acts = acts[rows, active_safe]
+    zone_host = np.asarray(states.zone)
+    def_host = np.asarray(states.def_id)
+    tapped_host = np.asarray(states.tapped)
+
+    combat_attacker = np.asarray(states.combat_attacker)
+    phase_ok = (
+        ((phase == 2) & (combat_attacker < 0))
+        | ((phase == 3) & (combat_attacker >= 0))
+    )
+    base = (
+        phase_ok
+        & (chosen == self._act_activate_garden)
+        & (active_acts[:, 0] == self._act_activate_garden)
+        & (active_acts[:, 1] == self._garden_size)
+        & (active_acts[:, 2] == 0)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & (np.asarray(states.discarded_cards_turn)[rows, active_safe] > 0)
+    )
+    if not np.any(base):
+      return base
+
+    leader_match = zone_host[rows, active_safe] == self._zone_leader
+    leader_exists = np.any(leader_match, axis=1)
+    leader_inst = np.argmax(leader_match, axis=1)
+    leader_def = def_host[rows, active_safe, leader_inst]
+    leader_ok = (
+        leader_exists
+        & (leader_def == self._azk01_125_id)
+        & (np.asarray(states.frozen_dur)[rows, active_safe, leader_inst] == 0)
+        & ((np.asarray(states.once_per_turn_used)[
+            rows, active_safe, leader_inst
+        ] & 1) == 0)
+    )
+
+    use_token = active_acts[:, 3] != 0
+    token_ready = (
+        (zone_host[rows, active_safe, self._token_instance] == self._zone_token)
+        & ~tapped_host[rows, active_safe, self._token_instance]
+    )
+    payment_sources = np.sum(
+        (zone_host[rows, active_safe] == self._zone_ikz_area)
+        & ~tapped_host[rows, active_safe],
+        axis=1,
+    )
+    safe_defs = np.maximum(def_host[rows, active_safe], 0)
+    payment_sources += np.sum(
+        (zone_host[rows, active_safe] == self._zone_garden)
+        & ~tapped_host[rows, active_safe]
+        & self._counts_as_ikz[safe_defs],
+        axis=1,
+    )
+    payment_sources += (use_token & token_ready).astype(np.int32)
+    can_pay = (~use_token | token_ready) & (payment_sources >= 1)
+
+    return base & leader_ok & can_pay
+
+
+
+  def _activate_azk01_123_fast_mask(self, acts: np.ndarray, chosen, phase):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    active_acts = acts[rows, active_safe]
+    zone_host = np.asarray(states.zone)
+    def_host = np.asarray(states.def_id)
+    tapped_host = np.asarray(states.tapped)
+
+    trig_count = np.asarray(states.trig_count).astype(np.int32, copy=False)
+    trig_owner = np.asarray(states.trig_owner)[:, 0].astype(np.int32, copy=False)
+    trig_source = np.asarray(states.trig_source)[:, 0].astype(np.int32, copy=False)
+    trig_timing = np.asarray(states.trig_timing)[:, 0].astype(np.int32, copy=False)
+    trig_owner_safe = np.clip(trig_owner, 0, 1)
+    trig_source_safe = np.maximum(trig_source, 0)
+    pending_stt03_006_trigger = (
+        (trig_count == 1)
+        & (trig_timing == 13)  # TIMING_WHEN_DESTROYED
+        & (def_host[rows, trig_owner_safe, trig_source_safe] == self._stt03_006_id)
+        & np.any(zone_host[rows, trig_owner_safe] == self._zone_hand, axis=1)
+    )
+    trig_clean = (trig_count == 0) | pending_stt03_006_trigger
+
+    base = (
+        (phase == 2)  # Phase.MAIN
+        & (chosen == self._act_activate_garden)
+        & (active_acts[:, 0] == self._act_activate_garden)
+        & (active_acts[:, 1] == self._garden_size)
+        & (active_acts[:, 2] == 0)
+        & (np.asarray(states.ab_phase) == 0)
+        & trig_clean
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    if not np.any(base):
+      return base
+
+    zone_row = zone_host[rows, active_safe]
+    def_row = def_host[rows, active_safe]
+    leader_match = zone_row == self._zone_leader
+    leader_exists = np.any(leader_match, axis=1)
+    leader_inst = np.argmax(leader_match, axis=1)
+    leader_def = def_row[rows, leader_inst]
+    leader_ok = (
+        leader_exists
+        & (leader_def == self._azk01_123_id)
+        & (np.asarray(states.frozen_dur)[rows, active_safe, leader_inst] == 0)
+        & ((np.asarray(states.once_per_turn_used)[
+            rows, active_safe, leader_inst
+        ] & 1) == 0)
+    )
+
+    safe_defs = np.maximum(def_row, 0)
+    friendly_targets = (
+        (zone_row == self._zone_garden)
+        & (def_row >= 0)
+        & (self._card_type[safe_defs] == self._card_type_entity)
+        & (np.asarray(states.cur_hp)[rows, active_safe] > 0)
+    )
+
+    use_token = active_acts[:, 3] != 0
+    token_ready = (
+        (zone_host[rows, active_safe, self._token_instance] == self._zone_token)
+        & ~tapped_host[rows, active_safe, self._token_instance]
+    )
+    payment_sources = np.sum(
+        (zone_host[rows, active_safe] == self._zone_ikz_area)
+        & ~tapped_host[rows, active_safe],
+        axis=1,
+    )
+    payment_sources += np.sum(
+        (zone_row == self._zone_garden)
+        & ~tapped_host[rows, active_safe]
+        & self._counts_as_ikz[safe_defs],
+        axis=1,
+    )
+    payment_sources += (use_token & token_ready).astype(np.int32)
+    can_pay = (~use_token | token_ready) & (payment_sources >= 1)
+
+    return base & leader_ok & np.any(friendly_targets, axis=1) & can_pay
 
   def _activate_stt04_001_fast_mask(self, acts: np.ndarray, chosen, phase):
     states = self._states
@@ -10613,12 +22326,11 @@ class JaxVecEnv:
     source_ok = (
         leader_exists
         & (leader_def == self._stt04_001_id)
-        & ~tapped_row[rows, leader_inst]
         & (np.asarray(states.frozen_dur)[rows, active, leader_inst] == 0)
         & ((np.asarray(states.once_per_turn_used)[
             rows, active, leader_inst
         ] & 1) == 0)
-        & (np.asarray(states.cur_hp)[rows, active, leader_inst] > 1)
+        & (np.asarray(states.cur_hp)[rows, active, leader_inst] > 0)
         & np.any(friendly_targets, axis=1)
         & no_damage_triggers
     )
@@ -10767,10 +22479,83 @@ class JaxVecEnv:
     no_non_inert_watch = ~np.any(
         board
         & np.isin(def_host, self._simple_play_watch_ids)
-        & (def_host != self._stt01_008_id),
+        & (def_host != self._stt01_008_id)
+        & (def_host != self._stt01_009_id)
+        & (def_host != self._stt01_011_id)
+        & (def_host != self._stt02_012_id)
+        & (def_host != self._stt03_013_id)
+        & (def_host != self._azk01_019_id)
+        & (def_host != self._azk01_073_id),
         axis=(1, 2),
     )
     return base & source_ok & enemy_target_available & no_non_inert_watch
+  def _activate_azk01_103_fast_mask(self, acts: np.ndarray, chosen, phase):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    active_acts = acts[rows, active_safe]
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    tapped_host = np.asarray(states.tapped)
+    n_inst = def_host.shape[2]
+
+    base = (
+        (phase == 2)  # Phase.MAIN
+        & (chosen == self._act_activate_garden)
+        & (active_acts[:, 0] == self._act_activate_garden)
+        & (active_acts[:, 2] == 0)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+    )
+    if not np.any(base):
+      return base
+
+    zone_row = zone_host[rows, active_safe]
+    zpos_row = zpos_host[rows, active_safe]
+    def_row = def_host[rows, active_safe]
+    source_slot = active_acts[:, 1].astype(np.int32, copy=False)
+    source_match = (
+        (zone_row == self._zone_garden)
+        & (zpos_row == source_slot[:, None])
+        & (source_slot[:, None] >= 0)
+        & (source_slot[:, None] < self._garden_size)
+    )
+    source_exists = np.any(source_match, axis=1)
+    source_inst = np.argmax(source_match, axis=1)
+    source_safe = np.clip(source_inst, 0, n_inst - 1)
+    source_def = def_row[rows, source_safe]
+    source_ok = (
+        source_exists
+        & (source_def == self._azk01_103_id)
+        & (np.asarray(states.frozen_dur)[rows, active_safe, source_safe] == 0)
+        & ~tapped_host[rows, active_safe, source_safe]
+    )
+
+    safe_defs = np.maximum(def_row, 0)
+    attached_to_row = np.asarray(states.attached_to)[rows, active_safe]
+    inst_idx = np.arange(n_inst)
+    has_attached = np.any(
+        (zone_row == self._zone_attached)[:, :, None]
+        & (attached_to_row[:, :, None] == inst_idx[None, None, :]),
+        axis=1,
+    )
+    earth_cost = (
+        (zone_row == self._zone_garden)
+        & (def_row >= 0)
+        & (self._card_type[safe_defs] == self._card_type_entity)
+        & (self._card_element[safe_defs] == self._earth_element)
+        & ~tapped_host[rows, active_safe]
+        & (np.arange(n_inst)[None, :] != source_safe[:, None])
+        & ~has_attached
+    )
+    return base & source_ok & np.any(earth_cost, axis=1)
+
 
   def _activate_azk01_105_fast_mask(self, acts: np.ndarray, chosen, phase):
     states = self._states
@@ -10781,6 +22566,7 @@ class JaxVecEnv:
     zone_host = np.asarray(states.zone)
     zpos_host = np.asarray(states.zpos)
     def_host = np.asarray(states.def_id)
+    attached_to = np.asarray(states.attached_to)
     cur_hp = np.asarray(states.cur_hp)
     n_inst = def_host.shape[2]
 
@@ -10816,6 +22602,11 @@ class JaxVecEnv:
     source_safe = np.clip(source_inst, 0, n_inst - 1)
     source_def = def_row[rows, source_safe]
 
+    source_has_attached = np.any(
+        (zone_row == self._zone_attached)
+        & (attached_to[rows, active_safe] == source_safe[:, None]),
+        axis=1,
+    )
     opp = (active_safe + 1) % 2
     opp_zone = zone_host[rows, opp]
     opp_def = def_host[rows, opp]
@@ -10829,13 +22620,29 @@ class JaxVecEnv:
     target_available = leader_exists | np.any(enemy_garden_entity, axis=1)
 
     board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
+    player_axis = np.arange(2, dtype=np.int32)[None, :, None]
+    enemy_azk01_019 = (
+        (def_host == self._azk01_019_id)
+        & (player_axis != active_safe[:, None, None])
+    )
+    stt02_012_inactive_alley = (
+        (def_host == self._stt02_012_id) & (zone_host == self._zone_alley)
+    )
     no_non_inert_watch = ~np.any(
         board
         & np.isin(def_host, self._simple_play_watch_ids)
-        & (def_host != self._stt01_008_id),
+        & (def_host != self._stt01_008_id)
+        & (def_host != self._stt01_009_id)
+        & (def_host != self._stt01_011_id)
+        & (def_host != self._stt02_010_id)
+        & (def_host != self._azk01_010_id)
+        & ~enemy_azk01_019
+        & (def_host != self._azk01_073_id)
+        & (def_host != self._stt02_012_id)
+        & (def_host != self._stt03_013_id)
+        & ~stt02_012_inactive_alley,
         axis=(1, 2),
     )
-    no_attached = ~np.any(zone_host == self._zone_attached, axis=(1, 2))
     source_ok = (
         source_exists
         & (source_def == self._azk01_105_id)
@@ -10847,7 +22654,152 @@ class JaxVecEnv:
         & source_ok
         & target_available
         & no_non_inert_watch
-        & no_attached
+        & ~source_has_attached
+    )
+
+
+  def _activate_azk01_119_fast_mask(self, acts: np.ndarray, chosen, phase):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    active_acts = acts[rows, active_safe]
+    zone_host = np.asarray(states.zone)
+    def_host = np.asarray(states.def_id)
+    tapped_host = np.asarray(states.tapped)
+    attached_host = np.asarray(states.attached_to)
+    n_inst = def_host.shape[2]
+
+    base = (
+        (phase == 2)  # Phase.MAIN
+        & (chosen == self._act_activate_garden)
+        & (active_acts[:, 0] == self._act_activate_garden)
+        & (active_acts[:, 1] == self._garden_size)
+        & (active_acts[:, 2] == 0)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    if not np.any(base):
+      return base
+
+    zone_row = zone_host[rows, active_safe]
+    def_row = def_host[rows, active_safe]
+    tapped_row = tapped_host[rows, active_safe]
+    leader_match = zone_row == self._zone_leader
+    leader_exists = np.any(leader_match, axis=1)
+    leader_inst = np.argmax(leader_match, axis=1)
+    leader_def = def_row[rows, leader_inst]
+    leader_safe_def = np.maximum(leader_def, 0)
+
+    use_token = active_acts[:, 3] != 0
+    token_ready = (
+        (zone_row[:, self._token_instance] == self._zone_token)
+        & ~tapped_row[:, self._token_instance]
+    )
+    token_needed_ok = ~use_token | token_ready
+    non_board_payment_sources = np.sum(
+        (zone_row == self._zone_ikz_area) & ~tapped_row,
+        axis=1,
+    )
+    safe_defs = np.maximum(def_row, 0)
+    garden_payment_sources = np.sum(
+        (zone_row == self._zone_garden)
+        & ~tapped_row
+        & self._counts_as_ikz[safe_defs],
+        axis=1,
+    )
+    token_selected = use_token & token_ready
+    payment_sources = (
+        non_board_payment_sources
+        + garden_payment_sources
+        + token_selected.astype(np.int32)
+    )
+    cost = self._ability_ikz_cost[leader_safe_def].astype(np.int32, copy=False)
+    can_pay = token_needed_ok & (payment_sources >= cost)
+    non_board_payment = cost <= (
+        non_board_payment_sources + token_selected.astype(np.int32)
+    )
+
+    attached = zone_row == self._zone_attached
+    attached_weapon = (
+        attached
+        & (self._card_type[safe_defs] == self._card_type_weapon)
+    )
+    inst_cols = np.arange(n_inst, dtype=np.int32)
+    weapon_counts = np.sum(
+        attached_weapon[:, :, None]
+        & (attached_host[rows, active_safe, :, None] == inst_cols[None, None, :]),
+        axis=1,
+    )
+    equipped_entity = (
+        (zone_row == self._zone_garden)
+        & (def_row >= 0)
+        & (self._card_type[safe_defs] == self._card_type_entity)
+        & (weapon_counts > 0)
+    )
+    target_available = np.any(equipped_entity, axis=1)
+
+    leader_ok = (
+        leader_exists
+        & (leader_def == self._azk01_119_id)
+        & (np.asarray(states.frozen_dur)[rows, active_safe, leader_inst] == 0)
+        & ((np.asarray(states.once_per_turn_used)[
+            rows, active_safe, leader_inst
+        ] & 1) == 0)
+        & can_pay
+        & non_board_payment
+    )
+    return base & leader_ok & target_available
+
+  def _activate_azk01_119_static_mask(
+      self, acts: np.ndarray, chosen, phase
+  ):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    active_acts = acts[rows, active_safe]
+    zone_host = np.asarray(states.zone)
+    def_host = np.asarray(states.def_id)
+    leader_match = zone_host[rows, active_safe] == self._zone_leader
+    leader_exists = np.any(leader_match, axis=1)
+    leader_inst = np.argmax(leader_match, axis=1)
+    leader_def = def_host[rows, active_safe, leader_inst]
+    return (
+        (phase == 2)  # Phase.MAIN
+        & (chosen == self._act_activate_garden)
+        & (active_acts[:, 0] == self._act_activate_garden)
+        & (
+            (active_acts[:, 1] == self._garden_size)
+            | (active_acts[:, 1] == 0)
+        )
+        & (active_acts[:, 2] == 0)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+        & leader_exists
+        & (leader_def == self._azk01_119_id)
+        & (np.asarray(states.frozen_dur)[rows, active_safe, leader_inst] == 0)
+        & (
+            (
+                np.asarray(states.once_per_turn_used)[
+                    rows, active_safe, leader_inst
+                ]
+                & 1
+            )
+            == 0
+        )
     )
 
   def _activate_azk01_121_fast_mask(self, acts: np.ndarray, chosen, phase):
@@ -10928,7 +22880,15 @@ class JaxVecEnv:
     board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
     passive_watch = board & np.isin(def_host, self._simple_play_watch_ids)
     no_non_inert_watch = ~np.any(
-        passive_watch & (def_host != self._stt01_008_id),
+        passive_watch
+        & (def_host != self._stt01_008_id)
+        & (def_host != self._stt01_009_id)
+        & (def_host != self._stt01_011_id)
+        & (def_host != self._azk01_010_id)
+        & (def_host != self._azk01_019_id)
+        & (def_host != self._azk01_073_id)
+        & (def_host != self._stt02_012_id)
+        & (def_host != self._stt03_013_id),
         axis=(1, 2),
     )
     return base & leader_ok & no_non_inert_watch
@@ -10999,9 +22959,280 @@ class JaxVecEnv:
         & can_pay
     )
     board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
+    player_axis = np.arange(2, dtype=np.int32)[None, :, None]
+    enemy_azk01_019 = (
+        (def_host == self._azk01_019_id)
+        & (player_axis != active[:, None, None])
+    )
+    stt02_012_inert = def_host == self._stt02_012_id
+    stt03_013_inert = def_host == self._stt03_013_id
     passive_watch = board & np.isin(def_host, self._simple_play_watch_ids)
     no_non_inert_watch = ~np.any(
-        passive_watch & (def_host != self._stt01_008_id),
+        passive_watch
+        & (def_host != self._stt01_008_id)
+        & (def_host != self._stt01_009_id)
+        & (def_host != self._stt01_011_id)
+        & (def_host != self._azk01_010_id)
+        & (def_host != self._azk01_073_id)
+        & ~enemy_azk01_019
+        & ~stt02_012_inert
+        & ~stt03_013_inert,
+        axis=(1, 2),
+    )
+    return base & leader_ok & no_non_inert_watch
+
+
+  def _activate_stt03_004_fast_mask(self, acts: np.ndarray, chosen, phase):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    active_acts = acts[rows, active_safe]
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    tapped_host = np.asarray(states.tapped)
+    attached_host = np.asarray(states.attached_to)
+    n_inst = def_host.shape[2]
+
+    garden_action = (
+        (chosen == self._act_activate_garden)
+        & (active_acts[:, 0] == self._act_activate_garden)
+        & (active_acts[:, 2] == 0)
+    )
+    alley_action = (
+        (chosen == self._act_activate_alley)
+        & (active_acts[:, 0] == self._act_activate_alley)
+        & (active_acts[:, 1] == 0)
+    )
+    base = (
+        (phase == 2)  # Phase.MAIN
+        & (garden_action | alley_action)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.asarray(states.eot_abilities_queued)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    if not np.any(base):
+      return base
+
+    source_slot = np.where(
+        alley_action,
+        active_acts[:, 2].astype(np.int32, copy=False),
+        active_acts[:, 1].astype(np.int32, copy=False),
+    )
+    source_zone = np.where(alley_action, self._zone_alley, self._zone_garden)
+    zone_row = zone_host[rows, active_safe]
+    zpos_row = zpos_host[rows, active_safe]
+    def_row = def_host[rows, active_safe]
+    source_match = (
+        (zone_row == source_zone[:, None])
+        & (zpos_row == source_slot[:, None])
+        & (source_slot[:, None] >= 0)
+        & (source_slot[:, None] < self._garden_size)
+    )
+    source_exists = np.any(source_match, axis=1)
+    source_inst = np.argmax(source_match, axis=1)
+    source_safe = np.clip(source_inst, 0, n_inst - 1)
+    source_def = def_row[rows, source_safe]
+    source_safe_def = np.maximum(source_def, 0)
+    source_has_attached = np.any(
+        (zone_row == self._zone_attached)
+        & (attached_host[rows, active_safe] == source_safe[:, None]),
+        axis=1,
+    )
+
+    board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
+    no_non_inert_watch = ~np.any(
+        board
+        & np.isin(def_host, self._simple_play_watch_ids)
+        & (def_host != self._stt01_008_id)
+        & (def_host != self._stt03_013_id),
+        axis=(1, 2),
+    )
+    return (
+        base
+        & source_exists
+        & (source_def == self._stt03_004_id)
+        & ~tapped_host[rows, active_safe, source_safe]
+        & ~source_has_attached
+        & ~self._inherent_godmode[source_safe_def]
+        & ~np.asarray(states.grant_godmode)[rows, active_safe, source_safe]
+        & no_non_inert_watch
+    )
+
+  def _activate_stt03_004_static_mask(
+      self,
+      acts: np.ndarray,
+      chosen,
+      phase,
+      source_zone: int,
+      action_type: int,
+  ):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    active_acts = acts[rows, active_safe]
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    tapped_host = np.asarray(states.tapped)
+    attached_host = np.asarray(states.attached_to)
+    source_slot = np.where(
+        action_type == self._act_activate_alley,
+        active_acts[:, 2].astype(np.int32, copy=False),
+        active_acts[:, 1].astype(np.int32, copy=False),
+    )
+    source_match = (
+        (zone_host[rows, active_safe] == source_zone)
+        & (zpos_host[rows, active_safe] == source_slot[:, None])
+        & (source_slot[:, None] >= 0)
+        & (source_slot[:, None] < self._garden_size)
+    )
+    source_exists = np.any(source_match, axis=1)
+    source_inst = np.argmax(source_match, axis=1)
+    source_def = def_host[rows, active_safe, source_inst]
+    source_safe_def = np.maximum(source_def, 0)
+    source_has_attached = np.any(
+        (zone_host[rows, active_safe] == self._zone_attached)
+        & (attached_host[rows, active_safe] == source_inst[:, None]),
+        axis=1,
+    )
+    action_ok = (
+        (chosen == action_type)
+        & (active_acts[:, 0] == action_type)
+        & np.where(
+            action_type == self._act_activate_alley,
+            active_acts[:, 1] == 0,
+            active_acts[:, 2] == 0,
+        )
+    )
+    return (
+        (phase == 2)  # Phase.MAIN
+        & action_ok
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.asarray(states.eot_abilities_queued)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+        & source_exists
+        & (source_def == self._stt03_004_id)
+        & ~tapped_host[rows, active_safe, source_inst]
+        & ~source_has_attached
+        & ~self._inherent_godmode[source_safe_def]
+        & ~np.asarray(states.grant_godmode)[rows, active_safe, source_inst]
+    )
+  def _activate_stt01_001_fast_mask(self, acts: np.ndarray, chosen, phase):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    active_acts = acts[rows, active_safe]
+    zone_host = np.asarray(states.zone)
+    def_host = np.asarray(states.def_id)
+    tapped_host = np.asarray(states.tapped)
+
+    base = (
+        (phase == 2)  # Phase.MAIN
+        & (chosen == self._act_activate_garden)
+        & (active_acts[:, 0] == self._act_activate_garden)
+        & (active_acts[:, 1] == self._garden_size)
+        & (active_acts[:, 2] == 0)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.asarray(states.eot_abilities_queued)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    if not np.any(base):
+      return base
+
+    zone_row = zone_host[rows, active_safe]
+    def_row = def_host[rows, active_safe]
+    tapped_row = tapped_host[rows, active_safe]
+    leader_match = zone_row == self._zone_leader
+    leader_exists = np.any(leader_match, axis=1)
+    leader_inst = np.argmax(leader_match, axis=1)
+    leader_def = def_row[rows, leader_inst]
+    leader_safe_def = np.maximum(leader_def, 0)
+
+    use_token = active_acts[:, 3] != 0
+    token_ready = (
+        (zone_row[:, self._token_instance] == self._zone_token)
+        & ~tapped_row[:, self._token_instance]
+    )
+    token_needed_ok = ~use_token | token_ready
+    payment_sources = np.sum(
+        (zone_row == self._zone_ikz_area) & ~tapped_row,
+        axis=1,
+    )
+    safe_row_defs = np.maximum(def_row, 0)
+    payment_sources += np.sum(
+        (zone_row == self._zone_garden)
+        & ~tapped_row
+        & self._counts_as_ikz[safe_row_defs],
+        axis=1,
+    )
+    payment_sources += (use_token & token_ready).astype(np.int32)
+    cost = self._ability_ikz_cost[leader_safe_def].astype(np.int32, copy=False)
+    can_pay = token_needed_ok & (payment_sources >= cost)
+
+    attached = zone_row == self._zone_attached
+    attached_safe_defs = np.maximum(def_row, 0)
+    attached_to = np.asarray(states.attached_to)[rows, active_safe]
+    inst_cols = np.arange(zone_row.shape[1], dtype=np.int32)
+    is_weapon = (
+        attached
+        & (self._card_type[attached_safe_defs] == self._card_type_weapon)
+    )
+    weapon_counts = np.sum(
+        is_weapon[:, :, None]
+        & (attached_to[:, :, None] == inst_cols[None, None, :]),
+        axis=1,
+    )
+    targets = (
+        (zone_row == self._zone_garden)
+        & (def_row >= 0)
+        & (self._card_type[safe_row_defs] == self._card_type_entity)
+        & (weapon_counts > 0)
+        & (np.asarray(states.cooldown)[rows, active_safe] != 0)
+    )
+    target_available = np.any(targets, axis=1)
+
+    leader_ok = (
+        leader_exists
+        & (leader_def == self._stt01_001_id)
+        & (np.asarray(states.frozen_dur)[rows, active_safe, leader_inst] == 0)
+        & ((np.asarray(states.once_per_turn_used)[
+            rows, active_safe, leader_inst
+        ] & 1) == 0)
+        & can_pay
+        & target_available
+    )
+    board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
+    passive_watch = board & np.isin(def_host, self._simple_play_watch_ids)
+    no_non_inert_watch = ~np.any(
+        passive_watch
+        & (def_host != self._stt01_008_id)
+        & (def_host != self._stt01_009_id)
+        & (def_host != self._stt01_011_id)
+        & (def_host != self._stt02_010_id)
+        & (def_host != self._azk01_010_id)
+        & (def_host != self._azk01_019_id)
+        & (def_host != self._azk01_073_id)
+        & (def_host != self._stt02_012_id)
+        & (def_host != self._stt03_013_id),
         axis=(1, 2),
     )
     return base & leader_ok & no_non_inert_watch
@@ -11053,14 +23284,17 @@ class JaxVecEnv:
         (zone_row == self._zone_ikz_area) & ~tapped_row,
         axis=1,
     )
+    non_board_payment_sources = payment_sources.copy()
     safe_row_defs = np.maximum(def_row, 0)
-    payment_sources += np.sum(
+    garden_payment_sources = np.sum(
         (zone_row == self._zone_garden)
         & ~tapped_row
         & self._counts_as_ikz[safe_row_defs],
         axis=1,
     )
-    payment_sources += (use_token & token_ready).astype(np.int32)
+    payment_sources += garden_payment_sources
+    token_selected = use_token & token_ready
+    payment_sources += token_selected.astype(np.int32)
     cost = self._ability_ikz_cost[leader_safe_def].astype(np.int32, copy=False)
     can_pay = token_needed_ok & (payment_sources >= cost)
 
@@ -11088,13 +23322,84 @@ class JaxVecEnv:
         & can_pay
         & target_available
     )
+    non_board_payment = cost <= (
+        non_board_payment_sources + token_selected.astype(np.int32)
+    )
+    return base & leader_ok & non_board_payment
+
+  def _activate_azk01_111_fast_mask(self, acts: np.ndarray, chosen, phase):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    active_acts = acts[rows, active_safe]
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+
+    base = (
+        (phase == 2)  # Phase.MAIN
+        & (chosen == self._act_activate_alley)
+        & (active_acts[:, 0] == self._act_activate_alley)
+        & (active_acts[:, 1] == 0)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    if not np.any(base):
+      return base
+
+    zone_row = zone_host[rows, active_safe]
+    zpos_row = zpos_host[rows, active_safe]
+    def_row = def_host[rows, active_safe]
+    alley_slot = active_acts[:, 2].astype(np.int32, copy=False)
+    source_match = (zone_row == self._zone_alley) & (
+        zpos_row == alley_slot[:, None]
+    )
+    source_exists = np.any(source_match, axis=1)
+    source_inst = np.argmax(source_match, axis=1)
+    source_def = def_row[rows, source_inst]
+
+    opp = (active_safe + 1) % 2
+    opp_defs = def_host[rows, opp]
+    opp_safe_defs = np.maximum(opp_defs, 0)
+    enemy_garden_entity = (
+        (zone_host[rows, opp] == self._zone_garden)
+        & (opp_defs >= 0)
+        & (self._card_type[opp_safe_defs] == self._card_type_entity)
+    )
+    safe_defs = np.maximum(def_row, 0)
+    eligible_hand_entity = (
+        (zone_row == self._zone_hand)
+        & (self._card_type[safe_defs] == self._card_type_entity)
+        & self._has_ikz_cost[safe_defs]
+        & (self._ikz_cost[safe_defs].astype(np.int32) <= 2)
+    )
     board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
     passive_watch = board & np.isin(def_host, self._simple_play_watch_ids)
+    stt02_012_inactive_alley = (
+        (def_host == self._stt02_012_id) & (zone_host == self._zone_alley)
+    )
+    stt03_013_inert = def_host == self._stt03_013_id
     no_non_inert_watch = ~np.any(
-        passive_watch & (def_host != self._stt01_008_id),
+        passive_watch
+        & (def_host != self._stt01_008_id)
+        & (def_host != self._azk01_019_id)
+        & ~stt02_012_inactive_alley
+        & ~stt03_013_inert,
         axis=(1, 2),
     )
-    return base & leader_ok & no_non_inert_watch
+    source_ok = (
+        source_exists
+        & (source_def == self._azk01_111_id)
+        & np.any(enemy_garden_entity, axis=1)
+    )
+    return base & source_ok & no_non_inert_watch
 
   def _activate_stt01_005_fast_mask(self, acts: np.ndarray, chosen, phase):
     states = self._states
@@ -11138,14 +23443,22 @@ class JaxVecEnv:
     board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
     passive_watch = board & np.isin(def_host, self._simple_play_watch_ids)
     no_non_inert_watch = ~np.any(
-        passive_watch & (def_host != self._stt01_008_id),
+        passive_watch
+        & (def_host != self._stt01_008_id)
+        & (def_host != self._stt01_009_id)
+        & (def_host != self._stt01_011_id)
+        & (def_host != self._stt02_010_id)
+        & (def_host != self._azk01_010_id)
+        & (def_host != self._azk01_019_id)
+        & (def_host != self._azk01_073_id)
+        & (def_host != self._stt02_012_id)
+        & (def_host != self._stt03_013_id),
         axis=(1, 2),
     )
     source_ok = (
         source_exists
         & (source_def == self._stt01_005_id)
         & (deck_count > 3)
-        & (hand_count >= 2)
     )
     return base & source_ok & no_non_inert_watch
 
@@ -11224,9 +23537,20 @@ class JaxVecEnv:
         board
         & np.isin(def_row, self._simple_attach_watch_ids)
         & (def_row != self._stt01_008_id)
+        & (def_row != self._stt01_009_id)
+        & (def_row != self._stt01_011_id)
+        & (def_row != self._azk01_019_id)
+        & (def_row != self._azk01_010_id)
+        & (def_row != self._azk01_073_id)
     )
-    target_passive_ok = ~np.isin(target_def, self._simple_attach_watch_ids) | (
-        target_def == self._stt01_008_id
+    target_passive_ok = (
+        ~np.isin(target_def, self._simple_attach_watch_ids)
+        | (target_def == self._stt01_008_id)
+        | (target_def == self._azk01_019_id)
+        | (target_def == self._stt01_009_id)
+        | (target_def == self._stt01_011_id)
+        | (target_def == self._azk01_010_id)
+        | (target_def == self._azk01_073_id)
     )
     no_passive_watch = (
         ~np.any(watched_on_board, axis=1)
@@ -11247,25 +23571,79 @@ class JaxVecEnv:
         & no_passive_watch
     )
 
+  def _attach_weapon_static_mask(self, acts: np.ndarray, chosen, phase):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_safe = np.clip(active, 0, 1)
+    active_acts = acts[rows, active_safe].astype(np.int32, copy=False)
+    legal = np.asarray(self._pending[4]).astype(np.int32, copy=False)
+    legal_count = np.asarray(self._pending[5]).astype(np.int32, copy=False)
+    legal_slots = np.arange(legal.shape[1], dtype=np.int32)[None, :]
+    legal_live = legal_slots < legal_count[:, None]
+    legal_match = np.all(legal == active_acts[:, None, :], axis=2)
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    hand_index = active_acts[:, 1]
+    zone_row = zone_host[rows, active_safe]
+    zpos_row = zpos_host[rows, active_safe]
+    def_row = def_host[rows, active_safe]
+    hand_match = (zone_row == self._zone_hand) & (zpos_row == hand_index[:, None])
+    weapon_exists = np.any(hand_match, axis=1)
+    weapon_inst = np.argmax(hand_match, axis=1)
+    weapon_def = def_row[rows, weapon_inst]
+    safe_weapon_def = np.maximum(weapon_def, 0)
+    main_attach = (phase == 2) & (np.asarray(states.combat_attacker) < 0)
+    response_attach = (
+        (phase == 3)
+        & (np.asarray(states.combat_attacker) >= 0)
+        & (np.asarray(states.combat_defender_player) == active)
+    )
+    return (
+        (main_attach | response_attach)
+        & (chosen == self._act_attach_weapon)
+        & (active_acts[:, 0] == self._act_attach_weapon)
+        & np.any(legal_live & legal_match, axis=1)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & weapon_exists
+        & (weapon_def >= 0)
+        & (self._card_type[safe_weapon_def] == self._card_type_weapon)
+    )
+
   def _attach_weapon_simple_fast_mask(self, acts: np.ndarray, chosen, phase):
     states = self._states
     rows = np.arange(self.num_environments)
+    # Another 40+ GB XLA giant at batch >1 whose executable exceeds the
+    # cache serialization limit — route to attach_weapon_static (broad
+    # generic, cached at (1,...)) above batch 1.
+    if self.num_environments > 1:
+      return np.zeros(self.num_environments, dtype=bool)
     active = np.asarray(states.active_player).astype(np.int32, copy=False)
     zone_host = np.asarray(states.zone)
     zpos_host = np.asarray(states.zpos)
     def_host = np.asarray(states.def_id)
 
-    passive_clean = (
-        (np.asarray(states.passive_queue_count) == 0)
-        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    stt02_pending = np.any(
+        np.asarray(states.stt02_012_event_pending), axis=(1, 2)
     )
+    main_attach = (phase == 2) & (np.asarray(states.combat_attacker) < 0)
+    response_attach = (
+        (phase == 3)
+        & (np.asarray(states.combat_attacker) >= 0)
+        & (np.asarray(states.combat_defender_player) == active)
+    )
+    passive_clean = ~stt02_pending | main_attach
     base = (
-        (phase == 2)  # Phase.MAIN
+        (main_attach | response_attach)
         & (chosen == self._act_attach_weapon)
         & (np.asarray(states.ab_phase) == 0)
         & (np.asarray(states.trig_count) == 0)
         & (np.asarray(states.redirect_count) == 0)
-        & (np.asarray(states.combat_attacker) < 0)
         & (np.asarray(states.winner) == -1)
         & ~np.asarray(states.eot_abilities_queued)
         & passive_clean
@@ -11303,13 +23681,83 @@ class JaxVecEnv:
     target_def = def_row[rows, target_inst]
     safe_target_def = np.maximum(target_def, 0)
 
+    # Response-window attaches may auto-close the window and resolve combat
+    # (HandleResponseAction head). Only admit rows whose pending combat is
+    # clean: transition_to_combat_resolve/combat_resolve must queue nothing.
+    combat_attacker = np.asarray(states.combat_attacker).astype(
+        np.int32, copy=False
+    )
+    combat_defender = np.asarray(states.combat_defender).astype(
+        np.int32, copy=False
+    )
+    attacker_p = (active + 1) % 2
+    safe_cmb_attacker = np.maximum(combat_attacker, 0)
+    safe_cmb_defender = np.maximum(combat_defender, 0)
+    cmb_attacker_zone = zone_host[rows, attacker_p, safe_cmb_attacker]
+    cmb_defender_zone = zone_host[rows, active, safe_cmb_defender]
+    cmb_attacker_def = def_host[rows, attacker_p, safe_cmb_attacker]
+    cmb_defender_def = def_host[rows, active, safe_cmb_defender]
+    safe_cmb_attacker_def = np.maximum(cmb_attacker_def, 0)
+    safe_cmb_defender_def = np.maximum(cmb_defender_def, 0)
+    cmb_attacker_attached = (
+        (zone_host[rows, attacker_p] == self._zone_attached)
+        & (
+            np.asarray(states.attached_to)[rows, attacker_p]
+            == safe_cmb_attacker[:, None]
+        )
+    )
+    cmb_attached_defs = np.where(
+        cmb_attacker_attached, def_host[rows, attacker_p], -1
+    )
+    response_combat_clean = (
+        (combat_defender >= 0)
+        & (
+            (cmb_attacker_zone == self._zone_leader)
+            | (cmb_attacker_zone == self._zone_garden)
+        )
+        & (
+            (cmb_defender_zone == self._zone_leader)
+            | (cmb_defender_zone == self._zone_garden)
+            | (cmb_defender_zone == self._zone_alley)
+        )
+        & ~self._timing_when_attacked[safe_cmb_defender_def]
+        & ~self._timing_after_attacking[safe_cmb_attacker_def]
+        & ~np.any(
+            cmb_attacker_attached & (cmb_attached_defs == self._azk01_044_id),
+            axis=1,
+        )
+        & ~self._timing_takes_damage[safe_cmb_attacker_def]
+        & ~self._timing_takes_damage[safe_cmb_defender_def]
+        & ~self._timing_deals_damage[safe_cmb_attacker_def]
+        & ~self._timing_deals_damage[safe_cmb_defender_def]
+        & ~self._timing_when_destroyed[safe_cmb_attacker_def]
+        & ~self._timing_when_destroyed[safe_cmb_defender_def]
+        & ~np.asarray(states.grant_godmode)[rows, attacker_p, safe_cmb_attacker]
+        & ~np.asarray(states.grant_godmode)[rows, active, safe_cmb_defender]
+        & ~self._inherent_godmode[safe_cmb_attacker_def]
+        & ~self._inherent_godmode[safe_cmb_defender_def]
+    )
+    response_ok = ~response_attach | response_combat_clean
+
     allowed_on_play = ~self._timing_on_play[safe_weapon_def] | (
         weapon_def == self._stt01_014_id
     )
+    stt01_015_when_equipped_inline = weapon_def == self._stt01_015_id
+    played_alley_targeting_weapon = (
+        (weapon_def == self._azk01_043_id) | (weapon_def == self._azk01_095_id)
+    )
+    target_azk01_039_when_equipped_inline = target_def == self._azk01_039_id
     no_attach_triggers = (
         allowed_on_play
-        & ~self._timing_when_equipped[safe_weapon_def]
-        & ~self._timing_when_equipped[safe_target_def]
+        & (
+            ~self._timing_when_equipped[safe_weapon_def]
+            | stt01_015_when_equipped_inline
+            | played_alley_targeting_weapon
+        )
+        & (
+            ~self._timing_when_equipped[safe_target_def]
+            | target_azk01_039_when_equipped_inline
+        )
     )
 
     board = (
@@ -11318,17 +23766,38 @@ class JaxVecEnv:
         | (zone_row == self._zone_attached)
         | (zone_row == self._zone_leader)
     )
+    stt02_012_inactive_alley = (
+        (def_row == self._stt02_012_id) & (zone_row == self._zone_alley)
+    )
+    alley_targeting_weapon = (
+        (def_row == self._azk01_043_id) | (def_row == self._azk01_095_id)
+    )
     watched_on_board = (
         board
         & np.isin(def_row, self._simple_attach_watch_ids)
         & (def_row != self._stt01_008_id)
+        & (def_row != self._stt01_009_id)
+        & (def_row != self._stt01_011_id)
+        & (def_row != self._azk01_019_id)
+        & (def_row != self._azk01_010_id)
+        & (def_row != self._azk01_073_id)
+        & (def_row != self._stt02_012_id)
+        & ~alley_targeting_weapon
+        & ~stt02_012_inactive_alley
     )
-    target_passive_ok = ~np.isin(target_def, self._simple_attach_watch_ids) | (
-        target_def == self._stt01_008_id
+    target_passive_ok = (
+        ~np.isin(target_def, self._simple_attach_watch_ids)
+        | (target_def == self._stt01_008_id)
+        | (target_def == self._azk01_019_id)
+        | (target_def == self._stt01_009_id)
+        | (target_def == self._stt01_011_id)
+        | (target_def == self._azk01_010_id)
+        | (target_def == self._azk01_073_id)
+        | (target_def == self._stt02_012_id)
     )
     no_passive_watch = (
         ~np.any(watched_on_board, axis=1)
-        & ~np.isin(weapon_def, self._simple_attach_watch_ids)
+        & (~np.isin(weapon_def, self._simple_attach_watch_ids) | played_alley_targeting_weapon)
         & target_passive_ok
     )
 
@@ -11339,6 +23808,7 @@ class JaxVecEnv:
         & target_exists
         & no_attach_triggers
         & no_passive_watch
+        & response_ok
     )
 
   def _attack_azk01_060_confirm_fast_mask(
@@ -11472,6 +23942,29 @@ class JaxVecEnv:
     opp_zone = zone_host[rows, opp]
     opp_defs = def_host[rows, opp]
     opp_safe_defs = np.maximum(opp_defs, 0)
+    opp_tapped = np.asarray(states.tapped)[rows, opp]
+    token_ready = (
+        (opp_zone[:, self._token_instance] == self._zone_token)
+        & ~opp_tapped[:, self._token_instance]
+    )
+    payment_sources = np.sum(
+        (opp_zone == self._zone_ikz_area) & ~opp_tapped,
+        axis=1,
+    )
+    payment_sources += np.sum(
+        (opp_zone == self._zone_garden)
+        & ~opp_tapped
+        & self._counts_as_ikz[opp_safe_defs],
+        axis=1,
+    )
+    payment_sources += token_ready.astype(np.int32)
+    next_reduction = np.asarray(states.next_play_cost_reduction)[
+        rows, opp
+    ].astype(np.int32, copy=False)
+    response_cost = np.maximum(
+        self._ikz_cost[opp_safe_defs].astype(np.int32) - next_reduction[:, None],
+        0,
+    )
     response_hand = (opp_zone == self._zone_hand) & (
         (
             (self._card_type[opp_safe_defs] == self._card_type_spell)
@@ -11479,7 +23972,7 @@ class JaxVecEnv:
             & self._has_ability[opp_safe_defs]
         )
         | self._response_play_from_hand[opp_safe_defs]
-    )
+    ) & (response_cost <= payment_sources[:, None])
     in_board = (
         (opp_zone == self._zone_garden)
         | (opp_zone == self._zone_alley)
@@ -11489,6 +23982,13 @@ class JaxVecEnv:
         in_board
         & self._timing_is_response[opp_safe_defs]
         & self._has_ability[opp_safe_defs]
+        & (
+            self._ability_ikz_cost[opp_safe_defs].astype(np.int32)
+            <= payment_sources[:, None]
+        )
+        & self._response_board_validate_ok(
+            states, rows, opp, opp_zone, opp_safe_defs
+        )
     )
     defender_cards = (
         (opp_zone == self._zone_garden)
@@ -11537,7 +24037,7 @@ class JaxVecEnv:
         )
     )
 
-  def _attack_stt01_006_effect_fast_mask(
+  def _attack_azk01_014_effect_fast_mask(
       self, acts: np.ndarray, chosen, phase
   ):
     states = self._states
@@ -11560,6 +24060,154 @@ class JaxVecEnv:
         & ~np.asarray(states.eot_abilities_queued)
         & (np.asarray(states.passive_queue_count) == 0)
         & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    if not np.any(base):
+      return base
+
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+    attacker_index = active_acts[:, 1]
+    defender_index = active_acts[:, 2]
+    atk_zone = zone_host[rows, active]
+    atk_zpos = zpos_host[rows, active]
+    atk_defs = def_host[rows, active]
+    def_zone = zone_host[rows, opp]
+    def_zpos = zpos_host[rows, opp]
+    def_defs = def_host[rows, opp]
+    def_tapped = tapped_host[rows, opp]
+
+    attacker_match = (atk_zone == self._zone_garden) & (
+        atk_zpos == attacker_index[:, None]
+    )
+    attacker_exists = np.any(attacker_match, axis=1)
+    attacker_inst = np.argmax(attacker_match, axis=1)
+    attacker_def = atk_defs[rows, attacker_inst]
+    safe_attacker_def = np.maximum(attacker_def, 0)
+    source_azk01_014 = attacker_def == self._azk01_014_id
+    source_azk01_072 = attacker_def == self._azk01_072_id
+
+    target_is_leader = defender_index == self._garden_size
+    target_is_garden = (
+        (defender_index >= 0) & (defender_index < self._garden_size)
+    )
+    leader_match = def_zone == self._zone_leader
+    garden_match = (def_zone == self._zone_garden) & (
+        def_zpos == defender_index[:, None]
+    )
+    defender_match = np.where(target_is_leader[:, None], leader_match, garden_match)
+    defender_exists = (
+        (target_is_leader | target_is_garden) & np.any(defender_match, axis=1)
+    )
+    defender_inst = np.argmax(defender_match, axis=1)
+    defender_def = def_defs[rows, defender_inst]
+    safe_defender_def = np.maximum(defender_def, 0)
+
+    target_cols = np.arange(atk_zone.shape[1])[None, :]
+    other_garden_entity = (
+        (atk_zone == self._zone_garden)
+        & (atk_defs >= 0)
+        & (self._card_type[np.maximum(atk_defs, 0)] == self._card_type_entity)
+        & (target_cols != attacker_inst[:, None])
+    )
+    other_garden_beanz = other_garden_entity & self._beanz[np.maximum(atk_defs, 0)]
+    effect_available = np.any(
+        np.where(source_azk01_072[:, None], other_garden_beanz, other_garden_entity),
+        axis=1,
+    )
+    attached_to = np.asarray(states.attached_to)
+    attacker_attached = (atk_zone == self._zone_attached) & (
+        attached_to[rows, active] == attacker_inst[:, None]
+    )
+    attached_defs = np.where(attacker_attached, atk_defs, -1)
+    safe_attached_defs = np.maximum(attached_defs, 0)
+    no_extra_attack_triggers = ~(
+        self._timing_after_attacking[safe_attacker_def]
+        | np.any(
+            self._timing_when_attacking[safe_attached_defs] & attacker_attached,
+            axis=1,
+        )
+        | np.any(
+            attacker_attached & (attached_defs == self._azk01_044_id),
+            axis=1,
+        )
+    )
+    cur_atk = np.asarray(states.cur_atk).astype(np.int16, copy=False)
+    cur_hp = np.asarray(states.cur_hp).astype(np.int16, copy=False)
+    damage = cur_atk[rows, active, attacker_inst]
+    defender_hp = cur_hp[rows, opp, defender_inst]
+    defender_atk = cur_atk[rows, opp, defender_inst]
+    attacker_hp = cur_hp[rows, active, attacker_inst]
+    damage_to_attacker = np.where(target_is_leader, 0, defender_atk)
+    attacker_after = attacker_hp - damage_to_attacker
+    defender_after = defender_hp - damage
+    attacker_dies = attacker_after <= 0
+    defender_dies = defender_after <= 0
+    garden_target_tapped_ok = ~target_is_garden | def_tapped[rows, defender_inst]
+    no_future_combat_triggers = (
+        ~self._timing_when_attacked[safe_defender_def]
+        & ~self._timing_takes_damage[safe_attacker_def]
+        & ~self._timing_deals_damage[safe_attacker_def]
+        & ~self._timing_takes_damage[safe_defender_def]
+        & ~self._timing_deals_damage[safe_defender_def]
+        & ~(self._timing_when_destroyed[safe_attacker_def] & attacker_dies)
+        & ~(self._timing_when_destroyed[safe_defender_def] & defender_dies)
+        & ~np.asarray(states.grant_godmode)[rows, active, attacker_inst]
+        & ~np.asarray(states.grant_godmode)[rows, opp, defender_inst]
+        & ~self._inherent_godmode[safe_attacker_def]
+        & ~self._inherent_godmode[safe_defender_def]
+    )
+    leader_future_combat = (
+        target_is_leader
+        & (damage >= 0)
+        & (damage < defender_hp)
+        & (defender_atk == 0)
+        & no_future_combat_triggers
+    )
+    entity_future_combat = (
+        target_is_garden
+        & garden_target_tapped_ok
+        & (damage >= 0)
+        & (damage_to_attacker >= 0)
+        & (attacker_hp > 0)
+        & (defender_hp > 0)
+        & no_future_combat_triggers
+    )
+    clean_future_combat = leader_future_combat | entity_future_combat
+    return (
+        base
+        & (active_acts[:, 0] == self._act_attack)
+        & (target_is_leader | target_is_garden)
+        & attacker_exists
+        & defender_exists
+        & (source_azk01_014 | source_azk01_072)
+        & self._timing_when_attacking[safe_attacker_def]
+        & self._implemented[safe_attacker_def]
+        & no_extra_attack_triggers
+        & ~np.any(attacker_attached, axis=1)
+        & effect_available
+        & clean_future_combat
+    )
+
+  def _attack_stt01_006_effect_fast_mask(
+      self, acts: np.ndarray, chosen, phase
+  ):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    opp = (active + 1) % 2
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    tapped_host = np.asarray(states.tapped)
+
+    base = (
+        (phase == 2)  # Phase.MAIN
+        & (chosen == self._act_attack)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
     )
     if not np.any(base):
       return base
@@ -11601,18 +24249,22 @@ class JaxVecEnv:
     )
     attached_defs = np.where(attacker_attached, atk_defs, -1)
     safe_attached_defs = np.maximum(attached_defs, 0)
-    no_extra_attack_triggers = ~(
-        np.any(
+    stt01_012_attached = attacker_attached & (
+        attached_defs == self._stt01_012_id
+    )
+    unsafe_attached = (
+        attacker_attached
+        & ~stt01_012_attached
+        & (
             self._timing_when_attacking[safe_attached_defs]
-            & attacker_attached,
-            axis=1,
-        )
-        | np.any(
-            attacker_attached & (attached_defs == self._azk01_044_id),
-            axis=1,
+            | self._timing_after_attacking[safe_attached_defs]
         )
     )
-    no_attached = ~np.any(attacker_attached, axis=1)
+    no_extra_attack_triggers = ~np.any(unsafe_attached, axis=1)
+    attached_ok = ~np.any(
+        attacker_attached & ~(stt01_012_attached | ~unsafe_attached),
+        axis=1,
+    )
     source_ok = (
         (attacker_def == self._stt01_006_id)
         & self._timing_when_attacking[safe_attacker_def]
@@ -11634,7 +24286,16 @@ class JaxVecEnv:
     board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
     passive_watch = board & np.isin(def_host, self._simple_play_watch_ids)
     passive_watch_ok = ~np.any(
-        passive_watch & (def_host != self._stt01_008_id),
+        passive_watch
+        & (def_host != self._stt01_008_id)
+        & (def_host != self._stt01_009_id)
+        & (def_host != self._stt01_011_id)
+        & (def_host != self._stt02_010_id)
+        & (def_host != self._azk01_010_id)
+        & (def_host != self._azk01_019_id)
+        & (def_host != self._azk01_073_id)
+        & (def_host != self._stt02_012_id)
+        & (def_host != self._stt03_013_id),
         axis=(1, 2),
     )
     return (
@@ -11646,11 +24307,173 @@ class JaxVecEnv:
         & (defender_index <= self._garden_size)
         & source_ok
         & no_extra_attack_triggers
-        & no_attached
+        & attached_ok
         & effect_available
         & passive_watch_ok
     )
 
+
+  def _attack_azk01_006_when_attacked_fast_mask(
+      self, acts: np.ndarray, chosen, phase
+  ):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    opp = (active + 1) % 2
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    attached_to = np.asarray(states.attached_to)
+    tapped_host = np.asarray(states.tapped)
+
+    base = (
+        (phase == 2)  # Phase.MAIN
+        & (chosen == self._act_attack)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    if not np.any(base):
+      return base
+
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+    attacker_slot = active_acts[:, 1].astype(np.int32, copy=False)
+    defender_slot = active_acts[:, 2].astype(np.int32, copy=False)
+    atk_zone = zone_host[rows, active]
+    atk_zpos = zpos_host[rows, active]
+    def_zone = zone_host[rows, opp]
+    def_zpos = zpos_host[rows, opp]
+    def_defs = def_host[rows, opp]
+
+    attacker_match = (atk_zone == self._zone_garden) & (
+        atk_zpos == attacker_slot[:, None]
+    )
+    attacker_exists = np.any(attacker_match, axis=1)
+    attacker_inst = np.argmax(attacker_match, axis=1)
+    attacker_def = def_host[rows, active, attacker_inst]
+    safe_attacker_def = np.maximum(attacker_def, 0)
+
+    defender_match = (
+        (defender_slot[:, None] >= 0)
+        & (defender_slot[:, None] < self._garden_size)
+        & (def_zone == self._zone_garden)
+        & (def_zpos == defender_slot[:, None])
+    )
+    defender_exists = np.any(defender_match, axis=1)
+    defender_inst = np.argmax(defender_match, axis=1)
+    defender_def = def_defs[rows, defender_inst]
+
+    safe_defender_def = np.maximum(defender_def, 0)
+    attacker_attached = np.any(
+        (atk_zone == self._zone_attached)
+        & (attached_to[rows, active] == attacker_inst[:, None]),
+        axis=1,
+    )
+    defender_attached = np.any(
+        (def_zone == self._zone_attached)
+        & (attached_to[rows, opp] == defender_inst[:, None]),
+        axis=1,
+    )
+    no_attacker_triggers = ~(
+        self._timing_when_attacking[safe_attacker_def]
+        | self._timing_after_attacking[safe_attacker_def]
+    )
+    def_tapped = tapped_host[rows, opp]
+    def_safe_defs = np.maximum(def_host[rows, opp], 0)
+    token_ready = (
+        (def_zone[:, self._token_instance] == self._zone_token)
+        & ~def_tapped[:, self._token_instance]
+    )
+    payment_sources = np.sum(
+        (def_zone == self._zone_ikz_area) & ~def_tapped,
+        axis=1,
+    )
+    payment_sources += np.sum(
+        (def_zone == self._zone_garden)
+        & ~def_tapped
+        & self._counts_as_ikz[def_safe_defs],
+        axis=1,
+    )
+    payment_sources += token_ready.astype(np.int32)
+    next_reduction = np.asarray(states.next_play_cost_reduction)[
+        rows, opp
+    ].astype(np.int32, copy=False)
+    response_cost = np.maximum(
+        self._ikz_cost[def_safe_defs].astype(np.int32) - next_reduction[:, None],
+        0,
+    )
+    in_hand = def_zone == self._zone_hand
+    response_spell = (
+        in_hand
+        & (self._card_type[def_safe_defs] == self._card_type_spell)
+        & self._timing_is_response[def_safe_defs]
+        & self._has_ability[def_safe_defs]
+        & (response_cost <= payment_sources[:, None])
+    )
+    response_from_hand = (
+        in_hand
+        & self._response_play_from_hand[def_safe_defs]
+        & (response_cost <= payment_sources[:, None])
+    )
+    response_board = (
+        (
+            (def_zone == self._zone_garden)
+            | (def_zone == self._zone_alley)
+            | (def_zone == self._zone_leader)
+        )
+        & self._timing_is_response[def_safe_defs]
+        & self._has_ability[def_safe_defs]
+        & (np.asarray(states.frozen_dur)[rows, opp] == 0)
+        & (
+            ~self._once_per_turn[def_safe_defs]
+            | ((np.asarray(states.once_per_turn_used)[rows, opp] & 1) == 0)
+        )
+        & (
+            self._ability_ikz_cost[def_safe_defs].astype(np.int32)
+            <= payment_sources[:, None]
+        )
+        & (
+            (def_host[rows, opp] != self._azk01_125_id)
+            | (np.asarray(states.discarded_cards_turn)[rows, opp][:, None] > 0)
+        )
+        & self._response_board_validate_ok(
+            states, rows, opp, def_zone, def_safe_defs
+        )
+    )
+    defender_cards = (
+        (def_zone == self._zone_garden)
+        & (
+            self._inherent_defender[def_safe_defs]
+            | np.asarray(states.grant_defender)[rows, opp]
+        )
+        & ~def_tapped
+    )
+    no_response = ~(
+        np.any(response_spell | response_from_hand, axis=1)
+        | np.any(response_board, axis=1)
+        | np.any(defender_cards, axis=1)
+    )
+    no_kira_redirect = ~np.any(
+        (def_zone == self._zone_alley) & (def_defs == self._azk01_034_id),
+        axis=1,
+    )
+    return (
+        base
+        & (active_acts[:, 0] == self._act_attack)
+        & attacker_exists
+        & defender_exists
+        & (defender_def == self._azk01_006_id)
+        & ~attacker_attached
+        & ~defender_attached
+        & no_attacker_triggers
+        & no_response
+        & no_kira_redirect
+    )
   def _declare_defender_fast_mask(self, acts: np.ndarray, chosen, phase):
     states = self._states
     rows = np.arange(self.num_environments)
@@ -11715,13 +24538,67 @@ class JaxVecEnv:
         & defender_kw
         & ~tapped_host[rows, active_safe, defender_inst]
         & ~attacker_infiltrate
+        # transition_to_combat_resolve queues the (new) defender's
+        # when-attacked trigger; C then begins it with control moved to its
+        # owner. The fast helper's close chain only begins queued STT03-006
+        # destroy triggers, so keep when-attacked interceptors on the
+        # generic kernel. (c11 step 120.)
+        & ~self._timing_when_attacked[safe_defender_def]
     )
+
+  def _attack_queued_stt03_006_fast_mask(
+      self, acts: np.ndarray, chosen, phase
+  ):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+
+    trig_count = np.asarray(states.trig_count).astype(np.int32, copy=False)
+    trig_owner = np.asarray(states.trig_owner)[:, 0].astype(np.int32, copy=False)
+    trig_source = np.asarray(states.trig_source)[:, 0].astype(np.int32, copy=False)
+    trig_timing = np.asarray(states.trig_timing)[:, 0].astype(np.int32, copy=False)
+    def_host = np.asarray(states.def_id)
+    owner_safe = np.clip(trig_owner, 0, 1)
+    source_safe = np.clip(trig_source, 0, def_host.shape[2] - 1)
+    trigger_def = def_host[rows, owner_safe, source_safe]
+    queued_stt03_006 = (
+        (trig_count == 1)
+        & (trig_owner >= 0)
+        & (trig_source >= 0)
+        & (trig_timing == 13)  # TIMING_WHEN_DESTROYED
+        & (trigger_def == self._stt03_006_id)
+    )
+    passive_clean = (
+        (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    return (
+        (phase == 2)  # Phase.MAIN
+        & (chosen == self._act_attack)
+        & (active_acts[:, 0] == self._act_attack)
+        & (np.asarray(states.ab_phase) == 0)
+        & queued_stt03_006
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & passive_clean
+    )
+
 
   def _attack_entity_mutual_destroy_fast_mask(
       self, acts: np.ndarray, chosen, phase
   ):
     states = self._states
     rows = np.arange(self.num_environments)
+    # The vmapped _attack_entity_mutual_destroy_one kernel compiles at
+    # 40-90 GB and its executable exceeds the persistent-cache serialization
+    # limit, so EVERY process re-pays it at batch >1. Route those rows to
+    # attack_static (the broad generic kernel, cached at (1,...)) above
+    # batch 1; batch-1 verifier coverage keeps the narrow path.
+    if self.num_environments > 1:
+      return np.zeros(self.num_environments, dtype=bool)
     active = np.asarray(states.active_player).astype(np.int32, copy=False)
     opp = (active + 1) % 2
     zone_host = np.asarray(states.zone)
@@ -11772,6 +24649,15 @@ class JaxVecEnv:
     defender_inst = np.argmax(defender_match, axis=1)
     defender_def = def_defs[rows, defender_inst]
     safe_defender_def = np.maximum(defender_def, 0)
+    attacker_godmode = (
+        self._inherent_godmode[safe_attacker_def]
+        | np.asarray(states.grant_godmode)[rows, active, attacker_inst]
+    )
+    defender_godmode = (
+        self._inherent_godmode[safe_defender_def]
+        | np.asarray(states.grant_godmode)[rows, opp, defender_inst]
+    )
+    attacker_azk01_047 = attacker_def == self._azk01_047_id
 
     old_exact_cards = (
         (attacker_def == self._azk01_058_id)
@@ -11792,25 +24678,138 @@ class JaxVecEnv:
     )
     exact_cards = old_exact_cards | azk01_062_fizzle
     attached_to = np.asarray(states.attached_to)
+    attacker_attached = (
+        (atk_zone == self._zone_attached)
+        & (attached_to[rows, active] == attacker_inst[:, None])
+    )
+    defender_attached = (
+        (def_zone == self._zone_attached)
+        & (attached_to[rows, opp] == defender_inst[:, None])
+    )
+    attacker_attached_defs = np.where(attacker_attached, atk_defs, -1)
+    defender_attached_defs = np.where(defender_attached, def_defs, -1)
+    attacker_raizan = self._raizan[safe_attacker_def]
+    safe_attacker_attached = (
+        (attacker_attached_defs == self._azk01_043_id)
+        | (attacker_attached_defs == self._azk01_095_id)
+        | (attacker_attached_defs == self._stt01_013_id)
+        | (
+            (attacker_attached_defs == self._stt01_016_id)
+            & ~attacker_raizan[:, None]
+        )
+    )
+    safe_defender_attached = (
+        (defender_attached_defs == self._azk01_043_id)
+        | (defender_attached_defs == self._azk01_095_id)
+    )
     no_attached = (
-        ~np.any(
-            (atk_zone == self._zone_attached)
-            & (attached_to[rows, active] == attacker_inst[:, None]),
-            axis=1,
-        )
-        & ~np.any(
-            (def_zone == self._zone_attached)
-            & (attached_to[rows, opp] == defender_inst[:, None]),
-            axis=1,
-        )
+        ~np.any(attacker_attached & ~safe_attacker_attached, axis=1)
+        & ~np.any(defender_attached & ~safe_defender_attached, axis=1)
     )
 
     cur_atk = np.asarray(states.cur_atk).astype(np.int16, copy=False)
     cur_hp = np.asarray(states.cur_hp).astype(np.int16, copy=False)
-    damage_to_defender = cur_atk[rows, active, attacker_inst]
-    damage_to_attacker = cur_atk[rows, opp, defender_inst]
+    attacker_carapace = (
+        self._innate_carapace[safe_attacker_def]
+        + np.asarray(states.carapace_perm)[rows, active, attacker_inst].astype(np.int16)
+        + np.asarray(states.carapace_eot)[rows, active, attacker_inst].astype(np.int16)
+    )
+    defender_carapace = (
+        self._innate_carapace[safe_defender_def]
+        + np.asarray(states.carapace_perm)[rows, opp, defender_inst].astype(np.int16)
+        + np.asarray(states.carapace_eot)[rows, opp, defender_inst].astype(np.int16)
+    )
+    defender_frozen = (
+        np.asarray(states.frozen_dur)[rows, opp, defender_inst] > 0
+    )
+    raw_damage_to_defender = np.maximum(
+        cur_atk[rows, active, attacker_inst] - defender_carapace, 0
+    )
+    raw_damage_to_attacker = np.maximum(
+        cur_atk[rows, opp, defender_inst] - attacker_carapace, 0
+    )
+    damage_to_defender = np.where(
+        defender_frozen, 0, raw_damage_to_defender
+    )
+    damage_to_attacker = np.where(
+        defender_frozen, 0, raw_damage_to_attacker
+    )
     attacker_hp = cur_hp[rows, active, attacker_inst]
     defender_hp = cur_hp[rows, opp, defender_inst]
+    attacker_after = attacker_hp - damage_to_attacker
+    defender_after = defender_hp - damage_to_defender
+    # C damage_util: godmode clamps negative HP at 0 (damage still applies)
+    # and only prevents death — mirror the helper's math.
+    attacker_after = np.where(
+        attacker_godmode & (attacker_after < 0), 0, attacker_after
+    )
+    defender_after = np.where(
+        defender_godmode & (defender_after < 0), 0, defender_after
+    )
+    both_started_alive = (attacker_hp > 0) & (defender_hp > 0)
+    attacker_dies_after_combat = (
+        both_started_alive
+        & (damage_to_attacker > 0)
+        & (attacker_after <= 0)
+        & ~attacker_godmode
+    )
+    defender_dies_after_combat = (
+        both_started_alive
+        & (damage_to_defender > 0)
+        & (defender_after <= 0)
+        & ~defender_godmode
+    )
+    attacker_stt03_006_destroyed = (
+        attacker_dies_after_combat & (attacker_def == self._stt03_006_id)
+    )
+    defender_stt03_006_destroyed = (
+        defender_dies_after_combat & (defender_def == self._stt03_006_id)
+    )
+    stt03_006_destroyed = (
+        attacker_stt03_006_destroyed | defender_stt03_006_destroyed
+    )
+    inst_axis = np.arange(atk_defs.shape[1], dtype=np.int32)[None, :]
+    attacker_other_garden_entity = np.any(
+        (atk_zone == self._zone_garden)
+        & (inst_axis != attacker_inst[:, None])
+        & (atk_defs >= 0)
+        & (self._card_type[np.maximum(atk_defs, 0)] == self._card_type_entity),
+        axis=1,
+    )
+    attacker_azk01_059_trigger = (
+        (attacker_def == self._azk01_059_id)
+        & (damage_to_attacker > 0)
+        & (attacker_after > 0)
+        & ((np.asarray(states.once_per_turn_used)[
+            rows, active, attacker_inst
+        ] & 1) == 0)
+        & attacker_other_garden_entity
+    )
+    defender_other_garden_entity = np.any(
+        (def_zone == self._zone_garden)
+        & (inst_axis != defender_inst[:, None])
+        & (def_defs >= 0)
+        & (self._card_type[np.maximum(def_defs, 0)] == self._card_type_entity),
+        axis=1,
+    )
+    defender_azk01_059_trigger = (
+        (defender_def == self._azk01_059_id)
+        & (damage_to_defender > 0)
+        & (defender_after > 0)
+        & ((np.asarray(states.once_per_turn_used)[
+            rows, opp, defender_inst
+        ] & 1) == 0)
+        & defender_other_garden_entity
+    )
+    attacker_azk01_059_after_fizzle = (
+        (attacker_def == self._azk01_059_id) & attacker_dies_after_combat
+    )
+    defender_azk01_059_after_fizzle = (
+        (defender_def == self._azk01_059_id) & defender_dies_after_combat
+    )
+    attacker_azk01_058_after_fizzle = (
+        (attacker_def == self._azk01_058_id) & attacker_dies_after_combat
+    )
     mutual_destroy = (
         (damage_to_defender > 0)
         & (damage_to_attacker > 0)
@@ -11832,11 +24831,6 @@ class JaxVecEnv:
         & (np.asarray(states.carapace_perm)[rows, opp, defender_inst] == 0)
         & (np.asarray(states.carapace_eot)[rows, opp, defender_inst] == 0)
         & (np.asarray(states.frozen_dur)[rows, active, attacker_inst] == 0)
-        & (np.asarray(states.frozen_dur)[rows, opp, defender_inst] == 0)
-        & ~np.asarray(states.grant_godmode)[rows, active, attacker_inst]
-        & ~np.asarray(states.grant_godmode)[rows, opp, defender_inst]
-        & ~self._inherent_godmode[safe_attacker_def]
-        & ~self._inherent_godmode[safe_defender_def]
     )
 
     old_trigger_ok = (
@@ -11886,8 +24880,70 @@ class JaxVecEnv:
         & self._has_ability[safe_defender_def]
         & self._implemented[safe_defender_def]
     )
+    defender_stt04_009_combat_fizzle = (
+        (defender_def == self._stt04_009_id)
+        & (damage_to_defender > 0)
+    )
+    attacker_stt04_007_trigger = (
+        (attacker_def == self._stt04_007_id)
+        & (damage_to_attacker > 0)
+    )
+    defender_stt04_007_trigger = (
+        (defender_def == self._stt04_007_id)
+        & (damage_to_defender > 0)
+    )
     simple_trigger_ok = (
-        ~self._timing_when_attacking[safe_attacker_def]
+        (~self._timing_when_attacking[safe_attacker_def] | attacker_azk01_047)
+        & (
+            ~self._timing_after_attacking[safe_attacker_def]
+            | attacker_azk01_058_after_fizzle
+        )
+        & (
+            ~self._timing_when_attacked[safe_defender_def]
+            | defender_unimplemented_when_attacked
+            | defender_azk01_036_when_attacked
+        )
+        & (
+            ~self._timing_takes_damage[safe_attacker_def]
+            | attacker_stt04_007_trigger
+            | attacker_azk01_059_after_fizzle
+        )
+        & (
+            ~self._timing_takes_damage[safe_defender_def]
+            | defender_stt04_009_combat_fizzle
+            | defender_stt04_007_trigger
+            | defender_azk01_059_after_fizzle
+        )
+        & ~self._timing_deals_damage[safe_attacker_def]
+        & ~self._timing_deals_damage[safe_defender_def]
+        & (
+            ~self._timing_when_destroyed[safe_attacker_def]
+            | attacker_stt03_006_destroyed
+        )
+        & (
+            ~self._timing_when_destroyed[safe_defender_def]
+            | defender_stt03_006_destroyed
+        )
+    )
+    attacker_azk01_059_trigger_ok = (
+        attacker_azk01_059_trigger
+        & ~self._timing_when_attacking[safe_attacker_def]
+        & ~self._timing_after_attacking[safe_attacker_def]
+        & (
+            ~self._timing_when_attacked[safe_defender_def]
+            | defender_unimplemented_when_attacked
+            | defender_azk01_036_when_attacked
+        )
+        & self._timing_takes_damage[safe_attacker_def]
+        & ~self._timing_takes_damage[safe_defender_def]
+        & ~self._timing_deals_damage[safe_attacker_def]
+        & ~self._timing_deals_damage[safe_defender_def]
+        & ~self._timing_when_destroyed[safe_attacker_def]
+        & ~self._timing_when_destroyed[safe_defender_def]
+    )
+    defender_azk01_059_trigger_ok = (
+        defender_azk01_059_trigger
+        & ~self._timing_when_attacking[safe_attacker_def]
         & ~self._timing_after_attacking[safe_attacker_def]
         & (
             ~self._timing_when_attacked[safe_defender_def]
@@ -11895,7 +24951,24 @@ class JaxVecEnv:
             | defender_azk01_036_when_attacked
         )
         & ~self._timing_takes_damage[safe_attacker_def]
-        & ~self._timing_takes_damage[safe_defender_def]
+        & self._timing_takes_damage[safe_defender_def]
+        & ~self._timing_deals_damage[safe_attacker_def]
+        & ~self._timing_deals_damage[safe_defender_def]
+        & ~self._timing_when_destroyed[safe_attacker_def]
+        & ~self._timing_when_destroyed[safe_defender_def]
+    )
+    both_azk01_059_trigger_ok = (
+        attacker_azk01_059_trigger
+        & defender_azk01_059_trigger
+        & ~self._timing_when_attacking[safe_attacker_def]
+        & ~self._timing_after_attacking[safe_attacker_def]
+        & (
+            ~self._timing_when_attacked[safe_defender_def]
+            | defender_unimplemented_when_attacked
+            | defender_azk01_036_when_attacked
+        )
+        & self._timing_takes_damage[safe_attacker_def]
+        & self._timing_takes_damage[safe_defender_def]
         & ~self._timing_deals_damage[safe_attacker_def]
         & ~self._timing_deals_damage[safe_defender_def]
         & ~self._timing_when_destroyed[safe_attacker_def]
@@ -11906,6 +24979,9 @@ class JaxVecEnv:
         | attacker_azk01_062_trigger_ok
         | defender_azk01_062_trigger_ok
         | simple_trigger_ok
+        | attacker_azk01_059_trigger_ok
+        | defender_azk01_059_trigger_ok
+        | both_azk01_059_trigger_ok
     )
 
     opp_zone = zone_host[rows, opp]
@@ -11957,6 +25033,27 @@ class JaxVecEnv:
         in_board
         & self._timing_is_response[opp_safe_defs]
         & self._has_ability[opp_safe_defs]
+        & (np.asarray(states.frozen_dur)[rows, opp] == 0)
+        & (
+            ~self._once_per_turn[opp_safe_defs]
+            | ((np.asarray(states.once_per_turn_used)[rows, opp] & 1) == 0)
+        )
+        & (
+            self._ability_ikz_cost[opp_safe_defs].astype(np.int32)
+            <= payment_sources[:, None]
+        )
+        & (
+            (opp_defs != self._azk01_070_id)
+            | (
+                (opp_zone == self._zone_garden)
+                & ~opp_tapped
+                & (np.asarray(states.frozen_dur)[rows, opp] == 0)
+                & (np.asarray(states.cooldown)[rows, opp] == 0)
+            )
+        )
+        & self._response_board_validate_ok(
+            states, rows, opp, opp_zone, opp_safe_defs
+        )
     )
     defender_cards = (
         (opp_zone == self._zone_garden)
@@ -11982,10 +25079,32 @@ class JaxVecEnv:
         passive_watch & (def_host != self._stt01_008_id),
         axis=(1, 2),
     )
+    stt02_012_inactive_alley = (
+        (def_host == self._stt02_012_id) & (zone_host == self._zone_alley)
+    )
+    stt03_013_inert = def_host == self._stt03_013_id
+    recompute_safe_watch = (
+        (def_host == self._stt01_008_id)
+        | (def_host == self._stt01_009_id)
+        | (def_host == self._stt01_011_id)
+        | (def_host == self._stt02_010_id)
+        | (def_host == self._azk01_010_id)
+        | (def_host == self._azk01_019_id)
+        | (def_host == self._azk01_073_id)
+        | (def_host == self._stt02_012_id)
+        | stt03_013_inert
+    )
+    no_passive_watch_recompute_safe = ~np.any(
+        passive_watch & ~recompute_safe_watch,
+        axis=(1, 2),
+    )
     passive_watch_ok = (
         (old_exact_cards & no_passive_watch_strict)
         | (azk01_062_fizzle & no_passive_watch_stt01_008_inert)
-        | (simple_trigger_ok & no_passive_watch_stt01_008_inert)
+        | (simple_trigger_ok & no_passive_watch_recompute_safe)
+        | (attacker_azk01_059_trigger_ok & no_passive_watch_recompute_safe)
+        | (defender_azk01_059_trigger_ok & no_passive_watch_recompute_safe)
+        | (both_azk01_059_trigger_ok & no_passive_watch_recompute_safe)
     )
 
     return (
@@ -11998,6 +25117,7 @@ class JaxVecEnv:
         & no_response
         & no_kira_redirect
         & passive_watch_ok
+        & ~(attacker_stt03_006_destroyed & defender_stt03_006_destroyed)
     )
 
   def _attack_leader_response_fast_mask(self, acts: np.ndarray, chosen, phase):
@@ -12009,18 +25129,53 @@ class JaxVecEnv:
     zpos_host = np.asarray(states.zpos)
     def_host = np.asarray(states.def_id)
     tapped_host = np.asarray(states.tapped)
+    trig_count = np.asarray(states.trig_count).astype(np.int32, copy=False)
+    trig_owner = np.asarray(states.trig_owner)[:, 0].astype(np.int32, copy=False)
+    trig_source = np.asarray(states.trig_source)[:, 0].astype(np.int32, copy=False)
+    trig_timing = np.asarray(states.trig_timing)[:, 0].astype(np.int32, copy=False)
+    trig_owner_safe = np.clip(trig_owner, 0, 1)
+    trig_source_safe = np.maximum(trig_source, 0)
+    pending_stt03_006_trigger = (
+        (trig_count == 1)
+        & (trig_timing == 13)  # TIMING_WHEN_DESTROYED
+        & (def_host[rows, trig_owner_safe, trig_source_safe] == self._stt03_006_id)
+        & np.any(zone_host[rows, trig_owner_safe] == self._zone_hand, axis=1)
+    )
+    trig_clean = (trig_count == 0) | pending_stt03_006_trigger
+
+    board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
+    stt03_013_inert = def_host == self._stt03_013_id
+    recompute_safe_watch = (
+        (def_host == self._stt01_008_id)
+        | (def_host == self._stt01_009_id)
+        | (def_host == self._stt01_011_id)
+        | (def_host == self._stt02_010_id)
+        | (def_host == self._azk01_010_id)
+        | (def_host == self._azk01_019_id)
+        | (def_host == self._azk01_073_id)
+        | (def_host == self._stt02_012_id)
+        | stt03_013_inert
+    )
+    passive_queue_ok = (
+        (np.asarray(states.passive_queue_count) == 0)
+        | ~np.any(
+            board
+            & np.isin(def_host, self._simple_play_watch_ids)
+            & ~recompute_safe_watch,
+            axis=(1, 2),
+        )
+    )
 
     base = (
         (phase == 2)  # Phase.MAIN
         & (chosen == self._act_attack)
         & (np.asarray(states.ab_phase) == 0)
-        & (np.asarray(states.trig_count) == 0)
+        & trig_clean
         & (np.asarray(states.redirect_count) == 0)
         & (np.asarray(states.combat_attacker) < 0)
         & (np.asarray(states.winner) == -1)
         & ~np.asarray(states.eot_abilities_queued)
-        & (np.asarray(states.passive_queue_count) == 0)
-        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+        & passive_queue_ok
     )
     if not np.any(base):
       return base
@@ -12032,6 +25187,7 @@ class JaxVecEnv:
     atk_zpos = zpos_host[rows, active]
     atk_defs = def_host[rows, active]
     def_zone = zone_host[rows, opp]
+    def_zpos = zpos_host[rows, opp]
     def_defs = def_host[rows, opp]
     def_tapped = tapped_host[rows, opp]
 
@@ -12048,23 +25204,107 @@ class JaxVecEnv:
     attacker_inst = np.argmax(attacker_match, axis=1)
     attacker_def = atk_defs[rows, attacker_inst]
     safe_attacker_def = np.maximum(attacker_def, 0)
+    azk01_058_confirm = attacker_def == self._azk01_058_id
+    azk01_047_attack = attacker_def == self._azk01_047_id
+    source_azk01_014 = attacker_def == self._azk01_014_id
+    source_azk01_072 = attacker_def == self._azk01_072_id
+    target_cols = np.arange(atk_zone.shape[1])[None, :]
+    other_garden_entity = (
+        (atk_zone == self._zone_garden)
+        & (atk_defs >= 0)
+        & (self._card_type[np.maximum(atk_defs, 0)] == self._card_type_entity)
+        & (target_cols != attacker_inst[:, None])
+    )
+    other_garden_beanz = other_garden_entity & self._beanz[np.maximum(atk_defs, 0)]
+    azk01_014_effect_available = np.any(
+        np.where(source_azk01_072[:, None], other_garden_beanz, other_garden_entity),
+        axis=1,
+    )
+    azk01_014_fizzles = (source_azk01_014 | source_azk01_072) & ~azk01_014_effect_available
+    stt02_pending = np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    pending_passive_ok = ~stt02_pending | (attacker_def != self._stt02_012_id)
 
+    target_is_leader = defender_index == self._garden_size
+    target_is_garden = defender_index < self._garden_size
+    target_is_alley = defender_index > self._garden_size
+    alley_slot = defender_index - (self._garden_size + 1)
     leader_match = def_zone == self._zone_leader
-    defender_exists = np.any(leader_match, axis=1)
-    defender_inst = np.argmax(leader_match, axis=1)
+    garden_match = (def_zone == self._zone_garden) & (
+        def_zpos == defender_index[:, None]
+    )
+    alley_match = (def_zone == self._zone_alley) & (
+        def_zpos == alley_slot[:, None]
+    )
+    defender_match = np.where(
+        target_is_leader[:, None],
+        leader_match,
+        np.where(target_is_alley[:, None], alley_match, garden_match),
+    )
+    defender_exists = (
+        (defender_index >= 0)
+        & (defender_index <= self._garden_size + self._garden_size)
+        & np.any(defender_match, axis=1)
+    )
+    defender_inst = np.argmax(defender_match, axis=1)
     defender_def = def_defs[rows, defender_inst]
     safe_defender_def = np.maximum(defender_def, 0)
-    defender_is_leader_target = defender_index == self._garden_size
+    defender_is_leader_target = target_is_leader
 
     attached = (atk_zone == self._zone_attached) & (
         np.asarray(states.attached_to)[rows, active] == attacker_inst[:, None]
     )
     attached_defs = np.where(attached, atk_defs, -1)
     safe_attached_defs = np.maximum(attached_defs, 0)
+    stt01_012_attached = attached & (attached_defs == self._stt01_012_id)
+    exactly_one_stt01_012 = np.sum(stt01_012_attached, axis=1) == 1
+    exactly_one_attached = np.sum(attached, axis=1) == 1
+    stt01_012_supported = (
+        exactly_one_stt01_012
+        & exactly_one_attached
+        & (np.sum(atk_zone == self._zone_deck, axis=1) > 0)
+    )
+    stt01_016_attached = attached & (attached_defs == self._stt01_016_id)
+    exactly_one_stt01_016 = np.sum(stt01_016_attached, axis=1) == 1
+    attached_when_attacking_count = np.sum(
+        attached & self._timing_when_attacking[safe_attached_defs],
+        axis=1,
+    )
+    attacker_is_raizan = self._raizan[safe_attacker_def]
+    enemy_garden_target = (
+        (def_zone == self._zone_garden)
+        & (def_defs >= 0)
+        & ~self._inherent_effect_immune[np.maximum(def_defs, 0)]
+        & (np.asarray(states.effect_immune_dur)[rows, opp] == 0)
+    )
+    effect_hp = np.asarray(states.cur_hp).astype(np.int16, copy=False)[rows, opp]
+    enemy_garden_target_clean = (
+        enemy_garden_target
+        & (effect_hp > 1)
+        & ~self._timing_takes_damage[np.maximum(def_defs, 0)]
+        & ~self._timing_when_destroyed[np.maximum(def_defs, 0)]
+    )
+    stt01_016_valid = attacker_is_raizan & np.any(enemy_garden_target, axis=1)
+    stt01_016_clean = (
+        stt01_016_valid
+        & exactly_one_stt01_016
+        & (attached_when_attacking_count == 1)
+        & ~np.any(enemy_garden_target & ~enemy_garden_target_clean, axis=1)
+    )
+    stt01_016_fizzles = stt01_016_attached & ~stt01_016_valid[:, None]
+    attached_attack_trigger = np.any(
+        self._timing_when_attacking[safe_attached_defs]
+        & attached
+        & ~stt01_016_fizzles,
+        axis=1,
+    )
+    attached_attack_trigger_supported = stt01_012_supported | stt01_016_clean
     no_attacking_triggers = ~(
-        self._timing_when_attacking[safe_attacker_def]
-        | self._timing_after_attacking[safe_attacker_def]
-        | np.any(self._timing_when_attacking[safe_attached_defs] & attached, axis=1)
+        (
+            self._timing_when_attacking[safe_attacker_def]
+            & ~(azk01_047_attack | azk01_014_fizzles)
+        )
+        | (self._timing_after_attacking[safe_attacker_def] & ~azk01_058_confirm)
+        | (attached_attack_trigger & ~attached_attack_trigger_supported)
         | np.any(attached & (attached_defs == self._azk01_044_id), axis=1)
     )
     cur_atk = np.asarray(states.cur_atk)
@@ -12083,15 +25323,12 @@ class JaxVecEnv:
         | self._timing_deals_damage[safe_attacker_def]
     )
 
-    nonlethal = (damage >= 0) & (damage < defender_hp) & (defender_atk == 0)
+    defender_after_damage = defender_hp - damage
+    future_damage_ok = damage >= 0
 
     no_modifiers = (
-        (np.asarray(states.cmb_in_perm)[rows, active, attacker_inst] == 0)
-        & (np.asarray(states.cmb_in_eot)[rows, active, attacker_inst] == 0)
-        & (np.asarray(states.cmb_out_perm)[rows, active, attacker_inst] == 0)
+        (np.asarray(states.cmb_out_perm)[rows, active, attacker_inst] == 0)
         & (np.asarray(states.cmb_out_eot)[rows, active, attacker_inst] == 0)
-        & (np.asarray(states.carapace_perm)[rows, active, attacker_inst] == 0)
-        & (np.asarray(states.carapace_eot)[rows, active, attacker_inst] == 0)
         & (np.asarray(states.cmb_in_perm)[rows, opp, defender_inst] == 0)
         & (np.asarray(states.cmb_in_eot)[rows, opp, defender_inst] == 0)
         & (np.asarray(states.cmb_out_perm)[rows, opp, defender_inst] == 0)
@@ -12099,11 +25336,15 @@ class JaxVecEnv:
         & (np.asarray(states.carapace_perm)[rows, opp, defender_inst] == 0)
         & (np.asarray(states.carapace_eot)[rows, opp, defender_inst] == 0)
         & (np.asarray(states.frozen_dur)[rows, opp, defender_inst] == 0)
-        & ~np.asarray(states.grant_godmode)[rows, active, attacker_inst]
-        & ~np.asarray(states.grant_godmode)[rows, opp, defender_inst]
-        & ~self._inherent_godmode[safe_attacker_def]
-        & ~self._inherent_godmode[safe_defender_def]
+        & (
+            ~np.asarray(states.grant_godmode)[rows, opp, defender_inst]
+            | (defender_after_damage >= 0)
+        )
+        & (~self._inherent_godmode[safe_defender_def] | (defender_after_damage >= 0))
     )
+    garden_target_tapped_ok = ~target_is_garden | def_tapped[rows, defender_inst]
+    alley_attack_ok = ~target_is_alley | self._can_attack_alley[safe_attacker_def]
+    leaders_only_ok = ~self._can_target_leader_only[safe_attacker_def] | target_is_leader
 
     opp_zone = zone_host[rows, opp]
     opp_defs = def_host[rows, opp]
@@ -12116,6 +25357,20 @@ class JaxVecEnv:
         )
         & self._timing_is_response[opp_safe_defs]
         & self._has_ability[opp_safe_defs]
+        & (np.asarray(states.frozen_dur)[rows, opp] == 0)
+        & (
+            ~self._once_per_turn[opp_safe_defs]
+            | ((np.asarray(states.once_per_turn_used)[rows, opp] & 1) == 0)
+        )
+        & (
+            (opp_defs != self._azk01_070_id)
+            | (
+                (opp_zone == self._zone_garden)
+                & ~def_tapped
+                & (np.asarray(states.frozen_dur)[rows, opp] == 0)
+                & (np.asarray(states.cooldown)[rows, opp] == 0)
+            )
+        )
     )
     defender_cards = (
         (opp_zone == self._zone_garden)
@@ -12147,6 +25402,20 @@ class JaxVecEnv:
         self._ikz_cost[opp_safe_defs].astype(np.int32) - next_reduction[:, None],
         0,
     )
+    response_board_payable = (
+        response_board
+        & (
+            self._ability_ikz_cost[opp_safe_defs].astype(np.int32)
+            <= payment_sources[:, None]
+        )
+        & (
+            (opp_defs != self._azk01_125_id)
+            | (np.asarray(states.discarded_cards_turn)[rows, opp][:, None] > 0)
+        )
+        & self._response_board_validate_ok(
+            states, rows, opp, opp_zone, opp_safe_defs
+        )
+    )
     in_hand = opp_zone == self._zone_hand
     response_spell = (
         in_hand
@@ -12176,7 +25445,7 @@ class JaxVecEnv:
     )
     no_other_response_shape = (
         ~np.any(response_hand, axis=1)
-        & ~np.any(response_board, axis=1)
+        & ~np.any(response_board_payable, axis=1)
         & ~np.any(defender_cards, axis=1)
     )
 
@@ -12190,8 +25459,9 @@ class JaxVecEnv:
         & (defender_def == self._azk01_121_id)
         & no_attacking_triggers
         & no_defender_triggers
-        & nonlethal
+        & future_damage_ok
         & no_modifiers
+        & pending_passive_ok
         & has_azk01_127_response
         & no_other_response_shape
     )
@@ -12200,18 +25470,200 @@ class JaxVecEnv:
         & (active_acts[:, 0] == self._act_attack)
         & attacker_exists
         & defender_exists
-        & defender_is_leader_target
+        & garden_target_tapped_ok
+        & alley_attack_ok
+        & leaders_only_ok
         & no_attacking_triggers
         & no_defender_triggers
-        & nonlethal
+        & future_damage_ok
         & no_modifiers
+        & pending_passive_ok
         & (
             np.any(response_hand, axis=1)
-            | np.any(response_board, axis=1)
+            | np.any(response_board_payable, axis=1)
             | np.any(defender_cards, axis=1)
         )
     )
     return azk01_127_response_shape | board_response_shape
+
+  def _attack_stt01_012_response_fast_mask(
+      self, acts: np.ndarray, chosen, phase
+  ):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    opp = (active + 1) % 2
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    tapped_host = np.asarray(states.tapped)
+
+    base = (
+        (phase == 2)  # Phase.MAIN
+        & (chosen == self._act_attack)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    if not np.any(base):
+      return base
+
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+    attacker_index = active_acts[:, 1]
+    defender_index = active_acts[:, 2]
+    atk_zone = zone_host[rows, active]
+    atk_defs = def_host[rows, active]
+    def_zone = zone_host[rows, opp]
+    def_zpos = zpos_host[rows, opp]
+    def_defs = def_host[rows, opp]
+    def_tapped = tapped_host[rows, opp]
+
+    leader_attacker_match = atk_zone == self._zone_leader
+    garden_attacker_match = (atk_zone == self._zone_garden) & (
+        zpos_host[rows, active] == attacker_index[:, None]
+    )
+    attacker_match = np.where(
+        (attacker_index == self._garden_size)[:, None],
+        leader_attacker_match,
+        garden_attacker_match,
+    )
+    attacker_exists = np.any(attacker_match, axis=1)
+    attacker_inst = np.argmax(attacker_match, axis=1)
+    attacker_def = atk_defs[rows, attacker_inst]
+    safe_attacker_def = np.maximum(attacker_def, 0)
+
+    target_is_leader = defender_index == self._garden_size
+    target_is_garden = (defender_index >= 0) & (
+        defender_index < self._garden_size
+    )
+    leader_match = def_zone == self._zone_leader
+    garden_match = (def_zone == self._zone_garden) & (
+        def_zpos == defender_index[:, None]
+    )
+    defender_match = np.where(target_is_leader[:, None], leader_match, garden_match)
+    defender_exists = (target_is_leader | target_is_garden) & np.any(
+        defender_match, axis=1
+    )
+    defender_inst = np.argmax(defender_match, axis=1)
+    defender_def = def_defs[rows, defender_inst]
+    safe_defender_def = np.maximum(defender_def, 0)
+
+    attached_to = np.asarray(states.attached_to)
+    attacker_attached = (atk_zone == self._zone_attached) & (
+        attached_to[rows, active] == attacker_inst[:, None]
+    )
+    attached_defs = np.where(attacker_attached, atk_defs, -1)
+    safe_attached_defs = np.maximum(attached_defs, 0)
+    stt01_012_attached = attacker_attached & (
+        attached_defs == self._stt01_012_id
+    )
+    exactly_one_stt01_012 = np.sum(stt01_012_attached, axis=1) == 1
+    exactly_one_attached = np.sum(attacker_attached, axis=1) == 1
+    trigger_ok = (
+        ~self._timing_when_attacking[safe_attacker_def]
+        & ~self._timing_after_attacking[safe_attacker_def]
+        & exactly_one_stt01_012
+        & ~self._timing_when_attacked[safe_defender_def]
+        & ~np.any(
+            attacker_attached
+            & (attached_defs != self._stt01_012_id)
+            & (
+                self._timing_when_attacking[safe_attached_defs]
+                | self._timing_after_attacking[safe_attached_defs]
+            ),
+            axis=1,
+        )
+        & ~np.any(
+            attacker_attached & (attached_defs == self._azk01_044_id),
+            axis=1,
+        )
+    )
+
+    no_modifiers = (
+        (np.asarray(states.cmb_in_perm)[rows, active, attacker_inst] == 0)
+        & (np.asarray(states.cmb_in_eot)[rows, active, attacker_inst] == 0)
+        & (np.asarray(states.cmb_out_perm)[rows, active, attacker_inst] == 0)
+        & (np.asarray(states.cmb_out_eot)[rows, active, attacker_inst] == 0)
+        & (np.asarray(states.carapace_perm)[rows, active, attacker_inst] == 0)
+        & (np.asarray(states.carapace_eot)[rows, active, attacker_inst] == 0)
+        & (np.asarray(states.cmb_in_perm)[rows, opp, defender_inst] == 0)
+        & (np.asarray(states.cmb_in_eot)[rows, opp, defender_inst] == 0)
+        & (np.asarray(states.cmb_out_perm)[rows, opp, defender_inst] == 0)
+        & (np.asarray(states.cmb_out_eot)[rows, opp, defender_inst] == 0)
+        & (np.asarray(states.carapace_perm)[rows, opp, defender_inst] == 0)
+        & (np.asarray(states.carapace_eot)[rows, opp, defender_inst] == 0)
+        & (np.asarray(states.frozen_dur)[rows, active, attacker_inst] == 0)
+        & (np.asarray(states.frozen_dur)[rows, opp, defender_inst] == 0)
+        & ~np.asarray(states.grant_godmode)[rows, active, attacker_inst]
+        & ~np.asarray(states.grant_godmode)[rows, opp, defender_inst]
+        & ~self._inherent_godmode[safe_attacker_def]
+        & ~self._inherent_godmode[safe_defender_def]
+    )
+
+    cur_atk = np.asarray(states.cur_atk).astype(np.int16, copy=False)
+    cur_hp = np.asarray(states.cur_hp).astype(np.int16, copy=False)
+    damage_to_defender = cur_atk[rows, active, attacker_inst]
+    damage_to_attacker = cur_atk[rows, opp, defender_inst]
+    attacker_hp = cur_hp[rows, active, attacker_inst]
+    defender_hp = cur_hp[rows, opp, defender_inst]
+    attacker_after = attacker_hp - damage_to_attacker
+    defender_after = defender_hp - damage_to_defender
+    defender_attached = (def_zone == self._zone_attached) & (
+        attached_to[rows, opp] == defender_inst[:, None]
+    )
+    defender_dies = defender_after <= 0
+    clean_combat = (
+        (damage_to_defender >= 0)
+        & (damage_to_attacker >= 0)
+        & (attacker_hp > 0)
+        & (defender_hp > 0)
+        & (attacker_after > 0)
+        & ~self._timing_takes_damage[safe_attacker_def]
+        & ~self._timing_deals_damage[safe_attacker_def]
+        & ~self._timing_takes_damage[safe_defender_def]
+        & ~self._timing_deals_damage[safe_defender_def]
+        & ~(self._timing_when_destroyed[safe_defender_def] & defender_dies)
+        & ((defender_after > 0) | ~np.any(defender_attached, axis=1))
+    )
+    no_kira_redirect = ~np.any(
+        (def_zone == self._zone_alley) & (def_defs == self._azk01_034_id),
+        axis=1,
+    )
+    board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
+    passive_watch = board & np.isin(def_host, self._simple_play_watch_ids)
+    passive_watch_ok = ~np.any(
+        passive_watch
+        & (def_host != self._stt01_008_id)
+        & (def_host != self._stt01_009_id)
+        & (def_host != self._stt01_011_id)
+        & (def_host != self._stt02_010_id)
+        & (def_host != self._azk01_010_id)
+        & (def_host != self._azk01_019_id)
+        & (def_host != self._azk01_073_id)
+        & (def_host != self._stt02_012_id)
+        & (def_host != self._stt03_013_id),
+        axis=(1, 2),
+    )
+
+    return (
+        base
+        & (active_acts[:, 0] == self._act_attack)
+        & attacker_exists
+        & defender_exists
+        & (attacker_def >= 0)
+        & (defender_def >= 0)
+        & trigger_ok
+        & no_modifiers
+        & clean_combat
+        & no_kira_redirect
+        & passive_watch_ok
+    )
+
 
   def _attack_entity_response_fast_mask(self, acts: np.ndarray, chosen, phase):
     states = self._states
@@ -12278,9 +25730,17 @@ class JaxVecEnv:
         & self._has_ability[safe_defender_def]
         & self._implemented[safe_defender_def]
     )
+    attacker_azk01_047 = attacker_def == self._azk01_047_id
+    azk01_058_after_attacking = (
+        (attacker_def == self._azk01_058_id)
+        & self._timing_after_attacking[safe_attacker_def]
+    )
     no_attack_declaration_triggers = ~(
-        self._timing_when_attacking[safe_attacker_def]
-        | self._timing_after_attacking[safe_attacker_def]
+        (self._timing_when_attacking[safe_attacker_def] & ~attacker_azk01_047)
+        | (
+            self._timing_after_attacking[safe_attacker_def]
+            & ~azk01_058_after_attacking
+        )
         | (
             self._timing_when_attacked[safe_defender_def]
             & ~defender_azk01_040_when_attacked
@@ -12308,7 +25768,7 @@ class JaxVecEnv:
     attacker_after = attacker_hp - damage_to_attacker
     defender_after = defender_hp - damage_to_defender
     clean_damage = (
-        (damage_to_defender > 0)
+        (damage_to_defender >= 0)
         & (damage_to_attacker >= 0)
         & (attacker_hp > 0)
         & (defender_hp > 0)
@@ -12335,6 +25795,7 @@ class JaxVecEnv:
         & ((attacker_after > 0) | (attacker_dies & no_passive_death_watch))
         & ((defender_after > 0) | (defender_dies & no_passive_death_watch))
     )
+    azk01_040_response_ready = defender_azk01_040_when_attacked & clean_damage
     no_modifiers = (
         (np.asarray(states.cmb_in_perm)[rows, active, attacker_inst] == 0)
         & (np.asarray(states.cmb_in_eot)[rows, active, attacker_inst] == 0)
@@ -12400,6 +25861,18 @@ class JaxVecEnv:
         )
         & self._timing_is_response[def_safe_defs]
         & self._has_ability[def_safe_defs]
+        & (np.asarray(states.frozen_dur)[rows, opp] == 0)
+        & (
+            ~self._once_per_turn[def_safe_defs]
+            | ((np.asarray(states.once_per_turn_used)[rows, opp] & 1) == 0)
+        )
+        & (
+            self._ability_ikz_cost[def_safe_defs].astype(np.int32)
+            <= payment_sources[:, None]
+        )
+        & self._response_board_validate_ok(
+            states, rows, opp, def_zone, def_safe_defs
+        )
     )
     defender_cards = (
         (def_zone == self._zone_garden)
@@ -12413,7 +25886,6 @@ class JaxVecEnv:
         np.any(response_spell | response_from_hand, axis=1)
         | np.any(response_board, axis=1)
         | np.any(defender_cards, axis=1)
-        | azk01_040_combat_clean
     )
     no_kira_redirect = ~np.any(
         (def_zone == self._zone_alley) & (def_defs == self._azk01_034_id),
@@ -12422,7 +25894,15 @@ class JaxVecEnv:
     board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
     passive_watch = board & np.isin(def_host, self._simple_play_watch_ids)
     passive_watch_ok = ~np.any(
-        passive_watch & (def_host != self._stt01_008_id),
+        passive_watch
+        & (def_host != self._stt01_008_id)
+        & (def_host != self._stt01_009_id)
+        & (def_host != self._stt01_011_id)
+        & (def_host != self._azk01_010_id)
+        & (def_host != self._azk01_019_id)
+        & (def_host != self._azk01_073_id)
+        & (def_host != self._stt02_012_id)
+        & (def_host != self._stt03_013_id),
         axis=(1, 2),
     )
     return (
@@ -12433,7 +25913,7 @@ class JaxVecEnv:
         & no_attached
         & no_attack_declaration_triggers
         & has_response
-        & (~defender_azk01_040_when_attacked | (azk01_040_combat_clean & no_modifiers))
+        & (~defender_azk01_040_when_attacked | (azk01_040_response_ready & no_modifiers))
         & no_kira_redirect
         & passive_watch_ok
     )
@@ -12458,8 +25938,6 @@ class JaxVecEnv:
         & (np.asarray(states.combat_attacker) < 0)
         & (np.asarray(states.winner) == -1)
         & ~np.asarray(states.eot_abilities_queued)
-        & (np.asarray(states.passive_queue_count) == 0)
-        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
     )
     if not np.any(base):
       return base
@@ -12472,6 +25950,8 @@ class JaxVecEnv:
     atk_defs = def_host[rows, active]
     def_zone = zone_host[rows, opp]
     def_defs = def_host[rows, opp]
+    def_zpos = zpos_host[rows, opp]
+    def_tapped = np.asarray(states.tapped)[rows, opp]
 
     attacker_match = (atk_zone == self._zone_garden) & (
         atk_zpos == attacker_index[:, None]
@@ -12481,13 +25961,21 @@ class JaxVecEnv:
     attacker_def = atk_defs[rows, attacker_inst]
     safe_attacker_def = np.maximum(attacker_def, 0)
 
+    target_is_leader = defender_index == self._garden_size
+    target_is_garden = defender_index < self._garden_size
     leader_match = def_zone == self._zone_leader
-    defender_exists = np.any(leader_match, axis=1)
-    defender_inst = np.argmax(leader_match, axis=1)
+    garden_match = (def_zone == self._zone_garden) & (
+        def_zpos == defender_index[:, None]
+    )
+    defender_match = np.where(target_is_leader[:, None], leader_match, garden_match)
+    defender_exists = (target_is_leader | target_is_garden) & np.any(
+        defender_match, axis=1
+    )
+    defender_inst = np.argmax(defender_match, axis=1)
     defender_def = def_defs[rows, defender_inst]
     safe_defender_def = np.maximum(defender_def, 0)
-    defender_is_leader_target = defender_index == self._garden_size
-
+    defender_is_leader_target = target_is_leader
+    garden_target_tapped_ok = ~target_is_garden | def_tapped[rows, defender_inst]
     attached_to = np.asarray(states.attached_to)
     attacker_attached = (atk_zone == self._zone_attached) & (
         attached_to[rows, active] == attacker_inst[:, None]
@@ -12550,23 +26038,19 @@ class JaxVecEnv:
         & ~self._inherent_godmode[safe_defender_def]
     )
 
-    opp_zone = zone_host[rows, opp]
-    opp_defs = def_host[rows, opp]
-    opp_safe_defs = np.maximum(opp_defs, 0)
-    in_hand = opp_zone == self._zone_hand
-    opp_tapped = np.asarray(states.tapped)[rows, opp]
     token_ready = (
-        (opp_zone[:, self._token_instance] == self._zone_token)
-        & ~opp_tapped[:, self._token_instance]
+        (def_zone[:, self._token_instance] == self._zone_token)
+        & ~def_tapped[:, self._token_instance]
     )
     payment_sources = np.sum(
-        (opp_zone == self._zone_ikz_area) & ~opp_tapped,
+        (def_zone == self._zone_ikz_area) & ~def_tapped,
         axis=1,
     )
+    def_safe_defs = np.maximum(def_defs, 0)
     payment_sources += np.sum(
-        (opp_zone == self._zone_garden)
-        & ~opp_tapped
-        & self._counts_as_ikz[opp_safe_defs],
+        (def_zone == self._zone_garden)
+        & ~def_tapped
+        & self._counts_as_ikz[def_safe_defs],
         axis=1,
     )
     payment_sources += token_ready.astype(np.int32)
@@ -12574,44 +26058,69 @@ class JaxVecEnv:
         rows, opp
     ].astype(np.int32, copy=False)
     response_cost = np.maximum(
-        self._ikz_cost[opp_safe_defs].astype(np.int32) - next_reduction[:, None],
+        self._ikz_cost[def_safe_defs].astype(np.int32) - next_reduction[:, None],
         0,
     )
+    in_hand = def_zone == self._zone_hand
     response_spell = (
         in_hand
-        & (self._card_type[opp_safe_defs] == self._card_type_spell)
-        & self._timing_is_response[opp_safe_defs]
-        & self._has_ability[opp_safe_defs]
+        & (self._card_type[def_safe_defs] == self._card_type_spell)
+        & self._timing_is_response[def_safe_defs]
+        & self._has_ability[def_safe_defs]
         & (response_cost <= payment_sources[:, None])
     )
     response_from_hand = (
         in_hand
-        & self._response_play_from_hand[opp_safe_defs]
+        & self._response_play_from_hand[def_safe_defs]
         & (response_cost <= payment_sources[:, None])
     )
-    response_hand = response_spell | response_from_hand
-    in_board = (
-        (opp_zone == self._zone_garden)
-        | (opp_zone == self._zone_alley)
-        | (opp_zone == self._zone_leader)
-    )
     response_board = (
-        in_board
-        & self._timing_is_response[opp_safe_defs]
-        & self._has_ability[opp_safe_defs]
+        (
+            (def_zone == self._zone_garden)
+            | (def_zone == self._zone_alley)
+            | (def_zone == self._zone_leader)
+        )
+        & self._timing_is_response[def_safe_defs]
+        & self._has_ability[def_safe_defs]
+        & (np.asarray(states.frozen_dur)[rows, opp] == 0)
+        & (
+            ~self._once_per_turn[def_safe_defs]
+            | ((np.asarray(states.once_per_turn_used)[rows, opp] & 1) == 0)
+        )
+        & (
+            self._ability_ikz_cost[def_safe_defs].astype(np.int32)
+            <= payment_sources[:, None]
+        )
+        & self._response_board_validate_ok(
+            states, rows, opp, def_zone, def_safe_defs
+        )
     )
     defender_cards = (
-        (opp_zone == self._zone_garden)
+        (def_zone == self._zone_garden)
         & (
-            self._inherent_defender[opp_safe_defs]
+            self._inherent_defender[def_safe_defs]
             | np.asarray(states.grant_defender)[rows, opp]
         )
-        & ~opp_tapped
+        & ~def_tapped
     )
-    no_response = ~(
-        np.any(response_hand, axis=1)
+    has_response = (
+        np.any(response_spell | response_from_hand, axis=1)
         | np.any(response_board, axis=1)
         | np.any(defender_cards, axis=1)
+    )
+
+    clean_leader_resolve = defender_is_leader_target & no_defender_triggers & nonlethal
+    clean_entity_resolve = (
+        target_is_garden
+        & garden_target_tapped_ok
+        & no_defender_triggers
+        & ~has_response
+    )
+    clean_response_declare = (
+        (target_is_garden | defender_is_leader_target)
+        & garden_target_tapped_ok
+        & no_defender_triggers
+        & has_response
     )
 
     return (
@@ -12619,13 +26128,10 @@ class JaxVecEnv:
         & (active_acts[:, 0] == self._act_attack)
         & attacker_exists
         & defender_exists
-        & defender_is_leader_target
         & source_ok
         & no_attached
-        & no_defender_triggers
-        & nonlethal
         & no_modifiers
-        & no_response
+        & (clean_leader_resolve | clean_entity_resolve | clean_response_declare)
     )
 
   def _attack_leader_simple_fast_mask(self, acts: np.ndarray, chosen, phase):
@@ -12636,18 +26142,30 @@ class JaxVecEnv:
     zone_host = np.asarray(states.zone)
     zpos_host = np.asarray(states.zpos)
     def_host = np.asarray(states.def_id)
+    trig_count = np.asarray(states.trig_count).astype(np.int32, copy=False)
+    trig_owner = np.asarray(states.trig_owner)[:, 0].astype(np.int32, copy=False)
+    trig_source = np.asarray(states.trig_source)[:, 0].astype(np.int32, copy=False)
+    trig_timing = np.asarray(states.trig_timing)[:, 0].astype(np.int32, copy=False)
+    trig_owner_safe = np.clip(trig_owner, 0, 1)
+    trig_source_safe = np.maximum(trig_source, 0)
+    pending_stt03_006_trigger = (
+        (trig_count == 1)
+        & (trig_timing == 13)  # TIMING_WHEN_DESTROYED
+        & (def_host[rows, trig_owner_safe, trig_source_safe] == self._stt03_006_id)
+        & np.any(zone_host[rows, trig_owner_safe] == self._zone_hand, axis=1)
+    )
+    trig_clean = (trig_count == 0) | pending_stt03_006_trigger
+
 
     base = (
         (phase == 2)  # Phase.MAIN
         & (chosen == self._act_attack)
         & (np.asarray(states.ab_phase) == 0)
-        & (np.asarray(states.trig_count) == 0)
+        & trig_clean
         & (np.asarray(states.redirect_count) == 0)
         & (np.asarray(states.combat_attacker) < 0)
         & (np.asarray(states.winner) == -1)
         & ~np.asarray(states.eot_abilities_queued)
-        & (np.asarray(states.passive_queue_count) == 0)
-        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
     )
     if not np.any(base):
       return base
@@ -12675,6 +26193,22 @@ class JaxVecEnv:
     attacker_def = atk_defs[rows, attacker_inst]
     safe_attacker_def = np.maximum(attacker_def, 0)
     azk01_058_confirm = attacker_def == self._azk01_058_id
+    azk01_047_attack = attacker_def == self._azk01_047_id
+    source_azk01_014 = attacker_def == self._azk01_014_id
+    source_azk01_072 = attacker_def == self._azk01_072_id
+    target_cols = np.arange(atk_zone.shape[1])[None, :]
+    other_garden_entity = (
+        (atk_zone == self._zone_garden)
+        & (atk_defs >= 0)
+        & (self._card_type[np.maximum(atk_defs, 0)] == self._card_type_entity)
+        & (target_cols != attacker_inst[:, None])
+    )
+    other_garden_beanz = other_garden_entity & self._beanz[np.maximum(atk_defs, 0)]
+    azk01_014_effect_available = np.any(
+        np.where(source_azk01_072[:, None], other_garden_beanz, other_garden_entity),
+        axis=1,
+    )
+    azk01_014_fizzles = (source_azk01_014 | source_azk01_072) & ~azk01_014_effect_available
 
     leader_match = def_zone == self._zone_leader
     defender_exists = np.any(leader_match, axis=1)
@@ -12693,11 +26227,67 @@ class JaxVecEnv:
     damage = cur_atk[rows, active, attacker_inst].astype(np.int16)
     defender_atk = cur_atk[rows, opp, defender_inst].astype(np.int16)
     defender_hp = cur_hp[rows, opp, defender_inst].astype(np.int16)
+    stt01_012_attached = attached & (attached_defs == self._stt01_012_id)
+    exactly_one_stt01_012 = np.sum(stt01_012_attached, axis=1) == 1
+    exactly_one_attached = np.sum(attached, axis=1) == 1
+    stt01_012_supported = (
+        exactly_one_stt01_012
+        & exactly_one_attached
+        & (np.sum(atk_zone == self._zone_deck, axis=1) > 0)
+    )
+    stt01_016_attached = attached & (attached_defs == self._stt01_016_id)
+    attacker_is_raizan = self._raizan[safe_attacker_def]
+    enemy_garden_target = (
+        (def_zone == self._zone_garden)
+        & (def_defs >= 0)
+        & ~self._inherent_effect_immune[np.maximum(def_defs, 0)]
+        & (np.asarray(states.effect_immune_dur)[rows, opp] == 0)
+    )
+    stt01_016_valid = attacker_is_raizan & np.any(enemy_garden_target, axis=1)
+    effect_target_safe_def = np.maximum(def_defs, 0)
+    effect_target_hp = cur_hp[rows, opp].astype(np.int16, copy=False)
+    effect_target_azk01_062_redirect = (
+        enemy_garden_target
+        & (def_defs == self._azk01_062_id)
+        & ((np.asarray(states.once_per_turn_used)[rows, opp] & 1) == 0)
+    )
+    effect_target_after = effect_target_hp - np.int16(1)
+    effect_target_dirty = enemy_garden_target & (
+        (self._timing_takes_damage[effect_target_safe_def] & ~effect_target_azk01_062_redirect)
+        | self._timing_deals_damage[effect_target_safe_def]
+        | (
+            self._timing_when_destroyed[effect_target_safe_def]
+            & (effect_target_hp <= 1)
+            & ~effect_target_azk01_062_redirect
+        )
+        | ((def_defs == self._azk01_062_id) & ~effect_target_azk01_062_redirect)
+        | (self._inherent_godmode[effect_target_safe_def] & (effect_target_after < 0))
+        | (np.asarray(states.grant_godmode)[rows, opp] & (effect_target_after < 0))
+        | (np.asarray(states.carapace_perm)[rows, opp] != 0)
+        | (np.asarray(states.carapace_eot)[rows, opp] != 0)
+    )
+    stt01_016_supported = (
+        np.any(stt01_016_attached, axis=1)
+        & stt01_016_valid
+        & ~np.any(effect_target_dirty, axis=1)
+    )
+    stt01_016_fizzles = stt01_016_attached & ~stt01_016_valid[:, None]
+    attached_attack_trigger = np.any(
+        self._timing_when_attacking[safe_attached_defs]
+        & attached
+        & ~stt01_016_fizzles,
+        axis=1,
+    )
     no_attacking_triggers = ~(
-        self._timing_when_attacking[safe_attacker_def]
+        (
+            self._timing_when_attacking[safe_attacker_def]
+            & ~(azk01_047_attack | azk01_014_fizzles)
+        )
         | (self._timing_after_attacking[safe_attacker_def] & ~azk01_058_confirm)
-        | np.any(self._timing_when_attacking[safe_attached_defs] & attached, axis=1)
-        | np.any(attached & (attached_defs == self._azk01_044_id), axis=1)
+        | (
+            attached_attack_trigger
+            & ~(stt01_012_supported | stt01_016_supported)
+        )
     )
     no_defender_triggers = ~(
         self._timing_when_attacked[safe_defender_def]
@@ -12710,15 +26300,11 @@ class JaxVecEnv:
         | self._timing_deals_damage[safe_attacker_def]
     )
 
-    nonlethal = (damage >= 0) & (damage < defender_hp) & (defender_atk == 0)
+    leader_damage = (damage >= 0) & (defender_atk == 0)
 
     no_modifiers = (
-        (np.asarray(states.cmb_in_perm)[rows, active, attacker_inst] == 0)
-        & (np.asarray(states.cmb_in_eot)[rows, active, attacker_inst] == 0)
-        & (np.asarray(states.cmb_out_perm)[rows, active, attacker_inst] == 0)
+        (np.asarray(states.cmb_out_perm)[rows, active, attacker_inst] == 0)
         & (np.asarray(states.cmb_out_eot)[rows, active, attacker_inst] == 0)
-        & (np.asarray(states.carapace_perm)[rows, active, attacker_inst] == 0)
-        & (np.asarray(states.carapace_eot)[rows, active, attacker_inst] == 0)
         & (np.asarray(states.cmb_in_perm)[rows, opp, defender_inst] == 0)
         & (np.asarray(states.cmb_in_eot)[rows, opp, defender_inst] == 0)
         & (np.asarray(states.cmb_out_perm)[rows, opp, defender_inst] == 0)
@@ -12726,9 +26312,7 @@ class JaxVecEnv:
         & (np.asarray(states.carapace_perm)[rows, opp, defender_inst] == 0)
         & (np.asarray(states.carapace_eot)[rows, opp, defender_inst] == 0)
         & (np.asarray(states.frozen_dur)[rows, opp, defender_inst] == 0)
-        & ~np.asarray(states.grant_godmode)[rows, active, attacker_inst]
         & ~np.asarray(states.grant_godmode)[rows, opp, defender_inst]
-        & ~self._inherent_godmode[safe_attacker_def]
         & ~self._inherent_godmode[safe_defender_def]
     )
 
@@ -12781,6 +26365,31 @@ class JaxVecEnv:
         in_board
         & self._timing_is_response[opp_safe_defs]
         & self._has_ability[opp_safe_defs]
+        & (np.asarray(states.frozen_dur)[rows, opp] == 0)
+        & (
+            ~self._once_per_turn[opp_safe_defs]
+            | ((np.asarray(states.once_per_turn_used)[rows, opp] & 1) == 0)
+        )
+        & (
+            self._ability_ikz_cost[opp_safe_defs].astype(np.int32)
+            <= payment_sources[:, None]
+        )
+        & (
+            (opp_defs != self._azk01_125_id)
+            | (np.asarray(states.discarded_cards_turn)[rows, opp][:, None] > 0)
+        )
+        & (
+            (opp_defs != self._azk01_070_id)
+            | (
+                (opp_zone == self._zone_garden)
+                & ~opp_tapped
+                & (np.asarray(states.frozen_dur)[rows, opp] == 0)
+                & (np.asarray(states.cooldown)[rows, opp] == 0)
+            )
+        )
+        & self._response_board_validate_ok(
+            states, rows, opp, opp_zone, opp_safe_defs
+        )
     )
     defender_cards = (
         (opp_zone == self._zone_garden)
@@ -12793,6 +26402,9 @@ class JaxVecEnv:
         | np.any(defender_cards, axis=1)
     )
 
+    stt02_pending = np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    pending_passive_ok = ~stt02_pending | (attacker_def != self._stt02_012_id)
+
     return (
         base
         & attacker_exists
@@ -12800,12 +26412,386 @@ class JaxVecEnv:
         & defender_is_leader_target
         & no_attacking_triggers
         & no_defender_triggers
-        & nonlethal
+        & leader_damage
         & no_modifiers
         & no_response
+        & pending_passive_ok
     )
 
-  def _response_noop_leader_combat_fast_mask(
+
+  def _attack_leader_garden_simple_fast_mask(
+      self, acts: np.ndarray, chosen, phase
+  ):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    active = np.asarray(states.active_player).astype(np.int32, copy=False)
+    opp = (active + 1) % 2
+    zone_host = np.asarray(states.zone)
+    zpos_host = np.asarray(states.zpos)
+    def_host = np.asarray(states.def_id)
+    tapped_host = np.asarray(states.tapped)
+
+    base = (
+        (phase == 2)  # Phase.MAIN
+        & (chosen == self._act_attack)
+        & (np.asarray(states.ab_phase) == 0)
+        & (np.asarray(states.trig_count) == 0)
+        & (np.asarray(states.redirect_count) == 0)
+        & (np.asarray(states.combat_attacker) < 0)
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    if not np.any(base):
+      return base
+
+    active_acts = acts[rows, np.clip(active, 0, 1)]
+    attacker_index = active_acts[:, 1]
+    defender_index = active_acts[:, 2]
+    atk_zone = zone_host[rows, active]
+    atk_zpos = zpos_host[rows, active]
+    atk_defs = def_host[rows, active]
+    def_zone = zone_host[rows, opp]
+    def_zpos = zpos_host[rows, opp]
+    def_defs = def_host[rows, opp]
+    def_tapped = tapped_host[rows, opp]
+
+    attacker_is_leader = attacker_index == self._garden_size
+    leader_attacker_match = atk_zone == self._zone_leader
+    garden_attacker_match = (atk_zone == self._zone_garden) & (
+        atk_zpos == attacker_index[:, None]
+    )
+    attacker_match = np.where(
+        attacker_is_leader[:, None], leader_attacker_match, garden_attacker_match
+    )
+    attacker_exists = np.any(attacker_match, axis=1)
+    attacker_inst = np.argmax(attacker_match, axis=1)
+    attacker_def = atk_defs[rows, attacker_inst]
+    safe_attacker_def = np.maximum(attacker_def, 0)
+
+    target_is_leader = defender_index == self._garden_size
+    target_is_garden = defender_index < self._garden_size
+    target_is_alley = defender_index > self._garden_size
+    alley_slot = defender_index - (self._garden_size + 1)
+    leader_match = def_zone == self._zone_leader
+    garden_match = (def_zone == self._zone_garden) & (
+        def_zpos == defender_index[:, None]
+    )
+    alley_match = (def_zone == self._zone_alley) & (
+        def_zpos == alley_slot[:, None]
+    )
+    defender_match = np.where(
+        target_is_leader[:, None],
+        leader_match,
+        np.where(target_is_alley[:, None], alley_match, garden_match),
+    )
+    defender_exists = (
+        (defender_index >= 0)
+        & (defender_index <= self._garden_size + self._garden_size)
+        & np.any(defender_match, axis=1)
+    )
+    defender_inst = np.argmax(defender_match, axis=1)
+    defender_def = def_defs[rows, defender_inst]
+    safe_defender_def = np.maximum(defender_def, 0)
+
+    attached_to = np.asarray(states.attached_to)
+    attacker_attached = (atk_zone == self._zone_attached) & (
+        attached_to[rows, active] == attacker_inst[:, None]
+    )
+    defender_attached = (def_zone == self._zone_attached) & (
+        attached_to[rows, opp] == defender_inst[:, None]
+    )
+    attached_defs = np.where(attacker_attached, atk_defs, -1)
+    safe_attached_defs = np.maximum(attached_defs, 0)
+    defender_azk01_040_when_attacked = (
+        target_is_garden
+        & (defender_def == self._azk01_040_id)
+        & self._timing_when_attacked[safe_defender_def]
+        & self._implemented[safe_defender_def]
+    )
+    no_attack_declaration_triggers = ~(
+        self._timing_when_attacking[safe_attacker_def]
+        | self._timing_after_attacking[safe_attacker_def]
+        # No AZK01-040 exception here: C begins the defender's when-attacked
+        # response with control moved to its owner during the paused combat
+        # (c11 retry step 147); this immediate-resolve helper cannot model
+        # that. The response-window path (_attack_entity_response) carries
+        # the validated AZK01-040 handling.
+        | self._timing_when_attacked[safe_defender_def]
+        | np.any(
+            self._timing_when_attacking[safe_attached_defs] & attacker_attached,
+            axis=1,
+        )
+    )
+    attached_ok = (
+        ~np.any(defender_attached, axis=1)
+        & ~np.any(
+            self._timing_when_attacking[safe_attached_defs] & attacker_attached,
+            axis=1,
+        )
+    )
+
+    cur_atk = np.asarray(states.cur_atk).astype(np.int16, copy=False)
+    cur_hp = np.asarray(states.cur_hp).astype(np.int16, copy=False)
+    attacker_cmb_in = (
+        np.asarray(states.cmb_in_perm)[rows, active, attacker_inst].astype(np.int16)
+        + np.asarray(states.cmb_in_eot)[rows, active, attacker_inst].astype(np.int16)
+    )
+    attacker_cmb_out = (
+        np.asarray(states.cmb_out_perm)[rows, active, attacker_inst].astype(np.int16)
+        + np.asarray(states.cmb_out_eot)[rows, active, attacker_inst].astype(np.int16)
+    )
+    attacker_carapace = (
+        np.asarray(states.carapace_perm)[rows, active, attacker_inst].astype(np.int16)
+        + np.asarray(states.carapace_eot)[rows, active, attacker_inst].astype(np.int16)
+    )
+    defender_cmb_in = (
+        np.asarray(states.cmb_in_perm)[rows, opp, defender_inst].astype(np.int16)
+        + np.asarray(states.cmb_in_eot)[rows, opp, defender_inst].astype(np.int16)
+    )
+    defender_cmb_out = (
+        np.asarray(states.cmb_out_perm)[rows, opp, defender_inst].astype(np.int16)
+        + np.asarray(states.cmb_out_eot)[rows, opp, defender_inst].astype(np.int16)
+    )
+    defender_carapace = (
+        np.asarray(states.carapace_perm)[rows, opp, defender_inst].astype(np.int16)
+        + np.asarray(states.carapace_eot)[rows, opp, defender_inst].astype(np.int16)
+    )
+    damage_to_defender = np.clip(
+        cur_atk[rows, active, attacker_inst] + attacker_cmb_out + defender_cmb_in - defender_carapace,
+        0,
+        127,
+    )
+    damage_to_attacker = np.where(
+        target_is_leader,
+        0,
+        np.clip(
+            cur_atk[rows, opp, defender_inst] + defender_cmb_out + attacker_cmb_in - attacker_carapace,
+            0,
+            127,
+        ),
+    )
+    attacker_hp = cur_hp[rows, active, attacker_inst]
+    defender_hp = cur_hp[rows, opp, defender_inst]
+    attacker_after = attacker_hp - damage_to_attacker
+    defender_after = defender_hp - damage_to_defender
+    attacker_dies = attacker_after <= 0
+    defender_dies = defender_after <= 0
+    arange8 = np.arange(8)
+    attacker_source_key = (opp * 256 + defender_inst).astype(np.int16)
+    attacker_dmg_count = np.asarray(states.dmg_src_count)[
+        rows, active, attacker_inst
+    ].astype(np.int32, copy=False)
+    attacker_seen_source = np.any(
+        (arange8[None, :] < attacker_dmg_count[:, None])
+        & (
+            np.asarray(states.dmg_src_keys)[rows, active, attacker_inst]
+            == attacker_source_key[:, None]
+        ),
+        axis=1,
+    )
+    attacker_dmg_count_after = attacker_dmg_count + (
+        ~attacker_seen_source & (attacker_dmg_count < 8)
+    ).astype(np.int32)
+    defender_source_key = (active * 256 + attacker_inst).astype(np.int16)
+    defender_dmg_count = np.asarray(states.dmg_src_count)[
+        rows, opp, defender_inst
+    ].astype(np.int32, copy=False)
+    defender_seen_source = np.any(
+        (arange8[None, :] < defender_dmg_count[:, None])
+        & (
+            np.asarray(states.dmg_src_keys)[rows, opp, defender_inst]
+            == defender_source_key[:, None]
+        ),
+        axis=1,
+    )
+    defender_dmg_count_after = defender_dmg_count + (
+        ~defender_seen_source & (defender_dmg_count < 8)
+    ).astype(np.int32)
+    attacker_azk01_062_combat_fizzle = (
+        (attacker_def == self._azk01_062_id)
+        & (damage_to_attacker > 0)
+        & (np.asarray(states.redirect_count) == 0)
+    )
+    attacker_azk01_061_combat_fizzle = (
+        (attacker_def == self._azk01_061_id)
+        & (damage_to_attacker > 0)
+        & (attacker_dmg_count_after < 3)
+    )
+    defender_azk01_062_combat_fizzle = (
+        (defender_def == self._azk01_062_id)
+        & target_is_garden
+        & (damage_to_defender > 0)
+        & (np.asarray(states.redirect_count) == 0)
+    )
+    defender_azk01_061_combat_fizzle = (
+        (defender_def == self._azk01_061_id)
+        & target_is_garden
+        & (damage_to_defender > 0)
+        & (defender_dmg_count_after < 3)
+    )
+    no_stt02_012_garden_watch = ~np.any(
+        (zone_host == self._zone_garden) & (def_host == self._stt02_012_id),
+        axis=(1, 2),
+    )
+    clean_combat_damage_shape = (
+        (damage_to_defender > 0) | defender_azk01_040_when_attacked
+    )
+    clean_combat = (
+        clean_combat_damage_shape
+        & (damage_to_attacker >= 0)
+        & (attacker_hp > 0)
+        & (defender_hp > 0)
+        & (
+            (attacker_after > 0)
+            | (
+                no_stt02_012_garden_watch
+                & ~self._timing_when_destroyed[safe_attacker_def]
+            )
+        )
+        & (
+            ~self._timing_takes_damage[safe_attacker_def]
+            | attacker_azk01_062_combat_fizzle
+            | attacker_azk01_061_combat_fizzle
+        )
+        & ~self._timing_deals_damage[safe_attacker_def]
+        & (
+            ~self._timing_takes_damage[safe_defender_def]
+            | defender_azk01_062_combat_fizzle
+            | defender_azk01_061_combat_fizzle
+        )
+        & ~self._timing_deals_damage[safe_defender_def]
+        & ~(self._timing_when_destroyed[safe_attacker_def] & attacker_dies)
+        & ~(self._timing_when_destroyed[safe_defender_def] & defender_dies)
+        & ((defender_after > 0) | no_stt02_012_garden_watch)
+    )
+    no_modifiers = (
+        (np.asarray(states.frozen_dur)[rows, active, attacker_inst] == 0)
+        & (np.asarray(states.frozen_dur)[rows, opp, defender_inst] == 0)
+        & (
+            ~np.asarray(states.grant_godmode)[rows, active, attacker_inst]
+            | (attacker_after >= 0)
+        )
+        & (
+            ~np.asarray(states.grant_godmode)[rows, opp, defender_inst]
+            | (defender_after >= 0)
+        )
+        & (~self._inherent_godmode[safe_attacker_def] | (attacker_after >= 0))
+        & (~self._inherent_godmode[safe_defender_def] | (defender_after >= 0))
+    )
+
+    def_safe_defs = np.maximum(def_defs, 0)
+    in_hand = def_zone == self._zone_hand
+    token_ready = (
+        (def_zone[:, self._token_instance] == self._zone_token)
+        & ~def_tapped[:, self._token_instance]
+    )
+    payment_sources = np.sum(
+        (def_zone == self._zone_ikz_area) & ~def_tapped,
+        axis=1,
+    )
+    payment_sources += np.sum(
+        (def_zone == self._zone_garden)
+        & ~def_tapped
+        & self._counts_as_ikz[def_safe_defs],
+        axis=1,
+    )
+    payment_sources += token_ready.astype(np.int32)
+    next_reduction = np.asarray(states.next_play_cost_reduction)[
+        rows, opp
+    ].astype(np.int32, copy=False)
+    response_cost = np.maximum(
+        self._ikz_cost[def_safe_defs].astype(np.int32) - next_reduction[:, None],
+        0,
+    )
+    response_spell = (
+        in_hand
+        & (self._card_type[def_safe_defs] == self._card_type_spell)
+        & self._timing_is_response[def_safe_defs]
+        & self._has_ability[def_safe_defs]
+        & (response_cost <= payment_sources[:, None])
+    )
+    response_from_hand = (
+        in_hand
+        & self._response_play_from_hand[def_safe_defs]
+        & (response_cost <= payment_sources[:, None])
+    )
+    response_board = (
+        (
+            (def_zone == self._zone_garden)
+            | (def_zone == self._zone_alley)
+            | (def_zone == self._zone_leader)
+        )
+        & self._timing_is_response[def_safe_defs]
+        & self._has_ability[def_safe_defs]
+        & (
+            self._ability_ikz_cost[def_safe_defs].astype(np.int32)
+            <= payment_sources[:, None]
+        )
+        & (
+            (def_defs != self._azk01_070_id)
+            | (
+                (def_zone == self._zone_garden)
+                & ~def_tapped
+                & (np.asarray(states.frozen_dur)[rows, opp] == 0)
+                & (np.asarray(states.cooldown)[rows, opp] == 0)
+            )
+        )
+        & self._response_board_validate_ok(
+            states, rows, opp, def_zone, def_safe_defs
+        )
+    )
+    defender_cards = (
+        (def_zone == self._zone_garden)
+        & (
+            self._inherent_defender[def_safe_defs]
+            | np.asarray(states.grant_defender)[rows, opp]
+        )
+        & ~def_tapped
+    )
+    no_response = ~(
+        np.any(response_spell | response_from_hand, axis=1)
+        | np.any(response_board, axis=1)
+        | np.any(defender_cards, axis=1)
+    )
+    board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
+    passive_watch = board & np.isin(def_host, self._simple_play_watch_ids)
+    stt03_013_inert = def_host == self._stt03_013_id
+    passive_watch_ok = ~np.any(
+        passive_watch
+        & (def_host != self._stt01_008_id)
+        & (def_host != self._stt01_009_id)
+        & (def_host != self._stt01_011_id)
+        & (def_host != self._stt02_010_id)
+        & (def_host != self._azk01_010_id)
+        & (def_host != self._azk01_073_id)
+        & (def_host != self._azk01_019_id)
+        & (def_host != self._stt02_012_id)
+        & ~stt03_013_inert,
+        axis=(1, 2),
+    )
+    garden_target_tapped_ok = ~target_is_garden | def_tapped[rows, defender_inst]
+    alley_attack_ok = ~target_is_alley | self._can_attack_alley[safe_attacker_def]
+    leaders_only_ok = ~self._can_target_leader_only[safe_attacker_def] | target_is_leader
+
+    return (
+        base
+        & (active_acts[:, 0] == self._act_attack)
+        & attacker_exists
+        & defender_exists
+        & garden_target_tapped_ok
+        & alley_attack_ok
+        & leaders_only_ok
+        & no_attack_declaration_triggers
+        & attached_ok
+        & clean_combat
+        & no_modifiers
+        & no_response
+        & passive_watch_ok
+    )
+
+  def _response_noop_combat_fizzle_fast_mask(
       self, acts: np.ndarray, chosen, phase
   ):
     states = self._states
@@ -12846,6 +26832,149 @@ class JaxVecEnv:
     active_acts = acts[rows, defender]
     safe_attacker = np.maximum(combat_attacker, 0)
     safe_defender = np.maximum(combat_defender, 0)
+    attacker_zone = zone_host[rows, attacker_p, safe_attacker]
+    defender_zone = zone_host[rows, defender, safe_defender]
+    defender_def = def_host[rows, defender, safe_defender]
+    attacker_def = def_host[rows, attacker_p, safe_attacker]
+    safe_attacker_def = np.maximum(attacker_def, 0)
+    safe_defender_def = np.maximum(defender_def, 0)
+    attacker_valid = (attacker_zone == self._zone_leader) | (
+        attacker_zone == self._zone_garden
+    )
+    defender_valid = (
+        (defender_zone == self._zone_leader)
+        | (defender_zone == self._zone_garden)
+        | (defender_zone == self._zone_alley)
+    )
+    will_fizzle = ~(attacker_valid & defender_valid)
+
+    attacker_attached = (
+        (zone_host[rows, attacker_p] == self._zone_attached)
+        & (
+            np.asarray(states.attached_to)[rows, attacker_p]
+            == safe_attacker[:, None]
+        )
+    )
+    attached_defs = np.where(
+        attacker_attached, def_host[rows, attacker_p], -1
+    )
+    no_attacking_triggers = ~(
+        self._timing_after_attacking[safe_attacker_def]
+        | np.any(
+            attacker_attached & (attached_defs == self._azk01_044_id),
+            axis=1,
+        )
+    )
+    no_leader_damage_triggers = ~(
+        self._timing_when_attacked[safe_defender_def]
+        | self._timing_takes_damage[safe_defender_def]
+        | self._timing_deals_damage[safe_attacker_def]
+    )
+    cur_atk = np.asarray(states.cur_atk).astype(np.int16, copy=False)
+    cur_hp = np.asarray(states.cur_hp).astype(np.int16, copy=False)
+    damage_to_defender = np.clip(
+        cur_atk[rows, attacker_p, safe_attacker]
+        + np.asarray(states.cmb_out_perm)[rows, attacker_p, safe_attacker].astype(np.int16)
+        + np.asarray(states.cmb_out_eot)[rows, attacker_p, safe_attacker].astype(np.int16)
+        + np.asarray(states.cmb_in_perm)[rows, defender, safe_defender].astype(np.int16)
+        + np.asarray(states.cmb_in_eot)[rows, defender, safe_defender].astype(np.int16)
+        - np.asarray(states.carapace_perm)[rows, defender, safe_defender].astype(np.int16)
+        - np.asarray(states.carapace_eot)[rows, defender, safe_defender].astype(np.int16),
+        0,
+        127,
+    )
+    clean_leader_combat = (
+        attacker_valid
+        & (defender_zone == self._zone_leader)
+        & no_attacking_triggers
+        & no_leader_damage_triggers
+        & (np.asarray(states.frozen_dur)[rows, defender, safe_defender] == 0)
+        & (damage_to_defender < cur_hp[rows, defender, safe_defender])
+    )
+    clean_nonleader_combat = (
+        attacker_valid
+        & ((defender_zone == self._zone_garden) | (defender_zone == self._zone_alley))
+        & no_attacking_triggers
+        & ~self._timing_when_attacked[safe_defender_def]
+        & ~self._timing_takes_damage[safe_attacker_def]
+        & ~self._timing_takes_damage[safe_defender_def]
+        & ~self._timing_deals_damage[safe_attacker_def]
+        & ~self._timing_deals_damage[safe_defender_def]
+        & ~self._timing_when_destroyed[safe_attacker_def]
+        & ~self._timing_when_destroyed[safe_defender_def]
+        & (np.asarray(states.frozen_dur)[rows, attacker_p, safe_attacker] == 0)
+        & (np.asarray(states.frozen_dur)[rows, defender, safe_defender] == 0)
+        & ~np.asarray(states.grant_godmode)[rows, attacker_p, safe_attacker]
+        & ~np.asarray(states.grant_godmode)[rows, defender, safe_defender]
+        & ~self._inherent_godmode[safe_attacker_def]
+        & ~self._inherent_godmode[safe_defender_def]
+    )
+
+    return (
+        base
+        & (active_acts[:, 0] == self._act_noop)
+        & (
+            (will_fizzle & (defender_def != self._azk01_040_id))
+            | clean_leader_combat
+            | clean_nonleader_combat
+        )
+    )
+
+  def _response_noop_leader_combat_fast_mask(
+      self, acts: np.ndarray, chosen, phase
+  ):
+    states = self._states
+    rows = np.arange(self.num_environments)
+    defender = np.asarray(states.active_player).astype(np.int32, copy=False)
+    attacker_p = (defender + 1) % 2
+    zone_host = np.asarray(states.zone)
+    def_host = np.asarray(states.def_id)
+    trig_count = np.asarray(states.trig_count).astype(np.int32, copy=False)
+    trig_owner = np.asarray(states.trig_owner)[:, 0].astype(np.int32, copy=False)
+    trig_source = np.asarray(states.trig_source)[:, 0].astype(np.int32, copy=False)
+    trig_timing = np.asarray(states.trig_timing)[:, 0].astype(np.int32, copy=False)
+    trig_owner_safe = np.clip(trig_owner, 0, 1)
+    trig_source_safe = np.maximum(trig_source, 0)
+    pending_stt03_006_trigger = (
+        (trig_count == 1)
+        & (trig_timing == 13)  # TIMING_WHEN_DESTROYED
+        & (def_host[rows, trig_owner_safe, trig_source_safe] == self._stt03_006_id)
+        & np.any(zone_host[rows, trig_owner_safe] == self._zone_hand, axis=1)
+    )
+    trig_clean = (trig_count == 0) | pending_stt03_006_trigger
+
+    combat_attacker = np.asarray(states.combat_attacker).astype(
+        np.int32, copy=False
+    )
+    combat_defender = np.asarray(states.combat_defender).astype(
+        np.int32, copy=False
+    )
+
+    base = (
+        (phase == 3)  # Phase.RESPONSE_WINDOW
+        & (chosen == self._act_noop)
+        & (np.asarray(states.ab_phase) == 0)
+        & trig_clean
+        & (np.asarray(states.redirect_count) == 0)
+        & (combat_attacker >= 0)
+        & (combat_defender >= 0)
+        & (
+            np.asarray(states.combat_defender_player).astype(
+                np.int32, copy=False
+            )
+            == defender
+        )
+        & (np.asarray(states.winner) == -1)
+        & ~np.asarray(states.eot_abilities_queued)
+        & (np.asarray(states.passive_queue_count) == 0)
+        & ~np.any(np.asarray(states.stt02_012_event_pending), axis=(1, 2))
+    )
+    if not np.any(base):
+      return base
+
+    active_acts = acts[rows, defender]
+    safe_attacker = np.maximum(combat_attacker, 0)
+    safe_defender = np.maximum(combat_defender, 0)
 
     attacker_zone = zone_host[rows, attacker_p, safe_attacker]
     defender_zone = zone_host[rows, defender, safe_defender]
@@ -12866,14 +26995,9 @@ class JaxVecEnv:
         attacker_attached, def_host[rows, attacker_p], -1
     )
     safe_attached_defs = np.maximum(attached_defs, 0)
+    azk01_058_confirm = attacker_def == self._azk01_058_id
     no_attacking_triggers = ~(
-        self._timing_when_attacking[safe_attacker_def]
-        | self._timing_after_attacking[safe_attacker_def]
-        | np.any(
-            self._timing_when_attacking[safe_attached_defs]
-            & attacker_attached,
-            axis=1,
-        )
+        (self._timing_after_attacking[safe_attacker_def] & ~azk01_058_confirm)
         | np.any(
             attacker_attached & (attached_defs == self._azk01_044_id),
             axis=1,
@@ -12892,7 +27016,7 @@ class JaxVecEnv:
     damage = cur_atk[rows, attacker_p, safe_attacker].astype(np.int16)
     defender_atk = cur_atk[rows, defender, safe_defender].astype(np.int16)
     defender_hp = cur_hp[rows, defender, safe_defender].astype(np.int16)
-    nonlethal = (damage >= 0) & (damage < defender_hp) & (defender_atk == 0)
+    leader_damage = (damage >= 0) & (defender_atk == 0)
 
     no_modifiers = (
         (np.asarray(states.cmb_in_perm)[rows, attacker_p, safe_attacker] == 0)
@@ -12908,9 +27032,7 @@ class JaxVecEnv:
         & (np.asarray(states.carapace_perm)[rows, defender, safe_defender] == 0)
         & (np.asarray(states.carapace_eot)[rows, defender, safe_defender] == 0)
         & (np.asarray(states.frozen_dur)[rows, defender, safe_defender] == 0)
-        & ~np.asarray(states.grant_godmode)[rows, attacker_p, safe_attacker]
         & ~np.asarray(states.grant_godmode)[rows, defender, safe_defender]
-        & ~self._inherent_godmode[safe_attacker_def]
         & ~self._inherent_godmode[safe_defender_def]
     )
 
@@ -12925,7 +27047,7 @@ class JaxVecEnv:
         & (defender_zone == self._zone_leader)
         & no_attacking_triggers
         & no_defender_triggers
-        & nonlethal
+        & leader_damage
         & no_modifiers
     )
 
@@ -12978,27 +27100,50 @@ class JaxVecEnv:
     safe_defender_def = np.maximum(defender_def, 0)
 
     attached_to = np.asarray(states.attached_to)
-    no_attached = (
-        ~np.any(
-            (zone_host[rows, attacker_p] == self._zone_attached)
-            & (attached_to[rows, attacker_p] == safe_attacker[:, None]),
-            axis=1,
-        )
-        & ~np.any(
-            (zone_host[rows, defender] == self._zone_attached)
-            & (attached_to[rows, defender] == safe_defender[:, None]),
-            axis=1,
-        )
+    attacker_attached = (
+        (zone_host[rows, attacker_p] == self._zone_attached)
+        & (attached_to[rows, attacker_p] == safe_attacker[:, None])
     )
+    defender_attached = (
+        (zone_host[rows, defender] == self._zone_attached)
+        & (attached_to[rows, defender] == safe_defender[:, None])
+    )
+    attached_defs = np.where(attacker_attached, def_host[rows, attacker_p], -1)
+    safe_attached_defs = np.maximum(attached_defs, 0)
+    attacker_attached_clean = ~np.any(
+        attacker_attached
+        & (
+            self._timing_after_attacking[safe_attached_defs]
+        ),
+        axis=1,
+    )
+    defender_has_attached = np.any(defender_attached, axis=1)
 
     cur_atk = np.asarray(states.cur_atk)
     cur_hp = np.asarray(states.cur_hp)
-    damage_to_attacker = cur_atk[rows, defender, safe_defender].astype(np.int16)
-    damage_to_defender = cur_atk[rows, attacker_p, safe_attacker].astype(np.int16)
+    attacker_carapace = (
+        self._innate_carapace[safe_attacker_def]
+        + np.asarray(states.carapace_perm)[rows, attacker_p, safe_attacker].astype(np.int16)
+        + np.asarray(states.carapace_eot)[rows, attacker_p, safe_attacker].astype(np.int16)
+    )
+    defender_carapace = (
+        self._innate_carapace[safe_defender_def]
+        + np.asarray(states.carapace_perm)[rows, defender, safe_defender].astype(np.int16)
+        + np.asarray(states.carapace_eot)[rows, defender, safe_defender].astype(np.int16)
+    )
+    damage_to_attacker = np.maximum(
+        cur_atk[rows, defender, safe_defender].astype(np.int16) - attacker_carapace,
+        0,
+    )
+    damage_to_defender = np.maximum(
+        cur_atk[rows, attacker_p, safe_attacker].astype(np.int16) - defender_carapace,
+        0,
+    )
     attacker_hp = cur_hp[rows, attacker_p, safe_attacker].astype(np.int16)
     defender_hp = cur_hp[rows, defender, safe_defender].astype(np.int16)
     attacker_after = attacker_hp - damage_to_attacker
     defender_after = defender_hp - damage_to_defender
+    no_attached = attacker_attached_clean & ~defender_has_attached
     attacker_deals_clean_damage = (
         (damage_to_defender > 0)
         & (damage_to_attacker >= 0)
@@ -13013,20 +27158,57 @@ class JaxVecEnv:
         attacker_deals_clean_damage
         & (defender_after <= 0)
     )
+    azk01_058_dead_after_attacking = (
+        (attacker_def == self._azk01_058_id)
+        & attacker_dies_after_combat
+    )
+    azk01_058_confirm = (
+        (attacker_def == self._azk01_058_id)
+        & attacker_deals_clean_damage
+        & (attacker_after > 0)
+    )
     defender_survives_after_combat = (
         attacker_deals_clean_damage
         & (defender_after > 0)
     )
-    no_passive_death_watch = (
-        ~np.any(np.asarray(states.passive_observer_registered), axis=(1, 2))
-        & ~np.any(
-            (zone_host == self._zone_garden)
-            & (def_host == self._stt02_012_id),
-            axis=(1, 2),
-        )
+    zero_damage_stalemate = (
+        (damage_to_attacker == 0)
+        & (damage_to_defender == 0)
+        & (attacker_hp > 0)
+        & (defender_hp > 0)
+    )
+    defender_only_nonlethal = (
+        (damage_to_defender == 0)
+        & (damage_to_attacker > 0)
+        & (attacker_after > 0)
+        & (attacker_hp > 0)
+        & (defender_hp > 0)
+    )
+    board = (zone_host == self._zone_garden) | (zone_host == self._zone_alley)
+    stt03_013_inert = def_host == self._stt03_013_id
+    no_passive_death_watch = ~np.any(
+        board
+        & np.isin(def_host, self._simple_play_watch_ids)
+        & (def_host != self._stt01_008_id)
+        & (def_host != self._stt01_009_id)
+        & (def_host != self._stt02_010_id)
+        & (def_host != self._azk01_010_id)
+        & (def_host != self._azk01_019_id)
+        & (def_host != self._stt02_012_id)
+        & ~stt03_013_inert,
+        axis=(1, 2),
     )
     clean_defender_death = (
         defender_dies_after_combat
+        & no_passive_death_watch
+    )
+    clean_attacker_death = (
+        (damage_to_defender == 0)
+        & (damage_to_attacker > 0)
+        & (attacker_after <= 0)
+        & (attacker_hp > 0)
+        & (defender_hp > 0)
+        & ~self._timing_when_destroyed[safe_attacker_def]
         & no_passive_death_watch
     )
     attacker_stt03_006_destroyed = (
@@ -13053,24 +27235,85 @@ class JaxVecEnv:
     attacker_pending_when_attacking = (
         self._timing_when_attacking[safe_attacker_def]
         & (attacker_def != self._azk01_060_id)
+        & (attacker_def != self._stt01_006_id)
+    )
+    attacker_takes_damage = damage_to_attacker > 0
+    defender_takes_damage = damage_to_defender > 0
+    inst_axis = np.arange(def_host.shape[2], dtype=np.int32)[None, :]
+    attacker_other_garden_entity = np.any(
+        (zone_host[rows, attacker_p] == self._zone_garden)
+        & (inst_axis != safe_attacker[:, None])
+        & (def_host[rows, attacker_p] >= 0)
+        & (
+            self._card_type[np.maximum(def_host[rows, attacker_p], 0)]
+            == self._card_type_entity
+        ),
+        axis=1,
+    )
+    defender_other_garden_entity = np.any(
+        (zone_host[rows, defender] == self._zone_garden)
+        & (inst_axis != safe_defender[:, None])
+        & (def_host[rows, defender] >= 0)
+        & (
+            self._card_type[np.maximum(def_host[rows, defender], 0)]
+            == self._card_type_entity
+        ),
+        axis=1,
+    )
+    attacker_azk01_059_trigger = (
+        (attacker_def == self._azk01_059_id)
+        & attacker_takes_damage
+        & (
+            (np.asarray(states.once_per_turn_used)[
+                rows, attacker_p, safe_attacker
+            ] & 1)
+            == 0
+        )
+        & attacker_other_garden_entity
+    )
+    defender_azk01_059_trigger = (
+        (defender_def == self._azk01_059_id)
+        & defender_takes_damage
+        & (
+            (np.asarray(states.once_per_turn_used)[
+                rows, defender, safe_defender
+            ] & 1)
+            == 0
+        )
+        & defender_other_garden_entity
     )
     no_triggers = ~(
         attacker_pending_when_attacking
-        | self._timing_after_attacking[safe_attacker_def]
-        | self._timing_when_attacked[safe_defender_def]
-        | self._timing_takes_damage[safe_attacker_def]
-        | self._timing_deals_damage[safe_attacker_def]
-        | self._timing_takes_damage[safe_defender_def]
-        | self._timing_deals_damage[safe_defender_def]
+        | (
+            self._timing_after_attacking[safe_attacker_def]
+            & ~azk01_058_dead_after_attacking
+            & ~azk01_058_confirm
+        )
+        | (self._timing_takes_damage[safe_attacker_def] & attacker_takes_damage)
+        | (self._timing_deals_damage[safe_attacker_def] & defender_takes_damage)
+        | (self._timing_takes_damage[safe_defender_def] & defender_takes_damage)
+        | (self._timing_deals_damage[safe_defender_def] & attacker_takes_damage)
         | disallowed_attacker_destroy
         | disallowed_defender_destroy
+    )
+    azk01_062_attacker_fizzle = (
+        (attacker_def == self._azk01_062_id)
+        & (np.asarray(states.redirect_count) == 0)
+        & attacker_takes_damage
+        & ~attacker_pending_when_attacking
+        & ~self._timing_after_attacking[safe_attacker_def]
+        & self._timing_takes_damage[safe_attacker_def]
+        & ~self._timing_deals_damage[safe_attacker_def]
+        & ~self._timing_takes_damage[safe_defender_def]
+        & ~self._timing_deals_damage[safe_defender_def]
+        & ~disallowed_attacker_destroy
+        & ~disallowed_defender_destroy
     )
     azk01_062_defender_fizzle = (
         (defender_def == self._azk01_062_id)
         & (np.asarray(states.redirect_count) == 0)
         & ~attacker_pending_when_attacking
         & ~self._timing_after_attacking[safe_attacker_def]
-        & ~self._timing_when_attacked[safe_defender_def]
         & ~self._timing_takes_damage[safe_attacker_def]
         & ~self._timing_deals_damage[safe_attacker_def]
         & self._timing_takes_damage[safe_defender_def]
@@ -13078,7 +27321,65 @@ class JaxVecEnv:
         & ~disallowed_attacker_destroy
         & ~disallowed_defender_destroy
     )
-    trigger_ok = no_triggers | azk01_062_defender_fizzle
+    attacker_stt04_009_combat_fizzle = (
+        (attacker_def == self._stt04_009_id)
+        & attacker_takes_damage
+        & ~attacker_pending_when_attacking
+        & ~self._timing_after_attacking[safe_attacker_def]
+        & self._timing_takes_damage[safe_attacker_def]
+        & ~self._timing_deals_damage[safe_attacker_def]
+        & ~self._timing_takes_damage[safe_defender_def]
+        & ~self._timing_deals_damage[safe_defender_def]
+        & ~disallowed_attacker_destroy
+        & ~disallowed_defender_destroy
+    )
+    defender_stt04_009_combat_fizzle = (
+        (defender_def == self._stt04_009_id)
+        & defender_takes_damage
+        & ~attacker_pending_when_attacking
+        & ~self._timing_after_attacking[safe_attacker_def]
+        & ~self._timing_takes_damage[safe_attacker_def]
+        & ~self._timing_deals_damage[safe_attacker_def]
+        & self._timing_takes_damage[safe_defender_def]
+        & ~self._timing_deals_damage[safe_defender_def]
+        & ~disallowed_attacker_destroy
+        & ~disallowed_defender_destroy
+    )
+    attacker_stt04_007_combat_trigger = (
+        (attacker_def == self._stt04_007_id)
+        & attacker_takes_damage
+        & ~attacker_pending_when_attacking
+        & ~self._timing_after_attacking[safe_attacker_def]
+        & self._timing_takes_damage[safe_attacker_def]
+        & ~self._timing_deals_damage[safe_attacker_def]
+        & ~self._timing_takes_damage[safe_defender_def]
+        & ~self._timing_deals_damage[safe_defender_def]
+        & ~disallowed_attacker_destroy
+        & ~disallowed_defender_destroy
+    )
+    defender_stt04_007_combat_trigger = (
+        (defender_def == self._stt04_007_id)
+        & defender_takes_damage
+        & ~attacker_pending_when_attacking
+        & ~self._timing_after_attacking[safe_attacker_def]
+        & ~self._timing_takes_damage[safe_attacker_def]
+        & ~self._timing_deals_damage[safe_attacker_def]
+        & self._timing_takes_damage[safe_defender_def]
+        & ~self._timing_deals_damage[safe_defender_def]
+        & ~disallowed_attacker_destroy
+        & ~disallowed_defender_destroy
+    )
+    trigger_ok = (
+        no_triggers
+        | azk01_062_attacker_fizzle
+        | azk01_062_defender_fizzle
+        | attacker_azk01_059_trigger
+        | defender_azk01_059_trigger
+        | attacker_stt04_009_combat_fizzle
+        | defender_stt04_009_combat_fizzle
+        | attacker_stt04_007_combat_trigger
+        | defender_stt04_007_combat_trigger
+    )
 
     no_modifiers = (
         (np.asarray(states.cmb_in_perm)[rows, attacker_p, safe_attacker] == 0)
@@ -13093,24 +27394,38 @@ class JaxVecEnv:
         & (np.asarray(states.cmb_out_eot)[rows, defender, safe_defender] == 0)
         & (np.asarray(states.carapace_perm)[rows, defender, safe_defender] == 0)
         & (np.asarray(states.carapace_eot)[rows, defender, safe_defender] == 0)
-        & (np.asarray(states.frozen_dur)[rows, defender, safe_defender] == 0)
-        & ~np.asarray(states.grant_godmode)[rows, attacker_p, safe_attacker]
-        & ~np.asarray(states.grant_godmode)[rows, defender, safe_defender]
-        & ~self._inherent_godmode[safe_attacker_def]
-        & ~self._inherent_godmode[safe_defender_def]
+        & (
+            (np.asarray(states.frozen_dur)[rows, defender, safe_defender] == 0)
+            | defender_dies_after_combat
+        )
+        & (
+            ~np.asarray(states.grant_godmode)[rows, attacker_p, safe_attacker]
+            | (attacker_after > 0)
+        )
+        & (
+            ~np.asarray(states.grant_godmode)[rows, defender, safe_defender]
+            | (defender_after > 0)
+        )
+        & (~self._inherent_godmode[safe_attacker_def] | (attacker_after > 0))
+        & (~self._inherent_godmode[safe_defender_def] | (defender_after > 0))
     )
 
     return (
         base
         & (active_acts[:, 0] == self._act_noop)
         & (attacker_zone == self._zone_garden)
-        & (defender_zone == self._zone_garden)
+        & ((defender_zone == self._zone_garden) | (defender_zone == self._zone_alley))
         & (self._card_type[safe_attacker_def] == self._card_type_entity)
         & (self._card_type[safe_defender_def] == self._card_type_entity)
-        & np.asarray(states.tapped)[rows, attacker_p, safe_attacker]
+        & (
+            defender_survives_after_combat
+            | clean_defender_death
+            | zero_damage_stalemate
+            | defender_only_nonlethal
+            | clean_attacker_death
+        )
         & no_attached
         & trigger_ok
-        & (defender_survives_after_combat | clean_defender_death)
         & no_modifiers
     )
 
@@ -13181,16 +27496,11 @@ class JaxVecEnv:
     return (
         base
         & (active_acts[:, 0] == self._act_noop)
-        & (attacker_zone == self._zone_garden)
         & (defender_zone == self._zone_garden)
-        & (attacker_def >= 0)
         & (defender_def == self._azk01_040_id)
-        & (self._card_type[safe_attacker_def] == self._card_type_entity)
         & (self._card_type[safe_defender_def] == self._card_type_entity)
         & self._timing_when_attacked[safe_defender_def]
         & self._implemented[safe_defender_def]
-        & np.asarray(states.tapped)[rows, attacker_p, safe_attacker]
-        & no_attached
         & leader_exists
     )
 

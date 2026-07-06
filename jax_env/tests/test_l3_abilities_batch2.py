@@ -16,6 +16,8 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+from conftest import cached_jit_mask, cached_static_jit_step
+
 from test_l2_vanilla import c_semantic_view, jax_semantic_view
 from test_l3_abilities_batch1 import DRIVER_TYPES, build_deck, comparable
 
@@ -65,13 +67,13 @@ def _track_coverage(cov, state, cards, Zone):
 
 
 def run_episode(make_cref, seed, deck, steps=500, cov=None):
-  import jax
+  
 
   from azuki_jax import cards
   from azuki_jax.constants import Zone
-  from azuki_jax.engine.step import engine_step, stabilize
+  from azuki_jax.engine.step import stabilize
   from azuki_jax.env import init_state_with_decks
-  from azuki_jax.masks import build_mask
+  
   from azuki_jax.setup import deck_tables_from_card_lists
 
   cref = make_cref(seed, deck_pool=None)
@@ -80,8 +82,8 @@ def run_episode(make_cref, seed, deck, steps=500, cov=None):
   tables = deck_tables_from_card_lists(deck, deck)
   state = stabilize(init_state_with_decks(seed, tables))
 
-  jit_step = jax.jit(engine_step)
-  jit_mask = jax.jit(build_mask)
+  jit_step = cached_static_jit_step
+  jit_mask = cached_jit_mask()
 
   rng = np.random.default_rng(seed)
   for step_index in range(steps):

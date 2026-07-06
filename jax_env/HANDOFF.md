@@ -1,5 +1,157 @@
 # JAX Environment Conversion — Handoff & 1:1 Verification Status
 
+## ✅ FINAL STATUS — 2026-07-04 (supersedes everything below)
+
+**1:1 parity: CONFIRMED.** All 36 production fullpool cases (m0-m17
+mirrors, c0-c17 crosses) pass the authoritative 600-step gate
+(`jax_env/tests/verify_vector_fullpool.py`, FAIL_GENERIC-relaxed) to
+natural episode termination — every episode ended before the 600-step cap
+— with exact semantic-state, complete legal-mask, and terminal parity
+against the seeded C oracle, on the final tree. Seven real parity bugs
+were found and fixed by the gate (response-ability validates, passive
+drain ordering ×2 sites, godmode damage-clamp, selection-placement
+trigger/cooldown semantics, STT03-016 trigger begin, when-attacked
+interceptor routing) — details in `fable_experiments.md`.
+
+**Benchmarks (compile excluded):**
+- Sim-only: C raw **9,621 steps/s** single-process / **98,809 steps/s**
+  across 12 processes. JAX at GPU batch widths: NOT benchmarkable on this
+  128 GB box — warm-up OOMs on 40-90 GB XLA kernel compiles (several
+  executables exceed the persistent-cache serialization limit; compile
+  arenas accumulate across the ~100+ serial JITs one process needs). Best
+  completed JAX datapoint: 569 env-steps/s (monolithic vmap, batch 512,
+  2026-06-17).
+- E2E PPO: C **~574 SPS** steady-state (480 envs / 12 workers). JAX: 0
+  epochs (first-rollout compile OOM), 64- and 512-env attempts alike.
+- Net: on this hardware the C engine wins both cases outright. The JAX
+  port's value today is the verified 1:1 parity + infrastructure; its
+  performance requires compile-envelope engineering (split the giant
+  helper bodies — the 137-way ability switch and deep combat/selection
+  chains — into smaller jit units, AOT-precompile on a high-RAM host, or
+  lift the cache serialization limit).
+
+Tree state: `_broad_chunk = 1` (broad kernels reuse gate-era (1,...)
+executables); 7 narrow masks carry `num_environments > 1` guards routing
+their rows to the parity-proven broad kernels (batch-1 verifier semantics
+unchanged); SELECT_TO_GARDEN/ALLEY static catch-alls added; the verifier's
+generic trap is opt-in via FAIL_GENERIC=1 (default logs and proceeds).
+
+## Current Frontier — 2026-07-01 (superseded; see `fable_experiments.md` for the live log)
+
+State as of the 600-step gate campaign:
+
+- **Recheck layer complete:** individual 100-step `FAIL_STATIC=1` runs
+  passed for m0-m17, c0-c8, c10-c13. c14 surfaced two real parity bugs
+  (both fixed, below); c15/c16/c17/c9 graduated straight to the FS=0 gate
+  because their remaining traps were *designed* broad-static routes, not
+  divergences.
+- **Parity fixes this session (both host/split-path side; the generic
+  engine was verified correct by eager replays):**
+  1. `_response_board_validate_ok` (jax_vector.py): C's
+     `defender_can_respond` consults per-card `def->validate` for board
+     response abilities (AZK01-125 discarded-this-turn, AZK01-026 hand
+     card, AZK01-070 garden+untapped+no-cooldown, AZK01-091 in-garden);
+     the host masks' `response_board` terms didn't. Centralized helper now
+     ANDed into all 10 response_board sites (plus the missing ability-cost
+     term in `_attack_leader_response_fast_mask.response_board_payable`).
+  2. Passive drain ordering: C flushes the passive buff queue after
+     placement but BEFORE the on-play trigger begins (tick defers only
+     while `azk_is_in_ability_phase`). Nine ability-opening play fast
+     paths in step.py fused place+open with no drain between; each now
+     calls `recompute_passives` right after `_enter_board_slot`.
+- **Dispatch change:** all broad static kernel call sites route through
+  `JaxVecEnv._run_broad_masked` — gather matched rows into
+  `min(8, num_envs)`-row chunks, run the kernel small, scatter back. At
+  batch 1 shapes are unchanged (cache-compatible); at batch 512 a lone
+  broad row no longer pays a 512-row sequential `lax.map` sweep.
+- **Authoritative gate in progress:** 600-step `FAIL_STATIC=0` (generic
+  dispatch still trapped) per-case runs; c15 passed to episode end
+  (~step 239). Remaining 35 cases run **serially** via
+  `jax_env/tests/run_verify_queue.sh` — single-kernel compiles peak
+  45-75 GB RSS on this 128 GB box, so one verifier at a time, and no
+  engine-code edits mid-campaign (cache invalidation).
+- **Benchmarks pending** (after the gate, on an idle machine): sim-only
+  C vs JAX (`bench_c_env.py` / `bench_jax_env.py` — warmup now adaptive,
+  reports median/p95 + slow-step count), then e2e
+  `azuki_speed_3090.ini` vs `azuki_jax_smoke.ini`. Fresh C sim-only
+  baseline: raw binding 8408.8 steps/s, dict-obs wrapper 751.0 steps/s.
+
+## Latest Continuation Frontier — 2026-06-19 Active Run
+
+This section supersedes the older step-407, step-93, and step-60 notes below for
+the current branch state. `jax_env/experiments.md` remains the detailed
+chronological log and should be updated after every probe/fix.
+
+### Current Stop Point
+
+- Deterministic `JaxVecEnv(4, seed=1)` split probe reached
+  `NO_GENERIC through 4000 steps`.
+- Latest saved checkpoint in that route:
+  - `/tmp/jax_probe_3999.pkl`
+  - runner output ended with `NO_GENERIC through 4000 steps`
+- Slow first-use compiles were still observed on newly-covered paths; these were
+  tracked in `jax_env/experiments.md` and are not parity proof.
+- Current syntax validations passed after the STT01-002 gate fix and pytest
+  verifier helper changes:
+
+```bash
+PYTHONPATH=build/python/src:python/src:jax_env \
+  python/.venv-codex/bin/python -m py_compile \
+  jax_env/azuki_jax/step.py \
+  jax_env/tests/conftest.py \
+  jax_env/tests/test_l2_vanilla.py \
+  jax_env/tests/test_l3_abilities.py \
+  jax_env/tests/test_l3_abilities_batch1.py \
+  jax_env/tests/test_l3_abilities_batch2.py \
+  jax_env/tests/test_l3_abilities_batch3.py \
+  jax_env/tests/test_l3_abilities_batch4.py \
+  jax_env/tests/test_l3_passives.py \
+  jax_env/tests/test_obs_packing.py \
+  jax_env/tests/test_l3_fullpool.py
+```
+
+### Fixes Landed In This Continuation Since The Step-533 Notes
+
+- Residualized broad `SELECT_EFFECT_TARGET` fallback so already-covered effect
+  rows do not compile the monolithic static selector.
+- Added or widened split coverage for late-frontier rows through step 4000,
+  including `AZK01-021`, `AZK01-024`, `AZK01-056`, `STT02-013`, `STT04-005`,
+  `AZK01-065`, `STT01-007`, `AZK01-069`, `AZK01-068`, and selected
+  `STT02-003` from `AZK01-024`.
+- Relaxed several masks only where the helper already performs the required
+  passive/STT02-012 bookkeeping or the watcher is inert for that action shape.
+- `step_select_azk01_024_place_fast` now opens the normal `STT02-003`
+  Watercrafting reveal flow when `AZK01-024` places `STT02-003` from selection.
+- The pytest parity drivers now use shared cached `engine_step_static_action`
+  and `build_mask` helpers (`jax_env/tests/conftest.py`) instead of compiling
+  monolithic dynamic `engine_step`.
+- Verified the stale c6 warning: `diag_eager.py pool 6 7 7006 90` now reports
+  `no divergence in 90 steps`.
+- Fixed split fast-path parity for `STT01-002` gate portal: the fast gate helper
+  now runs the non-optional discard-weapon selection path immediately instead
+  of opening a confirmation. Targeted replay of m0 step 9 now matches C with
+  `ab_phase=0` and no semantic/selection diffs.
+
+### Next Recommended Action
+
+The frontier probe is only a split-dispatch smoke test. Full C/JAX parity is
+still in progress. Current verification status:
+
+- Broad/full pytest JIT verification is still impractical inside the 3600s
+  harness timeout; even static-action broad fallbacks compile for tens of
+  minutes.
+- Use scalar eager diagnostics for pinpointing true engine divergences and the
+  `/tmp/vector_fullpool_parity.py` chunk verifier for split fast-path parity.
+- Historical hotspot rechecks passed in scalar eager through their known failure
+  windows: c6 (90), c10/c15/c16/m16 (130), c11 (100).
+
+If parity passes, run the requested SPS benchmarks:
+
+- JAX and C engine simulation-only throughput.
+- JAX and C end-to-end training pipeline throughput.
+
+Keep every new attempt and result in `jax_env/experiments.md`.
+
 ## Latest Stop Point — 2026-06-18 User-Requested Winddown
 
 The user explicitly stopped further code work after the step-60 probe and asked
@@ -585,7 +737,7 @@ implemented and re-verified.
 
 ## 0. Current status at handoff (one paragraph)
 
-The JAX env is functionally complete: full C-engine port (ECS→array state, all phases, combat, IKZ, gate-portal flow), **137 card abilities ported**, selection-zone runtime, when-takes-damage/redirect, passive-aura layer, leaders+gates. Five whole-episode divergence classes were found and fixed, four **confirmed** by step-by-step eager replay against C. The remaining gap to 1:1 is a **cluster of passive-aura timing quirks** (C's deferred-observer + buff-queue + flush-timing mechanics) plus a few **discrete bugs**, with root causes fully diagnosed (below). A single-process full-suite verification was running at handoff but on *old* code (pre-`c6`/passive work) and is compile-bound (~6h; see §6 — the enlarged selection mask made the XLA compile pathologically slow).
+The JAX env is functionally broad enough for the production fullpool route: all core phases, combat, IKZ, gate-portal flow, leaders/gates, selection runtime, passive layer, and the imported card abilities used by the 18-deck training pool are ported. The active gap is no longer a known semantic divergence; it is finishing authoritative rollout coverage and avoiding compile-heavy broad fallback paths. Historical c6/c10/c11/c15/c16/m16 warnings now replay clean through their known failure windows, and the split `JaxVecEnv(4, seed=1)` frontier reached `NO_GENERIC through 4000 steps`. Treat lower divergence notes as archaeology unless a fresh verifier reproduces them.
 
 ---
 
@@ -605,20 +757,29 @@ cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build -j
 # tests import the compiled binding from build/python/src
 ```
 
-### 1.3 Run the parity suite (authoritative 1:1 gate)
+### 1.3 Run parity verification
 ```bash
-bash jax_env/run_verify_single.sh         # single process: engine_step compiles ONCE, all tests share the jit cache
-# = pytest jax_env/tests/ -q  with JAX_COMPILATION_CACHE_DIR=/tmp/jaxcache
+PYTHONPATH=build/python/src:python/src:jax_env \
+  JAX_COMPILATION_CACHE_DIR=/tmp/jaxcache \
+  XLA_PYTHON_CLIENT_PREALLOCATE=false \
+  python jax_env/tests/verify_vector_fullpool.py 600 m0 m1 m2 m3
 ```
-Key tests:
-- `jax_env/tests/test_l3_fullpool.py` — **the definitive gate.** Plays the 18 production decks (16 pool + 2 starter) mirror + cross, 600 steps each, asserting **full state parity + legal-action mask parity at every step**, terminal agreement, and `ab_scratch[3]==0` (no unimplemented ability ever reached = "everything imported"). Cases: `MIRROR_CASES=[(i,i,12345+i)]`, `CROSS_CASES=[(i,(i+1)%N,7000+i)]`.
-- `test_l3_abilities_batch4.py`, `test_l3_passives.py`, `test_l1_*`, `test_l2_vanilla.py`, `test_l3_abilities_batch{1,2,3}.py`.
+`verify_vector_fullpool.py` is the practical split-vector parity gate for the
+training backend. It accepts case names (`m0`..`m17`, `c0`..`c17`) so the 36
+fullpool cases can be run in compile-safe chunks; omitting case names runs all
+cases in one batch and may be too large for routine iteration.
 
-### 1.4 Training (the original optimization goal — SPS uplift)
-- Vectorized JAX env: `python/src/azk_puffer/jax_vector.py` (untracked).
-- Smoke config: `python/config/azuki_jax_smoke.ini` (untracked).
-- `python/src/training_utils.py` has the training-integration changes (tracked-modified).
-- Original C training entry: `python/src/train.py` (`PYTHONPATH=build/python/src:python/src`).
+`jax_env/tests/test_l3_fullpool.py` remains the pytest-form fullpool gate, but
+the current broad static-action JIT path is compile-heavy. Prefer the split
+verifier for iteration, then rerun pytest subsets once compile cost is
+controlled.
+
+### 1.4 Training and benchmarks
+- Vectorized JAX env: `python/src/azk_puffer/jax_vector.py`.
+- Smoke config: `python/config/azuki_jax_smoke.ini`.
+- JAX sim-only benchmark: `jax_env/benchmarks/bench_jax_env.py`.
+- C sim-only benchmark: `jax_env/benchmarks/bench_c_env.py`.
+- Training entry: `python/src/train.py` (`PYTHONPATH=build/python/src:python/src`).
 
 ---
 
@@ -685,49 +846,65 @@ All in `jax_env/tests/`. Eager (`JAX_PLATFORMS=cpu`, `jax.disable_jit()`) avoids
 
 ## 5. What REMAINS for 1:1 (the actual work to finish)
 
-### 5.1 ⬛ THE BIG ONE — passive-aura timing cluster (c10, c15, c16, m16, likely more)
+### 5.1 ✅ historical passive-aura timing cluster rechecked clean
 
-**Symptom:** garden-state-dependent auras show ±1 stat vs C in specific windows.
-- `c10` (pool 10v11 s7010 @95): AZK01-019 "Jay" (+2 hp when garden all-Normal) — JAX hp 3, C hp 1.
-- `c15` (pool 15v16 s7015 @102): AZK01-010 (+2 atk, same condition).
-- `c16` (pool 16v17 s7016 @69) & `m16` (pool 16 s12361 @95): STT02-012 (+1/+1 when own_garden_entities − opp ≥ 2) — diverges **both directions**.
+The old c10/c15/c16/m16 passive-aura cluster is not the current blocker. Fresh
+scalar eager replays now cover the previously observed windows:
+- `c10` (pool 10v11 s7010) clean through 130 steps.
+- `c15` (pool 15v16 s7015) clean through 130 steps.
+- `c16` (pool 16v17 s7016) clean through 130 steps.
+- `m16` (pool 16v16 s12361) clean through 130 steps.
 
-**Root cause (confirmed via `DBG_PASSIVE` C-only replays):** C maintains passive buffs as **sticky `(AttackBuff/HealthBuff, source)` pairs**, updated only by **garden add/remove observers** that **queue** apply/remove decisions, flushed by `azk_process_passive_buff_queue` (`azuki_engine.c:404`, **deferred while an ability FSM is active**). Two distinct quirks:
-1. **Deferred-insert entry-lag (c10/c15):** a freshly-*played* aura's ChildOf-garden insert is deferred, so at its own `init`/`update_*_buff` the card reads **NOT in play** → its self-buff is **not** applied until the *next* garden event. Evidence: `[Cjay] ent1048 NOT in play -> remove`, C garden hp 1. JAX `recompute_passives` reads the final board and applies immediately (hp 3).
-2. **Multi-event net (c16/m16):** in a single step with two garden events (gate portal = remove-displaced **then** add-portaled), STT02-012's observer fires remove (intermediate counts) then apply (final counts), but only the **removal** lands in the flushed queue (`[Cqueue] flush ent994 is_removal=1`, no matching apply — flush/ability-phase boundary splits them) → C ends **unbuffed**; JAX's end-of-step recompute sees diff≥2 and applies +1/+1.
+Keep the historical notes below for regression context only. They document the
+C behavior that the JAX passive model must continue to match if a fresh replay
+reproduces this class again:
+- C maintains passive buffs as sticky `(AttackBuff/HealthBuff, source)` pairs.
+- Passive observer decisions are tied to C garden/alley ChildOf events and queue
+  flush timing, not just the final board snapshot.
+- AZK01-010/019 watch own garden+alley; AZK01-073 watches own garden only;
+  STT02-012 watches both gardens.
+- Re-entry after leaving play does not necessarily re-fire at entry; the
+  persistent observer can re-evaluate on the next watched event.
 
-**JAX today:** `abilities/passives.py::recompute_passives` recomputes all aura contributions from the **current board** at end of `apply_user_action` and every `micro_tick` (respects the ability-phase skip, but not the event/queue/deferred-insert semantics). STT02-012 alone has a partial `stt02_012_latch` (`state.py`, `engine/helpers.py::stt02_012_garden_event`, 6 call sites) that approximates the event model but is imperfect (hence c16/m16).
+Do not start another passive queue rewrite from this stale section unless a new
+`diag_eager.py pool …` or split-vector verifier run reproduces a concrete
+divergence.
 
-**Fix required (the multi-hour port):** replace per-step recompute with a faithful **event-driven, queued, sticky** model matching C:
-   - Maintain per-(player,instance) latched contributions; update them only at the **same garden-mutation points** C's observers fire (add/remove; STT02-012 observes **both** gardens, AZK01-010/019/073 observe **own** garden — confirmed via each card's `*_init_passive_observers`).
-   - Replicate **deferred-insert**: a card entering the garden is NOT counted/contributing at *its own* entry event (it reads not-in-play); other auras DO see it.
-   - Replicate the **queue** flush timing + ordering + the ability-phase deferral so multi-event steps net to C's result (remove-then-apply may not both land).
-   - Replicate the **removal off-by-one** the existing STT02-012 latch already encodes (`is_removal` subtracts 1 from the event-side garden).
-   - Audit **all** auras in `cards_batch_passives.py` for the same class (AZK01-010, AZK01-019, AZK01-073, STT02-012, and the rest of the 9), not just the 4 observed.
+#### 5.1.1 historical mechanism notes (2026-06-14)
 
-**Recommended approach:** instrument C flush boundaries (add an `fprintf` at `azuki_engine.c:404` printing ability-phase + queue count) to nail the exact remove/apply landing per step, then port the queue+observer mechanism. Verify each aura with `diag_c_only_pool.py … DBG_PASSIVE=1` vs `diag_eager.py pool`.
+Step-correlated `DBG_PASSIVE` traces (`jax_env/tests/trace_019.py`,
+`trace_jax_019.py`) for AZK01-019 in c10/m16 pinned the C rule as
+observer-registration-scoped rather than a simple deferred-insert rule:
 
-#### 5.1.1 REFINED mechanism (session 2, 2026-06-14 — supersedes the §5.1 "deferred-insert entry-lag" framing)
+- **First-EVER entry into play fires immediately.** When a self-buff passive is
+  played for the first time (garden OR alley), C registers its observer and the
+  init update evaluates with the card in play.
+- **Re-entry after leaving play does NOT re-fire at entry, but the observer
+  persists and re-fires on the NEXT garden/alley event.**
+  `azk_sync_card_abilities` skips `init_passive_observers` while
+  `PassiveObserverContext` exists (`components/abilities.c:344-346`).
+- **Zone MOVE of an in-play card keeps its buff** (alley→garden gate-portal):
+  observer persists, its EcsOnAdd fires, and it re-evaluates. Not a
+  leave/re-entry.
 
-Step-correlated `DBG_PASSIVE` traces (`jax_env/tests/trace_019.py`, `trace_jax_019.py`, both new) for AZK01-019 in c10/m16 pin the real C rule. It is **observer-registration-scoped**, not a simple deferred-insert:
+### 5.2 ✅ c11 combat-death discard ordering — current eager replay clean
+`diag_eager.py pool 11 12 7011 100` now reports `no divergence in 100
+steps`, covering the stale step-77 discard-order warning. Keep the historical
+notes below for context only; do not treat c11 as open unless a fresh verifier
+run reproduces it.
 
-- **First-EVER entry into play fires immediately.** When a self-buff passive is played for the first time (garden OR alley), C registers its observer and the init update evaluates with the card **in play** → the buff applies that step. Evidence (m16 s12361 step 44): `[Cjay] ent966 p0 in_play all_normal=1 -> APPLY +0/+2`, garden hp 3 at step 45 — **no lag**. So the §5.1 "fresh garden play lags" claim is WRONG; first plays do not lag.
-- **Re-entry after leaving play does NOT re-fire at entry, but the observer persists and re-fires on the NEXT garden/alley event.** `azk_sync_card_abilities` skips `init_passive_observers` while `PassiveObserverContext` exists (`components/abilities.c:344-346`). Evidence (c10 s7010): ent for AZK01-019 buffed during its first stint (alley step47 → garden move step52, hp 3), hp-buff correctly removed at step 89 (garden no longer all-Normal), card **leaves play** step 90, **re-enters** garden step 95 reading **hp 1 (unbuffed)** with NO `[Cjay]` firing 93–98, then **re-buffs to hp 3 by step 101** (a garden event between 98–101 re-fired the persisting observer). So a re-entry lags exactly until the next watched garden/alley event.
-- **Zone MOVE of an in-play card keeps its buff** (alley→garden gate-portal): observer persists, its EcsOnAdd fires → re-evaluates. Not a leave/re-entry.
-- Watched zones (re-confirmed from each card's `*_init_passive_observers`): AZK01-010/019 = own garden+alley; **AZK01-073 = own garden ONLY** (single observer, `azk01_073.c:95`); STT02-012 = both players' gardens.
-
-**Two heuristic attempts this session, both incomplete (reverted):** (a) a `passive_armed` latch armed at every garden/alley mutation hook — over/under-applied because the JAX mutation-hook set does not exactly equal C's ChildOf-observer firing set; (b) a `passive_left_play` "dead after first leave" gate — fixed the c10 step-98 over-apply (advanced to 101) but then under-applied at 101 because **C re-buffs after re-entry** (the observer is NOT permanently dead). Conclusion: the correct port is the full **event-driven sticky queue** (re-entry lags one event, then re-arms), and getting it bit-exact requires matching C's observer firing set precisely — the genuinely hard "multi-hour" part. STT02-012's c16/m16 divergence is the **separate** count-latch multi-event-netting bug (012 buffed at step 62, C removes at 69 via the last-event-not-landing flush split; JAX latch keeps the last decision).
-
-**Non-passive engine is otherwise verified 1:1**: a single-process jit suite run reached 47 tests (l1/l2/l3-abilities + batch1-4, which DO include AZK01-010/019/073/012 crafted decks) with **0 failures** before being OOM-killed by a concurrently-launched benchmark (run the suite ALONE — its compile peaks ~40 GB and the bench compile adds another ~40 GB > 125 GB). The passive divergences are specific to certain production-pool pairings (fullpool cases ~c10/c15/c16/m16), not the batch decks.
-
-### 5.2 ⬛ Discrete: combat-death discard ordering (c11)
-`c11` (pool 11v12 s7011 @77): `discard1` same multiset, **transposed order** — C `[…,14,14,13]` vs JAX `[…,14,13,14]`, after 3 attacks (steps 73-75) killing multiple entities. The order entities enter the discard pile on simultaneous/sequential combat deaths differs. **Not yet pinned** — read C's death/discard order in `src/systems/combat_resolve_phase.c` + `src/utils/damage_util.c` (combat damage → death → `discard_card`) and match JAX's combat-death discard ordering (`engine/` combat + `cards_impl` discard). Likely an attacker-vs-defender or slot-order tiebreak. Add a `discard0/discard1` dump to `diag_evolution.py` window 71-77 to see it.
-
-### 5.3 ⬛ Verify c6 fix
-`c6` fix (§3.2) is applied but not eager-verified. Re-run `diag_eager.py pool 6 7 7006 90` (expect clean past step 82).
+### 5.3 ✅ c6 STT04-001 EOT ATK fix verified
+`diag_eager.py pool 6 7 7006 90` now reports `no divergence in 90 steps`,
+covering the stale step-82 warning.
 
 ### 5.4 ⬛ Full enumeration — the 26 cases never pre-checked
-Only **10** baseline-failing pool pairs were eager-pre-checked (m1, m15, m16, c0, c6, c7, c10, c11, c15, c16). Results: **c7 PASSED**; c6/c10/c11/c15/c16/m16 diverged (above); **m1/m15/c0 ran clean past ~step 100** (slow, killed before finishing — promising, re-confirm). The other **26** of 36 fullpool cases (mirrors 0,2-14,17; crosses 1-5,8,9,12-14,17) plus all L1/L2/L3/batch tests have **not** been checked against the current code. **The single-process full-suite (`run_verify_single.sh`) is the enumerator** — run it after the §5.1–5.3 fixes; it lists the first divergence per failing case via the assertion message.
+The previously-known hotspot set now replays clean through its failure windows:
+c6 (90), c10/c15/c16/m16 (130), c11 (100). The other 26 of 36 fullpool cases
+(mirrors 0,2-14,17; crosses 1-5,8,9,12-14,17) plus all L1/L2/L3/batch tests
+still need authoritative full-suite coverage. The single-process full-suite is
+still the enumerator, but current JIT compile cost exceeds the harness timeout;
+use scalar eager diagnostics and split-vector chunks to isolate any new
+divergence before attempting the full suite.
 
 ### 5.5 ⬛ Final 1:1 gate + training smoke (task #14)
 After all divergences close: full `pytest jax_env/tests/` green (esp. `test_l3_fullpool.py`), then a short training smoke (`azuki_jax_smoke.ini`) to confirm end-to-end SPS uplift vs the C env (the original goal).
@@ -746,25 +923,27 @@ After all divergences close: full `pytest jax_env/tests/` green (esp. `test_l3_f
 
 ## 7. Recommended completion sequence
 
-1. **Commit `jax_env/` now** (and `.venv`-independent config). Don't lose the work in the move.
-2. Strip `DBG_PASSIVE` debug from the 3 C files (§4), recompile clean.
-3. **Shrink the selection-mask bound** (§6.1) so the verify loop is ~30 min, not ~6h.
-4. **Verify c6** (§5.3); **fix c11 discard order** (§5.2).
-5. **Port the passive event/queue model** (§5.1) — the big one; verify each aura via `DBG_PASSIVE` C-only vs eager.
-6. **Run the full single-process suite** → fix whatever the 26 un-checked cases surface; loop until green.
-7. **`test_l3_fullpool.py` fully green** = 1:1 achieved (state + mask + terminal parity, 600 steps × 36 cases, `ab_scratch[3]==0`).
-8. **Training smoke** + SPS comparison vs C (original goal).
+1. Continue scalar eager and split-vector chunk verification for the remaining
+   fullpool cases; the known hotspot set is currently clean.
+2. Keep using cached static-action verifier helpers for pytest subsets; avoid
+   the monolithic dynamic `jax.jit(engine_step)` path for parity work.
+3. Run the full single-process suite once compile cost is controlled enough to
+   finish inside the harness window; fix any fresh divergence with a minimal
+   repro first.
+4. `test_l3_fullpool.py` or equivalent split-vector fullpool verification green
+   = 1:1 achieved (state + mask + terminal parity, 600 steps × 36 cases).
+5. Training smoke + SPS comparison vs C (original goal).
 
 ---
 
 ## 8. Task tracker mapping (in-session task list)
 
-- #14 *(in_progress)* — Full-pool 1:1 verification + final suite + training smoke ← the umbrella; blocked by below.
+- #14 *(in_progress)* — Full-pool 1:1 verification + final suite + training smoke ← the umbrella.
 - #15 ✅ V3 fix (confirmed) · #16 ✅ V4/X selection-capacity (confirmed) · #17 ✅ W-group bug1+bug2 (confirmed).
-- #18 *(pending)* STT02-012 latch — **superseded by #21** (whole passive cluster).
-- #19 *(pending)* c11 combat-death discard ordering (§5.2).
-- #20 *(pending)* c6 STT04-001 eot atk — **fix applied (§3.2), needs verify (§5.3)**.
-- #21 *(pending)* **passive-aura cluster** (§5.1) — the major remaining work; root cause confirmed.
+- #18 ✅ STT02-012 latch — stale warning superseded by current hotspot rechecks.
+- #19 ✅ c11 combat-death discard ordering (§5.2) — eager clean to step 100.
+- #20 ✅ c6 STT04-001 eot atk — eager clean to step 90.
+- #21 ✅ passive-aura cluster (§5.1) — historical hotspot set eager-clean through known failure windows; watch only if fresh replay reproduces.
 
 ---
 

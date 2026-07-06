@@ -427,8 +427,11 @@ def _azk01_119_validate(state: State, owner, src) -> jax.Array:
 
 
 def _azk01_119_target(state: State, scope_is_cost, owner, tp, ti) -> jax.Array:
-  return (_card_type(state, tp, ti) == CardType.ENTITY) & (
-      _weapon_count_row(state, tp)[jnp.maximum(ti, 0)] > 0
+  return (
+      (tp == owner)
+      & (state.zone[tp, ti] == Zone.GARDEN)
+      & (_card_type(state, tp, ti) == CardType.ENTITY)
+      & (_weapon_count_row(state, tp)[jnp.maximum(ti, 0)] > 0)
   )
 
 

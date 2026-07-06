@@ -24,6 +24,8 @@ for entry in (REPO / "build/python/src", REPO / "python/src", REPO / "jax_env"):
   if str(entry) not in sys.path:
     sys.path.insert(0, str(entry))
 
+from conftest import cached_jit_mask, cached_static_jit_step  # noqa: E402
+
 from test_l2_vanilla import c_semantic_view, jax_semantic_view  # noqa: E402
 from test_l3_abilities_batch3 import (  # noqa: E402
     _selection_view_c,
@@ -49,12 +51,11 @@ MIRROR_CASES = [(i, i, 12345 + i) for i in range(NUM)]
 CROSS_CASES = [(i, (i + 1) % NUM, 7000 + i) for i in range(NUM)]
 
 
-def run_match(make_cref, seed, deck0, deck1, steps=600):
-  import jax
 
-  from azuki_jax.engine.step import engine_step, stabilize
+
+def run_match(make_cref, seed, deck0, deck1, steps=600):
+  from azuki_jax.engine.step import stabilize
   from azuki_jax.env import init_state_with_decks
-  from azuki_jax.masks import build_mask
   from azuki_jax.setup import deck_tables_from_card_lists
 
   cref = make_cref(seed, deck_pool=None)
@@ -62,9 +63,6 @@ def run_match(make_cref, seed, deck0, deck1, steps=600):
 
   tables = deck_tables_from_card_lists(deck0, deck1)
   state = stabilize(init_state_with_decks(seed, tables))
-
-  jit_step = jax.jit(engine_step)
-  jit_mask = jax.jit(build_mask)
 
   rng = np.random.default_rng(seed)
   for step_index in range(steps):
@@ -81,7 +79,7 @@ def run_match(make_cref, seed, deck0, deck1, steps=600):
 
     active = cview["active"]
     c_rows = cref.legal_actions(active)
-    legal, count, _ = jit_mask(state)
+    legal, count, _ = cached_jit_mask()(state)
     j_rows = [tuple(int(x) for x in row) for row in np.asarray(legal)[: int(count)]]
     assert j_rows == c_rows, (
         f"step {step_index} (phase {cview['phase']}, ab {cview['ab_phase']}):"
@@ -95,7 +93,7 @@ def run_match(make_cref, seed, deck0, deck1, steps=600):
     action = driver_rows[int(rng.integers(0, len(driver_rows)))]
 
     cref.step(np.asarray(action, np.int32))
-    state = jit_step(state, np.asarray(action, np.int32))
+    state = cached_static_jit_step(state, np.asarray(action, np.int32))
 
     c_term, c_trunc = cref.dones()
     assert (int(state.winner) != -1) == c_term, (

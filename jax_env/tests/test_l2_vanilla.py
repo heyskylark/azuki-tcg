@@ -9,6 +9,8 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+from conftest import cached_jit_mask, cached_static_jit_step
+
 # Vanilla deck: leader STT01-001 (AMain-only ability), gate STT01-002
 # (portal-only ability), 50 ability-free mains, 10 IKZ.
 VANILLA_DECK = [
@@ -176,11 +178,11 @@ def filtered_mask(rows, types):
 
 @pytest.mark.parametrize("seed", [11, 222, 3333])
 def test_vanilla_episode_equivalence(seed, make_cref):
-  import jax
+  
 
-  from azuki_jax.engine.step import engine_step, stabilize
+  from azuki_jax.engine.step import stabilize
   from azuki_jax.env import init_state_with_decks
-  from azuki_jax.masks import build_mask
+  
   from azuki_jax.setup import deck_tables_from_card_lists
 
   cref = make_cref(seed, deck_pool=None)
@@ -190,8 +192,8 @@ def test_vanilla_episode_equivalence(seed, make_cref):
   state = init_state_with_decks(seed, tables)
   state = stabilize(state)
 
-  jit_step = jax.jit(engine_step)
-  jit_mask = jax.jit(build_mask)
+  jit_step = cached_static_jit_step
+  jit_mask = cached_jit_mask()
 
   rng = np.random.default_rng(seed)
   for step_index in range(400):

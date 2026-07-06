@@ -13,6 +13,45 @@ for entry in (REPO / "build/python/src", REPO / "python/src", REPO / "jax_env"):
     sys.path.insert(0, str(entry))
 
 
+
+_STATIC_STEP_FNS = {}
+_JIT_MASK_FN = None
+
+def cached_static_jit_step(state, action):
+  """Run one cached static-action JIT step for parity tests.
+
+  The production JAX vector backend splits by primary action type. Parity tests
+  use the same path so full-pool verification does not pay the monolithic
+  dynamic-dispatch compile for every test run.
+  """
+  import jax
+
+  from azuki_jax.engine.step import engine_step_static_action
+
+  action_array = np.asarray(action, np.int32)
+  action_type = int(action_array[0])
+  fn = _STATIC_STEP_FNS.get(action_type)
+  if fn is None:
+    fn = jax.jit(
+        lambda st, act, action_type=action_type: engine_step_static_action(
+            st, act, action_type
+        )
+    )
+    _STATIC_STEP_FNS[action_type] = fn
+  return fn(state, action_array)
+
+
+def cached_jit_mask():
+  """Return the process-wide JIT-compiled legal-mask builder."""
+  global _JIT_MASK_FN
+  if _JIT_MASK_FN is None:
+    import jax
+
+    from azuki_jax.masks import build_mask
+
+    _JIT_MASK_FN = jax.jit(build_mask)
+  return _JIT_MASK_FN
+
 @pytest.fixture(scope="session")
 def native_pool():
   from training_deck_pool import load_training_deck_pool

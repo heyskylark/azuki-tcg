@@ -15,6 +15,8 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+from conftest import cached_jit_mask, cached_static_jit_step
+
 from test_l2_vanilla import DRIVER_TYPES, VANILLA_DECK
 
 
@@ -121,7 +123,7 @@ def _run_byte_equality(seed, make_cref, deck, driver_types):
   import jax
   import jax.numpy as jnp
 
-  from azuki_jax.engine.step import engine_step, stabilize
+  from azuki_jax.engine.step import stabilize
   from azuki_jax.env import init_state_with_decks
   from azuki_jax.observe import packed_observation_pair
   from azuki_jax.setup import deck_tables_from_card_lists
@@ -132,7 +134,7 @@ def _run_byte_equality(seed, make_cref, deck, driver_types):
   tables = deck_tables_from_card_lists(deck, deck)
   state = stabilize(init_state_with_decks(seed, tables))
 
-  jit_step = jax.jit(engine_step)
+  jit_step = cached_static_jit_step
   jit_pack = jax.jit(packed_observation_pair)
 
   history: dict[int, list[tuple[int, int, int, int]]] = {0: [], 1: []}

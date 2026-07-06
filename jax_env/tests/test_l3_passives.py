@@ -13,6 +13,8 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+from conftest import cached_jit_mask, cached_static_jit_step
+
 from test_l2_vanilla import c_semantic_view, jax_semantic_view
 
 # Vanilla fillers (no abilities).
@@ -110,11 +112,11 @@ def compare_step(step_index, cref, state, jit_mask):
 
 
 def make_pair(make_cref, seed, deck0, deck1=None):
-  import jax
+  
 
-  from azuki_jax.engine.step import engine_step, stabilize
+  from azuki_jax.engine.step import stabilize
   from azuki_jax.env import init_state_with_decks
-  from azuki_jax.masks import build_mask
+  
   from azuki_jax.setup import deck_tables_from_card_lists
 
   deck1 = deck1 or deck0
@@ -122,7 +124,7 @@ def make_pair(make_cref, seed, deck0, deck1=None):
   cref.reset_with_decks(seed, deck0, deck1)
   tables = deck_tables_from_card_lists(deck0, deck1)
   state = stabilize(init_state_with_decks(seed, tables))
-  return cref, state, jax.jit(engine_step), jax.jit(build_mask)
+  return cref, state, cached_static_jit_step, cached_jit_mask()
 
 
 # coverage collected by the parametrized equivalence runs (group -> def ids
