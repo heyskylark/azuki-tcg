@@ -302,6 +302,22 @@ static int my_init(Env* env, PyObject* args, PyObject* kwargs) {
       return -1;
     }
     env->deck_building = true;
+    PyObject* sibling_prob_obj =
+        PyDict_GetItemString(kwargs, "draft_same_element_matchup_prob");
+    if (sibling_prob_obj != NULL) {
+      const double prob = PyFloat_AsDouble(sibling_prob_obj);
+      if (PyErr_Occurred()) {
+        free_training_deck_pool(env);
+        return -1;
+      }
+      if (prob < 0.0 || prob > 1.0) {
+        PyErr_SetString(PyExc_ValueError,
+                        "draft_same_element_matchup_prob must be in [0, 1]");
+        free_training_deck_pool(env);
+        return -1;
+      }
+      env->draft_same_element_matchup_prob = (float)prob;
+    }
   }
 
   init(env);
@@ -512,6 +528,41 @@ static int load_draft_catalog(PyObject* kwargs) {
   cat.ikz_def_id = (int16_t)PyLong_AsLong(ikz_obj);
   if (PyErr_Occurred()) {
     return -1;
+  }
+  for (int i = 0; i < AZK_DRAFT_MAX_GATES; ++i) {
+    cat.gate_sibling_def_ids[i] = -1;
+  }
+  if (PyDict_GetItemString(kwargs, "draft_gate_sibling_def_ids") != NULL) {
+    int sibling_count = 0;
+    if (parse_int16_list(kwargs, "draft_gate_sibling_def_ids",
+                         cat.gate_sibling_def_ids, AZK_DRAFT_MAX_GATES,
+                         &sibling_count) != 0) {
+      return -1;
+    }
+    if (sibling_count != cat.gate_count) {
+      PyErr_SetString(PyExc_ValueError,
+                      "draft_gate_sibling_def_ids must match gate count");
+      return -1;
+    }
+    for (int i = 0; i < cat.gate_count; ++i) {
+      const int16_t sibling = cat.gate_sibling_def_ids[i];
+      if (sibling < 0) {
+        continue;
+      }
+      bool found = false;
+      for (int j = 0; j < cat.gate_count; ++j) {
+        if (cat.gate_def_ids[j] == sibling) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        PyErr_Format(PyExc_ValueError,
+                     "draft_gate_sibling_def_ids[%d]=%d not a catalog gate", i,
+                     (int)sibling);
+        return -1;
+      }
+    }
   }
   if (cat.gate_count <= 0 || cat.population_count <= 0) {
     PyErr_SetString(PyExc_ValueError, "draft catalog must be non-empty");

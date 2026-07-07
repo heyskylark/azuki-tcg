@@ -194,6 +194,10 @@ typedef struct {
   int16_t main_flat[AZK_DRAFT_MAX_GATES * AZK_DRAFT_MAX_CANDIDATES];
   int main_offsets[AZK_DRAFT_MAX_GATES + 1];
   int16_t ikz_def_id;
+  // Same-element partner per gate slot (-1 if none), used by the per-env
+  // draft_same_element_matchup_prob knob to oversample sibling-gate matchups
+  // (e.g. Surge vs Stormchain).
+  int16_t gate_sibling_def_ids[AZK_DRAFT_MAX_GATES];
   bool loaded;
 } AzkDraftCatalog;
 
@@ -256,6 +260,10 @@ typedef struct {
   // Deck-building draft state (native path). observations rows are
   // TrainingObservationDataDeckBuild when deck_building is set.
   bool deck_building;
+  // With this probability an episode replaces P1's sampled gate with the
+  // same-element sibling of P0's. 0 leaves the RNG stream bit-identical to
+  // builds without the knob.
+  float draft_same_element_matchup_prob;
   bool draft_active;
   int8_t draft_active_player;
   uint32_t draft_rng_state;
@@ -1478,24 +1486,15 @@ static int32_t draft_player_mode(const CAzukiTCG* env, int player_index) {
 // Test hook: AZK_DEBUG_FORCE_GATE_DEF_IDS="p0_def_id,p1_def_id" pins gates
 // for parity tests against the Python wrapper.
 static bool draft_forced_gates(int16_t out[MAX_PLAYERS_PER_MATCH]) {
-  static int state = -1;  // -1 unchecked, 0 off, 1 forced
-  static int16_t forced[MAX_PLAYERS_PER_MATCH] = {-1, -1};
-  if (state < 0) {
-    const char* raw = getenv("AZK_DEBUG_FORCE_GATE_DEF_IDS");
-    state = 0;
-    if (raw != NULL && raw[0] != '\0') {
-      int a = -1, b = -1;
-      if (sscanf(raw, "%d,%d", &a, &b) == 2) {
-        forced[0] = (int16_t)a;
-        forced[1] = (int16_t)b;
-        state = 1;
-      }
+  // Re-read every call (once per episode): tests toggle this within a process.
+  const char* raw = getenv("AZK_DEBUG_FORCE_GATE_DEF_IDS");
+  if (raw != NULL && raw[0] != '\0') {
+    int a = -1, b = -1;
+    if (sscanf(raw, "%d,%d", &a, &b) == 2) {
+      out[0] = (int16_t)a;
+      out[1] = (int16_t)b;
+      return true;
     }
-  }
-  if (state == 1) {
-    out[0] = forced[0];
-    out[1] = forced[1];
-    return true;
   }
   return false;
 }
@@ -1625,17 +1624,37 @@ static void draft_begin_episode(CAzukiTCG* env) {
 
   int16_t forced[MAX_PLAYERS_PER_MATCH];
   const bool use_forced = draft_forced_gates(forced);
+  int16_t gates[MAX_PLAYERS_PER_MATCH];
   for (int player_index = 0; player_index < MAX_PLAYERS_PER_MATCH;
        ++player_index) {
-    int16_t gate;
     if (use_forced) {
-      gate = forced[player_index];
+      gates[player_index] = forced[player_index];
     } else {
       env->draft_rng_state = advance_episode_seed(env->draft_rng_state);
-      gate = g_draft_catalog.gate_population[env->draft_rng_state %
-                                             (uint32_t)g_draft_catalog
-                                                 .population_count];
+      gates[player_index] =
+          g_draft_catalog.gate_population[env->draft_rng_state %
+                                          (uint32_t)g_draft_catalog
+                                              .population_count];
     }
+  }
+  const float sibling_prob = env->draft_same_element_matchup_prob;
+  if (!use_forced && sibling_prob > 0.0f) {
+    env->draft_rng_state = advance_episode_seed(env->draft_rng_state);
+    const bool hit = sibling_prob >= 1.0f ||
+                     (double)env->draft_rng_state <
+                         (double)sibling_prob * 4294967296.0;
+    if (hit) {
+      const int slot0 = draft_gate_slot_for(gates[0]);
+      const int16_t sibling =
+          slot0 >= 0 ? g_draft_catalog.gate_sibling_def_ids[slot0] : -1;
+      if (sibling >= 0) {
+        gates[1] = sibling;
+      }
+    }
+  }
+  for (int player_index = 0; player_index < MAX_PLAYERS_PER_MATCH;
+       ++player_index) {
+    const int16_t gate = gates[player_index];
     const int slot = draft_gate_slot_for(gate);
     if (slot < 0) {
       fprintf(stderr, "Sampled gate def id %d missing from draft catalog\n",

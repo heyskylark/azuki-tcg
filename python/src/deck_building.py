@@ -443,11 +443,15 @@ class DeckBuildingParallelEnv(ParallelEnv):
     fixed_deck_seats: tuple[int, ...] = (),
     snapshot_dir: str | Path | None = None,
     snapshot_every: int | None = None,
+    same_element_matchup_prob: float = 0.0,
   ) -> None:
     super().__init__()
     self.env = env
     self._deck_pool = tuple(deck_pool)
     self._fixed_deck_seats = tuple(sorted(set(int(seat) for seat in fixed_deck_seats)))
+    self._same_element_matchup_prob = float(same_element_matchup_prob or 0.0)
+    if not 0.0 <= self._same_element_matchup_prob <= 1.0:
+      raise ValueError("same_element_matchup_prob must be in [0, 1]")
     self._snapshot_dir_arg = snapshot_dir
     self._snapshot_every_arg = snapshot_every
     self.render_mode = getattr(env, "render_mode", "ansi")
@@ -528,6 +532,20 @@ class DeckBuildingParallelEnv(ParallelEnv):
     index = int(self._rng.integers(0, len(population)))
     return int(population[index])
 
+  def _sibling_gate_def_id(self, gate_def_id: int) -> int:
+    """Same-element partner gate (cyclic next among that element's gates), -1 if none."""
+    records = self._catalog.records_by_def_id
+    element = records[gate_def_id].element
+    element_gates = [
+      g
+      for g in sorted({int(x) for x in self._catalog.gate_def_id_population})
+      if records[g].element == element
+    ]
+    if len(element_gates) < 2:
+      return -1
+    index = element_gates.index(int(gate_def_id))
+    return element_gates[(index + 1) % len(element_gates)]
+
   def _fixed_state_from_deck(self, deck: NativeDeck) -> PlayerDeckBuildState:
     records_by_code = self._catalog.records_by_code
     gate_def_id = -1
@@ -563,6 +581,17 @@ class DeckBuildingParallelEnv(ParallelEnv):
         states.append(self._fixed_state_from_deck(self._deck_pool[deck_index]))
       else:
         states.append(PlayerDeckBuildState.create(self._sample_gate_def_id()))
+    # Sibling-matchup oversampling: with prob p replace P1's sampled gate with
+    # the same-element partner of P0's (matches the native path; prob 0 draws
+    # nothing from the RNG so existing streams are unchanged).
+    if (
+      self._same_element_matchup_prob > 0.0
+      and 1 not in self._fixed_deck_seats
+      and float(self._rng.random()) < self._same_element_matchup_prob
+    ):
+      sibling = self._sibling_gate_def_id(states[0].gate_card_def_id)
+      if sibling >= 0:
+        states[1] = PlayerDeckBuildState.create(sibling)
     return states
 
   def _gate_element(self, state: PlayerDeckBuildState) -> str:

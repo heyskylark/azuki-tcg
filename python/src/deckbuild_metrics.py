@@ -100,8 +100,20 @@ class NativeDeckbuildHelper:
       leader_offsets.append(len(leader_flat))
       main_flat.extend(int(x) for x in mains)
       main_offsets.append(len(main_flat))
+    # Same-element partner per gate (cyclic next among that element's gates,
+    # -1 if the element has a single gate) for sibling-matchup oversampling.
+    gates_by_element: dict[str, list[int]] = {}
+    for gate in gate_ids:
+      gates_by_element.setdefault(records[gate].element, []).append(gate)
+    sibling_by_gate: dict[int, int] = {}
+    for element_gates in gates_by_element.values():
+      for index, gate in enumerate(element_gates):
+        sibling_by_gate[gate] = (
+          element_gates[(index + 1) % len(element_gates)] if len(element_gates) > 1 else -1
+        )
     return {
       "draft_gate_def_ids": gate_ids,
+      "draft_gate_sibling_def_ids": [sibling_by_gate[g] for g in gate_ids],
       "draft_gate_population": [int(g) for g in self.catalog.gate_def_id_population],
       "draft_leader_flat": leader_flat,
       "draft_leader_offsets": leader_offsets,

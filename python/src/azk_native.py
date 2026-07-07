@@ -63,6 +63,7 @@ class AzukiNativeEnv(PufferEnv):
     deck_building: bool = False,
     deck_snapshot_dir=None,
     deck_snapshot_every=None,
+    draft_same_element_matchup_prob=None,
   ) -> None:
     num_envs = int(num_envs)
     if num_envs < 1:
@@ -105,6 +106,9 @@ class AzukiNativeEnv(PufferEnv):
 
     self._deck_pool = deck_pool
     self._seed = int(seed or 0)
+    self._draft_same_element_matchup_prob = float(draft_same_element_matchup_prob or 0.0)
+    if not 0.0 <= self._draft_same_element_matchup_prob <= 1.0:
+      raise ValueError("draft_same_element_matchup_prob must be in [0, 1]")
     self._handle = None
     self._deckbuild_helper = None
     if self._deck_building:
@@ -138,6 +142,8 @@ class AzukiNativeEnv(PufferEnv):
     if self._deck_building:
       kwargs["deck_building"] = 1
       kwargs.update(self._deckbuild_helper.catalog_kwargs())
+      if self._draft_same_element_matchup_prob > 0.0:
+        kwargs["draft_same_element_matchup_prob"] = self._draft_same_element_matchup_prob
     self._handle = binding.vec_init(
       self._c_obs,
       self._c_actions,
