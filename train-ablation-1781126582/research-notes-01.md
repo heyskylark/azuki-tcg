@@ -32,6 +32,24 @@
 >   NOTE anneal-arm battle-V cross-seed std is ~10× smaller than ctrl2's
 >   (0.002-0.006 vs 0.024) — outcome-dominated training flattens battle-start
 >   value spread; ratios computed within-arm.
+> - INCIDENT (2026-07-07 00:57-04:15): combo45 hit an ENGINE invalid-action at
+>   8.8M steps (battle tick 83, stale-vs-fresh mask desync, 30-card hand state;
+>   repro line now logged w/ episode seed+gates) → C abort() → dead worker →
+>   vecenv deadlock (2h hang). Fixes shipped: (1) invalid action now TRUNCATES
+>   the episode (zero-legal-style) instead of aborting; AZK_INVALID_ACTION_ABORT=1
+>   restores abort for debugging. (2) resume unblockers: AZK_RESUME_ALLOW_BINDING_MISMATCH,
+>   AZK_RESUME_ALLOW_SOURCE_DRIFT (source_hashes.* only), AZK_RESUME_KEEP_CURRENT_SCHEDULE_ENV
+>   (also excuses schedule_env.* fingerprint fields). (3) resume reset-start
+>   probe SKIPPED on native deck-building (its mask path sends NOOP into the
+>   draft abort — killed the first resume attempt). (4) resume restarts env
+>   episode counters (no env progression saved) → resumed leg pins the anneal
+>   TAIL via env vars (0.08→0.05 over 5 per-env episodes; measured 0.083 at crash).
+>   OPEN WORK ITEM: root-cause the engine mask desync (grep logs for
+>   "Invalid-action truncation:" to collect repro seeds) — must be fixed before
+>   the production distributed run.
+>   Recovery order: anneal45 (fresh, launched 03:36 by the intermediate chain)
+>   runs FIRST; run_after_anneal45.sh (chain6) waits for it → draftref →
+>   combo45 resume from ep600/8.43M → draftref → both trajectories.
 > - 45M CHAIN LAUNCHED 2026-07-06 23:33 (run_45m.sh, detached): combo45
 >   (anneal + gateid + pick-eps 0.02 + oversample 0.35 + league 6/4/3, seed 42)
 >   → draftref 192 → anneal45 control → draftref → per-ckpt gate-KL + critic

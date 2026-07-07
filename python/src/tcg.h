@@ -2217,8 +2217,33 @@ void c_step(CAzukiTCG* env) {
             occupied_garden_zones[2], occupied_garden_zones[3],
             occupied_garden_zones[4], untapped_ikz_card_count);
 
+        // Repro handle for the underlying engine/mask desync bug.
+        fprintf(stderr,
+                "Invalid-action truncation: episode_seed=%u gates=[%d,%d] "
+                "tick=%d\n",
+                env->episode_world_seed, (int)env->draft_gate[0],
+                (int)env->draft_gate[1], env->tick);
         fflush(stderr);
-        abort();
+        // An abort() here turns one bad episode into a dead worker and a
+        // deadlocked vecenv (combo45 hung 2h at 8.8M steps on one hit).
+        // Default: truncate the episode like the zero-legal-action guard and
+        // keep training; opt back into aborting for parity/debug work.
+        const char* abort_raw = getenv("AZK_INVALID_ACTION_ABORT");
+        if (abort_raw != NULL && abort_raw[0] == '1') {
+          abort();
+        }
+        apply_truncation_rewards(env, EP_END_REASON_ZERO_LEGAL_ACTION_TRUNCATION);
+        accumulate_step_rewards(env);
+        env->truncations[0] = DONE;
+        env->truncations[1] = DONE;
+        record_episode_stats(env, EP_END_REASON_ZERO_LEGAL_ACTION_TRUNCATION);
+        if (g_env_profile.enabled) {
+          const uint64_t step_elapsed_ns = env_now_ns() - step_start_ns;
+          g_env_profile.step_calls++;
+          g_env_profile.total_step_ns += step_elapsed_ns;
+          maybe_report_env_profile();
+        }
+        return;
     }
   } while (!azk_engine_requires_action(env->engine) && !azk_engine_is_game_over(env->engine));
 

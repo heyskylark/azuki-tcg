@@ -872,6 +872,15 @@ def _apply_saved_schedule_env(
 ) -> None:
     if not isinstance(saved_resume_config, dict):
         return
+    if os.environ.get("AZK_RESUME_KEEP_CURRENT_SCHEDULE_ENV") == "1":
+        # Caller-set schedule env vars win (e.g. pinning the anneal tail when
+        # env episode counters could not be restored and would otherwise
+        # replay the full schedule from zero).
+        print(
+            "[resume] keeping current schedule env vars per "
+            "AZK_RESUME_KEEP_CURRENT_SCHEDULE_ENV=1 (saved values not applied)"
+        )
+        return
     schedule_env = saved_resume_config.get("schedule_env")
     if not isinstance(schedule_env, dict):
         return
@@ -1247,14 +1256,38 @@ def _validate_resume_metadata(
 
     if mismatches:
         details = ", ".join(f"{k}: saved={a!r} current={b!r}" for k, a, b in mismatches)
-        raise RuntimeError(
-            "[resume] runtime/checkpoint incompatibility detected. "
-            f"Checkpoint={model_path}. Mismatched fields: {details}"
-        )
+        binding_only = all(key == "binding_size" for key, _, _ in mismatches)
+        if binding_only and os.environ.get("AZK_RESUME_ALLOW_BINDING_MISMATCH") == "1":
+            # binding_size fires on ANY rebuild of the .so, semantic or not;
+            # the obs dtype fields above remain strict.
+            print(
+                "[resume] warning: binding changed since checkpoint "
+                f"({details}); continuing per AZK_RESUME_ALLOW_BINDING_MISMATCH=1"
+            )
+        else:
+            raise RuntimeError(
+                "[resume] runtime/checkpoint incompatibility detected. "
+                f"Checkpoint={model_path}. Mismatched fields: {details}"
+            )
 
     saved_resume_cfg = payload.get("resume_config_fingerprint")
     if isinstance(saved_resume_cfg, dict):
         cfg_mismatches = _resume_cfg_mismatches(saved_resume_cfg, resume_config_fingerprint)
+        excusable_prefixes: list[str] = []
+        if os.environ.get("AZK_RESUME_ALLOW_SOURCE_DRIFT") == "1":
+            # Intentional source patches mid-campaign (e.g. a crash fix) drift
+            # source_hashes.*; config/policy mismatches remain fatal.
+            excusable_prefixes.append("source_hashes.")
+        if os.environ.get("AZK_RESUME_KEEP_CURRENT_SCHEDULE_ENV") == "1":
+            # Keeping caller-set schedule env vars implies they diverge from
+            # the saved ones by design.
+            excusable_prefixes.append("schedule_env.")
+        if cfg_mismatches and excusable_prefixes:
+            excused = [m for m in cfg_mismatches if m[0].startswith(tuple(excusable_prefixes))]
+            cfg_mismatches = [m for m in cfg_mismatches if not m[0].startswith(tuple(excusable_prefixes))]
+            if excused:
+                details = ", ".join(f"{k}" for k, _, _ in excused)
+                print(f"[resume] warning: mismatches excused by env flags: {details}")
         if cfg_mismatches:
             details = ", ".join(f"{k}: saved={a!r} current={b!r}" for k, a, b in cfg_mismatches)
             raise RuntimeError(
@@ -1789,19 +1822,26 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
             else:
                 print("[resume] critic head reset requested but no value head was found")
 
-        reset_probe = _resume_reset_start_probe(trainer_args, policy)
-        print(
-            "[resume] reset-start probe: "
-            f"entropy={reset_probe['entropy']:.6f}, "
-            f"noop_selected_rate={reset_probe['noop_selected_rate']:.6f}, "
-            f"actions={int(reset_probe['actions'])}, steps={int(reset_probe['steps'])}"
-        )
-        if reset_probe["entropy"] < 0.3 and reset_probe["noop_selected_rate"] > 0.9:
+        env_cfg_probe = trainer_args.get("env", {})
+        if bool(env_cfg_probe.get("native")) and bool(env_cfg_probe.get("deck_building_enabled")):
+            # The probe's mask wiring doesn't cover the native draft phase; a
+            # sampled NOOP on a draft step hits the C-side abort and kills the
+            # resume (2026-07-07). Skip until the probe feeds draft masks.
+            print("[resume] reset-start probe skipped (native deck-building env)")
+        else:
+            reset_probe = _resume_reset_start_probe(trainer_args, policy)
             print(
-                "[resume] warning: checkpoint policy is collapse-like from fresh reset starts. "
-                "Model weight load parity passed; this usually indicates checkpoint behavior degradation "
-                "on opening states rather than a missing-weights resume bug."
+                "[resume] reset-start probe: "
+                f"entropy={reset_probe['entropy']:.6f}, "
+                f"noop_selected_rate={reset_probe['noop_selected_rate']:.6f}, "
+                f"actions={int(reset_probe['actions'])}, steps={int(reset_probe['steps'])}"
             )
+            if reset_probe["entropy"] < 0.3 and reset_probe["noop_selected_rate"] > 0.9:
+                print(
+                    "[resume] warning: checkpoint policy is collapse-like from fresh reset starts. "
+                    "Model weight load parity passed; this usually indicates checkpoint behavior degradation "
+                    "on opening states rather than a missing-weights resume bug."
+                )
 
     league_enabled = _is_league_enabled(script_args, trainer_args)
     league_cfg = _league_cfg(script_args, trainer_args)
