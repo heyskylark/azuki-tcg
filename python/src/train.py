@@ -1391,6 +1391,20 @@ def _maybe_restore_trainer_state(
         saved_resume_cfg = trainer_state.get("resume_config_fingerprint")
         if isinstance(saved_resume_cfg, dict):
             cfg_mismatches = _resume_cfg_mismatches(saved_resume_cfg, expected_resume_config_fingerprint)
+            # Same excusals as _validate_resume_metadata: intentional source
+            # patches / caller-pinned schedule env vars must not silently
+            # downgrade to model-only resume (loses optimizer + global_step).
+            excusable_prefixes = []
+            if os.environ.get("AZK_RESUME_ALLOW_SOURCE_DRIFT") == "1":
+                excusable_prefixes.append("source_hashes.")
+            if os.environ.get("AZK_RESUME_KEEP_CURRENT_SCHEDULE_ENV") == "1":
+                excusable_prefixes.append("schedule_env.")
+            if cfg_mismatches and excusable_prefixes:
+                excused = [m for m in cfg_mismatches if m[0].startswith(tuple(excusable_prefixes))]
+                cfg_mismatches = [m for m in cfg_mismatches if not m[0].startswith(tuple(excusable_prefixes))]
+                if excused:
+                    details = ", ".join(k for k, _, _ in excused)
+                    print(f"[resume] trainer_state mismatches excused by env flags: {details}")
             if cfg_mismatches:
                 details = ", ".join(f"{k}: saved={a!r} current={b!r}" for k, a, b in cfg_mismatches)
                 print(
