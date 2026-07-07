@@ -610,6 +610,67 @@ Design (v1):
   (mapper agent); cuda_graphs likely incompatible with league row-splitting — v1 runs
   native + train-side compile, cuda_graphs off; revisit after benchmark.
 
+## 7. ROUND-2 RESULTS (filling as arms complete)
+
+### ctrl2 (control, native stack, 15M, epoch 977, pool 4 final) — DONE 07:39
+- SPS 3.7k (pool 0) → 1.6k (pool 4); wall ~2.5h incl evals.
+- **Negative control airtight**: gate-swap KL = 0.00000 in all 4 elements (306 pick
+  steps each, control replay 0); same-element L1 excess ≈ 0 everywhere
+  (−0.007..−0.001 vs bootstrap floor). The new stack alone does NOT create gate identity.
+- Deck→behavior conditioning ratio: weapons 1.26, spells 1.12 (June baseline: 1.35/0.97).
+- Draft-vs-reference: **34.4%** (96 eps argmax) — the bar for the arms.
+- Composition dynamics mirror June: quads spike-collapse cycles, unique 32-37,
+  avg cost ~2.8; same-element divergence 0.10 (early) → 0.07 (late) ≈ floor.
+
+### anneal1 (shaping→0.05 over ~2-8M, 15M, epoch 977) — DONE 10:25
+- **Draft-vs-reference 45.8% vs ctrl2 34.4%** (+11.4pp, 96 eps argmax each, ~1.6σ —
+  re-run with more eps at chain end). Shaping anneal = big external-validity win (E5).
+- Mid-run playstyle shift while shaping faded: portal rate peaked 0.082 @6M (2-3× ctrl2),
+  spells 0.052; settled ~0.03/0.03 as meta equilibrated. H1 (reward bias suppressed
+  mechanics) CONFIRMED in play behavior.
+- Same-element L1 excess: +0.013 FIRE / +0.007 EARTH / +0.005 WATER / −0.003 LIGHTNING —
+  first above-floor divergence (ctrl2 all ≤0), still small (E2 weakly positive).
+- Gate-swap KL = 0.0 as expected — no identity channel; anneal alone cannot create
+  gate-conditional drafting (representation still collapsed). Factorization confirmed.
+- Forced-deck probe: weapon-deck win 0.50 vs spell/entity 0.12 (conditioning ratios
+  1.16/1.07 similar to ctrl2).
+
+### gateid1 (gate-id embedding only, 15M, epoch 977) — DONE 13:13
+- Gate-swap KL still ≈ 0 (TV ≤ 0.0005, marginally above ctrl2's ≤0.0001 but functionally
+  zero); same-element L1 excess at floor; draft-vs-ref 39.6%.
+- INTERPRETATION: the identity channel exists (untrained combined cos 0.957 vs 0.9995)
+  but training never amplified it — capacity without incentive goes unused. Confirms the
+  chicken-egg: gate conditioning needs BOTH a distinguishable representation AND value
+  differences that reward using it. combo1 (anneal+gateid+pick-eps) is the both-at-once arm.
+
+### League flat-SPS fix (task 7) — LANDED mid-chain (2a162cd; combo1 unaffected,
+its process pre-imported the old module)
+- OSFP-style windowed frozen sampling: league.frozen_window_epochs=8,
+  max_distinct_frozen=1 in the native deckbuild config; default off elsewhere.
+  4 new unit tests. Benchmark after combo1: expect ~flat 3.2-3.5k at pool 4
+  (was 1.6-2k). Applies to the NEXT runs, not the current chain.
+
+### combo1 (anneal+gateid+pick-eps, 15M, epoch 977) — DONE 16:00; CHAIN COMPLETE 16:13
+- Draft-vs-ref 50.0% @96 eps (chain seed) / 40.6% @192 (seed 555) → pooled 43.8%.
+- Synergy: 26 pairs p<0.01 & sup≥20% (vs ctrl2's 6, gateid1's 0); EARTH same-element
+  excess +0.018 (largest of any arm); weapon conditioning ratio 1.31; spell 0.50
+  (spell aversion under pick-eps — spells diluted, spell_rate 0.004-0.015 in play).
+- Gate-swap KL still 0 (TV ≤0.0005) — pair-level conditioning did not ignite at 15M
+  even with channel+incentive+exploration. Needs longer runs (recommendation: 45-75M).
+
+### POOLED draft-vs-reference (chain 96 + rerun 192 = 288 eps/arm, argmax):
+ctrl2 36.8% | gateid1 39.6% (96 only) | combo1 43.8% | anneal1 44.4%.
+anneal−ctrl +7.6pp (~1.9σ); combo−ctrl +7.0pp (~1.7σ). Robust across eval seeds.
+
+### League windowed sampling BENCHMARK (leaguebench, 4M, ckpt interval 40) — task 7 DONE
+SPS by pool: 0→3,679 | 1→2,913 | 2→2,486 | 3→2,529 | 4→2,495 — **FLAT from pool 2 on**
+(old per-game sampling: 2.9k @2 → 1.6-2.0k @4 and still falling). At pool 4: +25-55%;
+pool-size-independent for future bigger pools. Commit 2a162cd.
+
+### Final report: final-report.md (complete — exec summary, evidence scorecard,
+distributed-run recommendations). Evidence bar: E3/E4/E5 met, E2 weak-positive,
+E1 (sibling-gate KL) open — the explicit target for the long distributed run.
+
 ## 4. Key questions to answer
 - Does the model build legal-but-coherent decks (curve, type mix) per gate, or collapse to one deck?
 - Do per-gate compositions diverge (weapons for LIGHTNING, spells for Echoed Waves, etc.)?

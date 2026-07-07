@@ -1,0 +1,31 @@
+experiments/abl_snapshots/gateid1 last 25%: 428 episodes
+
+== same-element L1 divergence vs bootstrap noise floor ==
+  EARTH        Devotion(n=93) vs Stonehaven (n=106) L1=0.0664 floor~0.0776 excess=-0.0112
+  FIRE         Ragefire(n=94) vs Rushfire   (n=103) L1=0.0741 floor~0.0768 excess=-0.0027
+  LIGHTNING       Surge(n=125) vs Stormchain (n=98) L1=0.0740 floor~0.0722 excess=+0.0018
+  WATER      Hydromancy(n=149) vs EchoedWaves(n=88) L1=0.0647 floor~0.0717 excess=-0.0069
+
+== behavior vs win correlation (per gate, last window) ==
+  gate         n          portal       weapon        spell       attack  play_entity
+  Devotion     93         +0.084       +0.090       -0.104       +0.501       +0.064
+  Stonehaven   106        -0.077       +0.027       -0.200       +0.557       -0.062
+  Ragefire     94         +0.067       +0.200       +0.084       +0.594       +0.119
+  Rushfire     103        -0.120       -0.107       +0.035       +0.516       +0.025
+  Surge        125        +0.062       -0.117       -0.188       +0.436       -0.235
+  Stormchain   98         -0.179       -0.119       -0.134       +0.356       -0.277
+  Hydromancy   149        -0.022       -0.111       -0.058       +0.372       +0.007
+  EchoedWaves  88         +0.010       +0.152       -0.171       +0.559       -0.164
+  POOLED       856        -0.019       +0.017       -0.104       +0.507       -0.021
+  (usage means)
+                          0.0051       0.0140       0.0332       0.3094       0.2527
+
+== leader split per gate (same-element pairs share the pool) ==
+  EARTH     Devotion     AZK01-123:0.52, STT03-001:0.48
+  EARTH     Stonehaven   AZK01-123:0.50, STT03-001:0.50
+  FIRE      Ragefire     AZK01-121:0.53, STT04-001:0.47
+  FIRE      Rushfire     AZK01-121:0.63, STT04-001:0.37
+  LIGHTNING Surge        AZK01-119:0.58, STT01-001:0.42
+  LIGHTNING Stormchain   STT01-001:0.55, AZK01-119:0.45
+  WATER     Hydromancy   AZK01-125:0.56, STT02-001:0.44
+  WATER     EchoedWaves  STT02-001:0.53, AZK01-125:0.47
