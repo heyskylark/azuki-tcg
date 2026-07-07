@@ -1,6 +1,45 @@
 # Azuki TCG — Deck-Building & Training Ablation Research Notes (Part 01)
 
 > ## LIVE STATE (update on every major transition)
+> As of 2026-07-06 LATE (post-round-2 phase; goal: 45M confirmation or pivot):
+> - CRITIC-SENSITIVITY PROBE (the go/no-go for 45M): probe_critic_gate.py NEW —
+>   interventional gate-swap (reuses probe_gate_kl machinery) reading the VALUE
+>   head + win-prob aux head instead of pick logits. Per element pair: |dV| at
+>   P0 pick steps + battle start, A-A control replay floor (measured EXACTLY 0,
+>   bitwise-deterministic on cpu), cross-seed V-std scale reference, sign
+>   consistency. RUNNING on all 4 round-2 final ckpts (ep977), 12 eps, 4-way
+>   parallel cpu (run_critic_probe.sh; results/critic_probe_<arm>.json).
+>   Smoke (ctrl2, LIGHTNING, 2 eps): battle|dV|=0.0007 vs floor 0 — nonzero but
+>   tiny; scale interpretation needs the full run (battle V cross-seed std was
+>   ~0.001 at n=2 — suspiciously flat, added Vmean/withinEpStd readouts).
+> - SIBLING-MATCHUP OVERSAMPLING KNOB SHIPPED (commit 7e316c0):
+>   env.draft_same_element_matchup_prob — with prob p, P1's gate is replaced by
+>   the same-element partner of P0's. Native C path (per-env field; catalog
+>   carries a sibling map) + legacy wrapper (same_element_matchup_prob).
+>   prob 0 = bit-identical RNG streams. Tests: test_draft_sibling_oversampling.py
+>   (3) + draft parity + deck-building suite all green. NOTE:
+>   AZK_DEBUG_FORCE_GATE_DEF_IDS is now re-read per episode (was latched).
+> - CRITIC PROBE VERDICT (2026-07-06 23:20): **GO — the critic is NOT gate-blind.**
+>   12 eps × 4 elements/arm, control floor EXACTLY 0 everywhere. combo1: battle
+>   |dV| sign-consistent 12/12 in ALL FOUR elements (chance ~5e-4/element),
+>   |dV|/cross-seed-V-std ratios WATER 0.59, EARTH 0.35, FIRE 0.18, LIGHTNING
+>   0.14 (mean 0.30); win-prob head agrees (WATER |dWP| ~45% of spread).
+>   Arm ordering: combo1 0.30 ≫ gateid1 0.08 ≈ anneal1 0.09 > ctrl2 0.02 —
+>   gateid channel + anneal TOGETHER are what let the value function learn the
+>   sibling distinction. Actor KL ≡ 0 at the same ckpts ⇒ value knows, policy
+>   hasn't cashed it in ⇒ exactly the longer+sharper-gradient regime.
+>   Artifacts: results/critic_probe_<arm>.json; analyze_critic_probe.py.
+>   NOTE anneal-arm battle-V cross-seed std is ~10× smaller than ctrl2's
+>   (0.002-0.006 vs 0.024) — outcome-dominated training flattens battle-start
+>   value spread; ratios computed within-arm.
+> - 45M CHAIN LAUNCHED 2026-07-06 23:33 (run_45m.sh, detached): combo45
+>   (anneal + gateid + pick-eps 0.02 + oversample 0.35 + league 6/4/3, seed 42)
+>   → draftref 192 → anneal45 control → draftref → per-ckpt gate-KL + critic
+>   trajectories. Logs /tmp/run45m_chain.log, /tmp/train_combo45.log. ETA
+>   ~14h. Smoke-validated first: pick-eps 0.02 applied (sampler banner), CLI→
+>   env plumbing returns 0.35 float, knob unit tests green.
+>
+> Previous LIVE STATE (round-2, kept for context):
 > As of 2026-07-06 (research resumed on branch skylark/C-train-optimizations):
 > - STACK CHANGE: training stack optimized 2026-07-05/06 (native obs path for fixed-deck,
 >   vectorized encode, metadata embedding table, GPU ScalarRunningNorm, CUDA-graph rollout,
