@@ -11,6 +11,7 @@
 #include <unistd.h>
 
 #include "azuki/engine.h"
+#include "generated/card_defs.h"
 #include "abilities/ability_system.h"
 #include "utils/deck_utils.h"
 #include "utils/status_util.h"
@@ -617,6 +618,10 @@ typedef struct RewardTuningConfig {
   float board_delta_weight;
   float noop_penalty;
   float truncation_board_edge_weight;
+  // Annealed portal exposure bonus: on GATE_PORTAL, weight * min(GP,4)/4 of
+  // the portaled entity joins base_shaped_reward (rides shaping scale +
+  // zero-sum symmetry). 0-GP portals earn nothing. Default off.
+  float portal_gp_bonus;
 } RewardTuningConfig;
 
 static RewardTuningConfig g_reward_tuning = {0};
@@ -661,6 +666,8 @@ static void init_reward_tuning_if_needed(void) {
       parse_nonnegative_env_float("AZK_REWARD_NOOP_PENALTY", SHAPED_NOOP_PENALTY);
   g_reward_tuning.truncation_board_edge_weight =
       parse_nonnegative_env_float("AZK_TRUNCATION_BOARD_EDGE_WEIGHT", TRUNCATION_BOARD_EDGE_WEIGHT);
+  g_reward_tuning.portal_gp_bonus =
+      parse_nonnegative_env_float("AZK_PORTAL_GP_BONUS", 0.0f);
 }
 
 static float parse_unit_env_float(const char *name, float default_value) {
@@ -1062,7 +1069,7 @@ static void record_action_choice(CAzukiTCG* env, int8_t player_index, ActionType
 
 static void apply_shaped_rewards(
     CAzukiTCG* env, int8_t acting_player_index, ActionType selected_type,
-    bool noop_had_alternatives) {
+    bool noop_had_alternatives, float portal_gp_bonus) {
   if (acting_player_index < 0 || acting_player_index >= MAX_PLAYERS_PER_MATCH) {
     fprintf(stderr, "Invalid acting player index %d when applying shaped rewards\n", acting_player_index);
     abort();
@@ -1109,7 +1116,7 @@ static void apply_shaped_rewards(
   }
 
   const float base_shaped_reward = env->time_weight * phi_delta + leader_delta_term +
-                                   board_delta_term - noop_penalty;
+                                   board_delta_term - noop_penalty + portal_gp_bonus;
   const float shaping_scale = current_reward_shaping_scale(env);
   const float shaped_reward = shaping_scale * base_shaped_reward;
   env->rewards[acting_player_index] = shaped_reward;
@@ -2064,6 +2071,30 @@ void c_step(CAzukiTCG* env) {
       (parsed_action.type == ACT_NOOP) &&
       (current_action_mask->legal_action_count > 1);
 
+  // Portal-GP bonus: read the portaled entity from the pre-action alley obs
+  // (sub1 = alley slot); the tick below moves it.
+  float portal_gp_bonus = 0.0f;
+  if (parsed_action.type == ACT_GATE_PORTAL &&
+      g_reward_tuning.portal_gp_bonus > 0.0f) {
+    const int alley_slot = (int)parsed_action.subaction_1;
+    if (alley_slot >= 0 && alley_slot < ALLEY_SIZE) {
+      const int16_t portaled_def_id =
+          obs_base(env, active_player_index)
+              ->my_observation_data.alley[alley_slot]
+              .card_def_id;
+      if (portaled_def_id >= 0) {
+        const CardDef* def = azk_card_def_from_id((CardDefId)portaled_def_id);
+        if (def != NULL && def->has_gate_points) {
+          uint8_t gp = def->gate_points.gate_points;
+          if (gp > 4) {
+            gp = 4;
+          }
+          portal_gp_bonus = g_reward_tuning.portal_gp_bonus * (float)gp / 4.0f;
+        }
+      }
+    }
+  }
+
   // Some sub-actions do not require a user action
   // We should progress those until a user action is required (or the game ends)
   bool forced_auto_tick_truncation = false;
@@ -2313,7 +2344,8 @@ void c_step(CAzukiTCG* env) {
     return;
   }
 
-  apply_shaped_rewards(env, active_player_index, parsed_action.type, noop_had_alternatives);
+  apply_shaped_rewards(env, active_player_index, parsed_action.type, noop_had_alternatives,
+                       portal_gp_bonus);
   accumulate_step_rewards(env);
   if (g_env_profile.enabled) {
     const uint64_t step_elapsed_ns = env_now_ns() - step_start_ns;
