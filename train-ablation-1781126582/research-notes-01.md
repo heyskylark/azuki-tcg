@@ -50,6 +50,24 @@
 >   Recovery order: anneal45 (fresh, launched 03:36 by the intermediate chain)
 >   runs FIRST; run_after_anneal45.sh (chain6) waits for it → draftref →
 >   combo45 resume from ep600/8.43M → draftref → both trajectories.
+> - **ACHIEVABLE-GAP PROBE, LIGHTNING (2026-07-08 13:45): THE SIBLING GAP IS
+>   REAL (~4-5pp)** — mirror decks (identical leader+50 mains, only the gate
+>   differs), n=1032/arm: policy-argmax Surge 54.1% (p~.009), portal-forced
+>   55.2% (p<.001), portal-blocked 48.1% (CI incl 50 — removing portals
+>   equalizes the siblings, as designed). The policy ALREADY exploits the
+>   difference in play (~1.4 portals/ep argmax) but not in draft (KL≡0).
+>   Clears the pre-registered >=3pp bar → training levers activated.
+>   Tooling: probe_gate_gap.py (+ cross-element neutral-deck mode: all-NORMAL
+>   mirror decks, same leader both sides — engine accepts gate/leader element
+>   mismatch); run_gate_gap_all.sh sequencing W/F/E siblings then a 7-gate
+>   ability ladder vs Hydromancy ref.
+> - **PORTAL-GP SHAPING SHIPPED (c804922)**: AZK_PORTAL_GP_BONUS — on
+>   GATE_PORTAL, weight*min(GP,4)/4 of the portaled entity (pre-tick alley
+>   lookup via azk_card_def_from_id) joins base_shaped_reward → rides the
+>   shaping anneal + zero-sum channel; 0-GP portals earn 0; default off.
+>   Differential test green (knob-off bit-identical). portalgp1 smoke arm
+>   (15M, recipe + bonus 0.3) launched 13:55 on the idle GPU alongside the
+>   CPU probe matrix. Gates a 45M portal-GP run.
 > - **45M RESULTS IN (2026-07-08 morning)**: combo45b (fresh full-recipe rerun)
 >   COMPLETE 02:45, rc=0, healthy. Draft-vs-ref: **combo45b 41.1%** vs
 >   **anneal45 46.4%** (192 eps each; recipe ~1σ below control externally,
