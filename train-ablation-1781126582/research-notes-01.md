@@ -50,6 +50,26 @@
 >   Recovery order: anneal45 (fresh, launched 03:36 by the intermediate chain)
 >   runs FIRST; run_after_anneal45.sh (chain6) waits for it → draftref →
 >   combo45 resume from ep600/8.43M → draftref → both trajectories.
+> - **45M RESULTS IN (2026-07-08 morning)**: combo45b (fresh full-recipe rerun)
+>   COMPLETE 02:45, rc=0, healthy. Draft-vs-ref: **combo45b 41.1%** vs
+>   **anneal45 46.4%** (192 eps each; recipe ~1σ below control externally,
+>   consistent with round-2 combo1 43.8 vs anneal1 44.4).
+> - **E1 ANSWERED AT 45M: actor gate-swap KL ≡ 0 at EVERY checkpoint in BOTH
+>   arms** (30 ckpts each, 1e-5 resolution) — 45M steps + id channel + 43%
+>   sibling matchups + eps 0.02 do NOT create pick-policy gate conditioning.
+> - **BUT the critic trajectory (combo45b) shows persistent, GROWING value-side
+>   sensitivity**: battle-start |dV| 0.0016@1.5M → peak 0.0054@32M, |dWP|
+>   trend 0.0003→0.0011 by 45M, sign-consistency ~100% late, sens-ratio
+>   0.3-1.2. The critic knows siblings differ; the actor never cashes it in.
+>   STRUCTURAL CONCLUSION: the sibling residual (~0.002-0.005 V units) is
+>   below the pick-head policy-gradient noise floor under PPO+entropy+eps —
+>   sharpening exposure (oversampling) grew the critic signal but not the
+>   policy. Next lever is NOT more steps: it's (a) portal-EV / achievable-gap
+>   analysis — is the intrinsic sibling value gap big enough that a policy
+>   SHOULD condition? (game-design question; if gap ≈ 0, E1 was mis-specified
+>   and family-level conditioning is the correct optimum), and (b)
+>   A-PRIVCRITIC for generally sharper pick baselines. Chain still finishing
+>   anneal45 trajectories (~15:30).
 > - COMBO45-RESUMED INVALIDATED (19:30): draft-vs-ref cratered to 26.6%
 >   (anneal45: 46.4%; combo1@15M: 43.8%). Cause: the model-only resume — fresh
 >   optimizer + restarted lr schedule (peak ~3e-3 on converged weights) →
