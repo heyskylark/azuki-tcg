@@ -57,6 +57,9 @@
 >   equalizes the siblings, as designed). The policy ALREADY exploits the
 >   difference in play (~1.4 portals/ep argmax) but not in draft (KL≡0).
 >   Clears the pre-registered >=3pp bar → training levers activated.
+>   WATER confirms (15:56): Hydromancy vs EchoedWaves policy 55.5% (p<.001),
+>   forced 53.7%, blocked 50.6% (~50). Policy > forced here — selective
+>   portaling (~2.3/ep) beats portal-spam; the policy is gate-aware IN PLAY.
 >   Tooling: probe_gate_gap.py (+ cross-element neutral-deck mode: all-NORMAL
 >   mirror decks, same leader both sides — engine accepts gate/leader element
 >   mismatch); run_gate_gap_all.sh sequencing W/F/E siblings then a 7-gate
