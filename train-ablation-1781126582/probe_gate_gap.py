@@ -68,11 +68,44 @@ def harvest_decks(snapshot_glob: str, element: str, catalog, k: int) -> list[lis
     return decks
 
 
+def build_neutral_decks(catalog, k: int, leader_code: str) -> list[list]:
+    """K distinct all-NORMAL 50-card decks (<=4 copies/card), same fixed leader."""
+    records = catalog.records_by_def_id
+    normal_codes = sorted({
+        records[d].card_code
+        for defs in catalog.main_def_ids_by_element.values()
+        for d in defs
+        if records[d].element == "NORMAL"
+    })
+    decks = []
+    for i in range(k):
+        rng = np.random.default_rng(4242 + i)
+        order = rng.permutation(len(normal_codes))
+        main: list[tuple[str, int]] = []
+        remaining = 50
+        for idx in order:
+            if remaining <= 0:
+                break
+            qty = int(min(remaining, rng.integers(1, 5)))
+            main.append((normal_codes[idx], qty))
+            remaining -= qty
+        if remaining > 0:
+            raise SystemExit("NORMAL pool too small for a 50-card deck")
+        decks.append([(leader_code, 1)] + sorted(main))
+    return decks
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", type=Path, default=Path("python/config/azuki_deckbuild_3090.ini"))
     ap.add_argument("--checkpoint", type=Path, required=True)
-    ap.add_argument("--element", type=str, required=True)
+    ap.add_argument("--element", type=str, default=None,
+                    help="sibling-pair mode: probe this element's two gates on harvested decks")
+    ap.add_argument("--pair", type=str, default=None,
+                    help="cross-pair mode: 'GATE_A,GATE_B' card codes, any elements; "
+                         "requires --neutral-decks (all-NORMAL mirror decks, same leader both sides)")
+    ap.add_argument("--neutral-decks", type=int, default=0,
+                    help="construct this many all-NORMAL 50-card decks instead of harvesting")
     ap.add_argument("--mode", type=str, choices=("policy", "forced", "blocked"), required=True)
     ap.add_argument("--snapshots", type=str, default="experiments/abl_snapshots/combo45b/*.jsonl")
     ap.add_argument("--decks", type=int, default=6)
@@ -82,17 +115,31 @@ def main():
     ap.add_argument("--json", type=Path, default=None)
     args = ap.parse_args()
 
-    element = args.element.upper()
-    gate_a, gate_b = GATE_CODE_PAIRS[element]
     runner = EpisodeRunner(args.config, args.checkpoint, args.device)
     base = runner.base_env
     vecenv = runner.vecenv
     policy = runner.policy
     device = runner.device
 
-    decks = harvest_decks(args.snapshots, element, runner.catalog, args.decks)
+    if args.pair:
+        gate_a, gate_b = (c.strip() for c in args.pair.split(","))
+        element = f"{gate_a}_vs_{gate_b}"
+        if args.neutral_decks <= 0:
+            raise SystemExit("--pair requires --neutral-decks (cross-element mirrors need neutral decks)")
+        # Same leader on BOTH sides (gate A's element, first leader) — removes
+        # the leader confound; leader/gate element match is a draft-time rule
+        # the battle engine does not enforce.
+        gate_a_element = runner.catalog.records_by_code[gate_a].element
+        leader_def = runner.catalog.leader_def_ids_by_element[gate_a_element][0]
+        leader_code = runner.catalog.records_by_def_id[leader_def].card_code
+        decks = build_neutral_decks(runner.catalog, args.neutral_decks, leader_code)
+        print(f"[gap] neutral-deck cross pair: fixed leader {leader_code} on both sides")
+    else:
+        element = args.element.upper()
+        gate_a, gate_b = GATE_CODE_PAIRS[element]
+        decks = harvest_decks(args.snapshots, element, runner.catalog, args.decks)
     if not decks:
-        raise SystemExit(f"no drafted decks found for {element} in {args.snapshots}")
+        raise SystemExit(f"no decks available for {element}")
     print(f"[gap] {element} {gate_a} vs {gate_b} mode={args.mode}: {len(decks)} decks, "
           f"{args.seeds} seeds x 2 seat orders")
 
