@@ -50,6 +50,35 @@
 >   Recovery order: anneal45 (fresh, launched 03:36 by the intermediate chain)
 >   runs FIRST; run_after_anneal45.sh (chain6) waits for it → draftref →
 >   combo45 resume from ep600/8.43M → draftref → both trajectories.
+> - COMBO45-RESUMED INVALIDATED (19:30): draft-vs-ref cratered to 26.6%
+>   (anneal45: 46.4%; combo1@15M: 43.8%). Cause: the model-only resume — fresh
+>   optimizer + restarted lr schedule (peak ~3e-3 on converged weights) →
+>   POLICY ENTROPY COLLAPSE (losses/entropy 0.88 early-leg → 0.077 end;
+>   anneal45 same infra no-resume: 0.74 healthy; ep_len 128→71 degenerate).
+>   The 26.6% is attributable to resume damage, NOT the oversampling/eps
+>   recipe. LESSON: never train on a model-only resume with a restarted step
+>   counter; a30d373 makes the full restore work under the excusal flags.
+>   combo45b relaunched FRESH 19:29 (run_combo45b.sh, chain7): same recipe,
+>   45M from scratch, crash-truncation live. ETA train ~01:30, draftref
+>   ~01:50, then trajectories (combo45b + anneal45 only; resumed-combo45
+>   trajectories skipped as invalid).
+> - anneal45 @45M draftref: **46.4%** pooled 192 eps (seat0 44.8/seat1 47.9) —
+>   vs 44.4% @15M: external quality HOLDS at 3× length (June's decline stays
+>   reversed).
+> - RECOVERY STATUS (11:20): anneal45 COMPLETE (45M, final ckpt ep2930,
+>   draftref done 10:45-11:08). combo45 resumed 11:08 CLEANLY (weights loaded,
+>   entropy 1.94, shaping pinned 0.08→0.05, sampler anneal offset 8.43M) BUT
+>   a second fingerprint check in the trainer-state restore silently downgraded
+>   to MODEL-ONLY resume → optimizer fresh + global_step restarted at 0.
+>   CONSEQUENCE: combo45-resumed trains 45M NEW steps on top of the 8.43M
+>   checkpoint = 53.4M total experience (ETA ~16:30). Treat as model-carryover
+>   run; for matched-experience comparison vs anneal45@45M use the resumed
+>   run's ~ep2380 checkpoint (8.43M + 36.6M ≈ 45M). Fixed for future resumes
+>   (a30d373: excusal flags now cover the optimizer-restore check too).
+>   ANALYSIS CAVEAT: resumed combo45 writes a NEW run dir with epochs from 0 —
+>   trajectory JSON names collide with old-dir ep100-600 (trajectory() skips
+>   existing files, so new-run ep100-600 will be MISSING from the chain's
+>   sweep); rerun trajectories per-dir with distinct prefixes afterwards.
 > - 45M CHAIN LAUNCHED 2026-07-06 23:33 (run_45m.sh, detached): combo45
 >   (anneal + gateid + pick-eps 0.02 + oversample 0.35 + league 6/4/3, seed 42)
 >   → draftref 192 → anneal45 control → draftref → per-ckpt gate-KL + critic
