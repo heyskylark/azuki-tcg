@@ -824,3 +824,13 @@ E1 (sibling-gate KL) open — the explicit target for the long distributed run.
 - NEW (round 2): does the specific GATE CARD (not just element) causally shift picks and play?
 - NEW (round 2): do synergy pairs co-occur above chance (co-occurrence lift), and does the
   policy USE what it drafts (deck→behavior coupling under forced-deck probes)?
+
+## 6.5 portalgp1 probe verdict (2026-07-08 23:50)
+- gate-swap KL @15M: 0 in all four elements (TV <= 0.0007) — exposure alone
+  does not create draft conditioning at 15M.
+- critic sensitivity @15M: mean ratio 0.17, sign 94% (LIGHTNING 0.10/83%,
+  WATER 0.19/100%, FIRE 0.24/100%, EARTH 0.16/92%) — comparable band to
+  combo1@15M (0.30/100%) given per-checkpoint noise; no clear acceleration.
+- Net: portal-GP bonus = external quality + exposure lever (draftref 46.9%,
+  2.5x portals), not (yet) a conditioning lever. portalgp45 (45M, launched
+  23:45) is the decisive horizon test; trajectories auto-run after.
