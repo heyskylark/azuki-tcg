@@ -855,3 +855,13 @@ Ragefire needs a buff or redesign, Rushfire is dominant deck-independent.
   distribution sibling-blind (KL == 0 everywhere) while the critic always
   prices the distinction. The remaining question is whether conditioning is
   even OPTIMAL: composition x gate interaction probe running (gate_ix/).
+
+## 6.8 Composition x gate interaction — LIGHTNING (2026-07-09 14:00)
+WR(weapon_heavy vs entity_only | same gate both sides, mirror-gate, n=500/cell):
+Surge 22.4% vs Stormchain 30.4% -> **interaction -8.0pp (z~2.9, p~0.004)**.
+The same composition is worth 8pp more under one sibling than the other ⇒
+gate-conditional DRAFTING has real value; the actor's sibling-blindness is an
+unexploited margin, not optimal indifference. (Also: naive 24-weapon archetype
+loses to entity_only overall at current play skill — the interaction, not the
+level, is the finding. Weapon-heavy pairs better with re-equip (Stormchain)
+than discard-replay (Surge).)
