@@ -69,6 +69,10 @@ class EpisodeRunner:
         trainer_args["train"]["device"] = device
         trainer_args.setdefault("env", {})["deck_building_enabled"] = True
         _apply_checkpoint_resume_policy_config(trainer_args, checkpoint)
+        # A privileged-critic checkpoint expects the drafted-deck lists filled;
+        # probing it on sanitized obs would mismeasure the critic.
+        if trainer_args.get("policy", {}).get("privileged_critic_enabled"):
+            trainer_args["env"]["deck_building_privileged_decks"] = True
         install_tcg_sampler()
         self.device = device
         self.vecenv = build_vecenv(trainer_args, backend=azk_vector.Serial, num_envs=1, seed=7)
