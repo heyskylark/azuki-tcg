@@ -51,29 +51,33 @@ def build_archetype_decks(catalog, element: str) -> dict[str, list]:
     recs = catalog.records_by_def_id
     pool = [recs[d] for d in catalog.main_def_ids_by_element[element]]
 
-    def take(cards, want):
-        out = []
-        for r in cards:
-            if len(out) >= want:
-                break
-            qty = min(4, want - len(out))
-            out.extend([r.card_code] * qty)
-        return out
-
     weapons = sorted((r for r in pool if r.card_type == "WEAPON"), key=lambda r: r.ikz_cost)
     spells = sorted((r for r in pool if r.card_type == "SPELL"), key=lambda r: r.ikz_cost)
     entities = sorted((r for r in pool if r.card_type == "ENTITY"), key=lambda r: r.ikz_cost)
     cheap_entities = [r for r in entities if r.ikz_cost <= 2]
 
-    def deck(main_codes: list[str]) -> list:
-        counts = Counter(main_codes)
-        return sorted(counts.items())
+    def deck(*specs: tuple) -> list:
+        # copy counts tracked ACROSS takes: overlapping pools (e.g. cheap
+        # entities ⊂ entities) must not exceed 4 copies of a card.
+        used: Counter = Counter()
+        for cards, want in specs:
+            got = 0
+            for r in cards:
+                if got >= want:
+                    break
+                can = 4 - used[r.card_code]
+                if can <= 0:
+                    continue
+                qty = min(can, want - got)
+                used[r.card_code] += qty
+                got += qty
+        return sorted(used.items())
 
     decks = {
-        "entity_only": deck(take(entities, 50)),
-        "weapon_heavy": deck(take(weapons, 24) + take(entities, 26)),
-        "spell_heavy": deck(take(spells, 24) + take(entities, 26)),
-        "cheap_aggro": deck(take(cheap_entities, 34) + take(entities, 16)),
+        "entity_only": deck((entities, 50)),
+        "weapon_heavy": deck((weapons, 24), (entities, 26)),
+        "spell_heavy": deck((spells, 24), (entities, 26)),
+        "cheap_aggro": deck((cheap_entities, 34), (entities, 16)),
     }
     return {k: v for k, v in decks.items() if sum(q for _, q in v) == 50}
 
