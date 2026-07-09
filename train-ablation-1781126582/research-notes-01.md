@@ -60,6 +60,24 @@
 >   WATER confirms (15:56): Hydromancy vs EchoedWaves policy 55.5% (p<.001),
 >   forced 53.7%, blocked 50.6% (~50). Policy > forced here — selective
 >   portaling (~2.3/ep) beats portal-spam; the policy is gate-aware IN PLAY.
+> - **FULL SIBLING MATRIX (22:57, n=1032/arm each): every pair has a real
+>   portal-driven gap; blocked ≈ 50% in all four (clean nulls).**
+>   FIRE: policy 55.3 / forced **62.7** / blocked 48.2 — Rushfire crushes
+>   Ragefire when portals are maximized; the policy leaves ~7pp unexploited
+>   (should portal-spam under Rushfire). EARTH: policy 45.8 / forced 46.6 /
+>   blocked 49.3 — sign flips: Stonehaven (defender-grant) > Devotion.
+>   OPTIMAL PORTAL STYLE IS GATE-SPECIFIC (spam Rushfire, selective
+>   Hydromancy) — exactly the per-gate strategy axis we want drafted+played.
+> - **CROSS LADDER partial (neutral all-NORMAL decks vs Hydromancy ref)**:
+>   Surge 45.9-47.3, Stormchain 46.7, EchoedWaves 43.0 (blocked ≈ 50.6) —
+>   on synergy-starved decks the deck-agnostic ramp gate (Hydromancy) beats
+>   deck-dependent gates ⇒ gate-ability value is strongly DECK-DEPENDENT —
+>   the very signal a gate-aware drafter should exploit. Ladder completes
+>   overnight (~04:00).
+> - **portalgp1 smoke @15M: draftref 46.9%** (96 eps) — best 15M arm yet
+>   (combo1 43.8, anneal1 44.4), external quality did NOT crater with 2.5×
+>   portal exposure (0.076 vs 0.030 action share @3-5M). KL/critic probes on
+>   its final ckpt running (results/run15_portalgp1/).
 >   Tooling: probe_gate_gap.py (+ cross-element neutral-deck mode: all-NORMAL
 >   mirror decks, same leader both sides — engine accepts gate/leader element
 >   mismatch); run_gate_gap_all.sh sequencing W/F/E siblings then a 7-gate

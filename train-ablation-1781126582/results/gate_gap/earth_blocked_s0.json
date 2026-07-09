@@ -1,0 +1,38 @@
+{
+  "element": "EARTH",
+  "gate_a": "AZK01-124",
+  "gate_b": "STT03-002",
+  "mode": "blocked",
+  "n": 516,
+  "truncated": 0,
+  "winrate_a": 0.4941860465116279,
+  "se": 0.02200978455533268,
+  "portal_steps_a": 0,
+  "portal_steps_b": 0,
+  "per_deck": {
+    "0": {
+      "winrate_a": 0.5,
+      "n": 86
+    },
+    "1": {
+      "winrate_a": 0.5,
+      "n": 86
+    },
+    "2": {
+      "winrate_a": 0.47674418604651164,
+      "n": 86
+    },
+    "3": {
+      "winrate_a": 0.4883720930232558,
+      "n": 86
+    },
+    "4": {
+      "winrate_a": 0.5,
+      "n": 86
+    },
+    "5": {
+      "winrate_a": 0.5,
+      "n": 86
+    }
+  }
+}
