@@ -865,3 +865,11 @@ unexploited margin, not optimal indifference. (Also: naive 24-weapon archetype
 loses to entity_only overall at current play skill — the interaction, not the
 level, is the finding. Weapon-heavy pairs better with re-equip (Stormchain)
 than discard-replay (Surge).)
+
+## 6.9 45M critic-trajectory comparison (2026-07-09 15:00)
+Late-run (>30M) sibling critic sens ratio: combo45b 0.71 vs portalgp45 0.21
+(both ~95% sign-consistent; KL == 0 across both full runs). Portal-GP bonus
+trades value-side sibling sharpness (dense bonus stream occupies value
+capacity) for the best external quality (46.9%). Recipe implication: portal-GP
+for production play strength; drop it if the objective is critic-side gate
+representation research.
