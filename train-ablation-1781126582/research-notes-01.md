@@ -844,3 +844,14 @@ decks; FIRE siblings are the game's strongest AND weakest gates (matches their
 12.7pp sibling gap). Blocked ~50-52 everywhere (nulls hold; both sides lose
 portals in blocked mirrors). GAME-BALANCE FEEDBACK: gates are far from parity;
 Ragefire needs a buff or redesign, Rushfire is dominant deck-independent.
+
+## 6.7 privgp1 (A-PRIVCRITIC + portal-GP recipe) verdict @15M (2026-07-09 13:00)
+- draftref 39.6% (96 eps) — weakest 15M arm (portalgp1 46.9, anneal1 44.4).
+- gate-swap KL == 0; critic sens ratio 0.08 (< combo1 0.30, portalgp1 0.17).
+- Privileged drafted-deck visibility did NOT sharpen sibling value sensitivity
+  at 15M and cost external quality. No positive trend to justify a 45M bet.
+- TRAINING-LEVER SEARCH CONCLUSION: oversampling / portal exposure /
+  privileged critic / 3x horizon — every lever leaves the actor's draft
+  distribution sibling-blind (KL == 0 everywhere) while the critic always
+  prices the distinction. The remaining question is whether conditioning is
+  even OPTIMAL: composition x gate interaction probe running (gate_ix/).
