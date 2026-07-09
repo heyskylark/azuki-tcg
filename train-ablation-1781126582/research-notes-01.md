@@ -834,3 +834,13 @@ E1 (sibling-gate KL) open — the explicit target for the long distributed run.
 - Net: portal-GP bonus = external quality + exposure lever (draftref 46.9%,
   2.5x portals), not (yet) a conditioning lever. portalgp45 (45M, launched
   23:45) is the decisive horizon test; trajectories auto-run after.
+
+## 6.6 Complete gate-ability ladder (2026-07-09 06:36, neutral all-NORMAL mirror decks vs Hydromancy)
+policy-mode win rate vs REF (n=640/cell; forced/blocked in results/gate_gap/cross_*):
+Rushfire 57.7 > [Hydromancy ref ~50] > Devotion 46.7 ~ Stormchain 46.7 ~ Surge 45.9
+> Stonehaven 44.1 > EchoedWaves 43.0 > Ragefire 41.2 (forced 37.7 — forcing its
+ATK-buff portal is NET-NEGATIVE). 16pp raw ability-power spread on identical
+decks; FIRE siblings are the game's strongest AND weakest gates (matches their
+12.7pp sibling gap). Blocked ~50-52 everywhere (nulls hold; both sides lose
+portals in blocked mirrors). GAME-BALANCE FEEDBACK: gates are far from parity;
+Ragefire needs a buff or redesign, Rushfire is dominant deck-independent.

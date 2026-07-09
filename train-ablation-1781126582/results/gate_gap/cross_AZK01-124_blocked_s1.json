@@ -1,0 +1,30 @@
+{
+  "element": "AZK01-124_vs_STT02-002",
+  "gate_a": "AZK01-124",
+  "gate_b": "STT02-002",
+  "mode": "blocked",
+  "n": 320,
+  "truncated": 0,
+  "winrate_a": 0.51875,
+  "se": 0.027931189863439402,
+  "portal_steps_a": 0,
+  "portal_steps_b": 0,
+  "per_deck": {
+    "0": {
+      "winrate_a": 0.4875,
+      "n": 80
+    },
+    "1": {
+      "winrate_a": 0.55,
+      "n": 80
+    },
+    "2": {
+      "winrate_a": 0.4875,
+      "n": 80
+    },
+    "3": {
+      "winrate_a": 0.55,
+      "n": 80
+    }
+  }
+}
