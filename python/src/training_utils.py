@@ -206,6 +206,9 @@ def make_azuki_env(*, seed: int | None = None, buf=None, **env_kwargs):
   draft_same_element_matchup_prob = float(
     env_kwargs.pop("draft_same_element_matchup_prob", 0.0) or 0.0
   )
+  deck_building_privileged_decks = bool(
+    env_kwargs.pop("deck_building_privileged_decks", False)
+  )
   fixed_seats_raw = env_kwargs.pop("deck_building_fixed_seats", None)
   if fixed_seats_raw is None or fixed_seats_raw == "":
     fixed_deck_seats: tuple[int, ...] = ()
@@ -240,6 +243,7 @@ def make_azuki_env(*, seed: int | None = None, buf=None, **env_kwargs):
       deck_snapshot_dir=env_kwargs.pop("deck_snapshot_dir", None),
       deck_snapshot_every=env_kwargs.pop("deck_snapshot_every", None),
       draft_same_element_matchup_prob=draft_same_element_matchup_prob,
+      deck_building_privileged_decks=deck_building_privileged_decks,
     )
   if deck_building_enabled:
     env = AzukiTCGParallel(seed=seed, deck_pool=deck_pool)
@@ -251,6 +255,7 @@ def make_azuki_env(*, seed: int | None = None, buf=None, **env_kwargs):
       snapshot_dir=env_kwargs.pop("deck_snapshot_dir", None),
       snapshot_every=env_kwargs.pop("deck_snapshot_every", None),
       same_element_matchup_prob=draft_same_element_matchup_prob,
+      privileged_decks=deck_building_privileged_decks,
     )
     env = MultiagentEpisodeStats(env)
     env = emulation.PettingZooPufferEnv(env, buf=buf, seed=seed)

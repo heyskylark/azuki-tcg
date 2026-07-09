@@ -318,6 +318,11 @@ static int my_init(Env* env, PyObject* args, PyObject* kwargs) {
       }
       env->draft_same_element_matchup_prob = (float)prob;
     }
+    PyObject* priv_decks_obj =
+        PyDict_GetItemString(kwargs, "deck_building_privileged_decks");
+    if (priv_decks_obj != NULL && PyObject_IsTrue(priv_decks_obj)) {
+      env->deck_building_privileged_decks = true;
+    }
   }
 
   init(env);

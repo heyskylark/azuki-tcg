@@ -444,6 +444,7 @@ class DeckBuildingParallelEnv(ParallelEnv):
     snapshot_dir: str | Path | None = None,
     snapshot_every: int | None = None,
     same_element_matchup_prob: float = 0.0,
+    privileged_decks: bool = False,
   ) -> None:
     super().__init__()
     self.env = env
@@ -452,6 +453,7 @@ class DeckBuildingParallelEnv(ParallelEnv):
     self._same_element_matchup_prob = float(same_element_matchup_prob or 0.0)
     if not 0.0 <= self._same_element_matchup_prob <= 1.0:
       raise ValueError("same_element_matchup_prob must be in [0, 1]")
+    self._privileged_decks = bool(privileged_decks)
     self._snapshot_dir_arg = snapshot_dir
     self._snapshot_every_arg = snapshot_every
     self.render_mode = getattr(env, "render_mode", "ansi")
@@ -665,6 +667,22 @@ class DeckBuildingParallelEnv(ParallelEnv):
     legal["legal_sub1"][:candidate_count] = np.arange(candidate_count, dtype=np.int16)
     return action_mask
 
+  def _privileged_deck_lists(self, player_index: int) -> dict[str, Any]:
+    """Drafted pick-order compositions for the critic-only block (flag-gated)."""
+    opponent_index = 1 - player_index
+
+    def deck_cards(state) -> tuple:
+      count = int(state.main_count)
+      return tuple(
+        {"card_def_id": int(state.main_card_def_ids[i]) if i < count else -1, "zone_index": i}
+        for i in range(MAX_DECK_SIZE)
+      )
+
+    return {
+      "self_deck": deck_cards(self._states[player_index]),
+      "opponent_deck": deck_cards(self._states[opponent_index]),
+    }
+
   def _building_observations(self) -> dict[int, dict[str, Any]]:
     observations: dict[int, dict[str, Any]] = {}
     for player_index, agent in enumerate(self.possible_agents):
@@ -672,6 +690,10 @@ class DeckBuildingParallelEnv(ParallelEnv):
       is_active = player_index == self._active_player_index
       obs["deck_context"] = self._deck_context_for_player(player_index, include_candidates=is_active)
       obs["action_mask"] = self._deck_build_action_mask(player_index)
+      if self._privileged_decks:
+        critic = dict(obs.get("critic_privileged", {}))
+        critic.update(self._privileged_deck_lists(player_index))
+        obs["critic_privileged"] = critic
       observations[agent] = obs
     return observations
 
@@ -679,6 +701,10 @@ class DeckBuildingParallelEnv(ParallelEnv):
     out = {}
     for player_index, agent in enumerate(self.possible_agents):
       obs = _copy_with_sanitized_privileged_decks(observations[agent])
+      if self._privileged_decks:
+        critic = dict(obs.get("critic_privileged", {}))
+        critic.update(self._privileged_deck_lists(player_index))
+        obs["critic_privileged"] = critic
       action_mask = obs.get("action_mask", {})
       legal_actions = action_mask.get("legal_actions", {})
       legal_count = int(action_mask.get("legal_action_count", 0))

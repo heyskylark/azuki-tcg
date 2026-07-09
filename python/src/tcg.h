@@ -265,6 +265,10 @@ typedef struct {
   // same-element sibling of P0's. 0 leaves the RNG stream bit-identical to
   // builds without the knob.
   float draft_same_element_matchup_prob;
+  // Privileged-critic support (A-PRIVCRITIC): when set, critic_privileged
+  // self/opponent deck lists carry the DRAFTED pick-order compositions during
+  // draft and battle instead of being sanitized. Default off (sanitized).
+  bool deck_building_privileged_decks;
   bool draft_active;
   int8_t draft_active_player;
   uint32_t draft_rng_state;
@@ -1537,11 +1541,37 @@ static int draft_active_candidates(const CAzukiTCG* env, int player_index,
   return n;
 }
 
+// Sanitized by default (composition hidden); with deck_building_privileged_decks
+// the DRAFTED pick-order lists are exposed to the critic-only block: own picks
+// in self_deck, opponent picks-so-far in opponent_deck (during draft this is
+// exactly the information a matchup-aware pick baseline needs).
+static void fill_privileged_deck_lists(CAzukiTCG* env, int player_index,
+                                       TrainingObservationData* base) {
+  const int opponent_index = 1 - player_index;
+  for (int i = 0; i < MAX_DECK_SIZE; ++i) {
+    int16_t self_id = -1;
+    int16_t opp_id = -1;
+    if (env->deck_building_privileged_decks) {
+      if (i < (int)env->draft_main_count[player_index]) {
+        self_id = env->draft_main[player_index][i];
+      }
+      if (i < (int)env->draft_main_count[opponent_index]) {
+        opp_id = env->draft_main[opponent_index][i];
+      }
+    }
+    base->critic_privileged.self_deck[i].card_def_id = self_id;
+    base->critic_privileged.self_deck[i].zone_index = (uint8_t)i;
+    base->critic_privileged.opponent_deck[i].card_def_id = opp_id;
+    base->critic_privileged.opponent_deck[i].zone_index = (uint8_t)i;
+  }
+}
+
 static void fill_draft_observations(CAzukiTCG* env) {
   for (int player_index = 0; player_index < MAX_PLAYERS_PER_MATCH;
        ++player_index) {
     TrainingObservationData* base = obs_base(env, player_index);
     azk_fill_empty_battle_observation(base);
+    fill_privileged_deck_lists(env, player_index, base);
 
     AzkTrainingDeckContextData* dc = obs_deck_context(env, player_index);
     memset(dc, 0, sizeof(*dc));
@@ -1608,12 +1638,7 @@ static void deckbuild_postprocess_battle_observations(CAzukiTCG* env) {
       dc->candidate_card_def_ids[i] = -1;
     }
 
-    for (int i = 0; i < MAX_DECK_SIZE; ++i) {
-      base->critic_privileged.self_deck[i].card_def_id = -1;
-      base->critic_privileged.self_deck[i].zone_index = (uint8_t)i;
-      base->critic_privileged.opponent_deck[i].card_def_id = -1;
-      base->critic_privileged.opponent_deck[i].zone_index = (uint8_t)i;
-    }
+    fill_privileged_deck_lists(env, player_index, base);
 
     if (base->action_mask.primary_action_mask[3]) {
       fprintf(stderr,
