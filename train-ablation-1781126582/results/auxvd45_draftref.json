@@ -1,0 +1,86 @@
+[
+  {
+    "episodes": 96,
+    "drafter_seat": 1,
+    "fixed_seat": 0,
+    "drafter_win_rate": 0.3020833333333333,
+    "timeout_rate": 0.0,
+    "avg_steps": 188.48958333333334,
+    "per_gate": {
+      "AZK01-120": {
+        "games": 14,
+        "win_rate": 0.35714285714285715
+      },
+      "AZK01-122": {
+        "games": 8,
+        "win_rate": 0.25
+      },
+      "AZK01-124": {
+        "games": 16,
+        "win_rate": 0.125
+      },
+      "AZK01-126": {
+        "games": 10,
+        "win_rate": 0.4
+      },
+      "STT01-002": {
+        "games": 16,
+        "win_rate": 0.375
+      },
+      "STT02-002": {
+        "games": 11,
+        "win_rate": 0.2727272727272727
+      },
+      "STT03-002": {
+        "games": 7,
+        "win_rate": 0.42857142857142855
+      },
+      "STT04-002": {
+        "games": 14,
+        "win_rate": 0.2857142857142857
+      }
+    }
+  },
+  {
+    "episodes": 96,
+    "drafter_seat": 0,
+    "fixed_seat": 1,
+    "drafter_win_rate": 0.3645833333333333,
+    "timeout_rate": 0.0,
+    "avg_steps": 188.66666666666666,
+    "per_gate": {
+      "AZK01-120": {
+        "games": 14,
+        "win_rate": 0.5714285714285714
+      },
+      "AZK01-122": {
+        "games": 12,
+        "win_rate": 0.25
+      },
+      "AZK01-124": {
+        "games": 13,
+        "win_rate": 0.23076923076923078
+      },
+      "AZK01-126": {
+        "games": 14,
+        "win_rate": 0.2857142857142857
+      },
+      "STT01-002": {
+        "games": 10,
+        "win_rate": 0.6
+      },
+      "STT02-002": {
+        "games": 14,
+        "win_rate": 0.35714285714285715
+      },
+      "STT03-002": {
+        "games": 10,
+        "win_rate": 0.4
+      },
+      "STT04-002": {
+        "games": 9,
+        "win_rate": 0.2222222222222222
+      }
+    }
+  }
+]

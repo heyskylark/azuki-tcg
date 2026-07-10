@@ -934,3 +934,17 @@ signal to amplify (auxd1 alone had nothing to amplify — the 7.2 post-mortem).
 Embryonic but real (control replay is exactly 0). Decision rule satisfied →
 auxvd45 (45M) launched 06:07 with full KL/critic trajectory suite. The open
 question at 45M: does 1e-5 GROW (emergence curve) or plateau (floor artifact).
+
+## 7.4 auxvd45 verdict (2026-07-10 15:05): 15M spark was a TRANSIENT; Goodhart at length
+- draftref 33.3% @45M (was 50.0% @15M; portalgp45 46.9%, anneal45 46.4%).
+- Final-ckpt gate-swap KL back to EXACTLY 0 (TV 0.0002-0.0003); the 1e-5
+  FIRE/EARTH conditioning at 15M did not grow — it vanished.
+- Mechanism: aux coefficients were CONSTANT (the design doc's "ride the
+  shaping anneal" was not implemented) → 3x longer exposure to a
+  critic-opinion reward → drafts optimize the critic's taste, not winning
+  (Goodhart). The critic also lacks the gate x composition interaction
+  (§7.2), so what got amplified was main-effect noise.
+- If anyone revisits: anneal the aux coefs on the shaping schedule and only
+  then rerun the 45M; but the deeper blocker remains the interaction-free
+  critic (§7.2). Distributed-run recipe UNCHANGED: portalgp (aux terms NOT
+  included).
