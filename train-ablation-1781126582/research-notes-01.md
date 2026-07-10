@@ -921,3 +921,16 @@ scale REGARDLESS of credit-path engineering. Distributed-scale hypothesis
 sharpened: it must buy value-function capacity/data for the interaction term
 (bigger critic, more same-gate-different-deck contrast data), not just more
 steps of the same.
+
+## 7.3 AUX MATRIX COMPLETE (2026-07-10 06:00) — first actor-side movement
+| arm | draftref | gate-swap KL | critic ratio |
+|---|---|---|---|
+| portalgp1 (ctrl) | 46.9% | 0 exact | 0.17 |
+| auxv1 (vboot .05) | 46.9% | 0 exact | 0.32 |
+| auxd1 (sibdiff 2.0) | 44.8% | 0 exact | n/a |
+| auxvd1 (both) | **50.0%** | **1e-5 FIRE+EARTH — FIRST NONZERO EVER** | **0.86** |
+The terms compose: vboot sharpens boundary values; the differential then has
+signal to amplify (auxd1 alone had nothing to amplify — the 7.2 post-mortem).
+Embryonic but real (control replay is exactly 0). Decision rule satisfied →
+auxvd45 (45M) launched 06:07 with full KL/critic trajectory suite. The open
+question at 45M: does 1e-5 GROW (emergence curve) or plateau (floor artifact).
