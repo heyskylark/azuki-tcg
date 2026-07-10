@@ -903,3 +903,21 @@ vec-steps, sibling oversampling on): ZERO desync hits. Plus zero
 mitigation. Posture for production: non-fatal truncation + automatic repro
 logging; root-cause deferred until a seed is captured. (fuzz_mask_consistency.py
 kept for regression sweeps after engine changes.)
+
+## 7.2 A-DRAFTAUX post-mortem: the interaction is not in the critic (2026-07-10 05:30)
+Per-deck spread of the critic's sibling differential (battle_dv_signed_values,
+each seed = a different deck): |mean|/std = 2-10 across all arms/elements
+(e.g. auxd1 LIGHTNING mean +0.0043 std 0.0005). The critic prices the gate
+MAIN EFFECT but carries almost no gate x composition INTERACTION — while the
+game's true interaction is up to 8pp (probe-measured, LIGHTNING).
+=> auxd1's injected bonus was a per-gate near-constant: no gradient across
+pick choices; the null was structurally guaranteed. GENERAL CONCLUSION: no
+critic-derived aux can teach gate-fit drafting until the value function
+itself represents the interaction term. The complete bottleneck chain:
+game has main effect + interaction -> critic learns main effect only ->
+actor exploits main effect in play (state-reactive) -> nothing trainable
+carries the interaction -> sibling-conditional drafting unreachable at this
+scale REGARDLESS of credit-path engineering. Distributed-scale hypothesis
+sharpened: it must buy value-function capacity/data for the interaction term
+(bigger critic, more same-gate-different-deck contrast data), not just more
+steps of the same.
