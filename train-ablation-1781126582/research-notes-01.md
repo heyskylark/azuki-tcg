@@ -895,3 +895,11 @@ USE the proven signal instead of hoping exposure/scale transfers it.
   a training lever; design-amplification avenue is OFF the table.
 - Trainer implementation: differential test (aux off = bit-identical) before
   any launch, per convention. Tasks #5/#6 carry the full spec.
+
+## 7.1 Mask-desync fuzz result (2026-07-09 23:15)
+32M agent-steps of uniform-random legal play (8 workers x 16 envs x 250k
+vec-steps, sibling oversampling on): ZERO desync hits. Plus zero
+"Invalid-action truncation" lines across 150M+ trained steps since the
+mitigation. Posture for production: non-fatal truncation + automatic repro
+logging; root-cause deferred until a seed is captured. (fuzz_mask_consistency.py
+kept for regression sweeps after engine changes.)
