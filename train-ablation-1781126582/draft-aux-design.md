@@ -56,3 +56,17 @@ c. Smoke arm draftaux1 (15M, portalgp recipe + coef 0.02): watch
 - CUDA-graph rollout unaffected (all work is post-rollout, out of capture).
 - If bptt segment states aren't stored per segment in this trainer, fall back
   to zero-state unroll from episode start of the draft (102 steps, still cheap).
+
+## FINAL EXPERIMENT MATRIX (converged with user, 2026-07-09 20:20)
+All on the portalgp production base (portalgp1 @15M 46.9% = free control):
+  auxv1  : aux1 only  — boundary V-bootstrap reward, slow-annealed coef
+  auxd1  : aux2 only  — CLIPPED sibling differential max(0, V_own - V_sib),
+           shaping-annealed coef (never run unclipped/alone: the differential
+           can be gamed by making the deck WORSE under the sibling)
+  auxvd1 : both
+15M each (~2h GPU). Readouts: draftref 96, gate-swap KL (headline — any KL>0
+is a first), critic ratio, sibling composition divergence. Winner (KL or
+composition moves, external regression <= 3pp) -> 45M with full trajectory
+suite. If none move: credit-path length and signal amplification are both
+excluded -> distributed scale is the last remaining hypothesis.
+Knobs: AZK_DRAFT_VBOOT_COEF, AZK_DRAFT_SIBDIFF_COEF, AZK_DRAFT_SIBDIFF_CAP.
