@@ -136,6 +136,19 @@ class PuffeRL:
             self.lstm_h = {i*n: torch.zeros(n, h, device=device) for i in range(total_agents//n)}
             self.lstm_c = {i*n: torch.zeros(n, h, device=device) for i in range(total_agents//n)}
 
+        # A-DRAFTAUX: draft->battle boundary auxiliary pick credit (design in
+        # train-ablation-1781126582/draft-aux-design.md). Off unless env knobs set.
+        self._draftaux_vboot = float(os.environ.get('AZK_DRAFT_VBOOT_COEF', '0') or 0.0)
+        self._draftaux_sibdiff = float(os.environ.get('AZK_DRAFT_SIBDIFF_COEF', '0') or 0.0)
+        self._draftaux_cap = float(os.environ.get('AZK_DRAFT_SIBDIFF_CAP', '0.05') or 0.05)
+        self._draftaux_enabled = (
+            self._draftaux_vboot > 0.0 or self._draftaux_sibdiff > 0.0
+        ) and bool(config['use_rnn'])
+        self._draftaux_layout = None
+        self._draftaux_prev = {}
+        self._draftaux_injected = 0.0
+        self._draftaux_events = 0
+
         # Minibatching & gradient accumulation
         minibatch_size = config['minibatch_size']
         max_minibatch_size = config['max_minibatch_size']
@@ -487,6 +500,114 @@ class PuffeRL:
         weighted_loss = raw_loss * self._win_prob_aux_coef()
         return weighted_loss, metrics
 
+    def _draftaux_init_layout(self, obs_row_bytes, device):
+        """Byte offsets into the packed deckbuild obs + sibling-gate lookup.
+
+        Disables the aux (with a message) if the obs layout is not the native
+        deck-building struct."""
+        import numpy as np
+
+        try:
+            from observation import DECKBUILD_OBSERVATION_CTYPE
+            dt = np.dtype(DECKBUILD_OBSERVATION_CTYPE)
+            if int(obs_row_bytes) != dt.itemsize:
+                raise ValueError(
+                    f"obs row {obs_row_bytes}B != deckbuild struct {dt.itemsize}B"
+                )
+
+            def field_offset(dtype, path):
+                off = 0
+                for name in path:
+                    sub, sub_off = dtype.fields[name][0], dtype.fields[name][1]
+                    off += sub_off
+                    dtype = sub
+                return off
+
+            layout = {
+                "mode_off": field_offset(dt, ("deck_context", "mode")),
+                "gate_ctx_off": field_offset(dt, ("deck_context", "gate_card_def_id")),
+                "gate_zone_off": field_offset(dt, ("my_observation_data", "gate", "card_def_id")),
+            }
+            from deck_building import build_deck_build_catalog
+            from training_deck_pool import load_training_deck_pool
+
+            catalog = build_deck_build_catalog(load_training_deck_pool())
+            records = catalog.records_by_def_id
+            gate_ids = sorted({int(g) for g in catalog.gate_def_id_population})
+            by_element = {}
+            for g in gate_ids:
+                by_element.setdefault(records[g].element, []).append(g)
+            vocab = max(records) + 1
+            sibling = torch.full((vocab,), -1, dtype=torch.int64, device=device)
+            for element_gates in by_element.values():
+                if len(element_gates) < 2:
+                    continue
+                for i, g in enumerate(element_gates):
+                    sibling[g] = element_gates[(i + 1) % len(element_gates)]
+            layout["sibling"] = sibling
+            self._draftaux_layout = layout
+            print(
+                f"[draftaux] enabled: vboot={self._draftaux_vboot} "
+                f"sibdiff={self._draftaux_sibdiff} cap={self._draftaux_cap}"
+            )
+        except Exception as exc:
+            print(f"[draftaux] disabled (layout init failed: {exc})")
+            self._draftaux_enabled = False
+        return self._draftaux_layout
+
+    def _draftaux_step(self, o_device, value, batch_rows, l, env_id, mask, h_prev, c_prev):
+        """Detect draft->battle boundaries and inject aux credit at the last pick."""
+        lay = self._draftaux_layout
+        if lay is None:
+            lay = self._draftaux_init_layout(o_device.shape[-1], o_device.device)
+            if lay is None:
+                return
+        group = env_id.start
+        mo = lay["mode_off"]
+        mode = o_device[:, mo:mo + 4].contiguous().view(torch.int32).flatten()
+        prev = self._draftaux_prev.get(group)
+        self._draftaux_prev[group] = {"mode": mode.clone(), "rows": batch_rows, "l": l}
+        if prev is None:
+            return
+        boundary = (mode == 0) & (prev["mode"] != 0)
+        if not bool(boundary.any()):
+            return
+        b = boundary.nonzero(as_tuple=False).flatten()
+        v_own = value.flatten()[b].detach().float()
+        aux = self._draftaux_vboot * v_own
+        if self._draftaux_sibdiff > 0.0:
+            g_off = lay["gate_ctx_off"]
+            z_off = lay["gate_zone_off"]
+            rows = o_device[b].clone()
+            gid = rows[:, g_off:g_off + 2].contiguous().view(torch.int16).flatten().long()
+            sib = lay["sibling"][gid.clamp(min=0, max=lay["sibling"].numel() - 1)]
+            ok = (gid >= 0) & (sib >= 0)
+            if bool(ok.any()):
+                sb_bytes = sib.to(torch.int16).view(torch.uint8).reshape(-1, 2)
+                rows[:, g_off:g_off + 2] = sb_bytes
+                rows[:, z_off:z_off + 2] = sb_bytes
+                mask_t = mask if torch.is_tensor(mask) else torch.as_tensor(mask)
+                cf_state = {
+                    "mask": mask_t.to(o_device.device)[b],
+                    "lstm_h": h_prev[b].clone(),
+                    "lstm_c": c_prev[b].clone(),
+                }
+                with torch.no_grad(), self.amp_context:
+                    _, v_sib = self.policy.forward_eval(rows, cf_state)
+                diff = (v_own - v_sib.flatten().detach().float()).clamp(
+                    min=0.0, max=self._draftaux_cap
+                )
+                aux = aux + self._draftaux_sibdiff * diff * ok.float()
+        # Inject at the previous step's stored slot (the last pick) — cached
+        # coords survive segment rollover because they are the written coords.
+        prev_rows, prev_l = prev["rows"], prev["l"]
+        idx = torch.arange(prev_rows.start, prev_rows.stop, device=value.device)[b]
+        aux_cast = aux.to(self.rewards.dtype)
+        self.rewards[idx, prev_l] += aux_cast
+        self.shaped_reward_components[idx, prev_l] += aux_cast
+        self._draftaux_injected += float(aux.sum().item())
+        self._draftaux_events += int(b.numel())
+
     def evaluate(self):
         profile = self.profile
         epoch = self.epoch
@@ -500,6 +621,18 @@ class PuffeRL:
             for k in self.lstm_h:
                 self.lstm_h[k].zero_()
                 self.lstm_c[k].zero_()
+
+        if self._draftaux_enabled:
+            # Prev-step buffer coords from the last epoch are recycled slots;
+            # never inject across the epoch boundary.
+            self._draftaux_prev.clear()
+            if self._draftaux_events:
+                self.stats['draftaux_events'].append(float(self._draftaux_events))
+                self.stats['draftaux_injected_mean'].append(
+                    self._draftaux_injected / max(self._draftaux_events, 1)
+                )
+            self._draftaux_events = 0
+            self._draftaux_injected = 0.0
 
         self.full_rows = 0
         # Python mirrors of ep_lengths/ep_indices for the slice reads below:
@@ -551,6 +684,8 @@ class PuffeRL:
                 if config['use_rnn']:
                     state['lstm_h'] = self.lstm_h[env_id.start]
                     state['lstm_c'] = self.lstm_c[env_id.start]
+                draftaux_h_prev = self.lstm_h[env_id.start] if self._draftaux_enabled else None
+                draftaux_c_prev = self.lstm_c[env_id.start] if self._draftaux_enabled else None
 
                 logits, value = self.policy.forward_eval(o_device, state)
                 action, logprob, _ = pufferlib.pytorch.sample_logits(logits)
@@ -588,6 +723,11 @@ class PuffeRL:
                 self.shaped_reward_components[batch_rows, l] = reward_components_shaped
                 self.terminals[batch_rows, l] = d.float()
                 self.values[batch_rows, l] = value.flatten()
+                if self._draftaux_enabled:
+                    self._draftaux_step(
+                        o_device, value, batch_rows, l, env_id, mask,
+                        draftaux_h_prev, draftaux_c_prev,
+                    )
                 if self._split_value_heads_enabled():
                     terminal_value, shaped_value = self._component_values_from_state(
                         state,

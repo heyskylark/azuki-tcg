@@ -111,6 +111,15 @@ class LeaguePuffeRL(pufferl.PuffeRL):
 
     self._segment_is_trainable = torch.zeros(self.segments, device=self.config["device"], dtype=torch.bool)
 
+    # A-DRAFTAUX (league path): per-row prev deck_context.mode for boundary
+    # detection, pending aux stash from _infer_actions, and prev-step buffer
+    # coords per recv group for injection at the last pick step.
+    self._draftaux_prev_mode = torch.full(
+      (self.total_agents,), -999, device=self.config["device"], dtype=torch.int32
+    )
+    self._draftaux_pending = None
+    self._draftaux_prevcoords = {}
+
     self._use_rnn = bool(self.config.get("use_rnn", False))
     if self._use_rnn:
       hidden_size = int(policy.hidden_size)
@@ -249,6 +258,56 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       self._opp_lstm_h[idx][done_t] = 0
       self._opp_lstm_c[idx][done_t] = 0
 
+  def _draftaux_league_stash(self, o_device, mask_t, learner_idx_t, values, env_id_np):
+    """Boundary detection + counterfactual sibling value for learner rows.
+
+    Called between the learner forward and the LSTM write-back so
+    self._learner_lstm_h/_c still hold the pre-forward states the boundary
+    observation was evaluated with."""
+    lay = self._draftaux_layout
+    if lay is None:
+      lay = self._draftaux_init_layout(o_device.shape[-1], o_device.device)
+      if lay is None:
+        return
+    device = o_device.device
+    mo = lay["mode_off"]
+    global_rows = torch.as_tensor(env_id_np, device=device, dtype=torch.long)
+    mode_all = o_device[:, mo:mo + 4].contiguous().view(torch.int32).flatten()
+    prev_all = self._draftaux_prev_mode[global_rows]
+    self._draftaux_prev_mode[global_rows] = mode_all
+    learner_pos = learner_idx_t
+    boundary = (mode_all[learner_pos] == 0) & (prev_all[learner_pos] > 0)
+    if not bool(boundary.any()):
+      return
+    b_local = boundary.nonzero(as_tuple=False).flatten()          # into learner rows
+    b_batch = learner_pos[b_local]                                # into recv batch
+    b_global = global_rows[b_batch]                               # into total_agents
+    v_own = values.flatten()[b_local].detach().float()
+    aux = self._draftaux_vboot * v_own
+    if self._draftaux_sibdiff > 0.0:
+      g_off = lay["gate_ctx_off"]
+      z_off = lay["gate_zone_off"]
+      rows = o_device[b_batch].clone()
+      gid = rows[:, g_off:g_off + 2].contiguous().view(torch.int16).flatten().long()
+      sib = lay["sibling"][gid.clamp(min=0, max=lay["sibling"].numel() - 1)]
+      ok = (gid >= 0) & (sib >= 0)
+      if bool(ok.any()):
+        sb_bytes = sib.to(torch.int16).view(torch.uint8).reshape(-1, 2)
+        rows[:, g_off:g_off + 2] = sb_bytes
+        rows[:, z_off:z_off + 2] = sb_bytes
+        cf_state = {
+          "mask": mask_t[b_batch],
+          "lstm_h": self._learner_lstm_h[b_global].clone(),
+          "lstm_c": self._learner_lstm_c[b_global].clone(),
+        }
+        with torch.no_grad(), self.amp_context:
+          _, v_sib = self._safe_forward_eval(self.policy, rows, cf_state)
+        diff = (v_own - v_sib.flatten().detach().float()).clamp(
+          min=0.0, max=self._draftaux_cap
+        )
+        aux = aux + self._draftaux_sibdiff * diff * ok.float()
+    self._draftaux_pending = (b_global, aux)
+
   def _infer_actions(self, o_device: torch.Tensor, mask_t: torch.Tensor, env_id_np: np.ndarray):
     device = self.config["device"]
     batch_n = o_device.shape[0]
@@ -289,6 +348,12 @@ class LeaguePuffeRL(pufferl.PuffeRL):
         learner_state["lstm_h"] = self._learner_lstm_h[learner_idx_t]
         learner_state["lstm_c"] = self._learner_lstm_c[learner_idx_t]
       logits, values = self._safe_forward_eval(self.policy, o_device[learner_idx_t], learner_state)
+      if self._draftaux_enabled:
+        # Pre-write-back: self._learner_lstm_h still holds the states the
+        # boundary forward consumed (dict entries were replaced, not storage).
+        self._draftaux_league_stash(
+          o_device, mask_t, learner_idx_t, values, env_id_np
+        )
       with torch.no_grad(), self.amp_context:
         actions, logprobs, _ = azk_pytorch.sample_logits(logits)
       actions_out[learner_idx_t] = actions.to(dtype=torch.int32)
@@ -448,6 +513,17 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     self._segment_is_trainable.zero_()
     self._reset_win_prob_rollout_buffers()
     self._reset_split_value_rollout_buffers()
+    if self._draftaux_enabled:
+      # Buffer rows recycle each epoch: never inject across the boundary.
+      self._draftaux_pending = None
+      self._draftaux_prevcoords.clear()
+      if self._draftaux_events:
+        self.stats["draftaux_events"].append(float(self._draftaux_events))
+        self.stats["draftaux_injected_mean"].append(
+          self._draftaux_injected / max(self._draftaux_events, 1)
+        )
+      self._draftaux_events = 0
+      self._draftaux_injected = 0.0
     while self.full_rows < self.segments:
       profile("env", epoch)
       o, r, d, t, info, env_id, mask = self.vecenv.recv()
@@ -504,6 +580,20 @@ class LeaguePuffeRL(pufferl.PuffeRL):
         self.actions[batch_rows, l] = actions_t
         self.logprobs[batch_rows, l] = logprobs_t
         self.rewards[batch_rows, l] = torch.clamp(r_t, -1, 1)
+        if self._draftaux_enabled and self._draftaux_pending is not None:
+          b_global, aux = self._draftaux_pending
+          self._draftaux_pending = None
+          prev = self._draftaux_prevcoords.get(env_id_slice.start)
+          if prev is not None:
+            prev_row_start, prev_l = prev
+            seg_rows = prev_row_start + (b_global - env_id_slice.start)
+            aux_cast = aux.to(self.rewards.dtype)
+            self.rewards[seg_rows, prev_l] += aux_cast
+            self.shaped_reward_components[seg_rows, prev_l] += aux_cast
+            self._draftaux_injected += float(aux.sum().item())
+            self._draftaux_events += int(b_global.numel())
+        if self._draftaux_enabled:
+          self._draftaux_prevcoords[env_id_slice.start] = (batch_rows.start, l)
         self.terminal_reward_components[batch_rows, l] = reward_components_terminal
         self.shaped_reward_components[batch_rows, l] = reward_components_shaped
         self.terminals[batch_rows, l] = d_t.float()
