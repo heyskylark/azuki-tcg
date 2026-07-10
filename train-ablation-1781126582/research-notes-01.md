@@ -873,3 +873,25 @@ trades value-side sibling sharpness (dense bonus stream occupies value
 capacity) for the best external quality (46.9%). Recipe implication: portal-GP
 for production play strength; drop it if the objective is critic-side gate
 representation research.
+
+## 7. NEXT EXPERIMENT SPEC — draft-time aux objectives (user-approved 2026-07-09 evening)
+Rationale: lever search closed with critic gate-knowledge proven but never
+reaching the pick head (KL==0 everywhere). These are the first mechanisms that
+USE the proven signal instead of hoping exposure/scale transfers it.
+- aux1 (bootstrap): pick-step advantages target battle-start V — A_t ≈
+  V(s0;g) − V(s_t) for DRAFT steps only (GAE override at the draft/battle
+  boundary). Trains picks on the LEVEL of critic-predicted deck value;
+  credit path 150 steps → 1. Slow anneal (outcome-anchored, low bias risk).
+- aux2 (differential): aux reward λ·max(0, V(s0;g) − V(s0;g→sibling)) at
+  draft end — cancels deck-quality level, amplifies ONLY sibling fit. Clip
+  at 0 (unclipped is gameable by sabotaging the counterfactual); standard
+  shaping anneal. 2 extra forward passes/ep (gate-swap machinery exists).
+- Matrix: auxv1 / auxd1 / auxvd1, 15M each on the portal-GP production base;
+  portalgp1 is the control. Accept ≤~3pp draftref cost at smoke scale.
+  Any KL/composition movement → 45M + long-horizon win comparison vs
+  portalgp45. None → distributed scale is the last hypothesis.
+- pcritic verdict stands: not used going forward (lost every axis @15M).
+- Game rules are FIXED (real TCG) — balance findings are product intel, not
+  a training lever; design-amplification avenue is OFF the table.
+- Trainer implementation: differential test (aux off = bit-identical) before
+  any launch, per convention. Tasks #5/#6 carry the full spec.
