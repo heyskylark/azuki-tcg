@@ -11,8 +11,10 @@
 playing differently depending on what it drafted — and what unlocks that learning?
 
 **Answer**: yes at the card / card-type / gate-family level, once the reward-shaping bias is
-removed; not yet at the sibling-gate level (same-element gate pairs), for which we found and
-fixed a representation root cause but 15M-step arms were not long enough to exploit it.
+removed; and gate-aware PORTAL PLAY emerges (Part II). Sibling-gate DRAFT conditioning does
+not emerge under any tested lever at up to 45M steps — the causal probes (Part II §13) show
+the value is real (4-13pp play gaps, +8pp LIGHTNING composition interaction) but
+second-order for the pick head; see §14 for the production recipe and design memo.
 
 Headline numbers (round-2 arms, 15M steps each on the native stack, seed 42; draft-vs-ref
 pooled over 288 argmax episodes/arm vs human reference decks):
