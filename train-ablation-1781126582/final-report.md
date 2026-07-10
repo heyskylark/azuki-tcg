@@ -1,6 +1,8 @@
 # Azuki TCG — Deck-Building Training Research: Final Report
 
-> STATUS: Round-2 complete (2026-07-06). Running work log: research-notes-01.md.
+> STATUS: Round-2 + 45M campaign complete (2026-07-09). Part II (§12-14) has the
+> 45M matrix, causal gate-value probes, lever-search conclusion, and the
+> production recipe. Running work log: research-notes-01.md.
 > All round-2 artifacts under results/round2_*; probes reusable on any checkpoint.
 
 ## 1. Executive summary
@@ -161,3 +163,88 @@ makes rollout cost pool-size-independent. Benchmark: results in research-notes-0
 - OpenAI Five: sample reuse (ue1) ✓; league frozen-ratio ✓ (now windowed).
 - Suphx: reward-signal annealing philosophy → shaping anneal ✓ (the round-2 winner).
 - Informed asymmetric critic: deferred (A-PRIVCRITIC still queued).
+
+---
+
+# PART II — 45M campaign & causal gate-value probes (2026-07-07 → 07-09)
+
+## 12. Arms and headline outcomes
+
+| arm | steps | recipe | draft-vs-ref | sibling KL | critic ratio (late) |
+|---|---|---|---|---|---|
+| anneal45 | 45M | anneal only, league 6/4/3 | **46.4%** (192) | 0 at all ckpts | (sweep, see run45_anneal45) |
+| combo45b | 45M | anneal+gateid+eps.02+oversample.35 | 41.1% (192) | 0 at all 30 ckpts | 0.71, sign 95% |
+| portalgp45 | 45M | combo + AZK_PORTAL_GP_BONUS 0.3 | **46.9%** (192) | 0 at all ckpts | 0.21, sign 96% |
+| portalgp1 | 15M | same as portalgp45 | **46.9%** (96) | 0 | 0.17 |
+| privgp1 | 15M | portalgp + privileged critic (drafted decks) | 39.6% (96) | 0 | 0.08 |
+| combo45-resumed | — | INVALIDATED (model-only resume → entropy collapse 0.077, 26.6%) | — | — | — |
+
+Portal-GP bonus: +2.5× portal usage at matched steps (0.076 vs 0.030 action
+share @3-5M), best external quality at BOTH horizons, no win-rate damage —
+but trades away critic-side sibling sharpness (0.21 vs combo45b's 0.71).
+
+## 13. Causal value of gate identity (probe matrix, combo45b checkpoint)
+
+**Sibling mirror decks** (identical deck+leader, only the gate differs; n=1032/arm):
+
+| pair | policy | portal-forced | portal-blocked |
+|---|---|---|---|
+| Surge > Stormchain | 54.1% | 55.2% | 48.1% |
+| Hydromancy > EchoedWaves | 55.5% | 53.7% | 50.6% |
+| Rushfire > Ragefire | 55.3% | **62.7%** | 48.2% |
+| Stonehaven > Devotion | 54.2% | 53.4% | 50.7% |
+
+Every sibling gap is real and lives ENTIRELY in the portal abilities (blocked
+≈ 50% everywhere). The trained policy already extracts the gaps in play
+(1.4-2.3 portals/ep argmax) — and optimal portal STYLE is gate-specific:
+forcing portals gains +7pp under Rushfire but loses under Hydromancy/water.
+
+**Ability ladder** (all-NORMAL mirror decks vs Hydromancy, same leader both
+sides): Rushfire 57.7 ≫ ref ~50 > Devotion 46.7 ≈ Stormchain 46.7 ≈ Surge
+45.9 > Stonehaven 44.1 > EchoedWaves 43.0 > Ragefire 41.2 (forced 37.7 —
+net-negative portal). **16pp raw ability-power spread on identical decks.**
+
+**Composition × gate interaction** (mirror-gate, archetype vs entity-only,
+n=500/cell): LIGHTNING **+8.0pp ± 5.6 (p≈.004)** — weapon-heavy is worth 8pp
+more under Stormchain (re-equip) than Surge (discard-replay); WATER −3.0 ± 6.2
+n.s.; EARTH +2.4 ± 6.3 n.s.; FIRE +0.0 ± 6.3 (exact null — cheap-aggro 50.0%
+under both FIRE gates). Gate-conditional drafting has real value for at least
+the LIGHTNING pair — the drafter's sibling-blindness is unexploited margin
+there — while FIRE siblings differ in HOW MUCH to portal, not what to draft.
+
+## 14. Conclusions
+
+1. **The model has per-gate strategy where the game rewards it first-order**:
+   element/family drafting, weapon-gate specialization, synergy pairs,
+   deck-conditional playstyles, and gate-aware PORTAL PLAY (it beats
+   portal-blocked baselines and modulates portal usage by gate).
+2. **Sibling-gate DRAFT conditioning is not reachable with PPO pick-gradients
+   at this scale**: KL ≡ 0 across 45M × {control, oversampling, portal
+   exposure} and 15M privileged critic. The critic prices siblings from 1.5M
+   steps (sign ~95-100%) — the signal exists; the pick-head gradient can't
+   clear its noise floor. Levers exhausted: representation (id channel),
+   experience (43% sibling matchups), exposure (2.5× portals), baselines
+   (privileged critic), horizon (3×).
+3. **Production recipe**: anneal (warmup 12/ramp 40) + gate-id embedding +
+   pick-eps 0.02 + oversample 0.35 + portal-GP bonus 0.3, league 6/4/3
+   windowed, native path — 46.9% draft-vs-ref at 15M and 45M, no long-run
+   decline, richest mechanic usage. Track KL/critic per checkpoint at scale:
+   June showed second-order signals emerge transiently near scale boundaries;
+   the distributed run is itself the next (and only remaining) training test
+   of sibling conditioning.
+4. **Game-design memo**: gates are far from balanced (16pp ladder spread;
+   Ragefire's portal net-negative; Rushfire dominant deck-independent).
+   Sibling identity is portal-mediated only, second-order for drafting except
+   LIGHTNING. To make gate identity a first-order draft consideration:
+   scale abilities with deck composition (e.g. Surge with weapon count),
+   buff Ragefire, temper Rushfire.
+5. **Future training work** (post-production candidates): draft-specific
+   auxiliary objectives (pick-step advantage from battle-start V deltas),
+   pick-head-targeted credit, distributed-scale seeds × longer horizons.
+6. **Infra shipped en route**: engine invalid-action now truncates (abort
+   deadlocked a 45M run); resume fingerprint excusal flags + reset-probe skip
+   (model-only resume collapses entropy — never train on one); sibling
+   oversampling knob; portal-GP shaping; privileged drafted-deck exposure;
+   probe suite (gap / ladder / interaction / critic-sensitivity / KL
+   trajectory). OPEN: engine stale-mask desync root cause (pre-production
+   blocker; repro seeds logged).

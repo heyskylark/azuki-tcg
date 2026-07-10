@@ -1,0 +1,10 @@
+{
+  "element": "FIRE",
+  "gate": "AZK01-122",
+  "archetype": "cheap_aggro",
+  "contrast": "entity_only",
+  "winrate_archetype": 0.5,
+  "se": 0.03162277660168379,
+  "n": 250,
+  "truncated": 0
+}
