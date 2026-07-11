@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import os
 import time
 from collections import defaultdict
 from dataclasses import dataclass
@@ -119,6 +120,23 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     )
     self._draftaux_pending = None
     self._draftaux_prevcoords = {}
+
+    # S3 cross-gate replay pick-masking (AZK_XGATE_MASK=1): at a draft->battle
+    # boundary whose gate id CHANGED (env swapped to the sibling), zero the
+    # actor-loss mask for that row's earlier steps in the boundary segment —
+    # the only steps whose GAE window crosses the swap. Slightly over-broad
+    # (may include tail steps of a previous episode in the same segment).
+    self._xgate_mask_enabled = os.environ.get("AZK_XGATE_MASK") == "1"
+    self._xgate_prev_gate = torch.full(
+      (self.total_agents,), -32768, device=self.config["device"], dtype=torch.int32
+    )
+    self._xgate_prev_mode = torch.full(
+      (self.total_agents,), -999, device=self.config["device"], dtype=torch.int32
+    )
+    self._xgate_masked_steps = 0
+    self.actor_loss_mask = torch.ones(
+      self.segments, self.config["bptt_horizon"], device=self.config["device"]
+    )
 
     self._use_rnn = bool(self.config.get("use_rnn", False))
     if self._use_rnn:
@@ -513,6 +531,11 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     self._segment_is_trainable.zero_()
     self._reset_win_prob_rollout_buffers()
     self._reset_split_value_rollout_buffers()
+    if self._xgate_mask_enabled:
+      self.actor_loss_mask.fill_(1.0)
+      if self._xgate_masked_steps:
+        self.stats["xgate_masked_steps"].append(float(self._xgate_masked_steps))
+      self._xgate_masked_steps = 0
     if self._draftaux_enabled:
       # Buffer rows recycle each epoch: never inject across the boundary.
       self._draftaux_pending = None
@@ -594,6 +617,25 @@ class LeaguePuffeRL(pufferl.PuffeRL):
             self._draftaux_events += int(b_global.numel())
         if self._draftaux_enabled:
           self._draftaux_prevcoords[env_id_slice.start] = (batch_rows.start, l)
+        if self._xgate_mask_enabled:
+          lay = self._draftaux_layout
+          if lay is None:
+            lay = self._draftaux_init_layout(o_device.shape[-1], o_device.device)
+          if lay is not None:
+            mo, go = lay["mode_off"], lay["gate_ctx_off"]
+            mode_now = o_device[:, mo:mo + 4].contiguous().view(torch.int32).flatten()
+            gate_now = o_device[:, go:go + 2].contiguous().view(torch.int16).flatten().to(torch.int32)
+            gr = torch.as_tensor(env_id_np, device=o_device.device, dtype=torch.long)
+            prev_mode = self._xgate_prev_mode[gr]
+            prev_gate = self._xgate_prev_gate[gr]
+            swapped = (mode_now == 0) & (prev_mode > 0) & (prev_gate > -32768) & (gate_now != prev_gate)
+            self._xgate_prev_mode[gr] = mode_now
+            self._xgate_prev_gate[gr] = gate_now
+            if bool(swapped.any()) and l > 0:
+              b = swapped.nonzero(as_tuple=False).flatten()
+              seg_rows = batch_rows.start + (gr[b] - env_id_slice.start)
+              self.actor_loss_mask[seg_rows, :l] = 0.0
+              self._xgate_masked_steps += int(b.numel()) * l
         self.terminal_reward_components[batch_rows, l] = reward_components_terminal
         self.shaped_reward_components[batch_rows, l] = reward_components_shaped
         self.terminals[batch_rows, l] = d_t.float()
@@ -773,7 +815,12 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       adv_norm = mb_prio * (mb_advantages - mb_advantages.mean()) / (mb_advantages.std() + 1e-8)
       pg_loss1 = -adv_norm * ratio
       pg_loss2 = -adv_norm * torch.clamp(ratio, 1 - clip_coef, 1 + clip_coef)
-      pg_loss = torch.max(pg_loss1, pg_loss2).mean()
+      pg_loss_elem = torch.max(pg_loss1, pg_loss2)
+      if self._xgate_mask_enabled:
+        # S3: pick steps of cross-gate episodes are excluded from the policy
+        # gradient (value loss keeps them — that's the contrast data).
+        pg_loss_elem = pg_loss_elem * self.actor_loss_mask[idx]
+      pg_loss = pg_loss_elem.mean()
 
       newvalue = newvalue.view(mb_returns.shape)
       total_v_loss = self._clipped_value_loss(newvalue, mb_values, mb_returns, vf_clip)

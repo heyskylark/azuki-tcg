@@ -209,6 +209,9 @@ def make_azuki_env(*, seed: int | None = None, buf=None, **env_kwargs):
   deck_building_privileged_decks = bool(
     env_kwargs.pop("deck_building_privileged_decks", False)
   )
+  draft_cross_gate_replay_prob = float(
+    env_kwargs.pop("draft_cross_gate_replay_prob", 0.0) or 0.0
+  )
   fixed_seats_raw = env_kwargs.pop("deck_building_fixed_seats", None)
   if fixed_seats_raw is None or fixed_seats_raw == "":
     fixed_deck_seats: tuple[int, ...] = ()
@@ -243,6 +246,7 @@ def make_azuki_env(*, seed: int | None = None, buf=None, **env_kwargs):
       deck_snapshot_dir=env_kwargs.pop("deck_snapshot_dir", None),
       deck_snapshot_every=env_kwargs.pop("deck_snapshot_every", None),
       draft_same_element_matchup_prob=draft_same_element_matchup_prob,
+      draft_cross_gate_replay_prob=draft_cross_gate_replay_prob,
       deck_building_privileged_decks=deck_building_privileged_decks,
     )
   if deck_building_enabled:

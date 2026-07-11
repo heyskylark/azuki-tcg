@@ -318,6 +318,22 @@ static int my_init(Env* env, PyObject* args, PyObject* kwargs) {
       }
       env->draft_same_element_matchup_prob = (float)prob;
     }
+    PyObject* xgate_obj =
+        PyDict_GetItemString(kwargs, "draft_cross_gate_replay_prob");
+    if (xgate_obj != NULL) {
+      const double prob = PyFloat_AsDouble(xgate_obj);
+      if (PyErr_Occurred()) {
+        free_training_deck_pool(env);
+        return -1;
+      }
+      if (prob < 0.0 || prob > 1.0) {
+        PyErr_SetString(PyExc_ValueError,
+                        "draft_cross_gate_replay_prob must be in [0, 1]");
+        free_training_deck_pool(env);
+        return -1;
+      }
+      env->draft_cross_gate_replay_prob = (float)prob;
+    }
     PyObject* priv_decks_obj =
         PyDict_GetItemString(kwargs, "deck_building_privileged_decks");
     if (priv_decks_obj != NULL && PyObject_IsTrue(priv_decks_obj)) {

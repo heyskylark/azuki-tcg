@@ -265,6 +265,9 @@ typedef struct {
   // same-element sibling of P0's. 0 leaves the RNG stream bit-identical to
   // builds without the knob.
   float draft_same_element_matchup_prob;
+  // S3: with this probability one random seat battles under its sibling gate
+  // (deck unchanged) — critic contrast data. See draft_start_battle.
+  float draft_cross_gate_replay_prob;
   // Privileged-critic support (A-PRIVCRITIC): when set, critic_privileged
   // self/opponent deck lists carry the DRAFTED pick-order compositions during
   // draft and battle instead of being sanitized. Default off (sanitized).
@@ -1847,6 +1850,34 @@ static size_t draft_assemble_deck(const CAzukiTCG* env, int player_index,
 }
 
 static void draft_start_battle(CAzukiTCG* env) {
+  // S3 cross-gate replay: with prob p, ONE random seat battles with its
+  // drafted deck under the SIBLING gate — same-deck-both-gates outcome
+  // labels for the critic (the gate x composition contrast on-policy data
+  // never contains). Trainer masks that seat's boundary-segment pick steps
+  // (it detects the deck_context gate change itself). prob 0 leaves RNG
+  // streams untouched. NOTE: deck snapshots/metrics report the SWAPPED gate
+  // for those episodes (~p of records).
+  if (env->draft_cross_gate_replay_prob > 0.0f) {
+    env->draft_rng_state = advance_episode_seed(env->draft_rng_state);
+    const bool hit = env->draft_cross_gate_replay_prob >= 1.0f ||
+                     (double)env->draft_rng_state <
+                         (double)env->draft_cross_gate_replay_prob * 4294967296.0;
+    if (hit) {
+      env->draft_rng_state = advance_episode_seed(env->draft_rng_state);
+      const int seat = (int)(env->draft_rng_state & 1u);
+      const int slot = env->draft_gate_slot[seat];
+      const int16_t sibling =
+          slot >= 0 ? g_draft_catalog.gate_sibling_def_ids[slot] : -1;
+      if (sibling >= 0) {
+        const int sib_slot = draft_gate_slot_for(sibling);
+        if (sib_slot >= 0) {
+          env->draft_gate[seat] = sibling;
+          env->draft_gate_slot[seat] = sib_slot;
+        }
+      }
+    }
+  }
+
   CardInfo deck0[2 + REQUIRED_DECK_SIZE + 1];
   CardInfo deck1[2 + REQUIRED_DECK_SIZE + 1];
   const size_t n0 = draft_assemble_deck(env, 0, deck0, sizeof(deck0) / sizeof(deck0[0]));
