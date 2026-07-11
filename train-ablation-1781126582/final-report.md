@@ -335,6 +335,27 @@ Two failure mechanisms, both now characterized:
      the critic still lacks the interaction term. Highest expected value is
      BOTH combined: seed the differentiation and feed the critic the
      contrast data needed to sustain it.
+   - **Contrast-data mechanisms** (design menu, 2026-07-10 discussion):
+     (a) cross-gate replay — ~3-5% of episodes silently swap the drafted
+     gate to its sibling at battle start (sibling map exists), producing
+     same-deck-both-gates outcome labels; pick steps of those episodes must
+     be masked from actor training (league trainability masking reusable);
+     (b) scripted-contrast episodes (probe archetype builders as fixed decks;
+     needs native fixed-deck injection); (c) pick-mutation exploration.
+     Success metric: the critic's per-deck differential SPREAD rises.
+   - **Grounded draft-phase rewards** (no critic proxy → no Goodhart):
+     (1) hindsight pick credit — annealed, win-gated bonus routed back to
+     the pick steps of cards actually USED in battle (portaled with GP,
+     weapon attached); differentiates picks WITHIN a draft; needs per-card
+     play-event export from the env (the biggest build, strongest single
+     idea — its own arm once plumbing exists);
+     (2) draft-novelty bonus vs per-gate running composition (fights the
+     mono-deck attractor AND generates contrast data);
+     (3) per-gate pick baselines (variance reduction on the right axis);
+     (4) league seats for forced off-meta archetype drafters
+     (AlphaStar-exploiter analog).
+     Minimal well-controlled next 45M if appetite exists: annealed aux +
+     cross-gate replay (one seeding lever + one data lever).
    Beyond single-box: the distributed run remains the scale test (capacity +
    data volume for the interaction term), with per-checkpoint KL/critic
    tracking to catch emergence live.
