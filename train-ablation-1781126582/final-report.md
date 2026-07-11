@@ -283,8 +283,8 @@ paths, off by default):
 **The KL trajectory is the finding.** auxvd45 per-checkpoint sweep (30 ckpts):
 mean KL peaks at **5.8e-5 at 1.5M steps** — nonzero in all four elements,
 ~6× anything measured in any prior arm, against a control floor of exactly 0 —
-then decays monotonically to ~0 by **11M** and never returns for the
-remaining 34M. Actor-side gate conditioning is **creatable but not
+then decays to the measurement floor by **~8M** (isolated 1-2e-6
+single-element blips through 18M; structurally zero from 19M to the end). Actor-side gate conditioning is **creatable but not
 retainable** under the current optimization.
 
 Two failure mechanisms, both now characterized:
