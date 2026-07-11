@@ -325,8 +325,23 @@ window means favor portalgp (49.0 vs 45.6). Production protocol additions:
 every recipe has deployable 54-60% peaks; (b) lr-polish at the target
 horizon (S1's 63.9% = cycle peak locked in by end-of-schedule lr decay —
 the annealed-aux recipe is the SHORT-HORIZON (<=15M) choice); (c) portalgp
-remains the long-horizon base. S2 (outcome-graded portal bonus) and S3
-(cross-gate replay + pick masking) implemented, validated, smokes queued.
+remains the long-horizon base.
+
+**S2 (outcome-graded portal bonus): NEGATIVE.** Portal usage collapsed to
+0.0038 (flat bonus: 0.076; none: 0.030) — grading pays ~27% of attempts under
+unskilled play, so whiffs became pure tempo cost and the policy learned to
+portal LESS. "Pay for trying" is the load-bearing exploration property; the
+flat GP bonus stays in the recipe. (draftref 40.6% in-band; KL ~0.)
+
+**S3 (cross-gate replay 0.15 + boundary pick-masking): PASS — the first
+lever to move the critic-interaction blocker.** Critic differential spread
+|mean|/std fell to **3.98 vs 6.4-6.5** in both baselines (FIRE 1.72, WATER
+2.81): with same-deck-both-gates outcome labels in its data, the value
+function began pricing gate-fit as deck-DEPENDENT rather than a per-gate
+constant. draftref 54.2% (best non-aux point, cycle caveat), critic ratio
+0.48, KL ~0 alone (expected without a seeding term). Composition s13combo
+(S1 annealed aux seed + S3 contrast data) is the direct test of the
+seed-plus-sustenance hypothesis; verdict pending.
 
 ## 17. Final conclusions (whole campaign)
 
