@@ -626,7 +626,72 @@ typedef struct RewardTuningConfig {
   // the portaled entity joins base_shaped_reward (rides shaping scale +
   // zero-sum symmetry). 0-GP portals earn nothing. Default off.
   float portal_gp_bonus;
+  // S2: outcome-graded variant — same GP scaling but paid ONLY if the gate
+  // ability observably resolved (weapon attached / IKZ untapped / card
+  // returned / damage dealt / buff-defender-charge landed). Whiffs pay 0.
+  // When set (>0) it supersedes portal_gp_bonus.
+  float portal_outcome_bonus;
 } RewardTuningConfig;
+
+// Pre-action summary for grading a portal's realized effect (S2).
+typedef struct {
+  int weapon_total;
+  int untapped_ikz;
+  int hand_count;
+  int opp_leader_hp;
+  int garden_atk_sum;
+  int defender_count;
+  int charge_count;
+  int portaled_atk;
+} PortalOutcomeSnapshot;
+
+static void portal_outcome_capture(const TrainingObservationData* base,
+                                   int portaled_atk,
+                                   PortalOutcomeSnapshot* out) {
+  const TrainingMyObservationData* my = &base->my_observation_data;
+  int weapon_total = my->leader.weapon_count;
+  int atk_sum = 0;
+  int defenders = 0;
+  int charges = 0;
+  for (int i = 0; i < GARDEN_SIZE; ++i) {
+    const TrainingBoardCardObservationData* c = &my->garden[i];
+    if (c->card_def_id < 0) {
+      continue;
+    }
+    weapon_total += c->weapon_count;
+    atk_sum += c->cur_stats.cur_atk;
+    defenders += c->has_defender ? 1 : 0;
+    charges += c->has_charge ? 1 : 0;
+  }
+  int untapped_ikz = 0;
+  for (int i = 0; i < IKZ_AREA_SIZE; ++i) {
+    if (my->ikz_area[i].card_def_id >= 0 && !my->ikz_area[i].tap_state.tapped) {
+      untapped_ikz++;
+    }
+  }
+  out->weapon_total = weapon_total;
+  out->untapped_ikz = untapped_ikz;
+  out->hand_count = my->hand_count;
+  out->opp_leader_hp = base->opponent_observation_data.leader.cur_stats.cur_hp;
+  out->garden_atk_sum = atk_sum;
+  out->defender_count = defenders;
+  out->charge_count = charges;
+  out->portaled_atk = portaled_atk;
+}
+
+static bool portal_outcome_resolved(const PortalOutcomeSnapshot* pre,
+                                    const PortalOutcomeSnapshot* post) {
+  if (post->weapon_total > pre->weapon_total) return true;      // Surge/Stormchain
+  if (post->untapped_ikz > pre->untapped_ikz) return true;      // Hydromancy
+  if (post->hand_count > pre->hand_count) return true;          // EchoedWaves
+  if (post->opp_leader_hp < pre->opp_leader_hp) return true;    // Devotion/dmg
+  if (post->defender_count > pre->defender_count) return true;  // Stonehaven
+  if (post->charge_count > pre->charge_count) return true;      // Rushfire
+  // Ragefire ATK buff / Rushfire extra body: garden ATK grew beyond the
+  // portaled entity's own contribution.
+  if (post->garden_atk_sum - pre->garden_atk_sum > pre->portaled_atk) return true;
+  return false;
+}
 
 static RewardTuningConfig g_reward_tuning = {0};
 
@@ -672,6 +737,8 @@ static void init_reward_tuning_if_needed(void) {
       parse_nonnegative_env_float("AZK_TRUNCATION_BOARD_EDGE_WEIGHT", TRUNCATION_BOARD_EDGE_WEIGHT);
   g_reward_tuning.portal_gp_bonus =
       parse_nonnegative_env_float("AZK_PORTAL_GP_BONUS", 0.0f);
+  g_reward_tuning.portal_outcome_bonus =
+      parse_nonnegative_env_float("AZK_PORTAL_OUTCOME_BONUS", 0.0f);
 }
 
 static float parse_unit_env_float(const char *name, float default_value) {
@@ -2097,24 +2164,37 @@ void c_step(CAzukiTCG* env) {
       (current_action_mask->legal_action_count > 1);
 
   // Portal-GP bonus: read the portaled entity from the pre-action alley obs
-  // (sub1 = alley slot); the tick below moves it.
+  // (sub1 = alley slot); the tick below moves it. Outcome-graded mode (S2)
+  // additionally snapshots pre-action state and only pays if the gate
+  // ability resolves (graded after the tick loop, post refresh).
   float portal_gp_bonus = 0.0f;
+  bool portal_outcome_pending = false;
+  PortalOutcomeSnapshot portal_pre = {0};
+  const bool outcome_mode = g_reward_tuning.portal_outcome_bonus > 0.0f;
   if (parsed_action.type == ACT_GATE_PORTAL &&
-      g_reward_tuning.portal_gp_bonus > 0.0f) {
+      (outcome_mode || g_reward_tuning.portal_gp_bonus > 0.0f)) {
     const int alley_slot = (int)parsed_action.subaction_1;
     if (alley_slot >= 0 && alley_slot < ALLEY_SIZE) {
-      const int16_t portaled_def_id =
-          obs_base(env, active_player_index)
-              ->my_observation_data.alley[alley_slot]
-              .card_def_id;
-      if (portaled_def_id >= 0) {
-        const CardDef* def = azk_card_def_from_id((CardDefId)portaled_def_id);
+      const TrainingObservationData* pre_base = obs_base(env, active_player_index);
+      const TrainingBoardCardObservationData* portaled =
+          &pre_base->my_observation_data.alley[alley_slot];
+      if (portaled->card_def_id >= 0) {
+        const CardDef* def =
+            azk_card_def_from_id((CardDefId)portaled->card_def_id);
         if (def != NULL && def->has_gate_points) {
           uint8_t gp = def->gate_points.gate_points;
           if (gp > 4) {
             gp = 4;
           }
-          portal_gp_bonus = g_reward_tuning.portal_gp_bonus * (float)gp / 4.0f;
+          const float weight = outcome_mode
+                                   ? g_reward_tuning.portal_outcome_bonus
+                                   : g_reward_tuning.portal_gp_bonus;
+          portal_gp_bonus = weight * (float)gp / 4.0f;
+          if (outcome_mode && portal_gp_bonus > 0.0f) {
+            portal_outcome_capture(pre_base, (int)portaled->cur_stats.cur_atk,
+                                   &portal_pre);
+            portal_outcome_pending = true;
+          }
         }
       }
     }
@@ -2347,6 +2427,17 @@ void c_step(CAzukiTCG* env) {
       maybe_report_env_profile();
     }
     return;
+  }
+
+  // S2: grade the pending portal bonus against the realized post-tick state
+  // (observations were refreshed above); whiffed abilities pay nothing.
+  if (portal_outcome_pending) {
+    PortalOutcomeSnapshot portal_post;
+    portal_outcome_capture(obs_base(env, active_player_index),
+                           portal_pre.portaled_atk, &portal_post);
+    if (!portal_outcome_resolved(&portal_pre, &portal_post)) {
+      portal_gp_bonus = 0.0f;
+    }
   }
 
   const int max_ticks = current_episode_ticks_limit(env);

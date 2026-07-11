@@ -19,14 +19,14 @@ import numpy as np
 GATE_PORTAL = 10
 
 
-def _rollout(bonus: float, steps: int = 2500):
+def _rollout(bonus: float, steps: int = 2500, outcome: bool = False):
     # Env knobs are latched at module/process init inside the C layer, so this
     # test drives one env per subprocess via fork before binding import.
     import multiprocessing as mp
 
     ctx = mp.get_context("spawn")
     queue = ctx.Queue()
-    proc = ctx.Process(target=_rollout_worker, args=(bonus, steps, queue))
+    proc = ctx.Process(target=_rollout_worker, args=(bonus, steps, queue, outcome))
     proc.start()
     out = queue.get(timeout=600)
     proc.join(timeout=60)
@@ -35,13 +35,14 @@ def _rollout(bonus: float, steps: int = 2500):
     return out
 
 
-def _rollout_worker(bonus: float, steps: int, queue):
+def _rollout_worker(bonus: float, steps: int, queue, outcome: bool = False):
     try:
         os.environ.pop("AZK_DEBUG_FORCE_GATE_DEF_IDS", None)
+        os.environ.pop("AZK_PORTAL_GP_BONUS", None)
+        os.environ.pop("AZK_PORTAL_OUTCOME_BONUS", None)
         if bonus > 0:
-            os.environ["AZK_PORTAL_GP_BONUS"] = str(bonus)
-        else:
-            os.environ.pop("AZK_PORTAL_GP_BONUS", None)
+            key = "AZK_PORTAL_OUTCOME_BONUS" if outcome else "AZK_PORTAL_GP_BONUS"
+            os.environ[key] = str(bonus)
         from azk_native import AzukiNativeEnv, NATIVE_OBS_DTYPE
         from training_deck_pool import load_training_deck_pool
 
@@ -93,3 +94,20 @@ def test_portal_gp_bonus_differential():
     assert ((steps_of >= 1) & (steps_of <= 4)).all(), mags
     # zero-sum: actor + opponent deltas cancel
     assert np.abs(diff.sum(axis=1)[changed]).max() < 1e-5
+
+
+def test_portal_outcome_bonus_pays_subset_of_gp_bonus():
+    """Same seeded trajectory: outcome-graded steps ⊆ GP-bonus steps (whiffs pay 0)."""
+    base_r, base_a = _rollout(0.0)
+    gp_r, gp_a = _rollout(0.4)
+    out_r, out_a = _rollout(0.4, outcome=True)
+    np.testing.assert_array_equal(base_a, gp_a)
+    np.testing.assert_array_equal(base_a, out_a)
+    gp_changed = np.abs(gp_r - base_r).max(axis=1) > 0
+    out_changed = np.abs(out_r - base_r).max(axis=1) > 0
+    assert gp_changed.sum() > 0
+    assert (out_changed & ~gp_changed).sum() == 0, "outcome mode paid where GP mode did not"
+    # where both pay, magnitudes are identical (same GP scaling)
+    both = gp_changed & out_changed
+    if both.any():
+        np.testing.assert_allclose(out_r[both], gp_r[both], atol=1e-6)
