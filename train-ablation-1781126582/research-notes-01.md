@@ -993,3 +993,12 @@ Outcome-grading pays ~27% of attempts under unskilled play → whiffs are pure
 tempo cost → the policy portals LESS. "Pay for trying" was the load-bearing
 exploration property of the flat bonus; grading strictness inverted the
 incentive. Production recipe keeps AZK_PORTAL_GP_BONUS (flat).
+### 8.5 S3 s3xgate verdict (2026-07-11 17:00): FIRST interaction-spread mover — PASS
+- **Critic differential spread |m|/std 3.98 vs 6.4-6.5 (portalgp1/s1auxann)**;
+  FIRE 1.72, WATER 2.81 — cross-gate replay measurably taught the critic
+  deck-DEPENDENT gate values (the §7.2 blocker, moved for the first time).
+- draftref 54.2% (best non-aux single point; cycle caveat), critic ratio
+  0.48, masking healthy (~40 steps/epoch), KL ~0 alone (expected — no seed).
+- GATE: PASS as the data lever. Composition s13combo (S1 annealed aux +
+  S3 replay 0.15) launched — the design-session prediction: the seed only
+  grows if the critic has the interaction term to keep feeding it.
