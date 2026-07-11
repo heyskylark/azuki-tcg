@@ -356,6 +356,24 @@ Two failure mechanisms, both now characterized:
      (AlphaStar-exploiter analog).
      Minimal well-controlled next 45M if appetite exists: annealed aux +
      cross-gate replay (one seeding lever + one data lever).
+   - **Converged smoke queue** (2026-07-10 design session; 15M smokes first,
+     winners compose into the next 45M; readouts add the critic-differential
+     SPREAD across decks as the direct interaction-learning metric):
+     S1 annealed aux (retention test; tiny code) →
+     S2 cross-gate replay (critic contrast; small: post-draft sibling swap +
+        pick-step masking via league trainability machinery) →
+     S3 portal-outcome-graded bonus (moderate: pre/post effect diff within
+        the portal step; whiffed portals pay 0; upgrade of the GP bonus —
+        rare case where the Goodhart exploit IS the desired behavior) →
+     S4 human-deck league seats (moderate: web-DB deck export + native
+        fixed-deck episodes; best product alignment — trains against the
+        distribution the model faces online; the same C mechanism unlocks
+        S6 scripted contrast for free) →
+     S5 hindsight pick credit (largest: per-card play-event export + trainer
+        credit routing; strongest single idea, own arm once plumbing exists).
+     Diversity bonus held in reserve (S2/S4 generate contrast as a side
+     effect). S1 alone likely proves retention-of-a-seed, not visible
+     strategy — pair with S2 (later S4) for qualitative change.
    Beyond single-box: the distributed run remains the scale test (capacity +
    data volume for the interaction term), with per-checkpoint KL/critic
    tracking to catch emergence live.
