@@ -318,12 +318,26 @@ Two failure mechanisms, both now characterized:
    actor can be made to condition briefly — but nothing at single-box scale
    RETAINS it. The bottleneck is structural: the critic lacks the
    gate×composition interaction term.
-4. **The one worthwhile single-box follow-up** (not run): auxvd with
-   coefficients annealed on the shaping schedule — tests whether conditioning
-   created early survives once the distorting force is removed. Beyond that,
-   the distributed run is the remaining test: more critic capacity + contrast
-   data for the interaction term, with per-checkpoint KL/critic tracking to
-   catch emergence live.
+4. **Single-box follow-ups** (documented, not run; production run takes
+   priority):
+   - **Composition-contrast exploration** (new, highest-leverage): the
+     missing interaction term is most plausibly a DATA problem — the trained
+     drafter builds ~one deck style per element, so the critic never sees
+     contrasting compositions under the same gate and cannot learn gate-FIT.
+     Occasionally forcing archetype-style drafts during training (the
+     probes' forced-deck machinery already exists) would put the
+     gate×composition contrast into the critic's training distribution,
+     attacking the root directly. No capacity increase can substitute for
+     contrast the data lacks.
+   - **Annealed-aux retry**: auxvd with coefficients on the shaping
+     schedule — cleanly answers the retention question and should remove the
+     Goodhart collapse, but the prior for a qualitative payoff is low while
+     the critic still lacks the interaction term. Highest expected value is
+     BOTH combined: seed the differentiation and feed the critic the
+     contrast data needed to sustain it.
+   Beyond single-box: the distributed run remains the scale test (capacity +
+   data volume for the interaction term), with per-checkpoint KL/critic
+   tracking to catch emergence live.
 5. **For the product**: gate balance numbers (16pp ladder spread, Ragefire's
    net-negative portal, Rushfire dominance) and the meta expectations they
    imply are competitive intel independent of any training outcome.
