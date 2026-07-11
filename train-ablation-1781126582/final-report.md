@@ -278,7 +278,7 @@ paths, off by default):
 | auxv1 (vboot .05) | 15M | 46.9% | 0 exact | 0.32 |
 | auxd1 (sibdiff 2.0) | 15M | 44.8% | 0 exact | — |
 | auxvd1 (both) | 15M | **50.0%** (campaign best) | **1e-5 (first nonzero ever)** | 0.86 |
-| **auxvd45** (both) | 45M | **33.3%** (campaign worst) | 0 at final ckpt | (sweep) |
+| **auxvd45** (both) | 45M | **33.3%** (campaign worst) | 0 at final ckpt | 0.95 early / 0.59 late |
 
 **The KL trajectory is the finding.** auxvd45 per-checkpoint sweep (30 ckpts):
 mean KL peaks at **5.8e-5 at 1.5M steps** — nonzero in all four elements,
@@ -286,6 +286,16 @@ mean KL peaks at **5.8e-5 at 1.5M steps** — nonzero in all four elements,
 then decays to the measurement floor by **~8M** (isolated 1-2e-6
 single-element blips through 18M; structurally zero from 19M to the end). Actor-side gate conditioning is **creatable but not
 retainable** under the current optimization.
+
+The critic-side trajectory completes the picture: sensitivity peaks with
+the actor's KL (ratio 1.65 at 3.1M, |dV| ~0.006 — the strongest critic
+readings of the campaign) and then *also* decays (early ≤9M mean 0.95 →
+late ≥37M mean 0.59). The aux and the conditioning it created faded
+together: the actor's KL died first (~8M), the critic's edge eroded after.
+Under constant aux pressure the VALUE side stayed nonzero — so the erasure
+is not the critic forgetting first; the pick head loses the distinction
+while the critic still prices it, then the critic's sharpness drifts down
+as the (Goodharted) meta stops exercising the difference.
 
 Two failure mechanisms, both now characterized:
 1. **Erasure**: the conditioning decays inside the shaping-anneal window
