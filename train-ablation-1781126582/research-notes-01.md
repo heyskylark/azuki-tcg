@@ -961,3 +961,6 @@ question at 45M: does 1e-5 GROW (emergence curve) or plateau (floor artifact).
 - Mechanism read: aux as CURRICULUM — dense aligned pick credit while
   shaping is dense, force removed on the same schedule → improvements
   grounded by outcomes are kept, Goodhart drift never starts.
+- x192 CONFIRMATION: 60.4% (192 eps; pooled 288 = 63.9%). Even the
+  conservative read is +13pp over every prior arm. S1 GATE: PASSED.
+  Promotion: s1auxann45 (45M, same knobs) launched; S2 implementation next.
