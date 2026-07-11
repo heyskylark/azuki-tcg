@@ -948,3 +948,16 @@ question at 45M: does 1e-5 GROW (emergence curve) or plateau (floor artifact).
   then rerun the 45M; but the deeper blocker remains the interaction-free
   critic (§7.2). Distributed-run recipe UNCHANGED: portalgp (aux terms NOT
   included).
+
+## 8. S-QUEUE EXECUTION (post-campaign, tasks #7-12)
+### 8.1 S1 s1auxann (annealed aux, 15M) — first readout (2026-07-11 01:15)
+- **draftref 70.8% (96 eps)** — +20.8pp over control (portalgp1 46.9%),
+  +20.8pp over the constant-coef auxvd1 (50.0%). CONFIRMING at 192 eps
+  before belief (x192 eval running).
+- **Final-ckpt KL NONZERO: 1-2e-6 in 3/4 elements** — first arm to END a
+  run above the floor. Early peak 8.1e-5 @1.5M (highest yet), decay through
+  4.6M mirrors auxvd45 but does not hit exact zero.
+- critic ratio 0.72 at final ckpt.
+- Mechanism read: aux as CURRICULUM — dense aligned pick credit while
+  shaping is dense, force removed on the same schedule → improvements
+  grounded by outcomes are kept, Goodhart drift never starts.
