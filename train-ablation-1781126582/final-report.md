@@ -250,3 +250,94 @@ there — while FIRE siblings differ in HOW MUCH to portal, not what to draft.
    probe suite (gap / ladder / interaction / critic-sensitivity / KL
    trajectory). OPEN: engine stale-mask desync root cause (pre-production
    blocker; repro seeds logged).
+
+---
+
+# PART III — Draft-time auxiliary objectives (A-DRAFTAUX, 2026-07-09 → 07-10)
+
+## 15. Motivation and mechanism
+Part II closed the conventional lever search with a paradox: the critic prices
+sibling gates (sign-consistent from 1.5M steps) but the actor never drafts on
+them (KL ≡ 0 everywhere). A-DRAFTAUX wires the proven critic signal directly
+into pick credit at the draft→battle boundary (commit 39c1fc2, both trainer
+paths, off by default):
+- **aux1 / vboot** (`AZK_DRAFT_VBOOT_COEF`): the battle-start value V(s₀;g)
+  added as reward at the last pick step — shortens the pick credit path from
+  ~150 steps to ~1.
+- **aux2 / sibdiff** (`AZK_DRAFT_SIBDIFF_COEF`): clipped counterfactual
+  differential max(0, V(s₀;g) − V(s₀;g→sibling)) — the partial derivative of
+  deck value w.r.t. gate identity; a generic good deck scores zero, only
+  gate-FIT survives. Clip prevents "make it worse under the sibling" gaming;
+  computed by a gate-swapped forward with the exact pre-forward LSTM state.
+
+## 16. Results
+
+| arm | steps | draftref | gate-swap KL | critic ratio |
+|---|---|---|---|---|
+| portalgp1 (control) | 15M | 46.9% | 0 exact | 0.17 |
+| auxv1 (vboot .05) | 15M | 46.9% | 0 exact | 0.32 |
+| auxd1 (sibdiff 2.0) | 15M | 44.8% | 0 exact | — |
+| auxvd1 (both) | 15M | **50.0%** (campaign best) | **1e-5 (first nonzero ever)** | 0.86 |
+| **auxvd45** (both) | 45M | **33.3%** (campaign worst) | 0 at final ckpt | (sweep) |
+
+**The KL trajectory is the finding.** auxvd45 per-checkpoint sweep (30 ckpts):
+mean KL peaks at **5.8e-5 at 1.5M steps** — nonzero in all four elements,
+~6× anything measured in any prior arm, against a control floor of exactly 0 —
+then decays monotonically to ~0 by **11M** and never returns for the
+remaining 34M. Actor-side gate conditioning is **creatable but not
+retainable** under the current optimization.
+
+Two failure mechanisms, both now characterized:
+1. **Erasure**: the conditioning decays inside the shaping-anneal window
+   (1.9M→8.2M) as the outcome-dominated meta equilibrates; PPO + entropy +
+   pick smoothing pull the pick head back to the element-conditioned optimum.
+2. **Goodhart at length**: the aux coefficients were constant (the design's
+   "ride the shaping anneal" was not implemented), so after shaping faded the
+   aux became the loudest dense signal; 45M of optimizing the critic's
+   *opinion* produced critic-pleasing, non-winning decks (33.3% vs 46.9% for
+   the identical recipe without aux). At 15M the same recipe was net-positive
+   (50.0%) because dense shaping still dominated.
+3. Root blocker (from the §7.2 post-mortem, notes): the critic prices the
+   gate MAIN effect but carries almost no gate×composition INTERACTION
+   (per-deck differential spread |mean|/std 2–10) — while the game's true
+   interaction is up to 8pp (LIGHTNING probe). No critic-derived signal can
+   teach gate-FIT drafting until the value function represents fit itself.
+
+## 17. Final conclusions (whole campaign)
+
+1. **Production recipe (unchanged, final)**: anneal (12/40 per-env episodes)
+   + gate-id embedding + pick-eps 0.02 + sibling oversampling 0.35 +
+   portal-GP bonus 0.3, league 6/4/3 windowed, native path — 46.9%
+   draft-vs-ref at 15M and 45M, best external quality, no length decline,
+   2.5× richer portal usage. **No aux terms.**
+2. **Strategy emergence, demonstrated**: element/family-conditional drafting,
+   synergy pairs, deck-conditional playstyles, gate-aware portal play
+   (extracts 4-6pp sibling gaps in play; modulates portal style per gate).
+3. **Sibling-gate DRAFT conditioning**: real value exists (up to 8pp
+   composition interaction, LIGHTNING), the critic sees the main effect, the
+   actor can be made to condition briefly — but nothing at single-box scale
+   RETAINS it. The bottleneck is structural: the critic lacks the
+   gate×composition interaction term.
+4. **The one worthwhile single-box follow-up** (not run): auxvd with
+   coefficients annealed on the shaping schedule — tests whether conditioning
+   created early survives once the distorting force is removed. Beyond that,
+   the distributed run is the remaining test: more critic capacity + contrast
+   data for the interaction term, with per-checkpoint KL/critic tracking to
+   catch emergence live.
+5. **For the product**: gate balance numbers (16pp ladder spread, Ragefire's
+   net-negative portal, Rushfire dominance) and the meta expectations they
+   imply are competitive intel independent of any training outcome.
+
+## 18. Part II/III artifact index
+- results/run45_{combo45b,anneal45,portalgp45,auxvd45}/ — per-ckpt KL+critic
+  sweeps; results/gate_gap/ — sibling mirrors + cross ladder;
+  results/gate_ix/ — composition×gate interaction; results/run15_* — 15M arm
+  final-ckpt probes; *_draftref.json — external evals.
+- Probes: probe_gate_gap.py, probe_deck_gate_interaction.py,
+  probe_critic_gate.py, probe_embedding_geometry.py, probe_gate_kl.py,
+  fuzz_mask_consistency.py. Drivers: run_gate_gap_all.sh,
+  run_interaction_probe.sh, run_aux_matrix.sh, run_auxvd45.sh.
+- Trainer: A-DRAFTAUX knobs (AZK_DRAFT_VBOOT_COEF / SIBDIFF_COEF /
+  SIBDIFF_CAP), default off. Env: draft_same_element_matchup_prob,
+  deck_building_privileged_decks, AZK_PORTAL_GP_BONUS, invalid-action
+  truncation (+AZK_INVALID_ACTION_ABORT), resume excusal flags.
