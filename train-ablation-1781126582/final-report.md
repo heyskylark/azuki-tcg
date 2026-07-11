@@ -394,3 +394,98 @@ Two failure mechanisms, both now characterized:
   SIBDIFF_CAP), default off. Env: draft_same_element_matchup_prob,
   deck_building_privileged_decks, AZK_PORTAL_GP_BONUS, invalid-action
   truncation (+AZK_INVALID_ACTION_ABORT), resume excusal flags.
+
+---
+
+# PART IV — Next-experiment roadmap (converged with user, 2026-07-10 evening)
+
+> Written for the main thread: full specs so each task can be executed
+> without re-deriving context. Ordering is simplest → most complex. Protocol:
+> every lever gets a 15M smoke (~2-2.5h) with the standard readout suite
+> before any 45M. Standard readouts per arm: draftref 96 argmax (192 at 45M),
+> gate-swap KL (probe_gate_kl.py), critic ratio AND **critic-differential
+> spread across decks** (std of battle_dv_signed_values in
+> probe_critic_gate.py output — the direct interaction-learning metric),
+> plus portal usage where relevant. Compare against portalgp1 (46.9%) at 15M
+> and portalgp45 (46.9%) at 45M.
+
+## S1 — Annealed aux (retention test) [tiny: trainer schedule]
+Rerun the auxvd recipe with BOTH aux coefficients annealed linearly
+1.0→0.0 over global_step ∈ [0, AZK_DRAFT_AUX_ANNEAL_END_STEP] (default
+8_200_000, matching the shaping fade). Implementation: scale
+self._draftaux_vboot/_sibdiff contributions by the schedule inside
+_draftaux_step / _draftaux_league_stash using self.global_step; add the env
+var; keep base coefs 0.05 / 2.0.
+**15M IS meaningful as a gate** (user question answered): in auxvd45 the
+conditioning peaked at 1.5M and decayed to ~0 by 11M with the aux STILL ON —
+so a 15M annealed run (aux off after ~8M) directly answers "does the seed
+survive without support?" If KL at the 15M final checkpoint > 0 → promote to
+45M (S7). If already dead at 15M → the 45M is pointless; skip.
+Also expect: no Goodhart (draftref should be ≥ ~46% at 15M).
+
+## S2 — Portal-outcome-graded bonus [small-moderate: env-only C]
+Upgrade AZK_PORTAL_GP_BONUS from "portaled with GP" to "portal that actually
+resolved an effect": in c_step, diff pre/post state within the step around
+the tick loop for the acting player — weapon-count delta on the portaled
+entity (Surge/Stormchain), untapped-IKZ delta (Hydromancy), opponent leader
+HP delta (Devotion/damage), garden occupancy delta (Rushfire). Whiffed
+portal ⇒ bonus 0; resolved ⇒ scale bonus by min(GP,4)/4 as now. New env var
+AZK_PORTAL_OUTCOME_BONUS (replaces the flat GP bonus in this arm; keep both
+knobs independent). Goodhart watch: "engineering resolvable portals" is the
+DESIRED behavior (e.g. weapons in discard for Surge) — but track draftref
+at 15M and 45M for late drift like auxvd45's.
+
+## S3 — Cross-gate replay (critic interaction data) [moderate: C + trainer masking]
+With prob AZK_CROSS_GATE_REPLAY_PROB (~0.05), after the draft completes swap
+ONE player's gate to its sibling before battle init (sibling map exists in
+g_draft_catalog). Purpose: outcome labels for "same deck, other gate" — the
+exact data the critic lacks (§7.2). REQUIRED: mask that episode's PICK steps
+out of ACTOR training (picks were made under the pre-swap gate; unmasked,
+5% sibling-averaged pick labels actively FIGHT conditioning). Mechanism:
+post-rollout in the trainer, detect rows whose deck_context.gate_card_def_id
+differs between draft steps and the battle boundary (both readable from the
+stored obs buffer via the byte offsets in _draftaux_init_layout) and zero
+those pick steps' contribution to the policy loss (values/critic stay).
+Success metric: critic-differential SPREAD across decks rises (|mean|/std
+drops below ~2) — that's the interaction being learned.
+
+## S4 — Reference-deck league seats [moderate-large: native fixed-deck episodes + seat wiring]
+Real-human-deck opponents in the league (user will export a large sample
+from the production DB later; FOR NOW use the existing 18-deck reference
+pool). **EVAL-LEAK CAVEAT (user-flagged, mandatory)**: those 18 decks ARE
+the draftref benchmark. Split them: 9 for training seats / 9 HELD OUT for
+draftref, and report draftref against the held-out 9 only, clearly labeled
+(numbers not comparable to earlier 18-deck draftrefs — rerun portalgp1's
+draftref on the same held-out 9 as the control). Implementation: native
+fixed-deck episodes — with prob (or for designated league seats), a player
+skips the draft and plays an assigned deck from a table passed like the
+draft catalog (mirror the legacy wrapper's _fixed_state_from_deck semantics
+in draft_begin_episode/c_step_draft). This same mechanism unlocks S6 free.
+
+## S5 — Hindsight pick credit [largest: engine/env event export + trainer routing]
+At episode end, small annealed bonus to the PICK steps of cards that were
+actually used in battle, gated on winning (or zero-sum symmetric): card
+played / weapon attached / portaled-with-GP ⇒ its pick step earns credit.
+Needs per-card play-event export from the env (per-episode card-usage
+bitmap alongside the deck record) and trainer-side routing from card →
+pick step (pick order is in the deck record). Differentiates picks WITHIN
+a draft — the thing the flat critic-aux never did — and is grounded in real
+outcomes (no critic proxy). Do NOT stack with S2's bonus in the same arm.
+
+## S6 — Scripted contrast episodes [free after S4 — backup]
+Same fixed-deck mechanism, decks from build_archetype_decks instead of the
+reference pool. Run only if S3/S4 fail to move the critic-differential
+spread.
+
+## S7 — 45M confirmation of winners
+Compose the levers that passed their 15M gates (draftref within 3pp of
+control AND either KL > 0 retained or critic-differential spread improved)
+into one 45M with the full trajectory suite. Only promote S1 to 45M if its
+15M gate passed (see S1).
+
+## Notes for the main thread
+- auxvd45 critic trajectory sweep still running (~22:30); append its numbers
+  to Part III when done (does critic ratio also decay with the KL?).
+- All aux arms MUST NOT ship in the production recipe (Part II §14 stands:
+  portalgp, no aux) unless S7 changes the picture.
+- Keep arms single-lever at 15M; combinations only at S7.
