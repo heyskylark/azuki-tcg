@@ -306,7 +306,7 @@ class LeaguePuffeRL(pufferl.PuffeRL):
           min=0.0, max=self._draftaux_cap
         )
         aux = aux + self._draftaux_sibdiff * diff * ok.float()
-    self._draftaux_pending = (b_global, aux)
+    self._draftaux_pending = (b_global, aux * self._draftaux_aux_scale())
 
   def _infer_actions(self, o_device: torch.Tensor, mask_t: torch.Tensor, env_id_np: np.ndarray):
     device = self.config["device"]

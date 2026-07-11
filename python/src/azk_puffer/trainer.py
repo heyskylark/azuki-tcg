@@ -148,6 +148,10 @@ class PuffeRL:
         self._draftaux_prev = {}
         self._draftaux_injected = 0.0
         self._draftaux_events = 0
+        # S1: scale the aux by the env's live reward_shaping_scale so the
+        # seeding force fades with the anneal instead of Goodharting at length.
+        self._draftaux_anneal = os.environ.get('AZK_DRAFT_AUX_ANNEAL') == '1'
+        self._draftaux_last_scale = 1.0
 
         # Minibatching & gradient accumulation
         minibatch_size = config['minibatch_size']
@@ -500,6 +504,15 @@ class PuffeRL:
         weighted_loss = raw_loss * self._win_prob_aux_coef()
         return weighted_loss, metrics
 
+    def _draftaux_aux_scale(self):
+        """Live shaping scale (S1 anneal knob); 1.0 when AZK_DRAFT_AUX_ANNEAL is off."""
+        if not self._draftaux_anneal:
+            return 1.0
+        vals = self.stats.get('reward_shaping_scale')
+        if vals:
+            self._draftaux_last_scale = float(vals[-1])
+        return self._draftaux_last_scale
+
     def _draftaux_init_layout(self, obs_row_bytes, device):
         """Byte offsets into the packed deckbuild obs + sibling-gate lookup.
 
@@ -602,6 +615,7 @@ class PuffeRL:
         # coords survive segment rollover because they are the written coords.
         prev_rows, prev_l = prev["rows"], prev["l"]
         idx = torch.arange(prev_rows.start, prev_rows.stop, device=value.device)[b]
+        aux = aux * self._draftaux_aux_scale()
         aux_cast = aux.to(self.rewards.dtype)
         self.rewards[idx, prev_l] += aux_cast
         self.shaped_reward_components[idx, prev_l] += aux_cast
