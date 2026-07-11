@@ -964,3 +964,11 @@ question at 45M: does 1e-5 GROW (emergence curve) or plateau (floor artifact).
 - x192 CONFIRMATION: 60.4% (192 eps; pooled 288 = 63.9%). Even the
   conservative read is +13pp over every prior arm. S1 GATE: PASSED.
   Promotion: s1auxann45 (45M, same knobs) launched; S2 implementation next.
+### 8.2 s1auxann45 (45M) — the 15M breakthrough does NOT hold at length
+- draftref 37.0% @45M (15M ckpt of same recipe: 60.4-70.8%); KL 0; critic 0.23.
+- Aux fully annealed by ~8M ⇒ 8M→45M was effectively portalgp — yet lands
+  10pp BELOW portalgp45 (46.9%). Hypotheses: (a) early seeding steers the
+  meta into a worse long-run basin; (b) league meta cycle trough vs the
+  references at 45M. Draftref trajectory over ep500-2500 running to locate
+  the peak/decay shape. Verdict for the production recipe pends that curve —
+  15M-horizon distributed runs would still favor s1auxann; 45M+ would not.
