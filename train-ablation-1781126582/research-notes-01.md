@@ -972,3 +972,17 @@ question at 45M: does 1e-5 GROW (emergence curve) or plateau (floor artifact).
   references at 45M. Draftref trajectory over ep500-2500 running to locate
   the peak/decay shape. Verdict for the production recipe pends that curve —
   15M-horizon distributed runs would still favor s1auxann; 45M+ would not.
+### 8.3 Draftref oscillation (2026-07-11): the meta cycle dominates single-point evals
+45M draftref trajectories (96 eps/pt):
+  s1auxann45: 8M=44.8 15M=47.9 23M=41.7 31M=54.2 38M=47.9 45M=37.0 (mean 45.6, peak 54.2)
+  portalgp45: 8M=56.2 15M=40.6 23M=40.6 31M=60.4 38M=49.0 45M=46.9 (mean 49.0, peak 60.4)
+Both oscillate over a ~20pp range with the league meta cycle. CONSEQUENCES:
+(1) every single-checkpoint arm comparison in this campaign carries ±10pp
+cycle noise on top of sampling CI — arm deltas under ~10pp are not
+individually load-bearing (round-2 anneal-vs-ctrl survives via pooling +
+mechanism evidence; the 45M portalgp/anneal/combo ordering does not).
+(2) s1auxann's 63.9% pooled at 15M-total reflects cycle peak + end-of-schedule
+lr polish — the recipe wins only at short horizons; at 45M its window mean is
+BELOW portalgp's. (3) production protocol must include CHECKPOINT SELECTION
+by external eval over a late window (peaks 54-60% are deployable in every
+recipe) and end-of-run lr polish at the target horizon.

@@ -313,6 +313,21 @@ Two failure mechanisms, both now characterized:
    interaction is up to 8pp (LIGHTNING probe). No critic-derived signal can
    teach gate-FIT drafting until the value function represents fit itself.
 
+## 16.5 Post-campaign S-queue addendum (2026-07-11)
+S1 (annealed aux): 15M-total run hit **63.9% pooled draftref** (best ever) but
+the same recipe at 45M-total landed at 37.0% — and per-checkpoint draftref
+trajectories revealed why: **draft-vs-ref oscillates over a ~20pp range with
+the league meta cycle in every 45M arm** (portalgp45: 56.2→40.6→40.6→60.4→
+49.0→46.9; s1auxann45: 44.8→47.9→41.7→54.2→47.9→37.0). Methodological
+correction: single-checkpoint arm deltas under ~10pp are within cycle noise;
+window means favor portalgp (49.0 vs 45.6). Production protocol additions:
+(a) periodic external evals + CHECKPOINT SELECTION over a late window —
+every recipe has deployable 54-60% peaks; (b) lr-polish at the target
+horizon (S1's 63.9% = cycle peak locked in by end-of-schedule lr decay —
+the annealed-aux recipe is the SHORT-HORIZON (<=15M) choice); (c) portalgp
+remains the long-horizon base. S2 (outcome-graded portal bonus) and S3
+(cross-gate replay + pick masking) implemented, validated, smokes queued.
+
 ## 17. Final conclusions (whole campaign)
 
 1. **Production recipe (unchanged, final)**: anneal (12/40 per-env episodes)
