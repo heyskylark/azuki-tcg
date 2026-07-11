@@ -986,3 +986,10 @@ lr polish — the recipe wins only at short horizons; at 45M its window mean is
 BELOW portalgp's. (3) production protocol must include CHECKPOINT SELECTION
 by external eval over a late window (peaks 54-60% are deployable in every
 recipe) and end-of-run lr polish at the target horizon.
+### 8.4 S2 s2outcome verdict (2026-07-11 15:45): NEGATIVE — keep the flat GP bonus
+draftref 40.6% (cycle band), KL ~0, critic 0.16, and the tell:
+**portal usage collapsed to 0.0038** (flat-GP arm: 0.076; no bonus: 0.030).
+Outcome-grading pays ~27% of attempts under unskilled play → whiffs are pure
+tempo cost → the policy portals LESS. "Pay for trying" was the load-bearing
+exploration property of the flat bonus; grading strictness inverted the
+incentive. Production recipe keeps AZK_PORTAL_GP_BONUS (flat).
