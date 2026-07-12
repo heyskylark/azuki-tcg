@@ -1002,12 +1002,18 @@ incentive. Production recipe keeps AZK_PORTAL_GP_BONUS (flat).
 - GATE: PASS as the data lever. Composition s13combo (S1 annealed aux +
   S3 replay 0.15) launched — the design-session prediction: the seed only
   grows if the critic has the interaction term to keep feeding it.
-### 8.6 PROPOSED (user, 2026-07-11): gate-id-free variant of the winning lever
-Motivation: generality to NEW cards — the 16-d learned gate-id channel is tied
-to card ids (untrained for unseen gates); the metadata/TEXT pathway transfers.
-The June embedding collapse (sibling cos 0.99) was a SYMPTOM of missing
-gradient pressure, not a cause — S3's contrast data creates that pressure, so
-the text projection may differentiate on its own. Arm: winning recipe with
-policy.gate_id_embedding_enabled=false; readouts: embedding geometry
-(probe_embedding_geometry.py — do sibling cosines drop?), interaction spread,
-KL, draftref. Queue after s13combo verdict.
+### 8.6 QUEUED AS FINAL EXPERIMENT (user directive, 2026-07-11): gate-id drop test
+Sequencing: run at the VERY END, after the full S-queue resolves and a best
+composition passes the 45M bar — then rerun THAT final recipe with
+policy.gate_id_embedding_enabled=false. Rationale: first get the model to
+its best state via the successful experiment combination; the id-drop then
+answers whether that state is reachable with generalizable inputs only.
+Motivation: generality to NEW cards — the 16-d learned gate-id channel is
+tied to card ids (untrained for unseen gates); the metadata/TEXT pathway
+transfers. The June embedding collapse (sibling cos 0.99) was a SYMPTOM of
+missing gradient pressure, not a cause — contrast-data pressure (S3) may let
+the text projection differentiate on its own. Readouts: embedding geometry
+(probe_embedding_geometry.py — do sibling cosines drop?), interaction
+spread, KL, draftref vs the id-enabled twin. If parity holds without the id
+channel, the production model prices UNSEEN gate cards from effect text
+alone.
