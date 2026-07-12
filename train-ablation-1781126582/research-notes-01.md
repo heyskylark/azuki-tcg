@@ -1034,3 +1034,17 @@ alone.
 The conditioning levers (annealed aux + cross-gate replay) are externally
 FREE at 45M. Verdict pends the KL + interaction-spread trajectories
 (sweeps at ep1600/2930).
+### 8.9 S7 s7combo45 FULL VERDICT (2026-07-12 14:40)
+- External: window mean 49.1 / peak 56.2 — PARITY with portalgp45. The
+  conditioning levers are free, not additive, at 45M.
+- Seed: KL peak 1.9e-5 @3M, persists to ~9M (vs ~5-8M in S1/auxvd) — the
+  contrast data extends the seed's life marginally; still 0 from ~10M on.
+- Interaction spread TRAJECTORY: oscillates 2.5-18.7 with the meta cycle —
+  the 15M spread readings (s13combo 2.14, s3xgate 3.98) were favorable
+  samples of a noisy quantity, NOT a stable regime change. The spread metric
+  needs windowed averaging like draftref.
+- S7 CONCLUSION: single-box 45M cannot make sibling-draft conditioning
+  durable. Distributed recipe: portalgp base + cross-gate replay (free,
+  gives the critic contrast at scale) + annealed aux for short-horizon
+  polish phases. S8 (gate-id drop, text-only generalization) is the last
+  gate before the production spec is final.
