@@ -1028,3 +1028,9 @@ alone.
 - S7 = this recipe at 45M (s7combo45), judged by window means + KL/critic/
   spread TRAJECTORIES per the oscillation protocol. S4/S5 deferred as
   optional builds; S8 (gate-id drop) terminal after S7.
+### 8.8 S7 s7combo45 draftref window (2026-07-12 08:50)
+8M=42.7 15M=56.2 23M=52.1 31M=46.9 38M=49.0 45M=47.9 →
+**window mean 49.1%, peak 56.2% — parity with portalgp45 (49.0/60.4)**.
+The conditioning levers (annealed aux + cross-gate replay) are externally
+FREE at 45M. Verdict pends the KL + interaction-spread trajectories
+(sweeps at ep1600/2930).
