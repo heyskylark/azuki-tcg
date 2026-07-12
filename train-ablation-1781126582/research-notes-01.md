@@ -1017,3 +1017,14 @@ the text projection differentiate on its own. Readouts: embedding geometry
 spread, KL, draftref vs the id-enabled twin. If parity holds without the id
 channel, the production model prices UNSEEN gate cards from effect text
 alone.
+### 8.7 s13combo verdict (2026-07-11 20:45): interaction learning compounds; retention still unsolved
+- **Interaction spread 2.14 — best yet** (S3 alone 3.98; baselines 6.4-6.5;
+  WATER 0.86, LIGHTNING 1.66): aux seeding + contrast data COMPOUND on the
+  critic side; the differential is now genuinely deck-dependent.
+- Main-effect ratio fell to 0.07 — consistent with the constant main effect
+  deflating as the critic redistributes it into the interaction term.
+- Actor: KL ~0 at final (1e-6 WATER only) — seed decay unchanged from S1;
+  retention remains THE open problem. draftref 42.7% (cycle band).
+- S7 = this recipe at 45M (s7combo45), judged by window means + KL/critic/
+  spread TRAJECTORIES per the oscillation protocol. S4/S5 deferred as
+  optional builds; S8 (gate-id drop) terminal after S7.
