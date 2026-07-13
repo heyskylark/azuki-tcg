@@ -111,6 +111,7 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     self._pfsp_power = float(os.environ.get("AZK_PFSP_POWER", "2.0") or 2.0)
     self._pfsp_wins = np.zeros(len(self.opponent_policies), dtype=np.float64)
     self._pfsp_games = np.zeros(len(self.opponent_policies), dtype=np.float64)
+    self._pfsp_keys = None
     self._refresh_frozen_window()
     self._resample_matchups(np.arange(self._num_envs_total, dtype=np.int32))
 
@@ -245,7 +246,13 @@ class LeaguePuffeRL(pufferl.PuffeRL):
         0, len(self.opponent_policies), size=env_indices.size, dtype=np.int32
       )
 
-  def set_opponent_policies(self, opponent_policies: list[torch.nn.Module]) -> None:
+  def set_opponent_policies(
+    self, opponent_policies: list[torch.nn.Module], opponent_keys: list[str] | None = None
+  ) -> None:
+    # PFSP stats persist across pool refreshes when identity keys are given:
+    # carry each surviving opponent's (wins, games) to its new index.
+    prev_keys = getattr(self, "_pfsp_keys", None)
+    prev_wins, prev_games = getattr(self, "_pfsp_wins", None), getattr(self, "_pfsp_games", None)
     self.opponent_policies = list(opponent_policies)
     for opp in self.opponent_policies:
       opp.eval()
@@ -265,13 +272,26 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     # Pool indices shift on refresh; force a window redraw against the new pool.
     self._window_index = -1
     self._window_policy_ids = None
-    # S9 PFSP: per-opponent learner results (decayed counts). Pool indices
-    # shift on refresh, so stats reset with the pool; they re-accumulate
-    # within a few windows.
+    # S9 PFSP: per-opponent learner results (decayed counts). Stats persist
+    # across pool refreshes via identity keys (checkpoint paths); entries
+    # without a surviving key start fresh at winrate 0.5.
     self._pfsp_enabled = os.environ.get("AZK_PFSP") == "1"
     self._pfsp_power = float(os.environ.get("AZK_PFSP_POWER", "2.0") or 2.0)
     self._pfsp_wins = np.zeros(len(self.opponent_policies), dtype=np.float64)
     self._pfsp_games = np.zeros(len(self.opponent_policies), dtype=np.float64)
+    self._pfsp_keys = list(opponent_keys) if opponent_keys else None
+    if (
+      self._pfsp_keys is not None
+      and prev_keys
+      and prev_wins is not None
+      and len(self._pfsp_keys) == len(self.opponent_policies)
+    ):
+      prev_index = {k: i for i, k in enumerate(prev_keys)}
+      for new_i, key in enumerate(self._pfsp_keys):
+        old_i = prev_index.get(key)
+        if old_i is not None and old_i < prev_wins.size:
+          self._pfsp_wins[new_i] = prev_wins[old_i]
+          self._pfsp_games[new_i] = prev_games[old_i]
     self._refresh_frozen_window()
     self._resample_matchups(np.arange(self._num_envs_total, dtype=np.int32))
 

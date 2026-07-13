@@ -2189,7 +2189,10 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
                                     )
                                     opp.eval()
                                     refreshed_policies.append(opp)
-                                trainer.set_opponent_policies(refreshed_policies)
+                                trainer.set_opponent_policies(
+                                    refreshed_policies,
+                                    opponent_keys=[str(p) for p in refreshed_paths],
+                                )
                                 print(
                                     "[league] pool refreshed: "
                                     f"opponents={len(refreshed_policies)}, champion={league_manager.state.champion_policy_id}"
