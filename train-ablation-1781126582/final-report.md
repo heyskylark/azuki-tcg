@@ -642,3 +642,15 @@ checkpoint — production selection needs BOTH yardsticks. ADOPTED into spec
 §20: league.frozen_ratio 0.4 (≈78% league games) + AZK_PFSP=1 with
 persistence (54ec27f); SPS cost mild (windowed two-batch design), trainable
 rows 61%.
+
+## 25. S10: the anneal floor completes the recipe — first net-improving run (2026-07-13)
+s10annfloor (= S9 winner + shaping floor 0.15): mid>early **71.9%**,
+**final>early 56.8% — the first end-to-end net improvement of the project**
+(floor 0.05: 31.8%). final-vs-mid 40.1% — oscillation persists but around a
+RISING trend. Bonus: end-of-run gate-swap KL nonzero in ALL FOUR elements
+(EARTH 3.2e-5) with NO aux seeding — the denser floor also retains
+conditioning. The post-anneal sparse phase was the regression driver.
+SPEC §20 UPDATED: AZK_REWARD_SHAPING_ANNEAL_FINAL=0.15. Terminal validation
+launched: s11final45 — the complete production recipe (portalgp + S3 replay
+0.15 + text-only gates + 78% PFSP league + floor 0.15) at 45M with the full
+trajectory + ladder suite.
