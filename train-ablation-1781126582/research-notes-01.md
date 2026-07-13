@@ -1060,3 +1060,17 @@ FREE at 45M. Verdict pends the KL + interaction-spread trajectories
 - KL 0 / critic 0.15 / spread 5.38 — no conditioning change (as expected).
 - PRODUCTION SPEC: gate-id embedding OPTIONAL. Text-only is viable and
   preferred for new-card generalization.
+### 8.11 S9 live telemetry + arm semantics (2026-07-14 fork note)
+- **frozen_ratio is ROW-level, not game-level**: 0.4 rows ⇒ **77.6% frozen
+  GAMES** measured (frozen_matchup_fraction 0.776) ⇒ s9pfsp is the
+  AlphaStar-extreme arm; queued s9pfsp02 (0.2 rows) ⇒ ~40% games = the
+  moderate arm; an OpenAI-Five-equivalent (20% games) would be rows ≈ 0.1
+  + PFSP — candidate third arm if the two don't separate.
+- PFSP telemetry live (league/pfsp_picked_winrate logging); SPS 1.9k at the
+  78%-league extreme (vs ~2.2-2.5k typical) — wall-clock cost mild as
+  designed; trainable-row share ≈ 61% (vs 95% at rows 0.10).
+- **USER DIRECTIVE (2026-07-14): take the BEST of the 0.4-row and 0.2-row
+  PFSP arms** (SPS impact acceptable). Verdict metrics: H2H ladder
+  monotonicity (primary), promotion-gate acceptances, draftref window,
+  steady-state SPS. Winner's config goes into the production spec §20 and
+  the final report gets a S9 verdict section like all other experiments.
