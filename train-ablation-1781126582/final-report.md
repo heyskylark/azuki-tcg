@@ -609,14 +609,20 @@ champion **40.1%** (matches the inline gate's 40.6% — the gate measured
 truth) and loses to its own 15M checkpoint **32.3%**; 15M vs ep100 = 47.4%.
 Policy-vs-policy strength peaks before ~15M then REGRESSES while draftref
 oscillates sideways: strategy cycling with forgetting. ROOT CAUSE is the
-matchup distribution: frozen_ratio 0.10 → ~90% self-mirror games, the 10%
-split over 13 opponents via one-per-window sampling ≈ 0.8% of games per old
-style — no pressure to remain robust to past strategies. (The windowed
+matchup distribution: frozen_ratio is ROW-level and doubles to game-level
+(×agents/(agents−1)), so 0.10 = ~18% league GAMES (measured 0.178-0.180) —
+faithfully OpenAI Five's 80/20 with UNIFORM past-selves — split over 13
+opponents via one-per-window sampling ≈ 1.4% of games per old style: no
+pressure to remain robust to past strategies. I.e., the OpenAI Five recipe
+itself, correctly replicated, fails under this game's strategy cycling. (The windowed
 sampler's sequential one-style-at-a-time adaptation likely aggravates it.)
 FIX PRIORITY for production (supersedes §22's ordering):
-1. frozen_ratio 0.10 → 0.4-0.5 (near-free: learner seats in frozen matchups
-   still train; only mirror redundancy shrinks).
-2. PFSP: loss-weighted frozen-opponent sampling replacing uniform windows.
+1./2. Ratio × selection ablation (S9, running): historical 0.10-rows
+   (18% games, uniform — broken baseline) vs s9pfsp 0.4-rows (~78% games,
+   PFSP, trainable rows 61%) vs s9pfsp02 0.2-rows (~36% games, PFSP) vs
+   s9pfsp01 0.1-rows (18% games, PFSP — "was prioritization alone the
+   missing piece?"). Judged by H2H ladder monotonicity, promotion
+   acceptances, steady SPS, draftref window.
 3. S4 reference-deck seats as the stationary anchor; the existing Wilson
    promotion gate should then function unchanged.
 CONSEQUENCE: all 45M window means in this report sit on top of cycling —
