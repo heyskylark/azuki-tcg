@@ -1074,3 +1074,11 @@ FREE at 45M. Verdict pends the KL + interaction-spread trajectories
   monotonicity (primary), promotion-gate acceptances, draftref window,
   steady-state SPS. Winner's config goes into the production spec §20 and
   the final report gets a S9 verdict section like all other experiments.
+### 8.12 S9 arm 1 (s9pfsp: 78% league games, PFSP-with-wipe-bug) H2H ladder
+mid(7.7M) beats early(1.5M) **62.0%** — FIRST monotone segment ever measured
+(portalgp's same comparison: 47.4%). But final(15M) still loses to mid
+(34.4%) and early (31.8%): improvement now happens, then late-run regression
+undoes it. Suspects for the remaining regression: (a) arm-1 PFSP stats wiped
+every pool refresh (fixed 54ec27f — arm 2 tests this), (b) old-bucket
+retention only 3/13 slots — pruned styles can't be prioritized, (c)
+post-anneal sparse phase. draftref 46.9% final.
