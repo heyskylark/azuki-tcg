@@ -529,3 +529,61 @@ into one 45M with the full trajectory suite. Only promote S1 to 45M if its
 - All aux arms MUST NOT ship in the production recipe (Part II §14 stands:
   portalgp, no aux) unless S7 changes the picture.
 - Keep arms single-lever at 15M; combinations only at S7.
+
+---
+
+# PART IV — S-queue verdicts and the final production specification (2026-07-11 → 07-12)
+
+## 19. S-queue results
+
+| exp | lever | verdict |
+|---|---|---|
+| S1 annealed aux | aux coefs ride the shaping anneal | **Short-horizon win**: 63.9% pooled draftref at 15M-total (campaign best; cycle peak + lr polish); safe at 45M but window mean 45.6 < portalgp 49.0. Adopted for ≤15M runs / polish phases. |
+| S2 outcome-graded portal bonus | pay only on ability resolution | **Negative**: portal usage collapsed to 0.0038 (whiffs = pure cost). "Pay for trying" is load-bearing; flat GP bonus stays. |
+| S3 cross-gate replay 0.15 | same-deck-both-gates labels + boundary pick-masking | **Pass**: first mover on the critic-interaction blocker (spread 3.98 vs 6.4); externally free. Adopted. |
+| s13combo (S1+S3) | seed + sustenance | Interaction learning compounds at 15M (spread 2.14); retention unchanged. |
+| S7 = s13combo @45M | the composition at length | External parity with portalgp (window 49.1/56.2); seed persists to ~9M (vs ~5-8M) then decays; spread metric revealed as cycle-noisy. Single-box scale cannot make conditioning durable — final. |
+| S8 gate-id drop | S7 recipe, text-only gates | **Pass**: external parity (46.9 vs 42.7 twin) AND the text projection separates exactly the compositionally-distinct sibling pairs (LIGHTNING 0.972, WATER 0.983 vs id-on 0.988/0.990) while FIRE/EARTH (interaction ≈ null) stay collapsed. Collapse-as-pressure-symptom confirmed. |
+
+S4 (reference-deck league seats) and S5 (hindsight pick credit) remain
+specced but unbuilt — the two highest-value follow-ups beyond this campaign
+(S4 additionally attacks the meta-cycle oscillation at its root).
+
+## 20. FINAL PRODUCTION SPECIFICATION
+
+Recipe (distributed run):
+- Base: shaping anneal (warmup 12 / ramp 40 per-env episodes, recalibrated
+  per env count) + pick-eps 0.02 + sibling-matchup oversampling 0.35 +
+  flat AZK_PORTAL_GP_BONUS 0.3 + league 6/4/3 windowed, native path.
+- + cross-gate replay 0.15 with boundary pick-masking (free; feeds the
+  critic the gate×composition contrast at scale).
+- Gate representation: TEXT-ONLY (gate-id channel off) — parity today,
+  generalizes to unseen gate cards.
+- Short-horizon phases (≤15M) or a final polish phase: enable annealed aux
+  (AZK_DRAFT_VBOOT_COEF 0.05, AZK_DRAFT_SIBDIFF_COEF 2.0, AZK_DRAFT_AUX_ANNEAL=1).
+- Protocol: periodic draftref evals; CHECKPOINT SELECTION over a late window
+  (every recipe's deployable peaks are 54-60%+); all trajectory metrics
+  (draftref, KL, critic ratio, interaction spread) evaluated as WINDOWS,
+  never single checkpoints (±10pp / large cycle noise).
+- Engine posture: invalid-action truncation + repro logging (root cause
+  outstanding, fuzz-clean over 32M random steps).
+
+## 21. Final thoughts
+
+The model demonstrably learns strategy at every level the game pays
+first-order: element/family drafting, synergy pairs, deck-conditional
+playstyle, and gate-aware portal play that extracts real (probe-verified)
+sibling ability gaps. Sibling-conditional DRAFTING — the last strategic
+axis — has now been shown to be: (a) genuinely valuable (up to 8pp
+composition interaction, LIGHTNING), (b) creatable (aux seeding produces
+the only actor-side conditioning ever measured), (c) sustainable on the
+critic side (cross-gate contrast data teaches deck-dependent gate values,
+and the text pathway differentiates where differentiation pays), but
+(d) not yet retainable in the actor at single-box scale — the seed decays
+as its source anneals away, and nothing measured at 45M holds it. The
+remaining hypotheses are distributed scale (capacity + data volume) and the
+two unbuilt levers (human-deck league seats anchoring the meta; hindsight
+pick credit grounding draft rewards in realized card usage). The
+infrastructure, probe suite, and windowed-evaluation protocol built here
+are what the production run needs to answer the question definitively —
+and to catch the answer live if it emerges.
