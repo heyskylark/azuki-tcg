@@ -257,6 +257,9 @@ typedef struct {
   uint32_t episode_action_gate_portal[MAX_PLAYERS_PER_MATCH];
   uint32_t episode_action_play_entity_to_alley[MAX_PLAYERS_PER_MATCH];
   uint32_t episode_action_play_entity_to_garden[MAX_PLAYERS_PER_MATCH];
+  // S12 early-tempo per-turn accounting (per player).
+  uint16_t tempo_last_turn[MAX_PLAYERS_PER_MATCH];
+  uint8_t tempo_turn_count[MAX_PLAYERS_PER_MATCH];
 
   // Deck-building draft state (native path). observations rows are
   // TrainingObservationDataDeckBuild when deck_building is set.
@@ -634,6 +637,13 @@ typedef struct RewardTuningConfig {
   // returned / damage dealt / buff-defender-charge landed). Whiffs pay 0.
   // When set (>0) it supersedes portal_gp_bonus.
   float portal_outcome_bonus;
+  // S12 early-tempo bonus: flat reward per qualifying DEVELOPMENT action
+  // (plays, portal, ability activations, affirmative confirms, attacks)
+  // during each player's first N turns, capped per turn (0 = unbounded).
+  // Rides the shaping anneal + zero-sum channel. Default off.
+  float early_tempo_bonus;
+  int early_tempo_cap;
+  int early_tempo_turns;
 } RewardTuningConfig;
 
 // Pre-action summary for grading a portal's realized effect (S2).
@@ -742,6 +752,33 @@ static void init_reward_tuning_if_needed(void) {
       parse_nonnegative_env_float("AZK_PORTAL_GP_BONUS", 0.0f);
   g_reward_tuning.portal_outcome_bonus =
       parse_nonnegative_env_float("AZK_PORTAL_OUTCOME_BONUS", 0.0f);
+  g_reward_tuning.early_tempo_bonus =
+      parse_nonnegative_env_float("AZK_EARLY_TEMPO_BONUS", 0.0f);
+  g_reward_tuning.early_tempo_cap =
+      (int)parse_nonnegative_env_float("AZK_EARLY_TEMPO_CAP", 4.0f);
+  g_reward_tuning.early_tempo_turns =
+      (int)parse_nonnegative_env_float("AZK_EARLY_TEMPO_TURNS", 2.0f);
+}
+
+// S12: development actions that count toward the early-tempo bonus. Declining
+// an optional ability is ACT_NOOP in the confirmation phase, so
+// ACT_CONFIRM_ABILITY is always an affirmative use. Target/cost/selection
+// sub-actions and mulligans never count.
+static bool early_tempo_qualifying_action(ActionType type) {
+  switch (type) {
+    case ACT_PLAY_ENTITY_TO_GARDEN:
+    case ACT_PLAY_ENTITY_TO_ALLEY:
+    case ACT_PLAY_SPELL_FROM_HAND:
+    case ACT_ATTACH_WEAPON_FROM_HAND:
+    case ACT_GATE_PORTAL:
+    case ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY:
+    case ACT_ACTIVATE_ALLEY_ABILITY:
+    case ACT_CONFIRM_ABILITY:
+    case ACT_ATTACK:
+      return true;
+    default:
+      return false;
+  }
 }
 
 static float parse_unit_env_float(const char *name, float default_value) {
@@ -892,6 +929,8 @@ static void reset_reward_tracking(CAzukiTCG* env) {
     env->episode_action_gate_portal[player_index] = 0;
     env->episode_action_play_entity_to_alley[player_index] = 0;
     env->episode_action_play_entity_to_garden[player_index] = 0;
+    env->tempo_last_turn[player_index] = 0;
+    env->tempo_turn_count[player_index] = 0;
   }
   AzkRewardSnapshot snapshot = {0};
   env->has_last_snapshot = false;
@@ -2194,6 +2233,26 @@ void c_step(CAzukiTCG* env) {
       (parsed_action.type == ACT_NOOP) &&
       (current_action_mask->legal_action_count > 1);
 
+  // S12 early-tempo bonus: flat credit per qualifying development action in
+  // the actor's first N turns (global turn_number <= 2N), capped per turn.
+  float early_tempo_bonus = 0.0f;
+  if (g_reward_tuning.early_tempo_bonus > 0.0f &&
+      early_tempo_qualifying_action(parsed_action.type)) {
+    const GameState* tempo_gs = azk_engine_game_state(env->engine);
+    if (tempo_gs != NULL &&
+        (int)tempo_gs->turn_number <= 2 * g_reward_tuning.early_tempo_turns) {
+      if (env->tempo_last_turn[active_player_index] != tempo_gs->turn_number) {
+        env->tempo_last_turn[active_player_index] = tempo_gs->turn_number;
+        env->tempo_turn_count[active_player_index] = 0;
+      }
+      const int cap = g_reward_tuning.early_tempo_cap;
+      if (cap <= 0 || env->tempo_turn_count[active_player_index] < cap) {
+        env->tempo_turn_count[active_player_index]++;
+        early_tempo_bonus = g_reward_tuning.early_tempo_bonus;
+      }
+    }
+  }
+
   // Portal-GP bonus: read the portaled entity from the pre-action alley obs
   // (sub1 = alley slot); the tick below moves it. Outcome-graded mode (S2)
   // additionally snapshots pre-action state and only pays if the gate
@@ -2492,7 +2551,7 @@ void c_step(CAzukiTCG* env) {
   }
 
   apply_shaped_rewards(env, active_player_index, parsed_action.type, noop_had_alternatives,
-                       portal_gp_bonus);
+                       portal_gp_bonus + early_tempo_bonus);
   accumulate_step_rewards(env);
   if (g_env_profile.enabled) {
     const uint64_t step_elapsed_ns = env_now_ns() - step_start_ns;
