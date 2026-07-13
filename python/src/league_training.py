@@ -107,6 +107,10 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     self._env_use_latest = np.ones(self._num_envs_total, dtype=np.bool_)
     self._window_policy_ids: np.ndarray | None = None
     self._window_index = -1
+    self._pfsp_enabled = os.environ.get("AZK_PFSP") == "1"
+    self._pfsp_power = float(os.environ.get("AZK_PFSP_POWER", "2.0") or 2.0)
+    self._pfsp_wins = np.zeros(len(self.opponent_policies), dtype=np.float64)
+    self._pfsp_games = np.zeros(len(self.opponent_policies), dtype=np.float64)
     self._refresh_frozen_window()
     self._resample_matchups(np.arange(self._num_envs_total, dtype=np.int32))
 
@@ -184,7 +188,21 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     self._window_index = window_index
     k = max(1, int(getattr(self.league_cfg, "max_distinct_frozen", 1) or 1))
     k = min(k, pool_size)
-    self._window_policy_ids = self._rng.choice(pool_size, size=k, replace=False).astype(np.int32)
+    if getattr(self, "_pfsp_enabled", False) and self._pfsp_games.size == pool_size:
+      # PFSP-hard: weight opponents by (1 - learner winrate)^p with an
+      # exploration floor; unplayed opponents sit at winrate 0.5.
+      games = self._pfsp_games
+      winrate = np.where(games >= 3, self._pfsp_wins / np.maximum(games, 1e-9), 0.5)
+      weights = (1.0 - winrate) ** self._pfsp_power + 0.05
+      weights = weights / weights.sum()
+      self._window_policy_ids = self._rng.choice(
+        pool_size, size=k, replace=False, p=weights
+      ).astype(np.int32)
+      picked = int(self._window_policy_ids[0])
+      self.stats["league/pfsp_picked_winrate"].append(float(winrate[picked]))
+      self.stats["league/pfsp_pool_min_winrate"].append(float(winrate.min()))
+    else:
+      self._window_policy_ids = self._rng.choice(pool_size, size=k, replace=False).astype(np.int32)
 
   def _resample_matchups(self, env_indices: np.ndarray) -> None:
     if env_indices.size == 0:
@@ -247,6 +265,13 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     # Pool indices shift on refresh; force a window redraw against the new pool.
     self._window_index = -1
     self._window_policy_ids = None
+    # S9 PFSP: per-opponent learner results (decayed counts). Pool indices
+    # shift on refresh, so stats reset with the pool; they re-accumulate
+    # within a few windows.
+    self._pfsp_enabled = os.environ.get("AZK_PFSP") == "1"
+    self._pfsp_power = float(os.environ.get("AZK_PFSP_POWER", "2.0") or 2.0)
+    self._pfsp_wins = np.zeros(len(self.opponent_policies), dtype=np.float64)
+    self._pfsp_games = np.zeros(len(self.opponent_policies), dtype=np.float64)
     self._refresh_frozen_window()
     self._resample_matchups(np.arange(self._num_envs_total, dtype=np.int32))
 
@@ -657,6 +682,28 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       done_rows = env_id_np[done_mask]
       self._zero_done_states(done_rows)
       finished_envs = self._assign_terminal_win_prob_targets(info, env_id_np, done_mask)
+      if self._pfsp_enabled and finished_envs.size > 0:
+        # Record learner result vs the frozen opponent (terminal reward sign
+        # on the learner seat; truncations carry 0 and are skipped).
+        r_np = np.asarray(r)
+        for env_idx in finished_envs:
+          if self._env_use_latest[env_idx]:
+            continue
+          seat = int(self._env_learner_seat[env_idx])
+          row = int(env_idx) * self._agents_per_env + seat
+          pos = np.nonzero(env_id_np == row)[0]
+          if pos.size == 0 or not bool(done_mask[pos[0]]):
+            continue
+          reward = float(r_np[pos[0]])
+          if reward == 0.0:
+            continue
+          opp = int(self._env_opp_policy[env_idx])
+          if 0 <= opp < self._pfsp_games.size:
+            # Light decay keeps the estimate current across meta drift.
+            self._pfsp_wins[opp] *= 0.995
+            self._pfsp_games[opp] *= 0.995
+            self._pfsp_wins[opp] += 1.0 if reward > 0 else 0.0
+            self._pfsp_games[opp] += 1.0
       self._resample_matchups(finished_envs)
 
       actions_np = actions_t.cpu().numpy()
