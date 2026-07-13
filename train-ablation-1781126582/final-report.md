@@ -602,3 +602,23 @@ promotion by external draftref instead of champion head-to-heads; real
 rating accumulation if internal gating is kept. Matches the user's historical
 observation of promotion stalls in old 100M runs — config-independent,
 structural.
+
+## 23. H2H ladder: the league gate was RIGHT — self-play strength regresses (2026-07-13)
+Offline seat-fair 192-ep matchups (portalgp45): final45M loses to the ep100
+champion **40.1%** (matches the inline gate's 40.6% — the gate measured
+truth) and loses to its own 15M checkpoint **32.3%**; 15M vs ep100 = 47.4%.
+Policy-vs-policy strength peaks before ~15M then REGRESSES while draftref
+oscillates sideways: strategy cycling with forgetting. ROOT CAUSE is the
+matchup distribution: frozen_ratio 0.10 → ~90% self-mirror games, the 10%
+split over 13 opponents via one-per-window sampling ≈ 0.8% of games per old
+style — no pressure to remain robust to past strategies. (The windowed
+sampler's sequential one-style-at-a-time adaptation likely aggravates it.)
+FIX PRIORITY for production (supersedes §22's ordering):
+1. frozen_ratio 0.10 → 0.4-0.5 (near-free: learner seats in frozen matchups
+   still train; only mirror redundancy shrinks).
+2. PFSP: loss-weighted frozen-opponent sampling replacing uniform windows.
+3. S4 reference-deck seats as the stationary anchor; the existing Wilson
+   promotion gate should then function unchanged.
+CONSEQUENCE: all 45M window means in this report sit on top of cycling —
+recipe ceilings are likely UNDERESTIMATED; fixing the matchup mix is the
+highest-leverage single change identified by the campaign.
