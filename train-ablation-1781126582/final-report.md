@@ -628,3 +628,17 @@ FIX PRIORITY for production (supersedes §22's ordering):
 CONSEQUENCE: all 45M window means in this report sit on top of cycling —
 recipe ceilings are likely UNDERESTIMATED; fixing the matchup mix is the
 highest-leverage single change identified by the campaign.
+
+## 24. S9 verdict: league volume creates improvement; the anneal knee destroys it (2026-07-13)
+Ratio × selection matrix (15M arms, within-run H2H ladders, 192 eps/matchup):
+18%-uniform mid>early 47.4 / 18%-PFSP 40.6 / 36%-PFSP 38.0 / **78%-PFSP 62.0**
+— only ~78% league games produced absolute improvement (first monotone
+segment of the project). PFSP without volume does not help. EVERY arm
+regresses after ~8M — the window tracks the shaping-anneal knee, not the
+matchup mix; the anneal-floor experiment (shaping floor 0.15) is the next
+isolation. Deployment caveat discovered: external (draftref 61.5%) and
+internal (final loses 80% to early) strength can diverge in the same
+checkpoint — production selection needs BOTH yardsticks. ADOPTED into spec
+§20: league.frozen_ratio 0.4 (≈78% league games) + AZK_PFSP=1 with
+persistence (54ec27f); SPS cost mild (windowed two-batch design), trainable
+rows 61%.
