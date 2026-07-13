@@ -587,3 +587,18 @@ pick credit grounding draft rewards in realized card usage). The
 infrastructure, probe suite, and windowed-evaluation protocol built here
 are what the production run needs to answer the question definitively —
 and to catch the answer live if it emerges.
+
+## 22. League-health autopsy (2026-07-13, post-campaign question)
+All five 45M-class runs: **zero champion promotions** (champion = ep100
+p000001 throughout; 8-9 candidates/run all Wilson-rejected on
+winrate_vs_champion_too_low), ELO inert (0-10 rated games/policy). The league
+functioned as a recency-bucket DIVERSITY POOL (30 added → 13 active, 10%
+frozen matchups) — which worked and preserved deck diversity — but not as a
+strength ladder. Diagnosis: intransitive cycling meta (the same disease as
+the ±10pp draftref oscillation) + conservative Wilson gate on tiny inline
+samples + a stale ep100 yardstick. Production fixes, in order: S4
+reference-deck league seats (external meta anchor — now doubly justified);
+promotion by external draftref instead of champion head-to-heads; real
+rating accumulation if internal gating is kept. Matches the user's historical
+observation of promotion stalls in old 100M runs — config-independent,
+structural.
