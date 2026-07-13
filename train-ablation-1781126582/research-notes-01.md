@@ -1048,3 +1048,15 @@ FREE at 45M. Verdict pends the KL + interaction-spread trajectories
   gives the critic contrast at scale) + annealed aux for short-horizon
   polish phases. S8 (gate-id drop, text-only generalization) is the last
   gate before the production spec is final.
+### 8.10 S8 s8textonly FINAL VERDICT (2026-07-12 18:00) — text-only representation is production-viable
+- draftref 46.9% (id-on twin 42.7%) — external PARITY without the id channel.
+- **Embedding geometry: the text pathway differentiated exactly the pairs
+  whose text differences carry compositional meaning** — LIGHTNING cos 0.972,
+  WATER 0.983 (vs 0.988/0.990 id-on) — while FIRE 0.9993 / EARTH 0.9997 stay
+  collapsed (their siblings differ in portal magnitude, not deck-fit; the
+  interaction probes measured FIRE interaction = exact null). The collapse-
+  as-pressure-symptom theory CONFIRMED: given contrast data (S3) the
+  projection separates where separation pays.
+- KL 0 / critic 0.15 / spread 5.38 — no conditioning change (as expected).
+- PRODUCTION SPEC: gate-id embedding OPTIONAL. Text-only is viable and
+  preferred for new-card generalization.
