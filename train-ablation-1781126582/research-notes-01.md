@@ -1082,3 +1082,11 @@ undoes it. Suspects for the remaining regression: (a) arm-1 PFSP stats wiped
 every pool refresh (fixed 54ec27f — arm 2 tests this), (b) old-bucket
 retention only 3/13 slots — pruned styles can't be prioritized, (c)
 post-anneal sparse phase. draftref 46.9% final.
+### 8.13 S9 arm 2 (s9pfsp02: 36% league, persistent PFSP) — volume matters, not persistence
+mid<early 38.0%, final<early 35.4%, final-vs-mid 44.3% — NO monotone segment.
+Cross-arm reading: 18%-uniform mid≈early 47.4 | 36%-PFSP-persistent 38.0 |
+78%-PFSP-wiped **62.0** → league VOLUME drove arm 1's first-half
+monotonicity; the persistence fix didn't rescue low volume. ALL arms regress
+after ~8M — the anneal knee (shaping→0.05, ent_coef anneal) is now the prime
+suspect for late regression, not matchup mix. Next lever if arm 3 confirms:
+anneal-floor experiment (shaping floor 0.15 / ent floor) on the 78% base.
