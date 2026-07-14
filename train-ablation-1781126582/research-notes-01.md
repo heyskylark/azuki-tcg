@@ -1099,3 +1099,9 @@ around a flat-to-rising trend. Final-ckpt: draftref 39.1% (cycle point),
 KL 0, critic 0.14, ix spread 2.59 (contrast data working at length).
 Production recipe VALIDATED for long runs; checkpoint selection still
 mandatory (mid-trough exists).
+### 8.15 S12 arm 1 (s12tempo4, cap 4) — positive (2026-07-14 02:45)
+draftref **54.2%**; KL retained 4/4 elements (L/W/F 1e-6, EARTH 5e-6);
+ladder mid>early 58.9 / final≈early 50.0 (base-recipe shape, not degraded);
+**avg drafted cost 3.44 → 2.59** — the intended early-action drafting shift,
+clearly short of the June cheap-aggro collapse (2.27-2.36), external quality
+UP not down. Cap-4 holds the Goodhart boundary. Uncapped arm running.
