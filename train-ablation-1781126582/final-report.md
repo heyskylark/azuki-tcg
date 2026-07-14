@@ -643,6 +643,15 @@ checkpoint — production selection needs BOTH yardsticks. ADOPTED into spec
 persistence (54ec27f); SPS cost mild (windowed two-batch design), trainable
 rows 61%.
 
+## 24.5 S12 early-tempo bonus (user-designed): cap-4 adopted (2026-07-14)
+Flat 0.1/action for development actions in each player's first two turns.
+Cap 4/turn: draftref 54.2% (+7pp), cost 3.44→2.59 (intended shift, no
+collapse), KL retained 4/4, ladder healthy → ADOPTED (spec §20). Uncapped:
+draftref 29.2%, cost 2.41 = the cheap-aggro collapse — the Goodhart boundary
+located empirically between cap-4 and unbounded. FIRE-sibling prediction not
+confirmed (decks identical across the pair; the reward-mechanical asymmetry
+is too marginal vs the common component).
+
 ## 25. S10: the anneal floor completes the recipe — first net-improving run (2026-07-13)
 s10annfloor (= S9 winner + shaping floor 0.15): mid>early **71.9%**,
 **final>early 56.8% — the first end-to-end net improvement of the project**

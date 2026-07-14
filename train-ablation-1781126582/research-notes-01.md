@@ -1105,3 +1105,19 @@ ladder mid>early 58.9 / final≈early 50.0 (base-recipe shape, not degraded);
 **avg drafted cost 3.44 → 2.59** — the intended early-action drafting shift,
 clearly short of the June cheap-aggro collapse (2.27-2.36), external quality
 UP not down. Cap-4 holds the Goodhart boundary. Uncapped arm running.
+### 8.16 S12 FINAL VERDICT (2026-07-14 05:45): cap-4 adopted; uncapped = collapse
+| arm | draftref | avg cost | ladder | KL 4/4 |
+|---|---|---|---|---|
+| control (s10annfloor) | 46.9% | 3.44 | net-improving | yes |
+| cap 4 | **54.2%** | 2.59 | healthy | yes |
+| uncapped | **29.2%** | **2.41 (collapse band)** | none monotone | floorish |
+The user's boundary question answered: unbounded early-action reward hacks
+into cheap-spam collapse; per-turn cap 4 converts the same signal into the
+designed early-consistency drafting pressure WITH external gains.
+**AZK_EARLY_TEMPO_BONUS=0.1 CAP=4 → adopted into production spec §20.**
+Rushfire/FIRE-pair prediction NOT confirmed: despite the reward-mechanical
+sibling asymmetry (charge unlocks an extra windowed attack), FIRE decks are
+statistically identical across the pair (cost 2.58 vs 2.57, attack 0.232 vs
+0.226) — the differential is marginal vs the common early-play component and
+needs the portal→charge→attack combo already executed during the dense phase.
+Sibling-draft conditioning remains unmoved by every dense-signal design.
