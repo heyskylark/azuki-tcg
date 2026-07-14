@@ -1090,3 +1090,12 @@ monotonicity; the persistence fix didn't rescue low volume. ALL arms regress
 after ~8M — the anneal knee (shaping→0.05, ent_coef anneal) is now the prime
 suspect for late regression, not matchup mix. Next lever if arm 3 confirms:
 anneal-floor experiment (shaping floor 0.15 / ent floor) on the 78% base.
+### 8.14 s11final45 (FULL production recipe, 45M) verdict (2026-07-14 00:40)
+H2H ladder (early=7.7M / mid=23M / final=45M): **final>mid 61.5%**, final≈early
+50.5%, mid<early 41.7% (mid-run trough). ENDPOINT NO LONGER DECAYS at 45M —
+every pre-fix 45M final lost to both its ancestors (32-40%); the S10 recipe
+(78% PFSP + floor 0.15) holds strength at 3× horizon. Oscillation persists
+around a flat-to-rising trend. Final-ckpt: draftref 39.1% (cycle point),
+KL 0, critic 0.14, ix spread 2.59 (contrast data working at length).
+Production recipe VALIDATED for long runs; checkpoint selection still
+mandatory (mid-trough exists).
