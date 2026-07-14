@@ -1136,3 +1136,27 @@ Sibling-draft conditioning remains unmoved by every dense-signal design.
   with every dense-signal design; conditioning remains a scale/architecture
   question, not a reward-design one).
 - ADOPTED into production spec §20: AZK_DMG_MITIGATION_BONUS=0.15 CAP=10.
+
+### 8.18 S14 launched (2026-07-14 10:11): S12+S13 combined at 45M + per-gate strategy profiling
+User-requested combined validation: both adopted user-designed rewards
+(S12 tempo cap4 0.1/4, S13 dmg-mitigation 0.15/10) on the FULL production
+spec at 45M (tag `s14prod45`, seed 42, run_s14.sh). Control = s11final45
+(same spec/seed minus the two bonuses). Note the 15M smokes for S12/S13 ran
+with gate_id=true; S14 runs production text-only gates — this run also
+confirms the bonuses compose with S8.
+Readout adds the user-requested per-gate strategy summary:
+1. draftref 384 final (per_gate winrates come free from
+   draft_vs_reference_eval.py) + windowed draftref ep1000..2900;
+2. gate-KL + critic probes final, KL trajectory every ckpt, critic every 200;
+3. H2H ladder 2930/1500/500 (192 eps, legacy cfg);
+4. analyze_decks 6-bucket reports on S14 AND s11final45 snapshots (deck-comp
+   deltas attributable to S12+S13);
+5. NEW `profile_gate_matchups.py`: eval-grade 8-gate round-robin (36 pairs
+   x16 eps, seat-fair, sampled, forced gates via _sample_gate_def_id hook,
+   deck comp via AZK_DECKBUILD_SNAPSHOT_DIR every=1, battle-phase action
+   histograms attributed to the active seat -> declare_defender/confirm
+   rates the info keys don't expose). Smoke on s13dmg ckpt: works; already
+   shows Stonehaven declare-rate 0.048 vs Devotion 0.012.
+6. League telemetry summary (league_state.json promotions + PFSP runlog).
+SPS 3330 at launch; ETA train ~3.8h, headline readout ~2h after
+(S14_HEADLINE_DONE marker), trajectories overnight (ALL_DONE marker).
