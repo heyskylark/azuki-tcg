@@ -260,6 +260,9 @@ typedef struct {
   // S12 early-tempo per-turn accounting (per player).
   uint16_t tempo_last_turn[MAX_PLAYERS_PER_MATCH];
   uint8_t tempo_turn_count[MAX_PLAYERS_PER_MATCH];
+  // S13-DMG: player declared a defender in the open response window; the
+  // next combat resolution is an interception credited to them.
+  bool pending_interception[MAX_PLAYERS_PER_MATCH];
 
   // Deck-building draft state (native path). observations rows are
   // TrainingObservationDataDeckBuild when deck_building is set.
@@ -644,6 +647,12 @@ typedef struct RewardTuningConfig {
   float early_tempo_bonus;
   int early_tempo_cap;
   int early_tempo_turns;
+  // S13-DMG damage-mitigation bonus: on an intercepted combat, the
+  // intercepting player earns w * min(soak, cap)/cap where soak is the
+  // realized damage_to_defender (ATK debuffs flow through automatically).
+  // Opponent-gated (cannot be farmed unilaterally); rides anneal, zero-sum.
+  float dmg_mitigation_bonus;
+  int dmg_mitigation_cap;
 } RewardTuningConfig;
 
 // Pre-action summary for grading a portal's realized effect (S2).
@@ -758,6 +767,10 @@ static void init_reward_tuning_if_needed(void) {
       (int)parse_nonnegative_env_float("AZK_EARLY_TEMPO_CAP", 4.0f);
   g_reward_tuning.early_tempo_turns =
       (int)parse_nonnegative_env_float("AZK_EARLY_TEMPO_TURNS", 2.0f);
+  g_reward_tuning.dmg_mitigation_bonus =
+      parse_nonnegative_env_float("AZK_DMG_MITIGATION_BONUS", 0.0f);
+  g_reward_tuning.dmg_mitigation_cap =
+      (int)parse_nonnegative_env_float("AZK_DMG_MITIGATION_CAP", 10.0f);
 }
 
 // S12: development actions that count toward the early-tempo bonus. Declining
@@ -931,6 +944,7 @@ static void reset_reward_tracking(CAzukiTCG* env) {
     env->episode_action_play_entity_to_garden[player_index] = 0;
     env->tempo_last_turn[player_index] = 0;
     env->tempo_turn_count[player_index] = 0;
+    env->pending_interception[player_index] = false;
   }
   AzkRewardSnapshot snapshot = {0};
   env->has_last_snapshot = false;
@@ -2229,6 +2243,9 @@ void c_step(CAzukiTCG* env) {
     abort();
   }
   record_action_choice(env, active_player_index, parsed_action.type);
+  if (parsed_action.type == ACT_DECLARE_DEFENDER) {
+    env->pending_interception[active_player_index] = true;
+  }
   const bool noop_had_alternatives =
       (parsed_action.type == ACT_NOOP) &&
       (current_action_mask->legal_action_count > 1);
@@ -2250,6 +2267,19 @@ void c_step(CAzukiTCG* env) {
         env->tempo_turn_count[active_player_index]++;
         early_tempo_bonus = g_reward_tuning.early_tempo_bonus;
       }
+    }
+  }
+
+  // S13-DMG: snapshot pre-action combat result; a post-tick change with
+  // defender_intercepted set means an intercepted combat resolved during
+  // this (the responder's) step.
+  LastCombatResult pre_combat = {0};
+  bool have_pre_combat = false;
+  if (g_reward_tuning.dmg_mitigation_bonus > 0.0f) {
+    const GameState* pre_gs = azk_engine_game_state(env->engine);
+    if (pre_gs != NULL) {
+      pre_combat = pre_gs->last_combat;
+      have_pre_combat = true;
     }
   }
 
@@ -2530,6 +2560,31 @@ void c_step(CAzukiTCG* env) {
     }
   }
 
+  // S13-DMG: an intercepted combat resolved during this step — credit the
+  // responder (the acting player) with the realized soak.
+  float dmg_mitigation_bonus = 0.0f;
+  if (have_pre_combat) {
+    const GameState* post_gs = azk_engine_game_state(env->engine);
+    if (post_gs != NULL &&
+        memcmp(&post_gs->last_combat, &pre_combat, sizeof(LastCombatResult)) != 0) {
+      if (env->pending_interception[active_player_index]) {
+        int soak = (int)post_gs->last_combat.damage_to_defender;
+        if (soak > 0) {
+          const int cap = g_reward_tuning.dmg_mitigation_cap > 0
+                              ? g_reward_tuning.dmg_mitigation_cap
+                              : 10;
+          if (soak > cap) {
+            soak = cap;
+          }
+          dmg_mitigation_bonus =
+              g_reward_tuning.dmg_mitigation_bonus * (float)soak / (float)cap;
+        }
+      }
+      env->pending_interception[0] = false;
+      env->pending_interception[1] = false;
+    }
+  }
+
   const int max_ticks = current_episode_ticks_limit(env);
   env->current_episode_cap = max_ticks;
   if (max_ticks > 0 && env->tick >= max_ticks) {
@@ -2551,7 +2606,7 @@ void c_step(CAzukiTCG* env) {
   }
 
   apply_shaped_rewards(env, active_player_index, parsed_action.type, noop_had_alternatives,
-                       portal_gp_bonus + early_tempo_bonus);
+                       portal_gp_bonus + early_tempo_bonus + dmg_mitigation_bonus);
   accumulate_step_rewards(env);
   if (g_env_profile.enabled) {
     const uint64_t step_elapsed_ns = env_now_ns() - step_start_ns;
