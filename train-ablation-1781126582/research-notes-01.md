@@ -1121,3 +1121,18 @@ statistically identical across the pair (cost 2.58 vs 2.57, attack 0.232 vs
 0.226) — the differential is marginal vs the common early-play component and
 needs the portal→charge→attack combo already executed during the dense phase.
 Sibling-draft conditioning remains unmoved by every dense-signal design.
+### 8.17 S13-DMG VERDICT (2026-07-14 09:00): ADOPT — endpoint-stabilizing, archetype-broadening
+- draftref 46.9% (parity — externally neutral); KL retained 4/4; critic 0.79.
+- **Best ladder shape of any 15M arm: the FINAL checkpoint is the outright
+  strongest** (final>mid 57.8%, final>early 56.2%) — the defensive signal
+  appears to stabilize late-run strength (defense generalizes across metas
+  where exploit-y offense cycles).
+- ZERO turtling: ep_len 88.3 (ctrl 90.4), timeouts 0.0000, attack rate 0.247
+  (ctrl 0.251) — the opponent-gated design held.
+- **Foamback Crab drafting +40%** (0.161→0.225 copies/deck; the user's 1-2
+  utility-copies pattern, not spam). Wall-share metrics N/A via catalog
+  (records lack ATK; measured by card code directly).
+- EARTH-pair KL 2e-6 (band) — sibling drafting again unmoved (consistent
+  with every dense-signal design; conditioning remains a scale/architecture
+  question, not a reward-design one).
+- ADOPTED into production spec §20: AZK_DMG_MITIGATION_BONUS=0.15 CAP=10.

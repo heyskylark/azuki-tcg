@@ -652,6 +652,15 @@ located empirically between cap-4 and unbounded. FIRE-sibling prediction not
 confirmed (decks identical across the pair; the reward-mechanical asymmetry
 is too marginal vs the common component).
 
+## 24.6 S13-DMG damage-mitigation bonus (user-designed): ADOPTED (2026-07-14)
+0.15 × min(soak,10)/10 to the intercepting player at combat resolution,
+target-agnostic, opponent-gated. Externally neutral (46.9%), uniquely
+endpoint-stable (the ONLY 15M arm whose final checkpoint is its strongest:
+>mid 57.8, >early 56.2), zero turtling (ep_len/timeouts/attack unchanged),
+Foamback-class defensive drafting +40%. With S12-cap4, the reward system now
+prices development tempo AND damage mitigation — the offense-only bias
+identified in June is fully closed out.
+
 ## 25. S10: the anneal floor completes the recipe — first net-improving run (2026-07-13)
 s10annfloor (= S9 winner + shaping floor 0.15): mid>early **71.9%**,
 **final>early 56.8% — the first end-to-end net improvement of the project**
