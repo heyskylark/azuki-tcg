@@ -1,0 +1,206 @@
+{
+  "LIGHTNING": {
+    "gate_a": "STT01-002",
+    "gate_b": "AZK01-120",
+    "mean_kl": 1.9951523311028032e-07,
+    "p90_kl": 3.4553174828033666e-07,
+    "mean_tv": 0.0002452934725214636,
+    "control_mean_kl": 0.0,
+    "pick_steps": 408,
+    "top_prob_shifts": [
+      {
+        "card": "STT01-001",
+        "name": "?",
+        "mean_dprob_a_minus_b": 5e-05
+      },
+      {
+        "card": "AZK01-119",
+        "name": "?",
+        "mean_dprob_a_minus_b": -5e-05
+      },
+      {
+        "card": "STT01-017",
+        "name": "?",
+        "mean_dprob_a_minus_b": -2e-05
+      },
+      {
+        "card": "STT01-005",
+        "name": "?",
+        "mean_dprob_a_minus_b": -1e-05
+      },
+      {
+        "card": "STT01-003",
+        "name": "?",
+        "mean_dprob_a_minus_b": -1e-05
+      },
+      {
+        "card": "AZK01-073",
+        "name": "?",
+        "mean_dprob_a_minus_b": 1e-05
+      },
+      {
+        "card": "STT01-016",
+        "name": "?",
+        "mean_dprob_a_minus_b": -1e-05
+      },
+      {
+        "card": "AZK01-010",
+        "name": "?",
+        "mean_dprob_a_minus_b": 1e-05
+      }
+    ]
+  },
+  "WATER": {
+    "gate_a": "STT02-002",
+    "gate_b": "AZK01-126",
+    "mean_kl": 9.201758170244526e-07,
+    "p90_kl": 1.5615330994478427e-06,
+    "mean_tv": 0.0005265073534032769,
+    "control_mean_kl": 0.0,
+    "pick_steps": 408,
+    "top_prob_shifts": [
+      {
+        "card": "AZK01-087",
+        "name": "?",
+        "mean_dprob_a_minus_b": -5e-05
+      },
+      {
+        "card": "STT02-017",
+        "name": "?",
+        "mean_dprob_a_minus_b": -5e-05
+      },
+      {
+        "card": "AZK01-088",
+        "name": "?",
+        "mean_dprob_a_minus_b": -5e-05
+      },
+      {
+        "card": "STT02-015",
+        "name": "?",
+        "mean_dprob_a_minus_b": -4e-05
+      },
+      {
+        "card": "AZK01-032",
+        "name": "?",
+        "mean_dprob_a_minus_b": -4e-05
+      },
+      {
+        "card": "STT02-014",
+        "name": "?",
+        "mean_dprob_a_minus_b": -3e-05
+      },
+      {
+        "card": "STT02-001",
+        "name": "?",
+        "mean_dprob_a_minus_b": 3e-05
+      },
+      {
+        "card": "AZK01-125",
+        "name": "?",
+        "mean_dprob_a_minus_b": -3e-05
+      }
+    ]
+  },
+  "FIRE": {
+    "gate_a": "AZK01-122",
+    "gate_b": "STT04-002",
+    "mean_kl": 3.955633679188573e-06,
+    "p90_kl": 5.4746400564908985e-06,
+    "mean_tv": 0.001096601369414095,
+    "control_mean_kl": 0.0,
+    "pick_steps": 408,
+    "top_prob_shifts": [
+      {
+        "card": "AZK01-084",
+        "name": "?",
+        "mean_dprob_a_minus_b": 6e-05
+      },
+      {
+        "card": "AZK01-085",
+        "name": "?",
+        "mean_dprob_a_minus_b": 5e-05
+      },
+      {
+        "card": "AZK01-016",
+        "name": "?",
+        "mean_dprob_a_minus_b": 4e-05
+      },
+      {
+        "card": "STT01-007",
+        "name": "?",
+        "mean_dprob_a_minus_b": -4e-05
+      },
+      {
+        "card": "AZK01-009",
+        "name": "?",
+        "mean_dprob_a_minus_b": 4e-05
+      },
+      {
+        "card": "AZK01-066",
+        "name": "?",
+        "mean_dprob_a_minus_b": -4e-05
+      },
+      {
+        "card": "STT01-004",
+        "name": "?",
+        "mean_dprob_a_minus_b": -3e-05
+      },
+      {
+        "card": "STT04-016",
+        "name": "?",
+        "mean_dprob_a_minus_b": 3e-05
+      }
+    ]
+  },
+  "EARTH": {
+    "gate_a": "AZK01-124",
+    "gate_b": "STT03-002",
+    "mean_kl": 1.2428992044542433e-06,
+    "p90_kl": 2.138320996891707e-06,
+    "mean_tv": 0.0005519827309220928,
+    "control_mean_kl": 0.0,
+    "pick_steps": 408,
+    "top_prob_shifts": [
+      {
+        "card": "AZK01-101",
+        "name": "?",
+        "mean_dprob_a_minus_b": 5e-05
+      },
+      {
+        "card": "AZK01-108",
+        "name": "?",
+        "mean_dprob_a_minus_b": 5e-05
+      },
+      {
+        "card": "STT03-015",
+        "name": "?",
+        "mean_dprob_a_minus_b": 4e-05
+      },
+      {
+        "card": "STT03-016",
+        "name": "?",
+        "mean_dprob_a_minus_b": 4e-05
+      },
+      {
+        "card": "AZK01-086",
+        "name": "?",
+        "mean_dprob_a_minus_b": 3e-05
+      },
+      {
+        "card": "AZK01-102",
+        "name": "?",
+        "mean_dprob_a_minus_b": 3e-05
+      },
+      {
+        "card": "AZK01-055",
+        "name": "?",
+        "mean_dprob_a_minus_b": 3e-05
+      },
+      {
+        "card": "AZK01-080",
+        "name": "?",
+        "mean_dprob_a_minus_b": -2e-05
+      }
+    ]
+  }
+}

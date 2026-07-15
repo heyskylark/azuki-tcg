@@ -672,3 +672,88 @@ SPEC §20 UPDATED: AZK_REWARD_SHAPING_ANNEAL_FINAL=0.15. Terminal validation
 launched: s11final45 — the complete production recipe (portalgp + S3 replay
 0.15 + text-only gates + 78% PFSP league + floor 0.15) at 45M with the full
 trajectory + ladder suite.
+
+## 26. S14: the combined recipe at 45M — validation, a campaign-best peak, and the promotion-gate diagnosis (2026-07-15)
+
+S14 (`s14prod45`) ran the FULL production specification of §20 — including both
+user-designed rewards (S12 early-tempo cap-4, S13 damage-mitigation) — for 45M
+steps against control s11final45 (same spec/seed minus the two bonuses).
+
+**Verdict: ADOPTED.** The combined recipe is confirmed at 45M, composing with
+text-only gates, and produced the strongest external checkpoint of the entire
+campaign.
+
+### 26.1 Strength results
+- Final checkpoint draftref **49.7%** (n=384, timeouts 0) vs control 46.9%.
+- Windowed draftref (ep500→2930): 39.6 / 51.0 / 35.4 / 78.1 / 52.1 / 52.1 /
+  49.7. Meta-cycle oscillation persists at ±20pp — windowed evaluation is not
+  optional.
+- **ep2000 = 76.5% pooled (n=384): the best external result at any horizon in
+  the campaign** (prior best: 63.9–70.8% at 15M with S1-aux; prior 45M best:
+  46.9%). Confirmed at n=288 after the n=96 window flagged it, and it beats
+  the final checkpoint head-to-head (55.7%) — internal and external yardsticks
+  agree on the peak.
+- Ladder shows early(ep500) > mid ≈ final internally, but ep500's draftref is
+  only 39.6%: this is internal/external divergence (in-meta specialization),
+  not forgetting. **Checkpoint-selection protocol finalized: windowed draftref
+  primary, H2H agreement secondary.** It picks ep2000 unambiguously.
+- Probes: sibling gate-KL retained on LIGHTNING (4.6e-6) and WATER (3.8e-6) —
+  precisely the pairs whose text embeddings separate (S8); FIRE/EARTH at noise.
+  Critic sign-consistency 12/12 (L).
+
+### 26.2 What S12+S13 change at 45M (final-bucket meta vs control)
+avg cost 2.57 vs 3.01; portal rate 0.094 vs 0.074 (+27%); attack rate 0.203
+vs 0.270; episode length 112 vs 87 with ZERO eval timeouts — the tempo shift
+and the defensive action budget both persist at 3× the validation horizon
+without turtling. In-meta consequences: Water and Devotion win rates rose
+(EchoedWaves .542 vs .438, Devotion .509 vs .366), Fire fell (Ragefire .366
+vs .497) — the defensive unlock re-prices aggro.
+
+### 26.3 Per-gate strategy atlas (new deliverable)
+`profile_gate_matchups.py` (8-gate round-robin, 36 pairings × 16 eps,
+seat-fair, sampled, forced gates, zero timeouts) + per-gate draftref splits:
+
+- **Field ranking (internal, win-vs-field):** Surge .661, Stormchain .634,
+  EchoedWaves .598, Hydromancy .536, Devotion .500, Stonehaven .411,
+  Rushfire .384, Ragefire .277. External draftref ordering agrees at the
+  extremes (Surge 79.7%, Ragefire 20.5%).
+- **Element archetypes are behaviorally legible in the action traces:**
+  LIGHTNING = tempo-attack (highest attack rates ~.245, weapon-heaviest decks
+  16%, short-mid games); WATER = spell-control (41% spells, EchoedWaves uses
+  SELECT_FROM_SELECTION at .061 — the draw/filter identity, longest-but-one
+  games); FIRE = burn-aggro (shortest games, highest SELECT_EFFECT_TARGET
+  .154–.176, declare-defender ≈.002 — never blocks); EARTH = attrition
+  (longest games 150–163 steps, highest ability rates, **Stonehaven
+  declare-defender .031 = 5–11× every other gate** — the S13 archetype
+  unlock made visible).
+- **Siblings draft nearly identical decks** (within-gate Jaccard .70–.72,
+  same top cards) **but play differently** — within-pair splits in portal,
+  declare, and selection rates. Draft-time sibling indifference (the known
+  limit) coexists with real play-time conditioning.
+- **Gate power is meta-relative:** Rushfire, dominant on the June
+  neutral-deck ladder (57.7%), is weak (38.4%) against policy-drafted
+  low-curve decks. Balance memo: Ragefire is worst on every axis in both
+  eras (its net-negative portal stands); the LIGHTNING pair is overtuned in
+  the current meta.
+
+### 26.4 League: the promotion gate measures the wrong axis
+League mechanics ran exactly as configured (frozen-matchup fraction 0.795,
+PFSP live, pool 6/4/3). But `promotion_accepted = 0` for the entire run while
+candidate-vs-champion winrate DECLINED 0.59 → 0.34 — during the same span in
+which external strength rose to the campaign-best 76.5%. The Wilson gate
+anchors promotion to head-to-head vs an ep100 champion, and in this game that
+internal axis anticorrelates with external strength (§26.1's divergence, now
+measured inside the league itself). This is the core issue behind "the model
+never promotes in long runs" — the gate is honest but aimed at the wrong
+target. Fix: give promotion an external anchor. **S4 (reference-deck league
+seats) is upgraded from optional to the highest-leverage next build**; the
+cheap interim alternative is re-anchoring the gate on windowed draftref.
+
+### 26.5 Spec deltas to §20
+1. S12 cap-4 + S13 damage-mitigation: CONFIRMED at 45M with text-only gates —
+   keep both (AZK_EARLY_TEMPO_BONUS=0.1/CAP=4, AZK_DMG_MITIGATION_BONUS=0.15/CAP=10).
+2. Checkpoint selection: windowed draftref (96+ eps per checkpoint across the
+   final third of the run, confirm peaks at n≥288) + H2H agreement check.
+   Never ship the endpoint blindly.
+3. Promotion gate: re-anchor on an external yardstick (S4 reference seats or
+   draftref-based gate) before the distributed run.

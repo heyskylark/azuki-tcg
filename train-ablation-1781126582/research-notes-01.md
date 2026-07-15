@@ -1160,3 +1160,52 @@ Readout adds the user-requested per-gate strategy summary:
 6. League telemetry summary (league_state.json promotions + PFSP runlog).
 SPS 3330 at launch; ETA train ~3.8h, headline readout ~2h after
 (S14_HEADLINE_DONE marker), trajectories overnight (ALL_DONE marker).
+
+### 8.19 S14 VERDICT (2026-07-15): combined recipe VALIDATED at 45M — campaign-best external peak (ep2000 76.5%); promotion gate measures the wrong axis
+- Arm s14prod45 (production spec + S12 cap4 + S13 dmg, text-only gates, 45M,
+  seed 42); control s11final45. Train clean, 0 invalid-action truncations.
+- EXTERNAL: final 49.7% (n=384, timeout 0) vs control 46.9%. Windowed
+  trajectory ep500..2930: 39.6 / 51.0 / 35.4 / **78.1** / 52.1 / 52.1 / 49.7 —
+  oscillation persists; **ep2000 confirmed 76.5% pooled (n=384) = CAMPAIGN
+  BEST at any horizon** (prior best 63.9-70.8 @15M S1-aux; prior 45M best
+  46.9). ep2000 also beats final h2h 55.7% — the two yardsticks AGREE on the
+  peak. Late-window pooled (ep2000..2930) ~54%.
+- LADDER: final vs mid 49.0, final vs early 42.2, mid vs early 34.4 —
+  early(500) internally dominant. BUT ep500 draftref = 39.6% vs final 49.7%:
+  internal/external DIVERGENCE, not forgetting (S9 pathology had both axes
+  bad). Dual-yardstick selection picks ep2000 unambiguously.
+- PROBES: KL retained L 4.6e-6 / W 3.8e-6; F/E ~1e-8 (exactly the
+  text-inseparable pairs per S8 geometry). Critic L sign 12/12.
+- S12+S13 AT 45M (final snapshot bucket vs control): cost 2.57/3.01, portal
+  0.094/0.074 (+27%), attack 0.203/0.270, eplen 112/87, timeout 0 — tempo
+  shift + defensive budget persist at 3x horizon, no turtling. In-meta gate
+  winrates: Water+Devotion up (EchoedW .542/.438, Devotion .509/.366), Fire
+  down (Ragefire .366/.497).
+- LEAGUE (the big one): frozen fraction 0.795 on target, PFSP live, but
+  **promotion_accepted = 0 for the whole run while candidate-vs-champion
+  winrate DECLINED 0.59 -> 0.34 and external strength rose to 76.5%**. The
+  Wilson gate anchors to the ep100 champion's in-meta h2h, which
+  ANTICORRELATES with external strength here. Promotion needs an external
+  anchor -> S4 (reference-deck league seats) upgraded from optional to
+  highest-leverage next build; cheaper alternative: re-anchor the gate on
+  windowed draftref.
+- PER-GATE STRATEGY ATLAS (profile_gate_matchups 36x16 seat-fair sampled,
+  0 timeouts; + draftref per-gate n~50):
+  field ranking Surge .661 / Stormchain .634 / EchoedWaves .598 / Hydromancy
+  .536 / Devotion .500 / Stonehaven .411 / Rushfire .384 / Ragefire .277;
+  external agrees at extremes (Surge 79.7 draftref, Ragefire 20.5).
+  Element archetypes behaviorally legible: L tempo-attack (attack .24+,
+  weapons 16%, shortest games); W spell-control (41% spells, EchoedWaves
+  SELECT_FROM_SELECTION .061, long games); F burn-aggro (shortest games, top
+  SELECT_EFFECT_TARGET, declare_defender .002 - never blocks); E attrition
+  (longest games 150-163, top ability rate, **Stonehaven declare .031 =
+  5-11x field** - the S13 archetype unlock made visible).
+  Siblings draft near-identical decks but PLAY differently (within-pair
+  splits in portal/declare/selection rates) - drafting indifference confirmed
+  behaviorally, play conditioning real.
+  Gate power is META-RELATIVE: Rushfire 57.7% on the old neutral-deck ladder
+  -> 38.4% vs policy-drafted low-curve decks. Balance memo: Ragefire worst on
+  every axis (both eras); Surge/L pair overtuned.
+- VERDICT: ADOPT combined recipe. Spec: S12 cap4 + S13 dmg CONFIRMED at 45M
+  composing with text-only gates; checkpoint selection = windowed draftref
+  with h2h agreement; promotion re-anchoring -> S4 next.
