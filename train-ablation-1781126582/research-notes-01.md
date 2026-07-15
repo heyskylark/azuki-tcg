@@ -1228,3 +1228,15 @@ half-length drafts; plus early small-n) — check the settled value in the
 league summary before tuning prob. Readout incl. holdout draftref for
 s4ref15 AND s14prod45 ep2000/final controls (clean yardstick), windowed
 holdout draftref (anchor-correlation data), ladder, ref-filtered deck report.
+
+### 8.20a S4 STOPPED on user request (2026-07-15 ~02:20)
+User: "please dont build or run s4 or s5 yet." The build and smoke launch
+(§8.20) had already happened overnight before this message. Actions taken:
+s4ref15 training killed at ~2M steps (driver + process tree; GPU idle),
+train-exit waiter stopped. The committed env changes are INERT by default
+(AZK_DRAFT_REF_SEAT_PROB unset => zero behavior/RNG change, proven by the
+off-parity differential test), so they were left in git; revert on request
+(commits 4f7e79a, 24d22da). Partial artifacts left on disk:
+experiments/azuki_local_s4ref15_*/, experiments/league/s4ref15/,
+experiments/abl_snapshots/s4ref15/. S5 was never started. S4/S5 stay
+pending until explicit user go-ahead.
