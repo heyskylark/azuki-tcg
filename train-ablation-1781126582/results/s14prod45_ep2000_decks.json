@@ -1,0 +1,5454 @@
+{
+  "checkpoint": "experiments/azuki_local_s14prod45_178404911119/model_azuki_local_002000.pt",
+  "sampled_episodes": 24,
+  "gates": {
+    "STT01-002": {
+      "gate_name": "Surge(L)",
+      "argmax_deck": {
+        "leader": {
+          "code": "STT01-001",
+          "name": "Raizan",
+          "type": "LEADER",
+          "cost": 0,
+          "element": "LIGHTNING",
+          "copies": 1
+        },
+        "summary": {
+          "cards_total": 50.0,
+          "avg_cost": 2.22,
+          "type_share": {
+            "ENTITY": 0.6,
+            "SPELL": 0.26,
+            "WEAPON": 0.14
+          }
+        },
+        "cards": [
+          {
+            "code": "AZK01-001",
+            "name": "Penny",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-002",
+            "name": "Healing Flutter",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-003",
+            "name": "Black Jade Courier",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-004",
+            "name": "Alley Thug",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-009",
+            "name": "The Red Bean",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-016",
+            "name": "Sleight of Hand",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-033",
+            "name": "Elder Hoshin",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-067",
+            "name": "Frida",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-068",
+            "name": "Pip",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-069",
+            "name": "Link",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-094",
+            "name": "Hidden Dagger",
+            "type": "WEAPON",
+            "cost": 1,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-127",
+            "name": "Sundering Strike",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "STT01-003",
+            "name": "Crate Rat Kurobo",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "STT01-004",
+            "name": "Black Jade Recruit",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT01-012",
+            "name": "Lightning Shuriken",
+            "type": "WEAPON",
+            "cost": 1,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "STT01-017",
+            "name": "Lightning Orb",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "STT02-004",
+            "name": "Rei",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-006",
+            "name": "Gus",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-007",
+            "name": "Johnny",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-017",
+            "name": "Hook Sword Strike",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-034",
+            "name": "Kira",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-043",
+            "name": "Stormglass Daggers",
+            "type": "WEAPON",
+            "cost": 2,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-071",
+            "name": "Alley Fetchduck",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-072",
+            "name": "Beanz Mentor",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-074",
+            "name": "Gurugumi Vanguard",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-084",
+            "name": "Good Enough Replica",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-096",
+            "name": "Ninpo: Thunderstep",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-097",
+            "name": "Black Jade Pawnbroker",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-100",
+            "name": "Raizan's Riposte",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "STT01-005",
+            "name": "Alpine Prowler",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "STT01-006",
+            "name": "Silver Current, Haruhi",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "STT01-007",
+            "name": "Alley Guy",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-008",
+            "name": "Rainy Day Assassin",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-019",
+            "name": "Jay",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-020",
+            "name": "Power of Friendship",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-035",
+            "name": "Raimaru the Stolen",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-036",
+            "name": "Denmu",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-038",
+            "name": "Riven Flashborne",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-044",
+            "name": "Lightning Kanabo",
+            "type": "WEAPON",
+            "cost": 3,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-085",
+            "name": "Invigorating Concoction",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT01-015",
+            "name": "Tenraku",
+            "type": "WEAPON",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-005",
+            "name": "Caravan Guard",
+            "type": "ENTITY",
+            "cost": 4,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-018",
+            "name": "Monk Staff of Warding",
+            "type": "WEAPON",
+            "cost": 4,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-039",
+            "name": "Piko",
+            "type": "ENTITY",
+            "cost": 4,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-075",
+            "name": "Drunken Brewmaster",
+            "type": "ENTITY",
+            "cost": 4,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-078",
+            "name": "Fermented Beanz",
+            "type": "ENTITY",
+            "cost": 4,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-086",
+            "name": "Forging Tricks",
+            "type": "SPELL",
+            "cost": 4,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-095",
+            "name": "Stormglass Katana",
+            "type": "WEAPON",
+            "cost": 4,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-098",
+            "name": "Arms Dealer, Kin",
+            "type": "ENTITY",
+            "cost": 4,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-042",
+            "name": "Thunderclap",
+            "type": "SPELL",
+            "cost": 5,
+            "element": "LIGHTNING",
+            "copies": 1
+          }
+        ]
+      },
+      "sampled": {
+        "leader_split": {
+          "STT01-001": 13,
+          "AZK01-119": 11
+        },
+        "summary": {
+          "cards_total": 50.0,
+          "avg_cost": 2.201,
+          "type_share": {
+            "ENTITY": 0.576,
+            "SPELL": 0.252,
+            "WEAPON": 0.172
+          }
+        },
+        "mean_copies": [
+          {
+            "code": "AZK01-100",
+            "name": "Raizan's Riposte",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "LIGHTNING",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-034",
+            "name": "Kira",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "LIGHTNING",
+            "copies": 1.0
+          },
+          {
+            "code": "STT01-017",
+            "name": "Lightning Orb",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "LIGHTNING",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-044",
+            "name": "Lightning Kanabo",
+            "type": "WEAPON",
+            "cost": 3,
+            "element": "LIGHTNING",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-016",
+            "name": "Sleight of Hand",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-009",
+            "name": "The Red Bean",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "STT01-012",
+            "name": "Lightning Shuriken",
+            "type": "WEAPON",
+            "cost": 1,
+            "element": "LIGHTNING",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-094",
+            "name": "Hidden Dagger",
+            "type": "WEAPON",
+            "cost": 1,
+            "element": "LIGHTNING",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-002",
+            "name": "Healing Flutter",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-096",
+            "name": "Ninpo: Thunderstep",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "LIGHTNING",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-127",
+            "name": "Sundering Strike",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "LIGHTNING",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-043",
+            "name": "Stormglass Daggers",
+            "type": "WEAPON",
+            "cost": 2,
+            "element": "LIGHTNING",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-070",
+            "name": "Mocking Dummy",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-035",
+            "name": "Raimaru the Stolen",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "LIGHTNING",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-084",
+            "name": "Good Enough Replica",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-033",
+            "name": "Elder Hoshin",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "LIGHTNING",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-017",
+            "name": "Hook Sword Strike",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-007",
+            "name": "Johnny",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-001",
+            "name": "Penny",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-004",
+            "name": "Alley Thug",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-038",
+            "name": "Riven Flashborne",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "LIGHTNING",
+            "copies": 0.96
+          },
+          {
+            "code": "STT01-003",
+            "name": "Crate Rat Kurobo",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "LIGHTNING",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-097",
+            "name": "Black Jade Pawnbroker",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "LIGHTNING",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-037",
+            "name": "Stormcaller Tenkichi",
+            "type": "ENTITY",
+            "cost": 4,
+            "element": "LIGHTNING",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-042",
+            "name": "Thunderclap",
+            "type": "SPELL",
+            "cost": 5,
+            "element": "LIGHTNING",
+            "copies": 0.92
+          },
+          {
+            "code": "AZK01-003",
+            "name": "Black Jade Courier",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 0.92
+          },
+          {
+            "code": "AZK01-095",
+            "name": "Stormglass Katana",
+            "type": "WEAPON",
+            "cost": 4,
+            "element": "LIGHTNING",
+            "copies": 0.92
+          },
+          {
+            "code": "AZK01-086",
+            "name": "Forging Tricks",
+            "type": "SPELL",
+            "cost": 4,
+            "element": "NORMAL",
+            "copies": 0.92
+          },
+          {
+            "code": "AZK01-085",
+            "name": "Invigorating Concoction",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 0.92
+          },
+          {
+            "code": "AZK01-071",
+            "name": "Alley Fetchduck",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 0.88
+          }
+        ]
+      }
+    },
+    "AZK01-120": {
+      "gate_name": "Stormchain(L)",
+      "argmax_deck": {
+        "leader": {
+          "code": "STT01-001",
+          "name": "Raizan",
+          "type": "LEADER",
+          "cost": 0,
+          "element": "LIGHTNING",
+          "copies": 1
+        },
+        "summary": {
+          "cards_total": 50.0,
+          "avg_cost": 2.22,
+          "type_share": {
+            "ENTITY": 0.6,
+            "SPELL": 0.26,
+            "WEAPON": 0.14
+          }
+        },
+        "cards": [
+          {
+            "code": "AZK01-001",
+            "name": "Penny",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-002",
+            "name": "Healing Flutter",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-003",
+            "name": "Black Jade Courier",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-004",
+            "name": "Alley Thug",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-009",
+            "name": "The Red Bean",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-016",
+            "name": "Sleight of Hand",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-033",
+            "name": "Elder Hoshin",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-067",
+            "name": "Frida",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-068",
+            "name": "Pip",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-069",
+            "name": "Link",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-094",
+            "name": "Hidden Dagger",
+            "type": "WEAPON",
+            "cost": 1,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-127",
+            "name": "Sundering Strike",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "STT01-003",
+            "name": "Crate Rat Kurobo",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "STT01-004",
+            "name": "Black Jade Recruit",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT01-012",
+            "name": "Lightning Shuriken",
+            "type": "WEAPON",
+            "cost": 1,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "STT01-017",
+            "name": "Lightning Orb",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "STT02-004",
+            "name": "Rei",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-006",
+            "name": "Gus",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-007",
+            "name": "Johnny",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-017",
+            "name": "Hook Sword Strike",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-034",
+            "name": "Kira",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-043",
+            "name": "Stormglass Daggers",
+            "type": "WEAPON",
+            "cost": 2,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-071",
+            "name": "Alley Fetchduck",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-072",
+            "name": "Beanz Mentor",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-074",
+            "name": "Gurugumi Vanguard",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-084",
+            "name": "Good Enough Replica",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-096",
+            "name": "Ninpo: Thunderstep",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-097",
+            "name": "Black Jade Pawnbroker",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-100",
+            "name": "Raizan's Riposte",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "STT01-005",
+            "name": "Alpine Prowler",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "STT01-006",
+            "name": "Silver Current, Haruhi",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "STT01-007",
+            "name": "Alley Guy",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-008",
+            "name": "Rainy Day Assassin",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-019",
+            "name": "Jay",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-020",
+            "name": "Power of Friendship",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-035",
+            "name": "Raimaru the Stolen",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-036",
+            "name": "Denmu",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-038",
+            "name": "Riven Flashborne",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-044",
+            "name": "Lightning Kanabo",
+            "type": "WEAPON",
+            "cost": 3,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-085",
+            "name": "Invigorating Concoction",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT01-015",
+            "name": "Tenraku",
+            "type": "WEAPON",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-005",
+            "name": "Caravan Guard",
+            "type": "ENTITY",
+            "cost": 4,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-018",
+            "name": "Monk Staff of Warding",
+            "type": "WEAPON",
+            "cost": 4,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-039",
+            "name": "Piko",
+            "type": "ENTITY",
+            "cost": 4,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-075",
+            "name": "Drunken Brewmaster",
+            "type": "ENTITY",
+            "cost": 4,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-078",
+            "name": "Fermented Beanz",
+            "type": "ENTITY",
+            "cost": 4,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-086",
+            "name": "Forging Tricks",
+            "type": "SPELL",
+            "cost": 4,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-095",
+            "name": "Stormglass Katana",
+            "type": "WEAPON",
+            "cost": 4,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-098",
+            "name": "Arms Dealer, Kin",
+            "type": "ENTITY",
+            "cost": 4,
+            "element": "LIGHTNING",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-042",
+            "name": "Thunderclap",
+            "type": "SPELL",
+            "cost": 5,
+            "element": "LIGHTNING",
+            "copies": 1
+          }
+        ]
+      },
+      "sampled": {
+        "leader_split": {
+          "STT01-001": 13,
+          "AZK01-119": 11
+        },
+        "summary": {
+          "cards_total": 50.0,
+          "avg_cost": 2.201,
+          "type_share": {
+            "ENTITY": 0.576,
+            "SPELL": 0.252,
+            "WEAPON": 0.172
+          }
+        },
+        "mean_copies": [
+          {
+            "code": "AZK01-100",
+            "name": "Raizan's Riposte",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "LIGHTNING",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-034",
+            "name": "Kira",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "LIGHTNING",
+            "copies": 1.0
+          },
+          {
+            "code": "STT01-017",
+            "name": "Lightning Orb",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "LIGHTNING",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-044",
+            "name": "Lightning Kanabo",
+            "type": "WEAPON",
+            "cost": 3,
+            "element": "LIGHTNING",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-016",
+            "name": "Sleight of Hand",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-009",
+            "name": "The Red Bean",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "STT01-012",
+            "name": "Lightning Shuriken",
+            "type": "WEAPON",
+            "cost": 1,
+            "element": "LIGHTNING",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-094",
+            "name": "Hidden Dagger",
+            "type": "WEAPON",
+            "cost": 1,
+            "element": "LIGHTNING",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-002",
+            "name": "Healing Flutter",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-096",
+            "name": "Ninpo: Thunderstep",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "LIGHTNING",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-127",
+            "name": "Sundering Strike",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "LIGHTNING",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-043",
+            "name": "Stormglass Daggers",
+            "type": "WEAPON",
+            "cost": 2,
+            "element": "LIGHTNING",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-070",
+            "name": "Mocking Dummy",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-035",
+            "name": "Raimaru the Stolen",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "LIGHTNING",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-084",
+            "name": "Good Enough Replica",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-033",
+            "name": "Elder Hoshin",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "LIGHTNING",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-017",
+            "name": "Hook Sword Strike",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-007",
+            "name": "Johnny",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-001",
+            "name": "Penny",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-004",
+            "name": "Alley Thug",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-038",
+            "name": "Riven Flashborne",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "LIGHTNING",
+            "copies": 0.96
+          },
+          {
+            "code": "STT01-003",
+            "name": "Crate Rat Kurobo",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "LIGHTNING",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-097",
+            "name": "Black Jade Pawnbroker",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "LIGHTNING",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-037",
+            "name": "Stormcaller Tenkichi",
+            "type": "ENTITY",
+            "cost": 4,
+            "element": "LIGHTNING",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-042",
+            "name": "Thunderclap",
+            "type": "SPELL",
+            "cost": 5,
+            "element": "LIGHTNING",
+            "copies": 0.92
+          },
+          {
+            "code": "AZK01-003",
+            "name": "Black Jade Courier",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 0.92
+          },
+          {
+            "code": "AZK01-095",
+            "name": "Stormglass Katana",
+            "type": "WEAPON",
+            "cost": 4,
+            "element": "LIGHTNING",
+            "copies": 0.92
+          },
+          {
+            "code": "AZK01-086",
+            "name": "Forging Tricks",
+            "type": "SPELL",
+            "cost": 4,
+            "element": "NORMAL",
+            "copies": 0.92
+          },
+          {
+            "code": "AZK01-085",
+            "name": "Invigorating Concoction",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 0.92
+          },
+          {
+            "code": "AZK01-071",
+            "name": "Alley Fetchduck",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 0.88
+          }
+        ]
+      }
+    },
+    "STT02-002": {
+      "gate_name": "Hydromancy(W)",
+      "argmax_deck": {
+        "leader": {
+          "code": "STT02-001",
+          "name": "Shao",
+          "type": "LEADER",
+          "cost": 0,
+          "element": "WATER",
+          "copies": 1
+        },
+        "summary": {
+          "cards_total": 50.0,
+          "avg_cost": 2.16,
+          "type_share": {
+            "ENTITY": 0.56,
+            "SPELL": 0.36,
+            "WEAPON": 0.08
+          }
+        },
+        "cards": [
+          {
+            "code": "AZK01-029",
+            "name": "Aquatic Veil",
+            "type": "SPELL",
+            "cost": 0,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-001",
+            "name": "Penny",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-002",
+            "name": "Healing Flutter",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-003",
+            "name": "Black Jade Courier",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-004",
+            "name": "Alley Thug",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-009",
+            "name": "The Red Bean",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-016",
+            "name": "Sleight of Hand",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-021",
+            "name": "Mizuto",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-030",
+            "name": "Lotus of Paradise",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-031",
+            "name": "Tidal Insight",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-068",
+            "name": "Pip",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-069",
+            "name": "Link",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-070",
+            "name": "Mocking Dummy",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT01-013",
+            "name": "Black Jade Dagger",
+            "type": "WEAPON",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT02-004",
+            "name": "Rei",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT02-005",
+            "name": "Hayabusa Saburo",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "STT02-014",
+            "name": "Chilling Water",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "STT02-016",
+            "name": "Water Orb",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-006",
+            "name": "Gus",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-007",
+            "name": "Johnny",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-017",
+            "name": "Hook Sword Strike",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-022",
+            "name": "Mirage Frog",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-072",
+            "name": "Beanz Mentor",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-074",
+            "name": "Gurugumi Vanguard",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-084",
+            "name": "Good Enough Replica",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-091",
+            "name": "Bubble Adept",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-092",
+            "name": "Lotus of Reflection",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "STT01-007",
+            "name": "Alley Guy",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT01-014",
+            "name": "Tenshin",
+            "type": "WEAPON",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT02-006",
+            "name": "Foamback Crab",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "STT02-007",
+            "name": "Benzai the Merchant",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "STT02-008",
+            "name": "Serene Fist, Misaki",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "STT02-015",
+            "name": "Commune with Water",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-011",
+            "name": "Rooftop Hunter",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-019",
+            "name": "Jay",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-020",
+            "name": "Power of Friendship",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-023",
+            "name": "Maho",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-024",
+            "name": "Fumiko",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-032",
+            "name": "Rippling Recall",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-073",
+            "name": "Top Beanz",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-077",
+            "name": "Stalking Assassin",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-085",
+            "name": "Invigorating Concoction",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT01-015",
+            "name": "Tenraku",
+            "type": "WEAPON",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT02-010",
+            "name": "Selis of the Shore",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "STT02-011",
+            "name": "Bubblemancer",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-018",
+            "name": "Monk Staff of Warding",
+            "type": "WEAPON",
+            "cost": 4,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-087",
+            "name": "Mizuryuu's Torrent",
+            "type": "SPELL",
+            "cost": 4,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-082",
+            "name": "Black Jade Brawler",
+            "type": "ENTITY",
+            "cost": 5,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-088",
+            "name": "Pulled Under",
+            "type": "SPELL",
+            "cost": 6,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "STT02-017",
+            "name": "Shao's Perseverance",
+            "type": "SPELL",
+            "cost": 6,
+            "element": "WATER",
+            "copies": 1
+          }
+        ]
+      },
+      "sampled": {
+        "leader_split": {
+          "STT02-001": 13,
+          "AZK01-125": 11
+        },
+        "summary": {
+          "cards_total": 50.0,
+          "avg_cost": 2.107,
+          "type_share": {
+            "ENTITY": 0.578,
+            "SPELL": 0.364,
+            "WEAPON": 0.058
+          }
+        },
+        "mean_copies": [
+          {
+            "code": "AZK01-092",
+            "name": "Lotus of Reflection",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "WATER",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-068",
+            "name": "Pip",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-030",
+            "name": "Lotus of Paradise",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "WATER",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-009",
+            "name": "The Red Bean",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-029",
+            "name": "Aquatic Veil",
+            "type": "SPELL",
+            "cost": 0,
+            "element": "WATER",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-002",
+            "name": "Healing Flutter",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "STT02-014",
+            "name": "Chilling Water",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "WATER",
+            "copies": 1.0
+          },
+          {
+            "code": "STT02-007",
+            "name": "Benzai the Merchant",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "WATER",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-084",
+            "name": "Good Enough Replica",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "STT02-016",
+            "name": "Water Orb",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "WATER",
+            "copies": 1.0
+          },
+          {
+            "code": "STT02-015",
+            "name": "Commune with Water",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "WATER",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-016",
+            "name": "Sleight of Hand",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "STT02-008",
+            "name": "Serene Fist, Misaki",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "WATER",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-070",
+            "name": "Mocking Dummy",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-031",
+            "name": "Tidal Insight",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "WATER",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-017",
+            "name": "Hook Sword Strike",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-001",
+            "name": "Penny",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-004",
+            "name": "Alley Thug",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-091",
+            "name": "Bubble Adept",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "WATER",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-032",
+            "name": "Rippling Recall",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "WATER",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-085",
+            "name": "Invigorating Concoction",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-021",
+            "name": "Mizuto",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "WATER",
+            "copies": 0.96
+          },
+          {
+            "code": "STT02-006",
+            "name": "Foamback Crab",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "WATER",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-020",
+            "name": "Power of Friendship",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 0.92
+          },
+          {
+            "code": "STT02-003",
+            "name": "Hayabusa Itto",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "WATER",
+            "copies": 0.92
+          },
+          {
+            "code": "AZK01-088",
+            "name": "Pulled Under",
+            "type": "SPELL",
+            "cost": 6,
+            "element": "WATER",
+            "copies": 0.92
+          },
+          {
+            "code": "AZK01-067",
+            "name": "Frida",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 0.92
+          },
+          {
+            "code": "AZK01-007",
+            "name": "Johnny",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 0.92
+          },
+          {
+            "code": "AZK01-003",
+            "name": "Black Jade Courier",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 0.92
+          },
+          {
+            "code": "AZK01-087",
+            "name": "Mizuryuu's Torrent",
+            "type": "SPELL",
+            "cost": 4,
+            "element": "WATER",
+            "copies": 0.92
+          }
+        ]
+      }
+    },
+    "AZK01-126": {
+      "gate_name": "EchoedWaves(W)",
+      "argmax_deck": {
+        "leader": {
+          "code": "STT02-001",
+          "name": "Shao",
+          "type": "LEADER",
+          "cost": 0,
+          "element": "WATER",
+          "copies": 1
+        },
+        "summary": {
+          "cards_total": 50.0,
+          "avg_cost": 2.16,
+          "type_share": {
+            "ENTITY": 0.56,
+            "SPELL": 0.36,
+            "WEAPON": 0.08
+          }
+        },
+        "cards": [
+          {
+            "code": "AZK01-029",
+            "name": "Aquatic Veil",
+            "type": "SPELL",
+            "cost": 0,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-001",
+            "name": "Penny",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-002",
+            "name": "Healing Flutter",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-003",
+            "name": "Black Jade Courier",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-004",
+            "name": "Alley Thug",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-009",
+            "name": "The Red Bean",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-016",
+            "name": "Sleight of Hand",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-021",
+            "name": "Mizuto",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-030",
+            "name": "Lotus of Paradise",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-031",
+            "name": "Tidal Insight",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-068",
+            "name": "Pip",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-069",
+            "name": "Link",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-070",
+            "name": "Mocking Dummy",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT01-013",
+            "name": "Black Jade Dagger",
+            "type": "WEAPON",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT02-004",
+            "name": "Rei",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT02-005",
+            "name": "Hayabusa Saburo",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "STT02-014",
+            "name": "Chilling Water",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "STT02-016",
+            "name": "Water Orb",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-006",
+            "name": "Gus",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-007",
+            "name": "Johnny",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-017",
+            "name": "Hook Sword Strike",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-022",
+            "name": "Mirage Frog",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-072",
+            "name": "Beanz Mentor",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-074",
+            "name": "Gurugumi Vanguard",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-084",
+            "name": "Good Enough Replica",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-091",
+            "name": "Bubble Adept",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-092",
+            "name": "Lotus of Reflection",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "STT01-007",
+            "name": "Alley Guy",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT01-014",
+            "name": "Tenshin",
+            "type": "WEAPON",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT02-006",
+            "name": "Foamback Crab",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "STT02-007",
+            "name": "Benzai the Merchant",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "STT02-008",
+            "name": "Serene Fist, Misaki",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "STT02-015",
+            "name": "Commune with Water",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-011",
+            "name": "Rooftop Hunter",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-019",
+            "name": "Jay",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-020",
+            "name": "Power of Friendship",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-023",
+            "name": "Maho",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-024",
+            "name": "Fumiko",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-032",
+            "name": "Rippling Recall",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-073",
+            "name": "Top Beanz",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-077",
+            "name": "Stalking Assassin",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-085",
+            "name": "Invigorating Concoction",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT01-015",
+            "name": "Tenraku",
+            "type": "WEAPON",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT02-010",
+            "name": "Selis of the Shore",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "STT02-011",
+            "name": "Bubblemancer",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-018",
+            "name": "Monk Staff of Warding",
+            "type": "WEAPON",
+            "cost": 4,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-087",
+            "name": "Mizuryuu's Torrent",
+            "type": "SPELL",
+            "cost": 4,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-082",
+            "name": "Black Jade Brawler",
+            "type": "ENTITY",
+            "cost": 5,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-088",
+            "name": "Pulled Under",
+            "type": "SPELL",
+            "cost": 6,
+            "element": "WATER",
+            "copies": 1
+          },
+          {
+            "code": "STT02-017",
+            "name": "Shao's Perseverance",
+            "type": "SPELL",
+            "cost": 6,
+            "element": "WATER",
+            "copies": 1
+          }
+        ]
+      },
+      "sampled": {
+        "leader_split": {
+          "STT02-001": 13,
+          "AZK01-125": 11
+        },
+        "summary": {
+          "cards_total": 50.0,
+          "avg_cost": 2.107,
+          "type_share": {
+            "ENTITY": 0.578,
+            "SPELL": 0.364,
+            "WEAPON": 0.058
+          }
+        },
+        "mean_copies": [
+          {
+            "code": "AZK01-092",
+            "name": "Lotus of Reflection",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "WATER",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-068",
+            "name": "Pip",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-030",
+            "name": "Lotus of Paradise",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "WATER",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-009",
+            "name": "The Red Bean",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-029",
+            "name": "Aquatic Veil",
+            "type": "SPELL",
+            "cost": 0,
+            "element": "WATER",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-002",
+            "name": "Healing Flutter",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "STT02-014",
+            "name": "Chilling Water",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "WATER",
+            "copies": 1.0
+          },
+          {
+            "code": "STT02-007",
+            "name": "Benzai the Merchant",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "WATER",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-084",
+            "name": "Good Enough Replica",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "STT02-016",
+            "name": "Water Orb",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "WATER",
+            "copies": 1.0
+          },
+          {
+            "code": "STT02-015",
+            "name": "Commune with Water",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "WATER",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-016",
+            "name": "Sleight of Hand",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "STT02-008",
+            "name": "Serene Fist, Misaki",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "WATER",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-070",
+            "name": "Mocking Dummy",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-031",
+            "name": "Tidal Insight",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "WATER",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-017",
+            "name": "Hook Sword Strike",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-001",
+            "name": "Penny",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-004",
+            "name": "Alley Thug",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-032",
+            "name": "Rippling Recall",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "WATER",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-085",
+            "name": "Invigorating Concoction",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-021",
+            "name": "Mizuto",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "WATER",
+            "copies": 0.96
+          },
+          {
+            "code": "STT02-006",
+            "name": "Foamback Crab",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "WATER",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-020",
+            "name": "Power of Friendship",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 0.92
+          },
+          {
+            "code": "STT02-003",
+            "name": "Hayabusa Itto",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "WATER",
+            "copies": 0.92
+          },
+          {
+            "code": "AZK01-088",
+            "name": "Pulled Under",
+            "type": "SPELL",
+            "cost": 6,
+            "element": "WATER",
+            "copies": 0.92
+          },
+          {
+            "code": "AZK01-067",
+            "name": "Frida",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 0.92
+          },
+          {
+            "code": "AZK01-091",
+            "name": "Bubble Adept",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "WATER",
+            "copies": 0.92
+          },
+          {
+            "code": "AZK01-007",
+            "name": "Johnny",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 0.92
+          },
+          {
+            "code": "AZK01-003",
+            "name": "Black Jade Courier",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 0.92
+          },
+          {
+            "code": "AZK01-087",
+            "name": "Mizuryuu's Torrent",
+            "type": "SPELL",
+            "cost": 4,
+            "element": "WATER",
+            "copies": 0.92
+          }
+        ]
+      }
+    },
+    "AZK01-122": {
+      "gate_name": "Rushfire(F)",
+      "argmax_deck": {
+        "leader": {
+          "code": "AZK01-121",
+          "name": "Kagoro of the Burnt Path",
+          "type": "LEADER",
+          "cost": 0,
+          "element": "FIRE",
+          "copies": 1
+        },
+        "summary": {
+          "cards_total": 50.0,
+          "avg_cost": 2.12,
+          "type_share": {
+            "ENTITY": 0.66,
+            "SPELL": 0.28,
+            "WEAPON": 0.06
+          }
+        },
+        "cards": [
+          {
+            "code": "AZK01-001",
+            "name": "Penny",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-002",
+            "name": "Healing Flutter",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-003",
+            "name": "Black Jade Courier",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-004",
+            "name": "Alley Thug",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-009",
+            "name": "The Red Bean",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-016",
+            "name": "Sleight of Hand",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-056",
+            "name": "Glass Blower, Hokuto",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-057",
+            "name": "Lounge Siren, Saeko",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-067",
+            "name": "Frida",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-068",
+            "name": "Pip",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-069",
+            "name": "Link",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-070",
+            "name": "Mocking Dummy",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-117",
+            "name": "Ignition Pact",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "STT01-013",
+            "name": "Black Jade Dagger",
+            "type": "WEAPON",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT04-003",
+            "name": "Cinderwake Seer",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "STT04-004",
+            "name": "Fanatic Kindler",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "STT04-005",
+            "name": "Ruby",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "STT04-015",
+            "name": "Detonation Pact",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-006",
+            "name": "Gus",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-007",
+            "name": "Johnny",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-017",
+            "name": "Hook Sword Strike",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-058",
+            "name": "Black Jade Warlord",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-059",
+            "name": "Spice",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-071",
+            "name": "Alley Fetchduck",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-072",
+            "name": "Beanz Mentor",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-074",
+            "name": "Gurugumi Vanguard",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-084",
+            "name": "Good Enough Replica",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-113",
+            "name": "Cinderwake Pursuer",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-115",
+            "name": "Crazed Arsonist",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "STT01-007",
+            "name": "Alley Guy",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT01-014",
+            "name": "Tenshin",
+            "type": "WEAPON",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT04-006",
+            "name": "Wolf Cub",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT04-016",
+            "name": "Collateral Burst",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-010",
+            "name": "JD",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-011",
+            "name": "Rooftop Hunter",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-019",
+            "name": "Jay",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-020",
+            "name": "Power of Friendship",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-061",
+            "name": "Firebrand Renji",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-085",
+            "name": "Invigorating Concoction",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-114",
+            "name": "Omen Peddler",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "STT03-008",
+            "name": "Midnight Courier",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT04-008",
+            "name": "Lady Emberheart",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "STT04-010",
+            "name": "Reckless Tinkerer",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "STT04-017",
+            "name": "Wrath of Sinder",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-018",
+            "name": "Monk Staff of Warding",
+            "type": "WEAPON",
+            "cost": 4,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-065",
+            "name": "Fire Orb",
+            "type": "SPELL",
+            "cost": 4,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-075",
+            "name": "Drunken Brewmaster",
+            "type": "ENTITY",
+            "cost": 4,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-086",
+            "name": "Forging Tricks",
+            "type": "SPELL",
+            "cost": 4,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT04-012",
+            "name": "Spiteful Raider",
+            "type": "ENTITY",
+            "cost": 4,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-066",
+            "name": "Firestorm",
+            "type": "SPELL",
+            "cost": 5,
+            "element": "FIRE",
+            "copies": 1
+          }
+        ]
+      },
+      "sampled": {
+        "leader_split": {
+          "STT04-001": 13,
+          "AZK01-121": 11
+        },
+        "summary": {
+          "cards_total": 50.0,
+          "avg_cost": 2.108,
+          "type_share": {
+            "ENTITY": 0.665,
+            "SPELL": 0.272,
+            "WEAPON": 0.063
+          }
+        },
+        "mean_copies": [
+          {
+            "code": "AZK01-085",
+            "name": "Invigorating Concoction",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-058",
+            "name": "Black Jade Warlord",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "FIRE",
+            "copies": 1.0
+          },
+          {
+            "code": "STT04-005",
+            "name": "Ruby",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "FIRE",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-016",
+            "name": "Sleight of Hand",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-020",
+            "name": "Power of Friendship",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-002",
+            "name": "Healing Flutter",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-003",
+            "name": "Black Jade Courier",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "STT04-017",
+            "name": "Wrath of Sinder",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "FIRE",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-115",
+            "name": "Crazed Arsonist",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "FIRE",
+            "copies": 1.0
+          },
+          {
+            "code": "STT04-016",
+            "name": "Collateral Burst",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "FIRE",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-117",
+            "name": "Ignition Pact",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "FIRE",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-084",
+            "name": "Good Enough Replica",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-057",
+            "name": "Lounge Siren, Saeko",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "FIRE",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-001",
+            "name": "Penny",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-009",
+            "name": "The Red Bean",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-007",
+            "name": "Johnny",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "STT04-015",
+            "name": "Detonation Pact",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "FIRE",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-065",
+            "name": "Fire Orb",
+            "type": "SPELL",
+            "cost": 4,
+            "element": "FIRE",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-114",
+            "name": "Omen Peddler",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "FIRE",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-113",
+            "name": "Cinderwake Pursuer",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "FIRE",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-070",
+            "name": "Mocking Dummy",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 0.96
+          },
+          {
+            "code": "STT04-004",
+            "name": "Fanatic Kindler",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "FIRE",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-056",
+            "name": "Glass Blower, Hokuto",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "FIRE",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-017",
+            "name": "Hook Sword Strike",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 0.96
+          },
+          {
+            "code": "STT01-013",
+            "name": "Black Jade Dagger",
+            "type": "WEAPON",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-072",
+            "name": "Beanz Mentor",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-004",
+            "name": "Alley Thug",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-006",
+            "name": "Gus",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 0.92
+          },
+          {
+            "code": "STT01-014",
+            "name": "Tenshin",
+            "type": "WEAPON",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 0.92
+          },
+          {
+            "code": "AZK01-069",
+            "name": "Link",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 0.92
+          }
+        ]
+      }
+    },
+    "STT04-002": {
+      "gate_name": "Ragefire(F)",
+      "argmax_deck": {
+        "leader": {
+          "code": "AZK01-121",
+          "name": "Kagoro of the Burnt Path",
+          "type": "LEADER",
+          "cost": 0,
+          "element": "FIRE",
+          "copies": 1
+        },
+        "summary": {
+          "cards_total": 50.0,
+          "avg_cost": 2.12,
+          "type_share": {
+            "ENTITY": 0.66,
+            "SPELL": 0.28,
+            "WEAPON": 0.06
+          }
+        },
+        "cards": [
+          {
+            "code": "AZK01-001",
+            "name": "Penny",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-002",
+            "name": "Healing Flutter",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-003",
+            "name": "Black Jade Courier",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-004",
+            "name": "Alley Thug",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-009",
+            "name": "The Red Bean",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-016",
+            "name": "Sleight of Hand",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-056",
+            "name": "Glass Blower, Hokuto",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-057",
+            "name": "Lounge Siren, Saeko",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-067",
+            "name": "Frida",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-068",
+            "name": "Pip",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-069",
+            "name": "Link",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-070",
+            "name": "Mocking Dummy",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-117",
+            "name": "Ignition Pact",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "STT01-013",
+            "name": "Black Jade Dagger",
+            "type": "WEAPON",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT04-003",
+            "name": "Cinderwake Seer",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "STT04-004",
+            "name": "Fanatic Kindler",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "STT04-005",
+            "name": "Ruby",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "STT04-015",
+            "name": "Detonation Pact",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-006",
+            "name": "Gus",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-007",
+            "name": "Johnny",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-017",
+            "name": "Hook Sword Strike",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-058",
+            "name": "Black Jade Warlord",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-059",
+            "name": "Spice",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-071",
+            "name": "Alley Fetchduck",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-072",
+            "name": "Beanz Mentor",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-074",
+            "name": "Gurugumi Vanguard",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-084",
+            "name": "Good Enough Replica",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-113",
+            "name": "Cinderwake Pursuer",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-115",
+            "name": "Crazed Arsonist",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "STT01-007",
+            "name": "Alley Guy",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT01-014",
+            "name": "Tenshin",
+            "type": "WEAPON",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT04-006",
+            "name": "Wolf Cub",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT04-016",
+            "name": "Collateral Burst",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-010",
+            "name": "JD",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-011",
+            "name": "Rooftop Hunter",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-019",
+            "name": "Jay",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-020",
+            "name": "Power of Friendship",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-061",
+            "name": "Firebrand Renji",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-085",
+            "name": "Invigorating Concoction",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-114",
+            "name": "Omen Peddler",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "STT03-008",
+            "name": "Midnight Courier",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT04-008",
+            "name": "Lady Emberheart",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "STT04-010",
+            "name": "Reckless Tinkerer",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "STT04-017",
+            "name": "Wrath of Sinder",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-018",
+            "name": "Monk Staff of Warding",
+            "type": "WEAPON",
+            "cost": 4,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-065",
+            "name": "Fire Orb",
+            "type": "SPELL",
+            "cost": 4,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-075",
+            "name": "Drunken Brewmaster",
+            "type": "ENTITY",
+            "cost": 4,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-086",
+            "name": "Forging Tricks",
+            "type": "SPELL",
+            "cost": 4,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT04-012",
+            "name": "Spiteful Raider",
+            "type": "ENTITY",
+            "cost": 4,
+            "element": "FIRE",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-066",
+            "name": "Firestorm",
+            "type": "SPELL",
+            "cost": 5,
+            "element": "FIRE",
+            "copies": 1
+          }
+        ]
+      },
+      "sampled": {
+        "leader_split": {
+          "STT04-001": 13,
+          "AZK01-121": 11
+        },
+        "summary": {
+          "cards_total": 50.0,
+          "avg_cost": 2.108,
+          "type_share": {
+            "ENTITY": 0.665,
+            "SPELL": 0.272,
+            "WEAPON": 0.063
+          }
+        },
+        "mean_copies": [
+          {
+            "code": "AZK01-085",
+            "name": "Invigorating Concoction",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-058",
+            "name": "Black Jade Warlord",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "FIRE",
+            "copies": 1.0
+          },
+          {
+            "code": "STT04-005",
+            "name": "Ruby",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "FIRE",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-016",
+            "name": "Sleight of Hand",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-020",
+            "name": "Power of Friendship",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-002",
+            "name": "Healing Flutter",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-003",
+            "name": "Black Jade Courier",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "STT04-017",
+            "name": "Wrath of Sinder",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "FIRE",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-115",
+            "name": "Crazed Arsonist",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "FIRE",
+            "copies": 1.0
+          },
+          {
+            "code": "STT04-016",
+            "name": "Collateral Burst",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "FIRE",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-117",
+            "name": "Ignition Pact",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "FIRE",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-084",
+            "name": "Good Enough Replica",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-057",
+            "name": "Lounge Siren, Saeko",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "FIRE",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-001",
+            "name": "Penny",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-009",
+            "name": "The Red Bean",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-007",
+            "name": "Johnny",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "STT04-015",
+            "name": "Detonation Pact",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "FIRE",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-065",
+            "name": "Fire Orb",
+            "type": "SPELL",
+            "cost": 4,
+            "element": "FIRE",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-114",
+            "name": "Omen Peddler",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "FIRE",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-113",
+            "name": "Cinderwake Pursuer",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "FIRE",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-070",
+            "name": "Mocking Dummy",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 0.96
+          },
+          {
+            "code": "STT04-004",
+            "name": "Fanatic Kindler",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "FIRE",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-056",
+            "name": "Glass Blower, Hokuto",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "FIRE",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-017",
+            "name": "Hook Sword Strike",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 0.96
+          },
+          {
+            "code": "STT01-013",
+            "name": "Black Jade Dagger",
+            "type": "WEAPON",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-072",
+            "name": "Beanz Mentor",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-004",
+            "name": "Alley Thug",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-006",
+            "name": "Gus",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 0.92
+          },
+          {
+            "code": "STT01-014",
+            "name": "Tenshin",
+            "type": "WEAPON",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 0.92
+          },
+          {
+            "code": "AZK01-069",
+            "name": "Link",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 0.92
+          }
+        ]
+      }
+    },
+    "AZK01-124": {
+      "gate_name": "Devotion(E)",
+      "argmax_deck": {
+        "leader": {
+          "code": "AZK01-123",
+          "name": "Goro Graveloth",
+          "type": "LEADER",
+          "cost": 0,
+          "element": "EARTH",
+          "copies": 1
+        },
+        "summary": {
+          "cards_total": 50.0,
+          "avg_cost": 2.24,
+          "type_share": {
+            "ENTITY": 0.6,
+            "SPELL": 0.32,
+            "WEAPON": 0.08
+          }
+        },
+        "cards": [
+          {
+            "code": "AZK01-107",
+            "name": "Offering to Stillstone",
+            "type": "SPELL",
+            "cost": 0,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-001",
+            "name": "Penny",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-002",
+            "name": "Healing Flutter",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-003",
+            "name": "Black Jade Courier",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-004",
+            "name": "Alley Thug",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-009",
+            "name": "The Red Bean",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-016",
+            "name": "Sleight of Hand",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-045",
+            "name": "Treetop Scout",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-046",
+            "name": "Mina the Geomancer",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-068",
+            "name": "Pip",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-069",
+            "name": "Link",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-070",
+            "name": "Mocking Dummy",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT01-013",
+            "name": "Black Jade Dagger",
+            "type": "WEAPON",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT02-004",
+            "name": "Rei",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT03-003",
+            "name": "Koyama Farm Potter",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "STT03-004",
+            "name": "Sloth Scarecrow",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-006",
+            "name": "Gus",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-007",
+            "name": "Johnny",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-017",
+            "name": "Hook Sword Strike",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-047",
+            "name": "Shiko the Priestess",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-055",
+            "name": "Earth Orb",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-071",
+            "name": "Alley Fetchduck",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-072",
+            "name": "Beanz Mentor",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-074",
+            "name": "Gurugumi Vanguard",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-084",
+            "name": "Good Enough Replica",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-102",
+            "name": "Oathstone",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-128",
+            "name": "Wrong Step",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "STT01-007",
+            "name": "Alley Guy",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT01-014",
+            "name": "Tenshin",
+            "type": "WEAPON",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT03-005",
+            "name": "Wobbly Cabbage Cart",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "STT03-006",
+            "name": "Cactus Farmer",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "STT04-006",
+            "name": "Wolf Cub",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-008",
+            "name": "Rainy Day Assassin",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-010",
+            "name": "JD",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-011",
+            "name": "Rooftop Hunter",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-019",
+            "name": "Jay",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-020",
+            "name": "Power of Friendship",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-085",
+            "name": "Invigorating Concoction",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-101",
+            "name": "Sand Stands Still",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "STT01-015",
+            "name": "Tenraku",
+            "type": "WEAPON",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT03-007",
+            "name": "Koyama Farm Caretaker",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-005",
+            "name": "Caravan Guard",
+            "type": "ENTITY",
+            "cost": 4,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-018",
+            "name": "Monk Staff of Warding",
+            "type": "WEAPON",
+            "cost": 4,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-050",
+            "name": "Shroom Tender",
+            "type": "ENTITY",
+            "cost": 4,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-075",
+            "name": "Drunken Brewmaster",
+            "type": "ENTITY",
+            "cost": 4,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-086",
+            "name": "Forging Tricks",
+            "type": "SPELL",
+            "cost": 4,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-105",
+            "name": "Prickly Tumbleweed",
+            "type": "ENTITY",
+            "cost": 4,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "STT03-015",
+            "name": "Jar of Beans",
+            "type": "SPELL",
+            "cost": 4,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-108",
+            "name": "Crushing Weight",
+            "type": "SPELL",
+            "cost": 5,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "STT03-016",
+            "name": "Quicksand",
+            "type": "SPELL",
+            "cost": 5,
+            "element": "EARTH",
+            "copies": 1
+          }
+        ]
+      },
+      "sampled": {
+        "leader_split": {
+          "STT03-001": 13,
+          "AZK01-123": 11
+        },
+        "summary": {
+          "cards_total": 50.0,
+          "avg_cost": 2.173,
+          "type_share": {
+            "ENTITY": 0.616,
+            "SPELL": 0.315,
+            "WEAPON": 0.069
+          }
+        },
+        "mean_copies": [
+          {
+            "code": "STT01-014",
+            "name": "Tenshin",
+            "type": "WEAPON",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-085",
+            "name": "Invigorating Concoction",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-101",
+            "name": "Sand Stands Still",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "EARTH",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-072",
+            "name": "Beanz Mentor",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-016",
+            "name": "Sleight of Hand",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-020",
+            "name": "Power of Friendship",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-002",
+            "name": "Healing Flutter",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-003",
+            "name": "Black Jade Courier",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "STT03-004",
+            "name": "Sloth Scarecrow",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "EARTH",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-084",
+            "name": "Good Enough Replica",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-046",
+            "name": "Mina the Geomancer",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "EARTH",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-001",
+            "name": "Penny",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-047",
+            "name": "Shiko the Priestess",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "EARTH",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-107",
+            "name": "Offering to Stillstone",
+            "type": "SPELL",
+            "cost": 0,
+            "element": "EARTH",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-102",
+            "name": "Oathstone",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "EARTH",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-009",
+            "name": "The Red Bean",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-055",
+            "name": "Earth Orb",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "EARTH",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-007",
+            "name": "Johnny",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-045",
+            "name": "Treetop Scout",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "EARTH",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-017",
+            "name": "Hook Sword Strike",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "STT01-013",
+            "name": "Black Jade Dagger",
+            "type": "WEAPON",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-070",
+            "name": "Mocking Dummy",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "STT03-005",
+            "name": "Wobbly Cabbage Cart",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "EARTH",
+            "copies": 1.0
+          },
+          {
+            "code": "STT03-016",
+            "name": "Quicksand",
+            "type": "SPELL",
+            "cost": 5,
+            "element": "EARTH",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-128",
+            "name": "Wrong Step",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "EARTH",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-004",
+            "name": "Alley Thug",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "STT03-003",
+            "name": "Koyama Farm Potter",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "EARTH",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-074",
+            "name": "Gurugumi Vanguard",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-006",
+            "name": "Gus",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-108",
+            "name": "Crushing Weight",
+            "type": "SPELL",
+            "cost": 5,
+            "element": "EARTH",
+            "copies": 0.96
+          }
+        ]
+      }
+    },
+    "STT03-002": {
+      "gate_name": "Stonehaven(E)",
+      "argmax_deck": {
+        "leader": {
+          "code": "AZK01-123",
+          "name": "Goro Graveloth",
+          "type": "LEADER",
+          "cost": 0,
+          "element": "EARTH",
+          "copies": 1
+        },
+        "summary": {
+          "cards_total": 50.0,
+          "avg_cost": 2.24,
+          "type_share": {
+            "ENTITY": 0.6,
+            "SPELL": 0.32,
+            "WEAPON": 0.08
+          }
+        },
+        "cards": [
+          {
+            "code": "AZK01-107",
+            "name": "Offering to Stillstone",
+            "type": "SPELL",
+            "cost": 0,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-001",
+            "name": "Penny",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-002",
+            "name": "Healing Flutter",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-003",
+            "name": "Black Jade Courier",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-004",
+            "name": "Alley Thug",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-009",
+            "name": "The Red Bean",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-016",
+            "name": "Sleight of Hand",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-045",
+            "name": "Treetop Scout",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-046",
+            "name": "Mina the Geomancer",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-068",
+            "name": "Pip",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-069",
+            "name": "Link",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-070",
+            "name": "Mocking Dummy",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT01-013",
+            "name": "Black Jade Dagger",
+            "type": "WEAPON",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT02-004",
+            "name": "Rei",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT03-003",
+            "name": "Koyama Farm Potter",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "STT03-004",
+            "name": "Sloth Scarecrow",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-006",
+            "name": "Gus",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-007",
+            "name": "Johnny",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-017",
+            "name": "Hook Sword Strike",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-047",
+            "name": "Shiko the Priestess",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-055",
+            "name": "Earth Orb",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-071",
+            "name": "Alley Fetchduck",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-072",
+            "name": "Beanz Mentor",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-074",
+            "name": "Gurugumi Vanguard",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-084",
+            "name": "Good Enough Replica",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-102",
+            "name": "Oathstone",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-128",
+            "name": "Wrong Step",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "STT01-007",
+            "name": "Alley Guy",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT01-014",
+            "name": "Tenshin",
+            "type": "WEAPON",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT03-005",
+            "name": "Wobbly Cabbage Cart",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "STT03-006",
+            "name": "Cactus Farmer",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "STT04-006",
+            "name": "Wolf Cub",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-008",
+            "name": "Rainy Day Assassin",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-010",
+            "name": "JD",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-011",
+            "name": "Rooftop Hunter",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-019",
+            "name": "Jay",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-020",
+            "name": "Power of Friendship",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-085",
+            "name": "Invigorating Concoction",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-101",
+            "name": "Sand Stands Still",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "STT01-015",
+            "name": "Tenraku",
+            "type": "WEAPON",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "STT03-007",
+            "name": "Koyama Farm Caretaker",
+            "type": "ENTITY",
+            "cost": 3,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-005",
+            "name": "Caravan Guard",
+            "type": "ENTITY",
+            "cost": 4,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-018",
+            "name": "Monk Staff of Warding",
+            "type": "WEAPON",
+            "cost": 4,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-050",
+            "name": "Shroom Tender",
+            "type": "ENTITY",
+            "cost": 4,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-075",
+            "name": "Drunken Brewmaster",
+            "type": "ENTITY",
+            "cost": 4,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-086",
+            "name": "Forging Tricks",
+            "type": "SPELL",
+            "cost": 4,
+            "element": "NORMAL",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-105",
+            "name": "Prickly Tumbleweed",
+            "type": "ENTITY",
+            "cost": 4,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "STT03-015",
+            "name": "Jar of Beans",
+            "type": "SPELL",
+            "cost": 4,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "AZK01-108",
+            "name": "Crushing Weight",
+            "type": "SPELL",
+            "cost": 5,
+            "element": "EARTH",
+            "copies": 1
+          },
+          {
+            "code": "STT03-016",
+            "name": "Quicksand",
+            "type": "SPELL",
+            "cost": 5,
+            "element": "EARTH",
+            "copies": 1
+          }
+        ]
+      },
+      "sampled": {
+        "leader_split": {
+          "STT03-001": 13,
+          "AZK01-123": 11
+        },
+        "summary": {
+          "cards_total": 50.0,
+          "avg_cost": 2.173,
+          "type_share": {
+            "ENTITY": 0.616,
+            "SPELL": 0.315,
+            "WEAPON": 0.069
+          }
+        },
+        "mean_copies": [
+          {
+            "code": "STT01-014",
+            "name": "Tenshin",
+            "type": "WEAPON",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-085",
+            "name": "Invigorating Concoction",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-101",
+            "name": "Sand Stands Still",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "EARTH",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-072",
+            "name": "Beanz Mentor",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-016",
+            "name": "Sleight of Hand",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-020",
+            "name": "Power of Friendship",
+            "type": "SPELL",
+            "cost": 3,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-002",
+            "name": "Healing Flutter",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-003",
+            "name": "Black Jade Courier",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "STT03-004",
+            "name": "Sloth Scarecrow",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "EARTH",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-084",
+            "name": "Good Enough Replica",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-046",
+            "name": "Mina the Geomancer",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "EARTH",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-001",
+            "name": "Penny",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-047",
+            "name": "Shiko the Priestess",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "EARTH",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-107",
+            "name": "Offering to Stillstone",
+            "type": "SPELL",
+            "cost": 0,
+            "element": "EARTH",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-102",
+            "name": "Oathstone",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "EARTH",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-009",
+            "name": "The Red Bean",
+            "type": "SPELL",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-055",
+            "name": "Earth Orb",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "EARTH",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-007",
+            "name": "Johnny",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-045",
+            "name": "Treetop Scout",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "EARTH",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-017",
+            "name": "Hook Sword Strike",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "STT01-013",
+            "name": "Black Jade Dagger",
+            "type": "WEAPON",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-070",
+            "name": "Mocking Dummy",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "STT03-005",
+            "name": "Wobbly Cabbage Cart",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "EARTH",
+            "copies": 1.0
+          },
+          {
+            "code": "STT03-016",
+            "name": "Quicksand",
+            "type": "SPELL",
+            "cost": 5,
+            "element": "EARTH",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-128",
+            "name": "Wrong Step",
+            "type": "SPELL",
+            "cost": 2,
+            "element": "EARTH",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-004",
+            "name": "Alley Thug",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "NORMAL",
+            "copies": 1.0
+          },
+          {
+            "code": "STT03-003",
+            "name": "Koyama Farm Potter",
+            "type": "ENTITY",
+            "cost": 1,
+            "element": "EARTH",
+            "copies": 1.0
+          },
+          {
+            "code": "AZK01-074",
+            "name": "Gurugumi Vanguard",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-006",
+            "name": "Gus",
+            "type": "ENTITY",
+            "cost": 2,
+            "element": "NORMAL",
+            "copies": 0.96
+          },
+          {
+            "code": "AZK01-108",
+            "name": "Crushing Weight",
+            "type": "SPELL",
+            "cost": 5,
+            "element": "EARTH",
+            "copies": 0.96
+          }
+        ]
+      }
+    }
+  }
+}
