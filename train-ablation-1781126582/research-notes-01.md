@@ -1209,3 +1209,22 @@ SPS 3330 at launch; ETA train ~3.8h, headline readout ~2h after
 - VERDICT: ADOPT combined recipe. Spec: S12 cap4 + S13 dmg CONFIRMED at 45M
   composing with text-only gates; checkpoint selection = windowed draftref
   with h2h agreement; promotion re-anchoring -> S4 next.
+
+### 8.20 S4 build + smoke launched (2026-07-15 01:43)
+Core mechanism committed (4f7e79a): AZK_DRAFT_REF_SEAT_PROB pre-fills one
+seat's draft from env->deck_pool (AZK_DRAFT_REF_DECK_INDICES = train split,
+evens; battle uses the spec verbatim; S3 swap skips the ref seat), export
+records carry ref_seat/ref_deck_index, metrics emit ref_anchor_winrate +
+ref_seat_rate, snapshots tag ref episodes (analyze_decks excludes them),
+legacy wrapper honors AZK_FIXED_SEAT_DECK_INDICES and draftref eval grew
+--deck-indices (holdout evals). Differential tests green (pinned deck
+reproduced exactly, off-parity, drafter completes); 8 neighbor tests + ctest
+green. GOTCHA (test-side only): AzukiNativeEnv.step() drains records into
+its metrics helper — tests must null _deckbuild_helper to see raw records.
+Smoke s4ref15 (15M, prod spec + prob 0.20) launched 01:43, SPS 3120;
+ref_anchor_winrate 0.25-0.27 at start (untrained vs human decks — expected).
+ref_seat_rate reads ~0.34 vs 0.20 configured (ref episodes cycle faster:
+half-length drafts; plus early small-n) — check the settled value in the
+league summary before tuning prob. Readout incl. holdout draftref for
+s4ref15 AND s14prod45 ep2000/final controls (clean yardstick), windowed
+holdout draftref (anchor-correlation data), ladder, ref-filtered deck report.

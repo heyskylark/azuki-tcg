@@ -575,11 +575,34 @@ class DeckBuildingParallelEnv(ParallelEnv):
     state.main_count = len(main_ids)
     return state
 
+  def _fixed_seat_deck_indices(self) -> list[int]:
+    """S4 holdout support: AZK_FIXED_SEAT_DECK_INDICES (csv of pool indices)
+    restricts which reference decks fixed seats may play. Empty/unset = all."""
+    raw = os.getenv("AZK_FIXED_SEAT_DECK_INDICES", "").strip()
+    if not raw:
+      return []
+    out = []
+    for piece in raw.split(","):
+      piece = piece.strip()
+      if not piece:
+        continue
+      try:
+        value = int(piece)
+      except ValueError:
+        continue
+      if 0 <= value < len(self._deck_pool):
+        out.append(value)
+    return out
+
   def _initial_states(self) -> list[PlayerDeckBuildState]:
     states: list[PlayerDeckBuildState] = []
+    allowed = self._fixed_seat_deck_indices()
     for player_index in range(self._agent_count):
       if player_index in self._fixed_deck_seats:
-        deck_index = int(self._rng.integers(0, len(self._deck_pool)))
+        if allowed:
+          deck_index = allowed[int(self._rng.integers(0, len(allowed)))]
+        else:
+          deck_index = int(self._rng.integers(0, len(self._deck_pool)))
         states.append(self._fixed_state_from_deck(self._deck_pool[deck_index]))
       else:
         states.append(PlayerDeckBuildState.create(self._sample_gate_def_id()))

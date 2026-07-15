@@ -160,7 +160,14 @@ def main():
   parser.add_argument("--max-steps", type=int, default=500)
   parser.add_argument("--argmax", action="store_true")
   parser.add_argument("--json", type=Path, default=None)
+  parser.add_argument(
+    "--deck-indices", type=str, default=None,
+    help="csv of pool indices the fixed seat may play (S4 holdout evals)")
   args = parser.parse_args()
+  if args.deck_indices is not None:
+    import os
+
+    os.environ["AZK_FIXED_SEAT_DECK_INDICES"] = args.deck_indices
 
   seats = [0, 1] if args.fixed_seat == "both" else [int(args.fixed_seat)]
   results = []
