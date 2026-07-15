@@ -79,7 +79,10 @@ def jaccard(a: dict, b: dict) -> float:
 def analyze_bucket(records, meta, top_k, sample_pairs=400):
     by_gate = defaultdict(list)
     for record in records:
-        for player in record.get("players", []):
+        ref_seat = int(record.get("ref_seat", -1))
+        for idx, player in enumerate(record.get("players", [])):
+            if idx == ref_seat:
+                continue  # S4 reference seat plays a fixed human deck, not a draft
             gate = player.get("gate")
             if gate:
                 by_gate[gate].append(player)

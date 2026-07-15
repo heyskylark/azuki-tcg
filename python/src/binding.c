@@ -658,9 +658,11 @@ static PyObject* vec_drain_deck_records(PyObject* self, PyObject* args) {
       PyList_SET_ITEM(players, p, player);
     }
     PyObject* record = Py_BuildValue(
-        "{s:k,s:f,s:N}",
+        "{s:k,s:f,s:i,s:i,s:N}",
         "seed", (unsigned long)env->deck_record_seed,
         "episode_length", env->deck_record_episode_length,
+        "ref_seat", (int)env->deck_record_ref_seat,
+        "ref_deck_index", (int)env->deck_record_ref_deck_index,
         "players", players);
     if (record == NULL) {
       Py_DECREF(records);

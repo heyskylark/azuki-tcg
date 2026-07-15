@@ -288,6 +288,12 @@ typedef struct {
   int16_t draft_main[MAX_PLAYERS_PER_MATCH][REQUIRED_DECK_SIZE];
   uint8_t draft_main_count[MAX_PLAYERS_PER_MATCH];
   uint8_t draft_copies[MAX_PLAYERS_PER_MATCH][AZK_DRAFT_MAX_CANDIDATES];
+  // S4 reference seat: with prob AZK_DRAFT_REF_SEAT_PROB one seat skips the
+  // draft and plays env->deck_pool[draft_ref_deck_index] (restricted to
+  // AZK_DRAFT_REF_DECK_INDICES when set) — external meta anchor + promotion
+  // yardstick. -1 = no reference seat this episode.
+  int8_t draft_ref_seat;
+  int16_t draft_ref_deck_index;
 
   // Per-episode export record for Python-side deckbuild metrics/snapshots
   // (drained via binding.vec_drain_deck_records right on the terminal step).
@@ -300,6 +306,8 @@ typedef struct {
   float deck_record_behavior[MAX_PLAYERS_PER_MATCH][AZK_DECKBUILD_BEHAVIOR_COUNT];
   float deck_record_leader_health[MAX_PLAYERS_PER_MATCH];
   float deck_record_episode_length;
+  int8_t deck_record_ref_seat;
+  int16_t deck_record_ref_deck_index;
 } CAzukiTCG;
 
 static void draft_begin_episode(CAzukiTCG* env);
@@ -1771,9 +1779,127 @@ static void deckbuild_postprocess_battle_observations(CAzukiTCG* env) {
   }
 }
 
+// S4: roll the reference-seat lottery. Returns a deck_pool index or -1.
+// Env vars are re-read per episode (mirrors draft_forced_gates); prob 0 /
+// unset leaves the RNG stream bit-identical to builds without the knob.
+static int draft_sample_ref_deck(CAzukiTCG* env) {
+  const char* prob_text = getenv("AZK_DRAFT_REF_SEAT_PROB");
+  if (prob_text == NULL || prob_text[0] == '\0') {
+    return -1;
+  }
+  const float prob = strtof(prob_text, NULL);
+  if (prob <= 0.0f || env->deck_pool == NULL || env->deck_pool_count == 0) {
+    return -1;
+  }
+  env->draft_rng_state = advance_episode_seed(env->draft_rng_state);
+  if (prob < 1.0f &&
+      (double)env->draft_rng_state >= (double)prob * 4294967296.0) {
+    return -1;
+  }
+  int16_t allowed[64];
+  int allowed_count = 0;
+  const char* idx_text = getenv("AZK_DRAFT_REF_DECK_INDICES");
+  if (idx_text != NULL && idx_text[0] != '\0') {
+    const char* cursor = idx_text;
+    while (*cursor != '\0' && allowed_count < 64) {
+      char* end = NULL;
+      const long value = strtol(cursor, &end, 10);
+      if (end == cursor) {
+        break;
+      }
+      if (value >= 0 && (size_t)value < env->deck_pool_count) {
+        allowed[allowed_count++] = (int16_t)value;
+      }
+      cursor = (*end == ',') ? end + 1 : end;
+    }
+  }
+  env->draft_rng_state = advance_episode_seed(env->draft_rng_state);
+  if (allowed_count > 0) {
+    return allowed[env->draft_rng_state % (uint32_t)allowed_count];
+  }
+  return (int)(env->draft_rng_state % (uint32_t)env->deck_pool_count);
+}
+
+static int16_t draft_spec_gate(const TrainingDeckSpec* spec) {
+  for (size_t i = 0; i < spec->card_count; ++i) {
+    const CardDef* def = azk_card_def_from_id((CardDefId)spec->cards[i].card_id);
+    if (def != NULL && def->type == CARD_TYPE_GATE) {
+      return (int16_t)spec->cards[i].card_id;
+    }
+  }
+  return -1;
+}
+
+// Maps a pool deck onto a COMPLETED draft state for `seat` (validates before
+// mutating: one leader, one catalog gate, exactly REQUIRED_DECK_SIZE mains;
+// IKZ entries ignored). draft_copies is filled best-effort for the draft
+// observations only — reference decks may contain cards outside the gate's
+// draftable pool, so draft_start_battle uses the spec directly for this seat.
+static bool draft_prefill_from_spec(CAzukiTCG* env, int seat,
+                                    const TrainingDeckSpec* spec) {
+  int16_t leader = -1;
+  int16_t gate = -1;
+  int gate_slot = -1;
+  int mains = 0;
+  for (size_t i = 0; i < spec->card_count; ++i) {
+    const CardDef* def = azk_card_def_from_id((CardDefId)spec->cards[i].card_id);
+    if (def == NULL) {
+      return false;
+    }
+    switch (def->type) {
+      case CARD_TYPE_LEADER:
+        leader = (int16_t)spec->cards[i].card_id;
+        break;
+      case CARD_TYPE_GATE:
+        gate = (int16_t)spec->cards[i].card_id;
+        gate_slot = draft_gate_slot_for(gate);
+        break;
+      case CARD_TYPE_IKZ:
+        break;
+      default:
+        mains += spec->cards[i].card_count;
+        break;
+    }
+  }
+  if (leader < 0 || gate < 0 || gate_slot < 0 || mains != REQUIRED_DECK_SIZE) {
+    return false;
+  }
+  env->draft_gate[seat] = gate;
+  env->draft_gate_slot[seat] = gate_slot;
+  env->draft_leader[seat] = leader;
+  env->draft_main_count[seat] = 0;
+  memset(env->draft_copies[seat], 0, sizeof(env->draft_copies[seat]));
+  const int begin = g_draft_catalog.main_offsets[gate_slot];
+  const int end = g_draft_catalog.main_offsets[gate_slot + 1];
+  for (size_t i = 0; i < spec->card_count; ++i) {
+    const CardDef* def = azk_card_def_from_id((CardDefId)spec->cards[i].card_id);
+    const int type = def->type;
+    if (type == CARD_TYPE_LEADER || type == CARD_TYPE_GATE ||
+        type == CARD_TYPE_IKZ) {
+      continue;
+    }
+    for (int c = 0; c < spec->cards[i].card_count &&
+                    env->draft_main_count[seat] < REQUIRED_DECK_SIZE;
+         ++c) {
+      env->draft_main[seat][env->draft_main_count[seat]] =
+          (int16_t)spec->cards[i].card_id;
+      env->draft_main_count[seat] += 1;
+    }
+    for (int j = begin; j < end; ++j) {
+      if (g_draft_catalog.main_flat[j] == (int16_t)spec->cards[i].card_id) {
+        env->draft_copies[seat][j - begin] = (uint8_t)spec->cards[i].card_count;
+        break;
+      }
+    }
+  }
+  return true;
+}
+
 static void draft_begin_episode(CAzukiTCG* env) {
   env->draft_active = true;
   env->draft_active_player = 0;
+  env->draft_ref_seat = -1;
+  env->draft_ref_deck_index = -1;
   env->draft_rng_state = advance_episode_seed(env->draft_rng_state);
   env->episode_world_seed = env->draft_rng_state;
 
@@ -1792,8 +1918,24 @@ static void draft_begin_episode(CAzukiTCG* env) {
                                               .population_count];
     }
   }
+  // S4 reference seat: replace one seat's sampled gate with the reference
+  // deck's own gate before the sibling roll (so a ref seat at slot 0 can
+  // still be sibling-paired against the drafter).
+  int ref_deck = use_forced ? -1 : draft_sample_ref_deck(env);
+  int ref_seat = -1;
+  if (ref_deck >= 0) {
+    env->draft_rng_state = advance_episode_seed(env->draft_rng_state);
+    ref_seat = (int)(env->draft_rng_state & 1u);
+    const int16_t ref_gate = draft_spec_gate(&env->deck_pool[ref_deck]);
+    if (ref_gate >= 0 && draft_gate_slot_for(ref_gate) >= 0) {
+      gates[ref_seat] = ref_gate;
+    } else {
+      ref_deck = -1;
+      ref_seat = -1;
+    }
+  }
   const float sibling_prob = env->draft_same_element_matchup_prob;
-  if (!use_forced && sibling_prob > 0.0f) {
+  if (!use_forced && sibling_prob > 0.0f && ref_seat != 1) {
     env->draft_rng_state = advance_episode_seed(env->draft_rng_state);
     const bool hit = sibling_prob >= 1.0f ||
                      (double)env->draft_rng_state <
@@ -1825,6 +1967,12 @@ static void draft_begin_episode(CAzukiTCG* env) {
     }
     memset(env->draft_copies[player_index], 0,
            sizeof(env->draft_copies[player_index]));
+  }
+  if (ref_deck >= 0 &&
+      draft_prefill_from_spec(env, ref_seat, &env->deck_pool[ref_deck])) {
+    env->draft_ref_seat = (int8_t)ref_seat;
+    env->draft_ref_deck_index = (int16_t)ref_deck;
+    env->draft_active_player = (int8_t)(1 - ref_seat);
   }
   fill_draft_observations(env);
 }
@@ -1918,14 +2066,17 @@ static void draft_start_battle(CAzukiTCG* env) {
     if (hit) {
       env->draft_rng_state = advance_episode_seed(env->draft_rng_state);
       const int seat = (int)(env->draft_rng_state & 1u);
-      const int slot = env->draft_gate_slot[seat];
-      const int16_t sibling =
-          slot >= 0 ? g_draft_catalog.gate_sibling_def_ids[slot] : -1;
-      if (sibling >= 0) {
-        const int sib_slot = draft_gate_slot_for(sibling);
-        if (sib_slot >= 0) {
-          env->draft_gate[seat] = sibling;
-          env->draft_gate_slot[seat] = sib_slot;
+      // Never swap the reference seat's gate — its deck is fixed to it.
+      if (seat != (int)env->draft_ref_seat) {
+        const int slot = env->draft_gate_slot[seat];
+        const int16_t sibling =
+            slot >= 0 ? g_draft_catalog.gate_sibling_def_ids[slot] : -1;
+        if (sibling >= 0) {
+          const int sib_slot = draft_gate_slot_for(sibling);
+          if (sib_slot >= 0) {
+            env->draft_gate[seat] = sibling;
+            env->draft_gate_slot[seat] = sib_slot;
+          }
         }
       }
     }
@@ -1936,10 +2087,25 @@ static void draft_start_battle(CAzukiTCG* env) {
   const size_t n0 = draft_assemble_deck(env, 0, deck0, sizeof(deck0) / sizeof(deck0[0]));
   const size_t n1 = draft_assemble_deck(env, 1, deck1, sizeof(deck1) / sizeof(deck1[0]));
 
+  // S4: the reference seat battles with its pool spec verbatim (its cards may
+  // lie outside the gate's draftable pool, so the copies-based assembly above
+  // cannot represent it).
+  const CardInfo* spec0 = deck0;
+  const CardInfo* spec1 = deck1;
+  size_t count0 = n0;
+  size_t count1 = n1;
+  if (env->draft_ref_seat == 0) {
+    spec0 = env->deck_pool[env->draft_ref_deck_index].cards;
+    count0 = env->deck_pool[env->draft_ref_deck_index].card_count;
+  } else if (env->draft_ref_seat == 1) {
+    spec1 = env->deck_pool[env->draft_ref_deck_index].cards;
+    count1 = env->deck_pool[env->draft_ref_deck_index].card_count;
+  }
+
   const int8_t starting_player = next_starting_player(env);
   azk_engine_destroy(env->engine);
   env->engine = azk_engine_create_with_decks_and_starting_player(
-      env->episode_world_seed, starting_player, deck0, n0, deck1, n1);
+      env->episode_world_seed, starting_player, spec0, count0, spec1, count1);
   if (env->engine == NULL) {
     const char* error_message = azk_engine_get_last_error();
     fprintf(stderr, "Failed to create engine from drafted decks: %s\n",
@@ -1993,6 +2159,8 @@ static void deckbuild_fill_export_record(CAzukiTCG* env) {
     env->deck_record_leader_health[p] =
         have_snapshot ? snapshot.leader_health_ratio[p] : 0.0f;
   }
+  env->deck_record_ref_seat = env->draft_ref_seat;
+  env->deck_record_ref_deck_index = env->draft_ref_deck_index;
   env->deck_record_valid = true;
 }
 

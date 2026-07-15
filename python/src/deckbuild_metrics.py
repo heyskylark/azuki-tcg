@@ -272,6 +272,15 @@ class NativeDeckbuildHelper:
         for key, value in self._player_metrics(player, opponent).items():
           sums[key] += value
           counts[key] += 1
+      # S4 reference-seat anchor: winrate of the drafting seat against fixed
+      # reference decks — the external promotion yardstick.
+      ref_seat = int(record.get("ref_seat", -1))
+      if 0 <= ref_seat < len(players):
+        drafter = players[1 - ref_seat]
+        sums["ref_anchor_winrate"] += float(drafter.get("win", 0.0) or 0.0)
+        counts["ref_anchor_winrate"] += 1
+      sums["ref_seat_rate"] += 1.0 if 0 <= ref_seat < len(players) else 0.0
+      counts["ref_seat_rate"] += 1
       self._maybe_write_snapshot(record)
       self._completed_episodes += 1
     return {key: sums[key] / counts[key] for key in sums}
@@ -317,6 +326,7 @@ class NativeDeckbuildHelper:
       "ts": round(time.time(), 1),
       "episode": self._completed_episodes,
       "seed": int(record.get("seed", 0)),
+      "ref_seat": int(record.get("ref_seat", -1)),
       "players": players_out,
     }
     try:
