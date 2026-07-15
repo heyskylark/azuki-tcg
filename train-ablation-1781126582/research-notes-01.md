@@ -1240,3 +1240,18 @@ off-parity differential test), so they were left in git; revert on request
 experiments/azuki_local_s4ref15_*/, experiments/league/s4ref15/,
 experiments/abl_snapshots/s4ref15/. S5 was never started. S4/S5 stay
 pending until explicit user go-ahead.
+
+### 8.21 S14 trajectory tail complete (2026-07-15 02:4x) — S14 fully closed
+- KL trajectory (30 ckpts, 8 eps each): L/W sustained 1e-7..1e-6 at EVERY
+  checkpoint ep100..2930, F/E at 1e-9 noise throughout. No erasure anywhere
+  in the run (contrast auxvd45: peak 5.8e-5 @1.5M -> 0 by 11M). The floor-
+  retention story holds at full 45M under the combined recipe. CAVEAT:
+  run-to-run probe variance at these magnitudes is large (final probe L
+  4.6e-6 vs tail 1.2e-7 at the same ep2930) — treat sub-1e-5 KLs as
+  order-of-magnitude indicators only.
+- Critic trajectory (every 200, 6 eps): LIGHTNING sign UNSTABLE until
+  ~ep1200 (5/6, 0/6, 4/6, 6/6, 6/6, 2/6...), then LOCKED 6/6 positive from
+  ep1400 through ep2800 with |dV|/std ratio GROWING 1.23 -> 2.03 into the
+  end of the run (and 12/12 at ep2930 final probe). The critic's sibling
+  pricing strengthens late — consistent with ep2000+ being the strongest
+  external region. S14 now fully closed (ALL_DONE).
