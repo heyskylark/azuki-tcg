@@ -757,3 +757,59 @@ cheap interim alternative is re-anchoring the gate on windowed draftref.
    Never ship the endpoint blindly.
 3. Promotion gate: re-anchor on an external yardstick (S4 reference seats or
    draftref-based gate) before the distributed run.
+
+## 27. S4/S5 handoff state for future sessions (2026-07-15)
+
+**Both are ON HOLD by explicit user instruction ("please dont build or run s4
+or s5 yet"). Do not launch either without a fresh user go-ahead.**
+
+### S4 — reference-deck seats: BUILT (inert), never validated
+The core mechanism was implemented and committed (4f7e79a, 24d22da) before
+the hold arrived; it is dormant unless its env vars are set (off-parity
+proven by test_draft_ref_seat.py):
+- `AZK_DRAFT_REF_SEAT_PROB` — prob one seat/episode skips the draft and plays
+  a deck from the pool (battle uses the spec verbatim; S3 gate-swap skips the
+  ref seat; drafter seat unaffected).
+- `AZK_DRAFT_REF_DECK_INDICES` — csv restricting which pool decks serve as
+  ref seats. Split: evens 0-16 = train, odds 1-17 = holdout (18-deck pool).
+- Telemetry: episode records carry ref_seat/ref_deck_index; metrics emit
+  `ref_anchor_winrate` (drafter winrate vs fixed decks — the external
+  promotion yardstick per §26.4) and `ref_seat_rate`; snapshots tag ref
+  episodes and analyze_decks excludes them from per-gate draft stats.
+- Eval support: `draft_vs_reference_eval.py --deck-indices` /
+  `AZK_FIXED_SEAT_DECK_INDICES` (legacy wrapper) for leak-free holdout evals.
+- Driver ready: `run_s4.sh` (15M smoke, prob 0.20, full prod spec, holdout
+  readout incl. s14prod45 ep2000/final holdout controls). Its first launch
+  was killed at ~2M steps on the hold; partial artifacts remain under
+  experiments/*s4ref15*. Known open item: observed ref_seat_rate ran ~0.34
+  vs 0.20 configured (ref episodes cycle faster — half-length drafts);
+  check the settled value before tuning prob.
+
+### S5 — hindsight pick credit: NOT BUILT
+Spec unchanged (Part IV): engine/env export of per-card play events routed
+back to the originating pick steps as annealed, win-gated credit. Largest
+build in the queue; nothing started.
+
+### Promotion redesign discussed with the user (not yet implemented)
+Motivated by §26.4 (lone-champion Wilson gate anticorrelated with external
+strength). Agreed direction from discussion:
+1. **Panel-based gate**: evaluate candidates vs K=4-6 seats — 2-3 recent
+   pool members (live meta), 1-2 past champions/old members (retention),
+   optionally ONE external reference-deck seat (measurement-only). Promote
+   iff Wilson-LB of pooled winrate > ~0.52 AND quorum (>=break-even vs >=3
+   of 4 seats) AND no matchup < ~0.35. Panel ages with the pool — removes
+   the stale-champion trap by construction.
+2. **Gate-paired evals**: promotion games in mirrored gate pairs (swap gate
+   assignment across each pair) to cancel gate-power luck (Surge ~.66-.80
+   vs Ragefire ~.21-.28 makes n=16 unpaired evals unacceptably noisy).
+   Mirror-gate evals are the stronger variant (both seats same gate).
+3. **Training matchups stay randomized** (+ existing 0.35 sibling
+   oversampling); at most ~10-15% mirrors if ever tried — heavy mirror
+   training would under-train cross-gate matchup skill.
+
+### User's design stance (respect in any future S4 work)
+Reference decks are an ANCHOR (beat them), never a TARGET (resemble them):
+no imitation terms; keep ref-seat share small or measurement-only; the
+9/9 train/holdout split exists to detect overfitting to the training refs;
+the goal remains decks humans would not build (the current meta's cheap
+near-singleton piles are exactly that — see s14prod45_ep2000_decks.md).
