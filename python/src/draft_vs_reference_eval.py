@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import argparse
+import concurrent.futures
 import json
+import multiprocessing
 from collections import defaultdict
 from pathlib import Path
 
@@ -149,6 +151,10 @@ def run_eval(
   return result
 
 
+def _run_eval_job(kwargs):
+  return run_eval(**kwargs)
+
+
 def main():
   parser = argparse.ArgumentParser(description="Drafted-deck vs reference-deck evaluation.")
   parser.add_argument("--config", type=Path, default=DEFAULT_CONFIG_PATH)
@@ -159,6 +165,12 @@ def main():
   parser.add_argument("--seed", type=int, default=1234)
   parser.add_argument("--max-steps", type=int, default=500)
   parser.add_argument("--argmax", action="store_true")
+  parser.add_argument(
+    "--parallel-seats",
+    action=argparse.BooleanOptionalAction,
+    default=True,
+    help="evaluate fixed seats 0 and 1 concurrently when both are requested",
+  )
   parser.add_argument("--json", type=Path, default=None)
   parser.add_argument(
     "--deck-indices", type=str, default=None,
@@ -170,19 +182,30 @@ def main():
     os.environ["AZK_FIXED_SEAT_DECK_INDICES"] = args.deck_indices
 
   seats = [0, 1] if args.fixed_seat == "both" else [int(args.fixed_seat)]
-  results = []
+  jobs = []
   for seat in seats:
-    result = run_eval(
-      config_path=args.config,
-      checkpoint=args.checkpoint,
-      episodes=args.episodes // len(seats),
-      fixed_seat=seat,
-      device=args.device,
-      seed=args.seed + seat * 99991,
-      max_steps=args.max_steps,
-      argmax=args.argmax,
-    )
-    results.append(result)
+    jobs.append({
+      "config_path": args.config,
+      "checkpoint": args.checkpoint,
+      "episodes": args.episodes // len(seats),
+      "fixed_seat": seat,
+      "device": args.device,
+      "seed": args.seed + seat * 99991,
+      "max_steps": args.max_steps,
+      "argmax": args.argmax,
+    })
+
+  if len(jobs) == 2 and args.parallel_seats:
+    context = multiprocessing.get_context("spawn")
+    with concurrent.futures.ProcessPoolExecutor(
+      max_workers=2,
+      mp_context=context,
+    ) as executor:
+      results = list(executor.map(_run_eval_job, jobs))
+  else:
+    results = [_run_eval_job(job) for job in jobs]
+
+  for result in results:
     print(json.dumps(result, indent=2))
 
   if len(results) == 2:

@@ -1,0 +1,61 @@
+{
+  "config": "/home/skylark/git/azuki-tcg/python/config/azuki_deckbuild_native_3090.ini",
+  "control_overrides": {
+    "env.deck_snapshot_every": 0,
+    "env.draft_cross_gate_replay_prob": 0.15,
+    "env.draft_same_element_matchup_prob": 0.35,
+    "league.enable": false,
+    "neptune": false,
+    "policy.deck_pick_smoothing_eps": 0.02,
+    "policy.gate_id_embedding_enabled": false,
+    "train.checkpoint_interval": 1000,
+    "train.seed": 42,
+    "train.total_timesteps": 307200,
+    "wandb": false
+  },
+  "mode": "fixed",
+  "variant_file": "/home/skylark/git/azuki-tcg/train-ablation-1781126582/reward_shaping_sps_ikz_repeat_variants.json",
+  "variants": [
+    {
+      "description": "S14 rewards with all candidate reward knobs disabled.",
+      "env": {
+        "AZK_DMG_MITIGATION_BONUS": "0.15",
+        "AZK_DMG_MITIGATION_CAP": "10",
+        "AZK_EARLY_TEMPO_BONUS": "0.1",
+        "AZK_EARLY_TEMPO_CAP": "4",
+        "AZK_PFSP": "1",
+        "AZK_PORTAL_GP_BONUS": "0.3",
+        "AZK_REWARD_SHAPING_ANNEAL": "1",
+        "AZK_REWARD_SHAPING_ANNEAL_FINAL": "0.15",
+        "AZK_REWARD_SHAPING_ANNEAL_INITIAL": "1.0",
+        "AZK_REWARD_SHAPING_ANNEAL_RAMP_EPISODES": "40",
+        "AZK_REWARD_SHAPING_ANNEAL_WARMUP_EPISODES": "12",
+        "AZK_XGATE_MASK": "1"
+      },
+      "label": "s14_control",
+      "overrides": {}
+    },
+    {
+      "description": "S14 plus generated-IKZ conversion, replacing raw untapped IKZ potential.",
+      "env": {
+        "AZK_DMG_MITIGATION_BONUS": "0.15",
+        "AZK_DMG_MITIGATION_CAP": "10",
+        "AZK_EARLY_TEMPO_BONUS": "0.1",
+        "AZK_EARLY_TEMPO_CAP": "4",
+        "AZK_GENERATED_IKZ_CONVERSION_BONUS": "0.05",
+        "AZK_GENERATED_IKZ_CONVERSION_STEP_CAP": "4",
+        "AZK_PFSP": "1",
+        "AZK_PORTAL_GP_BONUS": "0.3",
+        "AZK_REWARD_SHAPING_ANNEAL": "1",
+        "AZK_REWARD_SHAPING_ANNEAL_FINAL": "0.15",
+        "AZK_REWARD_SHAPING_ANNEAL_INITIAL": "1.0",
+        "AZK_REWARD_SHAPING_ANNEAL_RAMP_EPISODES": "40",
+        "AZK_REWARD_SHAPING_ANNEAL_WARMUP_EPISODES": "12",
+        "AZK_REWARD_UNTAPPED_IKZ_WEIGHT": "0",
+        "AZK_XGATE_MASK": "1"
+      },
+      "label": "rs2_ikz_conversion",
+      "overrides": {}
+    }
+  ]
+}

@@ -121,9 +121,28 @@ typedef struct {
   float garden_attack_sum[MAX_PLAYERS_PER_MATCH];
   float untapped_garden_count[MAX_PLAYERS_PER_MATCH];
   float untapped_ikz_count[MAX_PLAYERS_PER_MATCH];
+  float entity_damage_taken[MAX_PLAYERS_PER_MATCH];
+  float generated_ikz_created[MAX_PLAYERS_PER_MATCH];
+  float generated_ikz_converted[MAX_PLAYERS_PER_MATCH];
 } AzkRewardSnapshot;
 
 bool azk_engine_reward_snapshot(AzkEngine *engine, AzkRewardSnapshot *out_snapshot);
+
+typedef struct {
+  bool valid;
+  int8_t player_index;
+  ecs_entity_t attacker;
+  bool temporary_charge;
+  int8_t positive_eot_attack_bonus;
+} AzkAttackRewardContext;
+
+bool azk_engine_attack_reward_context(AzkEngine *engine,
+                                      const UserAction *action,
+                                      AzkAttackRewardContext *out_context);
+
+bool azk_engine_legal_action_spends_ikz(AzkEngine *engine,
+                                        int8_t player_index,
+                                        const UserAction *action);
 
 /**
  * Get the last error message from engine operations.

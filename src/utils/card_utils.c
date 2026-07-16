@@ -13,6 +13,16 @@
 #include "utils/status_util.h"
 #include "utils/zone_util.h"
 #include <stdio.h>
+#include <stdlib.h>
+
+static bool generated_ikz_reward_tracking_enabled(void) {
+  static int enabled = -1;
+  if (enabled < 0) {
+    const char *raw = getenv("AZK_GENERATED_IKZ_CONVERSION_BONUS");
+    enabled = raw != NULL && raw[0] != '\0' && strtof(raw, NULL) > 0.0f;
+  }
+  return enabled != 0;
+}
 
 static bool is_card_in_play_zone(ecs_world_t *world, ecs_entity_t card) {
   const GameState *gs = ecs_singleton_get(world, GameState);
@@ -525,11 +535,79 @@ bool can_tap_card(ecs_world_t *world, ecs_entity_t card, bool ignore_cooldown) {
   return true;
 }
 
+static int reward_player_for_ikz_source(ecs_world_t *world,
+                                        ecs_entity_t card) {
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  if (gs == NULL || card == 0) {
+    return -1;
+  }
+
+  ecs_entity_t owner = ecs_get_target(world, card, Rel_OwnedBy, 0);
+  if (owner != 0) {
+    const PlayerNumber *player_number = ecs_get(world, owner, PlayerNumber);
+    if (player_number != NULL &&
+        player_number->player_number < MAX_PLAYERS_PER_MATCH) {
+      return (int)player_number->player_number;
+    }
+  }
+
+  const ecs_entity_t parent = ecs_get_target(world, card, EcsChildOf, 0);
+  for (int player_index = 0; player_index < MAX_PLAYERS_PER_MATCH;
+       ++player_index) {
+    if (parent == gs->zones[player_index].ikz_area) {
+      return player_index;
+    }
+    const IKZToken *token = ecs_get(world, gs->players[player_index], IKZToken);
+    if (token != NULL && token->ikz_token == card) {
+      return player_index;
+    }
+  }
+
+  return -1;
+}
+
+void azk_mark_generated_ikz_credit(ecs_world_t *world, ecs_entity_t card) {
+  if (!generated_ikz_reward_tracking_enabled() || world == NULL || card == 0 ||
+      ecs_has(world, card, RewardGeneratedIKZCredit)) {
+    return;
+  }
+
+  const int player_index = reward_player_for_ikz_source(world, card);
+  if (player_index < 0) {
+    return;
+  }
+
+  ecs_add(world, card, RewardGeneratedIKZCredit);
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  if (gs != NULL) {
+    gs->generated_ikz_created[player_index]++;
+    ecs_singleton_modified(world, GameState);
+  }
+}
+
+void azk_clear_generated_ikz_credit(ecs_world_t *world, ecs_entity_t card) {
+  if (generated_ikz_reward_tracking_enabled() && world != NULL && card != 0 &&
+      ecs_has(world, card, RewardGeneratedIKZCredit)) {
+    ecs_remove(world, card, RewardGeneratedIKZCredit);
+  }
+}
+
 void tap_card(ecs_world_t *world, ecs_entity_t card) {
   const TapState *ts = ecs_get(world, card, TapState);
   ecs_assert(ts != NULL, ECS_INVALID_PARAMETER,
              "TapState component not found for card %d", card);
-  ecs_set(world, card, TapState, {.tapped = true, .cooldown = ts->cooldown});
+  const bool cooldown = ts != NULL && ts->cooldown;
+  if (generated_ikz_reward_tracking_enabled() && ts != NULL && !ts->tapped &&
+      ecs_has(world, card, RewardGeneratedIKZCredit)) {
+    const int player_index = reward_player_for_ikz_source(world, card);
+    GameState *gs = ecs_singleton_get_mut(world, GameState);
+    if (gs != NULL && player_index >= 0) {
+      gs->generated_ikz_converted[player_index]++;
+      ecs_singleton_modified(world, GameState);
+    }
+    ecs_remove(world, card, RewardGeneratedIKZCredit);
+  }
+  ecs_set(world, card, TapState, {.tapped = true, .cooldown = cooldown});
   azk_log_card_tap_state_changed(world, card, GLOG_TAP_TAPPED);
 }
 

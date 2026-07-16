@@ -101,6 +101,7 @@ void azk01_015_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
     if (ikz != 0) {
       ecs_set(world, ikz, TapState, {.tapped = false, .cooldown = false});
       azk_log_card_tap_state_changed(world, ikz, GLOG_TAP_UNTAPPED);
+      azk_mark_generated_ikz_credit(world, ikz);
     }
     return;
   }

@@ -27,6 +27,16 @@ class SPSAutoresearchTests(unittest.TestCase):
     self.assertAlmostEqual(parsed["SPS"], 468.29)
     self.assertAlmostEqual(parsed["performance/env"], 1.25)
 
+  def test_parse_epoch_log_line_unwraps_numpy_scalars(self):
+    line = (
+      "[epoch 3] {'SPS': 5136.1, "
+      "'environment/sampler/subaction_temperature': np.float64(1.2)}"
+    )
+    parsed = parse_epoch_log_line(line)
+    self.assertIsNotNone(parsed)
+    assert parsed is not None
+    self.assertAlmostEqual(parsed["environment/sampler/subaction_temperature"], 1.2)
+
   def test_parse_env_profile_line(self):
     line = (
       "[EnvProfile] steps=4000 avg_step_us=591.42 avg_tick_us=554.14 "

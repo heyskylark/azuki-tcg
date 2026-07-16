@@ -26,6 +26,7 @@ static uint8_t untap_tapped_ikz_sources(ecs_world_t *world, ecs_entity_t owner,
               {.tapped = false, .cooldown = ts->cooldown});
       azk_log_card_tap_state_changed(world, ikz_token->ikz_token,
                                      GLOG_TAP_UNTAPPED);
+      azk_mark_generated_ikz_credit(world, ikz_token->ikz_token);
       ++untapped;
     }
   }

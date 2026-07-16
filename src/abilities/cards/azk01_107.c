@@ -58,4 +58,5 @@ void azk01_107_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
   }
   ecs_set(world, ctx->runtime.owner, IKZToken,
           {.ikz_token = token, .expires_eot = true});
+  azk_mark_generated_ikz_credit(world, token);
 }

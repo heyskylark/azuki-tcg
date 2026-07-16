@@ -807,9 +807,454 @@ strength). Agreed direction from discussion:
    oversampling); at most ~10-15% mirrors if ever tried — heavy mirror
    training would under-train cross-gate matchup skill.
 
+**Deferred until after the current reward-shaping ablations and qualifying
+45M confirmations.** Do not change the league gate inside matched runs. Before
+implementation, discuss and fix the panel membership/aging policy, mirrored
+gate protocol, sample size/confidence rule, quorum and matchup floor, and
+whether an external reference seat is measurement-only or part of the gate.
+Until then, legacy promotion outcomes are contextual matchup/cycle telemetry,
+not a model-improvement criterion.
+
 ### User's design stance (respect in any future S4 work)
 Reference decks are an ANCHOR (beat them), never a TARGET (resemble them):
 no imitation terms; keep ref-seat share small or measurement-only; the
 9/9 train/holdout split exists to detect overfitting to the training refs;
 the goal remains decks humans would not build (the current meta's cheap
 near-singleton piles are exactly that — see s14prod45_ep2000_decks.md).
+
+## 28. Competitive-play reward shaping build (2026-07-15)
+
+Four article-derived reward signals were implemented as default-off native
+knobs for matched smoke tests. The control is **S14 (`s14prod45`)**, not an
+older reward baseline. Every arm retains the full adopted stack: shaping
+anneal 1.0 -> 0.15 (12/40 episodes), portal-GP 0.3, S12 early-tempo 0.1 cap
+4, S13 damage mitigation 0.15/cap 10, text-only gates, pick smoothing 0.02,
+same-element oversampling 0.35, cross-gate replay/mask 0.15, frozen ratio
+0.4, PFSP, league retention 6/4/3, and seed 42. Arms start from scratch so
+the experiment measures early-learning guidance; matched S14 checkpoints
+at ep100/300/1000 are the controls.
+
+### 28.1 Signals and overlap controls
+
+1. **Entity-damage exchange ledger**
+   (`AZK_ENTITY_DAMAGE_EXCHANGE_PER_HP=0.025`, step cap 6). Counts effective
+   non-leader damage with overkill removed, then rewards opponent damage
+   minus own damage. It overlaps the existing garden-attack potential and
+   board-delta reward. To limit double counting, there is no separate kill
+   bonus, the maximum new step reward is 0.15 before annealing, and it is a
+   standalone arm. Nondamage destruction is deliberately excluded.
+2. **Generated/recovered IKZ conversion**
+   (`AZK_GENERATED_IKZ_CONVERSION_BONUS=0.05`, step cap 4). Hydromancy-style
+   untaps and effect-created IKZ are marked at the source; credit is paid
+   only when that exact source is later tapped for a cost. Unspent credit is
+   cleared at natural turn refresh. This arm sets
+   `AZK_REWARD_UNTAPPED_IKZ_WEIGHT=0`, replacing rather than stacking with
+   the unconditional untapped-IKZ potential.
+3. **Temporary-effect realization**
+   (`AZK_TEMP_CHARGE_REALIZATION_BONUS=0.08`, temporary attack damage
+   0.025/HP, cap 4). Temporary Charge earns credit only when its attack deals
+   positive effective damage. Positive end-of-turn attack buffs earn only
+   their incremental effective damage, with overkill removed; innate or
+   permanent Charge earns nothing.
+4. **Contextual paid-response reserve**
+   (`AZK_CONTEXTUAL_RESPONSE_RESERVE_BONUS=0.08`). After an opposing attack,
+   the defender earns credit at most once per opposing turn only when the
+   already-built response mask contains a currently legal action with a
+   positive IKZ cost. Free Defender declarations do not qualify. This arm
+   also sets `AZK_REWARD_UNTAPPED_IKZ_WEIGHT=0`.
+
+All four signals ride the existing shaping anneal and zero-sum channel.
+Engine counters for signals 1 and 2 are gated behind their active reward
+variables, so default-off runs do not add hot-path ECS lookups. Signal 4
+scans the observation mask already generated for the defender; it does not
+rebuild or revalidate the action mask.
+
+### 28.2 Validation and smoke protocol
+
+- Full C engine test binary passed.
+- Existing portal-GP, early-tempo, and damage-mitigation differential tests
+  passed (4 tests total).
+- New deterministic differential tests passed for all four signals: action
+  trajectories remain identical, reward deltas are zero-sum, each signal
+  fires, and coefficient/cap quantization is exact.
+- Matched trainer SPS probes compare S14-off vs each active arm before long
+  runs. Hard guardrail: investigate any repeatable >5% SPS loss; reject or
+  optimize at >10%. The 15M runs must also remain near historical S14 rates
+  both before league saturation (~3K SPS) and with the full pool
+  (~1.3-1.6K observed historically).
+- The first 153,600-step isolated matrix (league disabled identically for all
+  arms) cleared that gate. Tail SPS was 4,747.7 for S14 control; entity damage
+  4,787.0 (+0.8%); generated-IKZ conversion 4,552.6 (-4.1%); temporary-effect
+  realization 4,670.1 (-1.6%); contextual reserve 4,847.6 (+2.1%). Total
+  wall-clock runtimes were 82.7-84.2 seconds, so the tail variation did not
+  translate into a material end-to-end slowdown. Entity-damage and temporary
+  effect telemetry fired in sampled games; the rarer IKZ/reserve paths are
+  covered by deterministic differential tests. Artifacts:
+  `results/reward_shaping_sps_v2/`.
+- Because generated-IKZ conversion landed closest to the 5% review line, it
+  received a longer paired 307,200-step repeat. It measured 4,843.8 SPS versus
+  4,695.6 control (+3.2%), with 117.0 versus 128.3 seconds wall time and 228.7
+  versus 234.2 microseconds/profiled environment step. The longer sample also
+  observed the rare path: about 1.2-1.4 generated sources and 0.7-0.9 exact
+  conversions per completed episode across seats. Artifact:
+  `results/reward_shaping_sps_ikz_repeat/`. No isolated arm has a measurable
+  SPS regression requiring optimization before full-league training.
+- One 15M trajectory per arm supplies ep100 (~1.54M), ep300 (~4.61M), and
+  final (~15M) checkpoints without changing the production checkpoint/league
+  cadence. Readout is draft-vs-reference, training action/reward telemetry,
+  and sibling-gate KL. Expensive deck-composition, strategy, and Defender
+  probes are not launched automatically.
+- Matched S14 control draftref is 45/96 = 46.9% at ep100, 37/96 = 38.5% at
+  ep300, and 49/96 = 51.0% at ep1000; all three have zero timeouts. The
+  ep1000 result reuses the exact existing S14 argmax artifact. These controls
+  make the known early/mid/final oscillation explicit instead of comparing
+  every candidate checkpoint only with the S14 endpoint.
+- `draft_vs_reference_eval.py` now evaluates the two independent fixed-seat
+  halves concurrently by default using spawn workers (with
+  `--no-parallel-seats` as the deterministic serial fallback). A live schema
+  smoke passed. On the ep300 control this used two CPU cores and 3.3 GB VRAM,
+  raised GPU utilization from about 13% to 35-45%, and reduced the 96-game
+  wall time from roughly 12 minutes to roughly 6 minutes without changing
+  per-seat seeds or aggregation.
+- Promotion is fixed before reading the remaining endpoints: advance an arm
+  when its 15M draft-vs-reference score is above matched S14, its aggregate
+  across ep100/ep300/final is nonnegative versus S14, and there is no timeout,
+  action-collapse, or sustained SPS regression. A tied endpoint with only
+  early gains is borderline and does not automatically consume a 45M run.
+  Because 96 games have wide sampling error, the three-checkpoint aggregate
+  is supporting trajectory evidence rather than a substitute endpoint.
+
+### 28.3 Learned turn-boundary potential (task 5, held)
+
+If the hand-designed arms leave a clear gap, train the turn-boundary
+predictor from completed S14/candidate trajectories as a separate supervised
+model, validate calibration and ranking out of sample, then freeze it before
+using `gamma * Phi(s') - Phi(s)` for PPO shaping. Training it jointly with the
+policy would make the reward target move underneath PPO and would weaken the
+policy-invariance argument. A frozen predictor can later be refreshed only
+between explicit training stages, never continuously inside one run.
+
+### 28.4 Smoke results
+
+#### Task 1: entity-damage exchange (15M complete; 45M qualified)
+
+Run `azuki_local_rs1entity15_178416708169` completed 977 epochs / 15.006M
+sampled steps with no timeouts. Draft-vs-reference improved at every matched
+checkpoint: 53/96 = 55.2% at ep100 versus S14's 45/96 = 46.9% (+8.3 pp),
+44/96 = 45.8% at ep300 versus 37/96 = 38.5% (+7.3 pp), and 50/96 = 52.1%
+at the endpoint versus S14 ep1000's 49/96 = 51.0% (+1.0 pp). Aggregated over
+the matched trajectory, Task 1 scored 147/288 = 51.0% versus 131/288 = 45.5%
+(+5.6 pp). This is a **45M qualifier**: the consistent trajectory
+is encouraging, while the endpoint alone is only one game better and should
+not be read as a precise 1 pp effect.
+
+The gain was not yet seat-robust. With the drafter in seat 1, Task 1 was +8,
++6, and +2 wins versus S14 at ep100/ep300/final; with the drafter in seat 0,
+it was flat, +1, and -1. Both halves contain 48 games and the reported totals
+are seat-balanced, so this does not invalidate the aggregate, but the 45M
+confirmation must show that strength broadens or at least does not become
+more dependent on one seat.
+
+The early/mid benefit was broadest in Earth and Water. At ep300, Earth moved
+from 8/22 to 12/22 and Water from 7/25 to 10/25; Lightning gained one game and
+Fire lost one. At the endpoint, Lightning and Earth were each +1 game, Water
+was unchanged, and Fire was -1. This fits the intended board-combat signal but
+also flags that direct-damage Fire may receive less benefit.
+
+The learned behavior was active rather than merely defensive. In the final
+100-epoch window versus matched S14, attacks were 20.76% versus 22.61%, portal
+actions 12.58% versus 8.98%, plays 35.07% versus 31.93%, abilities 4.72%
+versus 3.43%, no-ops 14.97% versus 15.54%, and mean episode length 100.90
+versus 98.56. Mean leader health was 0.250 versus 0.224, with about 7.44
+effective entity damage dealt per episode. The extra portal/board activity is
+consistent with useful board control, but it also confirms partial behavioral
+overlap with the existing portal-GP and board-potential rewards.
+
+The internal league gates oscillated despite the positive external trajectory.
+At ep300, Task 1 was 62.5% versus the champion and 59.4% against its worst
+baseline. At ep600 those fell to 37.5% and 31.25%; by ep900 they recovered to
+53.1% and 43.8%. For context, matched S14's ep900 values were 43.8% and 40.6%.
+No gate cleared the Wilson promotion rule. These values are contextual cycle
+and matchup telemetry only: the current promotion rule is known to miss large
+external improvements and does not qualify or veto this arm. The 45M decision
+uses the fixed external/action/stability rule above.
+
+Full-league performance stayed inside the 5% guardrail. Endpoint SPS was
+1,520.3 versus S14's 1,503.8 (+1.1%); the final 100-epoch mean was 1,472.1
+versus 1,512.0 (-2.6%). Total time through ep977 was 2h19m55s versus S14's
+2h16m25s (+2.6%), including candidate-side evaluation overlap and somewhat
+longer games. Sibling-gate mean KL remained numerically tiny but above S14:
+1.09e-5 versus 3.73e-7 at ep100, 4.23e-7 versus 2.14e-7 at ep300, and
+1.53e-7 versus 6.56e-8 at the endpoint. The endpoint difference was driven
+mainly by Lightning and Water rather than uniform gate divergence.
+
+Artifacts: `results/reward_smokes/rs1entity15/`,
+`experiments/runlogs/rs1entity15_178416708169.jsonl`, and
+`experiments/azuki_local_rs1entity15_178416708169/`.
+
+**Verdict: promote to a fresh matched 45M confirmation.** It clears the fixed
+external/action/stability rule. The confirmation must show that the gain
+broadens or at least does not become more dependent on drafter seat 1.
+
+#### Task 2: generated/recovered IKZ conversion (15M complete; 45M qualified)
+
+The ep100 and ep300 checkpoints are complete. The trajectory starts worse
+than S14, then reverses sharply: ep100 scored 37/96 = 38.5% versus 45/96 =
+46.9% (-8.3 pp), while ep300 scored 49/96 = 51.0% versus 37/96 = 38.5%
+(+12.5 pp). Both evaluations had zero timeouts. At ep100, the drafter was +2
+wins versus S14 in seat 1 but -10 in seat 0. At ep300 it was +6 in each seat,
+so the mid-checkpoint gain is seat-balanced rather than one favorable half.
+
+The element split points to delayed discovery of the intended resource chain.
+At ep100, Lightning was +1 game and Fire -1, but Earth was -3 and Water -5.
+At ep300, every element was positive: Lightning +2, Fire +2, Earth +3, and
+Water +5. Removing the easy untapped-IKZ potential appears to hurt Water/Earth
+before the policy learns to create and spend the marked IKZ, after which the
+same elements show the largest gains. Across the first ~718 completed episode
+batches, about 84% of marked sources were eventually spent, averaging about
+1.5 conversions across both seats per game.
+
+Through the matched ep110-200 league window, SPS was 1,832.2 versus S14's
+1,833.5 (-0.07%), attacks were 23.86% versus 22.77%, portal actions 11.11%
+versus 9.06%, plays 31.48% versus 30.82%, abilities 6.80% versus 9.68%, and
+mean episode length 107.5 versus 116.9. This is consistent with converting
+available IKZ into attacks, portals, and board actions rather than preserving
+it for the removed raw potential.
+
+The 15M endpoint scored 53/96 = 55.2% versus S14's 49/96 = 51.0% (+4.2 pp),
+again with zero timeouts. Across ep100/ep300/final, Task 2 scored 139/288 =
+48.3% versus 131/288 = 45.5% (+2.8 pp). At the endpoint, the drafter was -1
+game versus S14 in seat 1 and +5 in seat 0; over all three checkpoints, the
+two seat aggregates were +7 and +1, respectively. The trajectory is therefore
+positive in both seats overall despite its severe early seat-0 deficit.
+
+The final element effect is concentrated and strategically plausible:
+Lightning was +2 games, Earth +2, and Water +5, while Fire was -5. The Water
+gain matches the intended Hydromancy/resource-conversion behavior. The Fire
+loss is the main 45M risk and may reflect replacing a generic resource-reserve
+signal with one whose marked sources are concentrated in Water/Earth cards.
+
+Mean sibling-gate KL was 1.05e-6 versus S14's 3.73e-7 at ep100, 1.09e-6
+versus 2.14e-7 at ep300, and 8.10e-8 versus 6.56e-8 at the endpoint. Values
+remain small, but differentiation did not collapse and the residual endpoint
+difference is concentrated in Lightning and Water. The internal ep300 gate beat the
+ep100 champion 65.6%, but its worst retained-baseline matchup was only 31.25%,
+so promotion was rejected. This is useful evidence of a cyclic or specialized
+matchup state, but the current league gate is not a reliable improvement signal
+and has no veto over the balanced external gain. At ep600, champion H2H was
+59.4% and the worst baseline improved to 37.5%; the legacy rule still rejected
+it. At ep900 those values cycled to 46.9% and 34.4%. These diagnostics do not
+alter the external verdict.
+
+In the final 100-epoch floor window, SPS was 1,489.5 versus S14's 1,512.0
+(-1.5%), attacks 21.84% versus 22.61%, no-ops 15.87% versus 15.54%, portal
+actions 12.76% versus 8.98%, plays 33.59% versus 31.93%, abilities 6.19%
+versus 5.84%, mean episode length 93.22 versus 98.56, and mean surviving
+leader health 0.232 versus 0.224. The active conversion reward was only about
+0.006 per player/game at the 0.15 floor, so the retained portal/play shift was
+not dominated by dense return. Total time through ep977 was 2h20m16s versus
+S14's 2h16m25s; the 3m51s difference is almost exactly the extra concurrent
+checkpoint evaluation time at ep300, while matched rollout SPS stayed within
+the guardrail.
+
+**Verdict: promote to a fresh matched 45M confirmation.** It clears the fixed
+external/action/stability rule, but the confirmation must track whether the
+Water gain persists without sacrificing Fire and whether both seats remain
+nonnegative. Artifacts:
+`results/reward_smokes/rs2ikzconv15/`,
+`experiments/runlogs/rs2ikzconv15_178417646702.jsonl`, and
+`experiments/azuki_local_rs2ikzconv15_178417646702/`.
+
+If the endpoint remains positive but the ep100 deficit matters, do not restore
+the conflicting unconditional untapped-IKZ potential. A cleaner follow-up is
+reward redistribution with the same total return: for example, +0.01 when a
+source is marked, +0.04 when it is spent, and -0.01 when it expires unused.
+A converted source still nets 0.05 and an unspent source nets zero, while the
+immediate 0.01 supplies an easier discovery cue. This is a held hypothesis,
+not part of the current matched arm.
+
+#### Task 3: temporary-effect realization (15M complete; 45M qualified)
+
+The matched arm rewards only realized value: +0.08 when an attack enabled by
+temporary Charge resolves for positive effective damage, and +0.025 per point
+of positive effective attack damage caused by a temporary attack modifier,
+capped at four damage. Merely granting Charge or temporary attack produces no
+reward, and overkill is excluded. Both paths remained live. Across ep1-99,
+the two seats averaged 0.116 temporary-Charge realizations and 0.708
+temporary-attack damage per game; through ep300-599 those values were 0.091
+and 1.199.
+
+The first two external checkpoints were modestly positive with zero timeouts.
+Ep100 scored 47/96 = 49.0% versus S14's 45/96 = 46.9% (+2.1 pp), and ep300
+scored 39/96 = 40.6% versus 37/96 = 38.5% (+2.1 pp). At ep100, seat 1 gained
+three wins while seat 0 lost one; at ep300, each seat gained one.
+
+The endpoint strengthened to 53/96 = 55.2% versus S14's 49/96 = 51.0%
+(+4.2 pp), again with zero timeouts. Across ep100/ep300/final, Task 3 scored
+139/288 = 48.3% versus 131/288 = 45.5% (+2.8 pp). Its final seat deltas were
+-1 and +5 games, while the three-checkpoint seat aggregates were +3 and +5.
+The positive trajectory is therefore present in both seat assignments rather
+than being carried by one fixed-seat half.
+
+Element movement was mixed early but broadened by the endpoint. Ep100 deltas
+were Lightning +3, Water +2, Earth -1, and Fire -2; ep300 moved Earth +3 and
+Lightning +1, held Fire flat, and lost two Water games. At the endpoint,
+Lightning was +2, Water +3, Earth tied, and Fire -1. Across all three
+checkpoints the element deltas were Lightning +6, Water +3, Earth +2, and
+Fire -3. Fire remains the 45M risk, but the gain is not an element-specific
+shortcut.
+
+Sibling-gate differentiation did not collapse. Mean KL was 2.77e-6 versus
+S14's 3.73e-7 at ep100, driven mainly by Water; 2.83e-6 versus 2.14e-7 at
+ep300, driven mainly by Lightning; and 9.31e-8 versus 6.56e-8 at the endpoint,
+again driven by Water. These are supporting directional evidence only because
+the absolute divergences remain very small.
+
+Performance stayed inside the fixed 5% guardrail. Early ep20-40 SPS was
+3,531.6 versus S14's 3,628.2 (-2.7%), ep110-200 was effectively identical at
+1,833.4 versus 1,833.5, and ep500-599 was 1,504.1 versus 1,514.4 (-0.7%). In
+the final 100 epochs, SPS was 1,504.9 versus 1,512.0 (-0.5%), attacks 22.13%
+versus 22.61%, no-ops 14.66% versus 15.54%, portal actions 11.51% versus
+8.98%, plays 32.21% versus 31.93%, abilities 6.78% versus 5.84%, mean episode
+length 93.13 versus 98.56, and surviving leader health 0.195 versus 0.224.
+There were no timeouts or action collapse.
+
+At the 0.15 floor, the final window averaged 0.108 temporary-Charge
+realizations and 1.505 temporary-attack damage per game across both seats.
+That is only about 0.00694 gross owner-side credit per game summed over both
+players (about 0.00347 per player/game before the opposite-seat zero-sum
+transfer), so the retained action shift is not dominated by a large dense
+return. Total uptime through ep977 was 2h30m17s versus S14's 2h16m25s. The
+13m52s excess is accounted for by the required ep100/ep300 probes competing
+with the serial
+epoch-600 league evaluator; matched rollout windows and endpoint SPS did not
+show a persistent regression.
+
+The legacy internal gates cycled from 59.4% champion / 62.5% worst-baseline
+at ep300 to 43.8% / 43.8% at ep600 and 46.9% / 40.6% at ep900. None promoted.
+As with the other arms, this is contextual matchup telemetry and neither
+qualifies nor vetoes Task 3.
+
+**Verdict: promote to a fresh matched 45M confirmation.** It clears the fixed
+external/action/stability rule. The confirmation should test whether the
+broad Lightning/Water/Earth gain persists at the shaping floor without
+deepening the smaller Fire regression. Artifacts:
+`results/reward_smokes/rs3tempreal15/`,
+`experiments/runlogs/rs3tempreal15_178418553588.jsonl`, and
+`experiments/azuki_local_rs3tempreal15_178418553588/`.
+
+#### Task 4: contextual paid-response reserve (15M complete; rejected)
+
+This arm replaced raw untapped-IKZ potential with +0.08 at most once per
+opposing turn when an attack opened a response window containing a currently
+legal positive-cost action. Free Defender declarations did not qualify. The
+signal was easy to discover: ep20-99 averaged about 1.51 qualifying
+opportunities per game across both seats, and ep110-200 averaged 1.12. At the
+0.15 floor, the final window still averaged 0.717 per game, only about 0.00430
+gross owner-side credit per player/game before the zero-sum transfer.
+
+External performance did not improve. Ep100 scored 41/96 = 42.7% versus
+S14's 45/96 = 46.9% (-4.2 pp), ep300 recovered narrowly to 38/96 = 39.6%
+versus 37/96 = 38.5% (+1.0 pp), and the endpoint fell to 39/96 = 40.6%
+versus 49/96 = 51.0% (-10.4 pp). All evaluations had zero timeouts. Across
+the trajectory, Task 4 scored 118/288 = 41.0% versus 131/288 = 45.5%
+(-4.5 pp), well below the fixed qualification rule.
+
+The failure is strongly seat-asymmetric. Task 4's three-checkpoint aggregate
+was 48/144 in drafter seat 1 versus S14's 66/144 (-18 games), while seat 0
+was 70/144 versus 65/144 (+5). The endpoint alone was -11/+1 by seat. This is
+not a small sampling wobble that the positive seat can safely offset.
+
+Element results also reject a narrow matchup explanation. Ep100 deltas were
+Earth -2, Fire -1, Lightning +1, and Water -2; ep300 was Earth +2, Fire -2,
+Lightning +1, and Water tied. At the endpoint every element was negative:
+Earth -4, Fire -3, Lightning -1, and Water -2. Across all checkpoints only
+Lightning remained positive (+1), while Earth was -4, Fire -6, and Water -4.
+
+Sibling-gate differentiation did not collapse: mean KL was 7.16e-6 versus
+S14's 3.73e-7 at ep100, 3.85e-7 versus 2.14e-7 at ep300, and 1.29e-7 versus
+6.56e-8 at the endpoint, mainly from Lightning and Water. This is useful
+negative evidence: greater gate-conditioned draft divergence alone did not
+produce competitive decks or play.
+
+Performance and action stability were clean, so rejection is about strategy,
+not implementation cost. Ep20-40 SPS was 3,633.9 versus 3,628.2 (+0.2%),
+ep110-200 was 1,805.7 versus 1,833.5 (-1.5%), and the final 100 epochs were
+1,511.0 versus 1,512.0 (-0.1%). In that final window, attacks were 24.77%
+versus 22.61%, no-ops 14.49% versus 15.54%, portals 10.55% versus 8.98%,
+plays 31.22% versus 31.93%, abilities 7.36% versus 5.84%, episode length
+89.92 versus 98.56, and surviving leader health 0.194 versus 0.224. Total
+uptime through ep977 was 2h16m09s versus S14's 2h16m25s.
+
+The internal gates were also weak (31.25% champion / 50.0% worst-baseline at
+ep300, 31.25% / 34.4% at ep600, and 34.4% / 34.4% at ep900), but they do not
+drive this verdict. The balanced external endpoint and aggregate already do.
+
+**Verdict: no 45M confirmation.** Rewarding response availability can pay
+for holding IKZ through a response window even when the paid action is not
+used or would not improve the outcome. If this family is revisited after the
+current confirmations, prefer realized credit for a paid response that
+actually mitigates effective damage or changes combat, with the generic
+untapped-IKZ term still disabled. Do not tune the coefficient on this failed
+availability target first. Artifacts:
+`results/reward_smokes/rs4reserve15/`,
+`experiments/runlogs/rs4reserve15_178419523079.jsonl`, and
+`experiments/azuki_local_rs4reserve15_178419523079/`.
+
+### 28.5 Fresh 45M confirmation protocol (fixed before the runs)
+
+Every qualifying arm starts from scratch on the exact S14 stack and seed 42;
+the 15M checkpoint and league state are not resumed. This preserves matched
+anneal counters, opponent-pool formation, and early trajectory. The qualified
+set is fixed at Tasks 1-3; Task 4 failed its 15M endpoint and aggregate.
+
+The external readout uses the same S14 meta-cycle checkpoints and seeds:
+ep1000, 1500, 2000, 2500, and 2900 receive 96 balanced argmax games each, and
+the final ep2930 checkpoint receives 384 games. Existing S14 controls are
+49/96, 34/96, 75/96, 50/96, and 50/96 for the five windows (258/480 total),
+plus 191/384 at the endpoint. The multiple windows are required because S14
+itself ranges from 35.4% to 78.1%; a single checkpoint would mostly measure
+meta-cycle phase.
+
+A 45M arm is confirmed when either (a) its 384-game endpoint is strictly
+above 191/384 and its five-window aggregate is at least 258/480, or (b) its
+endpoint is at least 191/384 and its five-window aggregate is strictly above
+258/480. It must also have zero meaningful timeout regression, no action or
+seat collapse, no new catastrophic element matchup, and no sustained >5% SPS
+loss. Results that trade a material endpoint loss for a window gain, or vice
+versa, remain mixed rather than being rescued by internal promotion.
+
+Sibling-gate KL is measured at the same six checkpoints. Training action,
+reward-signal, league-cycle, and SPS telemetry is compared with S14 across the
+trajectory and at the shaping floor. Legacy promotion remains diagnostic only.
+The held strategy/deck-composition/Defender probes and reference-seat training
+are not part of this stage. CPU-only KL probes may overlap post-training
+draftref evaluation, but no probe overlaps training. Driver:
+`run_competitive_reward_45m.sh`.
+
+## 29. LAST: final-stage anneal-to-zero validation (DEFERRED/BLOCKED)
+
+This is deliberately the **last tuning experiment before committing to a
+very large production run**. Do not start it until all current reward-shaping
+ablations and qualifying 45M confirmations are complete, the optional learned
+potential and reference-deck/league-anchor work has been resolved, and one
+stable production candidate has been selected.
+
+Run a 45M-80M fine-tuning proxy from that mature candidate and its league
+state before choosing the schedule for a future ~500M production run:
+
+1. Keep the adopted early curriculum (`1.0 -> 0.15`) unchanged.
+2. Fork a matched control that holds the `0.15` shaping floor.
+3. In the treatment, decay `0.15 -> 0` gradually over the middle of the run.
+4. Reach zero well before the endpoint, leaving a substantial terminal-only
+   tail targeted at roughly the **last 20-40% of the run** (reach zero by
+   about 60-80% progress). Merely reaching zero on the final update does not
+   test retention or debiasing.
+
+Judge the treatment against the `0.15` control using external reference/panel
+win rate, H2H against the control and ancestral checkpoints, checkpoint-window
+stability, action metrics, sibling-gate differentiation, timeouts, and SPS.
+The question is whether useful shaped behaviors remain terminally reinforced
+while heuristic bias is unlearned, without recreating the late regression seen
+with the old sparse `0.05` floor. Promote an anneal-to-zero schedule to the
+large production specification only if the zero-reward tail is stable.

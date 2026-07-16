@@ -90,6 +90,22 @@ typedef struct Log {
     float p1_target_selected_rate;
     float p0_avg_leader_health;
     float p1_avg_leader_health;
+    float p0_entity_damage_dealt;
+    float p1_entity_damage_dealt;
+    float p0_entity_damage_taken;
+    float p1_entity_damage_taken;
+    float p0_generated_ikz_created;
+    float p1_generated_ikz_created;
+    float p0_generated_ikz_converted;
+    float p1_generated_ikz_converted;
+    float p0_generated_ikz_conversion_rate;
+    float p1_generated_ikz_conversion_rate;
+    float p0_temporary_charge_realized;
+    float p1_temporary_charge_realized;
+    float p0_temporary_attack_damage_realized;
+    float p1_temporary_attack_damage_realized;
+    float p0_contextual_response_reserve_opportunities;
+    float p1_contextual_response_reserve_opportunities;
     float n;
 } Log;
 
@@ -263,6 +279,12 @@ typedef struct {
   // S13-DMG: player declared a defender in the open response window; the
   // next combat resolution is an interception credited to them.
   bool pending_interception[MAX_PLAYERS_PER_MATCH];
+  AzkAttackRewardContext pending_attack_reward;
+  bool has_pending_attack_reward;
+  uint16_t response_reserve_last_rewarded_turn[MAX_PLAYERS_PER_MATCH];
+  uint32_t episode_temporary_charge_realized[MAX_PLAYERS_PER_MATCH];
+  uint32_t episode_temporary_attack_damage_realized[MAX_PLAYERS_PER_MATCH];
+  uint32_t episode_contextual_response_reserve_opportunities[MAX_PLAYERS_PER_MATCH];
 
   // Deck-building draft state (native path). observations rows are
   // TrainingObservationDataDeckBuild when deck_building is set.
@@ -639,6 +661,7 @@ typedef struct RewardTuningConfig {
   float board_delta_weight;
   float noop_penalty;
   float truncation_board_edge_weight;
+  float untapped_ikz_weight;
   // Annealed portal exposure bonus: on GATE_PORTAL, weight * min(GP,4)/4 of
   // the portaled entity joins base_shaped_reward (rides shaping scale +
   // zero-sum symmetry). 0-GP portals earn nothing. Default off.
@@ -661,6 +684,18 @@ typedef struct RewardTuningConfig {
   // Opponent-gated (cannot be farmed unilaterally); rides anneal, zero-sum.
   float dmg_mitigation_bonus;
   int dmg_mitigation_cap;
+  // Effective non-leader damage differential. Default off.
+  float entity_damage_exchange_per_hp;
+  int entity_damage_exchange_step_cap;
+  // Credit an effect-recovered/created IKZ only when it is later tapped.
+  float generated_ikz_conversion_bonus;
+  int generated_ikz_conversion_step_cap;
+  // Credit temporary Charge and only the incremental realized EOT ATK damage.
+  float temporary_charge_realization_bonus;
+  float temporary_attack_realization_per_damage;
+  int temporary_attack_realization_damage_cap;
+  // Once per opposing turn, credit an actually affordable paid response.
+  float contextual_response_reserve_bonus;
 } RewardTuningConfig;
 
 // Pre-action summary for grading a portal's realized effect (S2).
@@ -765,6 +800,8 @@ static void init_reward_tuning_if_needed(void) {
       parse_nonnegative_env_float("AZK_REWARD_NOOP_PENALTY", SHAPED_NOOP_PENALTY);
   g_reward_tuning.truncation_board_edge_weight =
       parse_nonnegative_env_float("AZK_TRUNCATION_BOARD_EDGE_WEIGHT", TRUNCATION_BOARD_EDGE_WEIGHT);
+  g_reward_tuning.untapped_ikz_weight =
+      parse_nonnegative_env_float("AZK_REWARD_UNTAPPED_IKZ_WEIGHT", PBRS_UNTAPPED_IKZ_WEIGHT);
   g_reward_tuning.portal_gp_bonus =
       parse_nonnegative_env_float("AZK_PORTAL_GP_BONUS", 0.0f);
   g_reward_tuning.portal_outcome_bonus =
@@ -779,6 +816,22 @@ static void init_reward_tuning_if_needed(void) {
       parse_nonnegative_env_float("AZK_DMG_MITIGATION_BONUS", 0.0f);
   g_reward_tuning.dmg_mitigation_cap =
       (int)parse_nonnegative_env_float("AZK_DMG_MITIGATION_CAP", 10.0f);
+  g_reward_tuning.entity_damage_exchange_per_hp =
+      parse_nonnegative_env_float("AZK_ENTITY_DAMAGE_EXCHANGE_PER_HP", 0.0f);
+  g_reward_tuning.entity_damage_exchange_step_cap =
+      (int)parse_nonnegative_env_float("AZK_ENTITY_DAMAGE_EXCHANGE_STEP_CAP", 6.0f);
+  g_reward_tuning.generated_ikz_conversion_bonus =
+      parse_nonnegative_env_float("AZK_GENERATED_IKZ_CONVERSION_BONUS", 0.0f);
+  g_reward_tuning.generated_ikz_conversion_step_cap =
+      (int)parse_nonnegative_env_float("AZK_GENERATED_IKZ_CONVERSION_STEP_CAP", 4.0f);
+  g_reward_tuning.temporary_charge_realization_bonus =
+      parse_nonnegative_env_float("AZK_TEMP_CHARGE_REALIZATION_BONUS", 0.0f);
+  g_reward_tuning.temporary_attack_realization_per_damage =
+      parse_nonnegative_env_float("AZK_TEMP_ATTACK_REALIZATION_PER_DAMAGE", 0.0f);
+  g_reward_tuning.temporary_attack_realization_damage_cap =
+      (int)parse_nonnegative_env_float("AZK_TEMP_ATTACK_REALIZATION_DAMAGE_CAP", 4.0f);
+  g_reward_tuning.contextual_response_reserve_bonus =
+      parse_nonnegative_env_float("AZK_CONTEXTUAL_RESPONSE_RESERVE_BONUS", 0.0f);
 }
 
 // S12: development actions that count toward the early-tempo bonus. Declining
@@ -907,7 +960,7 @@ static float compute_phi_for_player(const AzkRewardSnapshot* snapshot, int8_t pl
     snapshot->untapped_garden_count[player_index] - snapshot->untapped_garden_count[opponent_index],
     PBRS_UNTAPPED_GARDEN_CAP
   );
-  const float untapped_ikz_term = PBRS_UNTAPPED_IKZ_WEIGHT * safe_delta(
+  const float untapped_ikz_term = g_reward_tuning.untapped_ikz_weight * safe_delta(
     snapshot->untapped_ikz_count[player_index] - snapshot->untapped_ikz_count[opponent_index],
     PBRS_UNTAPPED_IKZ_CAP
   );
@@ -953,7 +1006,13 @@ static void reset_reward_tracking(CAzukiTCG* env) {
     env->tempo_last_turn[player_index] = 0;
     env->tempo_turn_count[player_index] = 0;
     env->pending_interception[player_index] = false;
+    env->response_reserve_last_rewarded_turn[player_index] = UINT16_MAX;
+    env->episode_temporary_charge_realized[player_index] = 0;
+    env->episode_temporary_attack_damage_realized[player_index] = 0;
+    env->episode_contextual_response_reserve_opportunities[player_index] = 0;
   }
+  env->pending_attack_reward = (AzkAttackRewardContext){0};
+  env->has_pending_attack_reward = false;
   AzkRewardSnapshot snapshot = {0};
   env->has_last_snapshot = false;
   if (azk_engine_reward_snapshot(env->engine, &snapshot)) {
@@ -1102,6 +1161,32 @@ static void record_episode_stats(CAzukiTCG* env, EpisodeEndReason reason) {
 
   env->log.p0_avg_leader_health += snapshot.leader_health_ratio[0];
   env->log.p1_avg_leader_health += snapshot.leader_health_ratio[1];
+  env->log.p0_entity_damage_dealt += snapshot.entity_damage_taken[1];
+  env->log.p1_entity_damage_dealt += snapshot.entity_damage_taken[0];
+  env->log.p0_entity_damage_taken += snapshot.entity_damage_taken[0];
+  env->log.p1_entity_damage_taken += snapshot.entity_damage_taken[1];
+  env->log.p0_generated_ikz_created += snapshot.generated_ikz_created[0];
+  env->log.p1_generated_ikz_created += snapshot.generated_ikz_created[1];
+  env->log.p0_generated_ikz_converted += snapshot.generated_ikz_converted[0];
+  env->log.p1_generated_ikz_converted += snapshot.generated_ikz_converted[1];
+  env->log.p0_generated_ikz_conversion_rate +=
+      safe_delta(snapshot.generated_ikz_converted[0],
+                 snapshot.generated_ikz_created[0]);
+  env->log.p1_generated_ikz_conversion_rate +=
+      safe_delta(snapshot.generated_ikz_converted[1],
+                 snapshot.generated_ikz_created[1]);
+  env->log.p0_temporary_charge_realized +=
+      (float)env->episode_temporary_charge_realized[0];
+  env->log.p1_temporary_charge_realized +=
+      (float)env->episode_temporary_charge_realized[1];
+  env->log.p0_temporary_attack_damage_realized +=
+      (float)env->episode_temporary_attack_damage_realized[0];
+  env->log.p1_temporary_attack_damage_realized +=
+      (float)env->episode_temporary_attack_damage_realized[1];
+  env->log.p0_contextual_response_reserve_opportunities +=
+      (float)env->episode_contextual_response_reserve_opportunities[0];
+  env->log.p1_contextual_response_reserve_opportunities +=
+      (float)env->episode_contextual_response_reserve_opportunities[1];
 
   for (int8_t player_index = 0; player_index < MAX_PLAYERS_PER_MATCH; ++player_index) {
     const float total = (float)env->episode_action_total[player_index];
@@ -1202,9 +1287,45 @@ static void record_action_choice(CAzukiTCG* env, int8_t player_index, ActionType
   }
 }
 
+static bool refreshed_mask_has_ikz_response(CAzukiTCG* env,
+                                            int8_t player_index) {
+  if (player_index < 0 || player_index >= MAX_PLAYERS_PER_MATCH) {
+    return false;
+  }
+  const TrainingActionMaskObs *mask =
+      &obs_base(env, player_index)->action_mask;
+  const GameState *gs = azk_engine_game_state(env->engine);
+  if (gs == NULL) {
+    return false;
+  }
+
+  for (uint16_t i = 0; i < mask->legal_action_count; ++i) {
+    const ActionType type = (ActionType)mask->legal_primary[i];
+    if (type != ACT_PLAY_ENTITY_TO_GARDEN &&
+        type != ACT_PLAY_ENTITY_TO_ALLEY &&
+        type != ACT_ATTACH_WEAPON_FROM_HAND &&
+        type != ACT_PLAY_SPELL_FROM_HAND &&
+        type != ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY) {
+      continue;
+    }
+    const UserAction action = {
+        .player = gs->players[player_index],
+        .type = type,
+        .subaction_1 = (int)mask->legal_sub1[i],
+        .subaction_2 = (int)mask->legal_sub2[i],
+        .subaction_3 = (int)mask->legal_sub3[i],
+    };
+    if (azk_engine_legal_action_spends_ikz(env->engine, player_index,
+                                           &action)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 static void apply_shaped_rewards(
     CAzukiTCG* env, int8_t acting_player_index, ActionType selected_type,
-    bool noop_had_alternatives, float portal_gp_bonus) {
+    bool noop_had_alternatives, float action_bonus) {
   if (acting_player_index < 0 || acting_player_index >= MAX_PLAYERS_PER_MATCH) {
     fprintf(stderr, "Invalid acting player index %d when applying shaped rewards\n", acting_player_index);
     abort();
@@ -1220,6 +1341,8 @@ static void apply_shaped_rewards(
   const float phi_delta = phi_values[acting_player_index] - env->last_phi[acting_player_index];
   float leader_delta_term = 0.0f;
   float board_delta_term = 0.0f;
+  float entity_damage_exchange_term = 0.0f;
+  float generated_ikz_conversion_term = 0.0f;
   AzkRewardSnapshot snapshot = {0};
   if (azk_engine_reward_snapshot(env->engine, &snapshot)) {
     if (env->has_last_snapshot) {
@@ -1240,6 +1363,38 @@ static void apply_shaped_rewards(
           PBRS_GARDEN_ATTACK_CAP);
       board_delta_term = g_reward_tuning.board_delta_weight *
                          (curr_board_edge - prev_board_edge);
+
+      const float own_entity_damage_delta =
+          snapshot.entity_damage_taken[acting_player_index] -
+          env->last_snapshot.entity_damage_taken[acting_player_index];
+      const float opponent_entity_damage_delta =
+          snapshot.entity_damage_taken[opponent_index] -
+          env->last_snapshot.entity_damage_taken[opponent_index];
+      const int entity_cap = g_reward_tuning.entity_damage_exchange_step_cap;
+      const float entity_exchange =
+          opponent_entity_damage_delta - own_entity_damage_delta;
+      entity_damage_exchange_term =
+          g_reward_tuning.entity_damage_exchange_per_hp *
+          (entity_cap > 0
+               ? clampf(entity_exchange, -(float)entity_cap, (float)entity_cap)
+               : entity_exchange);
+
+      const float own_conversion_delta =
+          snapshot.generated_ikz_converted[acting_player_index] -
+          env->last_snapshot.generated_ikz_converted[acting_player_index];
+      const float opponent_conversion_delta =
+          snapshot.generated_ikz_converted[opponent_index] -
+          env->last_snapshot.generated_ikz_converted[opponent_index];
+      const int conversion_cap =
+          g_reward_tuning.generated_ikz_conversion_step_cap;
+      const float conversion_edge =
+          own_conversion_delta - opponent_conversion_delta;
+      generated_ikz_conversion_term =
+          g_reward_tuning.generated_ikz_conversion_bonus *
+          (conversion_cap > 0
+               ? clampf(conversion_edge, -(float)conversion_cap,
+                        (float)conversion_cap)
+               : conversion_edge);
     }
     env->last_snapshot = snapshot;
     env->has_last_snapshot = true;
@@ -1251,7 +1406,9 @@ static void apply_shaped_rewards(
   }
 
   const float base_shaped_reward = env->time_weight * phi_delta + leader_delta_term +
-                                   board_delta_term - noop_penalty + portal_gp_bonus;
+                                   board_delta_term + entity_damage_exchange_term +
+                                   generated_ikz_conversion_term - noop_penalty +
+                                   action_bonus;
   const float shaping_scale = current_reward_shaping_scale(env);
   const float shaped_reward = shaping_scale * base_shaped_reward;
   env->rewards[acting_player_index] = shaped_reward;
@@ -2398,6 +2555,16 @@ void c_step(CAzukiTCG* env) {
     abort();
   }
 
+  if (parsed_action.type == ACT_ATTACK &&
+      (g_reward_tuning.temporary_charge_realization_bonus > 0.0f ||
+       g_reward_tuning.temporary_attack_realization_per_damage > 0.0f)) {
+    AzkAttackRewardContext attack_context = {0};
+    const bool captured = azk_engine_attack_reward_context(
+        env->engine, &parsed_action, &attack_context);
+    env->pending_attack_reward = attack_context;
+    env->has_pending_attack_reward = captured && attack_context.valid;
+  }
+
   const bool is_valid = azk_engine_submit_action(env->engine, &parsed_action);
   if (!is_valid) {
     fprintf(
@@ -2443,7 +2610,9 @@ void c_step(CAzukiTCG* env) {
   // this (the responder's) step.
   LastCombatResult pre_combat = {0};
   bool have_pre_combat = false;
-  if (g_reward_tuning.dmg_mitigation_bonus > 0.0f) {
+  if (g_reward_tuning.dmg_mitigation_bonus > 0.0f ||
+      g_reward_tuning.temporary_charge_realization_bonus > 0.0f ||
+      g_reward_tuning.temporary_attack_realization_per_damage > 0.0f) {
     const GameState* pre_gs = azk_engine_game_state(env->engine);
     if (pre_gs != NULL) {
       pre_combat = pre_gs->last_combat;
@@ -2701,6 +2870,26 @@ void c_step(CAzukiTCG* env) {
     return;
   }
 
+  float contextual_response_reserve_adjustment = 0.0f;
+  const GameState* reward_post_gs = azk_engine_game_state(env->engine);
+  if (g_reward_tuning.contextual_response_reserve_bonus > 0.0f &&
+      parsed_action.type == ACT_ATTACK && reward_post_gs != NULL &&
+      reward_post_gs->phase == PHASE_RESPONSE_WINDOW) {
+    const int8_t defender_index = reward_post_gs->active_player_index;
+    if (defender_index >= 0 && defender_index < MAX_PLAYERS_PER_MATCH &&
+        env->response_reserve_last_rewarded_turn[defender_index] !=
+            reward_post_gs->turn_number &&
+        refreshed_mask_has_ikz_response(env, defender_index)) {
+      env->response_reserve_last_rewarded_turn[defender_index] =
+          reward_post_gs->turn_number;
+      env->episode_contextual_response_reserve_opportunities[defender_index]++;
+      contextual_response_reserve_adjustment =
+          defender_index == active_player_index
+              ? g_reward_tuning.contextual_response_reserve_bonus
+              : -g_reward_tuning.contextual_response_reserve_bonus;
+    }
+  }
+
   if (azk_engine_is_game_over(env->engine)) {
     apply_terminal_rewards(env);
     accumulate_step_rewards(env);
@@ -2731,6 +2920,7 @@ void c_step(CAzukiTCG* env) {
   // S13-DMG: an intercepted combat resolved during this step — credit the
   // responder (the acting player) with the realized soak.
   float dmg_mitigation_bonus = 0.0f;
+  float temporary_effect_adjustment = 0.0f;
   if (have_pre_combat) {
     const GameState* post_gs = azk_engine_game_state(env->engine);
     if (post_gs != NULL &&
@@ -2750,6 +2940,73 @@ void c_step(CAzukiTCG* env) {
       }
       env->pending_interception[0] = false;
       env->pending_interception[1] = false;
+
+      if (env->has_pending_attack_reward &&
+          post_gs->last_combat.attacker ==
+              env->pending_attack_reward.attacker) {
+        const int owner_index = env->pending_attack_reward.player_index;
+        int effective_damage = (int)post_gs->last_combat.damage_to_defender;
+        const int defender_hp_before =
+            (int)post_gs->last_combat.defender_hp_before;
+        if (effective_damage < 0) {
+          effective_damage = 0;
+        }
+        if (effective_damage > defender_hp_before) {
+          effective_damage = defender_hp_before;
+        }
+
+        float owner_bonus = 0.0f;
+        if (effective_damage > 0 &&
+            env->pending_attack_reward.temporary_charge) {
+          owner_bonus += g_reward_tuning.temporary_charge_realization_bonus;
+          if (owner_index >= 0 && owner_index < MAX_PLAYERS_PER_MATCH) {
+            env->episode_temporary_charge_realized[owner_index]++;
+          }
+        }
+
+        int incremental_damage = 0;
+        const int temporary_attack_bonus =
+            (int)env->pending_attack_reward.positive_eot_attack_bonus;
+        if (effective_damage > 0 && temporary_attack_bonus > 0) {
+          int damage_without_bonus =
+              (int)post_gs->last_combat.damage_to_defender -
+              temporary_attack_bonus;
+          if (damage_without_bonus < 0) {
+            damage_without_bonus = 0;
+          }
+          if (damage_without_bonus > defender_hp_before) {
+            damage_without_bonus = defender_hp_before;
+          }
+          incremental_damage = effective_damage - damage_without_bonus;
+          if (incremental_damage < 0) {
+            incremental_damage = 0;
+          }
+          const int damage_cap =
+              g_reward_tuning.temporary_attack_realization_damage_cap;
+          if (damage_cap > 0 && incremental_damage > damage_cap) {
+            incremental_damage = damage_cap;
+          }
+          owner_bonus +=
+              g_reward_tuning.temporary_attack_realization_per_damage *
+              (float)incremental_damage;
+          if (owner_index >= 0 && owner_index < MAX_PLAYERS_PER_MATCH) {
+            env->episode_temporary_attack_damage_realized[owner_index] +=
+                (uint32_t)incremental_damage;
+          }
+        }
+
+        temporary_effect_adjustment =
+            owner_index == active_player_index ? owner_bonus : -owner_bonus;
+        env->pending_attack_reward = (AzkAttackRewardContext){0};
+        env->has_pending_attack_reward = false;
+      }
+    }
+    if (post_gs != NULL && env->has_pending_attack_reward &&
+        post_gs->combat_state.attacking_card == 0 &&
+        post_gs->phase != PHASE_RESPONSE_WINDOW &&
+        post_gs->phase != PHASE_COMBAT_RESOLVE) {
+      env->pending_attack_reward = (AzkAttackRewardContext){0};
+      env->has_pending_attack_reward = false;
     }
   }
 
@@ -2774,7 +3031,9 @@ void c_step(CAzukiTCG* env) {
   }
 
   apply_shaped_rewards(env, active_player_index, parsed_action.type, noop_had_alternatives,
-                       portal_gp_bonus + early_tempo_bonus + dmg_mitigation_bonus);
+                       portal_gp_bonus + early_tempo_bonus + dmg_mitigation_bonus +
+                           temporary_effect_adjustment +
+                           contextual_response_reserve_adjustment);
   accumulate_step_rewards(env);
   if (g_env_profile.enabled) {
     const uint64_t step_elapsed_ns = env_now_ns() - step_start_ns;

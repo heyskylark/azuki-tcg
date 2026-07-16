@@ -215,11 +215,12 @@ void resolve_combat(ecs_world_t *world) {
   int8_t defender_damage = 0;
   int8_t attacker_damage_taken = 0;
   int8_t defender_damage_taken = 0;
+  const int8_t defender_hp_before = defender_card_cur_stats->cur_hp;
   if (defender_frozen) {
     cli_render_log("[Combat] Defender is frozen - no damage dealt");
   } else {
     const int8_t attacker_prev_hp = attacking_card_cur_stats->cur_hp;
-    const int8_t defender_prev_hp = defender_card_cur_stats->cur_hp;
+    const int8_t defender_prev_hp = defender_hp_before;
     attacker_damage = calculate_combat_damage(
         world, gs->combat_state.defender_card, gs->combat_state.attacking_card,
         defender_card_cur_stats->cur_atk);
@@ -331,6 +332,7 @@ void resolve_combat(ecs_world_t *world) {
       .attacker_destroyed = attacker_destroyed,
       .damage_to_defender = defender_damage_taken,
       .damage_to_attacker = attacker_damage_taken,
+      .defender_hp_before = defender_hp_before,
   };
 
   // TODO: Resolve "after attacking" or "when attacked" effects that trigger from the outcome

@@ -1,0 +1,39 @@
+/home/skylark/git/azuki-tcg/.venv/lib/python3.14/site-packages/torch/cuda/__init__.py:61: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+  import pynvml  # type: ignore[import]
+Gym has been unmaintained since 2022 and does not support NumPy 2.0 amongst other critical functionality.
+Please upgrade to Gymnasium, the maintained drop-in replacement of Gym, or contact the authors of your software and request that they upgrade.
+See the migration guide at https://gymnasium.farama.org/introduction/migration_guide/ for additional information.
+/home/skylark/git/azuki-tcg/.venv/lib/python3.14/site-packages/gymnasium/spaces/box.py:240: UserWarning: [33mWARN: Casting input x to numpy array.[0m
+  gym.logger.warn("Casting input x to numpy array.")
+/home/skylark/git/azuki-tcg/python/src/azk_puffer/pytorch.py:131: FutureWarning: _check_is_size will be removed in a future PyTorch release along with guard_size_oblivious.     Use _check(i >= 0) instead.
+  torch._check_is_size(offset)
+/home/skylark/git/azuki-tcg/python/src/azk_puffer/pytorch.py:132: FutureWarning: _check_is_size will be removed in a future PyTorch release along with guard_size_oblivious.     Use _check(i >= 0) instead.
+  torch._check_is_size(delta)
+/home/skylark/git/azuki-tcg/python/src/azk_puffer/pytorch.py:131: FutureWarning: _check_is_size will be removed in a future PyTorch release along with guard_size_oblivious.     Use _check(i >= 0) instead.
+  torch._check_is_size(offset)
+[resume] loaded model checkpoint: path=experiments/azuki_local_rs4reserve15_178419523079/model_azuki_local_000977.pt, strict=False, missing_keys=0, unexpected_keys=0, materialized_scalar_norm_features=23, scalar_norm_state_keys=69, filtered_static_card_keys=0
+[LIGHTNING] STT01-002 vs AZK01-120: mean_KL=0.00000 p90=0.00000 mean_TV=0.0004 control_KL=0.00e+00 steps=408
+    shift +0.0000 AZK01-041
+    shift +0.0000 STT01-011
+    shift +0.0000 AZK01-015
+    shift +0.0000 AZK01-014
+    shift +0.0000 STT03-008
+[WATER] STT02-002 vs AZK01-126: mean_KL=0.00000 p90=0.00000 mean_TV=0.0002 control_KL=0.00e+00 steps=408
+    shift +0.0000 AZK01-089
+    shift +0.0000 AZK01-093
+    shift +0.0000 AZK01-014
+    shift +0.0000 AZK01-081
+    shift +0.0000 STT02-013
+[FIRE] AZK01-122 vs STT04-002: mean_KL=0.00000 p90=0.00000 mean_TV=0.0000 control_KL=0.00e+00 steps=408
+    shift +0.0000 AZK01-129
+    shift +0.0000 AZK01-112
+    shift +0.0000 STT04-010
+    shift +0.0000 AZK01-081
+    shift +0.0000 STT01-015
+[EARTH] AZK01-124 vs STT03-002: mean_KL=0.00000 p90=0.00000 mean_TV=0.0000 control_KL=0.00e+00 steps=408
+    shift +0.0000 STT03-014
+    shift +0.0000 STT03-011
+    shift +0.0000 AZK01-106
+    shift -0.0000 AZK01-101
+    shift +0.0000 AZK01-053
+wrote train-ablation-1781126582/results/reward_smokes/rs4reserve15/gate_kl_ep000977.json

@@ -399,6 +399,22 @@ static int my_log(PyObject* dict, Log* log) {
     assign_to_dict(dict, "p1_target_selected_rate", log->p1_target_selected_rate);
     assign_to_dict(dict, "p0_avg_leader_health", log->p0_avg_leader_health);
     assign_to_dict(dict, "p1_avg_leader_health", log->p1_avg_leader_health);
+    assign_to_dict(dict, "p0_entity_damage_dealt", log->p0_entity_damage_dealt);
+    assign_to_dict(dict, "p1_entity_damage_dealt", log->p1_entity_damage_dealt);
+    assign_to_dict(dict, "p0_entity_damage_taken", log->p0_entity_damage_taken);
+    assign_to_dict(dict, "p1_entity_damage_taken", log->p1_entity_damage_taken);
+    assign_to_dict(dict, "p0_generated_ikz_created", log->p0_generated_ikz_created);
+    assign_to_dict(dict, "p1_generated_ikz_created", log->p1_generated_ikz_created);
+    assign_to_dict(dict, "p0_generated_ikz_converted", log->p0_generated_ikz_converted);
+    assign_to_dict(dict, "p1_generated_ikz_converted", log->p1_generated_ikz_converted);
+    assign_to_dict(dict, "p0_generated_ikz_conversion_rate", log->p0_generated_ikz_conversion_rate);
+    assign_to_dict(dict, "p1_generated_ikz_conversion_rate", log->p1_generated_ikz_conversion_rate);
+    assign_to_dict(dict, "p0_temporary_charge_realized", log->p0_temporary_charge_realized);
+    assign_to_dict(dict, "p1_temporary_charge_realized", log->p1_temporary_charge_realized);
+    assign_to_dict(dict, "p0_temporary_attack_damage_realized", log->p0_temporary_attack_damage_realized);
+    assign_to_dict(dict, "p1_temporary_attack_damage_realized", log->p1_temporary_attack_damage_realized);
+    assign_to_dict(dict, "p0_contextual_response_reserve_opportunities", log->p0_contextual_response_reserve_opportunities);
+    assign_to_dict(dict, "p1_contextual_response_reserve_opportunities", log->p1_contextual_response_reserve_opportunities);
     assign_to_dict(dict, "n", log->n);
     return 0;
 }
