@@ -1,0 +1,23 @@
+/home/skylark/git/azuki-tcg/.venv/lib/python3.14/site-packages/torch/cuda/__init__.py:61: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+  import pynvml  # type: ignore[import]
+Gym has been unmaintained since 2022 and does not support NumPy 2.0 amongst other critical functionality.
+Please upgrade to Gymnasium, the maintained drop-in replacement of Gym, or contact the authors of your software and request that they upgrade.
+See the migration guide at https://gymnasium.farama.org/introduction/migration_guide/ for additional information.
+/home/skylark/git/azuki-tcg/.venv/lib/python3.14/site-packages/gymnasium/spaces/box.py:240: UserWarning: [33mWARN: Casting input x to numpy array.[0m
+  gym.logger.warn("Casting input x to numpy array.")
+/home/skylark/git/azuki-tcg/python/src/azk_puffer/pytorch.py:131: FutureWarning: _check_is_size will be removed in a future PyTorch release along with guard_size_oblivious.     Use _check(i >= 0) instead.
+  torch._check_is_size(offset)
+/home/skylark/git/azuki-tcg/python/src/azk_puffer/pytorch.py:132: FutureWarning: _check_is_size will be removed in a future PyTorch release along with guard_size_oblivious.     Use _check(i >= 0) instead.
+  torch._check_is_size(delta)
+/home/skylark/git/azuki-tcg/python/src/azk_puffer/pytorch.py:131: FutureWarning: _check_is_size will be removed in a future PyTorch release along with guard_size_oblivious.     Use _check(i >= 0) instead.
+  torch._check_is_size(offset)
+[resume] loaded model checkpoint: path=experiments/azuki_local_s14prod45_178404911119/model_azuki_local_002000.pt, strict=False, missing_keys=0, unexpected_keys=0, materialized_scalar_norm_features=23, scalar_norm_state_keys=69, filtered_static_card_keys=0
+[1/75] 21.7s (21.7s/game) p0=1 p1=0 draws=0 steps=132 gates=Ragefire(F)vStonehaven(E)
+[10/75] 194.3s (19.4s/game) p0=5 p1=5 draws=0 steps=146 gates=Devotion(E)vHydromancy(W)
+[20/75] 389.0s (19.5s/game) p0=10 p1=10 draws=0 steps=78 gates=Rushfire(F)vEchoedWaves(W)
+[30/75] 587.4s (19.6s/game) p0=17 p1=13 draws=0 steps=115 gates=Surge(L)vStonehaven(E)
+[40/75] 773.6s (19.3s/game) p0=22 p1=18 draws=0 steps=80 gates=Hydromancy(W)vDevotion(E)
+[50/75] 967.3s (19.3s/game) p0=30 p1=20 draws=0 steps=79 gates=Hydromancy(W)vRagefire(F)
+[60/75] 1158.8s (19.3s/game) p0=36 p1=24 draws=0 steps=95 gates=Rushfire(F)vDevotion(E)
+[70/75] 1344.7s (19.2s/game) p0=37 p1=33 draws=0 steps=107 gates=Devotion(E)vStormchain(L)
+wrote train-ablation-1781126582/results/selfplay_ep2000/games_shard2.jsonl (75 games, 1427.6s)

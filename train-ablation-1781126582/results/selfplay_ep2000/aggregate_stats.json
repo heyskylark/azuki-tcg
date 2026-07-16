@@ -1,0 +1,3002 @@
+{
+  "n_games": 300,
+  "seat_wins": {
+    "1": 147,
+    "0": 153
+  },
+  "mean_battle_steps": 120.2,
+  "mean_turns": 15.6,
+  "gate_winrates": {
+    "AZK01-120": {
+      "games": 58,
+      "win_rate": 0.621
+    },
+    "AZK01-122": {
+      "games": 73,
+      "win_rate": 0.479
+    },
+    "AZK01-124": {
+      "games": 72,
+      "win_rate": 0.375
+    },
+    "AZK01-126": {
+      "games": 66,
+      "win_rate": 0.424
+    },
+    "STT01-002": {
+      "games": 97,
+      "win_rate": 0.711
+    },
+    "STT02-002": {
+      "games": 102,
+      "win_rate": 0.588
+    },
+    "STT03-002": {
+      "games": 73,
+      "win_rate": 0.37
+    },
+    "STT04-002": {
+      "games": 59,
+      "win_rate": 0.305
+    }
+  },
+  "element_winrates": {
+    "EARTH": {
+      "games": 145,
+      "win_rate": 0.372
+    },
+    "FIRE": {
+      "games": 132,
+      "win_rate": 0.402
+    },
+    "LIGHTNING": {
+      "games": 155,
+      "win_rate": 0.677
+    },
+    "WATER": {
+      "games": 168,
+      "win_rate": 0.524
+    }
+  },
+  "element_matchups_p0_perspective": {
+    "EARTHvEARTH": {
+      "games": 13,
+      "p0_win_rate": 0.692
+    },
+    "EARTHvFIRE": {
+      "games": 13,
+      "p0_win_rate": 0.462
+    },
+    "EARTHvLIGHTNING": {
+      "games": 23,
+      "p0_win_rate": 0.174
+    },
+    "EARTHvWATER": {
+      "games": 22,
+      "p0_win_rate": 0.455
+    },
+    "FIREvEARTH": {
+      "games": 19,
+      "p0_win_rate": 0.474
+    },
+    "FIREvFIRE": {
+      "games": 17,
+      "p0_win_rate": 0.412
+    },
+    "FIREvLIGHTNING": {
+      "games": 21,
+      "p0_win_rate": 0.238
+    },
+    "FIREvWATER": {
+      "games": 9,
+      "p0_win_rate": 0.333
+    },
+    "LIGHTNINGvEARTH": {
+      "games": 23,
+      "p0_win_rate": 0.826
+    },
+    "LIGHTNINGvFIRE": {
+      "games": 15,
+      "p0_win_rate": 0.8
+    },
+    "LIGHTNINGvLIGHTNING": {
+      "games": 14,
+      "p0_win_rate": 0.5
+    },
+    "LIGHTNINGvWATER": {
+      "games": 22,
+      "p0_win_rate": 0.545
+    },
+    "WATERvEARTH": {
+      "games": 19,
+      "p0_win_rate": 0.632
+    },
+    "WATERvFIRE": {
+      "games": 21,
+      "p0_win_rate": 0.571
+    },
+    "WATERvLIGHTNING": {
+      "games": 23,
+      "p0_win_rate": 0.435
+    },
+    "WATERvWATER": {
+      "games": 26,
+      "p0_win_rate": 0.615
+    }
+  },
+  "cards": {
+    "STT01-013": {
+      "play_weapon": 161,
+      "games_played": 161,
+      "win_rate_when_played": 0.509,
+      "games_in_deck": 504,
+      "win_rate_in_deck": 0.508,
+      "mean_play_turn": 5.72
+    },
+    "MY_LEADER": {
+      "attacks": 810,
+      "attacks_face": 803,
+      "attacks_board": 7,
+      "games_played": 0,
+      "win_rate_when_played": null,
+      "games_in_deck": 0,
+      "win_rate_in_deck": null,
+      "mean_play_turn": null
+    },
+    "STT03-001": {
+      "ability_uses": 648,
+      "games_played": 0,
+      "win_rate_when_played": null,
+      "games_in_deck": 0,
+      "win_rate_in_deck": null,
+      "mean_play_turn": null
+    },
+    "AZK01-070": {
+      "play_alley": 85,
+      "portaled": 68,
+      "ability_uses": 12,
+      "attacks": 274,
+      "attacks_face": 221,
+      "play_garden": 66,
+      "attacks_board": 53,
+      "attacked_as_target": 5,
+      "games_played": 145,
+      "win_rate_when_played": 0.483,
+      "games_in_deck": 493,
+      "win_rate_in_deck": 0.505,
+      "mean_play_turn": 8.77
+    },
+    "STT02-003": {
+      "play_alley": 41,
+      "portaled": 37,
+      "attacks": 84,
+      "attacks_face": 79,
+      "attacked_as_target": 13,
+      "attacks_board": 5,
+      "play_garden": 3,
+      "games_played": 40,
+      "win_rate_when_played": 0.45,
+      "games_in_deck": 138,
+      "win_rate_in_deck": 0.522,
+      "mean_play_turn": 8.41
+    },
+    "STT02-014": {
+      "play_spell": 106,
+      "games_played": 49,
+      "win_rate_when_played": 0.49,
+      "games_in_deck": 152,
+      "win_rate_in_deck": 0.526,
+      "mean_play_turn": 9.3
+    },
+    "AZK01-125": {
+      "ability_uses": 291,
+      "games_played": 0,
+      "win_rate_when_played": null,
+      "games_in_deck": 0,
+      "win_rate_in_deck": null,
+      "mean_play_turn": null
+    },
+    "AZK01-069": {
+      "play_alley": 129,
+      "portaled": 117,
+      "attacks": 209,
+      "attacks_face": 202,
+      "defends": 14,
+      "play_garden": 19,
+      "attacks_board": 7,
+      "attacked_as_target": 20,
+      "games_played": 133,
+      "win_rate_when_played": 0.474,
+      "games_in_deck": 526,
+      "win_rate_in_deck": 0.504,
+      "mean_play_turn": 6.72
+    },
+    "AZK01-031": {
+      "play_spell": 76,
+      "games_played": 54,
+      "win_rate_when_played": 0.481,
+      "games_in_deck": 159,
+      "win_rate_in_deck": 0.535,
+      "mean_play_turn": 8.93
+    },
+    "AZK01-016": {
+      "play_spell": 197,
+      "games_played": 182,
+      "win_rate_when_played": 0.527,
+      "games_in_deck": 581,
+      "win_rate_in_deck": 0.503,
+      "mean_play_turn": 6.38
+    },
+    "AZK01-017": {
+      "play_spell": 157,
+      "games_played": 155,
+      "win_rate_when_played": 0.503,
+      "games_in_deck": 577,
+      "win_rate_in_deck": 0.504,
+      "mean_play_turn": 7.19
+    },
+    "AZK01-001": {
+      "play_alley": 131,
+      "portaled": 116,
+      "attacks": 115,
+      "attacks_face": 109,
+      "defends": 114,
+      "play_garden": 49,
+      "attacked_as_target": 2,
+      "attacks_board": 6,
+      "games_played": 158,
+      "win_rate_when_played": 0.468,
+      "games_in_deck": 518,
+      "win_rate_in_deck": 0.494,
+      "mean_play_turn": 7.34
+    },
+    "AZK01-073": {
+      "play_alley": 119,
+      "portaled": 99,
+      "defends": 8,
+      "attacks": 146,
+      "attacks_face": 125,
+      "play_garden": 18,
+      "attacks_board": 21,
+      "attacked_as_target": 10,
+      "games_played": 124,
+      "win_rate_when_played": 0.476,
+      "games_in_deck": 438,
+      "win_rate_in_deck": 0.489,
+      "mean_play_turn": 10.39
+    },
+    "AZK01-067": {
+      "play_alley": 155,
+      "portaled": 127,
+      "attacks": 270,
+      "attacks_face": 252,
+      "attacked_as_target": 25,
+      "defends": 10,
+      "attacks_board": 18,
+      "play_garden": 15,
+      "games_played": 162,
+      "win_rate_when_played": 0.469,
+      "games_in_deck": 526,
+      "win_rate_in_deck": 0.504,
+      "mean_play_turn": 6.99
+    },
+    "STT04-006": {
+      "play_alley": 115,
+      "portaled": 100,
+      "attacks": 211,
+      "attacks_face": 180,
+      "attacks_board": 31,
+      "play_garden": 23,
+      "attacked_as_target": 8,
+      "games_played": 123,
+      "win_rate_when_played": 0.52,
+      "games_in_deck": 483,
+      "win_rate_in_deck": 0.505,
+      "mean_play_turn": 10.16
+    },
+    "STT02-008": {
+      "play_garden": 21,
+      "attacks": 48,
+      "attacks_face": 48,
+      "play_alley": 15,
+      "portaled": 12,
+      "attacked_as_target": 2,
+      "games_played": 32,
+      "win_rate_when_played": 0.375,
+      "games_in_deck": 124,
+      "win_rate_in_deck": 0.54,
+      "mean_play_turn": 10.94
+    },
+    "AZK01-074": {
+      "play_garden": 30,
+      "ability_uses": 348,
+      "attacks": 185,
+      "attacks_face": 158,
+      "play_alley": 112,
+      "portaled": 85,
+      "attacked_as_target": 7,
+      "attacks_board": 27,
+      "games_played": 129,
+      "win_rate_when_played": 0.55,
+      "games_in_deck": 491,
+      "win_rate_in_deck": 0.499,
+      "mean_play_turn": 9.38
+    },
+    "AZK01-086": {
+      "play_spell": 53,
+      "games_played": 53,
+      "win_rate_when_played": 0.415,
+      "games_in_deck": 435,
+      "win_rate_in_deck": 0.467,
+      "mean_play_turn": 10.62
+    },
+    "AZK01-020": {
+      "play_spell": 149,
+      "games_played": 149,
+      "win_rate_when_played": 0.517,
+      "games_in_deck": 552,
+      "win_rate_in_deck": 0.5,
+      "mean_play_turn": 10.87
+    },
+    "STT02-016": {
+      "play_spell": 47,
+      "games_played": 37,
+      "win_rate_when_played": 0.378,
+      "games_in_deck": 147,
+      "win_rate_in_deck": 0.503,
+      "mean_play_turn": 12.98
+    },
+    "AZK01-006": {
+      "play_alley": 169,
+      "portaled": 136,
+      "defends": 25,
+      "attacks": 161,
+      "attacks_face": 144,
+      "attacks_board": 17,
+      "play_garden": 30,
+      "attacked_as_target": 13,
+      "games_played": 157,
+      "win_rate_when_played": 0.446,
+      "games_in_deck": 520,
+      "win_rate_in_deck": 0.487,
+      "mean_play_turn": 9.64
+    },
+    "STT01-007": {
+      "play_garden": 52,
+      "play_alley": 32,
+      "portaled": 22,
+      "attacks": 81,
+      "attacks_face": 75,
+      "attacked_as_target": 12,
+      "attacks_board": 6,
+      "games_played": 79,
+      "win_rate_when_played": 0.456,
+      "games_in_deck": 433,
+      "win_rate_in_deck": 0.494,
+      "mean_play_turn": 12.07
+    },
+    "AZK01-010": {
+      "play_garden": 27,
+      "attacks": 96,
+      "attacks_face": 85,
+      "play_alley": 62,
+      "portaled": 52,
+      "attacks_board": 11,
+      "attacked_as_target": 3,
+      "games_played": 85,
+      "win_rate_when_played": 0.412,
+      "games_in_deck": 436,
+      "win_rate_in_deck": 0.475,
+      "mean_play_turn": 12.16
+    },
+    "STT03-016": {
+      "play_spell": 15,
+      "games_played": 15,
+      "win_rate_when_played": 0.6,
+      "games_in_deck": 70,
+      "win_rate_in_deck": 0.4,
+      "mean_play_turn": 13.73
+    },
+    "AZK01-004": {
+      "play_alley": 132,
+      "portaled": 117,
+      "attacks": 246,
+      "attacks_face": 232,
+      "play_garden": 35,
+      "defends": 2,
+      "attacked_as_target": 18,
+      "attacks_board": 14,
+      "games_played": 160,
+      "win_rate_when_played": 0.562,
+      "games_in_deck": 542,
+      "win_rate_in_deck": 0.496,
+      "mean_play_turn": 7.89
+    },
+    "STT02-015": {
+      "play_spell": 30,
+      "games_played": 30,
+      "win_rate_when_played": 0.467,
+      "games_in_deck": 158,
+      "win_rate_in_deck": 0.532,
+      "mean_play_turn": 15.13
+    },
+    "AZK01-007": {
+      "play_garden": 30,
+      "attacks": 127,
+      "attacks_face": 111,
+      "play_alley": 98,
+      "portaled": 80,
+      "attacked_as_target": 8,
+      "attacks_board": 16,
+      "defends": 1,
+      "games_played": 114,
+      "win_rate_when_played": 0.535,
+      "games_in_deck": 525,
+      "win_rate_in_deck": 0.505,
+      "mean_play_turn": 10.14
+    },
+    "AZK01-071": {
+      "play_alley": 95,
+      "portaled": 54,
+      "play_garden": 20,
+      "attacks": 5,
+      "attacks_face": 5,
+      "games_played": 115,
+      "win_rate_when_played": 0.435,
+      "games_in_deck": 457,
+      "win_rate_in_deck": 0.488,
+      "mean_play_turn": 10.21
+    },
+    "STT03-004": {
+      "play_garden": 16,
+      "ability_uses": 35,
+      "play_alley": 19,
+      "portaled": 14,
+      "games_played": 35,
+      "win_rate_when_played": 0.457,
+      "games_in_deck": 126,
+      "win_rate_in_deck": 0.365,
+      "mean_play_turn": 9.43
+    },
+    "AZK01-008": {
+      "play_alley": 93,
+      "portaled": 10,
+      "attacks": 16,
+      "attacks_face": 16,
+      "play_garden": 10,
+      "games_played": 92,
+      "win_rate_when_played": 0.511,
+      "games_in_deck": 390,
+      "win_rate_in_deck": 0.515,
+      "mean_play_turn": 10.57
+    },
+    "STT01-014": {
+      "play_weapon": 152,
+      "games_played": 152,
+      "win_rate_when_played": 0.5,
+      "games_in_deck": 490,
+      "win_rate_in_deck": 0.478,
+      "mean_play_turn": 6.61
+    },
+    "AZK01-025": {
+      "play_garden": 15,
+      "defends": 14,
+      "attacks": 19,
+      "attacks_board": 3,
+      "attacks_face": 16,
+      "games_played": 14,
+      "win_rate_when_played": 0.643,
+      "games_in_deck": 67,
+      "win_rate_in_deck": 0.627,
+      "mean_play_turn": 14.13
+    },
+    "AZK01-084": {
+      "play_spell": 166,
+      "games_played": 164,
+      "win_rate_when_played": 0.445,
+      "games_in_deck": 582,
+      "win_rate_in_deck": 0.493,
+      "mean_play_turn": 10.14
+    },
+    "AZK01-055": {
+      "play_spell": 18,
+      "games_played": 18,
+      "win_rate_when_played": 0.444,
+      "games_in_deck": 129,
+      "win_rate_in_deck": 0.372,
+      "mean_play_turn": 17.17
+    },
+    "AZK01-107": {
+      "play_spell": 40,
+      "games_played": 40,
+      "win_rate_when_played": 0.325,
+      "games_in_deck": 128,
+      "win_rate_in_deck": 0.375,
+      "mean_play_turn": 5.53
+    },
+    "STT02-004": {
+      "play_garden": 54,
+      "attacks": 376,
+      "attacks_face": 335,
+      "play_alley": 105,
+      "portaled": 99,
+      "attacks_board": 41,
+      "attacked_as_target": 18,
+      "games_played": 149,
+      "win_rate_when_played": 0.517,
+      "games_in_deck": 504,
+      "win_rate_in_deck": 0.498,
+      "mean_play_turn": 8.27
+    },
+    "AZK01-009": {
+      "play_spell": 216,
+      "games_played": 188,
+      "win_rate_when_played": 0.426,
+      "games_in_deck": 575,
+      "win_rate_in_deck": 0.494,
+      "mean_play_turn": 7.39
+    },
+    "AZK01-123": {
+      "ability_uses": 430,
+      "games_played": 0,
+      "win_rate_when_played": null,
+      "games_in_deck": 0,
+      "win_rate_in_deck": null,
+      "mean_play_turn": null
+    },
+    "AZK01-045": {
+      "play_alley": 37,
+      "portaled": 37,
+      "attacks": 71,
+      "attacks_face": 68,
+      "attacked_as_target": 4,
+      "defends": 8,
+      "attacks_board": 3,
+      "play_garden": 4,
+      "games_played": 41,
+      "win_rate_when_played": 0.439,
+      "games_in_deck": 126,
+      "win_rate_in_deck": 0.389,
+      "mean_play_turn": 6.61
+    },
+    "AZK01-068": {
+      "play_alley": 149,
+      "portaled": 131,
+      "attacks": 243,
+      "attacks_face": 231,
+      "defends": 11,
+      "play_garden": 18,
+      "attacks_board": 12,
+      "attacked_as_target": 17,
+      "games_played": 159,
+      "win_rate_when_played": 0.528,
+      "games_in_deck": 512,
+      "win_rate_in_deck": 0.508,
+      "mean_play_turn": 7.67
+    },
+    "AZK01-085": {
+      "play_spell": 141,
+      "games_played": 140,
+      "win_rate_when_played": 0.464,
+      "games_in_deck": 552,
+      "win_rate_in_deck": 0.505,
+      "mean_play_turn": 9.5
+    },
+    "AZK01-108": {
+      "play_spell": 11,
+      "games_played": 11,
+      "win_rate_when_played": 0.364,
+      "games_in_deck": 72,
+      "win_rate_in_deck": 0.389,
+      "mean_play_turn": 15.45
+    },
+    "AZK01-105": {
+      "play_garden": 11,
+      "ability_uses": 14,
+      "play_alley": 3,
+      "portaled": 3,
+      "games_played": 14,
+      "win_rate_when_played": 0.5,
+      "games_in_deck": 60,
+      "win_rate_in_deck": 0.35,
+      "mean_play_turn": 15.57
+    },
+    "AZK01-102": {
+      "play_spell": 25,
+      "games_played": 25,
+      "win_rate_when_played": 0.44,
+      "games_in_deck": 139,
+      "win_rate_in_deck": 0.367,
+      "mean_play_turn": 16.24
+    },
+    "AZK01-082": {
+      "play_alley": 21,
+      "portaled": 21,
+      "attacks": 41,
+      "attacks_face": 41,
+      "play_garden": 4,
+      "attacked_as_target": 5,
+      "games_played": 23,
+      "win_rate_when_played": 0.696,
+      "games_in_deck": 144,
+      "win_rate_in_deck": 0.521,
+      "mean_play_turn": 13.56
+    },
+    "AZK01-047": {
+      "play_alley": 15,
+      "portaled": 14,
+      "attacks": 33,
+      "attacks_face": 27,
+      "play_garden": 14,
+      "attacks_board": 6,
+      "attacked_as_target": 2,
+      "games_played": 28,
+      "win_rate_when_played": 0.393,
+      "games_in_deck": 115,
+      "win_rate_in_deck": 0.365,
+      "mean_play_turn": 13.93
+    },
+    "AZK01-128": {
+      "play_spell": 33,
+      "games_played": 33,
+      "win_rate_when_played": 0.545,
+      "games_in_deck": 140,
+      "win_rate_in_deck": 0.364,
+      "mean_play_turn": 15.21
+    },
+    "STT01-015": {
+      "play_weapon": 72,
+      "games_played": 72,
+      "win_rate_when_played": 0.417,
+      "games_in_deck": 287,
+      "win_rate_in_deck": 0.474,
+      "mean_play_turn": 8.03
+    },
+    "AZK01-014": {
+      "play_garden": 7,
+      "attacks": 20,
+      "attacks_face": 20,
+      "play_alley": 12,
+      "portaled": 12,
+      "attacked_as_target": 1,
+      "games_played": 19,
+      "win_rate_when_played": 0.579,
+      "games_in_deck": 131,
+      "win_rate_in_deck": 0.466,
+      "mean_play_turn": 15.42
+    },
+    "AZK01-078": {
+      "play_alley": 46,
+      "portaled": 41,
+      "attacks": 76,
+      "attacks_face": 71,
+      "attacks_board": 5,
+      "play_garden": 14,
+      "defends": 3,
+      "attacked_as_target": 3,
+      "games_played": 56,
+      "win_rate_when_played": 0.625,
+      "games_in_deck": 253,
+      "win_rate_in_deck": 0.534,
+      "mean_play_turn": 12.67
+    },
+    "AZK01-005": {
+      "play_alley": 33,
+      "portaled": 32,
+      "attacks": 55,
+      "attacks_face": 52,
+      "play_garden": 12,
+      "attacked_as_target": 5,
+      "attacks_board": 3,
+      "games_played": 43,
+      "win_rate_when_played": 0.558,
+      "games_in_deck": 247,
+      "win_rate_in_deck": 0.51,
+      "mean_play_turn": 13.4
+    },
+    "AZK01-046": {
+      "play_garden": 16,
+      "play_alley": 29,
+      "portaled": 22,
+      "attacked_as_target": 19,
+      "games_played": 44,
+      "win_rate_when_played": 0.409,
+      "games_in_deck": 130,
+      "win_rate_in_deck": 0.377,
+      "mean_play_turn": 9.69
+    },
+    "STT03-008": {
+      "play_alley": 67,
+      "portaled": 64,
+      "play_garden": 30,
+      "attacks": 118,
+      "attacks_face": 112,
+      "attacks_board": 6,
+      "attacked_as_target": 11,
+      "games_played": 92,
+      "win_rate_when_played": 0.554,
+      "games_in_deck": 376,
+      "win_rate_in_deck": 0.511,
+      "mean_play_turn": 11.91
+    },
+    "AZK01-003": {
+      "play_alley": 130,
+      "portaled": 106,
+      "attacks": 267,
+      "attacks_face": 256,
+      "play_garden": 31,
+      "attacks_board": 11,
+      "attacked_as_target": 17,
+      "games_played": 151,
+      "win_rate_when_played": 0.523,
+      "games_in_deck": 556,
+      "win_rate_in_deck": 0.498,
+      "mean_play_turn": 7.84
+    },
+    "STT04-007": {
+      "play_alley": 17,
+      "portaled": 15,
+      "attacks": 22,
+      "attacks_face": 20,
+      "attacks_board": 2,
+      "play_garden": 4,
+      "attacked_as_target": 1,
+      "games_played": 21,
+      "win_rate_when_played": 0.286,
+      "games_in_deck": 102,
+      "win_rate_in_deck": 0.392,
+      "mean_play_turn": 9.57
+    },
+    "STT01-004": {
+      "attacks": 174,
+      "attacks_face": 169,
+      "play_alley": 96,
+      "portaled": 79,
+      "play_garden": 49,
+      "defends": 14,
+      "attacked_as_target": 34,
+      "attacks_board": 5,
+      "games_played": 137,
+      "win_rate_when_played": 0.467,
+      "games_in_deck": 511,
+      "win_rate_in_deck": 0.499,
+      "mean_play_turn": 9.46
+    },
+    "AZK01-113": {
+      "play_alley": 23,
+      "portaled": 18,
+      "attacks": 36,
+      "attacks_face": 35,
+      "play_garden": 4,
+      "attacked_as_target": 3,
+      "attacks_board": 1,
+      "games_played": 27,
+      "win_rate_when_played": 0.407,
+      "games_in_deck": 106,
+      "win_rate_in_deck": 0.434,
+      "mean_play_turn": 7.37
+    },
+    "AZK01-121": {
+      "ability_uses": 241,
+      "games_played": 0,
+      "win_rate_when_played": null,
+      "games_in_deck": 0,
+      "win_rate_in_deck": null,
+      "mean_play_turn": null
+    },
+    "AZK01-002": {
+      "play_spell": 220,
+      "games_played": 188,
+      "win_rate_when_played": 0.473,
+      "games_in_deck": 589,
+      "win_rate_in_deck": 0.503,
+      "mean_play_turn": 6.67
+    },
+    "AZK01-065": {
+      "play_spell": 23,
+      "games_played": 23,
+      "win_rate_when_played": 0.478,
+      "games_in_deck": 93,
+      "win_rate_in_deck": 0.387,
+      "mean_play_turn": 9.91
+    },
+    "STT01-012": {
+      "play_weapon": 37,
+      "games_played": 37,
+      "win_rate_when_played": 0.676,
+      "games_in_deck": 128,
+      "win_rate_in_deck": 0.719,
+      "mean_play_turn": 5.86
+    },
+    "AZK01-094": {
+      "play_weapon": 45,
+      "games_played": 45,
+      "win_rate_when_played": 0.622,
+      "games_in_deck": 141,
+      "win_rate_in_deck": 0.674,
+      "mean_play_turn": 5.93
+    },
+    "STT04-017": {
+      "play_spell": 31,
+      "games_played": 31,
+      "win_rate_when_played": 0.323,
+      "games_in_deck": 117,
+      "win_rate_in_deck": 0.368,
+      "mean_play_turn": 9.13
+    },
+    "AZK01-033": {
+      "play_alley": 45,
+      "portaled": 40,
+      "attacks": 109,
+      "attacks_face": 100,
+      "attacked_as_target": 7,
+      "play_garden": 5,
+      "attacks_board": 9,
+      "games_played": 48,
+      "win_rate_when_played": 0.688,
+      "games_in_deck": 136,
+      "win_rate_in_deck": 0.699,
+      "mean_play_turn": 5.92
+    },
+    "AZK01-018": {
+      "play_weapon": 52,
+      "games_played": 52,
+      "win_rate_when_played": 0.481,
+      "games_in_deck": 184,
+      "win_rate_in_deck": 0.538,
+      "mean_play_turn": 9.5
+    },
+    "AZK01-043": {
+      "play_weapon": 34,
+      "games_played": 34,
+      "win_rate_when_played": 0.735,
+      "games_in_deck": 140,
+      "win_rate_in_deck": 0.679,
+      "mean_play_turn": 7.82
+    },
+    "AZK01-072": {
+      "play_alley": 147,
+      "portaled": 124,
+      "attacks": 197,
+      "attacks_board": 21,
+      "attacks_face": 176,
+      "defends": 15,
+      "play_garden": 18,
+      "attacked_as_target": 22,
+      "games_played": 154,
+      "win_rate_when_played": 0.513,
+      "games_in_deck": 509,
+      "win_rate_in_deck": 0.497,
+      "mean_play_turn": 9.0
+    },
+    "AZK01-127": {
+      "play_spell": 31,
+      "games_played": 31,
+      "win_rate_when_played": 0.71,
+      "games_in_deck": 146,
+      "win_rate_in_deck": 0.678,
+      "mean_play_turn": 11.71
+    },
+    "AZK01-114": {
+      "play_garden": 4,
+      "attacks": 16,
+      "attacks_face": 16,
+      "play_alley": 19,
+      "portaled": 18,
+      "attacked_as_target": 1,
+      "games_played": 23,
+      "win_rate_when_played": 0.435,
+      "games_in_deck": 94,
+      "win_rate_in_deck": 0.426,
+      "mean_play_turn": 9.3
+    },
+    "AZK01-034": {
+      "play_alley": 31,
+      "portaled": 25,
+      "attacks": 57,
+      "attacks_face": 51,
+      "play_garden": 13,
+      "attacks_board": 6,
+      "attacked_as_target": 5,
+      "games_played": 44,
+      "win_rate_when_played": 0.636,
+      "games_in_deck": 141,
+      "win_rate_in_deck": 0.667,
+      "mean_play_turn": 10.02
+    },
+    "AZK01-035": {
+      "play_alley": 11,
+      "portaled": 9,
+      "defends": 17,
+      "play_garden": 13,
+      "attacks": 4,
+      "attacks_face": 3,
+      "attacks_board": 1,
+      "attacked_as_target": 1,
+      "games_played": 24,
+      "win_rate_when_played": 0.708,
+      "games_in_deck": 120,
+      "win_rate_in_deck": 0.633,
+      "mean_play_turn": 12.38
+    },
+    "AZK01-077": {
+      "play_alley": 79,
+      "portaled": 70,
+      "attacks": 127,
+      "attacks_face": 127,
+      "play_garden": 13,
+      "attacked_as_target": 11,
+      "defends": 6,
+      "games_played": 88,
+      "win_rate_when_played": 0.557,
+      "games_in_deck": 365,
+      "win_rate_in_deck": 0.51,
+      "mean_play_turn": 11.02
+    },
+    "AZK01-115": {
+      "attacks": 15,
+      "attacks_face": 15,
+      "play_alley": 9,
+      "portaled": 7,
+      "play_garden": 4,
+      "attacked_as_target": 1,
+      "games_played": 13,
+      "win_rate_when_played": 0.231,
+      "games_in_deck": 99,
+      "win_rate_in_deck": 0.424,
+      "mean_play_turn": 10.23
+    },
+    "AZK01-100": {
+      "play_spell": 11,
+      "games_played": 11,
+      "win_rate_when_played": 0.636,
+      "games_in_deck": 145,
+      "win_rate_in_deck": 0.697,
+      "mean_play_turn": 14.55
+    },
+    "AZK01-111": {
+      "play_alley": 10,
+      "portaled": 7,
+      "ability_uses": 3,
+      "play_garden": 4,
+      "attacks": 12,
+      "attacks_face": 12,
+      "games_played": 14,
+      "win_rate_when_played": 0.429,
+      "games_in_deck": 81,
+      "win_rate_in_deck": 0.432,
+      "mean_play_turn": 11.79
+    },
+    "AZK01-021": {
+      "play_alley": 35,
+      "portaled": 34,
+      "attacks": 86,
+      "attacks_face": 84,
+      "play_garden": 12,
+      "attacked_as_target": 9,
+      "attacks_board": 2,
+      "games_played": 43,
+      "win_rate_when_played": 0.558,
+      "games_in_deck": 146,
+      "win_rate_in_deck": 0.534,
+      "mean_play_turn": 8.06
+    },
+    "AZK01-011": {
+      "play_alley": 82,
+      "portaled": 80,
+      "attacks": 177,
+      "attacks_face": 174,
+      "play_garden": 18,
+      "attacked_as_target": 29,
+      "attacks_board": 3,
+      "games_played": 93,
+      "win_rate_when_played": 0.505,
+      "games_in_deck": 396,
+      "win_rate_in_deck": 0.497,
+      "mean_play_turn": 10.8
+    },
+    "STT02-001": {
+      "ability_uses": 251,
+      "games_played": 0,
+      "win_rate_when_played": null,
+      "games_in_deck": 0,
+      "win_rate_in_deck": null,
+      "mean_play_turn": null
+    },
+    "AZK01-024": {
+      "play_garden": 19,
+      "play_alley": 9,
+      "portaled": 8,
+      "attacks": 26,
+      "attacks_face": 20,
+      "attacks_board": 6,
+      "games_played": 20,
+      "win_rate_when_played": 0.45,
+      "games_in_deck": 106,
+      "win_rate_in_deck": 0.557,
+      "mean_play_turn": 13.25
+    },
+    "STT01-005": {
+      "play_alley": 34,
+      "portaled": 29,
+      "attacks": 56,
+      "attacks_face": 53,
+      "ability_uses": 5,
+      "attacks_board": 3,
+      "attacked_as_target": 4,
+      "games_played": 33,
+      "win_rate_when_played": 0.697,
+      "games_in_deck": 127,
+      "win_rate_in_deck": 0.685,
+      "mean_play_turn": 6.47
+    },
+    "STT01-003": {
+      "play_alley": 42,
+      "portaled": 39,
+      "attacks": 96,
+      "attacks_face": 95,
+      "attacked_as_target": 7,
+      "play_garden": 2,
+      "attacks_board": 1,
+      "games_played": 44,
+      "win_rate_when_played": 0.773,
+      "games_in_deck": 135,
+      "win_rate_in_deck": 0.719,
+      "mean_play_turn": 5.8
+    },
+    "AZK01-048": {
+      "play_alley": 21,
+      "portaled": 17,
+      "attacks": 52,
+      "attacks_face": 42,
+      "play_garden": 8,
+      "defends": 6,
+      "attacks_board": 10,
+      "attacked_as_target": 3,
+      "games_played": 29,
+      "win_rate_when_played": 0.414,
+      "games_in_deck": 98,
+      "win_rate_in_deck": 0.388,
+      "mean_play_turn": 12.45
+    },
+    "AZK01-038": {
+      "play_alley": 9,
+      "portaled": 7,
+      "attacks": 23,
+      "attacks_face": 22,
+      "play_garden": 8,
+      "attacked_as_target": 3,
+      "attacks_board": 1,
+      "games_played": 17,
+      "win_rate_when_played": 0.824,
+      "games_in_deck": 102,
+      "win_rate_in_deck": 0.706,
+      "mean_play_turn": 13.24
+    },
+    "STT03-007": {
+      "play_garden": 13,
+      "attacks": 21,
+      "attacks_face": 20,
+      "attacked_as_target": 10,
+      "play_alley": 13,
+      "portaled": 10,
+      "attacks_board": 1,
+      "games_played": 26,
+      "win_rate_when_played": 0.538,
+      "games_in_deck": 105,
+      "win_rate_in_deck": 0.4,
+      "mean_play_turn": 13.85
+    },
+    "STT01-001": {
+      "ability_uses": 15,
+      "games_played": 0,
+      "win_rate_when_played": null,
+      "games_in_deck": 0,
+      "win_rate_in_deck": null,
+      "mean_play_turn": null
+    },
+    "STT01-008": {
+      "play_alley": 17,
+      "portaled": 17,
+      "attacks": 27,
+      "attacks_face": 25,
+      "play_garden": 2,
+      "attacks_board": 2,
+      "games_played": 19,
+      "win_rate_when_played": 0.632,
+      "games_in_deck": 93,
+      "win_rate_in_deck": 0.71,
+      "mean_play_turn": 11.74
+    },
+    "AZK01-091": {
+      "play_alley": 23,
+      "portaled": 23,
+      "attacks": 6,
+      "attacks_face": 6,
+      "ability_uses": 27,
+      "play_garden": 14,
+      "games_played": 36,
+      "win_rate_when_played": 0.583,
+      "games_in_deck": 128,
+      "win_rate_in_deck": 0.523,
+      "mean_play_turn": 9.11
+    },
+    "STT02-005": {
+      "play_alley": 53,
+      "portaled": 50,
+      "attacks": 129,
+      "attacks_face": 125,
+      "attacks_board": 4,
+      "attacked_as_target": 10,
+      "play_garden": 1,
+      "games_played": 51,
+      "win_rate_when_played": 0.529,
+      "games_in_deck": 142,
+      "win_rate_in_deck": 0.514,
+      "mean_play_turn": 6.7
+    },
+    "STT01-017": {
+      "play_spell": 27,
+      "games_played": 27,
+      "win_rate_when_played": 0.778,
+      "games_in_deck": 130,
+      "win_rate_in_deck": 0.692,
+      "mean_play_turn": 10.96
+    },
+    "AZK01-030": {
+      "play_spell": 37,
+      "games_played": 33,
+      "win_rate_when_played": 0.455,
+      "games_in_deck": 158,
+      "win_rate_in_deck": 0.513,
+      "mean_play_turn": 11.43
+    },
+    "STT04-011": {
+      "play_alley": 32,
+      "portaled": 28,
+      "attacks": 63,
+      "attacks_face": 53,
+      "defends": 4,
+      "play_garden": 12,
+      "attacked_as_target": 3,
+      "attacks_board": 10,
+      "games_played": 43,
+      "win_rate_when_played": 0.419,
+      "games_in_deck": 243,
+      "win_rate_in_deck": 0.486,
+      "mean_play_turn": 12.16
+    },
+    "STT02-006": {
+      "play_garden": 6,
+      "defends": 26,
+      "play_alley": 30,
+      "portaled": 28,
+      "attacks": 20,
+      "attacks_face": 20,
+      "attacked_as_target": 2,
+      "games_played": 34,
+      "win_rate_when_played": 0.441,
+      "games_in_deck": 123,
+      "win_rate_in_deck": 0.52,
+      "mean_play_turn": 10.08
+    },
+    "AZK01-012": {
+      "play_alley": 8,
+      "portaled": 7,
+      "attacks": 16,
+      "attacks_face": 15,
+      "play_garden": 11,
+      "attacks_board": 1,
+      "attacked_as_target": 3,
+      "games_played": 19,
+      "win_rate_when_played": 0.579,
+      "games_in_deck": 153,
+      "win_rate_in_deck": 0.556,
+      "mean_play_turn": 14.47
+    },
+    "STT02-009": {
+      "play_alley": 4,
+      "play_garden": 13,
+      "portaled": 3,
+      "attacks": 8,
+      "attacks_face": 7,
+      "attacks_board": 1,
+      "games_played": 13,
+      "win_rate_when_played": 0.385,
+      "games_in_deck": 81,
+      "win_rate_in_deck": 0.494,
+      "mean_play_turn": 14.24
+    },
+    "AZK01-088": {
+      "play_spell": 15,
+      "games_played": 15,
+      "win_rate_when_played": 0.733,
+      "games_in_deck": 94,
+      "win_rate_in_deck": 0.564,
+      "mean_play_turn": 13.13
+    },
+    "AZK01-023": {
+      "play_garden": 13,
+      "attacks": 12,
+      "attacks_face": 9,
+      "play_alley": 9,
+      "portaled": 7,
+      "attacks_board": 3,
+      "games_played": 21,
+      "win_rate_when_played": 0.429,
+      "games_in_deck": 107,
+      "win_rate_in_deck": 0.523,
+      "mean_play_turn": 12.82
+    },
+    "AZK01-019": {
+      "play_alley": 101,
+      "portaled": 96,
+      "attacks": 157,
+      "attacks_face": 153,
+      "defends": 11,
+      "play_garden": 15,
+      "attacked_as_target": 12,
+      "attacks_board": 4,
+      "games_played": 111,
+      "win_rate_when_played": 0.577,
+      "games_in_deck": 397,
+      "win_rate_in_deck": 0.516,
+      "mean_play_turn": 10.37
+    },
+    "STT02-011": {
+      "play_garden": 6,
+      "ability_uses": 11,
+      "play_alley": 6,
+      "portaled": 6,
+      "attacks": 1,
+      "attacks_face": 1,
+      "games_played": 12,
+      "win_rate_when_played": 0.167,
+      "games_in_deck": 65,
+      "win_rate_in_deck": 0.523,
+      "mean_play_turn": 10.42
+    },
+    "STT03-006": {
+      "play_alley": 24,
+      "portaled": 24,
+      "attacks": 40,
+      "attacks_face": 37,
+      "attacked_as_target": 8,
+      "attacks_board": 3,
+      "defends": 6,
+      "play_garden": 6,
+      "games_played": 29,
+      "win_rate_when_played": 0.483,
+      "games_in_deck": 106,
+      "win_rate_in_deck": 0.368,
+      "mean_play_turn": 9.97
+    },
+    "AZK01-075": {
+      "play_alley": 32,
+      "ability_uses": 11,
+      "play_garden": 7,
+      "attacks": 43,
+      "attacks_face": 39,
+      "portaled": 28,
+      "attacks_board": 4,
+      "attacked_as_target": 1,
+      "games_played": 39,
+      "win_rate_when_played": 0.487,
+      "games_in_deck": 256,
+      "win_rate_in_deck": 0.488,
+      "mean_play_turn": 13.15
+    },
+    "STT03-003": {
+      "play_alley": 43,
+      "portaled": 43,
+      "play_garden": 7,
+      "attacks": 70,
+      "attacks_face": 67,
+      "defends": 15,
+      "attacked_as_target": 4,
+      "attacks_board": 3,
+      "games_played": 49,
+      "win_rate_when_played": 0.367,
+      "games_in_deck": 133,
+      "win_rate_in_deck": 0.391,
+      "mean_play_turn": 6.72
+    },
+    "STT02-012": {
+      "play_alley": 53,
+      "portaled": 52,
+      "defends": 6,
+      "attacked_as_target": 7,
+      "attacks": 68,
+      "attacks_face": 62,
+      "attacks_board": 6,
+      "play_garden": 2,
+      "games_played": 53,
+      "win_rate_when_played": 0.566,
+      "games_in_deck": 223,
+      "win_rate_in_deck": 0.471,
+      "mean_play_turn": 11.02
+    },
+    "STT03-005": {
+      "play_garden": 8,
+      "attacks": 22,
+      "attacks_face": 16,
+      "attacks_board": 6,
+      "play_alley": 25,
+      "portaled": 17,
+      "defends": 7,
+      "attacked_as_target": 1,
+      "games_played": 33,
+      "win_rate_when_played": 0.394,
+      "games_in_deck": 131,
+      "win_rate_in_deck": 0.366,
+      "mean_play_turn": 11.91
+    },
+    "STT03-009": {
+      "play_alley": 11,
+      "portaled": 11,
+      "defends": 15,
+      "play_garden": 6,
+      "attacked_as_target": 2,
+      "attacks": 11,
+      "attacks_board": 3,
+      "attacks_face": 8,
+      "games_played": 17,
+      "win_rate_when_played": 0.412,
+      "games_in_deck": 69,
+      "win_rate_in_deck": 0.333,
+      "mean_play_turn": 14.53
+    },
+    "AZK01-050": {
+      "play_alley": 9,
+      "portaled": 8,
+      "defends": 2,
+      "attacks": 9,
+      "attacks_face": 9,
+      "play_garden": 1,
+      "attacked_as_target": 1,
+      "games_played": 10,
+      "win_rate_when_played": 0.4,
+      "games_in_deck": 47,
+      "win_rate_in_deck": 0.447,
+      "mean_play_turn": 15.9
+    },
+    "STT01-006": {
+      "play_alley": 23,
+      "portaled": 18,
+      "attacks": 45,
+      "attacks_face": 36,
+      "attacks_board": 9,
+      "attacked_as_target": 3,
+      "play_garden": 6,
+      "games_played": 28,
+      "win_rate_when_played": 0.607,
+      "games_in_deck": 115,
+      "win_rate_in_deck": 0.704,
+      "mean_play_turn": 10.31
+    },
+    "AZK01-039": {
+      "play_garden": 2,
+      "attacks": 4,
+      "attacks_face": 4,
+      "games_played": 2,
+      "win_rate_when_played": 1.0,
+      "games_in_deck": 53,
+      "win_rate_in_deck": 0.679,
+      "mean_play_turn": 16.0
+    },
+    "AZK01-044": {
+      "play_weapon": 31,
+      "games_played": 31,
+      "win_rate_when_played": 0.484,
+      "games_in_deck": 107,
+      "win_rate_in_deck": 0.654,
+      "mean_play_turn": 8.42
+    },
+    "AZK01-029": {
+      "play_spell": 43,
+      "games_played": 37,
+      "win_rate_when_played": 0.568,
+      "games_in_deck": 145,
+      "win_rate_in_deck": 0.49,
+      "mean_play_turn": 7.3
+    },
+    "STT01-016": {
+      "play_weapon": 5,
+      "games_played": 5,
+      "win_rate_when_played": 1.0,
+      "games_in_deck": 34,
+      "win_rate_in_deck": 0.5,
+      "mean_play_turn": 7.8
+    },
+    "AZK01-042": {
+      "play_spell": 15,
+      "games_played": 15,
+      "win_rate_when_played": 0.667,
+      "games_in_deck": 93,
+      "win_rate_in_deck": 0.677,
+      "mean_play_turn": 12.87
+    },
+    "AZK01-097": {
+      "play_alley": 36,
+      "play_garden": 6,
+      "portaled": 30,
+      "attacks": 43,
+      "attacks_face": 38,
+      "attacks_board": 5,
+      "attacked_as_target": 2,
+      "games_played": 41,
+      "win_rate_when_played": 0.707,
+      "games_in_deck": 136,
+      "win_rate_in_deck": 0.684,
+      "mean_play_turn": 9.38
+    },
+    "STT02-007": {
+      "play_garden": 31,
+      "play_alley": 18,
+      "portaled": 15,
+      "attacks": 57,
+      "attacks_face": 53,
+      "attacks_board": 4,
+      "attacked_as_target": 7,
+      "games_played": 40,
+      "win_rate_when_played": 0.55,
+      "games_in_deck": 116,
+      "win_rate_in_deck": 0.569,
+      "mean_play_turn": 10.65
+    },
+    "STT04-015": {
+      "play_spell": 42,
+      "games_played": 42,
+      "win_rate_when_played": 0.452,
+      "games_in_deck": 124,
+      "win_rate_in_deck": 0.403,
+      "mean_play_turn": 5.57
+    },
+    "STT04-004": {
+      "play_garden": 5,
+      "play_alley": 10,
+      "portaled": 3,
+      "attacks": 12,
+      "attacks_face": 12,
+      "attacked_as_target": 2,
+      "games_played": 15,
+      "win_rate_when_played": 0.133,
+      "games_in_deck": 106,
+      "win_rate_in_deck": 0.387,
+      "mean_play_turn": 7.87
+    },
+    "STT04-001": {
+      "ability_uses": 302,
+      "games_played": 0,
+      "win_rate_when_played": null,
+      "games_in_deck": 0,
+      "win_rate_in_deck": null,
+      "mean_play_turn": null
+    },
+    "AZK01-080": {
+      "play_alley": 10,
+      "portaled": 11,
+      "attacks": 17,
+      "attacks_face": 16,
+      "play_garden": 3,
+      "attacks_board": 1,
+      "defends": 2,
+      "attacked_as_target": 3,
+      "games_played": 13,
+      "win_rate_when_played": 0.462,
+      "games_in_deck": 116,
+      "win_rate_in_deck": 0.44,
+      "mean_play_turn": 11.46
+    },
+    "AZK01-087": {
+      "play_spell": 27,
+      "games_played": 27,
+      "win_rate_when_played": 0.333,
+      "games_in_deck": 109,
+      "win_rate_in_deck": 0.523,
+      "mean_play_turn": 11.37
+    },
+    "AZK01-092": {
+      "play_spell": 44,
+      "games_played": 43,
+      "win_rate_when_played": 0.442,
+      "games_in_deck": 159,
+      "win_rate_in_deck": 0.503,
+      "mean_play_turn": 7.98
+    },
+    "AZK01-022": {
+      "play_garden": 27,
+      "attacks": 73,
+      "attacks_face": 62,
+      "attacked_as_target": 4,
+      "play_alley": 15,
+      "portaled": 14,
+      "attacks_board": 11,
+      "games_played": 36,
+      "win_rate_when_played": 0.389,
+      "games_in_deck": 130,
+      "win_rate_in_deck": 0.523,
+      "mean_play_turn": 11.29
+    },
+    "STT01-009": {
+      "play_garden": 5,
+      "attacks": 29,
+      "attacks_face": 28,
+      "play_alley": 15,
+      "portaled": 15,
+      "attacked_as_target": 3,
+      "attacks_board": 1,
+      "games_played": 20,
+      "win_rate_when_played": 0.6,
+      "games_in_deck": 76,
+      "win_rate_in_deck": 0.632,
+      "mean_play_turn": 11.7
+    },
+    "AZK01-057": {
+      "play_alley": 24,
+      "portaled": 17,
+      "attacks": 6,
+      "attacks_face": 6,
+      "play_garden": 3,
+      "games_played": 27,
+      "win_rate_when_played": 0.333,
+      "games_in_deck": 100,
+      "win_rate_in_deck": 0.42,
+      "mean_play_turn": 6.67
+    },
+    "STT04-008": {
+      "play_alley": 7,
+      "portaled": 7,
+      "attacks": 12,
+      "attacks_face": 11,
+      "play_garden": 3,
+      "attacks_board": 1,
+      "games_played": 10,
+      "win_rate_when_played": 0.4,
+      "games_in_deck": 70,
+      "win_rate_in_deck": 0.443,
+      "mean_play_turn": 11.8
+    },
+    "STT03-010": {
+      "play_alley": 9,
+      "portaled": 8,
+      "defends": 2,
+      "attacks": 8,
+      "attacks_face": 6,
+      "attacks_board": 2,
+      "attacked_as_target": 1,
+      "play_garden": 1,
+      "games_played": 9,
+      "win_rate_when_played": 0.444,
+      "games_in_deck": 57,
+      "win_rate_in_deck": 0.368,
+      "mean_play_turn": 14.1
+    },
+    "STT04-012": {
+      "play_garden": 1,
+      "attacks": 3,
+      "attacks_face": 3,
+      "play_alley": 5,
+      "portaled": 5,
+      "games_played": 6,
+      "win_rate_when_played": 0.667,
+      "games_in_deck": 52,
+      "win_rate_in_deck": 0.385,
+      "mean_play_turn": 13.67
+    },
+    "AZK01-056": {
+      "play_alley": 47,
+      "portaled": 28,
+      "attacks": 32,
+      "attacks_face": 32,
+      "play_garden": 2,
+      "attacked_as_target": 2,
+      "games_played": 49,
+      "win_rate_when_played": 0.327,
+      "games_in_deck": 119,
+      "win_rate_in_deck": 0.395,
+      "mean_play_turn": 5.35
+    },
+    "STT04-016": {
+      "play_spell": 34,
+      "games_played": 34,
+      "win_rate_when_played": 0.5,
+      "games_in_deck": 129,
+      "win_rate_in_deck": 0.403,
+      "mean_play_turn": 8.94
+    },
+    "AZK01-066": {
+      "play_spell": 13,
+      "games_played": 13,
+      "win_rate_when_played": 0.615,
+      "games_in_deck": 77,
+      "win_rate_in_deck": 0.39,
+      "mean_play_turn": 11.15
+    },
+    "STT03-015": {
+      "play_spell": 23,
+      "games_played": 23,
+      "win_rate_when_played": 0.348,
+      "games_in_deck": 90,
+      "win_rate_in_deck": 0.378,
+      "mean_play_turn": 11.35
+    },
+    "AZK01-101": {
+      "play_spell": 30,
+      "games_played": 30,
+      "win_rate_when_played": 0.467,
+      "games_in_deck": 133,
+      "win_rate_in_deck": 0.383,
+      "mean_play_turn": 12.1
+    },
+    "STT04-003": {
+      "play_alley": 5,
+      "portaled": 5,
+      "attacks": 18,
+      "attacks_face": 18,
+      "play_garden": 2,
+      "games_played": 7,
+      "win_rate_when_played": 0.286,
+      "games_in_deck": 98,
+      "win_rate_in_deck": 0.408,
+      "mean_play_turn": 6.29
+    },
+    "AZK01-090": {
+      "play_garden": 6,
+      "attacks": 6,
+      "attacks_face": 6,
+      "games_played": 6,
+      "win_rate_when_played": 0.5,
+      "games_in_deck": 32,
+      "win_rate_in_deck": 0.531,
+      "mean_play_turn": 13.67
+    },
+    "AZK01-095": {
+      "play_weapon": 14,
+      "games_played": 14,
+      "win_rate_when_played": 0.643,
+      "games_in_deck": 48,
+      "win_rate_in_deck": 0.625,
+      "mean_play_turn": 10.07
+    },
+    "STT01-011": {
+      "play_garden": 1,
+      "attacks": 6,
+      "attacks_face": 6,
+      "play_alley": 6,
+      "portaled": 5,
+      "attacked_as_target": 3,
+      "games_played": 7,
+      "win_rate_when_played": 0.714,
+      "games_in_deck": 28,
+      "win_rate_in_deck": 0.679,
+      "mean_play_turn": 13.0
+    },
+    "AZK01-062": {
+      "play_alley": 10,
+      "portaled": 10,
+      "attacks": 11,
+      "attacks_face": 11,
+      "play_garden": 1,
+      "games_played": 11,
+      "win_rate_when_played": 0.455,
+      "games_in_deck": 75,
+      "win_rate_in_deck": 0.36,
+      "mean_play_turn": 7.82
+    },
+    "AZK01-110": {
+      "play_alley": 3,
+      "portaled": 3,
+      "attacks": 2,
+      "attacks_face": 2,
+      "games_played": 3,
+      "win_rate_when_played": 0.333,
+      "games_in_deck": 54,
+      "win_rate_in_deck": 0.37,
+      "mean_play_turn": 12.67
+    },
+    "AZK01-096": {
+      "play_spell": 6,
+      "games_played": 6,
+      "win_rate_when_played": 0.5,
+      "games_in_deck": 148,
+      "win_rate_in_deck": 0.689,
+      "mean_play_turn": 16.83
+    },
+    "AZK01-036": {
+      "play_garden": 10,
+      "play_alley": 13,
+      "portaled": 10,
+      "attacks": 24,
+      "attacks_face": 24,
+      "attacked_as_target": 1,
+      "games_played": 23,
+      "win_rate_when_played": 0.696,
+      "games_in_deck": 88,
+      "win_rate_in_deck": 0.693,
+      "mean_play_turn": 13.09
+    },
+    "STT04-005": {
+      "play_alley": 26,
+      "portaled": 20,
+      "attacks": 41,
+      "attacks_face": 40,
+      "attacked_as_target": 2,
+      "play_garden": 2,
+      "attacks_board": 1,
+      "games_played": 28,
+      "win_rate_when_played": 0.536,
+      "games_in_deck": 106,
+      "win_rate_in_deck": 0.396,
+      "mean_play_turn": 4.54
+    },
+    "AZK01-059": {
+      "play_alley": 16,
+      "portaled": 13,
+      "play_garden": 2,
+      "attacks": 17,
+      "attacks_face": 15,
+      "attacks_board": 2,
+      "games_played": 18,
+      "win_rate_when_played": 0.5,
+      "games_in_deck": 95,
+      "win_rate_in_deck": 0.379,
+      "mean_play_turn": 10.33
+    },
+    "AZK01-058": {
+      "play_alley": 20,
+      "portaled": 15,
+      "attacks": 10,
+      "attacks_face": 10,
+      "play_garden": 1,
+      "games_played": 21,
+      "win_rate_when_played": 0.333,
+      "games_in_deck": 99,
+      "win_rate_in_deck": 0.414,
+      "mean_play_turn": 6.24
+    },
+    "AZK01-116": {
+      "play_alley": 5,
+      "portaled": 4,
+      "attacks": 8,
+      "attacks_face": 8,
+      "play_garden": 2,
+      "attacked_as_target": 3,
+      "games_played": 7,
+      "win_rate_when_played": 0.429,
+      "games_in_deck": 38,
+      "win_rate_in_deck": 0.342,
+      "mean_play_turn": 10.0
+    },
+    "AZK01-032": {
+      "play_spell": 32,
+      "games_played": 32,
+      "win_rate_when_played": 0.438,
+      "games_in_deck": 139,
+      "win_rate_in_deck": 0.525,
+      "mean_play_turn": 11.12
+    },
+    "STT04-009": {
+      "play_garden": 7,
+      "attacks": 35,
+      "attacks_face": 28,
+      "play_alley": 18,
+      "portaled": 17,
+      "attacks_board": 7,
+      "attacked_as_target": 5,
+      "games_played": 25,
+      "win_rate_when_played": 0.68,
+      "games_in_deck": 81,
+      "win_rate_in_deck": 0.42,
+      "mean_play_turn": 10.44
+    },
+    "AZK01-119": {
+      "ability_uses": 37,
+      "games_played": 0,
+      "win_rate_when_played": null,
+      "games_in_deck": 0,
+      "win_rate_in_deck": null,
+      "mean_play_turn": null
+    },
+    "STT01-010": {
+      "play_alley": 3,
+      "portaled": 3,
+      "attacks": 6,
+      "attacks_face": 6,
+      "games_played": 3,
+      "win_rate_when_played": 0.0,
+      "games_in_deck": 46,
+      "win_rate_in_deck": 0.609,
+      "mean_play_turn": 11.33
+    },
+    "STT02-013": {
+      "play_garden": 1,
+      "attacks": 1,
+      "attacks_face": 1,
+      "games_played": 1,
+      "win_rate_when_played": 0.0,
+      "games_in_deck": 31,
+      "win_rate_in_deck": 0.581,
+      "mean_play_turn": 11.0
+    },
+    "AZK01-027": {
+      "play_alley": 1,
+      "portaled": 1,
+      "play_garden": 3,
+      "attacks": 3,
+      "attacks_face": 3,
+      "attacked_as_target": 4,
+      "games_played": 4,
+      "win_rate_when_played": 0.75,
+      "games_in_deck": 35,
+      "win_rate_in_deck": 0.6,
+      "mean_play_turn": 15.75
+    },
+    "AZK01-061": {
+      "play_alley": 5,
+      "portaled": 4,
+      "attacks": 5,
+      "attacks_face": 5,
+      "play_garden": 2,
+      "games_played": 7,
+      "win_rate_when_played": 0.429,
+      "games_in_deck": 60,
+      "win_rate_in_deck": 0.467,
+      "mean_play_turn": 12.0
+    },
+    "STT02-010": {
+      "play_garden": 9,
+      "attacks": 12,
+      "attacks_face": 8,
+      "attacked_as_target": 3,
+      "attacks_board": 4,
+      "play_alley": 2,
+      "portaled": 1,
+      "games_played": 11,
+      "win_rate_when_played": 0.364,
+      "games_in_deck": 75,
+      "win_rate_in_deck": 0.48,
+      "mean_play_turn": 15.18
+    },
+    "AZK01-117": {
+      "play_spell": 31,
+      "games_played": 31,
+      "win_rate_when_played": 0.419,
+      "games_in_deck": 118,
+      "win_rate_in_deck": 0.39,
+      "mean_play_turn": 7.0
+    },
+    "AZK01-098": {
+      "play_garden": 5,
+      "attacks": 6,
+      "attacks_face": 6,
+      "play_alley": 5,
+      "portaled": 3,
+      "games_played": 10,
+      "win_rate_when_played": 0.9,
+      "games_in_deck": 78,
+      "win_rate_in_deck": 0.641,
+      "mean_play_turn": 15.0
+    },
+    "STT02-017": {
+      "play_spell": 13,
+      "games_played": 13,
+      "win_rate_when_played": 0.692,
+      "games_in_deck": 77,
+      "win_rate_in_deck": 0.519,
+      "mean_play_turn": 12.69
+    },
+    "AZK01-118": {
+      "play_alley": 4,
+      "portaled": 4,
+      "attacks": 2,
+      "attacks_face": 2,
+      "attacked_as_target": 2,
+      "games_played": 4,
+      "win_rate_when_played": 0.25,
+      "games_in_deck": 50,
+      "win_rate_in_deck": 0.4,
+      "mean_play_turn": 11.0
+    },
+    "AZK01-037": {
+      "play_garden": 5,
+      "attacks": 8,
+      "attacks_face": 8,
+      "play_alley": 1,
+      "portaled": 1,
+      "games_played": 6,
+      "win_rate_when_played": 0.833,
+      "games_in_deck": 70,
+      "win_rate_in_deck": 0.743,
+      "mean_play_turn": 16.33
+    },
+    "AZK01-049": {
+      "play_alley": 12,
+      "portaled": 12,
+      "defends": 14,
+      "play_garden": 4,
+      "attacks": 9,
+      "attacks_face": 7,
+      "attacks_board": 2,
+      "games_played": 16,
+      "win_rate_when_played": 0.188,
+      "games_in_deck": 80,
+      "win_rate_in_deck": 0.4,
+      "mean_play_turn": 13.31
+    },
+    "AZK01-026": {
+      "play_garden": 6,
+      "ability_uses": 5,
+      "attacks": 5,
+      "attacks_face": 5,
+      "games_played": 6,
+      "win_rate_when_played": 0.5,
+      "games_in_deck": 55,
+      "win_rate_in_deck": 0.545,
+      "mean_play_turn": 14.83
+    },
+    "STT04-010": {
+      "play_alley": 6,
+      "portaled": 4,
+      "attacks": 16,
+      "attacks_face": 13,
+      "play_garden": 2,
+      "attacks_board": 3,
+      "games_played": 8,
+      "win_rate_when_played": 0.625,
+      "games_in_deck": 73,
+      "win_rate_in_deck": 0.479,
+      "mean_play_turn": 12.88
+    },
+    "AZK01-040": {
+      "play_alley": 2,
+      "portaled": 2,
+      "play_garden": 2,
+      "defends": 3,
+      "attacks": 5,
+      "attacks_face": 5,
+      "attacked_as_target": 1,
+      "games_played": 4,
+      "win_rate_when_played": 0.75,
+      "games_in_deck": 50,
+      "win_rate_in_deck": 0.66,
+      "mean_play_turn": 15.75
+    },
+    "AZK01-103": {
+      "play_alley": 1,
+      "portaled": 1,
+      "attacks": 5,
+      "attacks_face": 4,
+      "play_garden": 3,
+      "ability_uses": 7,
+      "attacks_board": 1,
+      "games_played": 4,
+      "win_rate_when_played": 0.5,
+      "games_in_deck": 57,
+      "win_rate_in_deck": 0.298,
+      "mean_play_turn": 17.5
+    },
+    "AZK01-051": {
+      "play_alley": 4,
+      "portaled": 3,
+      "defends": 6,
+      "attacks": 4,
+      "attacks_face": 4,
+      "play_garden": 3,
+      "games_played": 7,
+      "win_rate_when_played": 0.143,
+      "games_in_deck": 51,
+      "win_rate_in_deck": 0.412,
+      "mean_play_turn": 16.29
+    },
+    "AZK01-060": {
+      "play_alley": 1,
+      "portaled": 1,
+      "attacks": 1,
+      "attacks_face": 1,
+      "games_played": 1,
+      "win_rate_when_played": 1.0,
+      "games_in_deck": 35,
+      "win_rate_in_deck": 0.314,
+      "mean_play_turn": 11.0
+    },
+    "AZK01-081": {
+      "play_garden": 4,
+      "attacks": 18,
+      "attacks_face": 17,
+      "play_alley": 17,
+      "portaled": 14,
+      "attacked_as_target": 3,
+      "attacks_board": 1,
+      "games_played": 19,
+      "win_rate_when_played": 0.368,
+      "games_in_deck": 103,
+      "win_rate_in_deck": 0.476,
+      "mean_play_turn": 14.86
+    },
+    "AZK01-015": {
+      "play_garden": 3,
+      "attacks": 3,
+      "attacks_face": 3,
+      "games_played": 3,
+      "win_rate_when_played": 1.0,
+      "games_in_deck": 75,
+      "win_rate_in_deck": 0.52,
+      "mean_play_turn": 17.0
+    },
+    "STT03-012": {
+      "play_alley": 1,
+      "portaled": 1,
+      "attacks": 1,
+      "attacks_face": 1,
+      "games_played": 1,
+      "win_rate_when_played": 0.0,
+      "games_in_deck": 23,
+      "win_rate_in_deck": 0.304,
+      "mean_play_turn": 14.0
+    },
+    "STT03-011": {
+      "play_alley": 3,
+      "portaled": 3,
+      "attacks": 8,
+      "attacks_face": 8,
+      "play_garden": 4,
+      "games_played": 7,
+      "win_rate_when_played": 0.571,
+      "games_in_deck": 19,
+      "win_rate_in_deck": 0.421,
+      "mean_play_turn": 14.43
+    },
+    "STT04-013": {
+      "play_alley": 1,
+      "portaled": 1,
+      "games_played": 1,
+      "win_rate_when_played": 0.0,
+      "games_in_deck": 29,
+      "win_rate_in_deck": 0.448,
+      "mean_play_turn": 13.0
+    },
+    "AZK01-054": {
+      "play_garden": 1,
+      "attacks": 1,
+      "attacks_board": 1,
+      "games_played": 1,
+      "win_rate_when_played": 0.0,
+      "games_in_deck": 6,
+      "win_rate_in_deck": 0.167,
+      "mean_play_turn": 24.0
+    },
+    "AZK01-089": {
+      "play_garden": 1,
+      "attacks": 1,
+      "attacks_face": 1,
+      "games_played": 1,
+      "win_rate_when_played": 1.0,
+      "games_in_deck": 7,
+      "win_rate_in_deck": 0.714,
+      "mean_play_turn": 15.0
+    },
+    "AZK01-093": {
+      "play_garden": 1,
+      "attacks": 1,
+      "attacks_face": 1,
+      "games_played": 1,
+      "win_rate_when_played": 1.0,
+      "games_in_deck": 24,
+      "win_rate_in_deck": 0.542,
+      "mean_play_turn": 15.0
+    }
+  },
+  "response_window_plays": {
+    "STT02-016": 47,
+    "AZK01-029": 43,
+    "AZK01-030": 37,
+    "AZK01-128": 33,
+    "AZK01-127": 31,
+    "STT02-015": 30,
+    "STT01-017": 27,
+    "AZK01-102": 25,
+    "AZK01-055": 18,
+    "AZK01-100": 11,
+    "AZK01-096": 6,
+    "AZK01-085": 2,
+    "AZK01-094": 2
+  },
+  "leader_ability_uses": {
+    "STT03-001": 648,
+    "AZK01-125": 291,
+    "AZK01-123": 430,
+    "AZK01-121": 241,
+    "STT02-001": 251,
+    "STT01-001": 15,
+    "STT04-001": 302,
+    "AZK01-119": 37
+  },
+  "leader_ability_games": {
+    "AZK01-125": 80,
+    "STT03-001": 77,
+    "AZK01-123": 68,
+    "AZK01-121": 72,
+    "STT02-001": 82,
+    "STT01-001": 11,
+    "STT04-001": 58,
+    "AZK01-119": 26
+  },
+  "combos": {
+    "alley_play_then_portal_same_turn": 2412,
+    "portal_then_attack_same_turn": 148
+  },
+  "combo_examples": {
+    "alley_play_then_portal_same_turn": [
+      [
+        0,
+        2,
+        "AZK01-070"
+      ],
+      [
+        0,
+        3,
+        "STT02-003"
+      ],
+      [
+        0,
+        5,
+        "AZK01-069"
+      ],
+      [
+        0,
+        7,
+        "AZK01-001"
+      ],
+      [
+        0,
+        8,
+        "AZK01-073"
+      ]
+    ],
+    "portal_then_attack_same_turn": [
+      [
+        1,
+        18,
+        "AZK01-082",
+        "OPP_LEADER"
+      ],
+      [
+        4,
+        5,
+        "AZK01-011",
+        "OPP_LEADER"
+      ],
+      [
+        5,
+        10,
+        "AZK01-011",
+        "OPP_LEADER"
+      ],
+      [
+        5,
+        15,
+        "AZK01-034",
+        "OPP_LEADER"
+      ],
+      [
+        6,
+        2,
+        "AZK01-091",
+        "OPP_LEADER"
+      ]
+    ]
+  },
+  "top_bigrams_by_element": {
+    "WATER": [
+      {
+        "seq": "play_spell:STT02-014 -> ability:MY_LEADER",
+        "n": 50
+      },
+      {
+        "seq": "play_weapon:STT01-013 -> attack:MY_LEADER>FACE",
+        "n": 38
+      },
+      {
+        "seq": "play_alley:STT02-005 -> portal:STT02-005",
+        "n": 34
+      },
+      {
+        "seq": "play_alley:AZK01-019 -> portal:AZK01-019",
+        "n": 30
+      },
+      {
+        "seq": "play_spell:AZK01-009 -> ability:MY_LEADER",
+        "n": 28
+      },
+      {
+        "seq": "play_alley:AZK01-072 -> portal:AZK01-072",
+        "n": 24
+      },
+      {
+        "seq": "play_spell:AZK01-030 -> ability:MY_LEADER",
+        "n": 24
+      },
+      {
+        "seq": "play_spell:AZK01-002 -> ability:MY_LEADER",
+        "n": 23
+      },
+      {
+        "seq": "play_alley:AZK01-001 -> portal:AZK01-001",
+        "n": 22
+      },
+      {
+        "seq": "play_alley:STT02-003 -> portal:STT02-003",
+        "n": 22
+      },
+      {
+        "seq": "ability:AZK01-074 -> attack:AZK01-074>FACE",
+        "n": 22
+      },
+      {
+        "seq": "portal:AZK01-011 -> attack:AZK01-011>FACE",
+        "n": 21
+      },
+      {
+        "seq": "play_spell:AZK01-031 -> ability:MY_LEADER",
+        "n": 20
+      },
+      {
+        "seq": "play_alley:AZK01-003 -> portal:AZK01-003",
+        "n": 19
+      },
+      {
+        "seq": "play_weapon:STT01-014 -> attack:MY_LEADER>FACE",
+        "n": 19
+      },
+      {
+        "seq": "play_alley:AZK01-067 -> portal:AZK01-067",
+        "n": 18
+      },
+      {
+        "seq": "play_alley:STT04-006 -> portal:STT04-006",
+        "n": 18
+      },
+      {
+        "seq": "play_spell:STT02-016 -> ability:MY_LEADER",
+        "n": 17
+      },
+      {
+        "seq": "play_alley:AZK01-011 -> portal:AZK01-011",
+        "n": 17
+      },
+      {
+        "seq": "play_alley:AZK01-074 -> alley_ability:AZK01-074",
+        "n": 17
+      },
+      {
+        "seq": "play_alley:AZK01-021 -> portal:AZK01-021",
+        "n": 16
+      },
+      {
+        "seq": "play_alley:AZK01-091 -> portal:AZK01-091",
+        "n": 16
+      },
+      {
+        "seq": "play_alley:AZK01-077 -> portal:AZK01-077",
+        "n": 16
+      },
+      {
+        "seq": "play_alley:STT02-006 -> portal:STT02-006",
+        "n": 16
+      },
+      {
+        "seq": "play_spell:STT02-015 -> ability:MY_LEADER",
+        "n": 15
+      }
+    ],
+    "EARTH": [
+      {
+        "seq": "play_weapon:STT01-013 -> attack:MY_LEADER>FACE",
+        "n": 36
+      },
+      {
+        "seq": "ability:MY_LEADER -> attack:STT02-004>FACE",
+        "n": 28
+      },
+      {
+        "seq": "ability:MY_LEADER -> play_spell:AZK01-002",
+        "n": 28
+      },
+      {
+        "seq": "ability:MY_LEADER -> play_spell:AZK01-009",
+        "n": 27
+      },
+      {
+        "seq": "play_alley:AZK01-006 -> portal:AZK01-006",
+        "n": 26
+      },
+      {
+        "seq": "play_alley:AZK01-011 -> portal:AZK01-011",
+        "n": 25
+      },
+      {
+        "seq": "portal:AZK01-011 -> attack:AZK01-011>FACE",
+        "n": 23
+      },
+      {
+        "seq": "ability:MY_LEADER -> attack:STT03-003>FACE",
+        "n": 23
+      },
+      {
+        "seq": "ability:MY_LEADER -> play_alley:AZK01-073",
+        "n": 22
+      },
+      {
+        "seq": "play_weapon:STT01-014 -> attack:MY_LEADER>FACE",
+        "n": 22
+      },
+      {
+        "seq": "ability:MY_LEADER -> play_alley:AZK01-006",
+        "n": 22
+      },
+      {
+        "seq": "ability:MY_LEADER -> play_spell:AZK01-016",
+        "n": 21
+      },
+      {
+        "seq": "play_alley:AZK01-001 -> portal:AZK01-001",
+        "n": 21
+      },
+      {
+        "seq": "ability:MY_LEADER -> play_spell:AZK01-085",
+        "n": 21
+      },
+      {
+        "seq": "play_alley:STT03-006 -> portal:STT03-006",
+        "n": 21
+      },
+      {
+        "seq": "play_alley:AZK01-045 -> portal:AZK01-045",
+        "n": 20
+      },
+      {
+        "seq": "play_alley:AZK01-004 -> portal:AZK01-004",
+        "n": 19
+      },
+      {
+        "seq": "ability:MY_LEADER -> attack:AZK01-004>FACE",
+        "n": 19
+      },
+      {
+        "seq": "play_alley:AZK01-019 -> portal:AZK01-019",
+        "n": 19
+      },
+      {
+        "seq": "play_alley:AZK01-069 -> portal:AZK01-069",
+        "n": 19
+      },
+      {
+        "seq": "ability:MY_LEADER -> play_alley:STT03-003",
+        "n": 19
+      },
+      {
+        "seq": "ability:MY_LEADER -> play_spell:AZK01-017",
+        "n": 18
+      },
+      {
+        "seq": "ability:MY_LEADER -> play_weapon:STT01-013",
+        "n": 17
+      },
+      {
+        "seq": "attack:AZK01-011>FACE -> ability:MY_LEADER",
+        "n": 17
+      },
+      {
+        "seq": "play_alley:STT03-003 -> portal:STT03-003",
+        "n": 17
+      }
+    ],
+    "FIRE": [
+      {
+        "seq": "ability:MY_LEADER -> attack:MY_LEADER>FACE",
+        "n": 123
+      },
+      {
+        "seq": "play_alley:AZK01-067 -> ability:MY_LEADER",
+        "n": 33
+      },
+      {
+        "seq": "play_alley:AZK01-056 -> ability:MY_LEADER",
+        "n": 33
+      },
+      {
+        "seq": "play_weapon:STT01-014 -> attack:MY_LEADER>FACE",
+        "n": 24
+      },
+      {
+        "seq": "play_weapon:STT01-013 -> attack:MY_LEADER>FACE",
+        "n": 22
+      },
+      {
+        "seq": "play_alley:AZK01-006 -> ability:MY_LEADER",
+        "n": 21
+      },
+      {
+        "seq": "play_alley:AZK01-068 -> ability:MY_LEADER",
+        "n": 20
+      },
+      {
+        "seq": "play_alley:AZK01-069 -> ability:MY_LEADER",
+        "n": 17
+      },
+      {
+        "seq": "portal:AZK01-011 -> attack:AZK01-011>FACE",
+        "n": 15
+      },
+      {
+        "seq": "play_alley:AZK01-057 -> ability:MY_LEADER",
+        "n": 14
+      },
+      {
+        "seq": "play_alley:AZK01-011 -> portal:AZK01-011",
+        "n": 14
+      },
+      {
+        "seq": "play_alley:AZK01-113 -> portal:AZK01-113",
+        "n": 13
+      },
+      {
+        "seq": "play_alley:STT02-012 -> portal:STT02-012",
+        "n": 13
+      },
+      {
+        "seq": "play_alley:STT04-005 -> portal:STT04-005",
+        "n": 13
+      },
+      {
+        "seq": "ability:MY_LEADER -> play_spell:AZK01-009",
+        "n": 11
+      },
+      {
+        "seq": "play_alley:AZK01-004 -> portal:AZK01-004",
+        "n": 11
+      },
+      {
+        "seq": "play_alley:AZK01-074 -> ability:MY_LEADER",
+        "n": 11
+      },
+      {
+        "seq": "play_alley:STT04-005 -> ability:MY_LEADER",
+        "n": 11
+      },
+      {
+        "seq": "play_alley:AZK01-072 -> ability:MY_LEADER",
+        "n": 10
+      },
+      {
+        "seq": "play_alley:AZK01-004 -> ability:MY_LEADER",
+        "n": 10
+      },
+      {
+        "seq": "attack:MY_LEADER>FACE -> portal:AZK01-056",
+        "n": 10
+      },
+      {
+        "seq": "play_alley:AZK01-001 -> ability:MY_LEADER",
+        "n": 10
+      },
+      {
+        "seq": "play_alley:AZK01-114 -> portal:AZK01-114",
+        "n": 10
+      },
+      {
+        "seq": "play_alley:AZK01-056 -> portal:AZK01-056",
+        "n": 10
+      },
+      {
+        "seq": "play_alley:AZK01-058 -> ability:MY_LEADER",
+        "n": 10
+      }
+    ],
+    "LIGHTNING": [
+      {
+        "seq": "play_weapon:AZK01-094 -> attack:MY_LEADER>FACE",
+        "n": 27
+      },
+      {
+        "seq": "play_weapon:STT01-012 -> attack:MY_LEADER>FACE",
+        "n": 26
+      },
+      {
+        "seq": "play_weapon:STT01-013 -> attack:MY_LEADER>FACE",
+        "n": 25
+      },
+      {
+        "seq": "play_alley:STT01-003 -> portal:STT01-003",
+        "n": 23
+      },
+      {
+        "seq": "play_weapon:STT01-014 -> attack:MY_LEADER>FACE",
+        "n": 22
+      },
+      {
+        "seq": "play_alley:AZK01-019 -> portal:AZK01-019",
+        "n": 22
+      },
+      {
+        "seq": "play_alley:AZK01-067 -> portal:AZK01-067",
+        "n": 20
+      },
+      {
+        "seq": "play_weapon:AZK01-043 -> attack:MY_LEADER>FACE",
+        "n": 19
+      },
+      {
+        "seq": "portal:AZK01-011 -> attack:AZK01-011>FACE",
+        "n": 19
+      },
+      {
+        "seq": "play_alley:STT01-005 -> portal:STT01-005",
+        "n": 19
+      },
+      {
+        "seq": "play_alley:AZK01-072 -> portal:AZK01-072",
+        "n": 18
+      },
+      {
+        "seq": "play_alley:AZK01-003 -> portal:AZK01-003",
+        "n": 18
+      },
+      {
+        "seq": "play_alley:AZK01-033 -> portal:AZK01-033",
+        "n": 17
+      },
+      {
+        "seq": "play_alley:AZK01-004 -> portal:AZK01-004",
+        "n": 17
+      },
+      {
+        "seq": "play_alley:STT02-004 -> portal:STT02-004",
+        "n": 17
+      },
+      {
+        "seq": "play_alley:AZK01-011 -> portal:AZK01-011",
+        "n": 17
+      },
+      {
+        "seq": "play_alley:AZK01-001 -> portal:AZK01-001",
+        "n": 17
+      },
+      {
+        "seq": "play_alley:AZK01-006 -> portal:AZK01-006",
+        "n": 15
+      },
+      {
+        "seq": "play_alley:STT01-009 -> portal:STT01-009",
+        "n": 14
+      },
+      {
+        "seq": "play_alley:STT03-008 -> portal:STT03-008",
+        "n": 13
+      },
+      {
+        "seq": "play_alley:AZK01-034 -> portal:AZK01-034",
+        "n": 13
+      },
+      {
+        "seq": "play_alley:AZK01-068 -> portal:AZK01-068",
+        "n": 13
+      },
+      {
+        "seq": "play_alley:AZK01-097 -> portal:AZK01-097",
+        "n": 13
+      },
+      {
+        "seq": "play_alley:AZK01-071 -> portal:AZK01-071",
+        "n": 13
+      },
+      {
+        "seq": "play_alley:AZK01-007 -> portal:AZK01-007",
+        "n": 12
+      }
+    ]
+  },
+  "top_trigrams_by_element": {
+    "EARTH": [
+      {
+        "seq": "play_alley:AZK01-011 -> portal:AZK01-011 -> attack:AZK01-011>FACE",
+        "n": 23
+      },
+      {
+        "seq": "ability:MY_LEADER -> play_weapon:STT01-013 -> attack:MY_LEADER>FACE",
+        "n": 15
+      },
+      {
+        "seq": "ability:MY_LEADER -> play_alley:STT03-006 -> portal:STT03-006",
+        "n": 14
+      },
+      {
+        "seq": "play_alley:STT03-004 -> portal:STT03-004 -> ability:STT03-004",
+        "n": 13
+      },
+      {
+        "seq": "ability:MY_LEADER -> play_alley:AZK01-011 -> portal:AZK01-011",
+        "n": 10
+      },
+      {
+        "seq": "ability:MY_LEADER -> play_alley:AZK01-073 -> portal:AZK01-073",
+        "n": 9
+      },
+      {
+        "seq": "ability:MY_LEADER -> play_alley:AZK01-019 -> portal:AZK01-019",
+        "n": 9
+      },
+      {
+        "seq": "ability:MY_LEADER -> play_alley:STT02-012 -> portal:STT02-012",
+        "n": 9
+      },
+      {
+        "seq": "ability:MY_LEADER -> play_alley:AZK01-045 -> portal:AZK01-045",
+        "n": 8
+      },
+      {
+        "seq": "ability:MY_LEADER -> play_alley:AZK01-006 -> portal:AZK01-006",
+        "n": 8
+      },
+      {
+        "seq": "ability:MY_LEADER -> play_alley:STT03-003 -> portal:STT03-003",
+        "n": 8
+      },
+      {
+        "seq": "ability:MY_LEADER -> play_alley:AZK01-077 -> portal:AZK01-077",
+        "n": 8
+      },
+      {
+        "seq": "ability:MY_LEADER -> play_alley:AZK01-069 -> portal:AZK01-069",
+        "n": 7
+      },
+      {
+        "seq": "ability:MY_LEADER -> play_alley:AZK01-067 -> portal:AZK01-067",
+        "n": 7
+      },
+      {
+        "seq": "ability:MY_LEADER -> play_alley:AZK01-078 -> portal:AZK01-078",
+        "n": 6
+      }
+    ],
+    "WATER": [
+      {
+        "seq": "play_alley:AZK01-011 -> portal:AZK01-011 -> attack:AZK01-011>FACE",
+        "n": 17
+      },
+      {
+        "seq": "play_alley:AZK01-074 -> alley_ability:AZK01-074 -> portal:AZK01-074",
+        "n": 9
+      },
+      {
+        "seq": "play_alley:AZK01-082 -> portal:AZK01-082 -> attack:AZK01-082>FACE",
+        "n": 7
+      },
+      {
+        "seq": "play_spell:STT02-014 -> ability:MY_LEADER -> play_spell:AZK01-017",
+        "n": 4
+      },
+      {
+        "seq": "ability:MY_LEADER -> play_alley:STT02-005 -> portal:STT02-005",
+        "n": 3
+      },
+      {
+        "seq": "play_alley:AZK01-021 -> portal:AZK01-021 -> play_spell:STT02-014",
+        "n": 3
+      },
+      {
+        "seq": "play_spell:STT02-014 -> ability:MY_LEADER -> play_alley:AZK01-019",
+        "n": 3
+      },
+      {
+        "seq": "ability:MY_LEADER -> play_alley:AZK01-069 -> portal:AZK01-069",
+        "n": 3
+      },
+      {
+        "seq": "play_spell:AZK01-009 -> ability:MY_LEADER -> attack:AZK01-070>FACE",
+        "n": 3
+      },
+      {
+        "seq": "ability:MY_LEADER -> play_alley:STT02-006 -> portal:STT02-006",
+        "n": 3
+      },
+      {
+        "seq": "play_alley:STT02-003 -> portal:STT02-003 -> play_spell:AZK01-031",
+        "n": 3
+      },
+      {
+        "seq": "ability:MY_LEADER -> play_alley:AZK01-007 -> portal:AZK01-007",
+        "n": 3
+      },
+      {
+        "seq": "attack:AZK01-072>FACE -> play_alley:STT02-006 -> portal:STT02-006",
+        "n": 3
+      },
+      {
+        "seq": "portal:AZK01-011 -> attack:AZK01-011>FACE -> play_spell:AZK01-009",
+        "n": 3
+      },
+      {
+        "seq": "play_alley:AZK01-019 -> portal:AZK01-019 -> play_spell:AZK01-002",
+        "n": 3
+      }
+    ],
+    "FIRE": [
+      {
+        "seq": "play_alley:AZK01-011 -> portal:AZK01-011 -> attack:AZK01-011>FACE",
+        "n": 14
+      },
+      {
+        "seq": "play_alley:AZK01-067 -> ability:MY_LEADER -> attack:MY_LEADER>FACE",
+        "n": 13
+      },
+      {
+        "seq": "play_alley:AZK01-056 -> ability:MY_LEADER -> attack:MY_LEADER>FACE",
+        "n": 10
+      },
+      {
+        "seq": "play_alley:AZK01-068 -> ability:MY_LEADER -> attack:MY_LEADER>FACE",
+        "n": 10
+      },
+      {
+        "seq": "ability:MY_LEADER -> attack:MY_LEADER>FACE -> portal:AZK01-056",
+        "n": 9
+      },
+      {
+        "seq": "ability:MY_LEADER -> attack:MY_LEADER>FACE -> portal:AZK01-067",
+        "n": 9
+      },
+      {
+        "seq": "play_alley:AZK01-057 -> ability:MY_LEADER -> attack:MY_LEADER>FACE",
+        "n": 8
+      },
+      {
+        "seq": "ability:MY_LEADER -> play_alley:AZK01-004 -> portal:AZK01-004",
+        "n": 7
+      },
+      {
+        "seq": "play_alley:AZK01-069 -> ability:MY_LEADER -> attack:MY_LEADER>FACE",
+        "n": 7
+      },
+      {
+        "seq": "ability:MY_LEADER -> attack:MY_LEADER>FACE -> portal:AZK01-068",
+        "n": 7
+      },
+      {
+        "seq": "play_alley:AZK01-006 -> ability:MY_LEADER -> attack:MY_LEADER>FACE",
+        "n": 7
+      },
+      {
+        "seq": "ability:MY_LEADER -> attack:MY_LEADER>FACE -> portal:AZK01-006",
+        "n": 7
+      },
+      {
+        "seq": "play_alley:AZK01-004 -> ability:MY_LEADER -> attack:MY_LEADER>FACE",
+        "n": 6
+      },
+      {
+        "seq": "ability:MY_LEADER -> attack:MY_LEADER>FACE -> portal:AZK01-069",
+        "n": 6
+      },
+      {
+        "seq": "ability:MY_LEADER -> attack:MY_LEADER>FACE -> portal:AZK01-057",
+        "n": 5
+      }
+    ],
+    "LIGHTNING": [
+      {
+        "seq": "play_alley:AZK01-011 -> portal:AZK01-011 -> attack:AZK01-011>FACE",
+        "n": 17
+      },
+      {
+        "seq": "play_alley:AZK01-072 -> portal:AZK01-072 -> attack:MY_LEADER>FACE",
+        "n": 6
+      },
+      {
+        "seq": "play_alley:STT01-005 -> portal:STT01-005 -> attack:MY_LEADER>FACE",
+        "n": 5
+      },
+      {
+        "seq": "attack:MY_LEADER>FACE -> play_alley:AZK01-067 -> portal:AZK01-067",
+        "n": 5
+      },
+      {
+        "seq": "play_alley:AZK01-073 -> portal:AZK01-073 -> attack:MY_LEADER>FACE",
+        "n": 5
+      },
+      {
+        "seq": "attack:MY_LEADER>FACE -> ability:AZK01-074 -> attack:AZK01-074>FACE",
+        "n": 5
+      },
+      {
+        "seq": "play_alley:AZK01-082 -> portal:AZK01-082 -> attack:AZK01-082>FACE",
+        "n": 4
+      },
+      {
+        "seq": "play_alley:AZK01-067 -> portal:AZK01-067 -> attack:MY_LEADER>FACE",
+        "n": 4
+      },
+      {
+        "seq": "play_alley:STT01-003 -> portal:STT01-003 -> attack:MY_LEADER>FACE",
+        "n": 4
+      },
+      {
+        "seq": "play_alley:AZK01-019 -> portal:AZK01-019 -> attack:MY_LEADER>FACE",
+        "n": 4
+      },
+      {
+        "seq": "play_alley:AZK01-068 -> portal:AZK01-068 -> attack:MY_LEADER>FACE",
+        "n": 4
+      },
+      {
+        "seq": "play_alley:AZK01-074 -> alley_ability:AZK01-074 -> portal:AZK01-074",
+        "n": 4
+      },
+      {
+        "seq": "play_alley:AZK01-078 -> portal:AZK01-078 -> attack:MY_LEADER>FACE",
+        "n": 4
+      },
+      {
+        "seq": "play_alley:AZK01-001 -> portal:AZK01-001 -> play_alley:STT02-004",
+        "n": 3
+      },
+      {
+        "seq": "attack:AZK01-067>FACE -> play_alley:AZK01-006 -> portal:AZK01-006",
+        "n": 3
+      }
+    ]
+  },
+  "hp_curve_by_turn": {
+    "1": {
+      "winner_mean_hp": 19.93,
+      "loser_mean_hp": 19.89,
+      "n": 1203
+    },
+    "2": {
+      "winner_mean_hp": 19.62,
+      "loser_mean_hp": 19.48,
+      "n": 1726
+    },
+    "3": {
+      "winner_mean_hp": 19.14,
+      "loser_mean_hp": 18.98,
+      "n": 1684
+    },
+    "4": {
+      "winner_mean_hp": 18.67,
+      "loser_mean_hp": 18.19,
+      "n": 1794
+    },
+    "5": {
+      "winner_mean_hp": 18.27,
+      "loser_mean_hp": 17.54,
+      "n": 2006
+    },
+    "6": {
+      "winner_mean_hp": 17.64,
+      "loser_mean_hp": 16.54,
+      "n": 2011
+    },
+    "7": {
+      "winner_mean_hp": 16.79,
+      "loser_mean_hp": 15.25,
+      "n": 2262
+    },
+    "8": {
+      "winner_mean_hp": 16.04,
+      "loser_mean_hp": 13.92,
+      "n": 2311
+    },
+    "9": {
+      "winner_mean_hp": 14.97,
+      "loser_mean_hp": 12.61,
+      "n": 2636
+    },
+    "10": {
+      "winner_mean_hp": 14.13,
+      "loser_mean_hp": 11.18,
+      "n": 2585
+    },
+    "11": {
+      "winner_mean_hp": 12.87,
+      "loser_mean_hp": 9.93,
+      "n": 2667
+    },
+    "12": {
+      "winner_mean_hp": 12.04,
+      "loser_mean_hp": 8.92,
+      "n": 2391
+    },
+    "13": {
+      "winner_mean_hp": 11.23,
+      "loser_mean_hp": 8.29,
+      "n": 2242
+    },
+    "14": {
+      "winner_mean_hp": 10.4,
+      "loser_mean_hp": 7.27,
+      "n": 1925
+    },
+    "15": {
+      "winner_mean_hp": 10.15,
+      "loser_mean_hp": 6.97,
+      "n": 1483
+    },
+    "16": {
+      "winner_mean_hp": 9.75,
+      "loser_mean_hp": 6.95,
+      "n": 1279
+    },
+    "17": {
+      "winner_mean_hp": 9.27,
+      "loser_mean_hp": 6.14,
+      "n": 904
+    },
+    "18": {
+      "winner_mean_hp": 9.85,
+      "loser_mean_hp": 6.38,
+      "n": 729
+    },
+    "19": {
+      "winner_mean_hp": 9.6,
+      "loser_mean_hp": 5.72,
+      "n": 492
+    },
+    "20": {
+      "winner_mean_hp": 9.95,
+      "loser_mean_hp": 5.01,
+      "n": 357
+    },
+    "21": {
+      "winner_mean_hp": 9.99,
+      "loser_mean_hp": 6.08,
+      "n": 216
+    },
+    "22": {
+      "winner_mean_hp": 10.52,
+      "loser_mean_hp": 5.69,
+      "n": 185
+    },
+    "23": {
+      "winner_mean_hp": 8.51,
+      "loser_mean_hp": 5.18,
+      "n": 118
+    },
+    "24": {
+      "winner_mean_hp": 7.73,
+      "loser_mean_hp": 4.46,
+      "n": 92
+    },
+    "25": {
+      "winner_mean_hp": 9.15,
+      "loser_mean_hp": 4.98,
+      "n": 52
+    },
+    "26": {
+      "winner_mean_hp": 8.98,
+      "loser_mean_hp": 3.49,
+      "n": 43
+    },
+    "27": {
+      "winner_mean_hp": 7.06,
+      "loser_mean_hp": 2.47,
+      "n": 32
+    }
+  },
+  "attack_target_mix_by_game_third": {
+    "early": {
+      "face": 833
+    },
+    "mid": {
+      "face": 2390,
+      "board": 81
+    },
+    "late": {
+      "face": 3321,
+      "board": 426
+    }
+  },
+  "mean_portals_per_game_both_seats": 10.81,
+  "mean_first_attack_turn": 2.66
+}

@@ -1,0 +1,24 @@
+/home/skylark/git/azuki-tcg/.venv/lib/python3.14/site-packages/torch/cuda/__init__.py:61: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+  import pynvml  # type: ignore[import]
+Gym has been unmaintained since 2022 and does not support NumPy 2.0 amongst other critical functionality.
+Please upgrade to Gymnasium, the maintained drop-in replacement of Gym, or contact the authors of your software and request that they upgrade.
+See the migration guide at https://gymnasium.farama.org/introduction/migration_guide/ for additional information.
+/home/skylark/git/azuki-tcg/.venv/lib/python3.14/site-packages/gymnasium/spaces/box.py:240: UserWarning: [33mWARN: Casting input x to numpy array.[0m
+  gym.logger.warn("Casting input x to numpy array.")
+/home/skylark/git/azuki-tcg/python/src/azk_puffer/pytorch.py:131: FutureWarning: _check_is_size will be removed in a future PyTorch release along with guard_size_oblivious.     Use _check(i >= 0) instead.
+  torch._check_is_size(offset)
+/home/skylark/git/azuki-tcg/python/src/azk_puffer/pytorch.py:132: FutureWarning: _check_is_size will be removed in a future PyTorch release along with guard_size_oblivious.     Use _check(i >= 0) instead.
+  torch._check_is_size(delta)
+/home/skylark/git/azuki-tcg/python/src/azk_puffer/pytorch.py:131: FutureWarning: _check_is_size will be removed in a future PyTorch release along with guard_size_oblivious.     Use _check(i >= 0) instead.
+  torch._check_is_size(offset)
+[resume] loaded model checkpoint: path=experiments/azuki_local_s14prod45_178404911119/model_azuki_local_002000.pt, strict=False, missing_keys=0, unexpected_keys=0, materialized_scalar_norm_features=23, scalar_norm_state_keys=69, filtered_static_card_keys=0
+[10/120] 257s (25.7s/rollout)
+[20/120] 524s (26.2s/rollout)
+[30/120] 749s (25.0s/rollout)
+[40/120] 966s (24.2s/rollout)
+[50/120] 1223s (24.5s/rollout)
+[60/120] 1454s (24.2s/rollout)
+[70/120] 1687s (24.1s/rollout)
+[80/120] 1996s (25.0s/rollout)
+[90/120] 2246s (25.0s/rollout)
+wrote train-ablation-1781126582/results/selfplay_ep2000/block_probe/arm5.jsonl
