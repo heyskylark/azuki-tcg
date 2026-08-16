@@ -36,11 +36,13 @@ from training_utils import (
 
 
 RESUME_COMPLETED_EPISODES_ENV = "AZK_RESUME_COMPLETED_EPISODES"
+RESUME_ALLOW_SCHEDULE_REWIND_ENV = "AZK_RESUME_ALLOW_SCHEDULE_REWIND"
 RESUME_COMPLETED_EPISODE_KEYS = (
     "0/azk_completed_episodes",
     "1/azk_completed_episodes",
     "environment/0/azk_completed_episodes",
     "environment/1/azk_completed_episodes",
+    "environment/completed_episodes",
 )
 RESUME_SCHEDULE_ENV_VARS = (
     "AZK_MAX_AUTO_TICKS_PER_STEP",
@@ -57,8 +59,66 @@ RESUME_SCHEDULE_ENV_VARS = (
     "AZK_REWARD_SHAPING_ANNEAL_FINAL",
     "AZK_REWARD_SHAPING_ANNEAL_WARMUP_EPISODES",
     "AZK_REWARD_SHAPING_ANNEAL_RAMP_EPISODES",
+    "AZK_TRAINER_SHAPED_REWARD_ANNEAL",
+    "AZK_TRAINER_SHAPED_REWARD_ANNEAL_START_EPOCH",
+    "AZK_TRAINER_SHAPED_REWARD_ANNEAL_END_EPOCH",
+)
+RESUME_REWARD_ENV_VARS = (
+    "AZK_REWARD_LEADER_DELTA_WEIGHT",
+    "AZK_REWARD_BOARD_DELTA_WEIGHT",
+    "AZK_REWARD_NOOP_PENALTY",
+    "AZK_TRUNCATION_BOARD_EDGE_WEIGHT",
+    "AZK_REWARD_UNTAPPED_IKZ_WEIGHT",
+    "AZK_PORTAL_GP_BONUS",
+    "AZK_PORTAL_OUTCOME_BONUS",
+    "AZK_EARLY_TEMPO_BONUS",
+    "AZK_EARLY_TEMPO_CAP",
+    "AZK_EARLY_TEMPO_TURNS",
+    "AZK_EARLY_TEMPO_DEDUP_PORTAL_ABILITIES",
+    "AZK_DMG_MITIGATION_BONUS",
+    "AZK_DMG_MITIGATION_CAP",
+    "AZK_ENTITY_DAMAGE_EXCHANGE_PER_HP",
+    "AZK_ENTITY_DAMAGE_EXCHANGE_STEP_CAP",
+    "AZK_GENERATED_IKZ_CONVERSION_BONUS",
+    "AZK_GENERATED_IKZ_CONVERSION_STEP_CAP",
+    "AZK_TEMP_CHARGE_REALIZATION_BONUS",
+    "AZK_TEMP_ATTACK_REALIZATION_PER_DAMAGE",
+    "AZK_TEMP_ATTACK_REALIZATION_DAMAGE_CAP",
+    "AZK_CONTEXTUAL_RESPONSE_RESERVE_BONUS",
+    "AZK_DRAFT_VBOOT_COEF",
+    "AZK_DRAFT_SIBDIFF_COEF",
+    "AZK_DRAFT_SIBDIFF_CAP",
+    "AZK_DRAFT_AUX_ANNEAL",
+    "AZK_LEADER_TERMINAL_CREDIT_COEF",
+    "AZK_LEADER_TERMINAL_CREDIT_CLIP",
+    "AZK_LEADER_TERMINAL_CREDIT_GATE_CODES",
+    "AZK_LEADER_TERMINAL_CREDIT_UPDATE_INTERVAL",
+    "AZK_LEADER_TERMINAL_CREDIT_LABEL_WARMUP_EPOCHS",
+    "AZK_DRAFT_TERMINAL_CREDIT_COEF",
+    "AZK_DRAFT_TERMINAL_CREDIT_CLIP",
+    "AZK_DRAFT_TERMINAL_CREDIT_UPDATE_INTERVAL",
+    "AZK_DRAFT_TERMINAL_CREDIT_BATCH_SIZE",
+    "AZK_DRAFT_TERMINAL_CREDIT_SEED",
+    "AZK_DRAFT_TERMINAL_CREDIT_LABEL_WARMUP_EPOCHS",
+    "AZK_DRAFT_TERMINAL_CREDIT_GRAD_PROBE",
+    "AZK_DRAFT_EPISODE_CREDIT_COEF",
+    "AZK_DRAFT_EPISODE_CREDIT_CLIP",
+    "AZK_DRAFT_EPISODE_CREDIT_BATCH_DRAFTS",
+    "AZK_DRAFT_EPISODE_CREDIT_UPDATE_INTERVAL",
+    "AZK_DRAFT_EPISODE_CREDIT_BASELINE_COEF",
+    "AZK_DRAFT_EPISODE_CREDIT_SEED",
+    "AZK_DRAFT_EPISODE_CREDIT_LABEL_WARMUP_EPOCHS",
+    "AZK_DRAFT_PREFIX_OUTCOME_MODEL",
+    "AZK_DRAFT_PREFIX_OUTCOME_SHA256",
+    "AZK_DRAFT_PREFIX_OUTCOME_COEF",
+    "AZK_DRAFT_PREFIX_LENGTHS",
+    "AZK_DRAFT_PREFIX_PROBS",
+    "AZK_DRAFT_PREFIX_SEED",
 )
 RESUME_SOURCE_HASH_TARGETS = (
+    "python/src/azk_puffer/trainer.py",
+    "python/src/league_training.py",
+    "python/src/draft_prefix_outcome.py",
     "python/src/policy/v2/tcg_policy.py",
     "python/src/policy/v2/tcg_sampler.py",
     "python/src/v2/tcg.py",
@@ -230,6 +290,14 @@ def parse_script_args() -> tuple[argparse.Namespace, list[str]]:
         "--resume-load-optimizer",
         action="store_true",
         help="When resuming, also restore optimizer/global_step/epoch from trainer_state.pt if available.",
+    )
+    parser.add_argument(
+        "--resume-restart-lr-schedule",
+        action="store_true",
+        help=(
+            "After an optimizer restore, start a new cosine schedule over only the "
+            "remaining updates, using train.learning_rate as its peak."
+        ),
     )
     parser.add_argument(
         "--resume-strict",
@@ -638,7 +706,10 @@ def _extract_completed_episodes_from_mapping(mapping: object) -> int | None:
 
     if not candidates:
         return None
-    return int(max(candidates))
+    # Native vector metrics report the mean counter across environments. Round
+    # upward so a resume never makes curriculum or reward shaping denser again;
+    # this advances an aggregate by less than one episode at most.
+    return int(math.ceil(max(candidates)))
 
 
 def _update_completed_episode_tracker(current_value: int | None, source: object) -> int | None:
@@ -650,8 +721,8 @@ def _update_completed_episode_tracker(current_value: int | None, source: object)
     return max(current_value, candidate)
 
 
-def _resume_env_var_fingerprint() -> dict[str, str]:
-    return {name: os.getenv(name, "") for name in RESUME_SCHEDULE_ENV_VARS}
+def _resume_env_var_fingerprint(names: tuple[str, ...]) -> dict[str, str]:
+    return {name: os.getenv(name, "") for name in names}
 
 
 def _source_hash_fingerprint() -> dict[str, str]:
@@ -735,6 +806,48 @@ def _infer_completed_episodes_from_global_step(
     return inferred
 
 
+def _enabled_episode_schedule_completion() -> int | None:
+    """Return the first episode where every enabled monotonic schedule is final."""
+    completions: list[int] = []
+
+    if _env_flag("AZK_MAX_TICKS_CURRICULUM"):
+        warmup = _env_nonnegative_int(
+            "AZK_MAX_TICKS_CURRICULUM_WARMUP_EPISODES", default=0
+        )
+        ramp = _env_nonnegative_int(
+            "AZK_MAX_TICKS_CURRICULUM_RAMP_EPISODES", default=3000
+        )
+        completions.append(int(warmup or 0) + int(ramp or 0))
+
+    if _env_flag("AZK_REWARD_SHAPING_ANNEAL"):
+        warmup = _env_nonnegative_int(
+            "AZK_REWARD_SHAPING_ANNEAL_WARMUP_EPISODES", default=2000
+        )
+        ramp = _env_nonnegative_int(
+            "AZK_REWARD_SHAPING_ANNEAL_RAMP_EPISODES", default=30000
+        )
+        completions.append(int(warmup or 0) + int(ramp or 0))
+
+    if not completions:
+        return None
+    return max(completions)
+
+
+def _select_resume_completed_episodes(
+    *,
+    saved_completed_episodes: int | None,
+    manual_completed_episodes: int | None,
+    allow_schedule_rewind: bool,
+) -> int | None:
+    if saved_completed_episodes is None:
+        return manual_completed_episodes
+    if manual_completed_episodes is None:
+        return saved_completed_episodes
+    if allow_schedule_rewind or manual_completed_episodes >= saved_completed_episodes:
+        return manual_completed_episodes
+    return saved_completed_episodes
+
+
 def _flatten_config_fingerprint(payload: dict[str, object]) -> dict[str, object]:
     flattened: dict[str, object] = {}
     for key, value in payload.items():
@@ -764,7 +877,8 @@ def _peek_resume_env_completed_episodes(
     *,
     num_envs_hint: int,
 ) -> int | None:
-    global_step_candidate: int | None = None
+    exact_candidates: list[tuple[str, int]] = []
+    global_step_candidates: list[int] = []
 
     if trainer_state_path is not None and trainer_state_path.exists():
         try:
@@ -772,10 +886,12 @@ def _peek_resume_env_completed_episodes(
             if isinstance(trainer_state, dict):
                 candidate = _coerce_nonnegative_int(trainer_state.get("env_completed_episodes"))
                 if candidate is not None:
-                    return candidate
+                    exact_candidates.append(("trainer_state", candidate))
                 global_step_candidate = _coerce_nonnegative_int(
                     trainer_state.get("global_step", trainer_state.get("agent_step"))
                 )
+                if global_step_candidate is not None:
+                    global_step_candidates.append(global_step_candidate)
         except Exception as exc:
             print(f"[resume] warning: failed reading trainer state for env progression restore: {exc}")
 
@@ -787,13 +903,40 @@ def _peek_resume_env_completed_episodes(
                 if isinstance(payload, dict):
                     candidate = _coerce_nonnegative_int(payload.get("env_completed_episodes"))
                     if candidate is not None:
-                        return candidate
-                    if global_step_candidate is None:
-                        global_step_candidate = _coerce_nonnegative_int(payload.get("global_step"))
+                        exact_candidates.append(("checkpoint_metadata", candidate))
+                    global_step_candidate = _coerce_nonnegative_int(payload.get("global_step"))
+                    if global_step_candidate is not None:
+                        global_step_candidates.append(global_step_candidate)
             except Exception as exc:
                 print(f"[resume] warning: failed reading checkpoint metadata for env progression restore: {exc}")
 
-    if global_step_candidate is not None:
+    if exact_candidates:
+        selected_source, selected_value = max(exact_candidates, key=lambda item: item[1])
+        distinct_values = sorted({value for _, value in exact_candidates})
+        if len(distinct_values) > 1:
+            details = ", ".join(f"{source}={value}" for source, value in exact_candidates)
+            print(
+                "[resume] warning: env progression sidecars disagree; "
+                f"using monotonic maximum {selected_source}={selected_value} ({details})"
+            )
+        return selected_value
+
+    schedule_completion = _enabled_episode_schedule_completion()
+    if model_path is not None and schedule_completion is not None:
+        global_step_detail = (
+            f", checkpoint_global_step={max(global_step_candidates)}"
+            if global_step_candidates
+            else ""
+        )
+        print(
+            "[resume] legacy checkpoint has no exact env progression; "
+            "pinning enabled episode schedules at their final phase to prevent replay: "
+            f"completed_episodes={schedule_completion}{global_step_detail}"
+        )
+        return schedule_completion
+
+    if global_step_candidates:
+        global_step_candidate = max(global_step_candidates)
         inferred = _infer_completed_episodes_from_global_step(
             global_step_candidate, num_envs_hint=num_envs_hint
         )
@@ -867,29 +1010,31 @@ def _load_saved_resume_config_fingerprint(
     return None
 
 
-def _apply_saved_schedule_env(
+def _apply_saved_env_group(
     saved_resume_config: dict[str, object] | None,
+    *,
+    fingerprint_key: str,
+    names: tuple[str, ...],
+    keep_current_env: str,
+    label: str,
 ) -> None:
     if not isinstance(saved_resume_config, dict):
         return
-    if os.environ.get("AZK_RESUME_KEEP_CURRENT_SCHEDULE_ENV") == "1":
-        # Caller-set schedule env vars win (e.g. pinning the anneal tail when
-        # env episode counters could not be restored and would otherwise
-        # replay the full schedule from zero).
+    if _env_flag(keep_current_env):
         print(
-            "[resume] keeping current schedule env vars per "
-            "AZK_RESUME_KEEP_CURRENT_SCHEDULE_ENV=1 (saved values not applied)"
+            f"[resume] keeping current {label} env vars per "
+            f"{keep_current_env}=1 (saved values not applied)"
         )
         return
-    schedule_env = saved_resume_config.get("schedule_env")
-    if not isinstance(schedule_env, dict):
+    saved_env = saved_resume_config.get(fingerprint_key)
+    if not isinstance(saved_env, dict):
         return
 
     changes: list[tuple[str, str, str]] = []
-    for name in RESUME_SCHEDULE_ENV_VARS:
-        if name not in schedule_env:
+    for name in names:
+        if name not in saved_env:
             continue
-        saved_value_raw = schedule_env.get(name)
+        saved_value_raw = saved_env.get(name)
         saved_value = saved_value_raw if isinstance(saved_value_raw, str) else str(saved_value_raw)
         current_value = os.getenv(name, "")
         if current_value == saved_value:
@@ -902,7 +1047,27 @@ def _apply_saved_schedule_env(
 
     if changes:
         details = ", ".join(f"{name}: current={curr!r} -> saved={saved!r}" for name, curr, saved in changes)
-        print("[resume] applied saved schedule env vars from checkpoint metadata: " + details)
+        print(f"[resume] applied saved {label} env vars from checkpoint metadata: " + details)
+
+
+def _apply_saved_schedule_env(saved_resume_config: dict[str, object] | None) -> None:
+    _apply_saved_env_group(
+        saved_resume_config,
+        fingerprint_key="schedule_env",
+        names=RESUME_SCHEDULE_ENV_VARS,
+        keep_current_env="AZK_RESUME_KEEP_CURRENT_SCHEDULE_ENV",
+        label="schedule",
+    )
+
+
+def _apply_saved_reward_env(saved_resume_config: dict[str, object] | None) -> None:
+    _apply_saved_env_group(
+        saved_resume_config,
+        fingerprint_key="reward_env",
+        names=RESUME_REWARD_ENV_VARS,
+        keep_current_env="AZK_RESUME_KEEP_CURRENT_REWARD_ENV",
+        label="reward",
+    )
 
 
 def _compute_runtime_fingerprint(vecenv) -> dict[str, object]:
@@ -944,6 +1109,7 @@ def _resume_config_fingerprint(trainer_args: dict) -> dict[str, object]:
         "use_rnn": bool(train_cfg.get("use_rnn", False)),
         "direct_parallel": bool(env_cfg.get("direct_parallel", False)),
         "deck_building_enabled": bool(env_cfg.get("deck_building_enabled", False)),
+        "draft_uniform_assignment": bool(env_cfg.get("draft_uniform_assignment", False)),
         "deck_pool_path": str(resolve_training_deck_pool_path(env_cfg.get("deck_pool_path"))),
         "policy_model_version": str(policy_cfg.get("model_version", "metadata_v1")),
         "policy_actor_head_type": str(policy_cfg.get("actor_head_type", "legal_action_scorer")),
@@ -970,7 +1136,8 @@ def _resume_config_fingerprint(trainer_args: dict) -> dict[str, object]:
         "policy_split_value_heads_enabled": bool(policy_cfg.get("split_value_heads_enabled", False)),
         "policy_split_value_component_coef": float(policy_cfg.get("split_value_component_coef", 0.5)),
         "policy_gate_id_embedding_enabled": bool(policy_cfg.get("gate_id_embedding_enabled", False)),
-        "schedule_env": _resume_env_var_fingerprint(),
+        "schedule_env": _resume_env_var_fingerprint(RESUME_SCHEDULE_ENV_VARS),
+        "reward_env": _resume_env_var_fingerprint(RESUME_REWARD_ENV_VARS),
         "source_hashes": _source_hash_fingerprint(),
     }
 
@@ -1094,6 +1261,14 @@ def _save_checkpoint_metadata(model_path: Path, payload: dict) -> None:
     _write_json_atomic(_checkpoint_metadata_path(model_path), payload)
 
 
+def _trainer_shaped_reward_schedule_state(trainer) -> dict[str, object] | None:
+    getter = getattr(trainer, "trainer_shaped_reward_schedule_state", None)
+    if not callable(getter):
+        return None
+    state = getter()
+    return state if isinstance(state, dict) else None
+
+
 def _save_per_checkpoint_trainer_state(
     trainer,
     checkpoint_path: Path,
@@ -1115,6 +1290,9 @@ def _save_per_checkpoint_trainer_state(
         "runtime_fingerprint": runtime_fingerprint,
         "resume_config_fingerprint": resume_config_fingerprint,
     }
+    shaped_reward_schedule = _trainer_shaped_reward_schedule_state(trainer)
+    if shaped_reward_schedule is not None:
+        state["trainer_shaped_reward_schedule"] = shaped_reward_schedule
     if env_completed_episodes is not None:
         state["env_completed_episodes"] = int(env_completed_episodes)
     tmp = state_path.with_suffix(state_path.suffix + ".tmp")
@@ -1278,10 +1456,12 @@ def _validate_resume_metadata(
             # Intentional source patches mid-campaign (e.g. a crash fix) drift
             # source_hashes.*; config/policy mismatches remain fatal.
             excusable_prefixes.append("source_hashes.")
-        if os.environ.get("AZK_RESUME_KEEP_CURRENT_SCHEDULE_ENV") == "1":
+        if _env_flag("AZK_RESUME_KEEP_CURRENT_SCHEDULE_ENV"):
             # Keeping caller-set schedule env vars implies they diverge from
             # the saved ones by design.
             excusable_prefixes.append("schedule_env.")
+        if _env_flag("AZK_RESUME_KEEP_CURRENT_REWARD_ENV"):
+            excusable_prefixes.append("reward_env.")
         if cfg_mismatches and excusable_prefixes:
             excused = [m for m in cfg_mismatches if m[0].startswith(tuple(excusable_prefixes))]
             cfg_mismatches = [m for m in cfg_mismatches if not m[0].startswith(tuple(excusable_prefixes))]
@@ -1316,6 +1496,10 @@ def _load_model_weights(policy: torch.nn.Module, model_path: Path, *, device: st
   materialized = _materialize_scalar_norm_buffers_from_state_dict(policy, cleaned)
   scalar_norm_keys = sum(1 for key in cleaned.keys() if "scalar_normalizer._rms_" in key)
   missing, unexpected = policy.load_state_dict(cleaned, strict=strict)
+  base_policy = getattr(policy, "policy", policy)
+  invalidate_text_cache = getattr(base_policy, "_invalidate_text_feature_table", None)
+  if callable(invalidate_text_cache):
+    invalidate_text_cache()
   print(
     "[resume] loaded model checkpoint: "
     f"path={model_path}, strict={strict}, missing_keys={len(missing)}, "
@@ -1354,6 +1538,29 @@ def _sync_optimizer_lr_from_scheduler(trainer) -> list[float]:
 
 def _optimizer_group_lrs(trainer) -> list[float]:
     return [float(group.get("lr", 0.0)) for group in trainer.optimizer.param_groups]
+
+
+def _restart_lr_schedule_for_remaining_epochs(trainer) -> tuple[int, list[float]]:
+    remaining_epochs = int(trainer.total_epochs) - int(trainer.epoch)
+    if remaining_epochs < 1:
+        raise ValueError("Cannot restart the LR schedule without remaining training epochs")
+    peak_lr = float(trainer.config.get("learning_rate", 0.0))
+    if peak_lr <= 0.0:
+        raise ValueError("train.learning_rate must be > 0 for a resumed LR schedule")
+
+    for group in trainer.optimizer.param_groups:
+        group["lr"] = peak_lr
+        group["initial_lr"] = peak_lr
+    trainer.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        trainer.optimizer,
+        T_max=remaining_epochs,
+    )
+    lrs = _optimizer_group_lrs(trainer)
+    print(
+        "[resume] restarted LR schedule: "
+        f"remaining_epochs={remaining_epochs}, peak_lrs={lrs}, final_lr=0.0"
+    )
+    return remaining_epochs, lrs
 
 
 def _maybe_restore_trainer_state(
@@ -1397,8 +1604,10 @@ def _maybe_restore_trainer_state(
             excusable_prefixes = []
             if os.environ.get("AZK_RESUME_ALLOW_SOURCE_DRIFT") == "1":
                 excusable_prefixes.append("source_hashes.")
-            if os.environ.get("AZK_RESUME_KEEP_CURRENT_SCHEDULE_ENV") == "1":
+            if _env_flag("AZK_RESUME_KEEP_CURRENT_SCHEDULE_ENV"):
                 excusable_prefixes.append("schedule_env.")
+            if _env_flag("AZK_RESUME_KEEP_CURRENT_REWARD_ENV"):
+                excusable_prefixes.append("reward_env.")
             if cfg_mismatches and excusable_prefixes:
                 excused = [m for m in cfg_mismatches if m[0].startswith(tuple(excusable_prefixes))]
                 cfg_mismatches = [m for m in cfg_mismatches if not m[0].startswith(tuple(excusable_prefixes))]
@@ -1685,6 +1894,19 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
     trainer_args["train"]["env"] = trainer_args.get("env_name", "azuki_local")
     logger = None
 
+    env_contract = trainer_args.get("env", {})
+    if isinstance(env_contract, dict) and bool(
+        env_contract.get("deck_building_enabled", False)
+    ):
+        uniform_assignment = bool(
+            env_contract.get("draft_uniform_assignment", False)
+        )
+        print(
+            "[draft] lifecycle: "
+            f"uniform_assignment={uniform_assignment} "
+            f"policy_picks_per_seat={50 if uniform_assignment else 51}"
+        )
+
     install_tcg_sampler()
 
     static_policy_cfg = trainer_args.get("policy")
@@ -1711,9 +1933,11 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
     trainer_state_path: Path | None = None
     if resume_checkpoint is not None:
         model_resume_path, trainer_state_path = _resolve_resume_artifacts(resume_checkpoint)
-        _apply_saved_schedule_env(
-            _load_saved_resume_config_fingerprint(model_resume_path, trainer_state_path)
+        saved_resume_config = _load_saved_resume_config_fingerprint(
+            model_resume_path, trainer_state_path
         )
+        _apply_saved_schedule_env(saved_resume_config)
+        _apply_saved_reward_env(saved_resume_config)
 
     vec_cfg = trainer_args.get("vec")
     num_envs_hint = 1
@@ -1722,19 +1946,44 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
         if parsed_num_envs is not None and parsed_num_envs > 0:
             num_envs_hint = parsed_num_envs
 
-    manual_resume_completed = _coerce_nonnegative_int(os.getenv(RESUME_COMPLETED_EPISODES_ENV))
-    if manual_resume_completed is not None:
-        resume_env_completed_episodes = manual_resume_completed
-        print(
-            "[resume] using caller-provided env progression override: "
-            f"{RESUME_COMPLETED_EPISODES_ENV}={manual_resume_completed}"
-        )
-    else:
-        resume_env_completed_episodes = _peek_resume_env_completed_episodes(
+    resume_env_completed_episodes: int | None = None
+    if model_resume_path is not None:
+        saved_resume_completed = _peek_resume_env_completed_episodes(
             model_resume_path,
             trainer_state_path,
             num_envs_hint=num_envs_hint,
         )
+        manual_resume_completed = _coerce_nonnegative_int(
+            os.getenv(RESUME_COMPLETED_EPISODES_ENV)
+        )
+        allow_schedule_rewind = _env_flag(RESUME_ALLOW_SCHEDULE_REWIND_ENV)
+        resume_env_completed_episodes = _select_resume_completed_episodes(
+            saved_completed_episodes=saved_resume_completed,
+            manual_completed_episodes=manual_resume_completed,
+            allow_schedule_rewind=allow_schedule_rewind,
+        )
+        if manual_resume_completed is not None:
+            if (
+                saved_resume_completed is not None
+                and manual_resume_completed < saved_resume_completed
+            ):
+                if allow_schedule_rewind:
+                    print(
+                        "[resume] warning: caller explicitly rewound env progression per "
+                        f"{RESUME_ALLOW_SCHEDULE_REWIND_ENV}=1: "
+                        f"saved={saved_resume_completed}, requested={manual_resume_completed}"
+                    )
+                else:
+                    print(
+                        "[resume] warning: ignoring caller env progression below saved state: "
+                        f"saved={saved_resume_completed}, requested={manual_resume_completed}. "
+                        f"Set {RESUME_ALLOW_SCHEDULE_REWIND_ENV}=1 only for an intentional rewind."
+                    )
+            else:
+                print(
+                    "[resume] using caller-provided env progression override: "
+                    f"{RESUME_COMPLETED_EPISODES_ENV}={manual_resume_completed}"
+                )
     if resume_env_completed_episodes is not None:
         os.environ[RESUME_COMPLETED_EPISODES_ENV] = str(resume_env_completed_episodes)
         print(
@@ -1746,7 +1995,7 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
         if model_resume_path is not None:
             print(
                 "[resume] warning: no saved env progression found in trainer state/metadata. "
-                "Curriculum- and reward-anneal episode counters will restart from zero."
+                "No episode-driven schedule is enabled; the diagnostic episode counter will restart from zero."
             )
 
     vecenv = build_vecenv(trainer_args)
@@ -1883,13 +2132,20 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
             )
             opponent_policy.eval()
             opponent_policies.append(opponent_policy)
+        agents_per_match = int(
+            getattr(
+                vecenv.driver_env,
+                "agents_per_match",
+                vecenv.driver_env.num_agents,
+            )
+        )
         print(
             "[league] enabled: "
             f"opponents={len(opponent_policies)}, "
             f"frozen_ratio_target="
             f"{(0.0 if league_cfg.frozen_ratio is None else league_cfg.frozen_ratio):.3f}, "
             f"frozen_matchup_ratio="
-            f"{(compute_frozen_matchup_ratio(frozen_row_ratio=league_cfg.frozen_ratio, agents_per_env=int(vecenv.driver_env.num_agents)) if league_cfg.frozen_ratio is not None else max(0.0, min(1.0, 1.0 - float(league_cfg.latest_ratio)))):.3f}, "
+            f"{(compute_frozen_matchup_ratio(frozen_row_ratio=league_cfg.frozen_ratio, agents_per_env=agents_per_match) if league_cfg.frozen_ratio is not None else max(0.0, min(1.0, 1.0 - float(league_cfg.latest_ratio)))):.3f}, "
             f"activate_after_steps={league_cfg.activate_after_steps}"
         )
 
@@ -1899,6 +2155,7 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
             vecenv,
             policy,
             opponent_policies=opponent_policies,
+            opponent_keys=[str(path.resolve()) for path in opponent_paths],
             league_cfg=league_cfg,
             logger=logger,
         )
@@ -1944,6 +2201,9 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
             "resume_config_fingerprint": resume_config_fingerprint,
             "checkpoint_parity": parity_summary,
         }
+        shaped_reward_schedule = _trainer_shaped_reward_schedule_state(trainer)
+        if shaped_reward_schedule is not None:
+            metadata_payload["trainer_shaped_reward_schedule"] = shaped_reward_schedule
         if resume_completed_episode_tracker is not None:
             metadata_payload["env_completed_episodes"] = int(resume_completed_episode_tracker)
         _save_checkpoint_metadata(
@@ -1954,9 +2214,10 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
 
     trainer.save_checkpoint = _save_checkpoint_with_metadata
 
+    trainer_state_restored = False
     if script_args.resume_load_optimizer:
         if trainer_state_path is not None:
-            _maybe_restore_trainer_state(
+            trainer_state_restored = _maybe_restore_trainer_state(
                 trainer,
                 trainer_state_path,
                 expected_model_path=model_resume_path,
@@ -1964,6 +2225,12 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
             )
         else:
             print("[resume] --resume-load-optimizer requested but trainer_state.pt was not found")
+    if script_args.resume_restart_lr_schedule:
+        if not script_args.resume_load_optimizer or not trainer_state_restored:
+            raise RuntimeError(
+                "--resume-restart-lr-schedule requires a successful optimizer/trainer-state restore"
+            )
+        _restart_lr_schedule_for_remaining_epochs(trainer)
 
     anneal_step_offset = 0
     if resume_global_step_hint is not None:
@@ -2178,24 +2445,36 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
                                     Path(entry.checkpoint_path)
                                     for entry in league_manager.opponent_entries_for_training()
                                 ]
+                                resident_by_key = {
+                                    key: resident_policy
+                                    for key, resident_policy in zip(
+                                        getattr(trainer, "opponent_keys", []),
+                                        trainer.opponent_policies,
+                                    )
+                                }
                                 refreshed_policies = []
                                 for opp_path in refreshed_paths:
-                                    opp = build_policy(vecenv, trainer_args)
-                                    _load_model_weights(
-                                        opp,
-                                        opp_path,
-                                        device=str(train_cfg.get("device", "cpu")),
-                                        strict=False,
-                                    )
-                                    opp.eval()
+                                    opponent_key = str(opp_path.resolve())
+                                    opp = resident_by_key.get(opponent_key)
+                                    if opp is None:
+                                        opp = build_policy(vecenv, trainer_args)
+                                        _load_model_weights(
+                                            opp,
+                                            opp_path,
+                                            device=str(train_cfg.get("device", "cpu")),
+                                            strict=False,
+                                        )
+                                        opp.eval()
                                     refreshed_policies.append(opp)
                                 trainer.set_opponent_policies(
                                     refreshed_policies,
-                                    opponent_keys=[str(p) for p in refreshed_paths],
+                                    opponent_keys=[str(path.resolve()) for path in refreshed_paths],
                                 )
                                 print(
                                     "[league] pool refreshed: "
-                                    f"opponents={len(refreshed_policies)}, champion={league_manager.state.champion_policy_id}"
+                                    f"sampling_opponents={len(refreshed_policies)}, "
+                                    f"resident_opponents={len(trainer.opponent_policies)}, "
+                                    f"champion={league_manager.state.champion_policy_id}"
                                 )
                 if (
                     script_args.render_playback_interval > 0

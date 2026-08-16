@@ -4,11 +4,17 @@
 
 static PyObject* env_reset_with_decks(PyObject* self, PyObject* args);
 static PyObject* vec_drain_deck_records(PyObject* self, PyObject* args);
+static PyObject* vec_reset_evaluation_games(PyObject* self, PyObject* args);
+static PyObject* vec_active_players(PyObject* self, PyObject* args);
+static PyObject* vec_force_evaluation_truncations(PyObject* self, PyObject* args);
 static PyObject* obs_struct_sizes(PyObject* self, PyObject* args);
 
 #define MY_METHODS \
   {"env_reset_with_decks", env_reset_with_decks, METH_VARARGS, "Reset the environment with two explicit deck specs"}, \
   {"vec_drain_deck_records", vec_drain_deck_records, METH_VARARGS, "Drain per-episode drafted-deck records from a deck-building vec"}, \
+  {"vec_reset_evaluation_games", vec_reset_evaluation_games, METH_VARARGS, "Reset selected native evaluation games with explicit seeds, gates, and optional reference seats"}, \
+  {"vec_active_players", vec_active_players, METH_VARARGS, "Return the active player for each native vector environment"}, \
+  {"vec_force_evaluation_truncations", vec_force_evaluation_truncations, METH_VARARGS, "Force selected native evaluation games to truncate"}, \
   {"obs_struct_sizes", obs_struct_sizes, METH_NOARGS, "Return (battle, deckbuild) packed observation struct sizes"}
 
 #define Env CAzukiTCG
@@ -302,6 +308,22 @@ static int my_init(Env* env, PyObject* args, PyObject* kwargs) {
       return -1;
     }
     env->deck_building = true;
+    env->evaluation_forced_gate[0] = -1;
+    env->evaluation_forced_gate[1] = -1;
+    env->evaluation_forced_leader[0] = -1;
+    env->evaluation_forced_leader[1] = -1;
+    env->evaluation_reference_seat = -1;
+    env->evaluation_reference_deck_index = -1;
+    PyObject* pause_obj =
+        PyDict_GetItemString(kwargs, "evaluation_pause_on_done");
+    if (pause_obj != NULL && PyObject_IsTrue(pause_obj)) {
+      env->evaluation_pause_on_done = true;
+    }
+    PyObject* uniform_assignment_obj =
+        PyDict_GetItemString(kwargs, "draft_uniform_assignment");
+    if (uniform_assignment_obj != NULL && PyObject_IsTrue(uniform_assignment_obj)) {
+      env->draft_uniform_assignment = true;
+    }
     PyObject* sibling_prob_obj =
         PyDict_GetItemString(kwargs, "draft_same_element_matchup_prob");
     if (sibling_prob_obj != NULL) {
@@ -671,14 +693,40 @@ static PyObject* vec_drain_deck_records(PyObject* self, PyObject* args) {
         Py_DECREF(records);
         return NULL;
       }
+      assign_to_dict(player, "garden_or_leader_ability_rate",
+                     env->deck_record_behavior[p][6]);
+      assign_to_dict(player, "alley_ability_rate",
+                     env->deck_record_behavior[p][7]);
+      assign_to_dict(player, "play_entity_to_garden_rate",
+                     env->deck_record_behavior[p][8]);
+      assign_to_dict(player, "play_entity_to_alley_rate",
+                     env->deck_record_behavior[p][9]);
+      assign_to_dict(player, "target_rate", env->deck_record_behavior[p][10]);
+      assign_to_dict(player, "contextual_response_opportunities",
+                     env->deck_record_behavior[p][11]);
+      assign_to_dict(player, "temporary_charge_realized",
+                     env->deck_record_behavior[p][12]);
+      assign_to_dict(player, "temporary_attack_damage_realized",
+                     env->deck_record_behavior[p][13]);
+      assign_to_dict(player, "generated_ikz_created",
+                     env->deck_record_behavior[p][14]);
+      assign_to_dict(player, "generated_ikz_converted",
+                     env->deck_record_behavior[p][15]);
+      assign_to_dict(player, "entity_damage_dealt",
+                     env->deck_record_behavior[p][16]);
+      assign_to_dict(player, "entity_damage_taken",
+                     env->deck_record_behavior[p][17]);
       PyList_SET_ITEM(players, p, player);
     }
     PyObject* record = Py_BuildValue(
-        "{s:k,s:f,s:i,s:i,s:N}",
+        "{s:i,s:k,s:f,s:i,s:i,s:i,s:i,s:N}",
+        "env_index", i,
         "seed", (unsigned long)env->deck_record_seed,
         "episode_length", env->deck_record_episode_length,
         "ref_seat", (int)env->deck_record_ref_seat,
         "ref_deck_index", (int)env->deck_record_ref_deck_index,
+        "end_reason", (int)env->deck_record_end_reason,
+        "starting_player", (int)env->deck_record_starting_player,
         "players", players);
     if (record == NULL) {
       Py_DECREF(records);
@@ -692,6 +740,233 @@ static PyObject* vec_drain_deck_records(PyObject* self, PyObject* args) {
     Py_DECREF(record);
   }
   return records;
+}
+
+static PyObject* int_sequence_fast(PyObject* obj, const char* label) {
+  if (obj == NULL) {
+    PyErr_Format(PyExc_TypeError, "Missing sequence '%s'", label);
+    return NULL;
+  }
+  return PySequence_Fast(obj, label);
+}
+
+static int sequence_long_at(PyObject* sequence, Py_ssize_t index, long* out) {
+  *out = PyLong_AsLong(PySequence_Fast_GET_ITEM(sequence, index));
+  return PyErr_Occurred() ? -1 : 0;
+}
+
+static PyObject* vec_reset_evaluation_games(PyObject* self, PyObject* args) {
+  (void)self;
+  if (PyTuple_Size(args) != 9) {
+    PyErr_SetString(
+        PyExc_TypeError,
+        "vec_reset_evaluation_games requires handle, indices, seeds, gate0, gate1, leader0, leader1, ref_seats, ref_decks");
+    return NULL;
+  }
+  VecEnv* vec = unpack_vecenv(args);
+  if (vec == NULL) {
+    return NULL;
+  }
+
+  const char* labels[8] = {
+      "indices", "seeds", "gate0", "gate1", "leader0", "leader1",
+      "ref_seats", "ref_decks"};
+  PyObject* sequences[8] = {NULL};
+  for (int sequence_index = 0; sequence_index < 8; ++sequence_index) {
+    sequences[sequence_index] = int_sequence_fast(
+        PyTuple_GetItem(args, sequence_index + 1), labels[sequence_index]);
+    if (sequences[sequence_index] == NULL) {
+      for (int prior = 0; prior < sequence_index; ++prior) {
+        Py_DECREF(sequences[prior]);
+      }
+      return NULL;
+    }
+  }
+  const Py_ssize_t count = PySequence_Fast_GET_SIZE(sequences[0]);
+  for (int sequence_index = 1; sequence_index < 8; ++sequence_index) {
+    if (PySequence_Fast_GET_SIZE(sequences[sequence_index]) != count) {
+      for (int i = 0; i < 8; ++i) {
+        Py_DECREF(sequences[i]);
+      }
+      PyErr_SetString(PyExc_ValueError, "Evaluation reset sequences must have equal lengths");
+      return NULL;
+    }
+  }
+
+  for (Py_ssize_t item = 0; item < count; ++item) {
+    long index = -1;
+    long seed = 0;
+    long gate0 = -1;
+    long gate1 = -1;
+    long leader0 = -1;
+    long leader1 = -1;
+    long ref_seat = -1;
+    long ref_deck = -1;
+    if (sequence_long_at(sequences[0], item, &index) != 0 ||
+        sequence_long_at(sequences[1], item, &seed) != 0 ||
+        sequence_long_at(sequences[2], item, &gate0) != 0 ||
+        sequence_long_at(sequences[3], item, &gate1) != 0 ||
+        sequence_long_at(sequences[4], item, &leader0) != 0 ||
+        sequence_long_at(sequences[5], item, &leader1) != 0 ||
+        sequence_long_at(sequences[6], item, &ref_seat) != 0 ||
+        sequence_long_at(sequences[7], item, &ref_deck) != 0) {
+      for (int i = 0; i < 8; ++i) {
+        Py_DECREF(sequences[i]);
+      }
+      return NULL;
+    }
+    if (index < 0 || index >= vec->num_envs) {
+      for (int i = 0; i < 8; ++i) {
+        Py_DECREF(sequences[i]);
+      }
+      PyErr_Format(PyExc_IndexError, "Evaluation env index %ld is out of range", index);
+      return NULL;
+    }
+    Env* env = vec->envs[index];
+    if (!env->deck_building) {
+      for (int i = 0; i < 8; ++i) {
+        Py_DECREF(sequences[i]);
+      }
+      PyErr_SetString(PyExc_ValueError, "Scheduled evaluation requires deck_building mode");
+      return NULL;
+    }
+    const bool random_gates = gate0 < 0 && gate1 < 0;
+    if (!random_gates &&
+        (gate0 < 0 || gate1 < 0 ||
+         draft_gate_slot_for((int16_t)gate0) < 0 ||
+         draft_gate_slot_for((int16_t)gate1) < 0)) {
+      for (int i = 0; i < 8; ++i) {
+        Py_DECREF(sequences[i]);
+      }
+      PyErr_Format(PyExc_ValueError, "Invalid forced evaluation gates [%ld,%ld]", gate0, gate1);
+      return NULL;
+    }
+    const bool random_leaders = leader0 < 0 && leader1 < 0;
+    if (!random_leaders) {
+      if (!env->draft_uniform_assignment || random_gates ||
+          leader0 < 0 || leader1 < 0 ||
+          !draft_leader_valid_for_slot(
+              draft_gate_slot_for((int16_t)gate0), (int16_t)leader0) ||
+          !draft_leader_valid_for_slot(
+              draft_gate_slot_for((int16_t)gate1), (int16_t)leader1)) {
+        for (int i = 0; i < 8; ++i) {
+          Py_DECREF(sequences[i]);
+        }
+        PyErr_Format(PyExc_ValueError,
+                     "Invalid forced evaluation leaders [%ld,%ld] for gates [%ld,%ld]",
+                     leader0, leader1, gate0, gate1);
+        return NULL;
+      }
+    }
+    const bool no_reference = ref_seat < 0 && ref_deck < 0;
+    if (!no_reference &&
+        (ref_seat < 0 || ref_seat >= MAX_PLAYERS_PER_MATCH ||
+         ref_deck < 0 || (size_t)ref_deck >= env->deck_pool_count)) {
+      for (int i = 0; i < 8; ++i) {
+        Py_DECREF(sequences[i]);
+      }
+      PyErr_Format(
+          PyExc_ValueError,
+          "Invalid evaluation reference seat/deck [%ld,%ld]", ref_seat, ref_deck);
+      return NULL;
+    }
+
+    env->evaluation_pause_on_done = true;
+    env->evaluation_forced_gates = !random_gates;
+    env->evaluation_forced_gate[0] = (int16_t)gate0;
+    env->evaluation_forced_gate[1] = (int16_t)gate1;
+    env->evaluation_forced_leaders = !random_leaders;
+    env->evaluation_forced_leader[0] = (int16_t)leader0;
+    env->evaluation_forced_leader[1] = (int16_t)leader1;
+    env->evaluation_reference_seat = no_reference ? -1 : (int8_t)ref_seat;
+    env->evaluation_reference_deck_index = no_reference ? -1 : (int16_t)ref_deck;
+    env->deck_record_valid = false;
+    env->seed = (uint32_t)seed;
+    env->starter_rng_state = starter_seed_from_env_seed(env->seed);
+    env->deck_rng_state = deck_seed_from_env_seed(env->seed);
+    env->draft_rng_state = env->seed ^ 0x9E3779B9u;
+    c_reset(env);
+  }
+
+  for (int i = 0; i < 8; ++i) {
+    Py_DECREF(sequences[i]);
+  }
+  Py_RETURN_NONE;
+}
+
+static PyObject* vec_active_players(PyObject* self, PyObject* args) {
+  (void)self;
+  VecEnv* vec = unpack_vecenv(args);
+  if (vec == NULL) {
+    return NULL;
+  }
+  PyObject* active = PyList_New(vec->num_envs);
+  if (active == NULL) {
+    return NULL;
+  }
+  for (int i = 0; i < vec->num_envs; ++i) {
+    Env* env = vec->envs[i];
+    int player = -1;
+    const bool done =
+        (env->terminals[0] == DONE && env->terminals[1] == DONE) ||
+        (env->truncations[0] == DONE && env->truncations[1] == DONE);
+    if (!done) {
+      player = env->draft_active ? (int)env->draft_active_player
+                                 : (int)tcg_active_player_index(env);
+    }
+    PyList_SET_ITEM(active, i, PyLong_FromLong(player));
+  }
+  return active;
+}
+
+static PyObject* vec_force_evaluation_truncations(PyObject* self, PyObject* args) {
+  (void)self;
+  if (PyTuple_Size(args) != 2) {
+    PyErr_SetString(
+        PyExc_TypeError,
+        "vec_force_evaluation_truncations requires handle and env indices");
+    return NULL;
+  }
+  VecEnv* vec = unpack_vecenv(args);
+  if (vec == NULL) {
+    return NULL;
+  }
+  PyObject* indices = int_sequence_fast(PyTuple_GetItem(args, 1), "indices");
+  if (indices == NULL) {
+    return NULL;
+  }
+  const Py_ssize_t count = PySequence_Fast_GET_SIZE(indices);
+  for (Py_ssize_t item = 0; item < count; ++item) {
+    long index = -1;
+    if (sequence_long_at(indices, item, &index) != 0) {
+      Py_DECREF(indices);
+      return NULL;
+    }
+    if (index < 0 || index >= vec->num_envs) {
+      Py_DECREF(indices);
+      PyErr_Format(PyExc_IndexError, "Evaluation env index %ld is out of range", index);
+      return NULL;
+    }
+    Env* env = vec->envs[index];
+    const bool done =
+        (env->terminals[0] == DONE && env->terminals[1] == DONE) ||
+        (env->truncations[0] == DONE && env->truncations[1] == DONE);
+    if (done) {
+      continue;
+    }
+    if (env->draft_active || env->engine == NULL) {
+      Py_DECREF(indices);
+      PyErr_SetString(PyExc_RuntimeError, "Cannot truncate evaluation game during draft");
+      return NULL;
+    }
+    apply_truncation_rewards(env, EP_END_REASON_TIMEOUT_TRUNCATION);
+    accumulate_step_rewards(env);
+    env->truncations[0] = DONE;
+    env->truncations[1] = DONE;
+    record_episode_stats(env, EP_END_REASON_TIMEOUT_TRUNCATION);
+  }
+  Py_DECREF(indices);
+  Py_RETURN_NONE;
 }
 
 static PyObject* obs_struct_sizes(PyObject* self, PyObject* args) {

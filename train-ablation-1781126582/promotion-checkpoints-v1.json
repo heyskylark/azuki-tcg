@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "anchor_id": "task3_final",
+  "config_path": "python/config/azuki_deckbuild_native_3090.ini",
+  "schedule_seeds": [42001701, 52001704],
+  "reference_seeds": [42009919, 52009922],
+  "matrix_max_steps": 400,
+  "reference_max_steps": 600,
+  "batch_envs": 12,
+  "reference_deck_indices": [0, 2, 4, 6, 8, 10, 12, 14, 16],
+  "reference_holdout_deck_indices": [1, 3, 5, 7, 9, 11, 13, 15, 17],
+  "policies": [
+    {
+      "id": "s9_final",
+      "path": "experiments/azuki_local_s9pfsp_178393041966/model_azuki_local_000977.pt",
+      "trajectory": "s9pfsp",
+      "epoch": 977,
+      "qualified_prior": false,
+      "panel_eligible": true
+    },
+    {
+      "id": "s10_final",
+      "path": "experiments/azuki_local_s10annfloor_178396478487/model_azuki_local_000977.pt",
+      "trajectory": "s10annfloor",
+      "epoch": 977,
+      "qualified_prior": true,
+      "panel_eligible": true
+    },
+    {
+      "id": "s11_final",
+      "path": "experiments/azuki_local_s11final45_178397832607/model_azuki_local_002930.pt",
+      "trajectory": "s11final45",
+      "epoch": 2930,
+      "qualified_prior": true,
+      "panel_eligible": true
+    },
+    {
+      "id": "s12_final",
+      "path": "experiments/azuki_local_s12tempo4_178400826248/model_azuki_local_000977.pt",
+      "trajectory": "s12tempo4",
+      "epoch": 977,
+      "qualified_prior": true,
+      "panel_eligible": true
+    },
+    {
+      "id": "s13_final",
+      "path": "experiments/azuki_local_s13dmg_178403176918/model_azuki_local_000977.pt",
+      "trajectory": "s13dmg",
+      "epoch": 977,
+      "qualified_prior": true,
+      "panel_eligible": true
+    },
+    {
+      "id": "s14_ep500",
+      "path": "experiments/azuki_local_s14prod45_178404911119/model_azuki_local_000500.pt",
+      "trajectory": "s14prod45",
+      "epoch": 500,
+      "qualified_prior": false,
+      "panel_eligible": true
+    },
+    {
+      "id": "s14_ep2000",
+      "path": "experiments/azuki_local_s14prod45_178404911119/model_azuki_local_002000.pt",
+      "trajectory": "s14prod45",
+      "epoch": 2000,
+      "qualified_prior": true,
+      "panel_eligible": true,
+      "sentinel": "must_not_fail_only_vs_stale_champion"
+    },
+    {
+      "id": "s14_final",
+      "path": "experiments/azuki_local_s14prod45_178404911119/model_azuki_local_002930.pt",
+      "trajectory": "s14prod45",
+      "epoch": 2930,
+      "qualified_prior": true,
+      "panel_eligible": true
+    },
+    {
+      "id": "task1_final",
+      "path": "experiments/azuki_local_rs1entity45_178420486524/model_azuki_local_002930.pt",
+      "trajectory": "rs1entity45",
+      "epoch": 2930,
+      "qualified_prior": false,
+      "panel_eligible": true,
+      "expected_p4": false
+    },
+    {
+      "id": "task2_final",
+      "path": "experiments/azuki_local_rs2ikzconv45_178423488709/model_azuki_local_002930.pt",
+      "trajectory": "rs2ikzconv45",
+      "epoch": 2930,
+      "qualified_prior": false,
+      "panel_eligible": true,
+      "expected_p4": false
+    },
+    {
+      "id": "task3_ep2500",
+      "path": "experiments/azuki_local_rs3tempreal45_178426575499/model_azuki_local_002500.pt",
+      "trajectory": "rs3tempreal45",
+      "epoch": 2500,
+      "qualified_prior": true,
+      "panel_eligible": true,
+      "expected_p4": true
+    },
+    {
+      "id": "task3_final",
+      "path": "experiments/azuki_local_rs3tempreal45_178426575499/model_azuki_local_002930.pt",
+      "trajectory": "rs3tempreal45",
+      "epoch": 2930,
+      "qualified_prior": true,
+      "panel_eligible": false,
+      "expected_p4": true
+    },
+    {
+      "id": "task4_final",
+      "path": "experiments/azuki_local_rs4reserve15_178419523079/model_azuki_local_000977.pt",
+      "trajectory": "rs4reserve15",
+      "epoch": 977,
+      "qualified_prior": false,
+      "panel_eligible": true,
+      "expected_p4": false
+    }
+  ]
+}

@@ -651,6 +651,9 @@ static PyObject* vec_step(PyObject* self, PyObject* arg) {
         Env* env = vec->envs[i];
         if ((env->terminals[0] == DONE && env->terminals[1] == DONE) ||
             (env->truncations[0] == DONE && env->truncations[1] == DONE)) {
+            if (env->evaluation_pause_on_done) {
+                continue;
+            }
             c_reset(env);
             continue;
         }

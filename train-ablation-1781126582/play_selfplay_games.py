@@ -44,8 +44,18 @@ GARDEN_SIZE = 5
 
 
 class GameLogger:
-    def __init__(self, runner: EpisodeRunner):
+    def __init__(
+        self,
+        runner: EpisodeRunner,
+        *,
+        log_legal_actions: bool = False,
+        action_mode: str = "sample",
+    ):
+        if action_mode not in ("sample", "argmax"):
+            raise ValueError(f"Unsupported action mode: {action_mode}")
         self.runner = runner
+        self.log_legal_actions = bool(log_legal_actions)
+        self.action_mode = action_mode
         self.records = runner.catalog.records_by_def_id
         # inner battle env (exposes _raw_observation / ctypes obs struct)
         self.inner = runner.base_env.env
@@ -142,6 +152,17 @@ class GameLogger:
                 "response_open": bool(cc.response_window_active),
                 "intercepted": bool(cc.defender_intercepted),
             }
+        if self.log_legal_actions:
+            mask = raw.action_mask
+            snap["legal"] = [
+                [
+                    int(mask.legal_primary[index]),
+                    int(mask.legal_sub1[index]),
+                    int(mask.legal_sub2[index]),
+                    int(mask.legal_sub3[index]),
+                ]
+                for index in range(int(mask.legal_action_count))
+            ]
         return snap
 
     # ---- action decoding ---------------------------------------------------
@@ -275,9 +296,14 @@ class GameLogger:
             if runner.use_rnn:
                 state["lstm_h"] = step_state["lstm_h"]
                 state["lstm_c"] = step_state["lstm_c"]
-            import azk_puffer.pytorch as azk_pytorch
+            if self.action_mode == "argmax":
+                from policy.v2.tcg_sampler import tcg_argmax_logits
 
-            acts, _, _ = azk_pytorch.sample_logits(logits)
+                acts = tcg_argmax_logits(logits)
+            else:
+                import azk_puffer.pytorch as azk_pytorch
+
+                acts, _, _ = azk_pytorch.sample_logits(logits)
             acts = acts.cpu().numpy().astype(np.int32, copy=True)
             if building:
                 draft_steps += 1
@@ -310,6 +336,8 @@ class GameLogger:
                 for k in ("ability_src", "selection", "combat", "my_leader_weapons", "opp_leader_weapons"):
                     if snap.get(k):
                         rec[k] = snap[k]
+                if self.log_legal_actions:
+                    rec["legal"] = snap["legal"]
                 steps.append(rec)
             runner.vecenv.send(acts)
             obs, rew, term, trunc, info, env_id, masks = runner.vecenv.recv()
@@ -364,9 +392,24 @@ def main():
     ap.add_argument("--seed0", type=int, default=550_000)
     ap.add_argument("--device", type=str, default="cpu")
     ap.add_argument("--out", type=Path, required=True)
+    ap.add_argument(
+        "--log-legal-actions",
+        action="store_true",
+        help="Include every legal 4-head action at each battle decision.",
+    )
+    ap.add_argument(
+        "--uniform-assignment",
+        action="store_true",
+        help="Assign a uniform compatible gate and leader before the 50 main picks.",
+    )
     args = ap.parse_args()
 
-    runner = EpisodeRunner(args.config, args.checkpoint, args.device)
+    runner = EpisodeRunner(
+        args.config,
+        args.checkpoint,
+        args.device,
+        uniform_assignment=args.uniform_assignment,
+    )
     # natural per-episode gate randomization; disable sibling-matchup skew
     runner.base_env._same_element_matchup_prob = 0.0
 
@@ -374,7 +417,7 @@ def main():
 
     tcg_sampler.set_sampling_params(subaction_temperature=1.0, smoothing_eps=0.0)
 
-    logger = GameLogger(runner)
+    logger = GameLogger(runner, log_legal_actions=args.log_legal_actions)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
     wins = [0, 0, 0]

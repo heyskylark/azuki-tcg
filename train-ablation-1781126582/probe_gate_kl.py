@@ -64,17 +64,28 @@ def tv(p: np.ndarray, q: np.ndarray) -> float:
 
 
 class EpisodeRunner:
-    def __init__(self, config_path: Path, checkpoint: Path | None, device: str):
+    def __init__(
+        self,
+        config_path: Path,
+        checkpoint: Path | None,
+        device: str,
+        *,
+        uniform_assignment: bool = False,
+    ):
         trainer_args = load_training_config(config_path, [])
         trainer_args["train"]["device"] = device
         trainer_args.setdefault("env", {})["deck_building_enabled"] = True
         _apply_checkpoint_resume_policy_config(trainer_args, checkpoint)
+        trainer_args["env"]["native"] = False
+        trainer_args["env"].pop("native_envs_per_instance", None)
+        trainer_args["env"]["draft_uniform_assignment"] = bool(uniform_assignment)
         # A privileged-critic checkpoint expects the drafted-deck lists filled;
         # probing it on sanitized obs would mismeasure the critic.
         if trainer_args.get("policy", {}).get("privileged_critic_enabled"):
             trainer_args["env"]["deck_building_privileged_decks"] = True
         install_tcg_sampler()
         self.device = device
+        self.uniform_assignment = bool(uniform_assignment)
         self.vecenv = build_vecenv(trainer_args, backend=azk_vector.Serial, num_envs=1, seed=7)
         base = _unwrap_base_env(self.vecenv.envs[0])
         while not getattr(type(base), "is_deck_building_wrapper", False) and hasattr(base, "env"):
@@ -93,6 +104,7 @@ class EpisodeRunner:
             _load_model_weights(self.policy, checkpoint, device=device, strict=False)
         self.policy.eval()
         self.code_to_def = {r.card_code: d for d, r in self.catalog.records_by_def_id.items()}
+        self.last_pick_hidden: list[np.ndarray] = []
 
     def _fresh_state(self, masks):
         state = {"mask": torch.as_tensor(masks, device=self.device)}
@@ -112,9 +124,34 @@ class EpisodeRunner:
 
         self.base_env._sample_gate_def_id = fake_sample
 
-    def run_episode(self, seed: int, p0_gate: str, forced_actions: list | None):
+    def force_assigned_leaders(self, p0_code: str, p1_code: str) -> None:
+        forced = [self.code_to_def[p0_code], self.code_to_def[p1_code]]
+        calls = {"n": 0}
+
+        def fake_sample(_gate_def_id: int) -> int:
+            value = forced[calls["n"] % 2]
+            calls["n"] += 1
+            return int(value)
+
+        self.base_env._sample_assigned_leader_def_id = fake_sample
+
+    def run_episode(
+        self,
+        seed: int,
+        p0_gate: str,
+        forced_actions: list | None,
+        *,
+        p0_leader_code: str | None = None,
+        p1_leader_code: str | None = None,
+    ):
         """Returns (actions, probs_per_pick_step, candidate_ids_per_step)."""
         self.force_gates(p0_gate, OPPONENT_GATE)
+        if self.uniform_assignment:
+            if p0_leader_code is None or p1_leader_code is None:
+                raise ValueError(
+                    "Uniform-assignment probes require explicit leaders for both seats"
+                )
+            self.force_assigned_leaders(p0_leader_code, p1_leader_code)
         torch.manual_seed(seed)
         self.vecenv.async_reset(seed=seed)
         obs, _, _, _, _, _, masks = self.vecenv.recv()
@@ -127,6 +164,7 @@ class EpisodeRunner:
         actions_log = []
         probs_log = []
         cands_log = []
+        self.last_pick_hidden = []
         step = 0
         while self.base_env._building:
             active = self.base_env._active_player_index
@@ -145,12 +183,39 @@ class EpisodeRunner:
                 probs_log.append(masked_probs(logits, 0))
                 ctx = self.base_env._deck_context_for_player(0, include_candidates=True)
                 cands_log.append(np.array(ctx["candidate_card_def_ids"][: ctx["candidate_count"]]))
+                if self.use_rnn:
+                    self.last_pick_hidden.append(
+                        step_state["lstm_h"][0].detach().float().cpu().numpy().copy()
+                    )
             if forced_actions is None:
                 import azk_puffer.pytorch as azk_pytorch
                 acts, _, _ = azk_pytorch.sample_logits(logits)
                 acts = acts.cpu().numpy().astype(np.int32, copy=True)
             else:
-                acts = forced_actions[step]
+                acts = np.array(forced_actions[step], dtype=np.int32, copy=True)
+            desired_leader_code = (
+                p0_leader_code if active == 0 else p1_leader_code
+            )
+            if (
+                desired_leader_code is not None
+                and self.base_env._states[active].leader_card_def_id < 0
+            ):
+                desired_def_id = int(self.code_to_def[desired_leader_code])
+                ctx = self.base_env._deck_context_for_player(
+                    active, include_candidates=True
+                )
+                candidates = np.array(
+                    ctx["candidate_card_def_ids"][: ctx["candidate_count"]]
+                )
+                matches = np.flatnonzero(candidates == desired_def_id)
+                if matches.size != 1:
+                    raise RuntimeError(
+                        f"Leader {desired_leader_code} is not uniquely available for "
+                        f"player {active}"
+                    )
+                acts[active, 0] = 3
+                acts[active, 1] = int(matches[0])
+                acts[active, 2:] = 0
             actions_log.append(np.array(acts, copy=True))
             self.vecenv.send(acts)
             obs, _, _, _, _, _, masks = self.vecenv.recv()

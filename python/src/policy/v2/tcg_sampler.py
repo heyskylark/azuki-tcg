@@ -211,6 +211,81 @@ def tcg_sample_logits(logits, action=None):
     return actions_out, total_logprob, total_entropy
 
 
+def tcg_argmax_logits(logits) -> torch.Tensor:
+    """Select the highest-scoring legal action with stable first-index ties.
+
+    Promotion and release evaluation must be independent of the mutable
+    training sampler temperatures and smoothing values. `torch.argmax` returns
+    the first maximum, which gives an explicit deterministic tie break.
+    """
+    if isinstance(logits, TCGLegalActionDistribution):
+        device = logits.legal_action_logits.device
+        batch, candidate_count = logits.legal_action_logits.shape
+        row_indices = torch.arange(candidate_count, device=device).unsqueeze(0).expand(batch, -1)
+        row_mask = row_indices < logits.legal_action_count.to(
+            device=device, dtype=torch.long
+        ).view(-1, 1)
+        row_mask = _ensure_valid_mask(row_mask)
+        masked = logits.legal_action_logits.masked_fill(~row_mask, MASK_MIN_VALUE)
+        choices = torch.argmax(masked, dim=-1)
+        return logits.legal_actions.to(device=device, dtype=torch.long)[
+            torch.arange(batch, device=device), choices
+        ]
+
+    if not isinstance(logits, TCGActionDistribution):
+        raise ValueError("logits is not a TCGActionDistribution")
+
+    distribution = logits
+    device = distribution.primary_logits.device
+    target_index_dim = max(distribution.target_matrix.size(1), MAX_INDEX_SIZE)
+    primary = _argmax_stage(
+        distribution.primary_logits,
+        _ensure_valid_mask(distribution.primary_action_mask.to(device)),
+    )
+
+    sub1_mask = _build_subaction_mask(
+        distribution, primary, None, None, column=1, mask_size=target_index_dim
+    )
+    sub1 = _argmax_stage(
+        _compute_unit_logits(
+            distribution.target_matrix,
+            distribution.gate1_table.to(device).index_select(0, primary),
+            distribution.unit1_projection,
+            index_dim=target_index_dim,
+        ),
+        sub1_mask,
+    )
+
+    sub2_mask = _build_subaction_mask(
+        distribution, primary, sub1, None, column=2, mask_size=target_index_dim
+    )
+    unit2_logits = _compute_unit_logits(
+        distribution.target_matrix,
+        distribution.gate2_table.to(device).index_select(0, primary),
+        distribution.unit2_projection,
+        index_dim=target_index_dim,
+    )
+    bins2_logits = _pad_or_trim_to_index_dim(distribution.bins2_logits, target_index_dim)
+    needs_unit = ((primary == ACT_ATTACK) | (primary == ACT_ATTACH_WEAPON_FROM_HAND)).unsqueeze(-1)
+    sub2 = _argmax_stage(
+        torch.where(needs_unit, unit2_logits, bins2_logits), sub2_mask
+    )
+
+    sub3_mask = _build_subaction_mask(
+        distribution, primary, sub1, sub2, column=3, mask_size=target_index_dim
+    )
+    sub3 = _argmax_stage(
+        _pad_or_trim_to_index_dim(distribution.bins3_logits, target_index_dim),
+        sub3_mask,
+    )
+    return torch.stack((primary, sub1, sub2, sub3), dim=-1).to(dtype=torch.long)
+
+
+def _argmax_stage(logits: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+    valid_mask = _ensure_valid_mask(mask)
+    return torch.argmax(logits.masked_fill(~valid_mask, MASK_MIN_VALUE), dim=-1)
+
+
 def _sample_legal_action_rows(
     distribution: TCGLegalActionDistribution,
     *,

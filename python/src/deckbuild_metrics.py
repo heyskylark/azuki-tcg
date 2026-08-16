@@ -52,7 +52,14 @@ def _cost_bucket(cost: int) -> str:
 
 
 class NativeDeckbuildHelper:
-  def __init__(self, *, deck_pool=None, snapshot_dir=None, snapshot_every=None):
+  def __init__(
+    self,
+    *,
+    deck_pool=None,
+    snapshot_dir=None,
+    snapshot_every=None,
+    uniform_assignment: bool = False,
+  ):
     pool = tuple(deck_pool) if deck_pool is not None else load_training_deck_pool()
     self.catalog: DeckBuildCatalog = build_deck_build_catalog(pool)
     records = self.catalog.records_by_def_id
@@ -75,6 +82,7 @@ class NativeDeckbuildHelper:
       )
     )
     self._main_types = ("ENTITY", "SPELL", "WEAPON")
+    self._uniform_assignment = bool(uniform_assignment)
 
     self._snapshot_dir = Path(snapshot_dir) if snapshot_dir else None
     try:
@@ -151,7 +159,9 @@ class NativeDeckbuildHelper:
 
     m: dict[str, float] = {}
     m["deckbuild/completed"] = 1.0
-    m["deckbuild/picks"] = float(1 + MAX_DECK_SIZE)
+    m["deckbuild/picks"] = float(
+      MAX_DECK_SIZE if self._uniform_assignment else 1 + MAX_DECK_SIZE
+    )
     m["deckbuild/main_count"] = float(total)
     m["deckbuild/main_unique"] = float(unique)
     m["deckbuild/main_unique_share"] = unique / MAX_DECK_SIZE

@@ -66,6 +66,8 @@ class AzukiNativeEnv(PufferEnv):
     draft_same_element_matchup_prob=None,
     draft_cross_gate_replay_prob=None,
     deck_building_privileged_decks: bool = False,
+    draft_uniform_assignment: bool = False,
+    evaluation_mode: bool = False,
   ) -> None:
     num_envs = int(num_envs)
     if num_envs < 1:
@@ -115,6 +117,11 @@ class AzukiNativeEnv(PufferEnv):
     if not 0.0 <= self._draft_cross_gate_replay_prob <= 1.0:
       raise ValueError("draft_cross_gate_replay_prob must be in [0, 1]")
     self._deck_building_privileged_decks = bool(deck_building_privileged_decks)
+    self._draft_uniform_assignment = bool(draft_uniform_assignment)
+    self._evaluation_mode = bool(evaluation_mode)
+    if self._evaluation_mode and not self._deck_building:
+      raise ValueError("evaluation_mode requires deck_building=True")
+    self._pending_evaluation_records: list[dict] = []
     self._handle = None
     self._deckbuild_helper = None
     if self._deck_building:
@@ -124,6 +131,7 @@ class AzukiNativeEnv(PufferEnv):
         deck_pool=deck_pool,
         snapshot_dir=deck_snapshot_dir,
         snapshot_every=deck_snapshot_every,
+        uniform_assignment=self._draft_uniform_assignment,
       )
 
   # PufferEnv defines `emulated` as a property returning False; shadow it so
@@ -154,6 +162,10 @@ class AzukiNativeEnv(PufferEnv):
         kwargs["draft_cross_gate_replay_prob"] = self._draft_cross_gate_replay_prob
       if self._deck_building_privileged_decks:
         kwargs["deck_building_privileged_decks"] = 1
+      if self._draft_uniform_assignment:
+        kwargs["draft_uniform_assignment"] = 1
+      if self._evaluation_mode:
+        kwargs["evaluation_pause_on_done"] = 1
     self._handle = binding.vec_init(
       self._c_obs,
       self._c_actions,
@@ -181,11 +193,14 @@ class AzukiNativeEnv(PufferEnv):
       if self._deckbuild_helper is not None:
         records = binding.vec_drain_deck_records(self._handle)
         if records:
-          metrics = self._deckbuild_helper.process_records(records)
-          if metrics:
-            if not log:
-              log = {}
-            log.update(metrics)
+          if self._evaluation_mode:
+            self._pending_evaluation_records.extend(records)
+          else:
+            metrics = self._deckbuild_helper.process_records(records)
+            if metrics:
+              if not log:
+                log = {}
+              log.update(metrics)
       if log:
         infos.append(log)
     return (
@@ -198,6 +213,50 @@ class AzukiNativeEnv(PufferEnv):
 
   def notify(self):
     pass
+
+  def reset_evaluation_games(self, games: list[dict]) -> None:
+    if not self._evaluation_mode:
+      raise RuntimeError("reset_evaluation_games requires evaluation_mode=True")
+    self._ensure_handle()
+    binding.vec_reset_evaluation_games(
+      self._handle,
+      [int(game["env_index"]) for game in games],
+      [int(game["seed"]) for game in games],
+      [int(game.get("gate0", -1)) for game in games],
+      [int(game.get("gate1", -1)) for game in games],
+      [int(game.get("leader0", -1)) for game in games],
+      [int(game.get("leader1", -1)) for game in games],
+      [int(game.get("reference_seat", -1)) for game in games],
+      [int(game.get("reference_deck_index", -1)) for game in games],
+    )
+
+  def active_players(self) -> np.ndarray:
+    if not self._evaluation_mode:
+      raise RuntimeError("active_players requires evaluation_mode=True")
+    self._ensure_handle()
+    return np.asarray(binding.vec_active_players(self._handle), dtype=np.int8)
+
+  def force_evaluation_truncations(self, env_indices: list[int]) -> None:
+    if not self._evaluation_mode:
+      raise RuntimeError("force_evaluation_truncations requires evaluation_mode=True")
+    self._ensure_handle()
+    binding.vec_force_evaluation_truncations(
+      self._handle, [int(index) for index in env_indices]
+    )
+    records = binding.vec_drain_deck_records(self._handle)
+    if records:
+      self._pending_evaluation_records.extend(records)
+
+  def drain_evaluation_records(self) -> list[dict]:
+    if not self._evaluation_mode:
+      raise RuntimeError("drain_evaluation_records requires evaluation_mode=True")
+    self._ensure_handle()
+    records = binding.vec_drain_deck_records(self._handle)
+    if records:
+      self._pending_evaluation_records.extend(records)
+    pending = self._pending_evaluation_records
+    self._pending_evaluation_records = []
+    return pending
 
   def close(self):
     if self._handle is not None:

@@ -209,6 +209,10 @@ def make_azuki_env(*, seed: int | None = None, buf=None, **env_kwargs):
   deck_building_privileged_decks = bool(
     env_kwargs.pop("deck_building_privileged_decks", False)
   )
+  draft_uniform_assignment = bool(
+    env_kwargs.pop("draft_uniform_assignment", False)
+  )
+  evaluation_mode = bool(env_kwargs.pop("evaluation_mode", False))
   draft_cross_gate_replay_prob = float(
     env_kwargs.pop("draft_cross_gate_replay_prob", 0.0) or 0.0
   )
@@ -248,6 +252,8 @@ def make_azuki_env(*, seed: int | None = None, buf=None, **env_kwargs):
       draft_same_element_matchup_prob=draft_same_element_matchup_prob,
       draft_cross_gate_replay_prob=draft_cross_gate_replay_prob,
       deck_building_privileged_decks=deck_building_privileged_decks,
+      draft_uniform_assignment=draft_uniform_assignment,
+      evaluation_mode=evaluation_mode,
     )
   if deck_building_enabled:
     env = AzukiTCGParallel(seed=seed, deck_pool=deck_pool)
@@ -260,6 +266,7 @@ def make_azuki_env(*, seed: int | None = None, buf=None, **env_kwargs):
       snapshot_every=env_kwargs.pop("deck_snapshot_every", None),
       same_element_matchup_prob=draft_same_element_matchup_prob,
       privileged_decks=deck_building_privileged_decks,
+      uniform_assignment=draft_uniform_assignment,
     )
     env = MultiagentEpisodeStats(env)
     env = emulation.PettingZooPufferEnv(env, buf=buf, seed=seed)

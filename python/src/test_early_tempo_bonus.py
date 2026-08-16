@@ -36,6 +36,13 @@ QUALIFYING = {
     int(ActionType.CONFIRM_ABILITY),
 }
 
+DEDUP_EXCLUDED = {
+    int(ActionType.GATE_PORTAL),
+    int(ActionType.ACTIVATE_GARDEN_OR_LEADER_ABILITY),
+    int(ActionType.ACTIVATE_ALLEY_ABILITY),
+    int(ActionType.CONFIRM_ABILITY),
+}
+
 
 def _rollout(env_updates: dict, steps: int = 2500):
     import multiprocessing as mp
@@ -54,6 +61,7 @@ def _rollout(env_updates: dict, steps: int = 2500):
 def _rollout_worker(env_updates: dict, steps: int, queue):
     try:
         for key in ("AZK_EARLY_TEMPO_BONUS", "AZK_EARLY_TEMPO_CAP",
+                    "AZK_EARLY_TEMPO_DEDUP_PORTAL_ABILITIES",
                     "AZK_PORTAL_GP_BONUS", "AZK_PORTAL_OUTCOME_BONUS",
                     "AZK_DEBUG_FORCE_GATE_DEF_IDS"):
             os.environ.pop(key, None)
@@ -117,3 +125,30 @@ def test_early_tempo_differential_and_cap():
     unc_paid = (np.abs(unc_r - base_r).max(axis=1) > 0).sum()
     assert cap_paid <= unc_paid
     assert unc_paid > 0
+
+
+def test_early_tempo_portal_ability_dedup_differential():
+    full_r, full_a = _rollout(
+        {"AZK_EARLY_TEMPO_BONUS": "0.1", "AZK_EARLY_TEMPO_CAP": "0"}
+    )
+    dedup_r, dedup_a = _rollout(
+        {
+            "AZK_EARLY_TEMPO_BONUS": "0.1",
+            "AZK_EARLY_TEMPO_CAP": "0",
+            "AZK_EARLY_TEMPO_DEDUP_PORTAL_ABILITIES": "1",
+        }
+    )
+    np.testing.assert_array_equal(full_a, dedup_a)
+
+    diff = full_r - dedup_r
+    changed = np.abs(diff).max(axis=1) > 0
+    excluded_step = np.array([
+        any(int(action[0]) in DEDUP_EXCLUDED for action in step_actions)
+        for step_actions in full_a
+    ])
+    portal_step = (full_a[:, :, 0] == int(ActionType.GATE_PORTAL)).any(axis=1)
+    assert changed.sum() > 0, "deduplication never removed a tempo payment"
+    assert (changed & ~excluded_step).sum() == 0
+    assert (changed & portal_step).sum() > 0, "no early portal payment was removed"
+    assert np.abs(diff.sum(axis=1)[changed]).max() < 1e-5
+    assert np.allclose(np.abs(diff[changed]).max(axis=1), 0.1, atol=1e-6)

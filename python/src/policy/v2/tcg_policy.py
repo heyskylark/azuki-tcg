@@ -1604,7 +1604,9 @@ class TCG(nn.Module):
     return cobs
 
   def _squeeze_trailing_singleton(self, tensor: torch.Tensor):
-    if tensor.dim() > 0 and tensor.size(-1) == 1:
+    # Packed scalar fields can be (B, 1), while canonical native fields are
+    # already (B,). Never collapse the batch dimension when B == 1.
+    if tensor.dim() > 1 and tensor.size(-1) == 1:
       return tensor.squeeze(-1)
     return tensor
 

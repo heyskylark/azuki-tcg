@@ -1255,3 +1255,235 @@ pending until explicit user go-ahead.
   end of the run (and 12/12 at ep2930 final probe). The critic's sibling
   pricing strengthens late — consistent with ep2000+ being the strongest
   external region. S14 now fully closed (ALL_DONE).
+
+### 8.22 QUEUED AFTER REFERENCE-DECK LEAGUE ABLATIONS: shaping floor -> zero (2026-07-17)
+Hypothesis: the validated `1.0 -> 0.15` shaping lineage supplies useful early
+training wheels and prevents the late regression seen with the old 0.05
+floor, but retaining heuristic rewards forever may bias a mature policy away
+from the true terminal win/loss objective. Once the reference-deck percentage
+experiment selects a training mixture, test whether a smooth terminal phase
+can remove that bias and continue improving play from outcome evidence alone.
+
+This is a bounded **45-70M additional sampled-row ablation per arm**, not a
+500M production run. All arms start from the same most recent accepted model,
+optimizer, league, and reward-stack state after the reference-deck experiments.
+Because that parent has already completed the successful `1.0 -> 0.15`
+curriculum, continuation arms begin at 0.15; **do not reset shaping to 1.0**.
+Record both added and cumulative sampled rows so resume semantics are explicit.
+
+Matched matrix, with horizon `H` measured from the shared parent:
+
+| arm | shaping schedule over the 45-70M continuation | purpose |
+|---|---|---|
+| floor015 | 0.15 for `[0, H]` | control: current validated floor |
+| zero40 | 0.15 through `0.60H`; linear to 0 by `0.80H`; 0 through `H` | final 40% contains a 20% ramp and 20% pure-outcome tail |
+| zero20 | 0.15 through `0.80H`; linear to 0 by `0.90H`; 0 through `H` | later removal: 10% ramp and 10% pure-outcome tail |
+
+Reaching zero only on the last update is not a valid test: each experimental
+arm must spend enough updates at exactly zero to measure adaptation under
+sparse terminal rewards. The selected reference-deck training probability,
+train split, PFSP/retention settings, panel, seed, parent hashes, LR schedule,
+and entropy floor remain identical across arms. Held-out reference decks stay
+evaluation-only. Keep terminal win/loss rewards and outcome-derived auxiliary
+targets enabled; the global shaping multiplier must cover every heuristic
+reward component. Audit for any unscaled shaping channel before launch.
+
+Schedule position must be derived from cumulative sampled rows within the
+continuation and serialized across resumes. Do not couple the shaping knee to
+an entropy or LR knee: the earlier sparse-phase evidence was confounded by
+shaping and entropy changing together. Use the same resume-safe optimizer/LR
+plan in all arms and retain a small nonzero entropy coefficient through the
+zero-shaping tail.
+
+Readouts at the shared parent, decay start, zero-entry checkpoint, midpoint of
+the pure-zero tail, and final checkpoint:
+
+- paired-seat fixed-panel and held-out-reference results with confidence
+  bounds, reported as windows rather than a single meta-cycle endpoint;
+- H2H ladder across parent, pre-decay, zero-entry, and final checkpoints;
+- deck quality/diversity and per-gate playstyle trajectories, including
+  portal, attack, defense, game length, and timeout behavior;
+- entropy, KL/clip fraction, value loss, and explained variance around the
+  reward-scale transition; and
+- external-strength slope during the exactly-zero interval, which is the
+  direct test that outcome-only learning is still occurring.
+
+Adopt a zero-tail schedule only if it is non-inferior to `floor015` across the
+held-out window, avoids entropy/value collapse and reward-transition shocks,
+and preserves or improves strategic/deck diversity. If both zero arms regress
+or merely stop learning after zero-entry, retain the 0.15 production floor.
+The schedule itself is scalar bookkeeping and must not materially reduce the
+established mature-league SPS band.
+
+### 8.23 EXACT DRAFT CREDIT + RANDOM PREFIX CURRICULUM (2026-07-24)
+
+The corrected 15M retained-row experiment and random main-prefix experiment
+were formally neutral under their registered adoption gates, but neither was
+behaviorally neutral. The combined analysis is:
+
+`results/next_ablation_v1/credit_prefix_15m_behavior_analysis.md`
+
+Retained exact terminal credit changed greedy unique-card count from `18.38`
+near the start to `30.50` at p8770 while the standard-credit control stayed
+near `17.5`. Stochastic four-copy slot share fell from `55.96%` to `37.42%`.
+The battle policy moved from games `+2.36` actions longer and attack rate
+`-0.93pp` early to games `-4.60` actions shorter and attack rate `+1.07pp` at
+the endpoint. Late parent and heldout windows were positive, but deck
+structure was still moving and Water had collapsed from 17 to 5 greedy spell
+slots. Interpretation: exact credit successfully reaches all 50 picks and
+opens a broad global card-value search, but 15M stops during an unfinished
+"good-card soup" phase.
+
+Random prefixing was disabled at evaluation but still changed unforced policy
+behavior. Relative to exact-credit/no-prefix, it reduced endpoint greedy unique
+cards from `28` to `24`, raised four-copy slot share from `37.19%` to `43.27%`,
+raised every element's IKZ curve, added weapons, and shortened games by `6.47`
+actions. Water and Fire gained on the final heldout panel while Earth regressed.
+The effect was stable over the last two 15M windows. Interpretation: recovering
+from forced early cards acts as a structural draft regularizer, not primarily
+as unseen-card exposure. It partially counters good-card soup but may impose a
+global high-cost weapon bias.
+
+Neither exact credit nor prefixing learned useful sibling portal/leader draft
+specialization by 15M: KL remained around `1e-6`, greedy sibling lists were
+identical, and causal matched-deck advantages were zero. Promotion events remain
+diagnostic only.
+
+#### 45M confirmation (complete)
+
+Campaign `credit_prefix_confirm45_v1` ran 2026-07-24 through 2026-07-25 from
+the hash-locked uniform-assignment p7800 atomic parent. Each arm received
+`2,930 * 15,360 = 45,004,800` samples and reached p10730:
+
+| arm | exact retained credit | prefix schedule |
+|---|---|---|
+| `standard_control` | no | never |
+| `control_no_prefix` | yes | never |
+| `random_main_prefix` | yes | fixed for all training |
+
+The fixed prefix arm samples lengths `0,1,2,4` with probabilities
+`0.5,0.25,0.125,0.125`. Forced rows update recurrent state and the terminal
+baseline but are masked from actor and entropy gradients. Prefixing remains
+disabled in every evaluation.
+
+The three branches ran sequentially on one GPU, followed automatically by
+exact-credit-vs-standard and prefix-vs-exact evaluation suites. Readouts include
+four checkpoint windows, parent/heldout panels, deck composition, copy
+concentration, IKZ/type mix, context KL, causal deck swaps,
+opportunity-normalized battle actions, and exposure funnels. The first arm
+passed startup invariants and all three arms completed with zero timeouts,
+truncations, or incomplete episodes. Campaign contract and final markers:
+
+`results/next_ablation_v1/stage3/credit_prefix_confirm45_v1/README.md`
+
+#### 45M outcome
+
+Full behavior and deck analysis:
+
+`results/next_ablation_v1/credit_prefix_45m_behavior_analysis.md`
+
+Exact retained credit produced a large, sustained strength change. Its late
+direct mean against standard credit was `65.97%`, late parent-panel delta was
+`+17.71` points, and late heldout delta was `+14.00` points. The p10730 heldout
+score was `76.04%` versus `61.46%` for standard credit. Water heldout delta was
+also positive at `+16.67` points despite fewer Water spells. This is well
+outside the roughly one-point practical noise band.
+
+The mechanism is valid and its cost is acceptable for continued research:
+median SPS was `1,353.70` versus `1,446.00` for standard credit (`0.9362x`),
+with zero timeouts and balanced coverage of every draft quartile. It labeled
+`7,310,950` retained rows from `146,219` decisive episodes. The roughly `6.4%`
+median SPS cost is engineering debt, not a reason to discard the learning
+signal.
+
+Exact credit is still not an unconditional production adoption. Greedy unique
+cards peaked at `34.75` at p8800 and reconcentrated slightly to `32.13`, but
+stochastic unique cards continued rising to `38.26` and four-copy slot share
+stayed near `13%`. Water stochastic spell slots declined at every window,
+from `11.18` to `9.90`, versus `11.47` for standard credit at p10730. The
+battle policy became a strong entity-tempo policy: at the endpoint games were
+`11.47` actions shorter, attack rate was `+2.02` points, entity-play rate was
+`+3.02` points, portal rate was `+1.46` points, and surviving leader health was
+`+6.41` points. However, Garden/leader ability action rate fell about `5.6`
+points by p8800 and remained there through p10730. Opportunity-normalized
+standard-vs-exact evaluation is required to determine whether this is
+availability or selection.
+
+Fixed prefixing did not qualify. Relative to exact credit, its late direct mean
+was `53.47%`, but late heldout delta was only `+0.93` points. Direct score and
+parent-panel delta peaked at p9700 and regressed at p10730. Endpoint stochastic
+unique cards fell from `38.26` to `33.88` and four-copy share rose from `13.00%`
+to `29.69%`, confirming structural regularization, but Water spell slots fell
+from `9.90` to `8.52` and portals per game fell to `0.919x` exact credit.
+
+The exposure hypothesis is rejected for this fixed recipe. Both arms drafted
+and observed all 175 cards. Prefixing newly realized three cards but produced
+zero useful rare-card lines; total legal and selected card coverage did not
+increase. At p10730, prefix and exact greedy decks had identical type-slot
+counts within every element, so prefixing mainly changed card copies and slowed
+the exact arm's broadening. Its incremental throughput cost was effectively
+zero (`0.9989x` exact-credit SPS), so quality rather than performance rejects
+the fixed recipe.
+
+Neither exact credit nor prefixing learned sustained portal/leader-specific
+deck value. Context KL remained around `1e-7`, causal matched-main value was
+neutral through most windows, and the exact endpoint slightly favored the
+sibling main over the matched main. Promotion remains diagnostic only.
+
+#### Production-horizon prefix schedule ablation
+
+Fixed prefixing did not qualify at 45M, so no production-horizon prefix run is
+justified now. Prefixing is a curriculum intervention, not reward shaping: it
+changes the distribution of partial drafts seen during training, while the
+true return is unchanged. If the hypothesis is kept alive, it first needs one
+45M rescue arm with an unforced tail.
+
+Only if that rescue qualifies should a matched production-representative
+horizon be considered:
+
+| arm | nonzero-prefix probability schedule | purpose |
+|---|---|---|
+| `prefix_never` | zero for the full run | longer-horizon exact-credit control |
+| `prefix_fixed` | current distribution for the full run | test persistent regularization |
+| `prefix_tailzero` | active early, scale to zero before the end | retain training wheels but allow an unforced optimization tail |
+
+For `prefix_tailzero`, scale only the probability mass assigned to nonzero
+prefixes. Conditional nonzero lengths retain their current `1,2,4` ratio so
+schedule and prefix geometry are not changed simultaneously. The removed mass
+moves to length zero. Derive progress from cumulative sampled rows and serialize
+it across resumes.
+
+The 45M trajectory selects the preregistered early zero-entry branch. Fixed
+prefix strength peaked near p9700 and regressed at p10730 while Water and deck
+bias persisted. Reach zero by `0.60H` and leave the final 40% entirely
+prefix-free. With `h` as cumulative sample progress, use
+`q_nonzero(h) = 0.5 * max(0, 1 - h / 0.60)`. Allocate that nonzero mass in the
+conditional ratio `1:2:4 = 0.50:0.25:0.25`, and move the removed mass to
+prefix length zero.
+
+Reaching zero only on the final update is invalid. Arm `prefix_tailzero` must
+spend enough samples at exactly zero to determine whether the policy preserves
+its concentrated packages, sheds the global weapon/IKZ bias, and continues
+learning without forced starts. Keep reward shaping, LR, entropy, league state,
+parent hashes, seed, and evaluation-prefix-off behavior identical across arms.
+
+Production acceptance requires multiple late windows rather than one endpoint:
+
+- sustained parent and heldout strength, with promotion ignored as a primary
+  signal;
+- coherent element packages rather than rising unique count or shared good-card
+  soup;
+- recovery of useful Water spells and no persistent Earth curve regression;
+- no degradation in opportunity-normalized abilities, spells, portal use, or
+  defense;
+- useful portal/leader conditioning must not be suppressed;
+- no reward/optimizer discontinuity at prefix zero-entry; and
+- SPS remains recorded, but strategic quality is the primary decision.
+
+Do not rerun the sealed no-prefix and fixed-prefix 45M arms if parent, code,
+reward, model, evaluator, and seed hashes remain identical; train only the new
+tail-zero arm and evaluate it against both stored comparators. Advance it only
+if multiple late prefix-free windows exceed the roughly one-point noise band,
+preserve exact-credit strength, recover Water spell and portal deficits, avoid
+worsening Garden/leader abilities, and show no zero-entry optimizer or value
+shock. A longer production schedule comparison is conditional on that result.

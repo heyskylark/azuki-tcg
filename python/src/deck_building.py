@@ -445,6 +445,7 @@ class DeckBuildingParallelEnv(ParallelEnv):
     snapshot_every: int | None = None,
     same_element_matchup_prob: float = 0.0,
     privileged_decks: bool = False,
+    uniform_assignment: bool = False,
   ) -> None:
     super().__init__()
     self.env = env
@@ -454,6 +455,7 @@ class DeckBuildingParallelEnv(ParallelEnv):
     if not 0.0 <= self._same_element_matchup_prob <= 1.0:
       raise ValueError("same_element_matchup_prob must be in [0, 1]")
     self._privileged_decks = bool(privileged_decks)
+    self._uniform_assignment = bool(uniform_assignment)
     self._snapshot_dir_arg = snapshot_dir
     self._snapshot_every_arg = snapshot_every
     self.render_mode = getattr(env, "render_mode", "ansi")
@@ -530,9 +532,21 @@ class DeckBuildingParallelEnv(ParallelEnv):
     return self._action_space
 
   def _sample_gate_def_id(self) -> int:
-    population = self._catalog.gate_def_id_population
+    population = (
+      tuple(sorted(set(self._catalog.gate_def_id_population)))
+      if self._uniform_assignment
+      else self._catalog.gate_def_id_population
+    )
     index = int(self._rng.integers(0, len(population)))
     return int(population[index])
+
+  def _sample_assigned_leader_def_id(self, gate_def_id: int) -> int:
+    gate = self._catalog.records_by_def_id.get(int(gate_def_id))
+    if gate is None:
+      raise ValueError(f"Unknown gate card_def_id {gate_def_id}")
+    candidates = self._catalog.leader_def_ids_by_element[gate.element]
+    index = int(self._rng.integers(0, len(candidates)))
+    return int(candidates[index])
 
   def _sibling_gate_def_id(self, gate_def_id: int) -> int:
     """Same-element partner gate (cyclic next among that element's gates), -1 if none."""
@@ -617,6 +631,13 @@ class DeckBuildingParallelEnv(ParallelEnv):
       sibling = self._sibling_gate_def_id(states[0].gate_card_def_id)
       if sibling >= 0:
         states[1] = PlayerDeckBuildState.create(sibling)
+    if self._uniform_assignment:
+      for player_index, state in enumerate(states):
+        if player_index in self._fixed_deck_seats:
+          continue
+        state.leader_card_def_id = self._sample_assigned_leader_def_id(
+          state.gate_card_def_id
+        )
     return states
 
   def _gate_element(self, state: PlayerDeckBuildState) -> str:
@@ -811,7 +832,9 @@ class DeckBuildingParallelEnv(ParallelEnv):
 
     metrics: dict[str, float] = {
       "deckbuild/completed": 1.0,
-      "deckbuild/picks": float(1 + MAX_DECK_SIZE),
+      "deckbuild/picks": float(
+        MAX_DECK_SIZE if self._uniform_assignment else 1 + MAX_DECK_SIZE
+      ),
       "deckbuild/main_count": float(len(main_ids)),
       "deckbuild/main_unique": float(unique_count),
       "deckbuild/main_unique_share": float(unique_count / main_total),

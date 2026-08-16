@@ -4,7 +4,7 @@ import argparse
 import concurrent.futures
 import json
 import multiprocessing
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pathlib import Path
 
 import azk_puffer.pytorch as azk_pytorch
@@ -29,6 +29,59 @@ from training_utils import (
   install_tcg_sampler,
   load_training_config,
 )
+
+
+_BEHAVIOR_INFO_KEYS = {
+  "attack_rate": "azk_attack_selected_rate",
+  "spell_rate": "azk_play_spell_from_hand_selected_rate",
+  "weapon_rate": "azk_attach_weapon_from_hand_selected_rate",
+  "portal_rate": "azk_gate_portal_selected_rate",
+  "play_entity_rate": "azk_play_selected_rate",
+  "noop_rate": "azk_noop_selected_rate",
+  "episode_length": "azk_episode_length",
+  "leader_health": "leader_health",
+}
+
+
+def multiset_jaccard(left: Counter[str], right: Counter[str]) -> float:
+  keys = set(left).union(right)
+  intersection = sum(min(left.get(key, 0), right.get(key, 0)) for key in keys)
+  union = sum(max(left.get(key, 0), right.get(key, 0)) for key in keys)
+  return float(intersection / union) if union else 0.0
+
+
+def _reference_main_decks(base_env) -> tuple[list[Counter[str]], list[str]]:
+  from deck_building import MAIN_CARD_TYPES
+  from training_deck_pool import load_training_deck_labels
+
+  records_by_code = base_env._catalog.records_by_code
+  mains: list[Counter[str]] = []
+  for deck in base_env._deck_pool:
+    mains.append(
+      Counter(
+        {
+          card_code: int(quantity)
+          for card_code, quantity in deck
+          if records_by_code[card_code].card_type in MAIN_CARD_TYPES
+        }
+      )
+    )
+  return mains, list(load_training_deck_labels())
+
+
+def _mean(records: list[dict], key: str) -> float:
+  values = [float(record[key]) for record in records if isinstance(record.get(key), (int, float))]
+  return float(sum(values) / len(values)) if values else 0.0
+
+
+def _percentile(records: list[dict], key: str, quantile: float) -> float:
+  values = sorted(
+    float(record[key]) for record in records if isinstance(record.get(key), (int, float))
+  )
+  if not values:
+    return 0.0
+  index = min(len(values) - 1, max(0, int(round((len(values) - 1) * quantile))))
+  return values[index]
 
 
 def run_eval(
@@ -93,6 +146,9 @@ def run_eval(
   records = []
   per_gate = defaultdict(lambda: {"games": 0, "wins": 0.0})
   catalog = base_env._catalog
+  reference_mains, reference_labels = _reference_main_decks(base_env)
+  train_reference_indices = tuple(range(0, len(reference_mains), 2))
+  holdout_reference_indices = tuple(range(1, len(reference_mains), 2))
 
   try:
     for episode_idx in range(episodes):
@@ -129,13 +185,64 @@ def run_eval(
       info = base_env.infos.get(drafter_seat, {})
       win = float(info.get("win", 0.0) or 0.0)
       timeout = bool(steps >= max_steps and not done)
-      records.append({"gate": gate_code, "win": win, "steps": steps, "timeout": timeout})
+      main_ids = [
+        int(card_id)
+        for card_id in drafter_state.main_card_def_ids[: drafter_state.main_count]
+        if int(card_id) >= 0
+      ]
+      main = Counter(catalog.records_by_def_id[card_id].card_code for card_id in main_ids)
+      copy_histogram = Counter(main.values())
+      train_similarities = {
+        index: multiset_jaccard(main, reference_mains[index])
+        for index in train_reference_indices
+      }
+      holdout_similarities = {
+        index: multiset_jaccard(main, reference_mains[index])
+        for index in holdout_reference_indices
+      }
+      nearest_train = max(train_similarities, key=train_similarities.get)
+      nearest_holdout = max(holdout_similarities, key=holdout_similarities.get)
+      record = {
+        "gate": gate_code,
+        "win": win,
+        "steps": steps,
+        "timeout": timeout,
+        "main_unique": len(main),
+        "avg_copies_per_unique": len(main_ids) / max(len(main), 1),
+        "singleton_slot_share": copy_histogram.get(1, 0) / max(len(main_ids), 1),
+        "quad_slot_share": 4 * copy_histogram.get(4, 0) / max(len(main_ids), 1),
+        "nearest_train_reference_index": nearest_train,
+        "nearest_train_reference_label": reference_labels[nearest_train],
+        "nearest_train_reference_jaccard": train_similarities[nearest_train],
+        "nearest_holdout_reference_index": nearest_holdout,
+        "nearest_holdout_reference_label": reference_labels[nearest_holdout],
+        "nearest_holdout_reference_jaccard": holdout_similarities[nearest_holdout],
+      }
+      for metric_name, info_key in _BEHAVIOR_INFO_KEYS.items():
+        value = info.get(info_key)
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+          record[metric_name] = float(value)
+      ability_rate = 0.0
+      for info_key in (
+        "azk_activate_garden_or_leader_ability_selected_rate",
+        "azk_activate_alley_ability_selected_rate",
+      ):
+        value = info.get(info_key)
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+          ability_rate += float(value)
+      record["ability_rate"] = ability_rate
+      records.append(record)
       per_gate[gate_code]["games"] += 1
       per_gate[gate_code]["wins"] += win
   finally:
     vecenv.close()
 
   games = max(len(records), 1)
+  nearest_train_labels = Counter(
+    str(record["nearest_train_reference_label"])
+    for record in records
+    if "nearest_train_reference_label" in record
+  )
   result = {
     "episodes": len(records),
     "drafter_seat": drafter_seat,
@@ -143,6 +250,32 @@ def run_eval(
     "drafter_win_rate": sum(r["win"] for r in records) / games,
     "timeout_rate": sum(1 for r in records if r["timeout"]) / games,
     "avg_steps": sum(r["steps"] for r in records) / games,
+    "deck_metrics": {
+      "main_unique_mean": _mean(records, "main_unique"),
+      "avg_copies_per_unique_mean": _mean(records, "avg_copies_per_unique"),
+      "singleton_slot_share_mean": _mean(records, "singleton_slot_share"),
+      "quad_slot_share_mean": _mean(records, "quad_slot_share"),
+      "nearest_train_reference_jaccard_mean": _mean(
+        records, "nearest_train_reference_jaccard"
+      ),
+      "nearest_train_reference_jaccard_p90": _percentile(
+        records, "nearest_train_reference_jaccard", 0.9
+      ),
+      "nearest_holdout_reference_jaccard_mean": _mean(
+        records, "nearest_holdout_reference_jaccard"
+      ),
+      "nearest_holdout_reference_jaccard_p90": _percentile(
+        records, "nearest_holdout_reference_jaccard", 0.9
+      ),
+      "largest_nearest_train_reference_share": (
+        max(nearest_train_labels.values(), default=0) / games
+      ),
+      "nearest_train_reference_labels": dict(nearest_train_labels.most_common()),
+    },
+    "battle_metrics": {
+      metric_name: _mean(records, metric_name)
+      for metric_name in (*_BEHAVIOR_INFO_KEYS, "ability_rate", "steps")
+    },
     "per_gate": {
       gate: {"games": stats["games"], "win_rate": stats["wins"] / max(stats["games"], 1)}
       for gate, stats in sorted(per_gate.items())

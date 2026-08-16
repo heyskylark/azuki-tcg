@@ -815,6 +815,21 @@ whether an external reference seat is measurement-only or part of the gate.
 Until then, legacy promotion outcomes are contextual matchup/cycle telemetry,
 not a model-improvement criterion.
 
+**Future promotion TODO (ordered dependency):**
+1. **Redesign promotion evaluation for validity first.** Make promotion track
+   improvement in this TCG by settling the opponent panel, paired seats/gates,
+   retention checks, sample/confidence rule, and matchup quorum/floor. Validate
+   that the resulting decisions agree with broader external and strategic
+   evidence before treating promotion as a model-quality signal.
+2. **Optimize the validated evaluator second.** Once the game-aligned protocol
+   is fixed, replace/profile the legacy serial one-environment path and use an
+   appropriate native, batched, and/or CPU-parallel implementation. Preserve
+   identical matchup semantics and raw per-opponent/seat telemetry while
+   reducing gate wall time and verifying that training SPS is not regressed.
+
+Do not optimize the legacy decision rule into permanence: evaluation speed is
+subordinate to first establishing that promotion measures the right thing.
+
 ### User's design stance (respect in any future S4 work)
 Reference decks are an ANCHOR (beat them), never a TARGET (resemble them):
 no imitation terms; keep ref-seat share small or measurement-only; the
@@ -1232,29 +1247,1375 @@ are not part of this stage. CPU-only KL probes may overlap post-training
 draftref evaluation, but no probe overlaps training. Driver:
 `run_competitive_reward_45m.sh`.
 
-## 29. LAST: final-stage anneal-to-zero validation (DEFERRED/BLOCKED)
+### 28.6 Task 1 fresh 45M confirmation (complete; rejected)
 
-This is deliberately the **last tuning experiment before committing to a
-very large production run**. Do not start it until all current reward-shaping
-ablations and qualifying 45M confirmations are complete, the optional learned
-potential and reference-deck/league-anchor work has been resolved, and one
-stable production candidate has been selected.
+The entity-damage exchange arm ran from scratch on the exact S14 stack as
+`rs1entity45_178420486524`. It did not confirm the positive 15M smoke. Its
+five external windows were 49, 35, 46, 36, and 43 wins out of 96, compared
+with S14's 49, 34, 75, 50, and 50. The resulting aggregate was **209/480 =
+43.5% versus 258/480 = 53.8%** (-49 wins). The curve was effectively tied
+through ep1500 (84/192 versus 83/192), then missed S14's strong ep2000 state
+by 29 wins and remained below control at ep2500 and ep2900.
 
-Run a 45M-80M fine-tuning proxy from that mature candidate and its league
-state before choosing the schedule for a future ~500M production run:
+The larger endpoint independently rejected the arm: **168/384 = 43.8%
+versus 191/384 = 49.7%** (-23 wins). The loss was present in both seats:
+drafter seat 1 scored 74/192 versus 87/192 (-13), and drafter seat 0 scored
+94/192 versus 104/192 (-10). All six external evaluations had zero timeouts.
+Endpoint element results were mixed rather than uniformly worse: Lightning
+was 53/109 versus 73/109 (-20), Water 45/106 versus 59/106 (-14), Fire 36/85
+versus 25/85 (+11), and Earth tied at 34/84. The Fire improvement does not
+offset the broad Lightning/Water and both-seat regressions.
 
-1. Keep the adopted early curriculum (`1.0 -> 0.15`) unchanged.
-2. Fork a matched control that holds the `0.15` shaping floor.
-3. In the treatment, decay `0.15 -> 0` gradually over the middle of the run.
-4. Reach zero well before the endpoint, leaving a substantial terminal-only
-   tail targeted at roughly the **last 20-40% of the run** (reach zero by
-   about 60-80% progress). Merely reaching zero on the final update does not
-   test retention or debiasing.
+The late training phenotype was coherent but not competitively better. Over
+the final quarter (the last five fixed comparison buckets), mean SPS was
+1,441 versus 1,452 (-0.7%), safely inside the performance guardrail. Relative
+to S14, attacks rose from 20.77% to 23.67%, no-ops from 13.72% to 15.31%, and
+portal actions from 9.42% to 10.60%. Plays were nearly flat (31.07% versus
+30.80%), while abilities fell from 8.63% to 6.89%, mean episode length fell
+from 110.72 to 87.67, and surviving leader health fell from 0.211 to 0.186.
+This is an aggressive, shorter-game specialization, not an action collapse or
+an implementation-speed failure, but the fixed reference decks exploit it.
 
-Judge the treatment against the `0.15` control using external reference/panel
-win rate, H2H against the control and ancestral checkpoints, checkpoint-window
-stability, action metrics, sibling-gate differentiation, timeouts, and SPS.
-The question is whether useful shaped behaviors remain terminally reinforced
-while heuristic bias is unlearned, without recreating the late regression seen
-with the old sparse `0.05` floor. Promote an anneal-to-zero schedule to the
-large production specification only if the zero-reward tail is stable.
+Sibling-gate differentiation was unstable and was not a quality proxy. Mean
+KL for Task 1 versus S14 was 6.71e-7 versus 6.56e-8 at ep1000, 1.67e-7 versus
+4.80e-8 at ep1500, 2.65e-9 versus 6.90e-7 at ep2000, 1.03e-7 versus 1.89e-7
+at ep2500, 4.12e-8 versus 8.26e-8 at ep2900, and 2.36e-6 versus 5.51e-8 at
+the endpoint. The near-zero ep2000 differentiation coincided with the largest
+external deficit, but the much larger final differentiation still produced a
+weak endpoint. Draft KL remains supporting telemetry, not an optimization
+target.
+
+Legacy promotion rejected every scheduled candidate and is recorded only as
+cycle/matchup context. In particular, ep2400 scored 14/32 against the
+champion and 16/32 against the worst retained baseline; ep2700 scored 13/32
+and 11/32. Those outcomes neither cause nor rescue this verdict. Task 1 is
+rejected by the preregistered balanced external endpoint and aggregate.
+
+**Verdict: do not add the full-schedule entity-damage exchange reward to the
+S14 stack.** The 15M result was a false positive for 45M retention. A future
+revisit, if any, should be a separately preregistered short-lived curriculum
+or earlier shutoff rather than a coefficient-only retry; the present data do
+not justify that follow-up ahead of Tasks 2 and 3. Artifacts:
+`results/reward_45m/rs1entity45/`,
+`experiments/runlogs/rs1entity45_178420486524.jsonl`, and
+`experiments/azuki_local_rs1entity45_178420486524/`.
+
+### 28.7 Task 2 fresh 45M confirmation (complete; rejected)
+
+The generated/recovered-IKZ conversion arm ran from scratch on the exact S14
+stack as `rs2ikzconv45_178423488709`. It did not confirm the positive 15M
+smoke. Its five external windows scored 39, 44, 48, 49, and 46 wins out of 96,
+compared with S14's 49, 34, 75, 50, and 50. The aggregate was **226/480 =
+47.1% versus 258/480 = 53.8%** (-32 wins). Ep1000 and ep1500 exchanged equal
+10-win deficits/gains, leaving the first two windows tied at 83/192. The arm
+then missed S14's strong ep2000 state by 27 wins and never recovered the
+aggregate deficit.
+
+The larger endpoint independently rejected the arm: **169/384 = 44.0%
+versus 191/384 = 49.7%** (-22 wins). The failure was strongly seat-specific
+at the endpoint. Drafter seat 1 scored 88/192 versus 87/192 (+1), while
+drafter seat 0 scored 81/192 versus 104/192 (-23). Across the five smaller
+windows, however, both seats were exactly 16 wins below S14 (104 versus 120
+in seat 0 and 122 versus 138 in seat 1). This is not a globally dead seat,
+but the learned policy became particularly exploitable in seat 0 at the
+endpoint. All six evaluations had zero timeouts.
+
+The element trade was the opposite of the intended Hydromancy benefit. Across
+the five windows, Earth gained six wins and Fire gained one, while Lightning
+lost 14 and Water lost 25. At the endpoint, Earth was 36/84 versus 34/84 (+2)
+and Fire was 36/85 versus 25/85 (+11), but Lightning was 55/109 versus 73/109
+(-18) and Water was 42/106 versus 59/106 (-17). The largest gate-level losses
+were Surge and Hydromancy, both -14 wins; Ragefire gained nine. Task 1 showed
+almost the same endpoint trade (Fire +11 with large Lightning/Water losses),
+which points to a shared rush/value specialization rather than a uniquely
+successful resource-conversion strategy.
+
+The play-style shift was large, symmetric across training seats, and stable
+well before the endpoint. From the trailing 100 epochs at ep1000 through
+ep2930, attack rate stayed in a narrow 25.98%-26.96% band and mean training
+episode length stayed at 82.05-84.48 steps. Marked conversions rose from 0.92
+per game near ep1000 to 1.56 near ep2000, then plateaued at 1.53-1.59. There
+is no late discovery trend hidden by the external readout.
+
+Over the final quarter, Task 2 attacked 26.27% versus S14's 20.77%, portaled
+11.26% versus 9.42%, and no-oped 14.96% versus 13.72%. Ordinary play actions
+were nearly identical (30.98% versus 31.07%), while ability use fell to 6.28%
+from 8.63%. Mean training games shortened to 82.86 from 110.76 steps and
+surviving leader health fell to 0.174 from 0.211. The shorter phenotype also
+survived outside the league: endpoint reference games averaged 141.63 steps
+versus S14's 157.42.
+
+This was not failure to find or use the shaped path. The final quarter
+averaged 1.90 marked IKZ sources created and 1.51 spent per game, about 79%
+conversion. At the 0.15 shaping floor this pays only about 0.0113 gross
+owner-side reward per game across both players, or 0.0057 per player before
+the opposite-seat zero-sum transfer. Despite the small magnitude, paying for
+any marked spend appears to reinforce faster expenditure and attacks instead
+of teaching when resource conversion creates a winning value line.
+
+The gate-specific late metrics support that interpretation. Hydromancy
+attacked 24.30% versus S14's 22.13%, portaled only 10.41% versus 9.66%, used
+abilities 5.10% versus 6.33%, and shortened from 119.71 to 93.03 steps. Echoed
+Waves shortened from 126.57 to 91.52 steps. The policy learned a broad tempo
+shift, not a narrow increase in high-value Hydromancy sequencing.
+
+Sibling-gate differentiation again failed as a quality proxy. Mean KL for
+Task 2 versus S14 was 9.63e-8 versus 6.56e-8 at ep1000, 1.27e-8 versus
+4.80e-8 at ep1500, 3.26e-9 versus 6.90e-7 at ep2000, 3.60e-7 versus 1.89e-7
+at ep2500, 6.65e-7 versus 8.26e-8 at ep2900, and 2.67e-8 versus 5.51e-8 at
+the endpoint. The near-zero ep2000 KL coincided with the largest external
+deficit, but the much larger ep2900 KL did not restore external strength.
+
+Performance remained safe. Final-quarter SPS was 1,441 versus 1,452 (-0.8%)
+with no truncation regression. Total training uptime was 7h37m44s, including
+the legacy serial league gates; the ep1800 gate alone cost 23.8 minutes, and
+the ep2100/2400/2700 gates cost about 15-16 minutes each. These are evaluator
+wall-time costs, not rollout SPS regressions, and are additional evidence for
+the deferred promotion-evaluator redesign.
+
+Legacy promotion rejected every scheduled candidate and remains diagnostic
+only. The clearest calibration example was ep2400: it won 20/32 against the
+incumbent and 17/32 against the weakest retained baseline, yet failed the
+current Wilson thresholds. Ep2700 then cycled to 14/32 against both. Neither
+result determines this verdict; the preregistered balanced external endpoint
+and aggregate do.
+
+**Verdict: do not continue or adopt this exact full-schedule conversion
+reward.** Its behavior plateaued for roughly the last 30M steps without an
+external recovery, so simply training it longer is not supported. This does
+not establish that conversion credit can never help. A future matched salvage
+test, only after Task 3 and a protocol discussion, should anneal the conversion
+bonus fully to zero and leave the conflicting raw untapped-IKZ reward off.
+A separate raw-off/no-conversion arm is needed to distinguish harmful generic
+spend credit from the effect of removing resource-reserve credit. Do not use
+the held mark/spend/expiry redistribution first: discovery was already solved,
+and making the same target easier is unlikely to correct the rush bias.
+Artifacts: `results/reward_45m/rs2ikzconv45/`,
+`experiments/runlogs/rs2ikzconv45_178423488709.jsonl`, and
+`experiments/azuki_local_rs2ikzconv45_178423488709/`.
+
+### 28.8 Task 3 fresh 45M confirmation (complete; confirmed)
+
+The temporary-effect realization arm ran from scratch on the exact S14 stack
+as `rs3tempreal45_178426575499`. It decisively confirmed the positive 15M
+smoke. Its five external windows scored 45, 46, 71, 74, and 70 wins out of 96,
+compared with S14's 49, 34, 75, 50, and 50. The aggregate was **306/480 =
+63.8% versus 258/480 = 53.8%** (+48 wins). It was only four wins below S14 at
+each of ep1000 and S14's unusually strong ep2000 state, while gaining 12, 24,
+and 20 wins at ep1500, ep2500, and ep2900.
+
+The larger endpoint was stronger still: **259/384 = 67.4% versus 191/384 =
+49.7%** (+68 wins). Both seats improved. Drafter seat 1 scored 136/192 versus
+87/192 (+49), and drafter seat 0 scored 123/192 versus 104/192 (+19). Across
+the five smaller windows, seat 1 was 157/240 versus 138/240 (+19), and seat 0
+was 149/240 versus 120/240 (+29). All six evaluations had zero timeouts. The
+arm therefore satisfies the preregistered confirmation rule by a wide margin
+without relying on either seat assignment.
+
+The gain was also broad by element and gate. Across the five windows, Earth
+gained 22 wins, Fire eight, Lightning 15, and Water three. At the endpoint,
+Earth was 52/84 versus 34/84 (+18), Fire 49/85 versus 25/85 (+24), Lightning
+87/109 versus 73/109 (+14), and Water 71/106 versus 59/106 (+12). Every one
+of the eight gates improved: the smallest gains were Hydromancy +2 and Surge
++3, while Rushfire gained 13 and Stormchain/Ragefire gained 11 each. This is
+not a narrow Fire shortcut or one favorable temporary-effect package.
+
+Task 3 did learn a faster style, but unlike Tasks 1 and 2 it retained the
+valuable states needed to beat the external panel. Over the final quarter,
+it attacked 23.38% versus S14's 20.77%, portaled 11.18% versus 9.42%, and
+no-oped 14.53% versus 13.72%. Ordinary play rate was effectively unchanged
+(30.96% versus 31.07%), while ability use fell to 7.23% from 8.63%. Mean
+training games shortened to 88.74 from 110.76 steps and surviving leader
+health fell to 0.179 from 0.211. Against the fixed reference decks, however,
+endpoint games shortened only to 148.01 from 157.42 steps while win rate rose
+17.7 percentage points.
+
+The trajectory explains why shorter games alone were not a sufficient
+diagnosis. Task 3's style moved with the league: trailing games near ep1000
+were 92.0 versus S14's 98.9 steps, while ep1500 and ep2000 widened to 88.6
+versus 119.1 and 87.0 versus 113.2. Despite that aggressive phase, Task 3
+still scored 71/96 at ep2000, where Tasks 1 and 2 scored only 46 and 48.
+Temporary-effect realization therefore taught an externally useful timing
+policy, whereas broad entity damage and unconditional marked-IKZ spending
+settled into exploitable rush policies.
+
+The late gate-specific profile was not uniformly aggressive. Relative to
+S14, Gate of Devotion attacked slightly less (17.79% versus 18.85%) while
+portaling more (11.59% versus 9.44%) and still gained nine endpoint wins.
+Hydromancy attack rate was nearly unchanged (22.39% versus 22.13%) while its
+portal rate rose modestly. Fire's two gates showed the largest attack-rate
+increases, consistent with their archetype, but every element improved
+externally. The reward preserved strategic variation instead of forcing all
+gates into one action mix.
+
+Both realization paths remained active at the shaping floor. The final
+quarter averaged 0.073 temporary-Charge realizations and 0.958 effective
+temporary-buff damage per game across both seats. After applying the 0.08 and
+0.025 coefficients and the 0.15 floor, that is only about 0.00447 gross
+owner-side reward per game, or 0.00224 per player before the opposite-seat
+zero-sum transfer. The confirmed gain is not explained by a dense reward
+overwhelming terminal win/loss.
+
+Sibling-gate KL was neither required for nor predictive of this gain. Mean KL
+for Task 3 versus S14 was 1.20e-8 versus 6.56e-8 at ep1000, 9.06e-9 versus
+4.80e-8 at ep1500, 1.04e-7 versus 6.90e-7 at ep2000, 3.87e-8 versus 1.89e-7
+at ep2500, 1.22e-7 versus 8.26e-8 at ep2900, and 7.99e-9 versus 5.51e-8 at
+the endpoint. Task 3 was usually less differentiated between sibling gates
+than S14 while being much stronger externally. Draft KL remains diagnostic
+telemetry only.
+
+Performance was clean. Final-quarter SPS was 1,483 versus S14's 1,452
+(+2.1%), with no truncation regression. Total training uptime was 7h27m57s,
+including the serial league gates. The long ep1800 gate cost 22.8 minutes;
+the ep1500/2100/2400/2700 gates each cost about 15-16 minutes. Those pauses
+are evaluator overhead rather than rollout slowdown.
+
+Legacy promotion again did not drive the decision. Task 3 promoted at ep300,
+then was only 8/32 against that champion at ep900; it later promoted at
+ep2700 after a series of rejections. The late promotion happens to agree with
+the external endpoint, but the oscillating intermediate decisions miss the
+smoothly positive external trajectory and remain an unsuitable model-quality
+label.
+
+**Verdict: add temporary-effect realization to the next S14-derived model
+stack.** It clears the fixed endpoint, aggregate, seat, element, stability,
+and SPS criteria. The current leading checkpoint is
+`experiments/azuki_local_rs3tempreal45_178426575499/model_azuki_local_002930.pt`.
+Its stack is exactly S14 plus `AZK_TEMP_CHARGE_REALIZATION_BONUS=0.08`,
+`AZK_TEMP_ATTACK_REALIZATION_PER_DAMAGE=0.025`, and
+`AZK_TEMP_ATTACK_REALIZATION_DAMAGE_CAP=4`; do not also enable the rejected
+Task 1, Task 2, or Task 4 rewards. Artifacts:
+`results/reward_45m/rs3tempreal45/`,
+`experiments/runlogs/rs3tempreal45_178426575499.jsonl`, and
+`experiments/azuki_local_rs3tempreal45_178426575499/`.
+
+### 28.9 Competitive reward campaign synthesis
+
+| Signal | 15M smoke | 45M confirmation | Decision |
+| --- | ---: | ---: | --- |
+| Entity-damage exchange | 147/288 vs 131/288 | 209/480 and 168/384 | Reject |
+| Generated-IKZ conversion | 139/288 vs 131/288 | 226/480 and 169/384 | Reject |
+| Temporary-effect realization | 139/288 vs 131/288 | **306/480 and 259/384** | **Adopt** |
+| Paid-response availability | 118/288 vs 131/288 | Did not qualify | Reject |
+
+The central reward-design result is about credit specificity, not aggression
+itself. Task 4 rewarded opportunity availability and failed. Task 2 rewarded
+resource expenditure regardless of what the expenditure accomplished and
+failed. Task 1 rewarded a broad intermediate combat proxy and failed to
+retain. Task 3 paid only when a transient opportunity was converted into
+positive effective damage, excluding mere grants, innate/permanent Charge,
+and overkill; that tighter causal link produced a broad external gain.
+
+For future shaping proposals, prefer **realized, counterfactual-like credit**:
+reward the useful portion of a temporary or expiring opportunity only after
+its intended outcome occurs. Avoid paying for readiness, generic spending, or
+broad activity counts. A realized paid-response signal that measures actual
+effective damage prevented is more consistent with the evidence than Task 4's
+response-availability reward. Any such proposal still needs its own smoke and
+fresh confirmation rather than being stacked into the confirmed model.
+
+The play-style evidence also answers whether the failed arms merely needed
+more training. Task 2's attacks, game length, and conversion behavior had
+plateaued by ep1000 and stayed there through ep2930 while external strength
+did not recover; extending the same objective is not supported. Task 3's
+faster play persisted too, but it retained S14's strong ep2000 state and
+improved every element and gate. Faster play is therefore a phenotype to
+validate, not a defect by definition. The relevant warning signs are loss of
+high-value checkpoints, element/seat concentration, falling ability use and
+leader health without external compensation, and a stable proxy behavior
+whose fixed-panel score does not improve.
+
+Do not launch a longer production run, the learned turn-boundary potential,
+or reference-seat training automatically from this result. The next model
+baseline should be the confirmed Task 3 stack/checkpoint. Before additional
+training, discuss the deferred promotion redesign from section 27 so future
+league management does not discard large improvements or waste substantial
+wall time on a poor signal. The learned potential is now lower priority: it
+should be attempted only if a specific remaining strategic gap is identified
+after the confirmed Task 3 model is evaluated with the agreed broader panel.
+
+## 29. LAST: final-stage anneal-to-zero validation (COMPLETED)
+
+The final-stage experiment kept the adopted early curriculum and compared a
+`0.15` fixed-floor control with exact-zero treatment tails from the accepted
+p4870 atomic model and league state. Reaching zero only at the final update was
+never considered a valid test.
+
+The first broad schedule reached zero at p6900 and spent 900 of 2,930
+continuation updates (`30.7%`) at zero. It was rejected: endpoint direct H2H
+was `43.8%`, paired p4870 performance fell `8.9` points, heldout performance
+fell `4.5` points, heldout Water fell `9.7` points, attacks and spells fell,
+and games lengthened. Schedule integrity and SPS passed, so this was an
+efficacy failure rather than an implementation failure.
+
+The narrower retry first trained one shared floor-shaped trunk through p6900,
+qualified it, then ramped treatment to exact zero at p7200. It remained at
+zero through p7800 for 601 updates, or `20.51%` of the full continuation. The
+restart at p7200 preserved zero, terminal labels stayed active, and treatment
+retained `99.60%` of control SPS.
+
+This later treatment ended at `50.0%` direct H2H with a `50.0%` final-three
+mean. The robust late slope was slightly negative at `-0.13` points per 100
+updates, while OLS was slightly positive. Endpoint parent and heldout deltas
+were favorable (`+2.6` and `+3.1` points), and all registered deck and battle
+mechanics safety gates passed. The result demonstrates that a mature policy
+can retain strength for the final fifth of training without shaped reward; it
+does not demonstrate a superior endpoint or a continuing upward trend.
+
+Decision: **zero viable but neutral**. Keep p4870 as the selected parent and
+do not make zero shaping the production default yet. The late-zero p7800
+checkpoint is archived for a separate short matched stability extension at
+zero. See `late-zero-ablation.md` and
+`results/shaped_reward_latezero20_retry1_v1/trajectory_report.md`.
+
+## 30. Uniform-assignment and main-draft-credit sequence
+
+### 30.1 Stage 0: assignment compatibility (COMPLETED)
+
+The permanent lifecycle now has an opt-in implementation in both the Python
+and native environments. It samples each live seat's gate uniformly from the
+eight unique gates, applies the accepted same-element seat-1 override, samples
+one of the two compatible leaders uniformly, and starts the actor at main pick
+1. A live seat emits exactly 50 draft rows. Fixed reference seats retain their
+prescribed gate and leader. Scheduled native evaluation can independently pin
+both gates and leaders without affecting ordinary training resets.
+
+The implementation passed 27 focused lifecycle, native parity, promotion
+schedule, and evaluation-control tests after rebuilding the release native
+module. The uniform native/Python equivalence test produced exactly 100 total
+draft actions, compatible leaders, and identical seeded decks. The evaluation
+export now includes direct-Garden and alley play rates, split ability rates,
+response opportunities, temporary-effect realization, generated-IKZ, and
+entity-damage counters. These fields are populated only at episode export and
+do not add work to the rollout hot path.
+
+The frozen p4870 panel compared a forced leader action row with the same leader
+prefilled and no row. Across 384 paired games covering all 16 gate-leader
+contexts, all 384 outcomes were identical. Aggregate score was `0.5703125` in
+both arms, every game completed normally, deck and battle metrics were exactly
+equal, and the no-row evaluator retained `97.84%` of forced-row throughput.
+This clears the registered 95% guard.
+
+The stochastic replay probe used four histories in each of the 16 contexts.
+Removing the recurrent transition changed probability calibration: mean
+symmetric main-pick KL was `0.255544`, mean TV was `0.238832`, and Earth was
+the most sensitive at approximately `0.50-0.53` KL. This is not a determinism
+failure: the repeated-row control KL was exactly zero, mean hidden-state cosine
+was `0.999014`, candidate histories replayed exactly, and forced/prefilled deck
+summaries matched in every context. The learned-leader diagnostic also showed
+that p4870 used both legal leaders for every gate but with material skews, such
+as `19/24` versus `5/24` on Stormchain and Stonehaven.
+
+Decision: use the direct prefilled lifecycle. A synthetic context burn-in would
+preserve an otherwise unnecessary recurrent transition and is not supported by
+the frozen outcome evidence. The nonzero stochastic KL becomes the registered
+pretraining baseline; old 51-row KL values are not compared directly with the
+new 50-row lifecycle.
+
+Artifacts are
+`results/next_ablation_v1/stage0/assignment_compatibility.json`,
+`assignment_compatibility.md`, `assignment_panel.json`, and
+`assignment_panel.md`. The reusable exact-context evaluator is
+`uniform_context_eval.py`; its 32-game self-control smoke covered all 16
+contexts, scored exactly `0.5000`, and had zero timeouts.
+
+### 30.2 Stage 1: uniform-assignment migration (COMPLETE; ADOPTED)
+
+The matched launcher is `run_uniform_assignment_ladder15_v1.sh`. Both arms are
+hash-pinned to the accepted p4870 model, trainer state, league state, and
+promotion state. The control retains learned leader selection; the candidate
+uses uniform assignment and 50 policy picks. Both retain the complete accepted
+temporary-realization, early-tempo, mitigation, portal-GP, PFSP, cross-gate,
+and `0.15` shaping-floor recipe, with rejected credit and reward candidates
+explicitly zeroed. The launcher enforces resume progression, target epoch,
+lifecycle fingerprint, a sustained absolute `1235` SPS floor, and a final 95%
+candidate/control median SPS gate.
+
+The live matched namespace is `uniform_assignment_ladder15_v2` in tmux session
+`uniform-assignment-v2`. The control restored `global_step=45504363`, epoch
+`4870`, completed-episode progression `404`, optimizer state, and the requested
+970-update restarted LR schedule before its startup marker was written. Its
+authoritative live log is
+`results/next_ablation_v1/stage1/uniform_assignment_ladder15_v2/control/train.live.log`;
+the candidate writes the corresponding `uniform_assignment/train.live.log`.
+The aggregate outer `runner.log` was not opened due
+to a directory-creation race in the tmux wrapper, but this is outside the
+launcher: both per-arm logs, JSONL metrics, guards, checkpoints, and sequential
+arm control remain intact.
+
+The control subsequently completed all 970 expected updates at p5840. Its 969
+valid interval measurements have median SPS `1466.57`; the final-100 median is
+`1442.82`. The uniform candidate then restored the same p4870 model, optimizer,
+global step, and completed-episode counter, started its own 970-update cosine
+schedule, reported `uniform_assignment=True` and 50 policy picks per seat, and
+cleared the startup marker. Runtime source remains frozen through its endpoint.
+
+Stage 1 decision tooling now includes symmetric mechanics for both policies in
+`uniform_context_eval.py`, interventional `gate_KL_given_leader` and
+`leader_KL_given_gate` in `probe_context_kl.py`, and one greedy plus 24
+stochastic deck drafts for every gate-leader context in
+`dump_context_decks.py`. These are evaluation-only files and were added without
+changing the source loaded by either training arm.
+
+The final three Stage 1 windows also receive causal fixed-deck evaluation.
+Within each target gate-leader context, the evaluator holds policy, opponent,
+seed, seat, gate, and leader fixed while replacing only the main with one
+drafted for the sibling gate, sibling leader, or both. Each policy/window uses
+384 paired games. The migration now requires its matched-main advantage not to
+regress by five points at the endpoint or on average. These CPU-only games start
+after every GPU panel and cannot perturb rollout SPS. The idle evaluation
+watcher was restarted after this addition so it cannot retain the older script
+inode; candidate training was not interrupted.
+
+Review also found that the shared heldout-reference helper still left the old
+leader action unspecified. That would have tested retained p4870 leader-row
+behavior rather than the permanent 50-pick lifecycle. The evaluation-only
+helper now has an explicit uniform-assignment mode: both arms receive the same
+forced gate, sibling leaders swap between seats on the second seed, and all 32
+gate-leader-seat coordinates are covered without changing the 288-game count.
+The four Stage 1-4 evaluators require this assignment fingerprint. Three focused
+tests, Bash syntax, and ShellCheck pass; the waiting Stage 1 evaluator was
+restarted again so it loaded the corrected function definitions.
+
+The first live heldout invocation exposed one remaining schedule-validator
+edge: the candidate seat had its forced leader, while the fixed-reference seat
+still carried legacy sentinel `-1`. The engine correctly rejected a partially
+forced leader pair before applying the reference-deck override. The helper now
+assigns a deterministic compatible placeholder leader to that scheduled seat;
+the engine still replaces it with the reference deck's actual gate and leader,
+so candidate contexts and reference gameplay are unchanged. Three focused
+tests and a real 16-game CUDA smoke pass with zero timeouts. The evaluator was
+restarted idempotently and retained the three already-complete p5000 uniform
+panels.
+
+Both matched p4870-to-p5840 arms are now complete. The uniform-assignment arm
+emitted all 970 expected metric rows, finished with zero timeout truncation,
+and recorded median/tail-100 interval SPS of `1446.95`/`1443.29` under the
+sealed report's steady-window definition. The matched control median was
+`1466.57`, giving a candidate/control ratio of `0.9866`
+and clearing both the 95% relative and 1,235 absolute guards. The endpoint
+model, trainer state, metadata, league state, and promotion state were written
+before `LADDER_TRAIN_DONE`; the automatic evaluator then became the sole GPU
+process and began the four registered windows.
+
+At p5000, the direct uniform-context panel was effectively tied: the candidate
+scored `0.4922` against matched control, and both candidate and control scored
+`0.5130` against the p4870 parent (384 games per panel, zero timeouts). After
+the placeholder-leader repair, the heldout-reference panels completed all 288
+games with zero timeouts and the required 8 leaders / 16 gate-leader contexts.
+The candidate scored `0.6354` versus control's `0.6458`, a `-1.04 pp` delta
+inside the plan's approximately one-point neutral band. This is an early
+window only; adoption remains gated on the three late windows, per-context
+losses, mechanics, deck concentration, interventional KL, and causal hybrids.
+
+The first legacy p5000 context-deck dump then exposed a separate evaluator
+defect. `EpisodeRunner` warmed the policy before loading checkpoint weights,
+while `_load_model_weights` left the derived text-feature table cached from
+random initialization. This invalidates legacy `EpisodeRunner` deck dumps,
+context KL, and fixed-deck hybrids, but not the completed native direct or
+heldout panels, whose policies load before their first forward. The candidate
+dump and interrupted control log are preserved under
+`evaluation/invalid_stale_text_cache/` and excluded from reports.
+
+The shared loader now invalidates the derived cache after `load_state_dict` and
+has a regression test. A full 100-decision uniform draft then produced exact
+native/legacy agreement for raw observations, canonical tensors, encoded
+features, legal logits, and argmax actions (`max_logit_delta=0`). Replacement
+diagnostics `native-batched-draft-v1` and
+`native-batched-context-replay-v1` passed byte-identical CPU and CUDA repeats.
+At registered sizes, 384 deck drafts took about 22 seconds and 6,400 KL rows
+took about 15 seconds, replacing the approximately 31-minute-per-checkpoint
+serial dump while preserving the policy/engine contract.
+
+The cache defect did not affect either training arm. `train.py` constructs the
+policy and loads resume weights before the first policy forward; CUDA-graph
+warmup happens only after trainer construction. The failing legacy evaluator
+did the opposite explicitly. The 15M instability is therefore training
+evidence, not an artifact of stale random text features.
+
+The first late window at p5200 is materially negative. Uniform assignment
+scored `0.4427` versus matched control, `0.4036` versus the p4870 parent, while
+control scored `0.4948` versus parent. The resulting parent-panel delta is
+`-9.11 pp`. Heldout reference scores were `0.5938` candidate and `0.6319`
+control (`-3.82 pp`). All panels completed with zero timeouts. The direct loss
+was broad across Lightning, Fire, and Water while Earth remained positive, so
+it cannot be dismissed as one adverse seat or context. This is one late window;
+p5500 and p5840 determine whether it is an adaptation dip or a sustained
+migration regression.
+
+The next window at p5500 shows recovery rather than a monotonic decline. The
+candidate scored `0.5078` directly against control. Candidate and control
+scored `0.4349` and `0.4401` against p4870, respectively, leaving only a
+`-0.52 pp` paired parent-panel delta. On the heldout-reference panel the
+candidate scored `0.6076` versus control's `0.5903`, a `+1.74 pp` delta. All
+five p5500 panels again completed without timeouts. Fire, Lightning, and Water
+all recovered to at least `0.479` in the direct element split while Earth was
+`0.458`; the p5200 loss therefore currently looks transient, but p5840 and the
+three registered causal-hybrid windows still control the Stage 1 decision.
+
+The p5840 endpoint regressed again. Uniform assignment scored `0.4583`
+directly against control and `0.3984` against p4870; control scored `0.4635`
+against p4870, for a `-6.51 pp` parent-panel delta. Heldout scores were
+`0.5521` candidate and `0.6111` control (`-5.90 pp`). Lightning (`0.3646`) and
+Earth (`0.4271`) carried most of the direct loss, and candidate seat 0 scored
+`0.4010` versus seat 1's `0.5156`; this is not one isolated gate offsetting
+otherwise broad improvement. All endpoint panels completed without timeouts.
+
+Across p5200, p5500, and p5840, the direct mean is `0.4696`, the mean paired
+parent-panel delta is `-5.38 pp`, and the mean heldout delta is `-2.66 pp`.
+The first two values narrowly miss their registered `0.47` and `-5 pp` safety
+floors. This is not a structural deck-diversity collapse: at p5840 candidate
+and control greedy unique-card means were `18.50` and `18.25`, stochastic
+unique-card means were `27.72` and `27.39`, and four-copy slot shares were
+`0.555` and `0.563`. Both context KL quantities remain approximately
+`1e-6`. With the causal panels also clean, the preregistered outcome is
+**ambiguous/unstable and requires a fresh matched 45M adaptation test**, not
+adoption of p5840. The fresh run restarts both arms from the exact
+p4870 atomic parent with one 2,930-update cosine schedule; it does not continue
+from the exhausted 970-update schedules.
+
+All three causal windows are safe but uninformative. At p5200 the uniform
+candidate's matched-main advantage over the sibling-both swap was exactly
+`0.00 pp`, versus control's `-1.04 pp`, for a `+1.04 pp` relative delta. At
+p5500 candidate was again exactly `0.00 pp`, versus control's `+2.08 pp`, for
+a `-2.08 pp` relative delta. At p5840 both candidate and control were exactly
+`0.00 pp`, so the relative delta was also zero. Gate-only and leader-only swaps
+tell the same near-tie story. The three-window candidate-minus-control mean is
+`-0.35 pp`, safely above the `-5 pp` causal-regression floor, but no window
+shows that uniform coverage alone taught context-specific deck construction.
+
+The sealed report is
+`results/next_ablation_v1/stage1/uniform_assignment_ladder15_v2/ladder_report.json`
+with the human-readable companion `ladder_report.md`. Its verdict is
+**diagnose before adoption**: throughput, timeout integrity, and causal safety
+pass, while external-strength safety narrowly fails. No p5840 artifact is an
+accepted parent. Per the registered branch condition, Stage 1 proceeds with a
+fresh matched p4870-to-p7800 comparison: both arms receive independent
+2,930-update schedules and freshly cloned parent league state. The four full
+windows are p5000, p5800, p6800, and p7800; the last three also receive causal
+hybrids. Stage 2 remains isolated until that confirmation selects a parent.
+
+Before the confirmation produced evaluation outcomes, the Stage 1 report was
+aligned with the plan's existing no-collapse clause. Adoption now also requires
+endpoint portal use to remain at least `90%` of control; attack, spell,
+direct-Garden play, and Garden/leader-ability deltas to stay within the same
+tolerances used by Stage 2; stochastic unique-card count not to fall by more
+than three; and four-copy slot share not to rise by more than `0.10`. Replaying
+the sealed 15M evidence passes this mechanics/deck gate and leaves its
+external-safety-based verdict unchanged.
+
+The confirmation launched at `2026-07-22T08:48:03-07:00` in tmux session
+`uniform_assignment_confirm45_v1`. The control arm restored p4870 at
+`global_step=45504363`, completed episode `404`, all 13 frozen opponents, and
+the optimizer before restarting a 2,930-update cosine schedule. Its startup
+contract reports `total_epochs=7800`, `remaining_epochs=2930`, learned-leader
+lifecycle with 51 policy picks per seat, and has written
+`STARTUP_INVARIANTS_OK`. The first ten measured intervals had median SPS about
+`1728`; this is only a startup health observation, not the final throughput
+estimate. At the first sustained sentinel, p5103, the 233 logged post-parent
+epochs had median SPS `1426.38`, tail-30 median SPS `1441.46`, and maximum
+timeout-truncation rate `0`. This clears both registered performance guards but
+remains an interim control-arm measurement. The tmux chain starts the uniform
+arm only after control seals, then runs the registered
+p5000/p5800/p6800/p7800 evaluation automatically.
+
+The p5200 atomic checkpoint also sealed successfully. Through p5204, all 334
+post-parent rows had median SPS `1438.97`, tail-30 median SPS `1443.36`, normal
+game-over terminal rate `1.0`, and timeout-truncation rate `0`. The p5200 model,
+trainer, and metadata hashes are respectively `e284069e428f8ec8`,
+`c7638cd88d588d81`, and `4440857c16d5bde8` (prefixes shown).
+
+The longer p5500 control sentinel is also healthy. Through p5501, 631 logged
+post-parent rows give median SPS `1438.97` and tail-100 median SPS `1431.11`;
+maximum timeout-truncation remains `0` and minimum game-over terminal rate
+remains `1.0`. Numbered p5500 model, trainer, and metadata artifacts all exist.
+This remains control-arm integrity evidence rather than an efficacy result.
+
+At p5800, 930 post-parent rows give median SPS `1432.34` and tail-100 median
+SPS `1471.67`; timeout-truncation is still `0` and the minimum game-over
+terminal rate is still `1.0`. The atomic p5800 snapshot passed model, trainer,
+metadata, league, and promotion checksums. Its model/trainer/metadata hash
+prefixes are `2c28fc826ce783df`, `f7ed6765c94d84c5`, and `4ce1350be446fb18`.
+Metadata records update `5800`, completed episode `481`, and
+`draft_uniform_assignment=false`; the copied league points to p000061 created
+at epoch 5800. Resume resolution selects `trainer_state_005800.pt` beside the
+numbered model.
+
+The p6800 control window remains stable. Through p6801, 1,931 post-parent rows
+give median SPS `1428.69` and tail-100 median SPS `1422.13`, with timeout rate
+`0` and minimum game-over terminal rate `1.0`. All five atomic snapshot hashes
+pass; the model/trainer/metadata prefixes are `a7f2f4ab2aed09e6`,
+`455bbde6311cda15`, and `881eaa4a70b26c96`. Metadata records completed episode
+`563`, while the league copy points to p000071 created exactly at epoch 6800.
+Resume resolution selects the adjacent `trainer_state_006800.pt`.
+
+The control then sealed exactly 2,930 continuation rows at p7800. Its final
+median SPS is `1427.52`, tail-100 median SPS is `1371.21`, maximum timeout rate
+is `0`, and minimum game-over terminal rate is `1.0`. The endpoint model,
+trainer, metadata, league, and promotion checksums all pass. Model/trainer/
+metadata hash prefixes are `a2e6db9c9d2bc4aa`, `7a3844eaeeeaef43`, and
+`48538de1173e7183`; metadata records completed episode `645`, and the copied
+league points to p000081 created exactly at epoch 7800.
+
+The sequential launcher then restarted the uniform-assignment candidate from
+the original p4870 parent, not the control endpoint. Startup restored
+`global_step=45504363`, epoch `4870`, completed episode `404`, the optimizer,
+and all 13 opponents; it restarted the same 2,930-update LR schedule. Runtime
+source hashes still match the campaign record. The lifecycle banner reports
+`uniform_assignment=True` and exactly 50 policy picks per seat. In the first
+20 logged candidate updates, every observed completed draft has `picks=50`
+and `main_count=50`; per-element gate and assigned-leader frequencies are
+identical, timeout rate is `0`, and game-over terminal rate is `1.0`.
+Startup-amortized SPS is not used for the sustained throughput decision.
+
+The first sustained candidate sentinel is healthy. Through p5002, 132
+post-parent rows give median SPS `1434.96` and tail-30 median SPS `1460.38`;
+all observed drafts have exactly 50 picks, maximum timeout rate is `0`, and
+minimum game-over terminal rate is `1.0`. The candidate median at this point is
+about `100.5%` of the sealed control's full-run median, but the registered
+relative SPS gate will use both complete 2,930-update arms. Numbered p5000
+model, metadata, and trainer-state artifacts all exist.
+
+At candidate p5200, all 330 post-parent rows remain valid. Median SPS is
+`1444.53`, tail-50 median SPS is `1452.05`, every observed draft has exactly
+50 picks, timeout rate is `0`, and minimum game-over terminal rate is `1.0`.
+The first candidate atomic snapshot passes all five checksums; model/trainer/
+metadata hash prefixes are `4d4a8bd6dd07608e`, `2e0a3e2f0ffb8ae0`, and
+`ed43adb54cdb6695`. Metadata records completed episode `432` and uniform
+assignment enabled, while the copied league points to p000055 created exactly
+at epoch 5200. Resume resolution selects `trainer_state_005200.pt`.
+
+The candidate remains stable through p5501. Across 631 post-parent rows its
+median SPS is `1447.02` and tail-100 median SPS is `1460.58`, or `101.37%` of
+the sealed control's full-run median. Every observed draft still has exactly
+50 picks, timeout rate remains `0`, and minimum game-over terminal rate remains
+`1.0`. Uniform assignment therefore shows no sustained throughput penalty in
+this matched run so far.
+
+At candidate p5800, 933 post-parent rows give median SPS `1446.01` and
+tail-100 median SPS `1445.55`, or `101.30%` of the sealed control median.
+Draft count remains exactly 50, timeout rate remains `0`, and minimum game-over
+terminal rate remains `1.0`. All five atomic snapshot checksums pass; the
+model/trainer/metadata hash prefixes are `9a8db85dd1431088`,
+`a5af14c64c5a69ed`, and `22f4000a0253ce39`. Metadata records completed episode
+`482` and uniform assignment enabled, while the league copy points to p000061
+created exactly at epoch 5800. Resume resolution selects the numbered trainer
+state beside the model.
+
+The longer candidate p6303 sentinel is also stable. Across 1,433 post-parent
+rows, median SPS is `1442.98` and tail-100 median SPS is `1448.83`, or
+`101.08%` of the complete control median. Draft count remains exactly 50,
+timeout rate remains `0`, and minimum game-over terminal rate remains `1.0`.
+
+At candidate p6800, 1,933 post-parent rows give median SPS `1446.48` and
+tail-100 median SPS `1455.01`, or `101.33%` of the complete control median.
+Every observed draft remains exactly 50 picks, timeout rate is `0`, and minimum
+game-over terminal rate is `1.0`. The atomic model, trainer, metadata, league,
+and promotion hashes all pass; model/trainer/metadata prefixes are
+`517cc28528af7b82`, `e03a9fe40bbaafa3`, and `612e64972c172a1d`. Metadata
+records completed episode `565` and uniform assignment enabled, while the
+league copy points to p000071 created exactly at epoch 6800. Resume resolution
+selects the numbered trainer state beside the model.
+
+The final pre-endpoint sentinel at candidate p7303 remains stable. Across 2,433
+post-parent rows, median SPS is `1444.60` and tail-100 median SPS is `1467.04`,
+or `101.20%` of the complete control median. Draft count remains exactly 50,
+timeout rate remains `0`, and minimum game-over terminal rate remains `1.0`.
+
+The candidate then sealed exactly 2,930 continuation rows at p7800. Final
+median SPS is `1443.45`, tail-100 median SPS is `1443.17`, and the matched
+candidate/control ratio is `1.01116`, passing the 95% relative and 1,235
+absolute guards. Every observed draft has exactly 50 picks; maximum timeout
+rate is `0` and minimum game-over terminal rate is `1.0`. The endpoint model,
+trainer, metadata, league, and promotion hashes all pass. Model/trainer/
+metadata hash prefixes are `6f9df1ff11045a6e`, `2a2b9299ed5cb170`, and
+`284ed70ce0ace032`. Metadata records completed episode `648`, uniform
+assignment enabled, and the copied league points to p000081 created exactly at
+epoch 7800. Resume resolution selects the numbered endpoint trainer state.
+
+Both matched 45M arms are therefore training-complete and throughput-safe. The
+chained evaluation started with the registered 384-game p5000 uniform-versus-
+control panel; efficacy and adoption remain undecided until all four windows,
+heldout panels, deck/KL diagnostics, and last-three causal hybrids complete.
+
+The complete p5000 evaluation window is safe and near-neutral. Uniform versus
+control scores `0.4792` with paired 80% lower bound `0.4688`; its parent-panel
+delta is `-2.60 pp` and heldout delta is `-0.35 pp`, with no timeout. Candidate
+versus control stochastic unique-card means are `27.74` versus `28.09`, and
+four-copy slot shares are `0.553` versus `0.541`, so there is no deck collapse.
+Candidate `gate_KL_given_leader` and `leader_KL_given_gate` are only
+`6.5e-7` and `8.5e-7`, respectively, similar to control and with determinism
+KL exactly zero. This early window shows neither material regression nor
+meaningful context-conditioned drafting; later windows and causal hybrids are
+still required.
+
+The complete p5800 window remains inside the registered safety envelope.
+Uniform versus control scores `0.4844` with paired 80% lower bound `0.4661`.
+The candidate and control score `0.4635` and `0.5026` against the p4870
+parent, a `-3.91 pp` delta; heldout-reference scores are `0.5486` and
+`0.5764`, a `-2.78 pp` delta. All five panels have zero timeouts. Candidate
+versus control stochastic unique-card means are `28.36` versus `27.77`, and
+four-copy slot shares are `0.534` versus `0.554`, again ruling out a deck
+concentration collapse. Candidate `gate_KL_given_leader` and
+`leader_KL_given_gate` remain approximately zero at `6.6e-7` and `9.0e-7`,
+with determinism KL exactly zero. Its heldout attack, spell, portal, and
+ability rates are `0.2241`, `0.0081`, `0.1152`, and `0.0863`, versus control's
+`0.2255`, `0.0078`, `0.1134`, and `0.0722`; no mechanics sentinel has failed.
+The p6800 and p7800 windows plus all three causal hybrids remain outstanding.
+
+The complete p6800 window is also safe. Uniform assignment scores `0.5078`
+against control with paired 80% lower bound `0.4896`. Candidate and control
+score `0.4427` and `0.4635` against the p4870 parent, a `-2.08 pp` delta;
+heldout-reference scores are `0.5556` and `0.5833`, a `-2.78 pp` delta. Every
+panel again has zero timeouts. Candidate and control stochastic unique-card
+means are effectively identical at `27.82` and `27.80`, as are four-copy slot
+shares at `0.554` and `0.555`. Candidate heldout portal use is slightly higher
+(`0.1152` versus `0.1095`), attacks are also higher (`0.2298` versus `0.2203`),
+and spell use is within `0.14 pp`; no mechanics sentinel fails. Both candidate
+context KL quantities remain approximately zero (`6.2e-7` gate given leader,
+`8.8e-7` leader given gate) with exact determinism. The p7800 endpoint and the
+three causal-hybrid windows remain outstanding.
+
+The first p7800 heldout control pass produced one censored game at the
+registered 600-step cap (`1/288`, `0.35%`), while the candidate completed all
+288 games. The evaluator stopped before diagnostics rather than treating the
+censoring as valid evidence. A symmetric full-panel protocol extension to
+1,200 steps changed no candidate game and no other control game after removing
+wall-time fields. The one censored control game ended normally at step `604`,
+only four steps past the original cap. Original max-600 JSON/log pairs are
+retained as `heldout.max600.*`; the authoritative p7800 pair records
+`max_steps=1200` and zero timeouts. The shared evaluator now uses this explicit
+1,200-step heldout cap so a restart reproduces the repaired protocol.
+
+With the censoring resolved, the p7800 endpoint passes every noncausal Stage 1
+gate. Uniform assignment scores `0.4740` directly against control with paired
+80% lower bound `0.4531`. Candidate and control score `0.4688` and `0.4583`
+against the p4870 parent, a `+1.04 pp` delta; heldout-reference scores are
+`0.5833` and `0.5799`, a `+0.35 pp` delta. Candidate versus control stochastic
+unique-card means are `27.35` versus `27.52`, and four-copy slot shares are
+`0.569` versus `0.560`. On the paired parent panels, candidate portal rate is
+`104.9%` of control; attack, spell, direct-Garden, and Garden/leader-ability
+deltas are `+0.51`, `+0.10`, `-0.56`, and `+2.30 pp`, all inside their
+registered thresholds. Candidate context KL remains approximately zero
+(`6.1e-7` and `9.3e-7`) with exact determinism. Across p5800/p6800/p7800,
+direct score averages `0.4887`, parent-panel delta averages `-1.65 pp`, and
+heldout delta averages `-1.74 pp`.
+
+All six causal panels then completed: 2,304 games across the three late
+checkpoints and two arms, with no truncations. Gate-only, leader-only, and
+combined sibling swaps have exactly `0.00 pp` matched advantage for both
+policies at every window, so candidate-minus-control causal delta is also
+exactly zero. This clears the registered causal safety floor but confirms that
+uniform assignment alone did not create within-element deck specialization.
+The sealed report verdict is **adopt uniform assignment**. Throughput,
+integrity, external strength, mechanics, and causal safety all pass, and p7800
+uniform assignment becomes the atomic Stage 2 parent.
+
+Because the active league state changes whenever a 100-update checkpoint joins
+the recent pool, model files from intermediate windows are not atomic parents
+by themselves. `capture_uniform_assignment_state_snapshots_v1.sh` now watches
+both sequential arms and atomically preserves model, trainer, metadata, league,
+and promotion state at the registered later windows. Its first p5200 control
+snapshot passed all five checksum checks and records current candidate p000055
+at created epoch 5200. Snapshots retain the numbered checkpoint and trainer
+basenames; a direct `_resolve_resume_artifacts` check finds
+`trainer_state_005200.pt`, preventing a model-only resume. Future large files
+are hard-linked with a copy fallback, while mutable league state is copied. The
+watcher is read-only with respect to training.
+
+### 30.3 Stage 2: full-episode main-draft credit (COMPLETE; NO CREDIT PATH ADOPTED)
+
+The Stage 2 implementation was developed in `/tmp/azuki-stage2-prototype` so
+the running Stage 1 processes continued using their hash-recorded trainer
+source. Before the Stage 1 decision, the isolated prototype passed 49 focused
+tests and syntax compilation without replacing the live trainer.
+
+After Stage 1 adoption, the isolated implementation and tests were applied to
+the live tree byte-for-byte. The resume fingerprint now includes all seven
+`AZK_DRAFT_EPISODE_CREDIT_*` controls. Compilation, Bash syntax, ShellCheck,
+and 61 focused league-training/resume tests pass. The Stage 2 parent manifest
+locks uniform p7800 at completed episode `648`: model hash
+`6f9df1ff11045a6e`, trainer hash `2a2b9299ed5cb170`, league hash
+`b87ba9b6d1e176f9`, and promotion hash `9a1557ee90dbaa85` (prefixes shown),
+plus the accepted Stage 1 decision hash.
+
+The first live smoke, `full_episode_credit_smoke_v1`, passed every integrity
+check but correctly failed performance. Its last-24-update median was
+`1221.96` SPS versus control's `1458.30`, a ratio of `0.8379`; this missed both
+the 95% relative gate and the absolute `1235` floor. It nevertheless retained
+120,887 CPU records, labeled 101,600 rows from 2,032 exact terminal episodes,
+trained 36,350 examples across every quartile, produced nonzero gradients, and
+had zero truncations or incomplete drafts. Importance means stayed within
+`0.9994`-`1.0004` and clip fraction remained zero.
+
+Profiling separated `10.61s` of delayed training and `6.03s` of record capture
+from avoidable per-minibatch accelerator synchronizations used only for mask
+telemetry and Python branching. The actor normalization now computes masked
+mean, unbiased standard deviation, and row counts entirely on-device, with one
+telemetry synchronization after the minibatch loop. This does not change
+actions, labels, sampling, masks, losses, fixed batch shape, or update cadence.
+A focused empty/nonempty statistics test raises the live total to 62 passing
+tests. A fresh matched `full_episode_credit_smoke_v2` is running; failure still
+routes to the registered frozen-predictor fallback rather than relaxing SPS.
+
+Smoke v2 retained full integrity and improved absolute throughput, but still
+failed the relative gate. Candidate median SPS rose to `1327.90` and cleared
+the absolute floor, while its matched control reached `1534.99`; the ratio was
+only `0.8651`. It labeled 101,000 rows from 2,020 complete episodes, trained
+37,150 examples at all positions, had zero incomplete/truncated records,
+nonzero gradients, importance means within `0.9998`-`1.0003`, and zero
+clipping. The optimization therefore repaired a real implementation cost but
+did not make retained-row training performance-safe. Per the registered
+branch, no 15M ladder starts and the preferred path is rejected on throughput.
+Stage 2 now pivots to the frozen prefix-outcome predictor fallback; the 95%
+threshold is unchanged.
+
+The fallback dataset contains 3,072 paired policy-prefix and randomized-prefix
+complete trajectories: 156,672 exact prefix rows across four policy generations,
+two opponent lineages, all 16 uniform gate-leader contexts, both seats, and 142
+observed card ids. Random prefixes changed 686 of 1,536 paired decks and 157
+outcomes. The original argmax-only dataset exposed only 40 cards and was rejected
+as a coverage failure. The first combined model had seed-heldout discrimination
+but an anti-predictive final-prefix increment, so it was not deployed.
+
+Predictor v4 adds matched counterfactual difference loss to exact-outcome BCE and
+keeps both variants of a coordinate in the same calibration split. Its selected
+artifact is
+`results/next_ablation_v1/stage2/prefix_outcome_model_v4/frozen_prefix_outcome_v4.npz`
+with SHA-256
+`0b1fb15627e935be5bba3c04c3f2caeb82084b065b27b3a61b95c79f2f891fa8`.
+It has 4,569 parameters and NumPy/Torch parity error below `9e-8`. Whole-seed
+heldout AUC is `0.6107` and final-versus-empty incremental AUC is `0.5241`;
+heldout-generation values are `0.6048` and `0.5502`. The opponent-lineage split
+is weak (`0.4955` outcome AUC and `0.4851` incremental AUC), so this is a modest
+fallback candidate, not evidence that the credit problem is solved.
+
+The frozen NumPy runtime uses incremental card-embedding sums. Each live-policy
+seat receives `coef * (Q(prefix_k) - Q(prefix_{k-1}))` on an exact main pick.
+At true terminal or truncation it receives the residual
+`coef * (Q(empty) - Q(final))`; therefore the added return sums to exactly zero
+over every episode and neither duplicates nor replaces the true battle outcome.
+The channel is independent of shaped-reward annealing. Runtime telemetry covers
+all draft quartiles, completed and truncated episodes, synchronization, prediction
+spread, inference time, and maximum telescope error. The disabled arm performs no
+extra tensor transfer or rollout allocation. Sixty-nine focused tests pass,
+including artifact hashing, unseen catalog cards, terminal and truncation closure,
+live packed-observation decoding, and resume fingerprinting.
+
+An 8-update integration-only comparison, `prefix_outcome_smoke8_v0`, passed. Its
+steady interval median was `1,949.01` SPS versus `1,736.95` control (`1.1221x`).
+All four quartiles emitted nonzero deltas, 28,800 pick deltas required `0.0838s`
+of predictor inference, and there were no synchronization errors. Eight updates
+do not span a complete fresh draft-plus-battle lifecycle, so terminal residual and
+telescope integrity remained requirements of the registered 48-update
+`prefix_outcome_smoke_v1`. That gate passed: candidate median SPS was `1,625.35`
+versus `1,444.71` control (`1.1250x`), with 2,025 completed episodes, 120,429
+prefix deltas, zero truncations or synchronization faults, all four quartiles,
+and exact `0.0` maximum telescope error. Predictor inference consumed `0.708s`
+across the whole candidate arm.
+
+The fresh matched `prefix_outcome_ladder15_v1` is complete from the original
+p7800 parent. Candidate median SPS was `1431.71` versus control `1440.38`, a
+`0.9940` ratio; both performance guards pass. Across 970 updates it emitted
+2,329,644 pick deltas and 46,151 terminal residuals, covered all quartiles, used
+`16.36s` of predictor inference, and had zero truncations, synchronization
+faults, or telescope error.
+
+The sealed verdict is `stop_after_neutral_15m`. Over p8100/p8400/p8770, direct
+score averaged `0.5087`, parent-panel delta averaged `+0.69 pp`, and heldout
+delta averaged `+3.01 pp`. The endpoint was `0.4792` direct, `-0.26 pp` against
+the parent panel, and exactly tied on heldout. Integrity, throughput, external
+safety, and every mechanics sentinel pass, but the endpoint strength rule does
+not. More decisively, candidate and control both had exactly `0.000` matched
+advantage for sibling-gate, sibling-leader, and combined main-deck swaps at all
+three causal windows. Stochastic unique-card count was also lower for the
+candidate at every measured window, by `0.53` to `1.89` cards. The early p8100
+strength peak therefore does not establish useful phase-aware draft credit.
+There is no 45M confirmation, and uniform p7800 remains the selected parent.
+
+The rejected retained-row path was distinct from the earlier five-row additive
+estimator. For
+each live-policy seat it retains every legal main pick from 1 through 50,
+including the packed observation, actual action, behavior log probability,
+and actual pre-decision LSTM hidden and cell state. Inactive alternating-seat
+observations are rejected by the native legal-action count. Complete records
+receive only an exact terminal target; truncations and incomplete drafts are
+dropped, while true terminal draws receive target `0.5`.
+
+Ordinary PPO keeps all of its existing recurrent minibatches, value learning,
+and battle rows. Main-draft rows are removed only from the ordinary actor and
+entropy terms, then receive the delayed Monte Carlo/PPO actor loss with
+`outcome - stop_gradient(win_probability)` advantage. The delayed pass calls
+the eager differentiable forward explicitly rather than the rollout CUDA-graph
+replay. A test with one independently indexed actor parameter per pick proves
+nonzero gradients at all 50 positions.
+
+To bound memory and avoid a short-game completion bias, complete drafts enter a
+deterministic hash-priority reservoir of 80 episodes. One fixed 4,000-row batch
+is trained every four updates; padding is masked, and the reservoir spans the
+whole four-update window. Telemetry includes capture/completion/drop counts,
+quartile advantage and calibration statistics, draw rate, record age,
+importance ratios, clipping, gradient norm, auxiliary wall/GPU time, standard
+actor versus masked-draft rows, and gate/leader outcome coverage. The feature
+allocates no rollout mask when disabled.
+
+`run_full_episode_credit_smoke_v1.sh` is the registered 48-update matched
+integrity/performance gate. It consumes a hash-locked parent generated by
+`write_atomic_parent_manifest.py`, repeats the terminal impulse test under the
+uniform no-leader-row lifecycle, and requires at least 95% of control SPS plus
+the absolute `1,235` floor before any 15M efficacy ladder. The impulse utility
+now understands the 100-action uniform draft and expects only the ten requested
+main-pick rows, not obsolete learned-leader rows.
+
+The matched 15M launcher and evaluation path are now prepared as
+`run_full_episode_credit_ladder15_v1.sh` and
+`run_full_episode_credit_eval_v1.sh`. The ladder requires the smoke marker,
+restores both arms from the same atomic parent, checks all 970 expected update
+rows, and refuses efficacy evaluation if either the absolute or relative SPS
+gate fails. Four matched checkpoints receive direct sibling, parent-panel,
+heldout-reference, 16-context deck, and bidirectional context-KL evaluation.
+The last three checkpoints additionally receive paired fixed-deck causal
+tests: the target gate and leader stay fixed while the main deck is replaced
+with one drafted for the sibling gate, sibling leader, or both.
+
+Before the Stage 2 outcomes were inspected, its heldout evaluator was aligned
+with the already-authoritative Stage 1 censoring repair: reference panels use
+`max_steps=1200`, not the obsolete 600-step cap that stopped one normal game at
+step 604. The same prospective correction is present in the conditional Stage
+3 and Stage 4 evaluators. Uniform direct panels remain at 600 because they have
+not exhibited censoring.
+
+The causal runner now assigns complete four-arm groups to 12 physical-core
+shards using a deterministic SHA-256 ordering. This preserves every global
+game index and paired comparison while spreading gate/reference contexts more
+evenly than the prior contiguous schedule. A coverage test proves all 384
+tasks appear exactly once, every four-arm group stays on one shard, every
+shard receives 32 games, and repeated scheduling is identical. Stage 2-4
+evaluators derive expected line counts from their configured shard count.
+
+`full_episode_credit_ladder_report.py` preregisters separate integrity,
+throughput, external-strength, mechanics, greater-than-noise strength, and
+sustained causal-fit decisions. A complete synthetic fixture exercised all
+inputs and the advance branch successfully; the launcher and report also pass
+ShellCheck, Python compilation, and diff validation. These files are
+evaluation-only until the Stage 1 training boundary is reached.
+
+A positive 15M decision gates
+`run_full_episode_credit_confirm45_v1.sh`. Confirmation is a fresh 2,930-update
+control/candidate comparison from the same accepted Stage 1 parent, not a
+continuation of either 15M arm, so early trajectory, opponent-pool formation,
+and the restarted LR schedule remain matched. The corresponding evaluation
+wrapper reuses the registered four-window, causal-hybrid, mechanics, and SPS
+panels, then emits `accept_full_episode_credit` only under final confirmation
+semantics. Both wrappers pass Bash syntax and ShellCheck validation.
+
+### 30.4 Stage 3: random main-card prefix (COMPLETE; CONDITIONALLY SKIPPED)
+
+The conditional Stage 3 implementation is isolated in
+`/tmp/azuki-stage3-prototype` and is not present in the Stage 1 or Stage 2 live
+source. It passes 52 focused tests. The registered distribution is exactly
+`n in {0,1,2,4}` with probabilities `{0.5,0.25,0.125,0.125}`, giving one
+forced card per live-policy deck on average.
+
+Prefix lengths and legal candidate indices are selected by stable 64-bit
+episode/seat/pick hashes. Only learner and latest-policy rows can be
+overridden; frozen league opponents and reference seats are untouched. The
+implementation inspects only active rows in the first four main picks, so the
+disabled path is constant-time and the enabled overhead does not scan the
+remaining 46 picks.
+
+The policy still processes each forced observation and carries its recurrent
+state forward, but the stored action is the actual uniformly forced legal
+action. Its policy log probability is recomputed for rollout bookkeeping.
+Full-episode records carry a per-pick actor-valid mask: forced rows receive no
+ordinary or delayed actor/entropy loss, while the terminal baseline may still
+learn from their prefix states. A parameter-indexed test shows zero actor
+gradient on four forced rows and nonzero gradient on every unforced row.
+Runtime telemetry reports sampled prefix lengths, forced rows, actor versus
+baseline example counts, and the existing full-credit diagnostics. Deployment
+and any ladder remain conditional on Stage 2 clearing integrity, SPS, and
+efficacy gates.
+
+The conditional smoke and 15M launchers are now prepared as
+`run_random_main_prefix_smoke_v1.sh` and
+`run_random_main_prefix_ladder15_v1.sh`. Both arms retain exact full-episode
+credit; only `random_main_prefix` receives the registered distribution. The
+launchers require all four prefix buckets, a sampled mean between `0.7` and
+`1.3`, nonzero forced rows, baseline training on those rows, no delayed actor
+examples on them, no prefix telemetry in control, and the shared 95%/1,235 SPS
+guards. Both pass Bash syntax, ShellCheck, and diff validation.
+
+`run_random_main_prefix_eval_v1.sh` disables prefixes during evaluation. It
+uses the same four uniform-context, parent, heldout, deck, interventional-KL,
+and last-three causal-hybrid windows as Stage 2. At the endpoint it additionally
+runs 96 matched, uniform-assignment self-play traces per arm across 12 CPU
+shards. `analyze_card_funnels.py` separates opening-hand exposure from cards
+first observed after the opening snapshot, then reports per-card draft,
+observation, legal-play, selected-play, and realized-use funnels. Realized use
+means a spell or weapon was played, or a card later attacked, defended,
+portaled, activated, or drove an ability follow-up. This adds no rollout-hot-path
+work.
+
+`random_main_prefix_ladder_report.py` treats exposure as diagnostic rather than
+efficacy. Advancement still requires external and mechanics safety plus either
+a greater-than-noise strength gain or a sustained causal context-fit gain in
+at least two of the last three windows including the endpoint. A complete
+synthetic fixture exercised the acceptance branch; report compilation and the
+evaluation scripts pass static validation.
+
+Stage 3 is complete as a registered conditional skip. The accepted Stage 2
+prerequisite was not met: retained rows were too slow and frozen redistribution
+was safe-neutral with zero causal deck-fit effect. Running forced-prefix policy
+training without a useful credit path would test exposure alone, contrary to the
+plan. The offline randomized prefixes already used to broaden the frozen
+predictor dataset are data collection, not evidence for enabling this mechanism.
+
+### 30.5 Stage 4: late shaping removal (COMPLETE; CONDITIONALLY SKIPPED)
+
+The new Stage 4 path will restore the selected Stage 2/3 parent's reward
+fingerprint rather than reconstructing it from the old p4870 recipe. It will
+override only the trainer-side shaping schedule. `fixed_floor` remains at an
+effective `0.15`; `late_zero` ramps its trainer multiplier from one to zero and
+then logs exactly 194 zero-multiplier updates, the final 20% of a 970-update
+matched continuation. Exact terminal draft credit and the selected prefix
+setting are held identical between arms and are never annealed.
+
+The schedule gate will validate every logged multiplier against the absolute
+update formula, require effective shaping to be exactly zero throughout the
+registered tail, and require nonzero terminal-credit training within that same
+tail. Multiple exact-zero checkpoints will receive direct, parent, heldout,
+Water, Garden, deck, and causal-context panels. Approximately one point of
+heldout movement remains neutral; a neutral or unstable zero tail keeps the
+`0.15` floor.
+
+The 48-update smoke, matched 970-update launcher, six-window evaluation, and
+decision report are prepared as `run_late_zero_smoke_v1.sh`,
+`run_late_zero_ladder15_v1.sh`, `run_late_zero_eval_v1.sh`, and
+`late_zero_ladder_report.py`. Static validation passes, and synthetic clear-win
+and neutral fixtures exercise both adoption and fixed-floor retention branches.
+
+Stage 4 is complete as a registered conditional skip. Its prerequisite was exact
+true-terminal credit at all 50 main picks; the retained-row implementation failed
+the SPS gate, while the frozen fallback only redistributes a zero-sum learned
+potential and is not that terminal-credit channel. The selected recipe therefore
+keeps the accepted `0.15` shaping floor. No additional late-zero ladder is run.
+
+### 30.6 Stage 5: uniform-context promotion (DEPLOYED; SHADOW-QUALIFIED)
+
+The existing promotion-v2 implementation already supplies the protected
+quality archive, four-policy panel, anchor-relative comparison, opponent
+quorum and floors, paired bootstrap uncertainty, external reference yardstick,
+shadow mode, immutable records, and separately timed native evaluation. Its
+remaining mismatch with the proposed lifecycle is that production
+`paired-v1` schedules leave both leaders unspecified.
+
+An isolated `/tmp/azuki-stage5-prototype` first supplied the missing
+uniform-context contract without changing the then-running Stage 1 source. When
+uniform assignment is active, the screen expands from eight gate blocks to 16
+gate-leader blocks per opponent. Each context uses the same seed, gate, and
+leader with the candidate in both seats. The existing eight cross-gate blocks
+then assign compatible leaders so the candidate covers every gate-leader
+context once during confirmation. This produces 192 panel games for four
+opponents: 128 exact context-paired screen games and 64 cross-gate confirmation
+games. The two-seed reference schedule remains 288 games; the second seed swaps
+sibling leaders between seats, so every one of the 16 candidate contexts is
+measured from both seats without adding games.
+
+Evaluation records now retain actual candidate and opponent leaders, and panel
+summaries/comparisons expose leader- and gate-leader-conditioned scores and
+deltas. Legacy learned-leader schedules remain behavior-compatible and keep
+`paired-v1`; uniform schedules use a distinct version so cache keys cannot
+reuse old anchor results. The manager selects the new schedule only when
+`env.draft_uniform_assignment` is true.
+
+Full fixed-yardstick evaluations also append a schedule-hash-matched
+three-observation external-strength window. It reports score mean/min/max,
+anchor-relative delta, paired lower bounds, and score slope per 100 updates.
+This is production-selection telemetry only: it is written to immutable run
+metadata and audit history but is deliberately not another archive-admission
+veto.
+
+Before deployment, the isolated prototype passed 34 promotion, archive, and reference-evaluation tests,
+plus syntax compilation and a real-catalog schedule check. The real catalog
+contains exactly 16 screen contexts; the generated four-opponent schedule has
+192 games, and a one-seed nine-deck reference schedule remains 144 games.
+`qualify_uniform_promotion.py` was prepared to run two independent native
+replays from cloned league/archive state, compare every semantic game field,
+verify all context and seat coordinates, enforce the three/eight-minute timing
+budgets, and prove that shadow mode leaves the quality archive, production
+anchor, panel, compatibility pointer, and active PPO pool unchanged. Live
+deployment and this GPU qualification were deferred until the training
+interventions select their final parent.
+
+The qualification clone now relaxes only its anchored screen thresholds so it
+always exercises screen, confirmation, and reference scheduling even when the
+selected model would legitimately fail the production screen. Production
+thresholds remain unchanged. Its before/after shadow snapshot also includes the
+current-candidate pointer and next policy index, preventing those compatibility
+fields from changing unnoticed during replay.
+
+The Stage 1 heldout validator failure exposed the same latent sentinel issue in
+this isolated Stage 5 reference schedule: its candidate seat had an assigned
+leader while the fixed-reference seat still used `-1`. The prototype now gives
+the reference seat the other compatible sibling leader as a validation
+placeholder; native reset still replaces it with the fixed deck's real leader.
+All focused tests pass after the repair. A real-catalog check covers 144
+games, all 16 candidate contexts, and verifies that both scheduled placeholder
+leaders match their gate element.
+
+A later cache audit found and repaired a second predeployment issue. Immutable
+promotion artifacts already serialized the new candidate/opponent leader ids,
+but the cache loader did not restore those fields. The first uniform evaluation
+would work, while a later candidate could fail to pair against an anchor panel
+loaded from cache. The isolated prototype loader now round-trips both leader
+ids, with a regression test proving semantic record equality after reload. The
+isolated promotion/archive/reference suite passes 34 tests after this fix. The
+deployment merge retained the repository's newer reference-evaluator tests
+rather than replacing that file with the prototype's older snapshot.
+
+After Stages 2-4 closed, the prototype was merged into the live promotion path
+while retaining the repository's newer reference-evaluator override hook. The
+promotion evaluation cap is `1,200` steps, matching the censoring fix used by the
+heldout experiment panels. The merged implementation passes 35 focused
+promotion/archive/native-reference tests and six additional native-control,
+promotion-ablation, and draft-reference tests. A real-catalog audit produces
+exactly 192 panel games, 128 screen games, 64 confirmation games, and 288
+reference games with all assigned leaders legal.
+
+The first qualification preflight exposed an invalid test-only
+`min_candidate_epoch_gap=0`; it stopped before model construction or GPU games.
+The qualification helper was corrected to the minimum legal value of one, and
+the failed preflight was retained separately for audit. No production threshold
+was changed.
+
+Two fresh native CUDA replays then passed the registered qualification. Both used
+uniform p7800 with model SHA-256
+`6f9df1ff11045a6ef20c32a1bd84df8139df9ded63a49f578ed433b19f75a39d`.
+Their semantic game records were identical, every game completed, all 16 screen
+gate-leader contexts and 32 context-seat coordinates were present, and the
+two-seed reference schedule covered 32 context-seat coordinates. The full gates
+took `372.24s` and `365.13s`, and their screens took `80.97s` and `78.92s`,
+passing the `480s` and `180s` budgets. Both recorded the external-strength
+window and had zero timeout rate.
+
+The rule-level decision was admission on the standard route, with panel score
+`0.7604`, anchor-relative delta `+0.2760`, and paired lower bound `0.2448`.
+Reference score was `0.5312`, reference delta `-0.0521`, and paired lower bound
+`-0.0799`; this telemetry is intentionally not a separate archive veto. Live
+admission remained zero because shadow mode was enabled. Both replays proved
+that the quality archive, production anchor, panel, compatibility/current-candidate
+pointers, next policy index, and active PPO pool were unchanged.
+
+Stage 5 therefore qualifies the new evaluator and promotion bookkeeping for
+continued shadow observation. It does not establish that this checkpoint is a
+better training parent, nor does it turn promotion into the primary efficacy
+label. The sealed evidence is in
+`results/next_ablation_v1/stage5/uniform_promotion_qualification_v1/summary.json`
+and `report.md`.
+
+## 31. Final decision for the next-ablation sequence
+
+The sequence is complete. Uniform assignment is the sole adopted training
+intervention: uniformly assign one of eight gates and one of its two legal sibling
+leaders, remove the leader action from PPO, and train only the 50-card main draft
+plus battle. The selected atomic parent is uniform p7800 at completed episode 648,
+with model, trainer, league, and promotion state locked by
+`results/next_ablation_v1/stage2/parent_manifest.json`.
+
+The adopted 45M uniform arm preserved rollout performance: median SPS was
+`1443.45` versus `1427.52` for control (`1.0112x`), and its final-100-update
+median was `1443.17`. Promotion evaluation is timed separately and adds no work
+to the rollout hot path between gates. The non-adopted frozen-credit arm also met
+the SPS guard (`1431.71` versus `1440.38`, or `0.9940x`), while both retained-row
+credit attempts were rejected before a ladder at `0.8379x` and `0.8651x`.
+
+Keep the accepted reward stack and mature `0.15` shaping floor. Do not enable the
+retained-row terminal-credit path, frozen prefix-outcome redistribution, random
+main-card prefixes, or late-zero schedule. Retained-row credit failed the SPS
+guard; the frozen fallback was performance-safe but safe-neutral, showed exactly
+zero causal context-fit advantage, and reduced stochastic unique-card count at
+every measured window. Those results do not justify a 45M confirmation.
+
+Keep the redesigned promotion path in shadow mode while it accumulates multiple
+real candidate windows. Its paired gate-leader-seat evidence is now suitable for
+league management, but external panels, mechanics, causal deck-fit probes, and
+checkpoint-window trends remain the model-quality decision set. A production-scale
+sample budget and distributed-training plan remain explicitly deferred to a
+separate document, as requested.
+
+### 31.1 Closure validation
+
+The final live tree passes 108 focused tests covering promotion schedules and
+caches, archive behavior, native reference and evaluation controls, frozen
+draft-credit runtime, league training utilities, and resume fingerprints. Python
+compilation, Bash syntax, ShellCheck for the Stage 0-4 wrappers, and `git diff
+--check` pass. Both ladder completion markers and the Stage 5 qualification report
+are present. The model, trainer, metadata, league, promotion, and source-decision
+files all reproduce the SHA-256 values in the atomic parent manifest. No C engine
+file changed, so an engine/native-module rebuild was not required.
+
+## 32. Retained-row and random-prefix continuation (2026-07-23; COMPLETE)
+
+The user reopened retained-row credit after reviewing its cost and explicitly
+prioritized learned play quality over the measured SPS penalty. Both the `0.95`
+relative threshold and absolute `1,235` threshold are diagnostic for these local
+efficacy experiments. Candidate/control SPS and both raw threshold results remain
+reported. Label, gradient, recurrent-state, draft-completion, timeout, checkpoint,
+and model-process integrity remain mandatory.
+
+Campaign `retained_rows_ladder15_userwaiver_v1` is a fresh 970-update matched
+control/retained-row comparison from the hash-locked uniform p7800 atomic parent.
+It retains the selected reward recipe and changes only exact full-episode credit.
+Four windows will receive direct, parent, heldout, 16-context deck, context-KL,
+mechanics, and last-three causal hybrid evaluation.
+
+The matched control completed all 970 updates with median SPS `1407.07`,
+tail-100 median `1398.71`, exactly 50 main picks, and zero timeouts. The first
+candidate leg reached `p8330`, where its legacy rolling absolute guard fired.
+The process shut down cleanly, but `p8330` had not been checkpointed. The atomic
+recovery boundary is therefore `p8300`; the logged but uncheckpointed
+`p8301-p8330` rows remain retained as audit evidence and are excluded from the
+final stitched ladder.
+
+Recovery `retained_rows_ladder15_userwaiver_v1_full_episode_credit_resume8300`
+restored the exact `p8300` model, optimizer, cosine scheduler, completed-episode
+counter, and cloned league state. The first resumed update reproduced the expected
+learning rate exactly (`1.4223046562112473e-05`). The process was then stopped at
+`p8404` after a label-integrity audit invalidated both candidate legs.
+
+Every retained target was `0.5`. In the atomic original range `p7801-p8300`, all
+23,685 completed records were counted as draws; all 123 auxiliary-update rows had
+target mean `0.5` and Q1 draw fraction `1.0`. The resumed `p8301-p8404` segment
+repeated this for all 4,721 completed records and all 24 auxiliary-update rows.
+Native games had decisive outcomes. The exact-credit caller had passed the
+per-agent terminal component decoded from aggregate native `info`, which is zero,
+instead of the native reward on true terminal rows. Therefore the SPS measurements
+remain valid implementation-cost evidence, but neither candidate checkpoint is
+efficacy evidence. The campaign is marked
+`INVALID_TERMINAL_LABELS.md`; `p8300` and resumed `p8400` must not be evaluated,
+promoted, or resumed.
+
+The corrected caller masks native rewards to true terminal rows. Telemetry now
+records decisive, win, loss, and draw episodes separately; training fails after
+four completed-label epochs with no decisive outcome. Smoke and ladder gates
+require both win and loss labels. The replacement smoke and matched 970-update
+campaign restarted from the hash-locked uniform `p7800` parent.
+
+Random main-card prefixing was also reopened. Both Stage 3 arms used exact
+retained-row credit; only the candidate forced the
+registered `n in {0,1,2,4}` prefix with probabilities
+`{0.5,0.25,0.125,0.125}`. Unlike the earlier conditional rule, a strategically
+neutral but integrity-safe retained-row result does not cancel Stage 3. Prefix
+training stopped only for integrity failure or model-process collapse. Relative and
+absolute SPS remain visible adoption and optimization evidence, but are not
+efficacy-run kill switches. This directly tests the proposed interaction between
+terminal draft credit and broader card exposure.
+
+### 32.1 Corrected retained-row result
+
+The corrected `full_episode_credit_smoke_labelfix_v1` passed the decisive-label
+gate. It recorded 2,019 completed decisive episodes, 1,019 wins, 1,000 losses,
+zero draws, and nonzero gradients in all four draft quartiles. Candidate median
+SPS was `1,354.28` versus `1,430.85` control, or `0.9465x`; this remained
+diagnostic under the user-approved policy.
+
+The fresh 970-update
+`full_episode_credit_ladder15_labelfix_v1` then completed from the atomic p7800
+parent. The candidate labeled 46,866 decisive episodes containing 24,113 wins
+and 22,753 losses, with zero draws, incomplete episodes, or timeouts. All
+retained quartiles trained. Median SPS was `1,310.17` versus `1,454.69`
+control, or `0.9007x`; the candidate still cleared the absolute `1,235` floor.
+This confirms that the approximately ten-percent retained-row cost is
+engineering debt rather than a model-process blocker.
+
+The registered strategy verdict is `stop_after_neutral_15m`. Direct scores at
+p7900, p8100, p8400, and p8770 were `53.65%`, `48.44%`, `53.91%`, and
+`52.86%`. The last-three parent-panel delta averaged `+2.08` points and heldout
+delta averaged `+4.40` points, but the endpoint direct score narrowly missed
+the registered 53% threshold and none of the three causal deck-swap windows
+showed matched portal/leader value.
+
+The lack of causal deck fit is material. At p8770, retained credit increased
+greedy unique-card count from `17.5` to `30.5`, stochastic unique count from
+`26.31` to `32.67`, and reduced four-copy slot share from `60.15%` to
+`37.42%`. It also reduced Water spell slots by `1.34`. Battle mechanics and
+external safety remained inside their registered limits, but exact outcome
+credit changed global draft preferences toward substantially more singleton
+variety without producing portal- or leader-conditioned decks. The corrected
+implementation is valid and may remain available for future credit research;
+this p8770 checkpoint is not adopted.
+
+Evidence is in
+`results/next_ablation_v1/stage2/full_episode_credit_ladder15_labelfix_v1/ladder_report.json`
+and `ladder_report.md`.
+
+### 32.2 Random main-prefix result
+
+Stage 3 isolates prefixing with exact retained-row credit enabled in both arms.
+The candidate forces only legal deterministic random cards, carries those
+actions through recurrent state and the outcome baseline, and masks forced rows
+from actor and entropy gradients. Evaluation disables prefixing completely.
+
+The smoke passed with 2,025 candidate decisive episodes, every prefix bucket
+exercised, 2,604 forced rows, 756 delayed forced rows correctly actor-masked,
+and no lifecycle error. Candidate SPS was `1,332.75` versus `1,255.65`
+control. The full 970-update ladder also passed every integrity check. It
+recorded 47,004 decisive candidate episodes, 47,581 prefix episodes, 47,712
+forced rows, mean prefix length `0.9958`, and zero draws, incompletes, or
+timeouts. Candidate median SPS was `1,321.49` versus `1,362.56` control, or
+`0.9699x`; both raw SPS gates pass.
+
+The registered verdict is `diagnose_mechanics_or_deck_regression`, with no
+45-minute continuation:
+
+| Epoch | Prefix vs control | Parent-panel delta | Heldout delta |
+| ---: | ---: | ---: | ---: |
+| 7900 | 49.74% | +0.26 pp | +4.86 pp |
+| 8100 | 53.13% | +1.82 pp | -2.08 pp |
+| 8400 | 53.13% | -0.78 pp | -1.04 pp |
+| 8770 | 51.82% | +0.26 pp | +2.78 pp |
+
+The last-three direct mean is `52.69%`, but the parent-panel delta averages only
+`+0.43` points and heldout delta averages `-0.12` points. Strength improvement
+therefore fails. At p8100, the only leader-specific greedy deck change performed
+`3.13` points worse than the sibling leader's deck. At p8400 and p8770, every
+sibling portal/leader context inside an element again uses the exact same greedy
+main deck, so causal context fit also fails.
+
+Prefixing consistently reduces singleton-heavy construction: endpoint
+stochastic unique cards fall by `1.37` and four-copy slot share rises by `6.08`
+points. However, the shift is global rather than contextual. Every element
+moves Monk Staff of Warding from one copy to four, weapon slots rise in all four
+greedy element decks, and the p8770 prefix decks use no Lightning or Fire spells
+just like control. Normal evaluation already drafts all 175 cards in both arms.
+Selected-card coverage rises by three and realized-effect coverage by two, but
+there are zero useful rare-card lines under the registered rule.
+
+The endpoint raw garden/leader ability rate falls `2.12` points, narrowly outside
+the `-2.0` point safety limit, while weapon rate rises `1.32` points and episodes
+shorten by `6.47` actions. Opportunity-normalized evidence shows that legal
+leader-ability selection is effectively unchanged (`17.03%` versus `17.04%`),
+comparable Garden selection changes only `-0.16` points, and Water spell
+selection improves. The raw failure is therefore a shorter, more weapon-heavy
+style rather than refusal to use a legal ability. It still does not establish
+efficacy or justify overriding the registered stop.
+
+Do not promote p8770 or repeat this fixed prefix distribution for 45 minutes.
+Keep prefixing experiment-gated. If the hypothesis is reopened, the next
+isolated test should anneal prefix probability to zero before the final 40% of a
+new 15-minute run, leaving that entire tail prefix-free; compare it with both
+no-prefix and fixed-prefix controls. This tests whether early exposure retains
+copy consistency without preserving the late global weapon bias.
+
+The detailed human-readable comparison is
+`results/next_ablation_v1/stage3/random_main_prefix_ladder15_v1/strategy_comparison.md`;
+the registered report is `ladder_report.json`.
+
+### 32.3 Closure validation
+
+Both corrected ladders contain `LADDER_TRAIN_DONE` and `EVALUATION_DONE`
+markers. The focused retained-credit, prefix-lifecycle, and resume suite passes
+72 tests. Python compilation passes for the changed training and report modules;
+ShellCheck passes for all six Stage 2/3 smoke, ladder, and evaluation launchers;
+`git diff --check` passes. This continuation changed no C engine source, so it
+did not require an engine or native-module rebuild.

@@ -51,6 +51,65 @@ from torch.utils.cpp_extension import (
 # and can find CUDA or HIP in the system
 ADVANTAGE_CUDA = bool(CUDA_HOME or ROCM_HOME)
 
+
+def terminal_win_labels_from_rewards(
+        env_id: np.ndarray,
+        label_mask: np.ndarray,
+        terminal_rewards: np.ndarray,
+        agents_per_env: int) -> dict[int, dict[int, float]]:
+    """Build per-seat binary win labels from true terminal rows."""
+    env_ids = np.asarray(env_id, dtype=np.int64).reshape(-1)
+    labels = np.asarray(label_mask, dtype=np.bool_).reshape(-1)
+    rewards = np.asarray(terminal_rewards, dtype=np.float32).reshape(-1)
+    if env_ids.shape != labels.shape or env_ids.shape != rewards.shape:
+        raise ValueError('env_id, label_mask, and terminal_rewards must have matching shapes')
+    if agents_per_env < 1:
+        raise ValueError('agents_per_env must be positive')
+
+    out: dict[int, dict[int, float]] = {}
+    for agent_id, is_terminal, reward in zip(env_ids, labels, rewards):
+        if not bool(is_terminal) or float(reward) == 0.0:
+            continue
+        env_index = int(agent_id // agents_per_env)
+        seat = int(agent_id % agents_per_env)
+        out.setdefault(env_index, {})[seat] = 1.0 if float(reward) > 0.0 else 0.0
+    return out
+
+
+def trainer_shaped_reward_multiplier(
+        update: int,
+        *,
+        enabled: bool,
+        start_epoch: int,
+        end_epoch: int) -> float:
+    """Return the absolute-update multiplier for trainer-side shaped reward."""
+    if not enabled:
+        return 1.0
+    if start_epoch < 0 or end_epoch <= start_epoch:
+        raise ValueError('trainer shaped-reward anneal requires 0 <= start_epoch < end_epoch')
+    absolute_update = int(update)
+    if absolute_update <= start_epoch:
+        return 1.0
+    if absolute_update >= end_epoch:
+        return 0.0
+    return float(end_epoch - absolute_update) / float(end_epoch - start_epoch)
+
+
+def recombine_reward_components(
+        raw_total: torch.Tensor,
+        terminal: torch.Tensor,
+        shaped: torch.Tensor,
+        multiplier: float) -> tuple[torch.Tensor, torch.Tensor]:
+    """Scale only shaped reward while preserving exact pre-anneal totals."""
+    scale = float(multiplier)
+    if not 0.0 <= scale <= 1.0:
+        raise ValueError('shaped reward multiplier must be in [0, 1]')
+    if scale == 1.0:
+        return raw_total, shaped
+    scaled_shaped = shaped * scale
+    return torch.clamp(terminal + scaled_shaped, -1, 1), scaled_shaped
+
+
 class PuffeRL:
     def __init__(self, config, vecenv, policy, logger=None):
         # Backend perf optimization
@@ -128,6 +187,27 @@ class PuffeRL:
         self.win_prob_target_mask = torch.zeros(segments, horizon, device=device, dtype=torch.bool)
         self.win_prob_episode_ids = torch.full((segments, horizon), -1, device=device, dtype=torch.int64)
         self.win_prob_agent_ids = torch.full((segments, horizon), -1, device=device, dtype=torch.int32)
+        self._win_prob_zero_label_epochs = 0
+
+        anneal_flag = os.environ.get('AZK_TRAINER_SHAPED_REWARD_ANNEAL', '')
+        self._trainer_shaped_reward_anneal_enabled = (
+            anneal_flag.strip().lower() not in {'', '0', 'false', 'no', 'off'}
+        )
+        self._trainer_shaped_reward_start_epoch = int(
+            os.environ.get('AZK_TRAINER_SHAPED_REWARD_ANNEAL_START_EPOCH', '0') or 0
+        )
+        self._trainer_shaped_reward_end_epoch = int(
+            os.environ.get('AZK_TRAINER_SHAPED_REWARD_ANNEAL_END_EPOCH', '1') or 1
+        )
+        if self._trainer_shaped_reward_anneal_enabled:
+            trainer_shaped_reward_multiplier(
+                0,
+                enabled=True,
+                start_epoch=self._trainer_shaped_reward_start_epoch,
+                end_epoch=self._trainer_shaped_reward_end_epoch,
+            )
+        self._trainer_shaped_reward_multiplier = 1.0
+        self._trainer_shaped_reward_update = 0
 
         # LSTM
         if config['use_rnn']:
@@ -271,6 +351,13 @@ class PuffeRL:
         self.last_stats = defaultdict(list)
         self.losses = {}
 
+        if self._trainer_shaped_reward_anneal_enabled:
+            print(
+                '[trainer-shaped-reward] enabled: '
+                f'start_epoch={self._trainer_shaped_reward_start_epoch}, '
+                f'end_epoch={self._trainer_shaped_reward_end_epoch}'
+            )
+
         # Dashboard
         self.model_size = sum(p.numel() for p in policy.parameters() if p.requires_grad)
         self.print_dashboard(clear=True)
@@ -316,6 +403,40 @@ class PuffeRL:
         self.shaped_values.zero_()
         self.terminal_reward_components.zero_()
         self.shaped_reward_components.zero_()
+
+    def _prepare_trainer_shaped_reward_anneal(self) -> float:
+        absolute_update = int(self.epoch) + 1
+        multiplier = trainer_shaped_reward_multiplier(
+            absolute_update,
+            enabled=self._trainer_shaped_reward_anneal_enabled,
+            start_epoch=self._trainer_shaped_reward_start_epoch,
+            end_epoch=self._trainer_shaped_reward_end_epoch,
+        )
+        self._trainer_shaped_reward_update = absolute_update
+        self._trainer_shaped_reward_multiplier = multiplier
+        self.stats['trainer_shaped_reward_multiplier'].append(multiplier)
+        self.stats['trainer_shaped_reward_update'].append(float(absolute_update))
+        return multiplier
+
+    def _record_effective_reward_shaping_scale(self):
+        native_scales = self.stats.get('reward_shaping_scale')
+        if not native_scales:
+            return
+        numeric = [float(value) for value in native_scales if np.isfinite(float(value))]
+        if not numeric:
+            return
+        self.stats['effective_reward_shaping_scale'].append(
+            float(np.mean(numeric)) * self._trainer_shaped_reward_multiplier
+        )
+
+    def trainer_shaped_reward_schedule_state(self) -> dict[str, object]:
+        return {
+            'enabled': bool(self._trainer_shaped_reward_anneal_enabled),
+            'start_epoch': int(self._trainer_shaped_reward_start_epoch),
+            'end_epoch': int(self._trainer_shaped_reward_end_epoch),
+            'absolute_update': int(self._trainer_shaped_reward_update),
+            'multiplier': float(self._trainer_shaped_reward_multiplier),
+        }
 
     def _build_info_by_env(self, info, env_indices: np.ndarray) -> dict[int, object]:
         ordered_envs = np.unique(env_indices)
@@ -432,20 +553,41 @@ class PuffeRL:
             labels[int(seat)] = float(win_value)
         return labels
 
-    def _assign_terminal_win_prob_targets(self, info, env_id: np.ndarray, done_mask: np.ndarray):
+    def _assign_terminal_win_prob_targets(
+        self,
+        info,
+        env_id: np.ndarray,
+        done_mask: np.ndarray,
+        *,
+        terminal_rewards: np.ndarray | None = None,
+        label_mask: np.ndarray | None = None,
+    ):
         finished_envs = self._episode_envs_from_done_mask(env_id, done_mask)
         if finished_envs.size == 0:
             return finished_envs
 
         env_indices = (env_id // self._agents_per_env).astype(np.int32)
         info_by_env = self._build_info_by_env(info, env_indices)
+        direct_labels: dict[int, dict[int, float]] = {}
+        if terminal_rewards is not None:
+            direct_labels = terminal_win_labels_from_rewards(
+                env_id,
+                done_mask if label_mask is None else label_mask,
+                terminal_rewards,
+                self._agents_per_env,
+            )
 
         seat_ids = torch.remainder(self.win_prob_agent_ids.long(), self._agents_per_env)
         for env_idx in finished_envs:
             episode_id = int(self._env_episode_ids[int(env_idx)])
             episode_mask = self.win_prob_episode_ids == episode_id
             if bool(episode_mask.any().item()):
-                seat_labels = self._extract_terminal_win_labels(info_by_env.get(int(env_idx)))
+                if terminal_rewards is not None:
+                    seat_labels = direct_labels.get(int(env_idx), {})
+                else:
+                    seat_labels = self._extract_terminal_win_labels(
+                        info_by_env.get(int(env_idx))
+                    )
                 for seat, win_value in seat_labels.items():
                     seat_mask = episode_mask & (seat_ids == int(seat))
                     if not bool(seat_mask.any().item()):
@@ -505,13 +647,14 @@ class PuffeRL:
         return weighted_loss, metrics
 
     def _draftaux_aux_scale(self):
-        """Live shaping scale (S1 anneal knob); 1.0 when AZK_DRAFT_AUX_ANNEAL is off."""
-        if not self._draftaux_anneal:
-            return 1.0
-        vals = self.stats.get('reward_shaping_scale')
-        if vals:
-            self._draftaux_last_scale = float(vals[-1])
-        return self._draftaux_last_scale
+        """Scale draft auxiliary credit with both active shaping schedules."""
+        native_scale = 1.0
+        if self._draftaux_anneal:
+            vals = self.stats.get('reward_shaping_scale')
+            if vals:
+                self._draftaux_last_scale = float(vals[-1])
+            native_scale = self._draftaux_last_scale
+        return native_scale * self._trainer_shaped_reward_multiplier
 
     def _draftaux_init_layout(self, obs_row_bytes, device):
         """Byte offsets into the packed deckbuild obs + sibling-gate lookup.
@@ -630,6 +773,7 @@ class PuffeRL:
 
         config = self.config
         device = config['device']
+        reward_multiplier = self._prepare_trainer_shaped_reward_anneal()
 
         if config['use_rnn']:
             for k in self.lstm_h:
@@ -732,9 +876,15 @@ class PuffeRL:
 
                 self.actions[batch_rows, l] = action
                 self.logprobs[batch_rows, l] = logprob
-                self.rewards[batch_rows, l] = r_clipped
+                scaled_total, scaled_shaped = recombine_reward_components(
+                    r_clipped,
+                    reward_components_terminal,
+                    reward_components_shaped,
+                    reward_multiplier,
+                )
+                self.rewards[batch_rows, l] = scaled_total
                 self.terminal_reward_components[batch_rows, l] = reward_components_terminal
-                self.shaped_reward_components[batch_rows, l] = reward_components_shaped
+                self.shaped_reward_components[batch_rows, l] = scaled_shaped
                 self.terminals[batch_rows, l] = d.float()
                 self.values[batch_rows, l] = value.flatten()
                 if self._draftaux_enabled:
@@ -803,6 +953,7 @@ class PuffeRL:
         self.free_idx = self.total_agents
         self.ep_indices = torch.arange(self.total_agents, device=device, dtype=torch.int32)
         self.ep_lengths.zero_()
+        self._record_effective_reward_shaping_scale()
         profile.end()
         return self.stats
 

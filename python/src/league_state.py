@@ -166,6 +166,7 @@ def classify_and_prune(
   keep_recent: int,
   keep_mid: int,
   keep_old: int,
+  protected_ids: set[str] | None = None,
 ) -> list[str]:
   entries = sorted(state.policies.values(), key=lambda e: (e.created_epoch, e.created_ts))
   if not entries:
@@ -176,6 +177,8 @@ def classify_and_prune(
   keep_ids = set()
   if champion_id is not None and champion_id in state.policies:
     keep_ids.add(champion_id)
+  if protected_ids:
+    keep_ids.update(policy_id for policy_id in protected_ids if policy_id in state.policies)
 
   old_slice = ids[: max(keep_old, 0)]
   recent_slice = ids[max(len(ids) - max(keep_recent, 0), 0) :]

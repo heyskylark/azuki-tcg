@@ -43,6 +43,29 @@ def _make_legacy(pool):
   return wrapper
 
 
+def _make_uniform_legacy(pool, leaders):
+  env = AzukiTCGParallel(seed=123, deck_pool=pool)
+  wrapper = DeckBuildingParallelEnv(
+    env, deck_pool=pool, seed=123, uniform_assignment=True
+  )
+  gate_calls = {"n": 0}
+  leader_calls = {"n": 0}
+
+  def forced_gate():
+    value = FORCED_GATES[gate_calls["n"] % 2]
+    gate_calls["n"] += 1
+    return int(value)
+
+  def forced_leader(_gate_def_id):
+    value = leaders[leader_calls["n"] % 2]
+    leader_calls["n"] += 1
+    return int(value)
+
+  wrapper._sample_gate_def_id = forced_gate
+  wrapper._sample_assigned_leader_def_id = forced_leader
+  return wrapper
+
+
 def test_native_draft_matches_legacy_wrapper():
   pool = load_training_deck_pool()
   legacy = _make_legacy(pool)
@@ -138,6 +161,79 @@ def test_native_draft_matches_legacy_wrapper():
   legacy.close()
 
 
+def test_uniform_assignment_native_matches_legacy_and_has_100_rows():
+  pool = load_training_deck_pool()
+  catalog = build_deck_build_catalog(pool)
+  leaders = tuple(
+    catalog.leader_def_ids_by_element[
+      catalog.records_by_def_id[gate].element
+    ][0]
+    for gate in FORCED_GATES
+  )
+  saved_leaders = os.environ.get("AZK_DEBUG_FORCE_LEADER_DEF_IDS")
+  os.environ["AZK_DEBUG_FORCE_LEADER_DEF_IDS"] = f"{leaders[0]},{leaders[1]}"
+  legacy = _make_uniform_legacy(pool, leaders)
+  native = None
+  try:
+    legacy_obs, _ = legacy.reset(seed=99)
+    native = AzukiNativeEnv(
+      num_envs=1,
+      deck_pool=pool,
+      seed=7,
+      deck_building=True,
+      draft_uniform_assignment=True,
+    )
+    native.reset(seed=7)
+    view = native.observations.view(NATIVE_DECKBUILD_OBS_DTYPE).reshape(
+      native.num_agents
+    )
+    rng = np.random.default_rng(2025)
+    draft_steps = 0
+    while legacy._building:
+      active = legacy._active_player_index
+      for agent in range(2):
+        n_ctx = view[agent]["deck_context"]
+        l_ctx = legacy_obs[agent]["deck_context"]
+        assert int(n_ctx["mode"]) == int(l_ctx["mode"])
+        assert int(n_ctx["gate_card_def_id"]) == int(l_ctx["gate_card_def_id"])
+        assert int(n_ctx["leader_card_def_id"]) == int(l_ctx["leader_card_def_id"])
+        assert int(n_ctx["main_count"]) == int(l_ctx["main_count"])
+        assert int(n_ctx["mode"]) != 1
+        np.testing.assert_array_equal(
+          np.asarray(n_ctx["main_card_def_ids"], dtype=np.int16),
+          np.asarray(l_ctx["main_card_def_ids"], dtype=np.int16),
+        )
+        count = int(l_ctx["candidate_count"])
+        assert int(n_ctx["candidate_count"]) == count
+        if count:
+          np.testing.assert_array_equal(
+            np.asarray(n_ctx["candidate_card_def_ids"][:count], dtype=np.int16),
+            np.asarray(l_ctx["candidate_card_def_ids"][:count], dtype=np.int16),
+          )
+
+      count = int(legacy_obs[active]["deck_context"]["candidate_count"])
+      pick = int(rng.integers(0, count))
+      action = np.array([3, pick, 0, 0], dtype=np.int32)
+      legacy_obs, _, _, _, _ = legacy.step({active: action})
+      native.actions[:] = 0
+      native.actions[active] = action
+      native.step()
+      draft_steps += 1
+
+    assert draft_steps == 100
+    for agent in range(2):
+      assert int(view[agent]["deck_context"]["mode"]) == 0
+      assert int(view[agent]["deck_context"]["main_count"]) == MAX_DECK_SIZE
+  finally:
+    if native is not None:
+      native.close()
+    legacy.close()
+    if saved_leaders is None:
+      os.environ.pop("AZK_DEBUG_FORCE_LEADER_DEF_IDS", None)
+    else:
+      os.environ["AZK_DEBUG_FORCE_LEADER_DEF_IDS"] = saved_leaders
+
+
 def test_policy_packed_decode_reads_deck_context():
   import torch
   from policy.v2.tcg_policy import _build_packed_specs, TCG
@@ -229,6 +325,7 @@ def test_metric_helper_matches_legacy_battle_start_metrics():
 
 if __name__ == "__main__":
   test_native_draft_matches_legacy_wrapper()
+  test_uniform_assignment_native_matches_legacy_and_has_100_rows()
   test_policy_packed_decode_reads_deck_context()
   test_metric_helper_matches_legacy_battle_start_metrics()
   print("all parity checks passed")

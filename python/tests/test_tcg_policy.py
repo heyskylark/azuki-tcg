@@ -234,5 +234,16 @@ class LegalActionCandidateTrimTest(unittest.TestCase):
         self.assertEqual(trimmed.shape, (2, 6, 4))
         self.assertTrue(torch.equal(trimmed, legal_actions))
 
+
+class CanonicalScalarShapeTest(unittest.TestCase):
+    def test_singleton_batch_dimension_is_preserved(self) -> None:
+        tcg = object.__new__(TCG)
+
+        scalar_batch = torch.tensor([3])
+        packed_scalar_batch = torch.tensor([[3]])
+
+        self.assertEqual(tcg._squeeze_trailing_singleton(scalar_batch).shape, (1,))
+        self.assertEqual(tcg._squeeze_trailing_singleton(packed_scalar_batch).shape, (1,))
+
 if __name__ == "__main__":
     unittest.main()

@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import json
 from collections import Counter
+from itertools import combinations
 from pathlib import Path
 
 from analyze_decks import CARD_META_PATH, GATE_NAMES
@@ -83,6 +84,51 @@ def main():
             "type_share": {t: round(q / max(total, 1), 3) for t, q in sorted(types.items())},
         }
 
+    def sampled_distribution_summary(decks: list[Counter]) -> dict[str, float]:
+        if not decks:
+            raise ValueError("sampled deck list must be nonempty")
+        unique = []
+        singleton_slots = []
+        pair_slots = []
+        triplet_slots = []
+        quad_slots = []
+        for deck in decks:
+            unique.append(len(deck))
+            singleton_slots.append(sum(q for q in deck.values() if q == 1) / 50.0)
+            pair_slots.append(sum(q for q in deck.values() if q == 2) / 50.0)
+            triplet_slots.append(sum(q for q in deck.values() if q == 3) / 50.0)
+            quad_slots.append(sum(q for q in deck.values() if q == 4) / 50.0)
+        jaccards = []
+        for left, right in combinations(decks, 2):
+            keys = set(left).union(right)
+            intersection = sum(min(left.get(key, 0), right.get(key, 0)) for key in keys)
+            union = sum(max(left.get(key, 0), right.get(key, 0)) for key in keys)
+            jaccards.append(intersection / union if union else 1.0)
+        return {
+            "main_unique_mean": round(sum(unique) / len(unique), 6),
+            "singleton_slot_share_mean": round(
+                sum(singleton_slots) / len(singleton_slots), 6
+            ),
+            "pair_slot_share_mean": round(sum(pair_slots) / len(pair_slots), 6),
+            "triplet_slot_share_mean": round(
+                sum(triplet_slots) / len(triplet_slots), 6
+            ),
+            "quad_slot_share_mean": round(sum(quad_slots) / len(quad_slots), 6),
+            "within_gate_pairwise_multiset_jaccard_mean": (
+                round(sum(jaccards) / len(jaccards), 6) if jaccards else 1.0
+            ),
+        }
+
+    def mean_copy_entries(decks: list[Counter]) -> list[dict]:
+        aggregate = Counter()
+        for deck in decks:
+            aggregate.update(deck)
+        n = len(decks)
+        return [
+            {**card_entry(card_code, round(quantity / n, 4))}
+            for card_code, quantity in aggregate.most_common()
+        ]
+
     from policy.v2 import tcg_sampler
 
     out = {"checkpoint": str(args.checkpoint), "sampled_episodes": args.episodes, "gates": {}}
@@ -101,19 +147,55 @@ def main():
         tcg_sampler.set_sampling_params(subaction_temperature=1.0, smoothing_eps=0.0)
         agg = Counter()
         leaders = Counter()
+        sampled_decks = []
+        sampled_counters: list[Counter] = []
+        counters_by_leader: dict[str, list[Counter]] = {}
         for ep in range(args.episodes):
-            runner.run_episode(91000 + 37 * ep, gate_code, None)
+            seed = 91000 + 37 * ep
+            runner.run_episode(seed, gate_code, None)
             lead, mains = drafted_deck()
             leaders[lead] += 1
             agg.update(mains)
+            sampled_counters.append(mains)
+            counters_by_leader.setdefault(lead, []).append(mains)
+            sampled_decks.append(
+                {
+                    "episode": ep,
+                    "seed": seed,
+                    "leader": lead,
+                    "summary": deck_summary(mains),
+                    "cards": [
+                        card_entry(card_code, quantity)
+                        for card_code, quantity in sorted(mains.items())
+                    ],
+                }
+            )
         n = max(args.episodes, 1)
+        by_leader = {}
+        for leader_code, leader_decks in sorted(counters_by_leader.items()):
+            leader_aggregate = Counter()
+            for deck in leader_decks:
+                leader_aggregate.update(deck)
+            by_leader[leader_code] = {
+                "episodes": len(leader_decks),
+                "summary": deck_summary(
+                    leader_aggregate,
+                    scale=1.0 / len(leader_decks),
+                ),
+                "distribution": sampled_distribution_summary(leader_decks),
+                "mean_copies": mean_copy_entries(leader_decks),
+            }
         sampled = {
             "leader_split": {l: c for l, c in leaders.most_common()},
             "summary": deck_summary(agg, scale=1.0 / n),
+            "distribution": sampled_distribution_summary(sampled_counters),
             "mean_copies": [
                 {**card_entry(c, round(q / n, 2))}
                 for c, q in agg.most_common(30)
             ],
+            "mean_copies_all": mean_copy_entries(sampled_counters),
+            "by_leader": by_leader,
+            "decks": sampled_decks,
         }
         out["gates"][gate_code] = {
             "gate_name": GATE_NAMES.get(gate_code, gate_code),

@@ -150,6 +150,87 @@ class DeckBuildingWrapperTests(unittest.TestCase):
       all(card["card_def_id"] == -1 for card in active_obs["critic_privileged"]["self_deck"])
     )
 
+  def test_uniform_assignment_starts_with_main_pick_and_uses_unique_gates(self):
+    deck_pool = load_training_deck_pool()
+    env = DeckBuildingParallelEnv(
+      _FakeBattleEnv(),
+      deck_pool=deck_pool,
+      seed=123,
+      uniform_assignment=True,
+    )
+    try:
+      unique_gates = tuple(sorted(set(env._catalog.gate_def_id_population)))
+      for seed in range(32):
+        observations, _ = env.reset(seed=seed)
+        for player_index, state in enumerate(env._states):
+          self.assertIn(state.gate_card_def_id, unique_gates)
+          gate = env._catalog.records_by_def_id[state.gate_card_def_id]
+          leader = env._catalog.records_by_def_id[state.leader_card_def_id]
+          self.assertEqual(leader.card_type, "LEADER")
+          self.assertEqual(leader.element, gate.element)
+          self.assertEqual(
+            observations[player_index]["deck_context"]["mode"],
+            DECK_CONTEXT_MODE_PICK_MAIN,
+          )
+          self.assertEqual(observations[player_index]["deck_context"]["main_count"], 0)
+    finally:
+      env.close()
+
+  def test_uniform_assignment_builds_exactly_fifty_main_picks_per_seat(self):
+    deck_pool = load_training_deck_pool()
+    env = DeckBuildingParallelEnv(
+      _FakeBattleEnv(),
+      deck_pool=deck_pool,
+      seed=123,
+      uniform_assignment=True,
+    )
+    try:
+      observations, _ = env.reset(seed=7)
+      steps = 0
+      final_infos = None
+      while env._building:
+        active = env._active_player_index
+        self.assertEqual(
+          observations[active]["deck_context"]["mode"],
+          DECK_CONTEXT_MODE_PICK_MAIN,
+        )
+        action = np.asarray(
+          [int(ActionType.DECK_PICK_CARD), 0, 0, 0], dtype=np.int32
+        )
+        observations, _, _, _, final_infos = env.step({active: action})
+        steps += 1
+      self.assertEqual(steps, 2 * MAX_DECK_SIZE)
+      self.assertIsNotNone(final_infos)
+      for info in final_infos.values():
+        self.assertEqual(info["deckbuild/picks"], float(MAX_DECK_SIZE))
+    finally:
+      env.close()
+
+  def test_uniform_assignment_does_not_replace_fixed_reference_leader(self):
+    deck_pool = load_training_deck_pool()
+    env = DeckBuildingParallelEnv(
+      _FakeBattleEnv(),
+      deck_pool=deck_pool,
+      seed=123,
+      fixed_deck_seats=(0,),
+      uniform_assignment=True,
+    )
+    sampled_gates: list[int] = []
+    original_sampler = env._sample_assigned_leader_def_id
+
+    def tracked_sampler(gate_def_id: int) -> int:
+      sampled_gates.append(int(gate_def_id))
+      return original_sampler(gate_def_id)
+
+    env._sample_assigned_leader_def_id = tracked_sampler
+    try:
+      env.reset(seed=11)
+      self.assertTrue(env._states[0].is_complete)
+      self.assertGreaterEqual(env._states[0].leader_card_def_id, 0)
+      self.assertEqual(sampled_gates, [env._states[1].gate_card_def_id])
+    finally:
+      env.close()
+
   def test_builds_two_complete_decks_then_starts_battle(self):
     observations, infos, steps = self._pick_first_until_battle()
     self.assertEqual(steps, 102)
