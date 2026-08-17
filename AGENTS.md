@@ -2,6 +2,20 @@
 
 When you start any task in this repo, open and follow this file.
 
+### Git autonomy
+- Agents have standing approval to create branches, commit completed work, and push as often as useful on any non-protected branch without asking for approval.
+- Keep commits coherent and verified. Do not include unrelated user changes in a commit.
+- Never push directly to a protected branch, force-push a shared branch, merge a pull request, or bypass branch protection without explicit user approval.
+
+### Autonomous side quests
+- Treat worthwhile out-of-scope findings—dead code, stale documentation, a reproducible bug, a confirmed TODO, or a development-workflow failure—as side-quest candidates immediately. Keep them out of the current diff unless the fix is trivial and already inside a file being edited.
+- Dispatch a side quest without asking when the finding is verified or reproducible, the work is bounded and independent, and no unresolved product or scope decision is required. If the evidence is incomplete, dispatch an isolated read-only investigation first and authorize edits only after it confirms the issue.
+- Before dispatching work, check open and closed pull requests plus active branches for the same path or symbol. Do not duplicate work already in flight; report the existing item instead.
+- Use the active agent platform's isolated worktree or session mechanism. Give the executor a standalone prompt with file paths, evidence, acceptance criteria, required verification, and any dependency on unmerged work.
+- The isolated executor owns the side quest end to end: reproduce or verify the issue, implement the fix, run focused verification, create and push its own branch, and open a dedicated pull request. It may do this without further approval, but must never merge the pull request or push directly to a protected branch.
+- Dispatch confirmed side quests as soon as they are independent, then keep the primary session moving. Report each side quest's pull-request URL and verification separately; never merge or copy its patch into the primary task's branch.
+- Repository-external tooling failures are not repository side quests. Report them through the relevant tool or platform feedback channel instead of opening an unrelated repository pull request.
+
 ### C engine safety + logs
 - Do **not** wrap function calls in `ecs_assert(...)`. `ecs_assert` may compile out in release builds and can skip the call entirely.
 - If you want an assertion, call the function first, store the result, then use `ecs_assert` only on the **data output** (return value or computed state).
