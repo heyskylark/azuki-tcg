@@ -441,14 +441,17 @@ Purpose: track the ordered work needed to move the v2 policy away from learned c
    - test attention only after the baseline metadata path is stable so gains are attributable
 
 13. [ ] Expand training distribution once the new representation path is stable.
-   - Completed first-stage rollout:
-     - training now defaults to the combined pool of `starter_raizan`, `starter_shao`, and the 16 curated generalized decks from `.codex/docs/azuki_tcg_decks_final.json`
-     - combined-pool reset sampling is near-uniform
-     - combined-pool training now runs with `0%` zero-legal-action truncation after the reset / teardown / legality fixes documented below
+   - Current rollout:
+     - training defaults to 237 engine-supported submissions from the 2026-08-15 Azuki Garden Arena regional corpus
+     - the source contains 315 legal 52-card submissions; 78 currently use one or more of six card codes absent from the engine metadata and are recorded as exclusions
+     - exact duplicate submissions remain in the runtime pool so ordinary deck sampling reflects the submitted field
+     - the first 18 entries form a deterministic 9-promotion / 9-holdout reference panel while preserving the existing even/odd index contract
+     - the reference-seat ablation uses a stricter signature-group split: 222 training rows / 198 unique signatures and 15 heldout rows / 9 unique signatures; no heldout content hash occurs in its training pool
+     - a matched p11030-to-p12000 continuation found no benefit from assigning 5% of matchups to frozen regional decks: exposed-reference, signature-heldout, and parent-H2H scores changed by -0.56, -1.46, and -0.52 percentage points, so the arm stopped after 14.8992M sampled rows
    - Remaining work:
-     - move beyond the current curated 18-deck pool
+     - implement the six unsupported regional card codes, then regenerate the corpus to recover the excluded submissions
      - train on the full available card pool from the DB-backed card metadata
-     - add deck sampling / curriculum logic that exposes the model to much more card variation
+     - add deck sampling / curriculum logic that exposes the model to more card variation
 
 14. [ ] Add evaluation focused on true generalization.
    - Hold out a subset of cards during training and evaluate on them later.
@@ -1200,11 +1203,9 @@ Purpose: track the ordered work needed to move the v2 policy away from learned c
   - the generated artifact now carries the full eight engine keyword mechanics rather than the smaller human-readable DB-only keyword set
   - the v2 policy successfully instantiates and encodes live environment observations against the generated artifact
   - the critic ablation path now includes optional split terminal/shaped value heads plus step-level reward-component plumbing from the native env through PPO and offline eval
-  - generalized-deck training now defaults to the combined pool of:
-    - `starter_raizan`
-    - `starter_shao`
-    - 16 curated generalized decks from `.codex/docs/azuki_tcg_decks_final.json`
-  - the combined generalized deck pool is now stable in the native env and trainer:
+  - generalized-deck training now defaults to 237 engine-supported regional submissions from `.codex/docs/azuki_garden_arena_2026-08-15_decks.json`
+  - the regional corpus preserves submitted-list frequency and contains a deterministic 18-deck promotion/holdout panel at indices `0-17`
+  - the generalized regional deck pool is stable in the native env and trainer:
     - reset-time zero-mask bug fixed
     - pooled reset teardown segfault fixed
     - pooled equip-target legality bug fixed
@@ -1226,7 +1227,7 @@ Purpose: track the ordered work needed to move the v2 policy away from learned c
 - Remaining baseline work before calling the model path complete:
   - improve critic quality / overall training health on the generalized deck pool
   - extend from the known-good stable local 3090 shape into longer production-quality runs
-  - later expand beyond the curated 18-deck pool into broader card / deck coverage
+  - add engine support for the six card codes that currently exclude 78 regional submissions
 
 ## Local 3090 Notes
 
@@ -1237,13 +1238,12 @@ Purpose: track the ordered work needed to move the v2 policy away from learned c
 
 ## Deck Pool Rollout Notes
 
-- Current training default is the combined pool:
-  - 2 starter decks (`starter_raizan`, `starter_shao`)
-  - 16 curated decks from `.codex/docs/azuki_tcg_decks_final.json`
-  - total live training pool size: 18 decks
-- Reset sampling over the live combined pool is close to uniform.
-  - direct reset sampling showed each deck landing at roughly `5-6%` of total seat assignments
-  - this suggests the deck sampler is not the source of the truncation issue
+- Current training default is the 2026-08-15 Azuki Garden Arena regional corpus:
+  - 315 source submissions
+  - 237 engine-ready submissions after deterministic card-code normalization and compatibility filtering
+  - 207 unique exact signatures; 30 duplicate submissions retained for field-frequency sampling
+  - 18 deterministic front-panel decks: even indices for promotion references and odd indices for holdout
+- The previous 2-starter + 16-curated pool remains available only as the legacy artifact used by already-running or historical experiments.
 
 ## 3090 Training Probe Notes
 
@@ -1577,12 +1577,12 @@ Purpose: track the ordered work needed to move the v2 policy away from learned c
 ## Finished Generalized-Deck Tasks
 
 - Completed:
-  - created and validated the curated `.codex/docs/azuki_tcg_decks_final.json` training deck artifact
-  - switched trainer default behavior to use the generalized deck pool plus starters
+  - created and validated the regional `.codex/docs/azuki_garden_arena_2026-08-15_decks.json` training artifact
+  - switched trainer defaults from 18 legacy decks to 237 engine-supported regional submissions
+  - retained the legacy even-promotion / odd-holdout index contract with a deterministic 18-deck front panel
   - fixed reset-time, teardown-time, and action-legality bugs that the wider pool exposed
   - fixed the `STT04-017` multi-target selection-capacity mismatch that wider-pool tuning exposed
   - restored generalized-pool training to `0%` zero-legal-action truncation
-  - verified near-uniform combined-pool deck exposure in both direct env sampling and trainer metrics
 
 ## Finished Tuning Milestones
 
