@@ -187,6 +187,7 @@ class PuffeRL:
         self._agents_per_env = max(
             1, int(getattr(driver, 'agents_per_match', getattr(driver, 'num_agents', 1)))
         )
+        self._rollout_inference_buffers_materialized = False
         self._num_envs_total = max(1, int(total_agents // self._agents_per_env))
         self._env_episode_ids = np.arange(self._num_envs_total, dtype=np.int64)
         self._next_env_episode_id = int(self._num_envs_total)
@@ -772,6 +773,7 @@ class PuffeRL:
         self._draftaux_injected += float(aux.sum().item())
         self._draftaux_events += int(b.numel())
 
+    @torch.inference_mode()
     def evaluate(self):
         profile = self.profile
         epoch = self.epoch
@@ -965,6 +967,18 @@ class PuffeRL:
         self.ep_indices = torch.arange(self.total_agents, device=device, dtype=torch.int32)
         self.ep_lengths.zero_()
         self._record_effective_reward_shaping_scale()
+        if not self._rollout_inference_buffers_materialized:
+            base_policy = self._base_policy_module()
+            scalar_normalizer = getattr(base_policy, 'scalar_normalizer', None)
+            if scalar_normalizer is not None:
+                with torch.inference_mode(False):
+                    for name, buffer in scalar_normalizer.named_buffers(
+                        recurse=False
+                    ):
+                        if buffer.is_inference():
+                            setattr(scalar_normalizer, name, buffer.clone())
+            self._rollout_inference_buffers_materialized = True
+
         profile.end()
         return self.stats
 
