@@ -153,6 +153,15 @@ class PuffeRL:
             dtype=pufferlib.pytorch.numpy_to_torch_dtype_dict[obs_space.dtype],
             pin_memory=device == 'cuda' and config['cpu_offload'],
             device='cpu' if config['cpu_offload'] else device)
+        self._rollout_obs_device = None
+        if device == 'cuda' and not config['cpu_offload']:
+            self._rollout_obs_device = torch.empty(
+                (vecenv.agents_per_batch, *obs_space.shape),
+                dtype=pufferlib.pytorch.numpy_to_torch_dtype_dict[
+                    obs_space.dtype
+                ],
+                device=device,
+            )
         self.actions = torch.zeros(segments, horizon, *atn_space.shape, device=device,
             dtype=pufferlib.pytorch.numpy_to_torch_dtype_dict[atn_space.dtype])
         self.values = torch.zeros(segments, horizon, device=device)
@@ -823,7 +832,11 @@ class PuffeRL:
 
             profile('eval_copy', epoch)
             o = torch.as_tensor(o)
-            o_device = o.to(device, non_blocking=True)
+            if self._rollout_obs_device is None:
+                o_device = o.to(device, non_blocking=True)
+            else:
+                self._rollout_obs_device.copy_(o, non_blocking=False)
+                o_device = self._rollout_obs_device
             r = torch.as_tensor(r).to(device, non_blocking=True)
             d = torch.as_tensor(d).to(device, non_blocking=True)
             t_dev = torch.as_tensor(t).to(device, non_blocking=True)
