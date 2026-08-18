@@ -145,3 +145,37 @@ The driver writes a paired-bootstrap JSON and Markdown report after all three
 arms. Campaign artifacts live under
 `train-ablation-1781126582/results/reference_ladder15_v1/`. The launcher is
 `train-ablation-1781126582/run_reference_ladder15_v1.sh`.
+
+## Regional-Corpus Follow-up (2026-08-17)
+
+The completed production-soak p11030 checkpoint was used for a matched control
+versus 5% reference-seat continuation on the regional submissions. The
+signature-group split reserves every row matching the nine holdout panel
+signatures: 222 training rows / 198 unique signatures and 15 heldout rows /
+9 unique signatures. Both arms use the same training-only pool, parent,
+optimizer, league state, seed, and 45M-compatible learning-rate schedule.
+Each endpoint is p12000, or 970 updates / 14,899,200 sampled rows. SPS was
+observational only and was not a rejection gate.
+
+The 5% arm completed 214.2 fixed-deck episodes with 100% learner-drafter
+alignment and a measured 4.92% completed-episode share. All training integrity
+metrics and all 15,552 evaluation games across both arms had zero timeout,
+truncation, invalid, or incomplete outcomes. The endpoint artifact manifests
+and paired schedules verified exactly.
+
+| Evaluation | Control | 5% reference | Paired delta | 95% interval |
+|---|---:|---:|---:|---:|
+| 222 training references (7,104 games/arm) | 59.02% | 58.46% | -0.56 pp | -1.65 to +0.52 pp |
+| 15 signature-heldout rows (480 games/arm) | 61.04% | 59.58% | -1.46 pp | -5.83 to +3.12 pp |
+| Native H2H versus p11030 (192 games/arm) | 51.04% | 50.52% | -0.52 pp | -7.29 to +6.25 pp |
+
+The 5% arm improved none of the three preregistered axes. Deck diversity did
+not collapse, but the result also showed no useful transfer: 748 exposed-panel
+games improved versus 788 worsened, 56 heldout games improved versus 63
+worsened, and 21 H2H games improved versus 22 worsened. Decision:
+**stop after 15M; do not continue this arm to 45M**.
+
+Artifacts:
+`train-ablation-1781126582/results/regional_reference_ladder15_v1/`.
+Protocol:
+`train-ablation-1781126582/run_regional_reference_ladder15_v1.py`.
