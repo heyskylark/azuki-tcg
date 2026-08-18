@@ -941,6 +941,13 @@ class PuffeRL:
                 if isinstance(logits, torch.distributions.Normal):
                     action = np.clip(action, self.vecenv.action_space.low, self.vecenv.action_space.high)
 
+            # action.cpu() synchronizes the default CUDA stream, so all reads
+            # from the workers' shared observation/reward buffers are complete.
+            # Dispatch the next native step before processing detached info
+            # dictionaries to overlap worker compute with Python aggregation.
+            profile('env', epoch)
+            self.vecenv.send(action)
+
             profile('eval_misc', epoch)
             for i in info:
                 for k, v in pufferlib.unroll_nested_dict(i):
@@ -950,9 +957,6 @@ class PuffeRL:
                         self.stats[k].extend(v)
                     else:
                         self.stats[k].append(v)
-
-            profile('env', epoch)
-            self.vecenv.send(action)
 
         profile('eval_misc', epoch)
         if win_prob_enabled:
