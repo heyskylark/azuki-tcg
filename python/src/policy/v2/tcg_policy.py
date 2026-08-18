@@ -2591,6 +2591,68 @@ class TCG(nn.Module):
     deck_candidate_matrix = action_context.get("deck_candidate_matrix")
     deck_candidate_count = action_context.get("deck_candidate_count")
     has_deck_candidates = torch.is_tensor(deck_candidate_matrix) and torch.is_tensor(deck_candidate_count)
+    if not has_deck_candidates:
+      # Pack the fixed battle-context matrices once, then gather every one of
+      # the three action arguments in one indexed read. The previous path did
+      # seven unconditional gathers and seven full-tensor selects per argument
+      # to avoid GPU synchronization.
+      batch_size = arg_kinds.size(0)
+      # CARD_CANDIDATE and out-of-range kinds clamp to the final zero table;
+      # deck-enabled contexts use the complete legacy path below.
+      table_count = LEGAL_ACTION_ARG_KIND_CARD_CANDIDATE
+      ref_table = hand_matrix.new_zeros(
+        batch_size,
+        table_count,
+        MAX_INDEX_SIZE,
+        UNIT_EMBED_SIZE,
+      )
+      for kind, matrix in (
+        (LEGAL_ACTION_ARG_KIND_HAND, hand_matrix),
+        (LEGAL_ACTION_ARG_KIND_SELF_GARDEN, player_garden_matrix),
+        (LEGAL_ACTION_ARG_KIND_SELF_ALLEY, player_alley_matrix),
+        (
+          LEGAL_ACTION_ARG_KIND_SELF_GARDEN_OR_LEADER,
+          player_garden_or_leader_matrix,
+        ),
+        (LEGAL_ACTION_ARG_KIND_OPP_DEFENDER, opponent_defender_matrix),
+        (LEGAL_ACTION_ARG_KIND_SELECTION, player_selection_matrix),
+      ):
+        ref_table[:, kind, : matrix.size(1)] = matrix
+
+      batch_offset = torch.arange(
+        batch_size, device=arg_kinds.device, dtype=torch.long
+      ).view(-1, 1, 1) * (table_count * MAX_INDEX_SIZE)
+      flat_indices = (
+        batch_offset
+        + arg_kinds.long().clamp(0, table_count - 1) * MAX_INDEX_SIZE
+        + subactions.long().clamp(0, MAX_INDEX_SIZE - 1)
+      )
+      semantic_refs = ref_table.view(
+        batch_size * table_count * MAX_INDEX_SIZE,
+        UNIT_EMBED_SIZE,
+      )[flat_indices]
+
+      bounded_ref = (
+        (
+          (arg_kinds != LEGAL_ACTION_ARG_KIND_SELF_GARDEN_OR_LEADER)
+          | (subactions <= GARDEN_SIZE)
+        )
+        & (
+          (arg_kinds != LEGAL_ACTION_ARG_KIND_OPP_DEFENDER)
+          | (subactions <= (GARDEN_SIZE + ALLEY_SIZE))
+        )
+      )
+      semantic_refs = torch.where(
+        bounded_ref.unsqueeze(-1),
+        semantic_refs,
+        torch.zeros_like(semantic_refs),
+      )
+      semantic_ref_valid = (
+        (arg_kinds >= LEGAL_ACTION_ARG_KIND_HAND)
+        & (arg_kinds <= LEGAL_ACTION_ARG_KIND_SELECTION)
+        & bounded_ref
+      )
+      return semantic_refs, semantic_ref_valid
 
     refs = []
     ref_valid = []
