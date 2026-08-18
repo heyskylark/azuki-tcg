@@ -1475,6 +1475,8 @@ class Profile:
         self.profiles = defaultdict(lambda: defaultdict(float))
         self.frequency = frequency
         self.stack = []
+        self.pending = []
+        self.cuda_timing = torch.cuda.is_available()
 
     def __iter__(self):
         return iter(self.profiles.items())
@@ -1482,35 +1484,51 @@ class Profile:
     def __getattr__(self, name):
         return self.profiles[name]
 
+    def _boundary(self):
+        tick = time.perf_counter()
+        event = None
+        if self.cuda_timing:
+            event = torch.cuda.Event(enable_timing=True)
+            event.record()
+        return tick, event
+
     def __call__(self, name, epoch, nest=False):
         # Skip profiling the first few epochs, which are noisy due to setup
         if (epoch + 1) % self.frequency != 0:
             return
 
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
-
-        tick = time.time()
+        tick, event = self._boundary()
         if len(self.stack) != 0 and not nest:
-            self.pop(tick)
+            self.pop(tick, event)
 
-        self.stack.append(name)
-        self.profiles[name]['start'] = tick
+        self.stack.append((name, tick, event))
 
-    def pop(self, end):
-        profile = self.profiles[self.stack.pop()]
-        delta = end - profile['start']
-        profile['delta'] += delta
-        # Multiply delta by freq to account for skipped epochs
-        profile['elapsed'] += delta * self.frequency
+    def pop(self, end_tick, end_event):
+        name, start_tick, start_event = self.stack.pop()
+        self.pending.append(
+            (name, end_tick - start_tick, start_event, end_event)
+        )
 
     def end(self):
-        if torch.cuda.is_available():
-            torch.cuda.synchronize()
+        if not self.stack:
+            return
 
-        end = time.time()
-        for i in range(len(self.stack)):
-            self.pop(end)
+        end_tick, end_event = self._boundary()
+        while self.stack:
+            self.pop(end_tick, end_event)
+        if end_event is not None:
+            end_event.synchronize()
+
+        for name, cpu_delta, start_event, segment_end_event in self.pending:
+            delta = cpu_delta
+            if start_event is not None and segment_end_event is not None:
+                gpu_delta = start_event.elapsed_time(segment_end_event) / 1000.0
+                delta = max(cpu_delta, gpu_delta)
+            profile = self.profiles[name]
+            profile['delta'] += delta
+            # Multiply delta by freq to account for skipped epochs
+            profile['elapsed'] += delta * self.frequency
+        self.pending.clear()
 
     def clear(self):
         for prof in self.profiles.values():
