@@ -1160,28 +1160,29 @@ void create_training_observation_data_pair(
     const int8_t opponent_player_index =
         (player_index + 1) % MAX_PLAYERS_PER_MATCH;
 
-    TrainingObservationData observation = {0};
-    observation.my_observation_data = my_observations[player_index];
-    observation.opponent_observation_data =
+    TrainingObservationData *observation = &out_observations[player_index];
+    *observation = (TrainingObservationData){0};
+    observation->my_observation_data = my_observations[player_index];
+    observation->opponent_observation_data =
         build_training_opponent_from_my(
             &my_observations[opponent_player_index]);
-    observation.phase = gs->phase;
-    observation.ability_context = ability_observation;
-    observation.combat_context =
+    observation->phase = gs->phase;
+    observation->ability_context = ability_observation;
+    observation->combat_context =
         build_combat_context_observation(world, gs, player_index);
     populate_recent_action_history_for_player(
-        world, gs, gs->players[player_index], observation.self_recent_actions);
+        world, gs, gs->players[player_index], observation->self_recent_actions);
     populate_recent_action_history_for_player(
         world, gs, gs->players[opponent_player_index],
-        observation.opp_recent_actions);
-    observation.critic_privileged = privileged_observations[player_index];
+        observation->opp_recent_actions);
+    observation->critic_privileged = privileged_observations[player_index];
 
     // Fast path: only the active player can have legal actions.
     // Keep non-active players' masks empty without invoking the full builder.
-    reset_legal_actions(&observation.action_mask);
+    reset_legal_actions(&observation->action_mask);
     if (should_expose_training_action_mask(world, gs, player_index)) {
       const uint64_t mask_start_ns = profile_enabled ? obs_now_ns() : 0;
-      observation.action_mask =
+      observation->action_mask =
           build_training_action_mask(world, gs, player_index);
       if (profile_enabled) {
         k_obs_profile.action_mask_calls++;
@@ -1189,7 +1190,6 @@ void create_training_observation_data_pair(
       }
     }
 
-    out_observations[player_index] = observation;
   }
 
   if (profile_enabled) {
