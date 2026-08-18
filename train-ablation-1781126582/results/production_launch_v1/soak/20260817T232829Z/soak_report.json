@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "decision": "pass",
+  "baseline_sps": 1337.7437704904828,
+  "required_sps": 1270.8565819659586,
+  "observed_minimum_phase_median_sps": 1277.422545402779,
+  "phases": [
+    {
+      "path": "train-ablation-1781126582/results/production_launch_v1/soak/20260817T232829Z/phase1.jsonl",
+      "start_update": 10730,
+      "end_update": 10830,
+      "updates": 100,
+      "metric_windows": 10,
+      "median_sps": 1304.5694926127437,
+      "integrity_maxima": {
+        "environment/draft_episode_credit/truncated_records": 0.0,
+        "environment/draft_episode_credit/incomplete_episodes": 0.0,
+        "environment/timeout_truncation_rate": 0.0,
+        "environment/auto_tick_truncation_rate": 0.0,
+        "environment/zero_legal_action_truncation_rate": 0.0
+      },
+      "run_id": "production_soak_20260817T232829Z_phase1_178700931339",
+      "model_path": "experiments/azuki_local_production_soak_20260817T232829Z_phase1_178700931339.pt"
+    },
+    {
+      "path": "train-ablation-1781126582/results/production_launch_v1/soak/20260817T232829Z/phase2_retry.jsonl",
+      "start_update": 10830,
+      "end_update": 11030,
+      "updates": 200,
+      "metric_windows": 20,
+      "median_sps": 1277.422545402779,
+      "integrity_maxima": {
+        "environment/draft_episode_credit/truncated_records": 0.0,
+        "environment/draft_episode_credit/incomplete_episodes": 0.0,
+        "environment/timeout_truncation_rate": 0.0,
+        "environment/auto_tick_truncation_rate": 0.0,
+        "environment/zero_legal_action_truncation_rate": 0.0
+      },
+      "run_id": "production_soak_20260817T232829Z_phase2_retry_178701029287",
+      "model_path": "experiments/azuki_local_production_soak_20260817T232829Z_phase2_retry_178701029287.pt"
+    }
+  ],
+  "checkpoints": [
+    {
+      "path": "experiments/azuki_local_production_soak_20260817T232829Z_phase1_178700931339/checkpoint_010830.manifest.json",
+      "update": 10830,
+      "roles": [],
+      "artifact_count": 5
+    },
+    {
+      "path": "experiments/azuki_local_production_soak_20260817T232829Z_phase2_retry_178701029287/checkpoint_011000.manifest.json",
+      "update": 11000,
+      "roles": [
+        "evaluation",
+        "milestone",
+        "recovery"
+      ],
+      "artifact_count": 5
+    },
+    {
+      "path": "experiments/azuki_local_production_soak_20260817T232829Z_phase2_retry_178701029287/checkpoint_011030.manifest.json",
+      "update": 11030,
+      "roles": [],
+      "artifact_count": 5
+    }
+  ]
+}
