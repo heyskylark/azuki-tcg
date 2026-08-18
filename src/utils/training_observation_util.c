@@ -217,8 +217,7 @@ static TrainingActionMaskObs build_training_action_mask(ecs_world_t *world,
   TrainingActionMaskObs action_mask = {0};
   reset_legal_actions(&action_mask);
 
-  // The builder clears the masks/count and initializes every action below count.
-  AzkActionMaskSet mask_set;
+  AzkActionMaskSet mask_set = {0};
   bool ok =
       azk_build_action_mask_for_player(world, gs, player_index, &mask_set);
   ecs_assert(ok, ECS_INVALID_OPERATION, "Failed to build action mask");
