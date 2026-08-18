@@ -171,7 +171,7 @@ typedef struct {
 // Real per-element candidate pools are ~80 cards; catalog storage bound.
 #define AZK_DRAFT_MAX_CANDIDATES 192
 #define AZK_DRAFT_MAX_GATES 16
-#define AZK_DRAFT_MAX_POPULATION 64
+#define AZK_DRAFT_MAX_POPULATION 512
 #define AZK_DRAFT_MAX_LEADERS 8
 #define AZK_DECKBUILD_BEHAVIOR_COUNT 18
 
@@ -3524,7 +3524,11 @@ static bool column_render_pushf_with_indent(ColumnRender *col, size_t indent, co
   char line[320];
   size_t prefix = indent < sizeof line ? indent : sizeof line - 1;
   memset(line, ' ', prefix);
-  size_t copy_len = strnlen(buffer, sizeof line - prefix - 1);
+  size_t available = sizeof line - prefix - 1;
+  size_t copy_len = strnlen(buffer, sizeof buffer);
+  if (copy_len > available) {
+    copy_len = available;
+  }
   memcpy(line + prefix, buffer, copy_len);
   line[prefix + copy_len] = '\0';
   return column_render_push_line(col, line);

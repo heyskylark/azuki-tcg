@@ -395,7 +395,7 @@ class ArchiveManagerShadowTests(unittest.TestCase):
       evaluator = _AllWinEvaluator()
       manager.evaluator = evaluator
       trainer_args = {
-        "env": {"deck_pool_path": ".codex/docs/azuki_tcg_decks_final.json"},
+        "env": {"deck_pool_path": ".codex/docs/azuki_garden_arena_2026-08-15_decks.json"},
         "train": {"device": "cpu", "use_rnn": False},
       }
       policies = []
@@ -469,7 +469,7 @@ class ArchiveManagerShadowTests(unittest.TestCase):
 
       trainer_args = {
         "env": {
-          "deck_pool_path": ".codex/docs/azuki_tcg_decks_final.json",
+          "deck_pool_path": ".codex/docs/azuki_garden_arena_2026-08-15_decks.json",
           "draft_uniform_assignment": True,
         },
         "train": {"device": "cpu", "use_rnn": False},
@@ -620,7 +620,7 @@ class ArchiveManagerShadowTests(unittest.TestCase):
       metrics = manager.maybe_evaluate_and_promote(
         epoch=1,
         trainer_args={
-          "env": {"deck_pool_path": ".codex/docs/azuki_tcg_decks_final.json"},
+          "env": {"deck_pool_path": ".codex/docs/azuki_garden_arena_2026-08-15_decks.json"},
           "train": {"device": "cpu", "use_rnn": False},
         },
         vecenv=None,
@@ -679,7 +679,7 @@ class ArchiveManagerShadowTests(unittest.TestCase):
       metrics = manager.maybe_evaluate_and_promote(
         epoch=1,
         trainer_args={
-          "env": {"deck_pool_path": ".codex/docs/azuki_tcg_decks_final.json"},
+          "env": {"deck_pool_path": ".codex/docs/azuki_garden_arena_2026-08-15_decks.json"},
           "train": {"device": "cpu", "use_rnn": False},
         },
         vecenv=None,

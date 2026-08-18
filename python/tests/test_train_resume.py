@@ -10,6 +10,7 @@ from train import (
     RESUME_REWARD_ENV_VARS,
     _apply_saved_reward_env,
     _checkpoint_metadata_path,
+    _approved_resume_cfg_mismatch_prefixes,
     _enabled_episode_schedule_completion,
     _extract_completed_episodes_from_mapping,
     _load_model_weights,
@@ -218,6 +219,17 @@ def test_legacy_fingerprint_without_reward_group_remains_compatible() -> None:
         "reward_env": {"AZK_EARLY_TEMPO_BONUS": "0.1"},
     }
     assert _resume_cfg_mismatches(saved, current) == []
+
+
+def test_deck_pool_migration_excuses_only_deck_path(monkeypatch) -> None:
+    monkeypatch.delenv("AZK_RESUME_ALLOW_SOURCE_DRIFT", raising=False)
+    monkeypatch.delenv("AZK_RESUME_KEEP_CURRENT_SCHEDULE_ENV", raising=False)
+    monkeypatch.delenv("AZK_RESUME_KEEP_CURRENT_REWARD_ENV", raising=False)
+
+    assert _approved_resume_cfg_mismatch_prefixes(
+        allow_trusted_source_drift=False,
+        allow_deck_pool_migration=True,
+    ) == ("deck_pool_path",)
 
 
 def test_checkpoint_schedule_state_is_auditable() -> None:

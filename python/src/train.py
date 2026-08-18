@@ -16,6 +16,15 @@ import azk_puffer.trainer as pufferl
 import azk_puffer.vector as azk_vector
 import torch
 
+from production_runtime import (
+    CheckpointPolicy,
+    active_league_updates,
+    apply_process_environment,
+    filter_numeric_metrics,
+    finalize_checkpoint_state,
+    parse_patterns,
+    prune_checkpoints,
+)
 from policy.v2 import tcg_sampler
 from league_manager import LeagueManager, parse_league_manager_config
 from league_training import (
@@ -126,15 +135,16 @@ RESUME_SOURCE_HASH_TARGETS = (
     "python/src/v2/observation.py",
     "python/src/deck_building.py",
     "python/src/tcg.h",
+    "python/src/production_runtime.py",
     "python/src/train.py",
     "python/src/training_deck_pool.py",
     "python/src/training_utils.py",
-    ".codex/docs/azuki_tcg_decks_final.json",
+    ".codex/docs/azuki_garden_arena_2026-08-15_decks.json",
 )
 
 
 class _JsonlLogger:
-    """Local fallback logger writing one JSON line of numeric stats per epoch."""
+    """Windowed local metrics logger with a production-safe allowlist."""
 
     def __init__(self, trainer_args: dict, path: Path):
         tag = trainer_args.get("tag")
@@ -143,8 +153,30 @@ class _JsonlLogger:
         path = path if path.suffix == ".jsonl" else path / f"{self.run_id}.jsonl"
         path.parent.mkdir(parents=True, exist_ok=True)
         self._handle = path.open("a", buffering=1, encoding="utf-8")
+        logging_cfg = trainer_args.get("logging")
+        if not isinstance(logging_cfg, dict):
+            logging_cfg = {}
+        self._interval = max(1, int(logging_cfg.get("interval_updates", 1)))
+        self._patterns = parse_patterns(logging_cfg.get("metric_patterns"))
+        self._sum_patterns = parse_patterns(logging_cfg.get("sum_patterns"), default=())
+        self._max_patterns = parse_patterns(logging_cfg.get("max_patterns"), default=())
+        self._pending: dict[str, list[float]] = {}
+        self._pending_updates = 0
+        self._last_step = 0
+
         config_snapshot: dict[str, object] = {}
-        for section in ("train", "vec", "env", "policy", "league"):
+        for section in (
+            "train",
+            "vec",
+            "env",
+            "policy",
+            "league",
+            "resume",
+            "logging",
+            "artifacts",
+            "launch_gates",
+            "process_env",
+        ):
             section_cfg = trainer_args.get(section)
             if isinstance(section_cfg, dict):
                 for key, value in section_cfg.items():
@@ -156,19 +188,59 @@ class _JsonlLogger:
             )
             + "\n"
         )
-        print(f"[jsonl-logger] writing run metrics to {path}")
+        print(
+            f"[jsonl-logger] writing compact metrics to {path} "
+            f"every {self._interval} updates"
+        )
+
+    @staticmethod
+    def _matches(key: str, patterns: tuple[str, ...]) -> bool:
+        from fnmatch import fnmatchcase
+
+        return any(fnmatchcase(key, pattern) for pattern in patterns)
+
+    def _flush(self) -> None:
+        if self._pending_updates == 0:
+            return
+        row: dict[str, object] = {
+            "_step": self._last_step,
+            "_window_updates": self._pending_updates,
+            "ts": round(time.time(), 2),
+        }
+        for key, values in self._pending.items():
+            total, minimum, maximum, last, count = values
+            if key in {"agent_steps", "uptime", "epoch", "learning_rate"}:
+                row[key] = last
+            elif self._matches(key, self._sum_patterns):
+                row[key] = total
+            elif self._matches(key, self._max_patterns):
+                row[key] = maximum
+            else:
+                row[key] = total / count
+        self._handle.write(json.dumps(row, separators=(",", ":")) + "\n")
+        self._pending.clear()
+        self._pending_updates = 0
 
     def log(self, logs, step):
-        row: dict[str, object] = {"_step": int(step), "ts": round(time.time(), 2)}
-        for key, value in logs.items():
-            if isinstance(value, bool):
-                continue
-            if isinstance(value, (int, float)) and math.isfinite(float(value)):
-                row[key] = float(value)
-        self._handle.write(json.dumps(row, separators=(",", ":")) + "\n")
+        selected = filter_numeric_metrics(logs, self._patterns)
+        for key, value in selected.items():
+            values = self._pending.get(key)
+            if values is None:
+                self._pending[key] = [value, value, value, value, 1.0]
+            else:
+                values[0] += value
+                values[1] = min(values[1], value)
+                values[2] = max(values[2], value)
+                values[3] = value
+                values[4] += 1.0
+        self._last_step = int(step)
+        self._pending_updates += 1
+        if self._pending_updates >= self._interval:
+            self._flush()
 
     def close(self, model_path=None):
         try:
+            self._flush()
             self._handle.write(
                 json.dumps({"_event": "close", "model_path": str(model_path or ""), "ts": round(time.time(), 2)})
                 + "\n"
@@ -303,6 +375,14 @@ def parse_script_args() -> tuple[argparse.Namespace, list[str]]:
         "--resume-strict",
         action="store_true",
         help="Require an exact key match when loading model weights from a checkpoint.",
+    )
+    parser.add_argument(
+        "--resume-allow-deck-pool-migration",
+        action="store_true",
+        help=(
+            "Allow only the deck_pool_path resume fingerprint to change. "
+            "Use for an explicit corpus-migration experiment; all other config fields remain strict."
+        ),
     )
     parser.add_argument(
         "--resume-reset-critic",
@@ -1399,10 +1479,88 @@ def _checkpoint_parity_guard(trainer, checkpoint_path: Path) -> dict[str, object
     }
 
 
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _trusted_parent_source_drift(
+    trainer_args: dict,
+    model_path: Path,
+    trainer_state_path: Path | None,
+) -> bool:
+    raw_manifest = trainer_args.get("parent_manifest")
+    if not isinstance(raw_manifest, str) or not raw_manifest.strip():
+        return False
+    manifest_path = Path(raw_manifest).expanduser()
+    if not manifest_path.is_absolute():
+        manifest_path = Path(__file__).resolve().parents[2] / manifest_path
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if payload.get("schema_version") != 2:
+        raise ValueError(f"Unsupported production parent manifest: {manifest_path}")
+    model_entry = payload.get("model")
+    if not isinstance(model_entry, dict):
+        raise ValueError("Production parent manifest has no model entry")
+    recorded_model_path = Path(str(model_entry.get("path", ""))).expanduser()
+    if not recorded_model_path.is_absolute():
+        recorded_model_path = Path(__file__).resolve().parents[2] / recorded_model_path
+    if recorded_model_path.resolve() != model_path.resolve():
+        return False
+
+    expected = {
+        "model": model_path,
+        "metadata": _checkpoint_metadata_path(model_path),
+    }
+    if trainer_state_path is not None:
+        expected["trainer"] = trainer_state_path
+    for key, actual_path in expected.items():
+        entry = payload.get(key)
+        if not isinstance(entry, dict):
+            raise ValueError(f"Production parent manifest has no {key} entry")
+        recorded_path = Path(str(entry.get("path", ""))).expanduser()
+        if not recorded_path.is_absolute():
+            recorded_path = Path(__file__).resolve().parents[2] / recorded_path
+        if recorded_path.resolve() != actual_path.resolve():
+            raise ValueError(
+                f"Production parent manifest {key} path mismatch: "
+                f"recorded={recorded_path} requested={actual_path}"
+            )
+        recorded_hash = entry.get("sha256")
+        if not isinstance(recorded_hash, str) or _file_sha256(actual_path) != recorded_hash:
+            raise ValueError(f"Production parent manifest {key} hash mismatch: {actual_path}")
+    print(
+        "[resume] trusted atomic parent verified; source-only drift is allowed for "
+        f"the initial migration: {manifest_path}"
+    )
+    return True
+
+def _approved_resume_cfg_mismatch_prefixes(
+    *,
+    allow_trusted_source_drift: bool,
+    allow_deck_pool_migration: bool,
+) -> tuple[str, ...]:
+    prefixes: list[str] = []
+    if allow_trusted_source_drift or os.environ.get("AZK_RESUME_ALLOW_SOURCE_DRIFT") == "1":
+        prefixes.append("source_hashes.")
+    if _env_flag("AZK_RESUME_KEEP_CURRENT_SCHEDULE_ENV"):
+        prefixes.append("schedule_env.")
+    if _env_flag("AZK_RESUME_KEEP_CURRENT_REWARD_ENV"):
+        prefixes.append("reward_env.")
+    if allow_deck_pool_migration:
+        prefixes.append("deck_pool_path")
+    return tuple(prefixes)
+
+
+
 def _validate_resume_metadata(
     model_path: Path,
     runtime_fingerprint: dict[str, object],
     resume_config_fingerprint: dict[str, object],
+    allow_trusted_source_drift: bool = False,
+    allow_deck_pool_migration: bool = False,
 ) -> None:
     metadata_path = _checkpoint_metadata_path(model_path)
     if not metadata_path.exists():
@@ -1451,23 +1609,16 @@ def _validate_resume_metadata(
     saved_resume_cfg = payload.get("resume_config_fingerprint")
     if isinstance(saved_resume_cfg, dict):
         cfg_mismatches = _resume_cfg_mismatches(saved_resume_cfg, resume_config_fingerprint)
-        excusable_prefixes: list[str] = []
-        if os.environ.get("AZK_RESUME_ALLOW_SOURCE_DRIFT") == "1":
-            # Intentional source patches mid-campaign (e.g. a crash fix) drift
-            # source_hashes.*; config/policy mismatches remain fatal.
-            excusable_prefixes.append("source_hashes.")
-        if _env_flag("AZK_RESUME_KEEP_CURRENT_SCHEDULE_ENV"):
-            # Keeping caller-set schedule env vars implies they diverge from
-            # the saved ones by design.
-            excusable_prefixes.append("schedule_env.")
-        if _env_flag("AZK_RESUME_KEEP_CURRENT_REWARD_ENV"):
-            excusable_prefixes.append("reward_env.")
+        excusable_prefixes = _approved_resume_cfg_mismatch_prefixes(
+            allow_trusted_source_drift=allow_trusted_source_drift,
+            allow_deck_pool_migration=allow_deck_pool_migration,
+        )
         if cfg_mismatches and excusable_prefixes:
             excused = [m for m in cfg_mismatches if m[0].startswith(tuple(excusable_prefixes))]
             cfg_mismatches = [m for m in cfg_mismatches if not m[0].startswith(tuple(excusable_prefixes))]
             if excused:
                 details = ", ".join(f"{k}" for k, _, _ in excused)
-                print(f"[resume] warning: mismatches excused by env flags: {details}")
+                print(f"[resume] warning: approved mismatches excused: {details}")
         if cfg_mismatches:
             details = ", ".join(f"{k}: saved={a!r} current={b!r}" for k, a, b in cfg_mismatches)
             raise RuntimeError(
@@ -1569,6 +1720,8 @@ def _maybe_restore_trainer_state(
     *,
     expected_model_path: Path | None = None,
     expected_resume_config_fingerprint: dict[str, object] | None = None,
+    allow_trusted_source_drift: bool = False,
+    allow_deck_pool_migration: bool = False,
 ) -> bool:
     if trainer_state_path is None or not trainer_state_path.exists():
         return False
@@ -1601,19 +1754,16 @@ def _maybe_restore_trainer_state(
             # Same excusals as _validate_resume_metadata: intentional source
             # patches / caller-pinned schedule env vars must not silently
             # downgrade to model-only resume (loses optimizer + global_step).
-            excusable_prefixes = []
-            if os.environ.get("AZK_RESUME_ALLOW_SOURCE_DRIFT") == "1":
-                excusable_prefixes.append("source_hashes.")
-            if _env_flag("AZK_RESUME_KEEP_CURRENT_SCHEDULE_ENV"):
-                excusable_prefixes.append("schedule_env.")
-            if _env_flag("AZK_RESUME_KEEP_CURRENT_REWARD_ENV"):
-                excusable_prefixes.append("reward_env.")
+            excusable_prefixes = _approved_resume_cfg_mismatch_prefixes(
+                allow_trusted_source_drift=allow_trusted_source_drift,
+                allow_deck_pool_migration=allow_deck_pool_migration,
+            )
             if cfg_mismatches and excusable_prefixes:
                 excused = [m for m in cfg_mismatches if m[0].startswith(tuple(excusable_prefixes))]
                 cfg_mismatches = [m for m in cfg_mismatches if not m[0].startswith(tuple(excusable_prefixes))]
                 if excused:
                     details = ", ".join(k for k, _, _ in excused)
-                    print(f"[resume] trainer_state mismatches excused by env flags: {details}")
+                    print(f"[resume] trainer_state approved mismatches excused: {details}")
             if cfg_mismatches:
                 details = ", ".join(f"{k}: saved={a!r} current={b!r}" for k, a, b in cfg_mismatches)
                 print(
@@ -1891,6 +2041,42 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
 
     torch_profile_cfg = _build_torch_profiler_config(script_args)
     trainer_args = load_training_config(config_path, forwarded_cli)
+    applied_process_env = apply_process_environment(trainer_args)
+    if applied_process_env:
+        print(
+            "[config] applied process environment: "
+            + ", ".join(sorted(applied_process_env))
+        )
+    resume_cfg = trainer_args.get("resume")
+    if not isinstance(resume_cfg, dict):
+        resume_cfg = {}
+    if not script_args.resume_load_optimizer:
+        script_args.resume_load_optimizer = bool(resume_cfg.get("load_optimizer", False))
+    if not script_args.resume_restart_lr_schedule:
+        script_args.resume_restart_lr_schedule = bool(
+            resume_cfg.get("restart_lr_schedule", False)
+        )
+    if not script_args.resume_strict:
+        script_args.resume_strict = bool(resume_cfg.get("strict", False))
+    if "auto_reset_critic" in resume_cfg:
+        script_args.resume_auto_reset_critic = bool(resume_cfg["auto_reset_critic"])
+
+    checkpoint_policy = CheckpointPolicy.from_config(trainer_args)
+    if checkpoint_policy is not None:
+        trainer_args["train"]["checkpoint_interval"] = checkpoint_policy.scheduler_interval
+        print(
+            "[artifacts] tiered checkpoints: "
+            f"scheduler={checkpoint_policy.scheduler_interval}, "
+            f"recovery={checkpoint_policy.recovery_interval}, "
+            f"evaluation={checkpoint_policy.evaluation_interval}, "
+            f"milestone={checkpoint_policy.milestone_interval}"
+        )
+    logging_cfg = trainer_args.get("logging")
+    if not isinstance(logging_cfg, dict):
+        logging_cfg = {}
+    stdout_interval = max(1, int(logging_cfg.get("stdout_interval_updates", 1)))
+    stdout_patterns = parse_patterns(logging_cfg.get("stdout_metric_patterns"))
+    dashboard_enabled = bool(logging_cfg.get("dashboard", True))
     trainer_args["train"]["env"] = trainer_args.get("env_name", "azuki_local")
     logger = None
 
@@ -1925,12 +2111,17 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
 
     resume_checkpoint = script_args.resume_checkpoint
     if resume_checkpoint is None:
-        fallback_resume = trainer_args.get("load_model_path")
-        if isinstance(fallback_resume, str) and fallback_resume and fallback_resume != "latest":
-            resume_checkpoint = Path(fallback_resume)
+        configured_resume = resume_cfg.get("checkpoint")
+        if isinstance(configured_resume, str) and configured_resume:
+            resume_checkpoint = Path(configured_resume)
+        else:
+            fallback_resume = trainer_args.get("load_model_path")
+            if isinstance(fallback_resume, str) and fallback_resume and fallback_resume != "latest":
+                resume_checkpoint = Path(fallback_resume)
 
     model_resume_path: Path | None = None
     trainer_state_path: Path | None = None
+    allow_trusted_source_drift = False
     if resume_checkpoint is not None:
         model_resume_path, trainer_state_path = _resolve_resume_artifacts(resume_checkpoint)
         saved_resume_config = _load_saved_resume_config_fingerprint(
@@ -1938,6 +2129,11 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
         )
         _apply_saved_schedule_env(saved_resume_config)
         _apply_saved_reward_env(saved_resume_config)
+        allow_trusted_source_drift = _trusted_parent_source_drift(
+            trainer_args,
+            model_resume_path,
+            trainer_state_path if script_args.resume_load_optimizer else None,
+        )
 
     vec_cfg = trainer_args.get("vec")
     num_envs_hint = 1
@@ -2068,7 +2264,15 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
 
     policy = build_policy(vecenv, trainer_args)
     if model_resume_path is not None:
-        _validate_resume_metadata(model_resume_path, runtime_fingerprint, resume_config_fingerprint)
+        _validate_resume_metadata(
+            model_resume_path,
+            runtime_fingerprint,
+            resume_config_fingerprint,
+            allow_trusted_source_drift=allow_trusted_source_drift,
+            allow_deck_pool_migration=bool(
+                script_args.resume_allow_deck_pool_migration
+            ),
+        )
         _load_model_weights(
             policy,
             model_resume_path,
@@ -2161,6 +2365,9 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
         )
     else:
         trainer = pufferl.PuffeRL(trainer_args["train"], vecenv, policy, logger=logger)
+    if not dashboard_enabled:
+        trainer.print_dashboard = lambda *args, **kwargs: None
+
 
     if torch_profile_cfg is not None and trainer.total_epochs < torch_profile_cfg.total_profile_epochs:
         raise ValueError(
@@ -2171,9 +2378,26 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
 
     resume_completed_episode_tracker = _coerce_nonnegative_int(resume_env_completed_episodes)
     original_save_checkpoint = trainer.save_checkpoint
+    checkpoint_cache: dict[int, Path] = {}
+    force_checkpoint = False
+    finalized_checkpoints: set[int] = set()
 
     def _save_checkpoint_with_metadata():
-        nonlocal resume_completed_episode_tracker
+        nonlocal force_checkpoint, resume_completed_episode_tracker
+        update = int(trainer.epoch)
+        done_training = bool(
+            force_checkpoint
+            or trainer.global_step >= trainer.config["total_timesteps"]
+            or trainer.epoch >= trainer.total_epochs
+        )
+        if checkpoint_policy is not None and not checkpoint_policy.due(
+            update, done=done_training
+        ):
+            return None
+        cached = checkpoint_cache.get(update)
+        if cached is not None:
+            return str(cached)
+
         resume_completed_episode_tracker = _update_completed_episode_tracker(
             resume_completed_episode_tracker, getattr(trainer, "last_stats", None)
         )
@@ -2195,7 +2419,7 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
         metadata_payload = {
             "model_name": checkpoint_path.name,
             "global_step": int(trainer.global_step),
-            "update": int(trainer.epoch),
+            "update": update,
             "trainer_state_path": str(state_path.name),
             "runtime_fingerprint": runtime_fingerprint,
             "resume_config_fingerprint": resume_config_fingerprint,
@@ -2206,11 +2430,43 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
             metadata_payload["trainer_shaped_reward_schedule"] = shaped_reward_schedule
         if resume_completed_episode_tracker is not None:
             metadata_payload["env_completed_episodes"] = int(resume_completed_episode_tracker)
-        _save_checkpoint_metadata(
-            checkpoint_path,
-            metadata_payload,
+        _save_checkpoint_metadata(checkpoint_path, metadata_payload)
+        checkpoint_cache[update] = checkpoint_path
+        return str(checkpoint_path)
+
+    def _finalize_checkpoint(checkpoint_path: Path) -> None:
+        update = int(trainer.epoch)
+        if update in finalized_checkpoints:
+            return
+        league_state_path = league_manager.state_path if league_manager is not None else None
+        promotion_state_path = (
+            league_manager.archive_state_path if league_manager is not None else None
         )
-        return checkpoint_raw
+        roles = checkpoint_policy.roles(update) if checkpoint_policy is not None else ()
+        finalize_checkpoint_state(
+            checkpoint_path,
+            league_state_path=league_state_path,
+            promotion_state_path=promotion_state_path,
+            config_path=config_path,
+            roles=roles,
+        )
+        finalized_checkpoints.add(update)
+        if checkpoint_policy is not None:
+            protected = (
+                active_league_updates(
+                    league_manager.state_path,
+                    checkpoint_dir=checkpoint_path.parent,
+                )
+                if league_manager is not None
+                else set()
+            )
+            removed = prune_checkpoints(
+                checkpoint_path.parent,
+                checkpoint_policy,
+                protected_updates=protected,
+            )
+            if removed:
+                print(f"[artifacts] pruned {len(removed)} obsolete checkpoint files")
 
     trainer.save_checkpoint = _save_checkpoint_with_metadata
 
@@ -2222,6 +2478,10 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
                 trainer_state_path,
                 expected_model_path=model_resume_path,
                 expected_resume_config_fingerprint=resume_config_fingerprint,
+                allow_trusted_source_drift=allow_trusted_source_drift,
+                allow_deck_pool_migration=bool(
+                    script_args.resume_allow_deck_pool_migration
+                ),
             )
         else:
             print("[resume] --resume-load-optimizer requested but trainer_state.pt was not found")
@@ -2404,7 +2664,13 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
                     resume_completed_episode_tracker = _update_completed_episode_tracker(
                         resume_completed_episode_tracker, logs
                     )
-                    print(f"[epoch {trainer.epoch}] {logs}")
+                    done_training = trainer.epoch >= trainer.total_epochs
+                    if trainer.epoch % stdout_interval == 0 or done_training:
+                        console = filter_numeric_metrics(logs, stdout_patterns)
+                        print(
+                            f"[epoch {trainer.epoch}] "
+                            + json.dumps(console, sort_keys=True, separators=(",", ":"))
+                        )
                 league_active = compute_league_active(
                     global_step=int(trainer.global_step),
                     activate_after_steps=int(league_cfg.activate_after_steps),
@@ -2476,6 +2742,9 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
                                     f"resident_opponents={len(trainer.opponent_policies)}, "
                                     f"champion={league_manager.state.champion_policy_id}"
                                 )
+                current_checkpoint = checkpoint_cache.get(int(trainer.epoch))
+                if current_checkpoint is not None:
+                    _finalize_checkpoint(current_checkpoint)
                 if (
                     script_args.render_playback_interval > 0
                     and trainer.epoch % script_args.render_playback_interval == 0
@@ -2500,7 +2769,11 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
                         break
         finally:
             trainer.print_dashboard()
+            force_checkpoint = True
             model_path_raw = trainer.close()
+            current_checkpoint = checkpoint_cache.get(int(trainer.epoch))
+            if current_checkpoint is not None:
+                _finalize_checkpoint(current_checkpoint)
             model_path = Path(model_path_raw) if model_path_raw else None
             if logger is not None:
                 logger.close(str(model_path) if model_path else None)
