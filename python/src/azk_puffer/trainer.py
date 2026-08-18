@@ -120,11 +120,9 @@ class PuffeRL:
         torch.backends.cudnn.deterministic = config['torch_deterministic']
         torch.backends.cudnn.benchmark = True
 
-        # Reproducibility
+        # The project entrypoint optionally seeds process RNGs before policy
+        # construction. This seed controls the vector-environment reset.
         seed = config['seed']
-        #random.seed(seed)
-        #np.random.seed(seed)
-        #torch.manual_seed(seed)
 
         # Vecenv info
         vecenv.async_reset(seed)

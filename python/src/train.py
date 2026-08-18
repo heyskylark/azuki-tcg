@@ -8,9 +8,11 @@ import hashlib
 import json
 import math
 import os
+import random
 import time
 from pathlib import Path
 
+import numpy as np
 import azk_puffer.pytorch as azk_pytorch
 import azk_puffer.trainer as pufferl
 import azk_puffer.vector as azk_vector
@@ -141,6 +143,21 @@ RESUME_SOURCE_HASH_TARGETS = (
     "python/src/training_utils.py",
     ".codex/docs/azuki_garden_arena_2026-08-15_decks.json",
 )
+
+
+def _seed_training_process(train_config: dict) -> int | None:
+    """Optionally seed process RNGs before environments and policies are built."""
+    if not bool(train_config.get("seed_process_rngs", False)):
+        return None
+
+    seed = int(train_config.get("seed", 0))
+    if not 0 <= seed <= (1 << 32) - 1:
+        raise ValueError("train.seed must be in [0, 2**32 - 1] when process seeding is enabled")
+
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    return seed
 
 
 class _JsonlLogger:
@@ -2041,6 +2058,9 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
 
     torch_profile_cfg = _build_torch_profiler_config(script_args)
     trainer_args = load_training_config(config_path, forwarded_cli)
+    process_seed = _seed_training_process(trainer_args["train"])
+    if process_seed is not None:
+        print(f"[reproducibility] seeded Python, NumPy, and Torch RNGs with {process_seed}")
     applied_process_env = apply_process_environment(trainer_args)
     if applied_process_env:
         print(

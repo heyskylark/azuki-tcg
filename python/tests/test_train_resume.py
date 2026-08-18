@@ -1,8 +1,10 @@
 import json
 import os
+import random
 from pathlib import Path
 from types import SimpleNamespace
 
+import numpy as np
 import pytest
 import torch
 
@@ -14,12 +16,40 @@ from train import (
     _enabled_episode_schedule_completion,
     _extract_completed_episodes_from_mapping,
     _load_model_weights,
+    _seed_training_process,
     _peek_resume_env_completed_episodes,
     _restart_lr_schedule_for_remaining_epochs,
     _resume_cfg_mismatches,
     _select_resume_completed_episodes,
     _trainer_shaped_reward_schedule_state,
 )
+
+
+def _draw_rng_sample() -> tuple[float, float, float]:
+    return random.random(), float(np.random.random()), float(torch.rand(()))
+
+
+def test_process_seeding_is_disabled_by_default() -> None:
+    random.seed(101)
+    np.random.seed(103)
+    torch.manual_seed(107)
+    expected = _draw_rng_sample()
+
+    random.seed(101)
+    np.random.seed(103)
+    torch.manual_seed(107)
+    assert _seed_training_process({"seed": 42}) is None
+    assert _draw_rng_sample() == expected
+
+
+def test_process_seeding_reproducibly_seeds_all_rngs() -> None:
+    config = {"seed": 42, "seed_process_rngs": True}
+    assert _seed_training_process(config) == 42
+    expected = _draw_rng_sample()
+
+    _draw_rng_sample()
+    assert _seed_training_process(config) == 42
+    assert _draw_rng_sample() == expected
 
 
 class _CachedPolicy(torch.nn.Module):
