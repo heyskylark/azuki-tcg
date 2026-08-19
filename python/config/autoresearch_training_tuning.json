@@ -32,10 +32,10 @@
         "train.compile": false,
         "train.max_minibatch_size": 960,
         "train.minibatch_size": 960,
-        "train.precision": "bfloat16",
+        "train.precision": "float32",
         "vec.batch_size": 120,
         "vec.num_envs": 120,
-        "vec.num_workers": 4,
+        "vec.num_workers": 8,
         "vec.zero_copy": true
       }
     }
