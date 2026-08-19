@@ -1692,27 +1692,14 @@ class TCG(nn.Module):
     ):
       return self._metadata_table_cache
 
-    # This path always builds the complete vocabulary in its canonical order.
-    # Use the registered static tables directly instead of identity-gathering
-    # every field through arange(static_vocab_size).
-    static = {
-      "present_mask": self.static_card_present_mask,
-      "card_type": self.static_card_type,
-      "element": self.static_element,
-      "base_ikz_cost": self.static_base_ikz_cost,
-      "base_attack": self.static_base_attack,
-      "base_health": self.static_base_health,
-      "base_gate_points": self.static_base_gate_points,
-      "has_ability": self.static_has_ability,
-      "ability_timing": self.static_ability_timing,
-      "ability_optional": self.static_ability_optional,
-      "keyword_multi_hot": self.static_keyword_multi_hot,
-    }
-    card_type_emb = self.card_type_encoder(static["card_type"])
-    element_emb = self.element_encoder(static["element"])
-    ability_timing_emb = self.ability_timing_encoder(static["ability_timing"])
+    # These registered tables are already in canonical vocabulary order.
+    card_type_emb = self.card_type_encoder(self.static_card_type)
+    element_emb = self.element_encoder(self.static_element)
+    ability_timing_emb = self.ability_timing_encoder(
+      self.static_ability_timing)
     text_emb = self._text_feature_table()
-    keyword_emb = self.keyword_feature_encoder(static["keyword_multi_hot"])
+    keyword_emb = self.keyword_feature_encoder(
+      self.static_keyword_multi_hot)
 
     scalar = self.static_card_scalar
     scalar = self.scalar_normalizer.normalize_only("card_metadata_scalar", scalar)
