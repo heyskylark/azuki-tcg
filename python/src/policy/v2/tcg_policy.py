@@ -909,6 +909,22 @@ class TCG(nn.Module):
     self.register_buffer("static_has_ability", static_table.has_ability, persistent=False)
     self.register_buffer("static_ability_timing", static_table.ability_timing_ids, persistent=False)
     self.register_buffer("static_ability_optional", static_table.ability_is_optional, persistent=False)
+    self.register_buffer(
+      "static_card_scalar",
+      torch.stack(
+        [
+          static_table.card_present_mask,
+          static_table.ikz_cost,
+          static_table.attack,
+          static_table.health,
+          static_table.gate_points,
+          static_table.has_ability,
+          static_table.ability_is_optional,
+        ],
+        dim=-1,
+      ),
+      persistent=False,
+    )
     self.register_buffer("static_keyword_multi_hot", static_table.keyword_multi_hot, persistent=False)
     self.register_buffer("static_name_embeddings", static_table.name_embeddings, persistent=False)
     self.register_buffer("static_effect_embeddings", static_table.effect_embeddings, persistent=False)
@@ -1698,18 +1714,7 @@ class TCG(nn.Module):
     text_emb = self._text_feature_table()
     keyword_emb = self.keyword_feature_encoder(static["keyword_multi_hot"])
 
-    scalar = torch.stack(
-      [
-        static["present_mask"],
-        static["base_ikz_cost"],
-        static["base_attack"],
-        static["base_health"],
-        static["base_gate_points"],
-        static["has_ability"],
-        static["ability_optional"],
-      ],
-      dim=-1,
-    )
+    scalar = self.static_card_scalar
     scalar = self.scalar_normalizer.normalize_only("card_metadata_scalar", scalar)
 
     metadata_input = torch.cat(
@@ -1739,19 +1744,9 @@ class TCG(nn.Module):
       # Preserve the occurrence-weighted running-norm statistics of the
       # per-occurrence formulation (values are pure buffer gathers, no grad).
       with torch.no_grad():
-        static = self._lookup_static(idx)
-        scalar = torch.stack(
-          [
-            static["present_mask"],
-            static["base_ikz_cost"],
-            static["base_attack"],
-            static["base_health"],
-            static["base_gate_points"],
-            static["has_ability"],
-            static["ability_optional"],
-          ],
-          dim=-1,
-        )
+        scalar = nn.functional.embedding(
+          idx.reshape(-1), self.static_card_scalar
+        ).view(*idx.shape, self.static_card_scalar.shape[-1])
         self.scalar_normalizer.update_only("card_metadata_scalar", scalar, mask=valid_mask)
 
     table = self._metadata_embedding_table()
