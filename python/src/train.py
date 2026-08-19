@@ -2689,7 +2689,7 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
                         console = filter_numeric_metrics(logs, stdout_patterns)
                         print(
                             f"[epoch {trainer.epoch}] "
-                            + json.dumps(console, sort_keys=True, separators=(",", ":"))
+                            + json.dumps(console, separators=(",", ":"))
                         )
                 league_active = compute_league_active(
                     global_step=int(trainer.global_step),
