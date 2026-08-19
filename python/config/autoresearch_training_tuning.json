@@ -30,8 +30,8 @@
       "overrides": {
         "policy.legal_action_scorer_use_references": true,
         "train.compile": false,
-        "train.max_minibatch_size": 960,
-        "train.minibatch_size": 960,
+        "train.max_minibatch_size": 1920,
+        "train.minibatch_size": 1920,
         "train.precision": "float32",
         "vec.batch_size": 120,
         "vec.num_envs": 120,
