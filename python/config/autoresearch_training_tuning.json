@@ -28,7 +28,7 @@
       "label": "candidate",
       "description": "Current configuration tuning candidate.",
       "overrides": {
-        "policy.legal_action_scorer_use_references": true,
+        "policy.legal_action_scorer_use_references": false,
         "train.compile": false,
         "train.max_minibatch_size": 3840,
         "train.minibatch_size": 3840,
