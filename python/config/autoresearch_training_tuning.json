@@ -1,0 +1,43 @@
+{
+  "description": "Matched control and post-optimization training configuration candidate.",
+  "control_overrides": {
+    "env.direct_parallel": true,
+    "league.enable": false,
+    "neptune": false,
+    "policy.legal_action_scorer_use_references": true,
+    "train.batch_size": 3840,
+    "train.compile": false,
+    "train.max_minibatch_size": 960,
+    "train.minibatch_size": 960,
+    "train.precision": "bfloat16",
+    "train.seed": 42,
+    "train.seed_process_rngs": true,
+    "vec.batch_size": 120,
+    "vec.num_envs": 120,
+    "vec.num_workers": 4,
+    "vec.seed": 42,
+    "vec.zero_copy": true,
+    "wandb": false
+  },
+  "variants": [
+    {
+      "label": "control",
+      "description": "Fixed post-core-optimization control."
+    },
+    {
+      "label": "candidate",
+      "description": "Current configuration tuning candidate.",
+      "overrides": {
+        "policy.legal_action_scorer_use_references": true,
+        "train.compile": false,
+        "train.max_minibatch_size": 960,
+        "train.minibatch_size": 960,
+        "train.precision": "bfloat16",
+        "vec.batch_size": 120,
+        "vec.num_envs": 120,
+        "vec.num_workers": 4,
+        "vec.zero_copy": true
+      }
+    }
+  ]
+}
