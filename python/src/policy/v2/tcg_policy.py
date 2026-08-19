@@ -1676,9 +1676,22 @@ class TCG(nn.Module):
     ):
       return self._metadata_table_cache
 
-    device = self.static_card_type.device
-    idx = torch.arange(self.static_vocab_size, device=device)
-    static = self._lookup_static(idx)
+    # This path always builds the complete vocabulary in its canonical order.
+    # Use the registered static tables directly instead of identity-gathering
+    # every field through arange(static_vocab_size).
+    static = {
+      "present_mask": self.static_card_present_mask,
+      "card_type": self.static_card_type,
+      "element": self.static_element,
+      "base_ikz_cost": self.static_base_ikz_cost,
+      "base_attack": self.static_base_attack,
+      "base_health": self.static_base_health,
+      "base_gate_points": self.static_base_gate_points,
+      "has_ability": self.static_has_ability,
+      "ability_timing": self.static_ability_timing,
+      "ability_optional": self.static_ability_optional,
+      "keyword_multi_hot": self.static_keyword_multi_hot,
+    }
     card_type_emb = self.card_type_encoder(static["card_type"])
     element_emb = self.element_encoder(static["element"])
     ability_timing_emb = self.ability_timing_encoder(static["ability_timing"])
