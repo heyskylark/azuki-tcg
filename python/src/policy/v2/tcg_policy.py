@@ -1734,7 +1734,15 @@ class TCG(nn.Module):
     return table
 
   def _encode_card_metadata_from_index(self, idx: torch.Tensor, valid_mask: torch.Tensor | None = None):
-    present_mask = self.static_card_present_mask[idx] > 0.5
+    scalar = None
+    if self.training:
+      with torch.no_grad():
+        scalar = nn.functional.embedding(
+          idx.reshape(-1), self.static_card_scalar
+        ).view(*idx.shape, self.static_card_scalar.shape[-1])
+      present_mask = scalar[..., 0] > 0.5
+    else:
+      present_mask = self.static_card_present_mask[idx] > 0.5
     if valid_mask is None:
       valid_mask = present_mask
     else:
@@ -1742,12 +1750,9 @@ class TCG(nn.Module):
 
     if self.training:
       # Preserve the occurrence-weighted running-norm statistics of the
-      # per-occurrence formulation (values are pure buffer gathers, no grad).
-      with torch.no_grad():
-        scalar = nn.functional.embedding(
-          idx.reshape(-1), self.static_card_scalar
-        ).view(*idx.shape, self.static_card_scalar.shape[-1])
-        self.scalar_normalizer.update_only("card_metadata_scalar", scalar, mask=valid_mask)
+      # per-occurrence formulation using the same gathered static rows.
+      self.scalar_normalizer.update_only(
+        "card_metadata_scalar", scalar, mask=valid_mask)
 
     table = self._metadata_embedding_table()
     metadata_emb = nn.functional.embedding(idx.reshape(-1), table).view(
