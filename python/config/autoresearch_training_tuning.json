@@ -36,7 +36,7 @@
         "vec.batch_size": 120,
         "vec.num_envs": 120,
         "vec.num_workers": 8,
-        "vec.zero_copy": true
+        "vec.zero_copy": false
       }
     }
   ]
