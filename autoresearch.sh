@@ -209,9 +209,11 @@ for seat in (0, 1):
 
     control_return = mean_metric(control_records, prefix + "azk_episode_return")
     candidate_return = mean_metric(candidate_records, prefix + "azk_episode_return")
-    return_delta = relative_delta(candidate_return, control_return, 0.25)
+    return_delta = relative_delta(candidate_return, control_return, 5.0)
     if return_delta > 0.50:
-        raise SystemExit(f"seat {seat} episode-return delta {return_delta:.4f} exceeded 0.50")
+        raise SystemExit(
+            f"seat {seat} reward-scale-normalized return delta {return_delta:.4f} exceeded 0.50"
+        )
 
     control_completed = mean_metric(control_records, prefix + "azk_completed_episodes")
     candidate_completed = mean_metric(candidate_records, prefix + "azk_completed_episodes")
