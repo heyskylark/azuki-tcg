@@ -153,15 +153,6 @@ class PuffeRL:
             dtype=pufferlib.pytorch.numpy_to_torch_dtype_dict[obs_space.dtype],
             pin_memory=device == 'cuda' and config['cpu_offload'],
             device='cpu' if config['cpu_offload'] else device)
-        self._rollout_obs_device = None
-        if device == 'cuda' and not config['cpu_offload']:
-            self._rollout_obs_device = torch.empty(
-                (vecenv.agents_per_batch, *obs_space.shape),
-                dtype=pufferlib.pytorch.numpy_to_torch_dtype_dict[
-                    obs_space.dtype
-                ],
-                device=device,
-            )
         self.actions = torch.zeros(segments, horizon, *atn_space.shape, device=device,
             dtype=pufferlib.pytorch.numpy_to_torch_dtype_dict[atn_space.dtype])
         self.values = torch.zeros(segments, horizon, device=device)
@@ -187,7 +178,6 @@ class PuffeRL:
         self._agents_per_env = max(
             1, int(getattr(driver, 'agents_per_match', getattr(driver, 'num_agents', 1)))
         )
-        self._rollout_inference_buffers_materialized = False
         self._num_envs_total = max(1, int(total_agents // self._agents_per_env))
         self._env_episode_ids = np.arange(self._num_envs_total, dtype=np.int64)
         self._next_env_episode_id = int(self._num_envs_total)
@@ -773,7 +763,6 @@ class PuffeRL:
         self._draftaux_injected += float(aux.sum().item())
         self._draftaux_events += int(b.numel())
 
-    @torch.inference_mode()
     def evaluate(self):
         profile = self.profile
         epoch = self.epoch
@@ -834,11 +823,7 @@ class PuffeRL:
 
             profile('eval_copy', epoch)
             o = torch.as_tensor(o)
-            if self._rollout_obs_device is None:
-                o_device = o.to(device, non_blocking=True)
-            else:
-                self._rollout_obs_device.copy_(o, non_blocking=False)
-                o_device = self._rollout_obs_device
+            o_device = o.to(device, non_blocking=True)
             r = torch.as_tensor(r).to(device, non_blocking=True)
             d = torch.as_tensor(d).to(device, non_blocking=True)
             t_dev = torch.as_tensor(t).to(device, non_blocking=True)
@@ -941,13 +926,6 @@ class PuffeRL:
                 if isinstance(logits, torch.distributions.Normal):
                     action = np.clip(action, self.vecenv.action_space.low, self.vecenv.action_space.high)
 
-            # action.cpu() synchronizes the default CUDA stream, so all reads
-            # from the workers' shared observation/reward buffers are complete.
-            # Dispatch the next native step before processing detached info
-            # dictionaries to overlap worker compute with Python aggregation.
-            profile('env', epoch)
-            self.vecenv.send(action)
-
             profile('eval_misc', epoch)
             for i in info:
                 for k, v in pufferlib.unroll_nested_dict(i):
@@ -957,6 +935,9 @@ class PuffeRL:
                         self.stats[k].extend(v)
                     else:
                         self.stats[k].append(v)
+
+            profile('env', epoch)
+            self.vecenv.send(action)
 
         profile('eval_misc', epoch)
         if win_prob_enabled:
@@ -971,18 +952,6 @@ class PuffeRL:
         self.ep_indices = torch.arange(self.total_agents, device=device, dtype=torch.int32)
         self.ep_lengths.zero_()
         self._record_effective_reward_shaping_scale()
-        if not self._rollout_inference_buffers_materialized:
-            base_policy = self._base_policy_module()
-            scalar_normalizer = getattr(base_policy, 'scalar_normalizer', None)
-            if scalar_normalizer is not None:
-                with torch.inference_mode(False):
-                    for name, buffer in scalar_normalizer.named_buffers(
-                        recurse=False
-                    ):
-                        if buffer.is_inference():
-                            setattr(scalar_normalizer, name, buffer.clone())
-            self._rollout_inference_buffers_materialized = True
-
         profile.end()
         return self.stats
 
@@ -1506,8 +1475,6 @@ class Profile:
         self.profiles = defaultdict(lambda: defaultdict(float))
         self.frequency = frequency
         self.stack = []
-        self.pending = []
-        self.cuda_timing = torch.cuda.is_available()
 
     def __iter__(self):
         return iter(self.profiles.items())
@@ -1515,51 +1482,35 @@ class Profile:
     def __getattr__(self, name):
         return self.profiles[name]
 
-    def _boundary(self):
-        tick = time.perf_counter()
-        event = None
-        if self.cuda_timing:
-            event = torch.cuda.Event(enable_timing=True)
-            event.record()
-        return tick, event
-
     def __call__(self, name, epoch, nest=False):
         # Skip profiling the first few epochs, which are noisy due to setup
         if (epoch + 1) % self.frequency != 0:
             return
 
-        tick, event = self._boundary()
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
+
+        tick = time.time()
         if len(self.stack) != 0 and not nest:
-            self.pop(tick, event)
+            self.pop(tick)
 
-        self.stack.append((name, tick, event))
+        self.stack.append(name)
+        self.profiles[name]['start'] = tick
 
-    def pop(self, end_tick, end_event):
-        name, start_tick, start_event = self.stack.pop()
-        self.pending.append(
-            (name, end_tick - start_tick, start_event, end_event)
-        )
+    def pop(self, end):
+        profile = self.profiles[self.stack.pop()]
+        delta = end - profile['start']
+        profile['delta'] += delta
+        # Multiply delta by freq to account for skipped epochs
+        profile['elapsed'] += delta * self.frequency
 
     def end(self):
-        if not self.stack:
-            return
+        if torch.cuda.is_available():
+            torch.cuda.synchronize()
 
-        end_tick, end_event = self._boundary()
-        while self.stack:
-            self.pop(end_tick, end_event)
-        if end_event is not None:
-            end_event.synchronize()
-
-        for name, cpu_delta, start_event, segment_end_event in self.pending:
-            delta = cpu_delta
-            if start_event is not None and segment_end_event is not None:
-                gpu_delta = start_event.elapsed_time(segment_end_event) / 1000.0
-                delta = max(cpu_delta, gpu_delta)
-            profile = self.profiles[name]
-            profile['delta'] += delta
-            # Multiply delta by freq to account for skipped epochs
-            profile['elapsed'] += delta * self.frequency
-        self.pending.clear()
+        end = time.time()
+        for i in range(len(self.stack)):
+            self.pop(end)
 
     def clear(self):
         for prof in self.profiles.values():
