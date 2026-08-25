@@ -87,6 +87,19 @@ add_test(NAME world_tests COMMAND world_tests)
 add_test(NAME stt04_017_regression
   COMMAND world_tests --run-stt04-017-regression)
 
+add_executable(terminal_game_log_tests
+  tests/test_terminal_game_logs.c
+  $<TARGET_OBJECTS:azuki_obj>
+)
+target_include_directories(terminal_game_log_tests PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/src
+  ${CURSES_INCLUDE_DIRS}
+)
+target_link_libraries(terminal_game_log_tests PRIVATE ${AZUKI_FLECS_TARGET})
+target_link_libraries(terminal_game_log_tests PRIVATE ${CURSES_LIBRARIES})
+add_test(NAME terminal_game_log_tests COMMAND terminal_game_log_tests)
+
 if(BUILD_PYTHON_BINDINGS)
   add_subdirectory(python/src)
 endif()

@@ -984,10 +984,9 @@ void expire_eot_health_modifiers_in_zone(ecs_world_t *world, ecs_entity_t zone) 
             ecs_entity_t parent = ecs_get_target(world, card, EcsChildOf, 0);
             for (int p = 0; p < MAX_PLAYERS_PER_MATCH; p++) {
               if (parent == gs->zones[p].leader) {
-                gs->winner = (p + 1) % MAX_PLAYERS_PER_MATCH;
-                ecs_singleton_modified(world, GameState);
                 azk_log_entity_died(world, card, GLOG_DEATH_EFFECT);
-                azk_log_game_ended(world, gs->winner, GLOG_END_LEADER_DEFEATED);
+                azk_finish_game(world, (p + 1) % MAX_PLAYERS_PER_MATCH,
+                                GLOG_END_LEADER_DEFEATED);
                 break;
               }
             }
@@ -1291,9 +1290,10 @@ void azk_process_passive_buff_queue(ecs_world_t *world) {
             ecs_entity_t parent = ecs_get_target(world, buff->entity, EcsChildOf, 0);
             for (int p = 0; p < MAX_PLAYERS_PER_MATCH; p++) {
               if (parent == gs->zones[p].leader) {
-                gs->winner = (p + 1) % MAX_PLAYERS_PER_MATCH;
-                ecs_singleton_modified(world, GameState);
-                cli_render_logf("[Status] Leader defeated by health buff removal - player %d wins", gs->winner);
+                azk_log_entity_died(world, buff->entity, GLOG_DEATH_EFFECT);
+                int8_t winner = (p + 1) % MAX_PLAYERS_PER_MATCH;
+                azk_finish_game(world, winner, GLOG_END_LEADER_DEFEATED);
+                cli_render_logf("[Status] Leader defeated by health buff removal - player %d wins", winner);
                 break;
               }
             }

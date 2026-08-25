@@ -196,6 +196,13 @@ void azk_log_turn_ended(ecs_world_t *world, uint8_t player,
                         uint16_t turn_number);
 
 /**
+ * Establish the authoritative terminal state and emit GAME_ENDED once.
+ * Returns false without changing state or logs if the game already ended.
+ */
+bool azk_finish_game(ecs_world_t *world, int8_t winner,
+                     GameLogEndReason reason);
+
+/**
  * Log the game ending.
  */
 void azk_log_game_ended(ecs_world_t *world, int8_t winner,

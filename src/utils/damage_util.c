@@ -300,11 +300,11 @@ static bool deal_effect_damage_from_source_internal(ecs_world_t *world,
       // Find which player owns this leader
       for (int i = 0; i < MAX_PLAYERS_PER_MATCH; i++) {
         if (target_parent == gs->zones[i].leader) {
-          // Owner of defeated leader loses, opponent wins
-          gs->winner = (i + 1) % MAX_PLAYERS_PER_MATCH;
-          ecs_singleton_modified(world, GameState);
-          cli_render_logf("[Damage] Leader defeated - player %d wins",
-                          gs->winner);
+          // Death must precede the terminal event in the persisted log stream.
+          azk_log_entity_died(world, target, GLOG_DEATH_EFFECT);
+          int8_t winner = (i + 1) % MAX_PLAYERS_PER_MATCH;
+          azk_finish_game(world, winner, GLOG_END_LEADER_DEFEATED);
+          cli_render_logf("[Damage] Leader defeated - player %d wins", winner);
           break;
         }
       }

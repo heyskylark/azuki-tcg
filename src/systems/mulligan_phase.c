@@ -1,6 +1,7 @@
 #include "systems/mulligan_phase.h"
 #include "components/components.h"
 #include "utils/deck_utils.h"
+#include "utils/game_log_util.h"
 #include "utils/actions_util.h"
 #include "constants/game.h"
 #include "utils/cli_rendering_util.h"
@@ -21,7 +22,9 @@ static bool HandleMulliganShuffleAction(ecs_world_t *world, GameState *gs) {
   if (!move_cards_to_zone(world, deck_zone, hand_zone, INITIAL_DRAW_COUNT, NULL)) {
     cli_render_log("[Mulligan] No cards in deck");
 
-    gs->winner = (gs->active_player_index + 1) % 2;
+    azk_finish_game(world,
+                    (gs->active_player_index + 1) % MAX_PLAYERS_PER_MATCH,
+                    GLOG_END_DECK_OUT);
 
     return true;
   }

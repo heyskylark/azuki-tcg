@@ -11,9 +11,10 @@ import { findRoomById, updateRoomStatus } from "@tcg/backend-core/services/roomS
 import { getRoomChannel, removeRoomChannel, updateRoomChannelStatus } from "@/state/RoomRegistry";
 import { getWorldByRoomId, destroyGameWorld, getPlayerUserId } from "@/engine/WorldManager";
 import { clearAiOpponentForRoom } from "@/engine/aiOpponentService";
+import { classifyGameOutcome } from "@/engine/gameOutcome";
 import { broadcastToRoom } from "@/utils/broadcast";
 import logger from "@/logger";
-import type { GameEndReason, StateContext } from "@/engine/types";
+import type { StateContext } from "@/engine/types";
 
 export interface GameOverResult {
   gameOver: boolean;
@@ -21,21 +22,6 @@ export interface GameOverResult {
   stateContext: StateContext;
 }
 
-/**
- * Map C engine GameEndReason to WinType.
- */
-function mapGameEndReasonToWinType(reason: GameEndReason): WinType {
-  switch (reason) {
-    case "LEADER_DEFEATED":
-      return WinType.WIN;
-    case "DECK_OUT":
-      return WinType.WIN;
-    case "CONCEDE":
-      return WinType.FORFEIT;
-    default:
-      return WinType.WIN;
-  }
-}
 
 /**
  * Handle game over for a room.
@@ -63,9 +49,9 @@ export async function handleGameOver(
     return;
   }
 
-  // Determine winner info
-  const winnerSlot = result.winner as 0 | 1 | null;
-  const winnerId = winnerSlot !== null ? getPlayerUserId(roomId, winnerSlot) : null;
+  const { winnerSlot, winType } = classifyGameOutcome(result.winner);
+  const winnerId =
+    winnerSlot === null ? null : getPlayerUserId(roomId, winnerSlot);
 
   // Calculate game duration
   const durationSeconds = Math.floor(
@@ -80,7 +66,7 @@ export async function handleGameOver(
       player1Id: world.player1UserId,
       aiModelId: room.aiModelId,
       winnerId,
-      winType: WinType.WIN, // Default to WIN, could be FORFEIT for concede
+      winType,
       totalTurns: result.stateContext.turnNumber,
       durationSeconds,
     });
@@ -99,8 +85,8 @@ export async function handleGameOver(
     type: "GAME_OVER",
     winnerId,
     winnerSlot,
-    winType: WinType.WIN,
-    reason: getGameOverReason(result),
+    winType,
+    reason: winnerSlot === null ? "Draw" : `Player ${winnerSlot} wins`,
   };
   broadcastToRoom(channel, gameOverMessage);
 
@@ -123,16 +109,6 @@ export async function handleGameOver(
     removeRoomChannel(roomId);
     logger.debug("Removed room channel", { roomId });
   }, 5000);
-}
-
-/**
- * Get a human-readable reason for game over.
- */
-function getGameOverReason(result: GameOverResult): string {
-  if (result.winner === null) {
-    return "Draw";
-  }
-  return `Player ${result.winner} wins`;
 }
 
 /**
