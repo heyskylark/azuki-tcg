@@ -2152,7 +2152,7 @@ static const CardDef kGeneratedCardDefs[CARD_DEF_COUNT] = {
         .card_id = "AZK01-127",
         .name = "Sundering Strike",
         .rarity = CARD_RARITY_UC,
-        .element = CARD_ELEMENT_LIGHTNING,
+        .element = CARD_ELEMENT_NORMAL,
         .type = CARD_TYPE_SPELL,
         .has_base_stats = false,
         .base_stats = { .attack = 0, .health = 0 },
@@ -5896,7 +5896,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         kGeneratedPrefabs[CARD_DEF_AZK01_127] = prefab;
         ecs_set(world, prefab, CardId, { .id = CARD_DEF_AZK01_127, .code = "AZK01-127" });
         ecs_set(world, prefab, Name, { .value = "Sundering Strike" });
-        ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_LIGHTNING });
+        ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_NORMAL });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_SPELL });
         ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 1 });
