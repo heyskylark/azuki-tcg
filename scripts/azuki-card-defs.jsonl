@@ -155,7 +155,7 @@
 {"card_id": "AZK01-124", "name": "Gate of Devotion", "rarity": "G", "element": "EARTH", "type": "GATE"}
 {"card_id": "AZK01-125", "name": "Benzai the Sly", "rarity": "L", "element": "WATER", "type": "LEADER", "health": 20, "subtypes": ["Frog", "Merchant", "Watercrafting"]}
 {"card_id": "AZK01-126", "name": "Gate of Echoed Waves", "rarity": "G", "element": "WATER", "type": "GATE"}
-{"card_id": "AZK01-127", "name": "Sundering Strike", "rarity": "UC", "element": "LIGHTNING", "type": "SPELL", "ikz_cost": 1, "subtypes": ["Samurai"]}
+{"card_id": "AZK01-127", "name": "Sundering Strike", "rarity": "UC", "element": "NORMAL", "type": "SPELL", "ikz_cost": 1, "subtypes": ["Samurai"]}
 {"card_id": "AZK01-128", "name": "Wrong Step", "rarity": "UC", "element": "EARTH", "type": "SPELL", "ikz_cost": 2, "subtypes": ["Earthfury", "Obsidian"]}
 {"card_id": "AZK01-129", "name": "Silk Tongue Veyla", "rarity": "UC", "element": "FIRE", "type": "ENTITY", "ikz_cost": 5, "attack": 1, "health": 4, "gate_points": 1, "keywords": ["defender"], "subtypes": ["Black Jade", "Pyreskin", "Wildfire"]}
 {"card_id": "STT03-001", "name": "Bobu", "rarity": "L", "element": "EARTH", "type": "LEADER", "health": 20, "subtypes": ["Bobu", "Brewmaster", "Stonemend"]}
