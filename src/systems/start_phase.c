@@ -17,7 +17,9 @@ void DrawCard(ecs_world_t *world, GameState *gs) {
   if (!move_cards_to_zone(world, deck_zone, hand_zone, 1, out_cards)) {
     cli_render_log("[DrawCard] No cards in deck");
 
-    gs->winner = (gs->active_player_index + 1) % 2;
+    azk_finish_game(world,
+                    (gs->active_player_index + 1) % MAX_PLAYERS_PER_MATCH,
+                    GLOG_END_DECK_OUT);
 
     return;
   }

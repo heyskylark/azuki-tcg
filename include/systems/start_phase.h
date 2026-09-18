@@ -3,6 +3,7 @@
 
 #include "components/components.h"
 
+void DrawCard(ecs_world_t *world, GameState *gs);
 void StartPhase(ecs_iter_t *it);
 void init_start_phase_system(ecs_world_t *world);
 void run_start_phase_system(ecs_world_t *world);

@@ -21,12 +21,9 @@ static inline uint32_t deck_next_rand(uint32_t *state) {
   return x;
 }
 
-static bool set_deck_out_loss(ecs_world_t *world, GameState *gs,
-                              uint8_t player_num) {
-  gs->winner = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
-  gs->phase = PHASE_END_MATCH;
-  ecs_singleton_modified(world, GameState);
-  azk_log_game_ended(world, gs->winner, GLOG_END_DECK_OUT);
+static bool set_deck_out_loss(ecs_world_t *world, uint8_t player_num) {
+  azk_finish_game(world, (player_num + 1) % MAX_PLAYERS_PER_MATCH,
+                  GLOG_END_DECK_OUT);
   return false;
 }
 
@@ -152,7 +149,7 @@ bool draw_cards_with_deckout_check(ecs_world_t *world, ecs_entity_t player,
   for (int i = 0; i < draw_count; i++) {
     if (deck_count == 0) {
       // Couldn't draw (deck was already empty)
-      return set_deck_out_loss(world, gs, player_num);
+      return set_deck_out_loss(world, player_num);
     }
 
     // Move the top card (last in ordered list) to hand
@@ -173,7 +170,7 @@ bool draw_cards_with_deckout_check(ecs_world_t *world, ecs_entity_t player,
     // (deck_count - i - 1 = remaining cards after this draw)
     int remaining = deck_count - i - 1;
     if (remaining == 0) {
-      return set_deck_out_loss(world, gs, player_num);
+      return set_deck_out_loss(world, player_num);
     }
   }
   return true;
@@ -214,7 +211,7 @@ AzkDebugDrawResult azk_debug_draw_card_from_deck(ecs_world_t *world,
                             GLOG_ZONE_HAND, (int8_t)hand_index);
 
     if (deck_count == 1) {
-      bool draw_ok = set_deck_out_loss(world, gs, player_num);
+      bool draw_ok = set_deck_out_loss(world, player_num);
       (void)draw_ok;
     }
 
@@ -256,7 +253,7 @@ bool mill_cards_with_deckout_check(ecs_world_t *world, ecs_entity_t player,
   }
 
   if (deck_count > 0 && to_mill == deck_count) {
-    return set_deck_out_loss(world, gs, player_num);
+    return set_deck_out_loss(world, player_num);
   }
 
   return true;

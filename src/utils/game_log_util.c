@@ -732,6 +732,20 @@ void azk_log_turn_ended(ecs_world_t *world, uint8_t player,
   log->data.turn_ended.turn_number = turn_number;
 }
 
+bool azk_finish_game(ecs_world_t *world, int8_t winner,
+                     GameLogEndReason reason) {
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  if (gs == NULL || gs->winner >= 0) {
+    return false;
+  }
+
+  gs->winner = winner;
+  gs->phase = PHASE_END_MATCH;
+  ecs_singleton_modified(world, GameState);
+  azk_log_game_ended(world, winner, reason);
+  return true;
+}
+
 void azk_log_game_ended(ecs_world_t *world, int8_t winner,
                         GameLogEndReason reason) {
   GameStateLog *log = add_log_entry(world);

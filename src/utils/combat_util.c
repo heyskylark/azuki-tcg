@@ -271,17 +271,13 @@ void resolve_combat(ecs_world_t *world) {
   }
 
   if (attacking_leader_defeated && defender_leader_defeated) {
-    gs->winner = 2;
-    // Log game ended as draw
-    azk_log_game_ended(world, 2, GLOG_END_LEADER_DEFEATED);
+    azk_finish_game(world, 2, GLOG_END_LEADER_DEFEATED);
   } else if (attacking_leader_defeated) {
-    gs->winner = (gs->active_player_index + 1) % 2;
-    // Log game ended
-    azk_log_game_ended(world, gs->winner, GLOG_END_LEADER_DEFEATED);
+    azk_finish_game(world, (gs->active_player_index + 1) % 2,
+                    GLOG_END_LEADER_DEFEATED);
   } else if (defender_leader_defeated) {
-    gs->winner = gs->active_player_index;
-    // Log game ended
-    azk_log_game_ended(world, gs->winner, GLOG_END_LEADER_DEFEATED);
+    azk_finish_game(world, gs->active_player_index,
+                    GLOG_END_LEADER_DEFEATED);
   }
 
   gs->last_combat = (LastCombatResult){
