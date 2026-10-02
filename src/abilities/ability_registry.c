@@ -2159,7 +2159,7 @@ void azk_init_ability_registry(ecs_world_t *world) {
 
   // AZK01-122 "Rushfire Gate": On Gate Portal; you may play an entity with
   // cost <= the portaled entity's gate power from your hand into the Alley or
-  // Garden. It gains Charge while it remains in play.
+  // Garden. It gains Charge this turn and is sacrificed at the end of the turn.
   kAbilityRegistry[CARD_DEF_AZK01_122] = (AbilityDef){
       .has_ability = true,
       .can_select_to_garden = true,
