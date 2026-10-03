@@ -11,14 +11,19 @@ export function buildPlayerInfo(channel: RoomChannelState, playerSlot: 0 | 1): P
     return null;
   }
 
-  const deckId = playerSlot === 0 ? channel.player0DeckId : channel.player1DeckId;
+  const storedDeckId = playerSlot === 0 ? channel.player0DeckId : channel.player1DeckId;
+  const redactDeck = channel.evaluation !== null && player.isAi;
+  const deckId = redactDeck ? null : storedDeckId;
   const ready = playerSlot === 0 ? channel.player0Ready : channel.player1Ready;
-
+  const playerId =
+    channel.evaluation !== null && player.isAi
+      ? `evaluation-opponent-${playerSlot}`
+      : player.userId;
   return {
-    id: player.userId,
+    id: playerId,
     username: player.username,
     isAi: player.isAi,
-    deckSelected: deckId !== null,
+    deckSelected: storedDeckId !== null,
     deckId,
     ready,
     connected: player.connected,
@@ -31,12 +36,10 @@ export function buildRoomStateMessage(channel: RoomChannelState): RoomStateMessa
   return {
     type: "ROOM_STATE",
     status: channel.status,
-    players: [
-      buildPlayerInfo(channel, 0),
-      buildPlayerInfo(channel, 1),
-    ],
+    players: [buildPlayerInfo(channel, 0), buildPlayerInfo(channel, 1)],
     deckSelectionDeadline: channel.deckSelectionDeadline?.toISOString() ?? null,
     readyCountdownEnd: readyCountdownEnd?.toISOString() ?? null,
+    evaluation: channel.evaluation,
   };
 }
 

@@ -30,15 +30,17 @@ services:
     image: python:3.13-slim
     working_dir: /app
     command: >
-      sh -lc "python3 python/src/inference_sidecar.py --host 0.0.0.0 --port 8002 --device auto"
+      sh -lc "python3 python/src/inference_sidecar.py --host 0.0.0.0 --port 8002 --device ${AZK_INFER_DEVICE:-auto}"
     env_file:
       - .env.local
     environment:
       NODE_ENV: ${NODE_ENV:-development}
-      AZK_INFER_CONFIG: /app/python/config/azuki.ini
+      AZK_INFER_CONFIG: ${AZK_INFER_CONFIG:-/app/python/config/azuki_human_eval_inference.ini}
       AZK_INFER_MODEL_CACHE_DIR: /tmp/azk-model-cache
+      AZK_INFER_LOCAL_MODEL_ROOT: ${AZK_INFER_LOCAL_MODEL_ROOT:-}
       AZK_INFER_DEVICE: ${AZK_INFER_DEVICE:-auto}
       AZK_INFER_SESSION_TTL_SECONDS: ${AZK_INFER_SESSION_TTL_SECONDS:-900}
+      AZK_INFER_SHARED_SECRET: ${AZK_INFER_SHARED_SECRET:-local-development-inference-secret}
     ports:
       - "8002:8002"
     volumes:
@@ -73,6 +75,7 @@ services:
       # INFERENCE_URL: http://inference:8002
       INFERENCE_URL: http://host.docker.internal:8002
       INFERENCE_TIMEOUT_MS: ${INFERENCE_TIMEOUT_MS:-60000}
+      INFERENCE_SHARED_SECRET: ${AZK_INFER_SHARED_SECRET:-local-development-inference-secret}
     depends_on:
       migrate:
         condition: service_completed_successfully

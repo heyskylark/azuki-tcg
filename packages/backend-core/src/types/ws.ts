@@ -92,6 +92,13 @@ export interface RoomClosedMessage extends ServerMessage {
   reason: string;
 }
 
+export interface RoomEvaluationMetadata {
+  matchId: string;
+  sessionId: string;
+  ordinal: number;
+  totalMatches: number;
+}
+
 export interface PlayerInfo {
   id: string;
   username: string;
@@ -108,6 +115,7 @@ export interface RoomStateMessage extends ServerMessage {
   players: [PlayerInfo | null, PlayerInfo | null];
   deckSelectionDeadline: string | null;
   readyCountdownEnd: string | null;
+  evaluation: RoomEvaluationMetadata | null;
 }
 
 export interface GameOverMessage extends ServerMessage {

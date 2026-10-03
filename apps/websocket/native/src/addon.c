@@ -330,10 +330,10 @@ static napi_value CreateWorld(napi_env env, napi_callback_info info) {
   return result;
 }
 
-// createWorldWithDecks(seed: number, player0Deck: DeckCardEntry[], player1Deck: DeckCardEntry[])
+// createWorldWithDecks(seed, player0Deck, player1Deck, startingPlayer?)
 static napi_value CreateWorldWithDecks(napi_env env, napi_callback_info info) {
-  size_t argc = 3;
-  napi_value args[3];
+  size_t argc = 4;
+  napi_value args[4];
   napi_get_cb_info(env, info, &argc, args, NULL, NULL);
 
   if (argc < 3) {
@@ -387,7 +387,20 @@ static napi_value CreateWorldWithDecks(napi_env env, napi_callback_info info) {
     p1_deck[i].card_count = count;
   }
 
-  AzkEngine *engine = azk_engine_create_with_decks(seed, p0_deck, p0_len, p1_deck, p1_len);
+  AzkEngine *engine = NULL;
+  if (argc >= 4) {
+    int32_t starting_player;
+    napi_get_value_int32(env, args[3], &starting_player);
+    if (starting_player != 0 && starting_player != 1) {
+      free(p0_deck);
+      free(p1_deck);
+      return throw_error(env, "startingPlayer must be 0 or 1");
+    }
+    engine = azk_engine_create_with_decks_and_starting_player(
+        seed, (int8_t)starting_player, p0_deck, p0_len, p1_deck, p1_len);
+  } else {
+    engine = azk_engine_create_with_decks(seed, p0_deck, p0_len, p1_deck, p1_len);
+  }
 
   free(p0_deck);
   free(p1_deck);

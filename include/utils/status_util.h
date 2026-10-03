@@ -107,8 +107,9 @@ bool apply_timed_tag_grant(ecs_world_t *world, ecs_entity_t entity, ecs_id_t tag
  * @param entity The entity to grant Charge to
  * @param tick_phase Which phase advances the expiry timer
  * @param remaining_ticks Number of matching ticks before removal (-1 for permanent)
+ * @return true if the tracked grant was accepted, including while ECS writes are deferred
  */
-void apply_charge_grant(ecs_world_t *world, ecs_entity_t entity,
+bool apply_charge_grant(ecs_world_t *world, ecs_entity_t entity,
                         TagGrantTickPhase tick_phase, int8_t remaining_ticks);
 
 /**

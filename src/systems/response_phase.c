@@ -36,7 +36,7 @@ static int play_entity_to_garden_or_alley_response(ecs_world_t *world,
     gs->entities_played_alley_this_turn[gs->active_player_index]++;
   }
   gs->cards_played_this_turn[gs->active_player_index]++;
-  gs->next_card_play_cost_reduction[gs->active_player_index] = 0;
+  azk_consume_next_card_play_cost_reduction(world, intent.player, intent.card);
 
   azk_trigger_on_play_ability(world, intent.card, intent.player);
   return 0;
@@ -165,7 +165,8 @@ static void handle_play_spell_from_hand(ecs_world_t *world, GameState *gs,
   // Move spell card to discard
   discard_card(world, intent.spell_card);
   gs->cards_played_this_turn[gs->active_player_index]++;
-  gs->next_card_play_cost_reduction[gs->active_player_index] = 0;
+  azk_consume_next_card_play_cost_reduction(world, intent.player,
+                                            intent.spell_card);
 
   cli_render_logf("[ResponseAction] Played spell from hand");
 
@@ -196,7 +197,8 @@ static void handle_attach_weapon_from_hand(ecs_world_t *world, GameState *gs,
   }
 
   gs->cards_played_this_turn[gs->active_player_index]++;
-  gs->next_card_play_cost_reduction[gs->active_player_index] = 0;
+  azk_consume_next_card_play_cost_reduction(world, intent.player,
+                                            intent.weapon_card);
 
   azk_trigger_on_play_ability(world, intent.weapon_card, intent.player);
   azk_trigger_when_equipped_ability(world, intent.weapon_card, intent.player);

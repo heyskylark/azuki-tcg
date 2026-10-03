@@ -21,11 +21,13 @@ export const Decks = pgTable(
       .references(() => Users.id, { onDelete: "cascade" }),
     status: deckStatusEnum("status").notNull().default(DeckStatus.IN_PROGRESS),
     isSystemDeck: boolean("is_system_deck").notNull().default(false),
+    isEvaluationGenerated: boolean("is_evaluation_generated").notNull().default(false),
     createdAt: createdAtTimestampField(),
     updatedAt: updatedAtTimestampField(),
   },
   (table) => [
     index("idx_decks_user_id").on(table.userId),
+    index("idx_decks_user_evaluation").on(table.userId, table.isEvaluationGenerated),
     check(
       "system_deck_not_deleted",
       sql`NOT (${table.isSystemDeck} = true AND ${table.status} = 'DELETED')`

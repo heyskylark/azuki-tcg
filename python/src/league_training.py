@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import contextlib
+import math
 import os
+import hashlib
+import json
 import time
 from collections import defaultdict
 from dataclasses import dataclass
+from pathlib import Path
 
 import azk_puffer.pytorch as azk_pytorch
 import azk_puffer.trainer as pufferl
@@ -13,9 +17,19 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
+from draft_normal_penalty import load_leader_normal_penalty, leader_normal_cost
+from action import ActionType
+from observation import MAX_DECK_BUILD_CANDIDATES
+
 from draft_prefix_outcome import (
   FrozenDraftPrefixPredictor,
   PrefixOutcomeRedistributor,
+)
+
+from policy.tcg_distribution import TCGLegalActionDistribution
+from policy.v2.tcg_sampler import (
+  legal_action_logprob_components,
+  legal_action_kl,
 )
 
 
@@ -34,6 +48,75 @@ class LeagueConfig:
   # per-game uniform draws over the whole pool.
   frozen_window_epochs: int = 0
   max_distinct_frozen: int = 1
+  role_sampling_floors: tuple[tuple[str, float], ...] = ()
+
+
+def select_role_window(
+  available_ids: np.ndarray,
+  policy_roles: tuple[str, ...],
+  *,
+  max_distinct: int,
+  role_floors: tuple[tuple[str, float], ...],
+  role_counts: dict[str, int],
+  policy_weights: np.ndarray,
+  rng: np.random.Generator,
+) -> tuple[np.ndarray, tuple[str, ...]]:
+  """Select one window by cumulative role deficit, then policy hardness."""
+  available = np.asarray(available_ids, dtype=np.int32)
+  weights = np.asarray(policy_weights, dtype=np.float64)
+  if available.ndim != 1 or weights.shape != available.shape:
+    raise ValueError("available policy ids and weights must be aligned vectors")
+  if any(int(policy_id) < 0 or int(policy_id) >= len(policy_roles) for policy_id in available):
+    raise ValueError("policy role metadata does not cover all available ids")
+  if int(max_distinct) < 1:
+    raise ValueError("max_distinct must be positive")
+  if not role_floors:
+    raise ValueError("role_floors must not be empty")
+  if any(not role or floor <= 0.0 for role, floor in role_floors):
+    raise ValueError("role floors require nonempty names and positive weights")
+  if abs(sum(floor for _, floor in role_floors) - 1.0) > 1e-9:
+    raise ValueError("role floors must sum to one")
+
+  selected: list[int] = []
+  selected_roles: list[str] = []
+  slots = min(int(max_distinct), int(available.size))
+  for _ in range(slots):
+    remaining = np.asarray(
+      [policy_id for policy_id in available.tolist() if policy_id not in selected],
+      dtype=np.int32,
+    )
+    eligible: list[tuple[int, str, float]] = []
+    projected_total = sum(int(role_counts.get(role, 0)) for role, _ in role_floors) + 1
+    for order, (role, floor) in enumerate(role_floors):
+      if role == "hard":
+        candidates = remaining
+      else:
+        candidates = np.asarray(
+          [policy_id for policy_id in remaining.tolist() if policy_roles[policy_id] == role],
+          dtype=np.int32,
+        )
+      if candidates.size:
+        deficit = float(floor) * projected_total - int(role_counts.get(role, 0))
+        eligible.append((order, role, deficit))
+    if not eligible:
+      break
+    _, chosen_role, _ = max(eligible, key=lambda item: (item[2], -item[0]))
+    if chosen_role == "hard":
+      candidates = remaining
+    else:
+      candidates = np.asarray(
+        [policy_id for policy_id in remaining.tolist() if policy_roles[policy_id] == chosen_role],
+        dtype=np.int32,
+      )
+    candidate_weights = weights[np.searchsorted(available, candidates)]
+    if chosen_role != "hard":
+      candidate_weights = np.ones(candidates.size, dtype=np.float64)
+    candidate_weights = candidate_weights / candidate_weights.sum()
+    chosen = int(rng.choice(candidates, p=candidate_weights))
+    selected.append(chosen)
+    selected_roles.append(chosen_role)
+    role_counts[chosen_role] = int(role_counts.get(chosen_role, 0)) + 1
+  return np.asarray(selected, dtype=np.int32), tuple(selected_roles)
 
 
 def compute_learner_row_mask(
@@ -155,6 +238,36 @@ def compute_battle_row_mask(
       out[selector] = True
   return out
 
+def compute_reference_fixed_actor_mask(
+  env_ids: np.ndarray,
+  deck_modes: np.ndarray,
+  *,
+  agents_per_env: int,
+  env_is_reference: np.ndarray,
+  env_reference_seat: np.ndarray,
+) -> np.ndarray:
+  """Mask a fixed learner seat until both seats have entered battle."""
+  if env_ids.shape != deck_modes.shape:
+    raise ValueError("env_ids and deck_modes must have matching shapes")
+  env_indices = (env_ids // agents_per_env).astype(np.int32)
+  seat_indices = (env_ids % agents_per_env).astype(np.int32)
+  if (
+    bool((env_indices < 0).any())
+    or bool((env_indices >= env_is_reference.size).any())
+    or env_is_reference.shape != env_reference_seat.shape
+  ):
+    raise ValueError("reference episode arrays do not cover all env ids")
+  battle_rows = compute_battle_row_mask(
+    env_ids,
+    deck_modes,
+    agents_per_env=agents_per_env,
+  )
+  fixed_reference_rows = np.logical_and(
+    env_is_reference[env_indices],
+    seat_indices == env_reference_seat[env_indices],
+  )
+  return np.logical_or(np.logical_not(fixed_reference_rows), battle_rows)
+
 
 def compute_league_active(*, global_step: int, activate_after_steps: int) -> bool:
   threshold = int(max(0, activate_after_steps))
@@ -195,14 +308,14 @@ DRAFT_EPISODE_DECISIVE_LABEL_PATIENCE = 4
 
 
 def terminal_only_rewards(
-  total_rewards: np.ndarray,
+  terminal_rewards: np.ndarray,
   terminal_mask: np.ndarray,
 ) -> np.ndarray:
-  """Keep native terminal outcomes while discarding nonterminal shaped rewards."""
-  rewards = np.asarray(total_rewards, dtype=np.float32).reshape(-1)
+  """Keep true outcomes only on genuine terminal rows."""
+  rewards = np.asarray(terminal_rewards, dtype=np.float32).reshape(-1)
   terminals = np.asarray(terminal_mask, dtype=np.bool_).reshape(-1)
   if rewards.shape != terminals.shape:
-    raise ValueError("total_rewards and terminal_mask must have matching shapes")
+    raise ValueError("terminal_rewards and terminal_mask must have matching shapes")
   return np.where(terminals, rewards, 0.0).astype(np.float32, copy=False)
 
 
@@ -318,6 +431,64 @@ def deterministic_draft_prefix_candidate(
   )
 
 
+def load_draft_prefix_pool(path_text: str) -> tuple[dict, str]:
+  from deck_building import MAIN_CARD_TYPES, build_deck_build_catalog
+  from training_deck_pool import load_training_deck_pool
+
+  path = Path(path_text).expanduser()
+  if not path.is_absolute():
+    path = Path(__file__).resolve().parents[2] / path
+  content = path.read_bytes()
+  payload = json.loads(content)
+  if (
+    not isinstance(payload, dict)
+    or payload.get("schema_id") != "azuki.strategic_prefix_pool"
+    or type(payload.get("schema_version")) is not int
+    or payload["schema_version"] != 1
+  ):
+    raise ValueError("invalid strategic prefix pool schema")
+  catalog = build_deck_build_catalog(load_training_deck_pool())
+  records = catalog.records_by_code
+  expected = {
+    f"{gate.card_code}:{leader.card_code}": (gate, leader)
+    for gate in records.values() if gate.card_type == "GATE"
+    for leader in records.values()
+    if leader.card_type == "LEADER" and leader.element == gate.element
+  }
+  contexts = payload.get("contexts")
+  if len(expected) != 16 or not isinstance(contexts, dict) or contexts.keys() != expected.keys():
+    raise ValueError("strategic prefix pool must cover exactly all sixteen gate/leader contexts")
+  pool = {}
+  for context, (gate, leader) in expected.items():
+    packages = contexts[context]
+    if not isinstance(packages, list) or not packages:
+      raise ValueError(f"empty strategic prefix context: {context}")
+    ids = set()
+    resolved = []
+    for package in packages:
+      if not isinstance(package, dict):
+        raise ValueError(f"invalid strategic prefix package: {context}")
+      package_id = package.get("id")
+      cards = package.get("cards")
+      if not isinstance(package_id, str) or not package_id.strip() or package_id in ids:
+        raise ValueError(f"invalid or duplicate strategic prefix package id: {context}")
+      ids.add(package_id)
+      if not isinstance(cards, list) or len(cards) != 4:
+        raise ValueError(f"strategic prefix package must contain exactly four cards: {context}")
+      card_ids = []
+      for code in cards:
+        record = records.get(code) if isinstance(code, str) else None
+        if (
+          record is None or record.card_type not in MAIN_CARD_TYPES
+          or record.element not in ("NORMAL", gate.element)
+        ):
+          raise ValueError(f"illegal strategic prefix main card {code!r}: {context}")
+        card_ids.append(record.card_def_id)
+      resolved.append(tuple(card_ids))
+    pool[(gate.card_def_id, leader.card_def_id)] = tuple(resolved)
+  return pool, hashlib.sha256(content).hexdigest()
+
+
 def pad_terminal_credit_records(
   records: list[dict[str, object]],
   batch_size: int,
@@ -385,6 +556,131 @@ def masked_tensor_mean_std(
   return mean, variance.sqrt(), count
 
 
+PPO_DIAGNOSTIC_COMPONENT_NAMES = ("primary", "sub1", "sub2", "sub3")
+PPO_DIAGNOSTIC_BUCKET_NAMES = ("latest", "recent", "mid", "old", "frozen")
+PPO_DIAGNOSTIC_BUCKET_CODES = {
+  name: index for index, name in enumerate(PPO_DIAGNOSTIC_BUCKET_NAMES)
+}
+PPO_DIAGNOSTIC_LEGAL_COUNT_BUCKETS = (
+  ("1", 1),
+  ("2_4", 4),
+  ("5_8", 8),
+  ("9_16", 16),
+  ("17_32", 32),
+  ("33_64", 64),
+  ("65_128", 128),
+  ("129_256", 256),
+  ("257_plus", None),
+)
+
+
+def ppo_diagnostic_legal_count_labels(counts: torch.Tensor) -> torch.Tensor:
+  flat = counts.detach().long()
+  labels = torch.full_like(flat, len(PPO_DIAGNOSTIC_LEGAL_COUNT_BUCKETS) - 1)
+  lower = 0
+  for index, (_, upper) in enumerate(PPO_DIAGNOSTIC_LEGAL_COUNT_BUCKETS[:-1]):
+    selector = (flat > lower) & (flat <= int(upper))
+    labels = torch.where(selector, torch.full_like(labels, index), labels)
+    lower = int(upper)
+  return labels
+
+
+def ppo_diagnostic_bucket_code(bucket: str) -> int:
+  normalized = str(bucket).strip().lower()
+  if normalized in {"recent", "mid", "old"}:
+    return PPO_DIAGNOSTIC_BUCKET_CODES[normalized]
+  return PPO_DIAGNOSTIC_BUCKET_CODES["frozen"]
+
+
+def summarize_ppo_diagnostic_tensor(values: torch.Tensor) -> dict[str, float]:
+  flat = values.detach().float().reshape(-1)
+  flat = flat[torch.isfinite(flat)]
+  if flat.numel() == 0:
+    return {
+      "mean": 0.0,
+      "p50": 0.0,
+      "p90": 0.0,
+      "p99": 0.0,
+      "min": 0.0,
+      "max": 0.0,
+    }
+  quantiles = torch.quantile(
+    flat,
+    torch.tensor((0.5, 0.9, 0.99), device=flat.device, dtype=flat.dtype),
+  )
+  return {
+    "mean": float(flat.mean().item()),
+    "p50": float(quantiles[0].item()),
+    "p90": float(quantiles[1].item()),
+    "p99": float(quantiles[2].item()),
+    "min": float(flat.min().item()),
+    "max": float(flat.max().item()),
+  }
+
+
+def select_legal_action_distribution(
+  distribution: TCGLegalActionDistribution,
+  indices: torch.Tensor,
+) -> TCGLegalActionDistribution:
+  """Select rows and trim padding before exact distribution diagnostics."""
+  selected_counts = distribution.legal_action_count.index_select(0, indices)
+  candidate_count = max(1, int(selected_counts.max().item()))
+  return TCGLegalActionDistribution(
+    legal_action_logits=distribution.legal_action_logits.index_select(
+      0,
+      indices,
+    )[:, :candidate_count],
+    legal_actions=distribution.legal_actions.index_select(
+      0,
+      indices,
+    )[:, :candidate_count],
+    legal_action_count=selected_counts,
+  )
+
+
+def grouped_ppo_diagnostic_means(
+  values: torch.Tensor,
+  labels: torch.Tensor,
+) -> dict[int, tuple[float, int]]:
+  flat_values = values.detach().float().reshape(-1)
+  flat_labels = labels.detach().long().reshape(-1)
+  if flat_values.shape != flat_labels.shape:
+    raise ValueError("diagnostic values and labels must have matching shapes")
+  finite = torch.isfinite(flat_values)
+  flat_values = flat_values[finite]
+  flat_labels = flat_labels[finite]
+  result: dict[int, tuple[float, int]] = {}
+  for label in torch.unique(flat_labels).tolist():
+    selector = flat_labels == int(label)
+    count = int(selector.sum().item())
+    if count > 0:
+      result[int(label)] = (float(flat_values[selector].mean().item()), count)
+  return result
+
+
+def ppo_diagnostic_observation_layout(obs_row_bytes: int) -> dict[str, int]:
+  from observation import DECKBUILD_OBSERVATION_CTYPE
+
+  dtype = np.dtype(DECKBUILD_OBSERVATION_CTYPE)
+  if int(obs_row_bytes) != dtype.itemsize:
+    raise ValueError(
+      f"PPO diagnostics require {dtype.itemsize}B packed observations, got {obs_row_bytes}B"
+    )
+
+  def card_offset(parent_name: str, zone_name: str) -> int:
+    parent_dtype, parent_offset = dtype.fields[parent_name][:2]
+    zone_dtype, zone_offset = parent_dtype.fields[zone_name][:2]
+    _, card_def_offset = zone_dtype.fields["card_def_id"][:2]
+    return int(parent_offset + zone_offset + card_def_offset)
+
+  return {
+    "gate_offset": card_offset("my_observation_data", "gate"),
+    "leader_offset": card_offset("my_observation_data", "leader"),
+    "opponent_gate_offset": card_offset("opponent_observation_data", "gate"),
+    "opponent_leader_offset": card_offset("opponent_observation_data", "leader"),
+  }
+
+
 def draft_episode_credit_update_due(
   epoch: int,
   total_epochs: int,
@@ -397,6 +693,89 @@ def draft_episode_credit_update_due(
     update_number % int(interval) == 0
     or update_number >= int(total_epochs)
   )
+
+def draft_episode_credit_sampled_rows(epoch: int, batch_size: int) -> int:
+  """Return sampled rows completed by the rollout for a zero-based epoch."""
+  if int(epoch) < 0:
+    raise ValueError("draft episode credit epoch must be nonnegative")
+  if int(batch_size) < 1:
+    raise ValueError("draft episode credit batch size must be positive")
+  return (int(epoch) + 1) * int(batch_size)
+
+
+
+def draft_episode_credit_coefficient(
+  sampled_rows: int,
+  *,
+  initial: float,
+  final: float,
+  anneal_start_rows: int,
+  anneal_end_rows: int,
+) -> float:
+  """Linear exact-credit schedule keyed only by global sampled-row progress."""
+  if initial < 0.0 or final < 0.0:
+    raise ValueError("draft episode credit coefficients must be nonnegative")
+  if anneal_start_rows < 0 or anneal_end_rows < anneal_start_rows:
+    raise ValueError("draft episode credit anneal rows are invalid")
+  if initial == final:
+    return float(initial)
+  if anneal_end_rows == anneal_start_rows:
+    raise ValueError("a non-constant draft credit schedule requires a row interval")
+  rows = max(int(sampled_rows), 0)
+  if rows <= anneal_start_rows:
+    return float(initial)
+  if rows >= anneal_end_rows:
+    return float(final)
+  progress = (rows - anneal_start_rows) / (
+    anneal_end_rows - anneal_start_rows
+  )
+  return float(initial + progress * (final - initial))
+
+def sampled_row_reward_scale(
+  sampled_rows: int,
+  initial: float,
+  final: float,
+  anneal_start_rows: int,
+  anneal_end_rows: int,
+) -> float:
+  """Linear reward scale keyed only by global sampled-row progress."""
+  if initial < 0.0 or final < 0.0:
+    raise ValueError("reward scales must be nonnegative")
+  if anneal_start_rows < 0 or anneal_end_rows < anneal_start_rows:
+    raise ValueError("reward scale anneal rows are invalid")
+  if initial == final:
+    return float(initial)
+  if anneal_end_rows == anneal_start_rows:
+    raise ValueError("a non-constant reward schedule requires a row interval")
+  rows = max(int(sampled_rows), 0)
+  if rows <= anneal_start_rows:
+    return float(initial)
+  if rows >= anneal_end_rows:
+    return float(final)
+  progress = (rows - anneal_start_rows) / (
+    anneal_end_rows - anneal_start_rows
+  )
+  return float(initial + progress * (final - initial))
+
+
+def prebuilt_exposure_probability(
+  battle_decisions: int,
+  initial: float,
+  config: dict,
+) -> float:
+  """Probability for the next game, not a change to an in-flight game."""
+  final = float(config.get("prebuilt_final_probability", 0.2))
+  if not all(math.isfinite(value) and 0.0 <= value <= 1.0 for value in (initial, final)):
+    raise ValueError("prebuilt probabilities must be finite and in [0, 1]")
+  return sampled_row_reward_scale(
+    battle_decisions,
+    initial,
+    final,
+    int(config.get("prebuilt_anneal_start_battle_decisions", 5_000_000)),
+    int(config.get("prebuilt_anneal_end_battle_decisions", 40_000_000)),
+  )
+
+
 
 
 class LeaguePuffeRL(pufferl.PuffeRL):
@@ -411,7 +790,26 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     league_cfg: LeagueConfig,
     logger=None,
     opponent_keys: list[str] | None = None,
+    opponent_buckets: list[str] | None = None,
+    opponent_roles: list[str] | None = None,
   ):
+    self._prebuilt_enabled = bool(getattr(vecenv.driver_env, "prebuilt_curriculum", False))
+    self.prebuilt_battle_decisions = int(config.pop("_prebuilt_resume_battle_decisions", 0))
+    if self.prebuilt_battle_decisions < 0:
+      raise ValueError("prebuilt battle progress must be nonnegative")
+    if self._prebuilt_enabled:
+      from observation import DECKBUILD_OBSERVATION_CTYPE
+
+      self._prebuilt_obs_dtype = np.dtype(DECKBUILD_OBSERVATION_CTYPE)
+      self._prebuilt_initial_probability = float(vecenv.driver_env.initial_prebuilt_probability)
+      probability = getattr(vecenv, "prebuilt_probability", None)
+      if not isinstance(probability, np.ndarray) or probability.dtype != np.float32:
+        raise ValueError("prebuilt curriculum requires a shared float32 probability buffer")
+      probability[:] = prebuilt_exposure_probability(
+        self.prebuilt_battle_decisions, self._prebuilt_initial_probability, config
+      )
+      if float(os.environ.get("AZK_DRAFT_REF_SEAT_PROB", "0") or 0.0) != 0.0:
+        raise ValueError("both-seat prebuilt curriculum cannot use the one-seat reference lottery")
     super().__init__(config, vecenv, policy, logger=logger)
     self.league_cfg = league_cfg
     self.opponent_policies = list(opponent_policies)
@@ -423,8 +821,43 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       raise ValueError("opponent_keys must match opponent_policies")
     if len(set(self.opponent_keys)) != len(self.opponent_keys):
       raise ValueError("opponent_keys must be unique")
+    if opponent_buckets is None:
+      self.opponent_buckets = ["frozen"] * len(self.opponent_policies)
+    else:
+      self.opponent_buckets = [str(bucket) for bucket in opponent_buckets]
+    if len(self.opponent_buckets) != len(self.opponent_policies):
+      raise ValueError("opponent_buckets must match opponent_policies")
+    if opponent_roles is None:
+      self.opponent_roles = list(self.opponent_buckets)
+    else:
+      self.opponent_roles = [str(role) for role in opponent_roles]
+    if len(self.opponent_roles) != len(self.opponent_policies):
+      raise ValueError("opponent_roles must match opponent_policies")
+    self._opponent_bucket_codes = np.asarray(
+      [ppo_diagnostic_bucket_code(bucket) for bucket in self.opponent_buckets],
+      dtype=np.int8,
+    )
     self._sampling_policy_ids = np.arange(len(self.opponent_policies), dtype=np.int32)
     self._rng = np.random.default_rng(int(league_cfg.seed))
+    self._role_sampling_floors = tuple(league_cfg.role_sampling_floors)
+    if self._role_sampling_floors and int(league_cfg.frozen_window_epochs) < 1:
+      raise ValueError("role sampling requires frozen_window_epochs >= 1")
+    if self._role_sampling_floors:
+      floor_names = [role for role, _ in self._role_sampling_floors]
+      if len(set(floor_names)) != len(floor_names):
+        raise ValueError("role sampling floor names must be unique")
+      if any(floor <= 0.0 for _, floor in self._role_sampling_floors):
+        raise ValueError("role sampling floors must be positive")
+      if abs(sum(floor for _, floor in self._role_sampling_floors) - 1.0) > 1e-9:
+        raise ValueError("role sampling floors must sum to one")
+    self._role_window_counts = {
+      role: 0 for role, _ in self._role_sampling_floors
+    }
+    self._role_assignment_counts = {
+      role: 0 for role, _ in self._role_sampling_floors
+    }
+    self._role_assignment_total = 0
+    self._window_policy_roles: tuple[str, ...] = ()
 
     # Game-granular row grouping (see trainer.py): native driver envs pack
     # many games per instance, but rows are [g0_p0, g0_p1, g1_p0, ...] on
@@ -444,20 +877,29 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     )
     self._env_opp_policy = np.zeros(self._num_envs_total, dtype=np.int32)
     self._env_use_latest = np.ones(self._num_envs_total, dtype=np.bool_)
+    self._env_opp_role = np.full(self._num_envs_total, "latest", dtype=object)
     self._window_policy_ids: np.ndarray | None = None
     self._window_index = -1
     self._pfsp_enabled = os.environ.get("AZK_PFSP") == "1"
     self._pfsp_power = float(os.environ.get("AZK_PFSP_POWER", "2.0") or 2.0)
     self._reference_opponent_only = os.environ.get("AZK_DRAFT_REF_OPPONENT_ONLY") == "1"
+    self._reference_learner_fixed = os.environ.get("AZK_DRAFT_REF_LEARNER_FIXED") == "1"
+    if self._reference_opponent_only and self._reference_learner_fixed:
+      raise ValueError(
+        "AZK_DRAFT_REF_OPPONENT_ONLY and AZK_DRAFT_REF_LEARNER_FIXED are mutually exclusive"
+      )
+    self._reference_alignment_enabled = (
+      self._reference_opponent_only or self._reference_learner_fixed
+    )
     self._reference_matchup_probability = float(
       os.environ.get("AZK_DRAFT_REF_SEAT_PROB", "0") or 0.0
     )
     if not 0.0 <= self._reference_matchup_probability <= 1.0:
       raise ValueError("AZK_DRAFT_REF_SEAT_PROB must be in [0, 1]")
-    if self._reference_opponent_only and int(self.league_cfg.activate_after_steps) != 0:
-      raise ValueError("opponent-only reference seats require an immediately active league")
+    if self._reference_alignment_enabled and int(self.league_cfg.activate_after_steps) != 0:
+      raise ValueError("aligned reference seats require an immediately active league")
     self._reference_mode_offset: int | None = None
-    if self._reference_opponent_only:
+    if self._reference_alignment_enabled:
       from observation import DECKBUILD_OBSERVATION_CTYPE
 
       obs_dtype = np.dtype(DECKBUILD_OBSERVATION_CTYPE)
@@ -483,7 +925,7 @@ class LeaguePuffeRL(pufferl.PuffeRL):
         target_frozen_matchup_ratio=target_frozen_matchup_ratio,
         reference_matchup_probability=self._reference_matchup_probability,
       )
-      if self._reference_opponent_only
+      if self._reference_alignment_enabled
       else target_frozen_matchup_ratio
     )
     self._pfsp_wins = np.zeros(len(self.opponent_policies), dtype=np.float64)
@@ -491,8 +933,88 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     self._pfsp_keys = list(self.opponent_keys)
     self._refresh_frozen_window()
     self._resample_matchups(np.arange(self._num_envs_total, dtype=np.int32))
+    self._decomposed_reward_schedule = (
+      os.environ.get("AZK_REWARD_DECOMPOSED_SCHEDULE") == "1"
+    )
+    self._potential_reward_schedule = (
+      float(os.environ.get("AZK_POTENTIAL_SCALE_INITIAL", "1") or 1.0),
+      float(os.environ.get("AZK_POTENTIAL_SCALE_FINAL", "1") or 1.0),
+      int(os.environ.get("AZK_POTENTIAL_ANNEAL_START_ROWS", "0") or 0),
+      int(os.environ.get("AZK_POTENTIAL_ANNEAL_END_ROWS", "0") or 0),
+    )
+    self._exploration_reward_schedule = (
+      float(os.environ.get("AZK_EXPLORATION_SCALE_INITIAL", "1") or 1.0),
+      float(os.environ.get("AZK_EXPLORATION_SCALE_FINAL", "1") or 1.0),
+      int(os.environ.get("AZK_EXPLORATION_ANNEAL_START_ROWS", "0") or 0),
+      int(os.environ.get("AZK_EXPLORATION_ANNEAL_END_ROWS", "0") or 0),
+    )
+    if self._decomposed_reward_schedule:
+      reward_scales = getattr(vecenv, "reward_scales", None)
+      if not isinstance(reward_scales, np.ndarray):
+        raise ValueError(
+          "decomposed reward scheduling requires vector reward_scales"
+        )
+      sampled_row_reward_scale(0, *self._potential_reward_schedule)
+      sampled_row_reward_scale(0, *self._exploration_reward_schedule)
 
     self._segment_is_trainable = torch.zeros(self.segments, device=self.config["device"], dtype=torch.bool)
+    self._rollout_is_trainable = torch.zeros(
+      self.segments,
+      int(self.config["bptt_horizon"]),
+      device=self.config["device"],
+      dtype=torch.bool,
+    )
+    self._ppo_diagnostics_enabled = os.environ.get("AZK_PPO_DIAGNOSTICS") == "1"
+    self._ppo_diagnostic_layout: dict[str, int] | None = None
+    self._ppo_diag_old_component_logprobs: torch.Tensor | None = None
+    self._ppo_diag_legal_counts: torch.Tensor | None = None
+    self._ppo_diag_opponent_buckets: torch.Tensor | None = None
+    self._ppo_diag_gate_ids: torch.Tensor | None = None
+    self._ppo_diag_leader_ids: torch.Tensor | None = None
+    self._ppo_diag_opponent_gate_ids: torch.Tensor | None = None
+    self._ppo_diag_pending_action_values: (
+      tuple[torch.Tensor, torch.Tensor] | None
+    ) = None
+    self._pending_rollout_lstm_states: (
+      tuple[torch.Tensor, torch.Tensor] | None
+    ) = None
+    self._ppo_diag_actor_parameters: list[torch.nn.Parameter] = []
+    if self._ppo_diagnostics_enabled:
+      device = self.config["device"]
+      shape = (self.segments, int(self.config["bptt_horizon"]))
+      self._ppo_diag_old_component_logprobs = torch.zeros(
+        (*shape, len(PPO_DIAGNOSTIC_COMPONENT_NAMES)),
+        device=device,
+        dtype=torch.float32,
+      )
+      self._ppo_diag_legal_counts = torch.full(
+        shape, -1, device=device, dtype=torch.int16
+      )
+      self._ppo_diag_opponent_buckets = torch.full(
+        shape, -1, device=device, dtype=torch.int8
+      )
+      self._ppo_diag_gate_ids = torch.full(
+        shape, -1, device=device, dtype=torch.int16
+      )
+      self._ppo_diag_leader_ids = torch.full(
+        shape, -1, device=device, dtype=torch.int16
+      )
+      self._ppo_diag_opponent_gate_ids = torch.full(
+        shape, -1, device=device, dtype=torch.int16
+      )
+      base_policy = getattr(self.uncompiled_policy, "policy", self.uncompiled_policy)
+      actor_prefixes = (
+        "q_legal_action.",
+        "legal_action_candidate_projector.",
+        "legal_action_candidate_bias.",
+      )
+      self._ppo_diag_actor_parameters = [
+        parameter
+        for name, parameter in base_policy.named_parameters()
+        if parameter.requires_grad and name.startswith(actor_prefixes)
+      ]
+      if not self._ppo_diag_actor_parameters:
+        raise ValueError("PPO diagnostics found no legal-action scorer parameters")
 
     # A-DRAFTAUX (league path): per-row prev deck_context.mode for boundary
     # detection, pending aux stash from _infer_actions, and prev-step buffer
@@ -519,6 +1041,7 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     self.actor_loss_mask = torch.ones(
       self.segments, self.config["bptt_horizon"], device=self.config["device"]
     )
+    self._strategic_exposure_actor_masked_rows = 0
 
     self._use_rnn = bool(self.config.get("use_rnn", False))
     if self._use_rnn:
@@ -635,9 +1158,29 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     self._draft_episode_credit_coef = float(
       os.environ.get("AZK_DRAFT_EPISODE_CREDIT_COEF", "0") or 0.0
     )
-    if self._draft_episode_credit_coef < 0.0:
-      raise ValueError("AZK_DRAFT_EPISODE_CREDIT_COEF must be nonnegative")
-    self._draft_episode_credit_enabled = self._draft_episode_credit_coef > 0.0
+    self._draft_episode_credit_final_coef = float(
+      os.environ.get(
+        "AZK_DRAFT_EPISODE_CREDIT_FINAL_COEF",
+        str(self._draft_episode_credit_coef),
+      )
+    )
+    self._draft_episode_credit_anneal_start_rows = int(
+      os.environ.get("AZK_DRAFT_EPISODE_CREDIT_ANNEAL_START_ROWS", "0") or 0
+    )
+    self._draft_episode_credit_anneal_end_rows = int(
+      os.environ.get("AZK_DRAFT_EPISODE_CREDIT_ANNEAL_END_ROWS", "0") or 0
+    )
+    draft_episode_credit_coefficient(
+      0,
+      initial=self._draft_episode_credit_coef,
+      final=self._draft_episode_credit_final_coef,
+      anneal_start_rows=self._draft_episode_credit_anneal_start_rows,
+      anneal_end_rows=self._draft_episode_credit_anneal_end_rows,
+    )
+    self._draft_episode_credit_enabled = max(
+      self._draft_episode_credit_coef,
+      self._draft_episode_credit_final_coef,
+    ) > 0.0
     if self._draft_episode_credit_enabled and (
       self._leader_credit_enabled or self._draft_credit_enabled
     ):
@@ -701,6 +1244,14 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     self._draft_episode_credit_zero_label_epochs = 0
     self._draft_episode_credit_no_decisive_epochs = 0
     self._draft_episode_credit_capture_seconds = 0.0
+    self._draft_episode_credit_exclude_xgate = (
+      os.environ.get("AZK_DRAFT_EPISODE_CREDIT_EXCLUDE_XGATE", "1") != "0"
+    )
+    self._draft_episode_credit_xgate_excluded = 0
+    self._draft_episode_credit_xgate_excluded_rows = 0
+    self._draft_episode_credit_xgate_excluded_breakdown: defaultdict[
+      tuple[int, int, int, int, str], int
+    ] = defaultdict(int)
     self._draft_episode_phase_mask = None
     if self._draft_episode_credit_enabled:
       self._draft_episode_phase_mask = torch.zeros(
@@ -731,6 +1282,28 @@ class LeaguePuffeRL(pufferl.PuffeRL):
         "full-episode draft credit requires at least one optimizer minibatch"
       )
 
+    normal_config = os.environ.get("AZK_DRAFT_NORMAL_PENALTY_CONFIG", "").strip()
+    self._draft_normal_penalty_schedule = (
+      float(os.environ.get("AZK_DRAFT_NORMAL_PENALTY_COEF_INITIAL", "0") or 0),
+      float(os.environ.get("AZK_DRAFT_NORMAL_PENALTY_COEF_FINAL",
+                           os.environ.get("AZK_DRAFT_NORMAL_PENALTY_COEF_INITIAL", "0")) or 0),
+      int(os.environ.get("AZK_DRAFT_NORMAL_PENALTY_ANNEAL_START_ROWS", "0") or 0),
+      int(os.environ.get("AZK_DRAFT_NORMAL_PENALTY_ANNEAL_END_ROWS", "0") or 0),
+    )
+    if not all(math.isfinite(value) for value in self._draft_normal_penalty_schedule[:2]):
+      raise ValueError("Normal-penalty coefficients must be finite")
+    sampled_row_reward_scale(0, *self._draft_normal_penalty_schedule)
+    if max(self._draft_normal_penalty_schedule[:2]) > 0 and not normal_config:
+      raise ValueError("Normal-penalty coefficients require a leader configuration")
+    self._draft_normal_penalty_settings = None
+    self._draft_normal_card_ids = frozenset()
+    if normal_config:
+      if not self._draft_episode_credit_enabled:
+        raise ValueError("Normal-penalty configuration requires full-episode draft credit")
+      self._draft_normal_penalty_settings, self._draft_normal_card_ids = (
+        load_leader_normal_penalty(normal_config)
+      )
+
     draft_prefix_probabilities = os.environ.get(
       "AZK_DRAFT_PREFIX_PROBS", ""
     ).strip()
@@ -749,17 +1322,28 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     self._draft_prefix_seed = int(
       os.environ.get("AZK_DRAFT_PREFIX_SEED", "420053") or 420053
     )
+    prefix_pool_path = os.environ.get("AZK_DRAFT_PREFIX_POOL_PATH", "").strip()
+    self._draft_prefix_pool = None
+    self._draft_prefix_pool_sha256 = ""
+    if prefix_pool_path:
+      if not self._draft_prefix_enabled or any(length not in (0, 4) for length in self._draft_prefix_lengths):
+        raise ValueError("strategic prefixes require an enabled zero/four-card prefix distribution")
+      self._draft_prefix_pool, self._draft_prefix_pool_sha256 = load_draft_prefix_pool(prefix_pool_path)
+    self._draft_prefix_kind = "strategic" if self._draft_prefix_pool is not None else "random"
     self._draft_prefix_forced_rows = 0
     self._draft_prefix_episode_lengths: list[int] = []
     if self._draft_prefix_enabled and not self._draft_episode_credit_enabled:
       raise ValueError(
-        "random main prefixes require full-episode draft credit to mask forced rows"
+        "main prefixes require full-episode draft credit to mask forced rows"
       )
+    if self._prebuilt_enabled and self._draft_prefix_enabled:
+      raise ValueError("prebuilt curriculum requires ordinary games without forced draft prefixes")
     if self._draft_prefix_enabled:
       print(
         "[draft-prefix] enabled: "
         f"lengths={self._draft_prefix_lengths}, "
         f"probabilities={self._draft_prefix_probabilities}, "
+        f"kind={self._draft_prefix_kind}, pool_sha256={self._draft_prefix_pool_sha256}, "
         f"seed={self._draft_prefix_seed}, live-policy-seats-only=true"
       )
 
@@ -818,21 +1402,68 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       for param in opp.parameters():
         param.requires_grad_(False)
 
-  def _refresh_frozen_window(self) -> None:
-    """Redraw the window's allowed frozen-policy ids when the window rolls.
+  def restore_prebuilt_battle_decisions(self, value: int) -> None:
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+      raise ValueError("prebuilt battle progress must be a nonnegative integer")
+    self.prebuilt_battle_decisions = value
+    if self._prebuilt_enabled:
+      self.vecenv.prebuilt_probability[:] = prebuilt_exposure_probability(
+        value, self._prebuilt_initial_probability, self.config
+      )
 
-    Assignments only change for envs as they finish (via _resample_matchups),
-    so a window transition phases in over ~one episode and per-policy LSTM
-    stores stay consistent for in-flight games.
-    """
+  def _advance_prebuilt_curriculum(
+    self,
+    observations: torch.Tensor,
+    active_rows: np.ndarray,
+    trainable_rows: np.ndarray,
+    done: np.ndarray,
+    hand_size_counts: np.ndarray,
+  ) -> None:
+    if not self._prebuilt_enabled:
+      return
+    rows = observations.numpy().view(self._prebuilt_obs_dtype).reshape(-1)
+    # Ignore passive NOOP-only rows, draft picks and terminal bookkeeping.
+    # Current/current seats are both learner-role rows because both train.
+    meaningful = rows["action_mask"]["primary_action_mask"][:, 1:].any(axis=1)
+    battle = rows["deck_context"]["mode"] == 0
+    decisions = meaningful & battle & active_rows & ~done
+    learner_decisions = decisions & trainable_rows
+    self.prebuilt_battle_decisions += int(np.count_nonzero(learner_decisions))
+
+    hand = rows["my_observation_data"]
+    hand_counts = hand["hand_count"]
+    hand_capacity = int(hand["hand"].shape[1])
+    over_capacity = hand_counts > hand_capacity
+    for role_index, role_rows in enumerate((trainable_rows, ~trainable_rows)):
+      selected = decisions & role_rows
+      hand_size_counts[role_index, 0] += np.count_nonzero(selected)
+      hand_size_counts[role_index, 1] += np.count_nonzero(selected & over_capacity)
+      hand_size_counts[role_index, 2] += np.sum(
+        hand_counts, where=selected, dtype=np.int64
+      )
+      hand_size_counts[role_index, 3] = max(
+        hand_size_counts[role_index, 3],
+        np.max(hand_counts, where=selected, initial=0),
+      )
+
+    self.vecenv.prebuilt_probability[:] = prebuilt_exposure_probability(
+      self.prebuilt_battle_decisions, self._prebuilt_initial_probability, self.config
+    )
+
+  def _refresh_frozen_window(self) -> None:
+    """Redraw the window's allowed frozen-policy ids when the window rolls."""
     window_epochs = int(getattr(self.league_cfg, "frozen_window_epochs", 0) or 0)
     pool_size = len(self.opponent_policies)
     available = np.asarray(
       getattr(self, "_sampling_policy_ids", np.arange(pool_size, dtype=np.int32)),
       dtype=np.int32,
     )
+    available = available[
+      np.logical_and(available >= 0, available < pool_size)
+    ]
     if window_epochs <= 0 or available.size == 0:
       self._window_policy_ids = None
+      self._window_policy_roles = ()
       return
     window_index = int(getattr(self, "epoch", 0)) // window_epochs
     if (
@@ -845,21 +1476,53 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     self._window_index = window_index
     k = max(1, int(getattr(self.league_cfg, "max_distinct_frozen", 1) or 1))
     k = min(k, int(available.size))
-    if getattr(self, "_pfsp_enabled", False) and self._pfsp_games.size == pool_size:
-      # PFSP-hard: weight opponents by (1 - learner winrate)^p with an
-      # exploration floor; unplayed opponents sit at winrate 0.5.
-      games = self._pfsp_games
-      winrate = np.where(games >= 3, self._pfsp_wins / np.maximum(games, 1e-9), 0.5)
-      weights = (1.0 - winrate[available]) ** self._pfsp_power + 0.05
-      weights = weights / weights.sum()
+    games = self._pfsp_games
+    winrate = (
+      np.where(games >= 3, self._pfsp_wins / np.maximum(games, 1e-9), 0.5)
+      if games.size == pool_size
+      else np.full(pool_size, 0.5, dtype=np.float64)
+    )
+    weights = (
+      (1.0 - winrate[available]) ** self._pfsp_power + 0.05
+      if getattr(self, "_pfsp_enabled", False)
+      else np.ones(available.size, dtype=np.float64)
+    )
+    weights = weights / weights.sum()
+    if self._role_sampling_floors:
+      selected, selected_roles = select_role_window(
+        available,
+        tuple(self.opponent_roles),
+        max_distinct=k,
+        role_floors=self._role_sampling_floors,
+        role_counts=self._role_window_counts,
+        policy_weights=weights,
+        rng=self._rng,
+      )
+      if selected.size == 0:
+        raise RuntimeError("role-aware frozen window has no eligible policies")
+      self._window_policy_ids = selected
+      self._window_policy_roles = selected_roles
+      for role in selected_roles:
+        self.stats[f"league/sampling/window_role/{role}"].append(1.0)
+    else:
       self._window_policy_ids = self._rng.choice(
-        available, size=k, replace=False, p=weights
+        available,
+        size=k,
+        replace=False,
+        p=weights,
       ).astype(np.int32)
+      self._window_policy_roles = tuple(
+        self.opponent_roles[int(policy_id)]
+        for policy_id in self._window_policy_ids.tolist()
+      )
+    self.stats["league/sampling/window_index"].append(float(window_index))
+    self.stats["league/sampling/window_distinct_policies"].append(
+      float(self._window_policy_ids.size)
+    )
+    if getattr(self, "_pfsp_enabled", False):
       picked = int(self._window_policy_ids[0])
       self.stats["league/pfsp_picked_winrate"].append(float(winrate[picked]))
       self.stats["league/pfsp_pool_min_winrate"].append(float(winrate[available].min()))
-    else:
-      self._window_policy_ids = self._rng.choice(available, size=k, replace=False).astype(np.int32)
 
   def _resample_matchups(self, env_indices: np.ndarray) -> None:
     if env_indices.size == 0:
@@ -877,6 +1540,7 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     if sampling_ids.size == 0:
       self._env_use_latest[env_indices] = True
       self._env_opp_policy[env_indices] = -1
+      self._env_opp_role[env_indices] = "latest"
       return
 
     active = compute_league_active(
@@ -904,12 +1568,22 @@ class LeaguePuffeRL(pufferl.PuffeRL):
         0, self._window_policy_ids.size, size=env_indices.size
       )
       self._env_opp_policy[env_indices] = self._window_policy_ids[picks]
+      assigned_roles = np.asarray(self._window_policy_roles, dtype=object)[picks]
     else:
       picks = self._rng.integers(0, sampling_ids.size, size=env_indices.size)
       self._env_opp_policy[env_indices] = sampling_ids[picks]
+      assigned_roles = np.asarray(
+        [self.opponent_roles[int(policy_id)] for policy_id in sampling_ids],
+        dtype=object,
+      )[picks]
+    self._env_opp_role[env_indices] = np.where(
+      self._env_use_latest[env_indices],
+      "latest",
+      assigned_roles,
+    )
 
   def _decode_reference_deck_modes(self, observations: torch.Tensor) -> np.ndarray | None:
-    if not self._reference_opponent_only or self._reference_mode_offset is None:
+    if not self._reference_alignment_enabled or self._reference_mode_offset is None:
       return None
     offset = self._reference_mode_offset
     if observations.ndim != 2 or observations.shape[1] < offset + 4:
@@ -1006,7 +1680,7 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     env_id_np: np.ndarray,
     deck_modes: np.ndarray | None,
   ) -> None:
-    if not self._reference_opponent_only or deck_modes is None:
+    if not self._reference_alignment_enabled or deck_modes is None:
       return
     resolved = detect_reset_reference_seats(
       env_id_np,
@@ -1020,13 +1694,21 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       self._env_reference_seat[env_index] = reference_seat
       if reference_seat < 0:
         continue
-      if not self.opponent_policies:
+      if self._reference_opponent_only and not self.opponent_policies:
         raise RuntimeError("opponent-only reference seat requires a frozen policy pool")
-      self._env_learner_seat[env_index] = 1 - reference_seat
-      self._env_use_latest[env_index] = False
+      self._env_learner_seat[env_index] = (
+        reference_seat if self._reference_learner_fixed else 1 - reference_seat
+      )
+      self._env_use_latest[env_index] = (
+        self._reference_learner_fixed and not self.opponent_policies
+      )
 
   def set_opponent_policies(
-    self, opponent_policies: list[torch.nn.Module], opponent_keys: list[str] | None = None
+    self,
+    opponent_policies: list[torch.nn.Module],
+    opponent_keys: list[str] | None = None,
+    opponent_buckets: list[str] | None = None,
+    opponent_roles: list[str] | None = None,
   ) -> None:
     desired_policies = list(opponent_policies)
     desired_keys = (
@@ -1034,14 +1716,30 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       if opponent_keys is not None
       else [f"refresh:{index}" for index in range(len(desired_policies))]
     )
+    desired_buckets = (
+      [str(bucket) for bucket in opponent_buckets]
+      if opponent_buckets is not None
+      else ["frozen"] * len(desired_policies)
+    )
+    desired_roles = (
+      [str(role) for role in opponent_roles]
+      if opponent_roles is not None
+      else list(desired_buckets)
+    )
     if len(desired_keys) != len(desired_policies):
       raise ValueError("opponent_keys must match opponent_policies")
     if len(set(desired_keys)) != len(desired_keys):
       raise ValueError("opponent_keys must be unique")
+    if len(desired_buckets) != len(desired_policies):
+      raise ValueError("opponent_buckets must match opponent_policies")
+    if len(desired_roles) != len(desired_policies):
+      raise ValueError("opponent_roles must match opponent_policies")
 
     prev_keys = list(getattr(self, "opponent_keys", []))
     prev_index = {key: index for index, key in enumerate(prev_keys)}
     prev_policies = list(self.opponent_policies)
+    prev_buckets = list(getattr(self, "opponent_buckets", ["frozen"] * len(prev_keys)))
+    prev_roles = list(getattr(self, "opponent_roles", prev_buckets))
     prev_h = list(self._opp_lstm_h)
     prev_c = list(self._opp_lstm_c)
     prev_wins = np.asarray(getattr(self, "_pfsp_wins", np.zeros(0)), dtype=np.float64)
@@ -1063,6 +1761,20 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       desired_by_key[key] if key in desired_by_key else prev_policies[prev_index[key]]
       for key in resident_keys
     ]
+    desired_bucket_by_key = dict(zip(desired_keys, desired_buckets))
+    resident_buckets = [
+      desired_bucket_by_key[key]
+      if key in desired_bucket_by_key
+      else prev_buckets[prev_index[key]]
+      for key in resident_keys
+    ]
+    desired_role_by_key = dict(zip(desired_keys, desired_roles))
+    resident_roles = [
+      desired_role_by_key[key]
+      if key in desired_role_by_key
+      else prev_roles[prev_index[key]]
+      for key in resident_keys
+    ]
     resident_index = {key: index for index, key in enumerate(resident_keys)}
 
     remapped = np.full_like(self._env_opp_policy, -1)
@@ -1073,6 +1785,12 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     self._env_opp_policy = remapped
     self.opponent_policies = resident_policies
     self.opponent_keys = resident_keys
+    self.opponent_buckets = resident_buckets
+    self.opponent_roles = resident_roles
+    self._opponent_bucket_codes = np.asarray(
+      [ppo_diagnostic_bucket_code(bucket) for bucket in resident_buckets],
+      dtype=np.int8,
+    )
     self._sampling_policy_ids = np.arange(len(desired_keys), dtype=np.int32)
 
     for opp in self.opponent_policies:
@@ -1098,6 +1816,7 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     # games keep their remapped assignment until their normal terminal step.
     self._window_index = -1
     self._window_policy_ids = None
+    self._window_policy_roles = ()
     self._pfsp_enabled = os.environ.get("AZK_PFSP") == "1"
     self._pfsp_power = float(os.environ.get("AZK_PFSP_POWER", "2.0") or 2.0)
     self._pfsp_wins = np.zeros(len(self.opponent_policies), dtype=np.float64)
@@ -1950,6 +2669,8 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     _, gate_offset = deck_dtype.fields["gate_card_def_id"][:2]
     _, leader_offset = deck_dtype.fields["leader_card_def_id"][:2]
     _, main_count_offset = deck_dtype.fields["main_count"][:2]
+    _, candidate_offset = deck_dtype.fields["candidate_card_def_ids"][:2]
+    _, candidate_count_offset = deck_dtype.fields["candidate_count"][:2]
     action_mask_dtype, action_mask_offset = dtype.fields["action_mask"][:2]
     _, legal_count_offset = action_mask_dtype.fields["legal_action_count"][:2]
     layout = {
@@ -1958,16 +2679,22 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       "leader_offset": int(deck_offset + leader_offset),
       "main_count_offset": int(deck_offset + main_count_offset),
       "legal_count_offset": int(action_mask_offset + legal_count_offset),
+      "candidate_offset": int(deck_offset + candidate_offset),
+      "candidate_count_offset": int(deck_offset + candidate_count_offset),
     }
     self._draft_episode_credit_layout = layout
     print(
       "[draft-episode-credit] enabled: "
-      f"coef={self._draft_episode_credit_coef:.6f}, "
+      f"coef={self._draft_episode_credit_coef:.6f}"
+      f"->{getattr(self, '_draft_episode_credit_final_coef', self._draft_episode_credit_coef):.6f}, "
+      f"anneal_rows={getattr(self, '_draft_episode_credit_anneal_start_rows', 0)}"
+      f"->{getattr(self, '_draft_episode_credit_anneal_end_rows', 0)}, "
       f"baseline_coef={self._draft_episode_credit_baseline_coef:.6f}, "
       f"clip={self._draft_episode_credit_clip:.3f}, "
       f"batch_drafts={self._draft_episode_credit_batch_drafts}, "
       f"update_interval={self._draft_episode_credit_update_interval}, "
       f"seed={self._draft_episode_credit_seed}, "
+      f"exclude_xgate={getattr(self, '_draft_episode_credit_exclude_xgate', True)}, "
       "rows=all-50-main-picks, immediate-draft-actor=masked"
     )
     return layout
@@ -2025,6 +2752,9 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     draft_rows_np: np.ndarray | None,
     draft_main_counts_np: np.ndarray | None,
     draft_legal_counts_np: np.ndarray | None,
+    observations_cpu: torch.Tensor | None = None,
+    draft_gate_ids_np: np.ndarray | None = None,
+    draft_leader_ids_np: np.ndarray | None = None,
   ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     forced = torch.zeros(actions.shape[0], device=actions.device, dtype=torch.bool)
     if not getattr(self, "_draft_prefix_enabled", False):
@@ -2041,6 +2771,12 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       policy_main_counts < max(self._draft_prefix_lengths),
     )
     eligible_local = np.nonzero(prefix_candidate_rows)[0]
+    prefix_pool = getattr(self, "_draft_prefix_pool", None)
+    raw = None
+    if prefix_pool is not None and eligible_local.size:
+      if observations_cpu is None or draft_gate_ids_np is None or draft_leader_ids_np is None:
+        raise RuntimeError("strategic prefix requires packed candidates and gate/leader context")
+      raw = observations_cpu.detach().cpu().numpy()
     selections: list[tuple[int, int]] = []
     for local_index_raw in eligible_local.tolist():
       local_index = int(local_index_raw)
@@ -2062,13 +2798,30 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       if main_count >= prefix_length:
         continue
       legal_count = int(draft_legal_counts_np[batch_position])
-      candidate = deterministic_draft_prefix_candidate(
-        episode_id,
-        seat,
-        main_count + 1,
-        legal_count,
-        self._draft_prefix_seed,
-      )
+      if prefix_pool is None:
+        candidate = deterministic_draft_prefix_candidate(
+          episode_id, seat, main_count + 1, legal_count, self._draft_prefix_seed,
+        )
+      else:
+        context = (int(draft_gate_ids_np[batch_position]), int(draft_leader_ids_np[batch_position]))
+        packages = prefix_pool.get(context)
+        if not packages:
+          raise RuntimeError(f"strategic prefix has no package for context {context}")
+        package_index = deterministic_draft_episode_priority(
+          episode_id, seat, self._draft_prefix_seed ^ 0x5354524154454749,
+        ) % len(packages)
+        card_id = packages[package_index][main_count]
+        layout = self._draft_episode_credit_layout
+        offset = layout["candidate_count_offset"]
+        candidate_count = int(raw[batch_position, offset:offset + 4].copy().view(np.int32)[0])
+        offset = layout["candidate_offset"]
+        if candidate_count != legal_count or not 0 < candidate_count <= 1024:
+          raise RuntimeError("strategic prefix candidate/legal action counts disagree")
+        candidate_ids = raw[batch_position, offset:offset + 2 * candidate_count].copy().view(np.int16)
+        matches = np.flatnonzero(candidate_ids == card_id)
+        if matches.size != 1:
+          raise RuntimeError(f"strategic prefix card {card_id} is not uniquely legal in context {context}")
+        candidate = int(matches[0])
       selections.append((local_index, candidate))
     if not selections:
       return actions, logprobs, forced
@@ -2182,6 +2935,9 @@ class LeaguePuffeRL(pufferl.PuffeRL):
           "seat": seat,
           "gate_id": gate_id,
           "leader_id": leader_id,
+          "original_gate_id": gate_id,
+          "battle_gate_id": gate_id,
+          "gate_swapped": False,
           "observations": [None] * DRAFT_EPISODE_MAIN_PICKS,
           "actions": [None] * DRAFT_EPISODE_MAIN_PICKS,
           "old_logprobs": [None] * DRAFT_EPISODE_MAIN_PICKS,
@@ -2207,6 +2963,25 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       pick_index = main_pick - 1
       if bool(seen[pick_index]):
         continue
+      if getattr(self, "_draft_normal_penalty_settings", None) is not None:
+        layout = self._draft_episode_credit_layout
+        if layout is None:
+          raise RuntimeError("Normal-penalty capture requires the draft layout")
+        raw = observation_rows[selected_index].numpy()
+        offset = layout["candidate_count_offset"]
+        candidate_count = int(raw[offset:offset + 4].view(np.int32)[0])
+        selected_action = action_rows[selected_index]
+        selected_index_value = int(selected_action[1])
+        if (
+          int(selected_action[0]) != int(ActionType.DECK_PICK_CARD)
+          or not 0 <= selected_index_value < candidate_count <= MAX_DECK_BUILD_CANDIDATES
+        ):
+          raise RuntimeError("Normal-penalty capture requires a legal main-card draft pick")
+        offset = layout["candidate_offset"] + 2 * selected_index_value
+        card_id = int(raw[offset:offset + 2].view(np.int16)[0])
+        pending["normal_count"] = int(pending.get("normal_count", 0)) + (
+          card_id in self._draft_normal_card_ids
+        )
       pending["observations"][pick_index] = observation_rows[selected_index]
       pending["actions"][pick_index] = action_rows[selected_index]
       pending["old_logprobs"][pick_index] = logprob_rows[selected_index]
@@ -2218,11 +2993,35 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       self._draft_episode_credit_captured += 1
     self._draft_episode_credit_capture_seconds += time.perf_counter() - started
 
+  def _mark_draft_episode_credit_cross_gate(
+    self,
+    agent_ids: np.ndarray,
+    battle_gate_ids: np.ndarray,
+  ) -> None:
+    if (
+      not getattr(self, "_draft_episode_credit_enabled", False)
+      or not getattr(self, "_draft_episode_credit_exclude_xgate", True)
+    ):
+      return
+    for agent_id_raw, battle_gate_raw in zip(
+      agent_ids.tolist(), battle_gate_ids.tolist(), strict=True
+    ):
+      agent_id = int(agent_id_raw)
+      env_index = agent_id // self._agents_per_env
+      seat = agent_id % self._agents_per_env
+      episode_id = int(self._env_episode_ids[env_index])
+      pending = self._draft_episode_credit_pending.get((episode_id, seat))
+      if pending is None:
+        continue
+      battle_gate = int(battle_gate_raw)
+      pending["battle_gate_id"] = battle_gate
+      pending["gate_swapped"] = battle_gate != int(pending["original_gate_id"])
+
   def _offer_completed_draft_episode_credit(
     self,
     record: dict[str, object],
   ) -> None:
-    """Keep a bounded deterministic sample of this epoch's complete drafts."""
+    """Keep a bounded deterministic sample balanced by gate/leader context."""
     priority = deterministic_draft_episode_priority(
       int(record["episode_id"]),
       int(record["seat"]),
@@ -2234,8 +3033,30 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     if len(self._draft_episode_credit_ready) < self._draft_episode_credit_batch_drafts:
       self._draft_episode_credit_ready.append(record)
       return
+
+    def context(item: dict[str, object]) -> tuple[int, int]:
+      return int(item.get("gate_id", -1)), int(item.get("leader_id", -1))
+
+    incoming_context = context(record)
+    counts: defaultdict[tuple[int, int], int] = defaultdict(int)
+    for retained in self._draft_episode_credit_ready:
+      counts[context(retained)] += 1
+    incoming_count = counts[incoming_context]
+    max_count = max(counts.values())
+    if incoming_count < max_count:
+      candidate_indices = [
+        index
+        for index, retained in enumerate(self._draft_episode_credit_ready)
+        if counts[context(retained)] == max_count
+      ]
+    else:
+      candidate_indices = [
+        index
+        for index, retained in enumerate(self._draft_episode_credit_ready)
+        if context(retained) == incoming_context
+      ]
     worst_index = max(
-      range(len(self._draft_episode_credit_ready)),
+      candidate_indices,
       key=lambda index: int(
         self._draft_episode_credit_ready[index]["sample_priority"]
       ),
@@ -2243,10 +3064,44 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     worst_priority = int(
       self._draft_episode_credit_ready[worst_index]["sample_priority"]
     )
-    if priority < worst_priority:
+    if incoming_count < max_count or priority < worst_priority:
       self._draft_episode_credit_ready[worst_index] = record
     self._draft_episode_credit_sample_dropped += 1
     self._draft_episode_credit_window_sample_dropped += 1
+
+  def _exclude_cross_gate_draft_episode_credit(
+    self,
+    record: dict[str, object],
+    outcome: str,
+  ) -> bool:
+    if (
+      not getattr(self, "_draft_episode_credit_exclude_xgate", True)
+      or not bool(record.get("gate_swapped", False))
+    ):
+      return False
+    seen = np.asarray(record["seen"], dtype=np.bool_)
+    self._draft_episode_credit_xgate_excluded = (
+      getattr(self, "_draft_episode_credit_xgate_excluded", 0) + 1
+    )
+    self._draft_episode_credit_xgate_excluded_rows = (
+      getattr(self, "_draft_episode_credit_xgate_excluded_rows", 0)
+      + int(seen.sum())
+    )
+    breakdown = getattr(
+      self, "_draft_episode_credit_xgate_excluded_breakdown", None
+    )
+    if breakdown is None:
+      breakdown = defaultdict(int)
+      self._draft_episode_credit_xgate_excluded_breakdown = breakdown
+    key = (
+      int(record["original_gate_id"]),
+      int(record["battle_gate_id"]),
+      int(record["leader_id"]),
+      int(record["seat"]),
+      str(outcome),
+    )
+    breakdown[key] += 1
+    return True
 
   def _finalize_draft_episode_credit_rows(
     self,
@@ -2288,12 +3143,25 @@ class LeaguePuffeRL(pufferl.PuffeRL):
           )
           if is_terminal_draw:
             target = 0.5
-            self._draft_episode_credit_draws += 1
           else:
+            if bool(seen.all()) and self._exclude_cross_gate_draft_episode_credit(
+              pending, "truncation"
+            ):
+              continue
             self._draft_episode_credit_truncated += int(seen.sum())
             continue
         if not bool(seen.all()):
           self._draft_episode_credit_incomplete += 1
+          continue
+        target_value = float(target)
+        outcome = (
+          "win"
+          if target_value > 0.5
+          else "loss"
+          if target_value < 0.5
+          else "draw"
+        )
+        if self._exclude_cross_gate_draft_episode_credit(pending, outcome):
           continue
         for field in (
           "observations",
@@ -2307,14 +3175,16 @@ class LeaguePuffeRL(pufferl.PuffeRL):
           if not isinstance(rows, list) or any(row is None for row in rows):
             raise RuntimeError(f"full-episode draft has invalid {field}")
           pending[field] = torch.stack(rows)
-        pending["target"] = float(target)
+        pending["target"] = target_value
         pending["terminal_epoch"] = int(self.epoch)
-        if float(target) > 0.5:
+        if target_value > 0.5:
           self._draft_episode_credit_decisive += 1
           self._draft_episode_credit_wins += 1
-        elif float(target) < 0.5:
+        elif target_value < 0.5:
           self._draft_episode_credit_decisive += 1
           self._draft_episode_credit_losses += 1
+        else:
+          self._draft_episode_credit_draws += 1
         self._offer_completed_draft_episode_credit(pending)
         self._draft_episode_credit_labeled += DRAFT_EPISODE_MAIN_PICKS
 
@@ -2375,6 +3245,10 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       "draft_episode_credit_loss": 0.0,
       "draft_episode_credit_baseline_loss": 0.0,
       "draft_episode_credit_train_seconds": 0.0,
+      "draft_episode_credit_exact_kl_mean": 0.0,
+      "draft_episode_credit_exact_kl_p90": 0.0,
+      "draft_episode_credit_exact_kl_p99": 0.0,
+      "draft_episode_credit_exact_kl_max": 0.0,
       "draft_episode_credit_gpu_seconds": 0.0,
       "draft_episode_credit_gradient_norm": 0.0,
     }
@@ -2450,6 +3324,40 @@ class LeaguePuffeRL(pufferl.PuffeRL):
 
     self.optimizer.zero_grad()
     amp_cm = self.amp_context if self.amp_context is not None else contextlib.nullcontext()
+    sampled_rows = draft_episode_credit_sampled_rows(
+      int(self.epoch),
+      int(self.config["batch_size"]),
+    )
+    initial_credit_coef = self._draft_episode_credit_coef
+    final_credit_coef = getattr(
+      self, "_draft_episode_credit_final_coef", initial_credit_coef
+    )
+    active_credit_coef = draft_episode_credit_coefficient(
+      sampled_rows,
+      initial=initial_credit_coef,
+      final=final_credit_coef,
+      anneal_start_rows=getattr(
+        self, "_draft_episode_credit_anneal_start_rows", 0
+      ),
+      anneal_end_rows=getattr(
+        self, "_draft_episode_credit_anneal_end_rows", 0
+      ),
+    )
+    normal_settings = getattr(self, "_draft_normal_penalty_settings", None)
+    normal_coefficient = sampled_row_reward_scale(
+      sampled_rows, *getattr(self, "_draft_normal_penalty_schedule", (0.0, 0.0, 0, 0))
+    )
+    normal_penalties = None
+    if normal_settings is not None:
+      costs = [
+        leader_normal_cost(int(record["normal_count"]), int(record["leader_id"]), normal_settings)
+        for record in padded
+      ]
+      normal_penalties = torch.tensor(
+        costs, device=device, dtype=torch.float32
+      ).mul_(normal_coefficient)[:, None].expand(
+        batch_drafts, DRAFT_EPISODE_MAIN_PICKS
+      ).reshape(-1)
     with amp_cm:
       differentiable_forward = getattr(
         self.policy,
@@ -2466,6 +3374,10 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       win_logits = win_logits.reshape_as(targets)
       predictions = torch.sigmoid(win_logits)
       advantages = targets - predictions.detach()
+      if normal_penalties is not None:
+        # Composition affects only retained, non-forced draft actor decisions.
+        # Keep win-probability labels unchanged; never modify battle rewards.
+        advantages = advantages - normal_penalties
       policy_loss, ratios = clipped_terminal_policy_loss(
         new_logprobs,
         old_logprobs,
@@ -2481,7 +3393,7 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       baseline_loss = masked_tensor_mean(baseline_elements, valid)
       entropy_loss = masked_tensor_mean(entropy, actor_valid)
       total_loss = (
-        self._draft_episode_credit_coef * policy_loss
+        active_credit_coef * policy_loss
         + self._draft_episode_credit_baseline_coef * baseline_loss
         - float(self.config["ent_coef"]) * entropy_loss
       )
@@ -2492,6 +3404,23 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     )
     self.optimizer.step()
     self.optimizer.zero_grad()
+    credit_exact_kl = torch.zeros_like(targets)
+    if isinstance(logits, TCGLegalActionDistribution):
+      post_state: dict[str, object] = {
+        "mask": torch.ones_like(valid),
+        "lstm_h": lstm_h,
+        "lstm_c": lstm_c,
+      }
+      post_amp_cm = (
+        self.amp_context
+        if self.amp_context is not None
+        else contextlib.nullcontext()
+      )
+      with torch.no_grad(), post_amp_cm:
+        post_logits, _ = differentiable_forward(observations, post_state)
+        if not isinstance(post_logits, TCGLegalActionDistribution):
+          raise TypeError("Draft-credit KL requires legal-row action logits")
+        credit_exact_kl = legal_action_kl(logits, post_logits).reshape_as(targets)
 
     gpu_seconds = 0.0
     if gpu_end is not None and gpu_start is not None:
@@ -2506,6 +3435,20 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       valid_ratios = ratios[actor_valid].float().cpu().numpy()
       valid_entropy = entropy[actor_valid].float().cpu().numpy()
       baseline_predictions = predictions[valid].float().cpu().numpy()
+      valid_credit_exact_kl = credit_exact_kl[actor_valid].float()
+      credit_kl_summary = summarize_ppo_diagnostic_tensor(valid_credit_exact_kl)
+    exact_kl_target = max(
+      float(self.config.get("exact_kl_target", 0.0)),
+      0.0,
+    )
+    if (
+      exact_kl_target > 0.0
+      and credit_kl_summary["mean"] > exact_kl_target
+    ):
+      raise RuntimeError(
+        "Draft-credit exact KL exceeded the per-update stop threshold: "
+        f"mean={credit_kl_summary['mean']:.6g}, target={exact_kl_target:.6g}"
+      )
     decisive = valid_targets != 0.5
 
     pick_grid = np.broadcast_to(
@@ -2551,6 +3494,8 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       "draft_episode_credit_window_retention_fraction": float(
         len(records) / max(self._draft_episode_credit_window_completed, 1)
       ),
+      "draft_episode_credit_active_coef": active_credit_coef,
+      "draft_episode_credit_sampled_rows": float(sampled_rows),
       "draft_episode_credit_loss": float(policy_loss.detach().item()),
       "draft_episode_credit_baseline_loss": float(baseline_loss.detach().item()),
       "draft_episode_credit_advantage_mean": float(valid_advantages.mean()),
@@ -2581,6 +3526,10 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       "draft_episode_credit_clipfrac": float(
         (np.abs(valid_ratios - 1.0) > self._draft_episode_credit_clip).mean()
       ),
+      "draft_episode_credit_exact_kl_mean": credit_kl_summary.get("mean", 0.0),
+      "draft_episode_credit_exact_kl_p90": credit_kl_summary.get("p90", 0.0),
+      "draft_episode_credit_exact_kl_p99": credit_kl_summary.get("p99", 0.0),
+      "draft_episode_credit_exact_kl_max": credit_kl_summary.get("max", 0.0),
       "draft_episode_credit_entropy": float(valid_entropy.mean()),
       "draft_episode_credit_gradient_norm": float(grad_norm.detach().item()),
       "draft_episode_credit_record_age_mean": float(record_ages.mean()),
@@ -2590,6 +3539,24 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       "draft_episode_credit_train_seconds": float(time.perf_counter() - started),
       "draft_episode_credit_gpu_seconds": gpu_seconds,
     }
+    if normal_settings is not None:
+      fractions = np.asarray(
+        [int(record["normal_count"]) / DRAFT_EPISODE_MAIN_PICKS for record in records]
+      )
+      penalties = np.asarray(costs[:len(records)]) * normal_coefficient
+      metrics.update({
+        "draft_episode_credit_normal_coefficient": normal_coefficient,
+        "draft_episode_credit_normal_fraction_mean": float(fractions.mean()),
+        "draft_episode_credit_normal_penalty_mean": float(penalties.mean()),
+        "draft_episode_credit_normal_penalty_max": float(penalties.max()),
+      })
+      leader_ids = np.asarray([int(record["leader_id"]) for record in records])
+      for leader_id in np.unique(leader_ids):
+        selector = leader_ids == leader_id
+        prefix = f"draft_episode_credit_normal_leader_{int(leader_id)}"
+        metrics[f"{prefix}_episodes"] = float(selector.sum())
+        metrics[f"{prefix}_fraction_mean"] = float(fractions[selector].mean())
+        metrics[f"{prefix}_penalty_mean"] = float(penalties[selector].mean())
     metrics.update(
       self._draft_episode_credit_position_metrics(
         valid_advantages,
@@ -2599,8 +3566,14 @@ class LeaguePuffeRL(pufferl.PuffeRL):
         valid_main_picks,
       )
     )
-    for context_name, key in (("gate", "gate_id"), ("leader", "leader_id")):
-      ids = np.asarray([int(record[key]) for record in records], dtype=np.int32)
+    for context_name, key in (
+      ("gate", "gate_id"),
+      ("leader", "leader_id"),
+      ("seat", "seat"),
+    ):
+      ids = np.asarray(
+        [int(record.get(key, -1)) for record in records], dtype=np.int32
+      )
       episode_targets = np.asarray(
         [float(record["target"]) for record in records], dtype=np.float32
       )
@@ -2609,6 +3582,17 @@ class LeaguePuffeRL(pufferl.PuffeRL):
         prefix = f"draft_episode_credit_{context_name}_{int(context_id)}"
         metrics[f"{prefix}_episodes"] = float(selector.sum())
         metrics[f"{prefix}_target_mean"] = float(episode_targets[selector].mean())
+    targets_by_record = np.asarray(
+      [float(record["target"]) for record in records], dtype=np.float32
+    )
+    for outcome_name, selector in (
+      ("win", targets_by_record > 0.5),
+      ("draw", targets_by_record == 0.5),
+      ("loss", targets_by_record < 0.5),
+    ):
+      metrics[f"draft_episode_credit_outcome_{outcome_name}_episodes"] = float(
+        selector.sum()
+      )
     self._draft_episode_credit_window_completed = 0
     self._draft_episode_credit_window_sample_dropped = 0
     return metrics
@@ -2692,6 +3676,72 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     self._draft_credit_control_grad_norm = float(torch.sqrt(norm_sq).item())
     self._draft_credit_grad_probe_done = True
 
+  def _decode_ppo_diagnostic_context(
+    self,
+    observations: torch.Tensor,
+  ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray] | None:
+    if not bool(getattr(self, "_ppo_diagnostics_enabled", False)):
+      return None
+    layout = self._ppo_diagnostic_layout
+    if layout is None:
+      layout = ppo_diagnostic_observation_layout(int(observations.shape[-1]))
+      self._ppo_diagnostic_layout = layout
+    raw = observations.detach().cpu().numpy()
+
+    def card_ids(offset_name: str) -> np.ndarray:
+      offset = layout[offset_name]
+      return (
+        raw[:, offset:offset + 2]
+        .copy()
+        .view(np.int16)
+        .reshape(-1)
+      )
+
+    return (
+      card_ids("gate_offset"),
+      card_ids("leader_offset"),
+      card_ids("opponent_gate_offset"),
+      card_ids("opponent_leader_offset"),
+    )
+
+  def _ppo_diagnostic_opponent_codes(
+    self,
+    env_indices: np.ndarray,
+  ) -> np.ndarray:
+    codes = np.full(
+      env_indices.shape,
+      PPO_DIAGNOSTIC_BUCKET_CODES["latest"],
+      dtype=np.int8,
+    )
+    frozen = ~self._env_use_latest[env_indices]
+    if bool(frozen.any()):
+      policy_ids = self._env_opp_policy[env_indices[frozen]]
+      valid = np.logical_and(policy_ids >= 0, policy_ids < self._opponent_bucket_codes.size)
+      frozen_codes = np.full(
+        policy_ids.shape,
+        PPO_DIAGNOSTIC_BUCKET_CODES["frozen"],
+        dtype=np.int8,
+      )
+      frozen_codes[valid] = self._opponent_bucket_codes[policy_ids[valid]]
+      codes[frozen] = frozen_codes
+    return codes
+
+  def _ppo_diagnostic_action_values(
+    self,
+    distribution,
+    actions: torch.Tensor,
+  ) -> tuple[torch.Tensor, torch.Tensor] | tuple[None, None]:
+    if not bool(getattr(self, "_ppo_diagnostics_enabled", False)):
+      return None, None
+    if not isinstance(distribution, TCGLegalActionDistribution):
+      raise ValueError("PPO diagnostics require actor_head_type='legal_action_scorer'")
+    components = legal_action_logprob_components(distribution, actions).detach().float()
+    legal_counts = distribution.legal_action_count.detach().to(
+      device=components.device,
+      dtype=torch.int16,
+    )
+    return components, legal_counts
+
   def _infer_actions(
     self,
     o_device: torch.Tensor,
@@ -2713,6 +3763,7 @@ class LeaguePuffeRL(pufferl.PuffeRL):
   ):
     device = self.config["device"]
     batch_n = o_device.shape[0]
+    diagnostics_enabled = bool(getattr(self, "_ppo_diagnostics_enabled", False))
     active = compute_league_active(
       global_step=int(self.global_step),
       activate_after_steps=int(self.league_cfg.activate_after_steps),
@@ -2741,6 +3792,38 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     values_out = torch.zeros(batch_n, device=device)
     terminal_values_out = torch.zeros(batch_n, device=device)
     shaped_values_out = torch.zeros(batch_n, device=device)
+    diagnostic_components_out = (
+      torch.zeros(
+        (batch_n, len(PPO_DIAGNOSTIC_COMPONENT_NAMES)),
+        device=device,
+        dtype=torch.float32,
+      )
+      if diagnostics_enabled
+      else None
+    )
+    diagnostic_legal_counts_out = (
+      torch.full((batch_n,), -1, device=device, dtype=torch.int16)
+      if diagnostics_enabled
+      else None
+    )
+    rollout_initial_h_out = (
+      torch.zeros(
+        (batch_n, int(self.policy.hidden_size)),
+        device=device,
+        dtype=torch.float32,
+      )
+      if self._use_rnn
+      else None
+    )
+    rollout_initial_c_out = (
+      torch.zeros(
+        (batch_n, int(self.policy.hidden_size)),
+        device=device,
+        dtype=torch.float32,
+      )
+      if self._use_rnn
+      else None
+    )
 
     learner_idx = np.nonzero(learner_rows_np)[0]
     if learner_idx.size > 0:
@@ -2749,8 +3832,12 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       learner_pre_h = None
       learner_pre_c = None
       if self._use_rnn:
-        learner_pre_h = self._learner_lstm_h[learner_idx_t]
-        learner_pre_c = self._learner_lstm_c[learner_idx_t]
+        # Worker-batch rows repeat; histories belong to global game/seat IDs.
+        learner_agent_ids_t = torch.as_tensor(
+          env_id_np[learner_idx], device=device, dtype=torch.long
+        )
+        learner_pre_h = self._learner_lstm_h[learner_agent_ids_t]
+        learner_pre_c = self._learner_lstm_c[learner_agent_ids_t]
         learner_state["lstm_h"] = learner_pre_h
         learner_state["lstm_c"] = learner_pre_c
       logits, values = self._safe_forward_eval(self.policy, o_device[learner_idx_t], learner_state)
@@ -2771,6 +3858,9 @@ class LeaguePuffeRL(pufferl.PuffeRL):
         draft_rows_np=draft_episode_rows_np,
         draft_main_counts_np=draft_episode_main_counts_np,
         draft_legal_counts_np=draft_episode_legal_counts_np,
+        observations_cpu=observations_cpu,
+        draft_gate_ids_np=draft_episode_gate_ids_np,
+        draft_leader_ids_np=draft_episode_leader_ids_np,
       )
       self._stash_selected_leader_credit_rows(
         observations_cpu=observations_cpu,
@@ -2813,6 +3903,23 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       actions_out[learner_idx_t] = actions.to(dtype=torch.int32)
       logprobs_out[learner_idx_t] = logprobs.to(dtype=logprobs_out.dtype)
       values_out[learner_idx_t] = values.flatten().to(dtype=values_out.dtype)
+      learner_components, learner_legal_counts = self._ppo_diagnostic_action_values(
+        logits,
+        actions,
+      )
+      if learner_components is not None and diagnostic_components_out is not None:
+        diagnostic_components_out[learner_idx_t] = learner_components.reshape(
+          learner_idx_t.numel(),
+          len(PPO_DIAGNOSTIC_COMPONENT_NAMES),
+        )
+        diagnostic_legal_counts_out[learner_idx_t] = learner_legal_counts.reshape(-1)
+      if (
+        rollout_initial_h_out is not None
+        and learner_pre_h is not None
+        and learner_pre_c is not None
+      ):
+        rollout_initial_h_out[learner_idx_t] = learner_pre_h.detach().float()
+        rollout_initial_c_out[learner_idx_t] = learner_pre_c.detach().float()
       if self._split_value_heads_enabled():
         terminal_value, shaped_value = self._component_values_from_state(
           learner_state,
@@ -2821,11 +3928,11 @@ class LeaguePuffeRL(pufferl.PuffeRL):
         terminal_values_out[learner_idx_t] = terminal_value.detach().float()
         shaped_values_out[learner_idx_t] = shaped_value.detach().float()
       if self._use_rnn:
-        self._learner_lstm_h[learner_idx_t] = learner_state["lstm_h"].to(
+        self._learner_lstm_h[learner_agent_ids_t] = learner_state["lstm_h"].to(
           device=self._learner_lstm_h.device,
           dtype=self._learner_lstm_h.dtype,
         )
-        self._learner_lstm_c[learner_idx_t] = learner_state["lstm_c"].to(
+        self._learner_lstm_c[learner_agent_ids_t] = learner_state["lstm_c"].to(
           device=self._learner_lstm_c.device,
           dtype=self._learner_lstm_c.dtype,
         )
@@ -2843,8 +3950,11 @@ class LeaguePuffeRL(pufferl.PuffeRL):
         latest_pre_h = None
         latest_pre_c = None
         if self._use_rnn:
-          latest_pre_h = self._learner_lstm_h[latest_idx_t]
-          latest_pre_c = self._learner_lstm_c[latest_idx_t]
+          latest_agent_ids_t = torch.as_tensor(
+            env_id_np[latest_rows_np], device=device, dtype=torch.long
+          )
+          latest_pre_h = self._learner_lstm_h[latest_agent_ids_t]
+          latest_pre_c = self._learner_lstm_c[latest_agent_ids_t]
           latest_state["lstm_h"] = latest_pre_h
           latest_state["lstm_c"] = latest_pre_c
         latest_logits, latest_values = self._safe_forward_eval(self.policy, o_device[latest_idx_t], latest_state)
@@ -2863,6 +3973,9 @@ class LeaguePuffeRL(pufferl.PuffeRL):
           draft_rows_np=draft_episode_rows_np,
           draft_main_counts_np=draft_episode_main_counts_np,
           draft_legal_counts_np=draft_episode_legal_counts_np,
+          observations_cpu=observations_cpu,
+          draft_gate_ids_np=draft_episode_gate_ids_np,
+          draft_leader_ids_np=draft_episode_leader_ids_np,
         )
         self._stash_selected_leader_credit_rows(
           observations_cpu=observations_cpu,
@@ -2905,6 +4018,23 @@ class LeaguePuffeRL(pufferl.PuffeRL):
         actions_out[latest_idx_t] = latest_actions.to(dtype=torch.int32)
         logprobs_out[latest_idx_t] = latest_logprobs.to(dtype=logprobs_out.dtype)
         values_out[latest_idx_t] = latest_values.flatten().to(dtype=values_out.dtype)
+        latest_components, latest_legal_counts = self._ppo_diagnostic_action_values(
+          latest_logits,
+          latest_actions,
+        )
+        if latest_components is not None and diagnostic_components_out is not None:
+          diagnostic_components_out[latest_idx_t] = latest_components.reshape(
+            latest_idx_t.numel(),
+            len(PPO_DIAGNOSTIC_COMPONENT_NAMES),
+          )
+          diagnostic_legal_counts_out[latest_idx_t] = latest_legal_counts.reshape(-1)
+        if (
+          rollout_initial_h_out is not None
+          and latest_pre_h is not None
+          and latest_pre_c is not None
+        ):
+          rollout_initial_h_out[latest_idx_t] = latest_pre_h.detach().float()
+          rollout_initial_c_out[latest_idx_t] = latest_pre_c.detach().float()
         if self._split_value_heads_enabled():
           terminal_value, shaped_value = self._component_values_from_state(
             latest_state,
@@ -2913,11 +4043,11 @@ class LeaguePuffeRL(pufferl.PuffeRL):
           terminal_values_out[latest_idx_t] = terminal_value.detach().float()
           shaped_values_out[latest_idx_t] = shaped_value.detach().float()
         if self._use_rnn:
-          self._learner_lstm_h[latest_idx_t] = latest_state["lstm_h"].to(
+          self._learner_lstm_h[latest_agent_ids_t] = latest_state["lstm_h"].to(
             device=self._learner_lstm_h.device,
             dtype=self._learner_lstm_h.dtype,
           )
-          self._learner_lstm_c[latest_idx_t] = latest_state["lstm_c"].to(
+          self._learner_lstm_c[latest_agent_ids_t] = latest_state["lstm_c"].to(
             device=self._learner_lstm_c.device,
             dtype=self._learner_lstm_c.dtype,
           )
@@ -2933,8 +4063,11 @@ class LeaguePuffeRL(pufferl.PuffeRL):
           opp_policy = self.opponent_policies[int(policy_id)]
           opp_state = {"mask": mask_t[rows_t]}
           if self._use_rnn:
-            opp_state["lstm_h"] = self._opp_lstm_h[int(policy_id)][rows_t]
-            opp_state["lstm_c"] = self._opp_lstm_c[int(policy_id)][rows_t]
+            frozen_agent_ids_t = torch.as_tensor(
+              env_id_np[rows_np], device=device, dtype=torch.long
+            )
+            opp_state["lstm_h"] = self._opp_lstm_h[int(policy_id)][frozen_agent_ids_t]
+            opp_state["lstm_c"] = self._opp_lstm_c[int(policy_id)][frozen_agent_ids_t]
           opp_logits, opp_values = self._safe_forward_eval(opp_policy, o_device[rows_t], opp_state)
           with torch.no_grad(), self.amp_context:
             opp_actions, _, _ = azk_pytorch.sample_logits(opp_logits)
@@ -2948,15 +4081,26 @@ class LeaguePuffeRL(pufferl.PuffeRL):
             terminal_values_out[rows_t] = terminal_value.detach().float()
             shaped_values_out[rows_t] = shaped_value.detach().float()
           if self._use_rnn:
-            self._opp_lstm_h[int(policy_id)][rows_t] = opp_state["lstm_h"].to(
+            self._opp_lstm_h[int(policy_id)][frozen_agent_ids_t] = opp_state["lstm_h"].to(
               device=self._opp_lstm_h[int(policy_id)].device,
               dtype=self._opp_lstm_h[int(policy_id)].dtype,
             )
-            self._opp_lstm_c[int(policy_id)][rows_t] = opp_state["lstm_c"].to(
+
+            self._opp_lstm_c[int(policy_id)][frozen_agent_ids_t] = opp_state["lstm_c"].to(
               device=self._opp_lstm_c[int(policy_id)].device,
               dtype=self._opp_lstm_c[int(policy_id)].dtype,
             )
 
+    self._ppo_diag_pending_action_values = (
+      (diagnostic_components_out, diagnostic_legal_counts_out)
+      if diagnostics_enabled
+      else None
+    )
+    self._pending_rollout_lstm_states = (
+      (rollout_initial_h_out, rollout_initial_c_out)
+      if self._use_rnn
+      else None
+    )
     return (
       actions_out,
       logprobs_out,
@@ -2972,6 +4116,23 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     with torch.no_grad(), self.amp_context:
       return model.forward_eval(obs, state)
 
+  def _forward_recurrent_sequence(
+    self,
+    model,
+    observations: torch.Tensor,
+    lstm_h: torch.Tensor,
+    lstm_c: torch.Tensor,
+    lstm_resets: torch.Tensor,
+  ):
+    """Unroll a BPTT segment, detaching only its initial recurrent state."""
+    replay_state = {
+      "lstm_h": lstm_h.detach().unsqueeze(0),
+      "lstm_c": lstm_c.detach().unsqueeze(0),
+      "lstm_reset": lstm_resets,
+    }
+    logits, values = model(observations, replay_state)
+    return logits, values, replay_state
+
   def evaluate(self):
     profile = self.profile
     epoch = self.epoch
@@ -2980,8 +4141,25 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     self._refresh_frozen_window()
 
     config = self.config
+    if self._decomposed_reward_schedule:
+      sampled_rows = int(epoch) * int(config["batch_size"])
+      potential_scale = sampled_row_reward_scale(
+        sampled_rows, *self._potential_reward_schedule
+      )
+      exploration_scale = sampled_row_reward_scale(
+        sampled_rows, *self._exploration_reward_schedule
+      )
+      reward_scales = getattr(self.vecenv, "reward_scales", None)
+      if not isinstance(reward_scales, np.ndarray):
+        raise RuntimeError("vector reward_scales disappeared during training")
+      reward_scales[:] = np.asarray(
+        [potential_scale, exploration_scale], dtype=np.float32
+      )
+      self.stats["anneal/potential_reward_scale"].append(potential_scale)
+      self.stats["anneal/exploration_reward_scale"].append(exploration_scale)
+      self.stats["anneal/reward_scale_sampled_rows"].append(float(sampled_rows))
     device = config["device"]
-    reward_multiplier = self._prepare_trainer_shaped_reward_anneal()
+    self._freeze_running_normalization()
 
     self.full_rows = 0
     if self._leader_credit_enabled:
@@ -3005,6 +4183,9 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       self._draft_episode_credit_completed = 0
       self._draft_episode_credit_sample_dropped = 0
       self._draft_episode_credit_capture_seconds = 0.0
+      self._draft_episode_credit_xgate_excluded = 0
+      self._draft_episode_credit_xgate_excluded_rows = 0
+      self._draft_episode_credit_xgate_excluded_breakdown.clear()
     if self._draft_prefix_enabled:
       self._draft_prefix_forced_rows = 0
       self._draft_prefix_episode_lengths = []
@@ -3022,14 +4203,27 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     total_trainable_rows = 0
     reference_battle_rows = 0
     total_battle_rows = 0
+    supplied_learner_battle_rows = 0
+    total_learner_battle_rows = 0
+    hand_size_counts = np.zeros((2, 4), dtype=np.int64)
     self._segment_is_trainable.zero_()
+    self._rollout_is_trainable.zero_()
+    if self._use_rnn:
+      self.rollout_lstm_resets.zero_()
+    if self._ppo_diagnostics_enabled:
+      self._ppo_diag_old_component_logprobs.zero_()
+      self._ppo_diag_legal_counts.fill_(-1)
+      self._ppo_diag_opponent_buckets.fill_(-1)
+      self._ppo_diag_gate_ids.fill_(-1)
+      self._ppo_diag_leader_ids.fill_(-1)
+      self._ppo_diag_opponent_gate_ids.fill_(-1)
     self._reset_win_prob_rollout_buffers()
     self._reset_split_value_rollout_buffers()
-    if self._xgate_mask_enabled:
-      self.actor_loss_mask.fill_(1.0)
-      if self._xgate_masked_steps:
-        self.stats["xgate_masked_steps"].append(float(self._xgate_masked_steps))
-      self._xgate_masked_steps = 0
+    self.actor_loss_mask.fill_(1.0)
+    if self._xgate_masked_steps:
+      self.stats["xgate_masked_steps"].append(float(self._xgate_masked_steps))
+    self._xgate_masked_steps = 0
+    self._strategic_exposure_actor_masked_rows = 0
     if self._draft_episode_credit_enabled:
       if self._draft_episode_phase_mask is None:
         raise RuntimeError("full-episode draft phase mask is missing")
@@ -3074,14 +4268,15 @@ class LeaguePuffeRL(pufferl.PuffeRL):
         draft_episode_leader_ids_np,
         draft_episode_legal_counts_np,
       ) = self._decode_draft_episode_credit_rows(o, mask)
+      diagnostic_context_np = self._decode_ppo_diagnostic_context(o)
       o_device = o.to(device)
-      r_t = torch.as_tensor(r).to(device)
       d_t = torch.as_tensor(d).to(device)
       mask_t = torch.as_tensor(mask, device=device, dtype=torch.bool)
       reward_components_terminal_np, reward_components_shaped_np = self._extract_step_reward_components(
         info,
         env_id_np,
-        np.clip(np.asarray(r, dtype=np.float32), -1.0, 1.0),
+        np.asarray(r, dtype=np.float32),
+        terminal_mask,
       )
       reward_components_terminal = torch.as_tensor(reward_components_terminal_np, device=device)
       reward_components_shaped = torch.as_tensor(reward_components_shaped_np, device=device)
@@ -3113,6 +4308,24 @@ class LeaguePuffeRL(pufferl.PuffeRL):
         draft_episode_leader_ids_np=draft_episode_leader_ids_np,
         draft_episode_legal_counts_np=draft_episode_legal_counts_np,
       )
+      if self._ppo_diagnostics_enabled:
+        if self._ppo_diag_pending_action_values is None:
+          raise RuntimeError("PPO diagnostics did not capture action metadata")
+        diagnostic_components_t, diagnostic_legal_counts_t = (
+          self._ppo_diag_pending_action_values
+        )
+      else:
+        diagnostic_components_t = None
+        diagnostic_legal_counts_t = None
+      if self._use_rnn:
+        if self._pending_rollout_lstm_states is None:
+          raise RuntimeError("rollout did not capture segment-start LSTM state")
+        rollout_initial_h_t, rollout_initial_c_t = (
+          self._pending_rollout_lstm_states
+        )
+      else:
+        rollout_initial_h_t = None
+        rollout_initial_c_t = None
       prefix_outcome_redistribution_np = None
       if self._prefix_outcome_enabled:
         prefix_outcome_redistribution_np = self._compute_prefix_outcome_redistribution(
@@ -3123,9 +4336,18 @@ class LeaguePuffeRL(pufferl.PuffeRL):
           terminal_mask=terminal_mask,
         )
 
-      trainable_step_mask = np.logical_and(mask.astype(np.bool_), trainable_rows_np)
+      active_rows_np = mask.astype(np.bool_)
+      trainable_step_mask = np.logical_and(active_rows_np, trainable_rows_np)
       self.global_step += int(trainable_step_mask.sum())
-      if self._reference_opponent_only:
+      self._advance_prebuilt_curriculum(
+        o,
+        active_rows_np,
+        trainable_rows_np,
+        done_mask,
+        hand_size_counts,
+      )
+      reference_actor_mask_np: np.ndarray | None = None
+      if self._reference_alignment_enabled:
         reference_rows = self._env_is_reference[env_indices]
         total_trainable_rows += int(trainable_step_mask.sum())
         reference_trainable_rows += int(
@@ -3146,6 +4368,32 @@ class LeaguePuffeRL(pufferl.PuffeRL):
         reference_battle_rows += int(
           np.logical_and(trainable_battle_rows, reference_rows).sum()
         )
+        learner_battle_rows = np.logical_and(
+          trainable_battle_rows,
+          env_id_np % self._agents_per_env == self._env_learner_seat[env_indices],
+        )
+        total_learner_battle_rows += int(learner_battle_rows.sum())
+        supplied_learner_battle_rows += int(np.logical_and(
+          learner_battle_rows,
+          np.logical_and(
+            reference_rows,
+            env_id_np % self._agents_per_env == self._env_reference_seat[env_indices],
+          ),
+        ).sum())
+        if self._reference_learner_fixed:
+          reference_actor_mask_np = compute_reference_fixed_actor_mask(
+            env_id_np,
+            deck_modes,
+            agents_per_env=self._agents_per_env,
+            env_is_reference=self._env_is_reference,
+            env_reference_seat=self._env_reference_seat,
+          )
+          self._strategic_exposure_actor_masked_rows += int(
+            np.logical_and(
+              trainable_step_mask,
+              np.logical_not(reference_actor_mask_np),
+            ).sum()
+          )
 
       profile("eval_copy", epoch)
       with torch.no_grad():
@@ -3162,26 +4410,27 @@ class LeaguePuffeRL(pufferl.PuffeRL):
 
         self.actions[batch_rows, l] = actions_t
         self.logprobs[batch_rows, l] = logprobs_t
-        scaled_total, scaled_shaped = pufferl.recombine_reward_components(
-          torch.clamp(r_t, -1, 1),
-          reward_components_terminal,
-          reward_components_shaped,
-          reward_multiplier,
-        )
+        if reference_actor_mask_np is not None:
+          self.actor_loss_mask[batch_rows, l] *= torch.as_tensor(
+            reference_actor_mask_np,
+            device=device,
+            dtype=self.actor_loss_mask.dtype,
+          )
+        total_reward = reward_components_terminal + reward_components_shaped
         if prefix_outcome_redistribution_np is None:
-          self.rewards[batch_rows, l] = scaled_total
+          self.rewards[batch_rows, l] = total_reward
           self.terminal_reward_components[batch_rows, l] = reward_components_terminal
         else:
           prefix_outcome_redistribution = torch.as_tensor(
             prefix_outcome_redistribution_np,
             device=device,
-            dtype=scaled_total.dtype,
+            dtype=total_reward.dtype,
           )
-          self.rewards[batch_rows, l] = scaled_total + prefix_outcome_redistribution
+          self.rewards[batch_rows, l] = total_reward + prefix_outcome_redistribution
           self.terminal_reward_components[batch_rows, l] = (
             reward_components_terminal + prefix_outcome_redistribution
           )
-        self.shaped_reward_components[batch_rows, l] = scaled_shaped
+        self.shaped_reward_components[batch_rows, l] = reward_components_shaped
         if self._draftaux_enabled and self._draftaux_pending is not None:
           b_global, aux = self._draftaux_pending
           self._draftaux_pending = None
@@ -3196,12 +4445,26 @@ class LeaguePuffeRL(pufferl.PuffeRL):
             self._draftaux_events += int(b_global.numel())
         if self._draftaux_enabled:
           self._draftaux_prevcoords[env_id_slice.start] = (batch_rows.start, l)
-        if self._xgate_mask_enabled:
-          lay = self._draftaux_layout
-          if lay is None:
-            lay = self._draftaux_init_layout(o_device.shape[-1], o_device.device)
-          if lay is not None:
-            mo, go = lay["mode_off"], lay["gate_ctx_off"]
+        track_xgate = self._xgate_mask_enabled or (
+          self._draft_episode_credit_enabled
+          and self._draft_episode_credit_exclude_xgate
+        )
+        if track_xgate:
+          if self._draft_episode_credit_enabled:
+            credit_layout = self._draft_episode_credit_layout
+            if credit_layout is None:
+              credit_layout = self._init_draft_episode_credit_layout(
+                int(o_device.shape[-1])
+              )
+            mo = credit_layout["mode_offset"]
+            go = credit_layout["gate_offset"]
+          else:
+            lay = self._draftaux_layout
+            if lay is None:
+              lay = self._draftaux_init_layout(o_device.shape[-1], o_device.device)
+            mo = lay["mode_off"] if lay is not None else None
+            go = lay["gate_ctx_off"] if lay is not None else None
+          if mo is not None and go is not None:
             mode_now = o_device[:, mo:mo + 4].contiguous().view(torch.int32).flatten()
             gate_now = o_device[:, go:go + 2].contiguous().view(torch.int16).flatten().to(torch.int32)
             gr = torch.as_tensor(env_id_np, device=o_device.device, dtype=torch.long)
@@ -3210,17 +4473,83 @@ class LeaguePuffeRL(pufferl.PuffeRL):
             swapped = (mode_now == 0) & (prev_mode > 0) & (prev_gate > -32768) & (gate_now != prev_gate)
             self._xgate_prev_mode[gr] = mode_now
             self._xgate_prev_gate[gr] = gate_now
-            if bool(swapped.any()) and l > 0:
+            if bool(swapped.any()):
               b = swapped.nonzero(as_tuple=False).flatten()
-              seg_rows = batch_rows.start + (gr[b] - env_id_slice.start)
-              self.actor_loss_mask[seg_rows, :l] = 0.0
-              self._xgate_masked_steps += int(b.numel()) * l
+              self._mark_draft_episode_credit_cross_gate(
+                gr[b].detach().cpu().numpy(),
+                gate_now[b].detach().cpu().numpy(),
+              )
+              if self._xgate_mask_enabled and l > 0:
+                seg_rows = batch_rows.start + (gr[b] - env_id_slice.start)
+                self.actor_loss_mask[seg_rows, :l] = 0.0
+                self._xgate_masked_steps += int(b.numel()) * l
+        self.actor_loss_mask[batch_rows, l] *= torch.as_tensor(
+          np.logical_not(done_mask),
+          device=device,
+          dtype=self.actor_loss_mask.dtype,
+        )
         self.terminals[batch_rows, l] = d_t.float()
+        self.truncations[batch_rows, l] = torch.as_tensor(
+          t, device=device, dtype=self.truncations.dtype
+        )
+        if self._use_rnn:
+          self.rollout_lstm_resets[batch_rows, l] = torch.as_tensor(
+            done_mask,
+            device=device,
+            dtype=torch.bool,
+          )
         self.values[batch_rows, l] = values_t.float()
         if self._split_value_heads_enabled():
           self.terminal_values[batch_rows, l] = terminal_values_t.float()
           self.shaped_values[batch_rows, l] = shaped_values_t.float()
-        self._segment_is_trainable[batch_rows] = torch.as_tensor(trainable_rows_np, device=device, dtype=torch.bool)
+        trainable_rows_t = torch.as_tensor(
+          trainable_rows_np,
+          device=device,
+          dtype=torch.bool,
+        )
+        self._rollout_is_trainable[batch_rows, l] = trainable_rows_t
+        self._segment_is_trainable[batch_rows] |= trainable_rows_t
+        if self._ppo_diagnostics_enabled:
+          if (
+            diagnostic_components_t is None
+            or diagnostic_legal_counts_t is None
+            or diagnostic_context_np is None
+          ):
+            raise RuntimeError("enabled PPO diagnostics are missing rollout metadata")
+          gate_ids_np, leader_ids_np, opponent_gate_ids_np, _ = diagnostic_context_np
+          opponent_codes_np = self._ppo_diagnostic_opponent_codes(env_indices)
+          self._ppo_diag_old_component_logprobs[batch_rows, l] = (
+            diagnostic_components_t
+          )
+          self._ppo_diag_legal_counts[batch_rows, l] = diagnostic_legal_counts_t
+          self._ppo_diag_opponent_buckets[batch_rows, l] = torch.as_tensor(
+            opponent_codes_np,
+            device=device,
+            dtype=torch.int8,
+          )
+          self._ppo_diag_gate_ids[batch_rows, l] = torch.as_tensor(
+            gate_ids_np,
+            device=device,
+            dtype=torch.int16,
+          )
+          self._ppo_diag_leader_ids[batch_rows, l] = torch.as_tensor(
+            leader_ids_np,
+            device=device,
+            dtype=torch.int16,
+          )
+          self._ppo_diag_opponent_gate_ids[batch_rows, l] = torch.as_tensor(
+            opponent_gate_ids_np,
+            device=device,
+            dtype=torch.int16,
+          )
+        if (
+          self._use_rnn
+          and l == 0
+          and rollout_initial_h_t is not None
+          and rollout_initial_c_t is not None
+        ):
+          self.rollout_lstm_h[batch_rows] = rollout_initial_h_t
+          self.rollout_lstm_c[batch_rows] = rollout_initial_c_t
         self._stamp_win_prob_rollout_metadata(batch_rows, l, env_id_np)
         if self._draft_episode_credit_enabled:
           if (
@@ -3242,7 +4571,7 @@ class LeaguePuffeRL(pufferl.PuffeRL):
           self.free_idx += num_full
           self.full_rows += num_full
 
-      terminal_rewards = np.asarray(r, dtype=np.float32)
+      terminal_rewards = reward_components_terminal_np
       draft_episode_terminal_rewards = terminal_only_rewards(
         terminal_rewards,
         terminal_mask,
@@ -3274,25 +4603,36 @@ class LeaguePuffeRL(pufferl.PuffeRL):
         terminal_rewards=terminal_rewards,
         label_mask=terminal_mask,
       )
-      if self._reference_opponent_only and finished_envs.size > 0:
+      if self._reference_alignment_enabled and finished_envs.size > 0:
         total_finished += int(finished_envs.size)
         finished_reference = self._env_is_reference[finished_envs]
         reference_finished += int(finished_reference.sum())
         if bool(finished_reference.any()):
           ref_envs = finished_envs[finished_reference]
-          aligned = self._env_learner_seat[ref_envs] != self._env_reference_seat[ref_envs]
+          aligned = (
+            self._env_learner_seat[ref_envs] == self._env_reference_seat[ref_envs]
+            if self._reference_learner_fixed
+            else self._env_learner_seat[ref_envs] != self._env_reference_seat[ref_envs]
+          )
           reference_finished_aligned += int(aligned.sum())
+      if self._role_sampling_floors and finished_envs.size > 0:
+        for env_idx in finished_envs.tolist():
+          if self._env_use_latest[env_idx]:
+            continue
+          role = str(self._env_opp_role[env_idx])
+          if role in self._role_assignment_counts:
+            self._role_assignment_counts[role] += 1
+            self._role_assignment_total += 1
       if self._pfsp_enabled and finished_envs.size > 0:
-        # Record learner result vs the frozen opponent (terminal reward sign
-        # on the learner seat; truncations carry 0 and are skipped).
-        r_np = np.asarray(r)
+        # PFSP is defined by the learner's true terminal outcome only.
+        r_np = terminal_rewards
         for env_idx in finished_envs:
           if self._env_use_latest[env_idx]:
             continue
           seat = int(self._env_learner_seat[env_idx])
           row = int(env_idx) * self._agents_per_env + seat
           pos = np.nonzero(env_id_np == row)[0]
-          if pos.size == 0 or not bool(done_mask[pos[0]]):
+          if pos.size == 0 or not bool(terminal_mask[pos[0]]):
             continue
           reward = float(r_np[pos[0]])
           if reward == 0.0:
@@ -3305,7 +4645,7 @@ class LeaguePuffeRL(pufferl.PuffeRL):
             self._pfsp_wins[opp] += 1.0 if reward > 0 else 0.0
             self._pfsp_games[opp] += 1.0
       self._resample_matchups(finished_envs)
-      if self._reference_opponent_only and finished_envs.size > 0:
+      if self._reference_alignment_enabled and finished_envs.size > 0:
         self._env_reference_pending[finished_envs] = True
 
       actions_np = actions_t.cpu().numpy()
@@ -3335,7 +4675,7 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       profile("env", epoch)
       self.vecenv.send(actions_np)
 
-    if self._reference_opponent_only:
+    if self._reference_alignment_enabled:
       self.stats["league/reference_configured_matchup_probability"].append(
         self._reference_matchup_probability
       )
@@ -3349,7 +4689,12 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       self.stats["league/reference_completed_episode_fraction"].append(
         float(reference_finished / total_finished) if total_finished else 0.0
       )
-      self.stats["league/reference_learner_drafter_fraction"].append(
+      learner_role_metric = (
+        "league/reference_learner_fixed_fraction"
+        if self._reference_learner_fixed
+        else "league/reference_learner_drafter_fraction"
+      )
+      self.stats[learner_role_metric].append(
         float(reference_finished_aligned / reference_finished) if reference_finished else 1.0
       )
       self.stats["league/reference_matchup_step_fraction"].append(
@@ -3360,6 +4705,51 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       )
       self.stats["league/reference_trainable_battle_row_fraction"].append(
         float(reference_battle_rows / total_battle_rows) if total_battle_rows else 0.0
+      )
+      self.stats["league/strategic_exposure/supplied_learner_battle_rows"].append(
+        float(supplied_learner_battle_rows)
+      )
+      self.stats["league/strategic_exposure/total_learner_battle_rows"].append(
+        float(total_learner_battle_rows)
+      )
+      self.stats["league/strategic_exposure/supplied_learner_battle_row_fraction"].append(
+        supplied_learner_battle_rows / total_learner_battle_rows if total_learner_battle_rows else 0.0
+      )
+      if self._reference_learner_fixed:
+        self.stats[
+          "league/strategic_exposure/actor_masked_draft_rows"
+        ].append(float(self._strategic_exposure_actor_masked_rows))
+        self.stats[
+          "league/strategic_exposure/preserved_battle_trainable_rows"
+        ].append(float(reference_battle_rows))
+        self.stats[
+          "league/strategic_exposure/ordinary_completed_fraction"
+        ].append(
+          float((total_finished - reference_finished) / total_finished)
+          if total_finished
+          else 1.0
+        )
+    if self._role_sampling_floors:
+      total_window_slots = sum(self._role_window_counts.values())
+      for role, target_floor in self._role_sampling_floors:
+        self.stats[f"league/sampling/role/{role}/target_floor"].append(
+          float(target_floor)
+        )
+        self.stats[f"league/sampling/role/{role}/window_share"].append(
+          float(self._role_window_counts[role] / total_window_slots)
+          if total_window_slots
+          else 0.0
+        )
+        self.stats[f"league/sampling/role/{role}/completed_episode_share"].append(
+          float(self._role_assignment_counts[role] / self._role_assignment_total)
+          if self._role_assignment_total
+          else 0.0
+        )
+        self.stats[f"league/sampling/role/{role}/pool_count"].append(
+          float(sum(pool_role == role for pool_role in self.opponent_roles))
+        )
+      self.stats["league/sampling/window_distinct_roles"].append(
+        float(len(set(self._window_policy_roles)))
       )
     if self._prefix_outcome_enabled:
       if self._prefix_outcome_redistributor is None:
@@ -3453,6 +4843,39 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       self.stats["draft_episode_credit/capture_seconds"].append(
         float(self._draft_episode_credit_capture_seconds)
       )
+      sampled_rows = draft_episode_credit_sampled_rows(
+        int(self.epoch),
+        int(self.config["batch_size"]),
+      )
+      self.stats["draft_episode_credit/sampled_rows"].append(float(sampled_rows))
+      self.stats["draft_episode_credit/active_coef"].append(
+        draft_episode_credit_coefficient(
+          sampled_rows,
+          initial=self._draft_episode_credit_coef,
+          final=self._draft_episode_credit_final_coef,
+          anneal_start_rows=self._draft_episode_credit_anneal_start_rows,
+          anneal_end_rows=self._draft_episode_credit_anneal_end_rows,
+        )
+      )
+      self.stats["draft_episode_credit/xgate_excluded_episodes"].append(
+        float(self._draft_episode_credit_xgate_excluded)
+      )
+      self.stats["draft_episode_credit/xgate_excluded_rows"].append(
+        float(self._draft_episode_credit_xgate_excluded_rows)
+      )
+      for (
+        original_gate,
+        battle_gate,
+        leader,
+        seat,
+        outcome,
+      ), count in self._draft_episode_credit_xgate_excluded_breakdown.items():
+        key = (
+          "draft_episode_credit/xgate_excluded"
+          f"/original_{original_gate}/battle_{battle_gate}"
+          f"/leader_{leader}/seat_{seat}/outcome_{outcome}"
+        )
+        self.stats[key].append(float(count))
       if self._draft_episode_credit_completed > 0:
         self._draft_episode_credit_zero_label_epochs = 0
         if self._draft_episode_credit_decisive > 0:
@@ -3472,6 +4895,11 @@ class LeaguePuffeRL(pufferl.PuffeRL):
               "full-episode draft credit stopped because every complete "
               "terminal label was a draw"
             )
+      elif self._prebuilt_enabled and pending_records == 0 and self._draft_episode_credit_captured == 0:
+        # Supplied games have no learner draft decisions and cannot produce
+        # draft labels. Watch label starvation only while drafts are in flight.
+        self._draft_episode_credit_no_decisive_epochs = 0
+        self._draft_episode_credit_zero_label_epochs = 0
       else:
         self._draft_episode_credit_no_decisive_epochs = 0
         self._draft_episode_credit_zero_label_epochs += 1
@@ -3500,6 +4928,9 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       self.stats["draft_prefix/forced_rows"].append(
         float(self._draft_prefix_forced_rows)
       )
+      kind = self._draft_prefix_kind
+      self.stats[f"draft_prefix/{kind}/forced_rows"].append(float(self._draft_prefix_forced_rows))
+      self.stats[f"draft_prefix/{kind}/episodes"].append(float(prefix_lengths.size))
       self.stats["draft_prefix/mean_length"].append(
         float(prefix_lengths.mean()) if prefix_lengths.size else 0.0
       )
@@ -3507,6 +4938,25 @@ class LeaguePuffeRL(pufferl.PuffeRL):
         self.stats[f"draft_prefix/length_{prefix_length}_episodes"].append(
           float((prefix_lengths == prefix_length).sum())
         )
+        self.stats[f"draft_prefix/{kind}/length_{prefix_length}_episodes"].append(
+          float((prefix_lengths == prefix_length).sum())
+        )
+
+    if self._prebuilt_enabled:
+      for role, counts in zip(("learner", "opponent"), hand_size_counts):
+        for metric, value in zip(
+          ("decisions", "over_capacity_decisions", "card_count_sum", "max"),
+          counts,
+        ):
+          self.stats[f"hand_size/{role}/{metric}"].append(float(value))
+
+    if self._prebuilt_enabled:
+      self.stats["prebuilt/learner_battle_decisions"].append(float(self.prebuilt_battle_decisions))
+      self.stats["prebuilt/configured_probability"].append(
+        prebuilt_exposure_probability(
+          self.prebuilt_battle_decisions, self._prebuilt_initial_probability, config
+        )
+      )
 
     # Match base PuffeRL buffer lifecycle: reset row indexing state after each
     # evaluate pass so the next epoch starts with fresh contiguous row slots.
@@ -3518,6 +4968,147 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     profile.end()
     return self.stats
 
+  def _finalize_ppo_diagnostics(
+    self,
+    losses: dict[str, float],
+    diagnostics: dict[str, list[torch.Tensor]],
+    sample_counts: torch.Tensor,
+  ) -> None:
+    def combined(name: str) -> torch.Tensor:
+      values = diagnostics.get(name, [])
+      if not values:
+        return torch.zeros(0, device=sample_counts.device)
+      return torch.cat([value.detach().float().reshape(-1) for value in values])
+
+    def add_summary(metric_name: str, values: torch.Tensor) -> None:
+      if values.numel() == 0:
+        return
+      for stat_name, stat_value in summarize_ppo_diagnostic_tensor(values).items():
+        losses[f"ppo_diag_{metric_name}_{stat_name}"] = stat_value
+
+    for metric_name in (
+      "mb_kl",
+      "mb_exact_kl",
+      "exact_kl",
+      "kl",
+      "ratio",
+      "logratio",
+      "abs_logratio",
+      "probability_floor_hit",
+      "old_selected_logprob",
+      "new_selected_logprob",
+      "rollout_reference_kl",
+      "rollout_reference_logratio",
+      "rollout_selected_logprob",
+      "priority_prob",
+      "advantage_abs",
+      "actor_grad_norm",
+      "total_grad_norm",
+      "actor_update_norm",
+      "actor_update_relative",
+      "component_reconstruction_error",
+    ):
+      add_summary(metric_name, combined(metric_name))
+    minibatch_kl = combined("mb_kl")
+    for minibatch_index, value in enumerate(minibatch_kl.tolist()):
+      losses[f"ppo_diag_mb_kl_index_{minibatch_index:02d}"] = float(value)
+    minibatch_exact_kl = combined("mb_exact_kl")
+    for minibatch_index, value in enumerate(minibatch_exact_kl.tolist()):
+      losses[f"ppo_diag_mb_exact_kl_index_{minibatch_index:02d}"] = float(value)
+
+    kl_values = combined("kl")
+    losses["ppo_diag_selected_rows"] = float(kl_values.numel())
+    if kl_values.numel() > 0:
+      sorted_kl = torch.sort(kl_values.clamp_min(0.0), descending=True).values
+      top_count = max(1, int(np.ceil(sorted_kl.numel() * 0.01)))
+      losses["ppo_diag_kl_top1pct_share"] = float(
+        (sorted_kl[:top_count].sum() / sorted_kl.sum().clamp_min(1e-12)).item()
+      )
+
+    for component_name in PPO_DIAGNOSTIC_COMPONENT_NAMES:
+      add_summary(f"kl_{component_name}", combined(f"kl_{component_name}"))
+
+    def add_group_metrics(
+      group_name: str,
+      labels: torch.Tensor,
+      label_names: dict[int, str] | None = None,
+    ) -> None:
+      if kl_values.numel() == 0 or labels.numel() != kl_values.numel():
+        return
+      for label, (mean, count) in grouped_ppo_diagnostic_means(
+        kl_values,
+        labels,
+      ).items():
+        if label < 0:
+          continue
+        suffix = label_names.get(label, str(label)) if label_names else str(label)
+        losses[f"ppo_diag_kl_{group_name}_{suffix}"] = mean
+        losses[f"ppo_diag_count_{group_name}_{suffix}"] = float(count)
+
+    opponent_labels = combined("opponent_bucket").long()
+    add_group_metrics(
+      "opponent",
+      opponent_labels,
+      {
+        code: name
+        for name, code in PPO_DIAGNOSTIC_BUCKET_CODES.items()
+      },
+    )
+    add_group_metrics("timestep", combined("timestep").long())
+    frozen_selector = opponent_labels > PPO_DIAGNOSTIC_BUCKET_CODES["latest"]
+    if kl_values.numel() > 0 and bool(frozen_selector.any()):
+      losses["ppo_diag_kl_opponent_frozen_all"] = float(
+        kl_values[frozen_selector].mean().item()
+      )
+      losses["ppo_diag_count_opponent_frozen_all"] = float(
+        frozen_selector.sum().item()
+      )
+
+    add_group_metrics("gate", combined("gate").long())
+    add_group_metrics("leader", combined("leader").long())
+    add_group_metrics("chosen_primary", combined("chosen_primary").long())
+
+    legal_count_labels = ppo_diagnostic_legal_count_labels(
+      combined("legal_count").long()
+    )
+    add_group_metrics(
+      "legal_count",
+      legal_count_labels,
+      {
+        index: name
+        for index, (name, _) in enumerate(PPO_DIAGNOSTIC_LEGAL_COUNT_BUCKETS)
+      },
+    )
+
+    gate_labels = combined("gate").long()
+    opponent_gate_labels = combined("opponent_gate").long()
+    if (
+      kl_values.numel() > 0
+      and gate_labels.numel() == kl_values.numel()
+      and opponent_gate_labels.numel() == kl_values.numel()
+    ):
+      valid = (gate_labels >= 0) & (opponent_gate_labels >= 0)
+      matchup_labels = (gate_labels << 16) | (opponent_gate_labels & 0xFFFF)
+      matchup_labels = torch.where(
+        valid,
+        matchup_labels,
+        torch.full_like(matchup_labels, -1),
+      )
+      matchup_names = {
+        int(label): f"{int(label) >> 16}_vs_{int(label) & 0xFFFF}"
+        for label in torch.unique(matchup_labels[valid]).tolist()
+      }
+      add_group_metrics("gate_matchup", matchup_labels, matchup_names)
+
+    counts = sample_counts.detach().float()
+    add_summary("segment_sample_count", counts)
+    sampled = counts > 0
+    repeated = counts > 1
+    losses["ppo_diag_segment_unique_fraction"] = float(sampled.float().mean().item())
+    losses["ppo_diag_sampled_segment_repeat_fraction"] = float(
+      repeated.sum().float().div(sampled.sum().clamp_min(1)).item()
+    )
+
   def train(self):
     profile = self.profile
     epoch = self.epoch
@@ -3528,6 +5119,8 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     device = config["device"]
     # Ensure learner policy is in training mode before any backward pass.
     self.policy.train()
+    self._freeze_running_normalization()
+    self._sync_old_policy()
     win_prob_enabled = self._win_prob_aux_enabled()
     split_value_enabled = self._split_value_heads_enabled()
     win_prob_correct_sum = 0.0
@@ -3537,6 +5130,10 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     win_prob_example_count = 0
     draft_episode_standard_actor_rows = torch.zeros((), device=device)
     draft_episode_standard_masked_rows = torch.zeros((), device=device)
+    exact_kl_target = max(float(config.get("exact_kl_target", 0.0)), 0.0)
+    kl_guard_triggered = False
+    kl_guard_exact_kl = 0.0
+    optimizer_steps_completed = 0
     terminal_credit_enabled = (
       self._leader_credit_enabled
       or self._draft_credit_enabled
@@ -3579,11 +5176,22 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     anneal_beta = b0 + (1 - b0) * a * self.epoch / self.total_epochs
     self.ratio[:] = 1
 
-    trainable_idx = torch.nonzero(self._segment_is_trainable, as_tuple=False).flatten()
+    trainable_idx = torch.nonzero(
+      self._rollout_is_trainable.any(dim=1),
+      as_tuple=False,
+    ).flatten()
     if trainable_idx.numel() == 0:
       trainable_idx = torch.arange(self.segments, device=device)
     standard_minibatches = self.total_minibatches
     loss_divisor = self.total_minibatches
+    ppo_diagnostics: dict[str, list[torch.Tensor]] | None = (
+      defaultdict(list) if self._ppo_diagnostics_enabled else None
+    )
+    ppo_sample_counts = torch.zeros(
+      trainable_idx.numel(),
+      device=device,
+      dtype=torch.int32,
+    )
 
     for mb in range(standard_minibatches):
       profile("train_misc", epoch)
@@ -3602,6 +5210,7 @@ class LeaguePuffeRL(pufferl.PuffeRL):
         config["gae_lambda"],
         config["vtrace_rho_clip"],
         config["vtrace_c_clip"],
+        truncations=self.truncations,
       )
       terminal_advantages = None
       shaped_advantages = None
@@ -3617,6 +5226,7 @@ class LeaguePuffeRL(pufferl.PuffeRL):
           config["gae_lambda"],
           config["vtrace_rho_clip"],
           config["vtrace_c_clip"],
+          truncations=self.truncations,
         )
         shaped_advantages = torch.zeros(shape, device=device)
         shaped_advantages = pufferl.compute_puff_advantage(
@@ -3629,9 +5239,14 @@ class LeaguePuffeRL(pufferl.PuffeRL):
           config["gae_lambda"],
           config["vtrace_rho_clip"],
           config["vtrace_c_clip"],
+          truncations=self.truncations,
         )
 
-      adv = advantages.abs().sum(axis=1)
+      adv = (
+        advantages.abs()
+        * self._rollout_is_trainable.to(dtype=advantages.dtype)
+        * self.actor_loss_mask.to(dtype=advantages.dtype)
+      ).sum(axis=1)
       prio_weights_all = torch.nan_to_num(adv**a, 0, 0, 0)
       prio_weights = prio_weights_all[trainable_idx]
       if float(prio_weights.sum().item()) <= 0.0:
@@ -3640,6 +5255,14 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       rel_idx = torch.multinomial(prio_probs, self.minibatch_segments, replacement=True)
       idx = trainable_idx[rel_idx]
       mb_prio = (max(trainable_idx.numel(), 1) * prio_probs[rel_idx, None]) ** -anneal_beta
+      if ppo_diagnostics is not None:
+        ppo_sample_counts.scatter_add_(
+          0,
+          rel_idx,
+          torch.ones_like(rel_idx, dtype=ppo_sample_counts.dtype),
+        )
+        ppo_diagnostics["priority_prob"].append(prio_probs[rel_idx])
+        ppo_diagnostics["advantage_abs"].append(adv[trainable_idx][rel_idx])
 
       profile("train_copy", epoch)
       mb_obs = self.observations[idx]
@@ -3648,6 +5271,7 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       mb_values = self.values[idx]
       mb_returns = advantages[idx] + mb_values
       mb_advantages = advantages[idx]
+      trainable_step_mask = self._rollout_is_trainable[idx]
       if split_value_enabled:
         mb_terminal_values = self.terminal_values[idx]
         mb_shaped_values = self.shaped_values[idx]
@@ -3658,9 +5282,13 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       if not config["use_rnn"]:
         mb_obs = mb_obs.reshape(-1, *self.vecenv.single_observation_space.shape)
 
-      actor_mask = torch.ones_like(mb_advantages)
-      if self._xgate_mask_enabled:
-        actor_mask = actor_mask * self.actor_loss_mask[idx]
+      value_mask = trainable_step_mask * torch.logical_not(
+        (self.terminals[idx] + self.truncations[idx]).bool()
+      )
+      actor_mask = (
+        value_mask.to(dtype=mb_advantages.dtype)
+        * self.actor_loss_mask[idx]
+      )
       if self._draft_episode_credit_enabled:
         if self._draft_episode_phase_mask is None:
           raise RuntimeError("full-episode draft phase mask is missing")
@@ -3669,21 +5297,18 @@ class LeaguePuffeRL(pufferl.PuffeRL):
         actor_mask = actor_mask * torch.logical_not(draft_phase_rows).to(
           dtype=actor_mask.dtype
         )
-        advantage_mean, advantage_std, actor_count = masked_tensor_mean_std(
-          mb_advantages,
-          actor_mask,
-        )
+      advantage_mean, advantage_std, actor_count = masked_tensor_mean_std(
+        mb_advantages,
+        actor_mask,
+      )
+      if self._draft_episode_credit_enabled:
         draft_episode_standard_actor_rows += actor_count
-        adv_norm = (
-          mb_prio
-          * (mb_advantages - advantage_mean)
-          / (advantage_std + 1e-8)
-          * actor_mask
-        )
-      else:
-        adv_norm = mb_prio * (
-          mb_advantages - mb_advantages.mean()
-        ) / (mb_advantages.std() + 1e-8)
+      adv_norm = (
+        mb_prio
+        * (mb_advantages - advantage_mean)
+        / (advantage_std + 1e-8)
+        * actor_mask
+      )
       probe_actor_mask = actor_mask if self._xgate_mask_enabled else None
       self._maybe_probe_control_draft_gradient(
         mb_obs,
@@ -3692,29 +5317,194 @@ class LeaguePuffeRL(pufferl.PuffeRL):
         adv_norm,
         probe_actor_mask,
       )
+      ppo_old_logprobs = mb_logprobs
+      old_logits = None
+      if self.old_policy is not None:
+        with torch.no_grad():
+          if config["use_rnn"]:
+            old_logits, _, _ = self._forward_recurrent_sequence(
+              self.old_policy,
+              mb_obs,
+              self.rollout_lstm_h[idx],
+              self.rollout_lstm_c[idx],
+              self.rollout_lstm_resets[idx],
+            )
+          else:
+            old_logits, _ = self.old_policy(
+              mb_obs,
+              {"action": mb_actions},
+            )
+          _, ppo_old_logprobs, _ = azk_pytorch.sample_logits(
+            old_logits,
+            action=mb_actions,
+          )
+        ppo_old_logprobs = ppo_old_logprobs.reshape_as(mb_logprobs)
+      rollout_reference_logratio = ppo_old_logprobs - mb_logprobs
 
-      state = dict(action=mb_actions, lstm_h=None, lstm_c=None)
-      logits, newvalue = self.policy(mb_obs, state)
+
+      if config["use_rnn"]:
+        logits, newvalue, state = self._forward_recurrent_sequence(
+          self.policy,
+          mb_obs,
+          self.rollout_lstm_h[idx],
+          self.rollout_lstm_c[idx],
+          self.rollout_lstm_resets[idx],
+        )
+        state["action"] = mb_actions
+      else:
+        state = {"action": mb_actions}
+        logits, newvalue = self.policy(mb_obs, state)
       _, newlogprob, entropy = azk_pytorch.sample_logits(logits, action=mb_actions)
 
       profile("train_misc", epoch)
       newlogprob = newlogprob.reshape(mb_logprobs.shape)
-      logratio = newlogprob - mb_logprobs
+      logratio = newlogprob - ppo_old_logprobs
       ratio = logratio.exp()
       self.ratio[idx] = ratio.detach()
 
       with torch.no_grad():
-        if self._draft_episode_credit_enabled:
-          old_approx_kl = masked_tensor_mean(-logratio, actor_mask)
-          approx_kl = masked_tensor_mean((ratio - 1) - logratio, actor_mask)
-          clipfrac = masked_tensor_mean(
-            ((ratio - 1.0).abs() > config["clip_coef"]).float(),
-            actor_mask,
+        old_approx_kl = masked_tensor_mean(-logratio, actor_mask)
+        approx_kl = masked_tensor_mean((ratio - 1) - logratio, actor_mask)
+        clipfrac = masked_tensor_mean(
+          ((ratio - 1.0).abs() > config["clip_coef"]).float(),
+          actor_mask,
+        )
+        exact_kl = None
+        exact_kl_mean = torch.zeros((), device=device)
+        exact_indices = torch.nonzero(
+          actor_mask.reshape(-1) > 0,
+          as_tuple=False,
+        ).flatten()
+        if (
+          exact_indices.numel() > 0
+          and isinstance(old_logits, TCGLegalActionDistribution)
+          and isinstance(logits, TCGLegalActionDistribution)
+        ):
+          exact_kl = legal_action_kl(
+            select_legal_action_distribution(old_logits, exact_indices),
+            select_legal_action_distribution(logits, exact_indices),
           )
-        else:
-          old_approx_kl = (-logratio).mean()
-          approx_kl = ((ratio - 1) - logratio).mean()
-          clipfrac = ((ratio - 1.0).abs() > config["clip_coef"]).float().mean()
+          exact_kl_mean = exact_kl.mean()
+        if ppo_diagnostics is not None:
+          if not isinstance(logits, TCGLegalActionDistribution):
+            raise ValueError(
+              "PPO diagnostics require actor_head_type='legal_action_scorer'"
+            )
+          if (
+            self._ppo_diag_old_component_logprobs is None
+            or self._ppo_diag_legal_counts is None
+            or self._ppo_diag_opponent_buckets is None
+            or self._ppo_diag_gate_ids is None
+            or self._ppo_diag_leader_ids is None
+            or self._ppo_diag_opponent_gate_ids is None
+          ):
+            raise RuntimeError("PPO diagnostic rollout buffers are missing")
+          diagnostic_mask = actor_mask > 0
+          rollout_reference_ratio = rollout_reference_logratio.exp()
+          rollout_reference_kl = (
+            (rollout_reference_ratio - 1.0) - rollout_reference_logratio
+          )
+          ppo_diagnostics["rollout_reference_kl"].append(
+            rollout_reference_kl[diagnostic_mask]
+          )
+          ppo_diagnostics["rollout_reference_logratio"].append(
+            rollout_reference_logratio[diagnostic_mask]
+          )
+          kl_elements = (ratio - 1.0) - logratio
+          selected_kl = kl_elements[diagnostic_mask]
+          if selected_kl.numel() > 0:
+            ppo_diagnostics["mb_kl"].append(approx_kl.reshape(1))
+          if exact_kl is not None:
+            ppo_diagnostics["mb_exact_kl"].append(exact_kl_mean.reshape(1))
+            ppo_diagnostics["exact_kl"].append(exact_kl)
+          ppo_diagnostics["kl"].append(selected_kl)
+          ppo_diagnostics["ratio"].append(ratio[diagnostic_mask])
+          ppo_diagnostics["logratio"].append(logratio[diagnostic_mask])
+          ppo_diagnostics["abs_logratio"].append(
+            logratio[diagnostic_mask].abs()
+          )
+          ppo_diagnostics["probability_floor_hit"].append(
+            (newlogprob[diagnostic_mask] <= -18.0).float()
+          )
+          ppo_diagnostics["old_selected_logprob"].append(
+            ppo_old_logprobs[diagnostic_mask]
+          )
+          ppo_diagnostics["rollout_selected_logprob"].append(
+            mb_logprobs[diagnostic_mask]
+          )
+          ppo_diagnostics["new_selected_logprob"].append(
+            newlogprob[diagnostic_mask]
+          )
+
+          old_components = (
+            legal_action_logprob_components(
+              old_logits,
+              mb_actions,
+            ).reshape_as(self._ppo_diag_old_component_logprobs[idx]).detach().float()
+            if old_logits is not None
+            else self._ppo_diag_old_component_logprobs[idx]
+          )
+          new_components = legal_action_logprob_components(
+            logits,
+            mb_actions,
+          ).reshape_as(old_components).detach().float()
+          component_logratio = new_components - old_components
+          component_ratio = component_logratio.exp()
+          component_kl = (component_ratio - 1.0) - component_logratio
+          for component_index, component_name in enumerate(
+            PPO_DIAGNOSTIC_COMPONENT_NAMES
+          ):
+            ppo_diagnostics[f"kl_{component_name}"].append(
+              component_kl[..., component_index][diagnostic_mask]
+            )
+
+          total_reconstruction_error = (
+            new_components.sum(dim=-1) - newlogprob
+          ).abs() + (
+            old_components.sum(dim=-1) - ppo_old_logprobs
+          ).abs() + (
+            self._ppo_diag_old_component_logprobs[idx].sum(dim=-1)
+            - mb_logprobs
+          ).abs()
+          ppo_diagnostics["component_reconstruction_error"].append(
+            total_reconstruction_error[diagnostic_mask]
+          )
+          ppo_diagnostics["opponent_bucket"].append(
+            self._ppo_diag_opponent_buckets[idx][diagnostic_mask]
+          )
+          ppo_diagnostics["gate"].append(
+            self._ppo_diag_gate_ids[idx][diagnostic_mask]
+          )
+          ppo_diagnostics["leader"].append(
+            self._ppo_diag_leader_ids[idx][diagnostic_mask]
+          )
+          ppo_diagnostics["opponent_gate"].append(
+            self._ppo_diag_opponent_gate_ids[idx][diagnostic_mask]
+          )
+          ppo_diagnostics["legal_count"].append(
+            self._ppo_diag_legal_counts[idx][diagnostic_mask]
+          )
+          ppo_diagnostics["chosen_primary"].append(
+            mb_actions[..., 0][diagnostic_mask]
+          )
+          timestep_labels = torch.arange(
+            actor_mask.shape[1],
+            device=actor_mask.device,
+            dtype=torch.long,
+          ).view(1, -1).expand_as(actor_mask)
+          ppo_diagnostics["timestep"].append(
+            timestep_labels[diagnostic_mask]
+          )
+      if (
+        exact_kl_target > 0.0
+        and optimizer_steps_completed > 0
+        and float(exact_kl_mean.item()) > exact_kl_target
+      ):
+        kl_guard_triggered = True
+        kl_guard_exact_kl = float(exact_kl_mean.item())
+        self.optimizer.zero_grad()
+        amp_cm.__exit__(None, None, None)
+        break
 
       pg_loss1 = -adv_norm * ratio
       pg_loss2 = -adv_norm * torch.clamp(ratio, 1 - clip_coef, 1 + clip_coef)
@@ -3722,7 +5512,13 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       pg_loss = masked_tensor_mean(pg_loss_elem, actor_mask)
 
       newvalue = newvalue.view(mb_returns.shape)
-      total_v_loss = self._clipped_value_loss(newvalue, mb_values, mb_returns, vf_clip)
+      total_v_loss = self._clipped_value_loss(
+        newvalue,
+        mb_values,
+        mb_returns,
+        vf_clip,
+        mask=value_mask,
+      )
       component_v_loss = torch.zeros((), device=device)
       terminal_v_loss = torch.zeros((), device=device)
       shaped_v_loss = torch.zeros((), device=device)
@@ -3736,19 +5532,25 @@ class LeaguePuffeRL(pufferl.PuffeRL):
           mb_terminal_values,
           mb_terminal_returns,
           vf_clip,
+          mask=value_mask,
         )
         shaped_v_loss = self._clipped_value_loss(
           new_shaped_value,
           mb_shaped_values,
           mb_shaped_returns,
           vf_clip,
+          mask=value_mask,
         )
         component_v_loss = 0.5 * (terminal_v_loss + shaped_v_loss)
       entropy_loss = masked_tensor_mean(
         entropy.reshape_as(actor_mask),
         actor_mask,
       )
-      win_prob_aux_loss, win_prob_aux_metrics = self._compute_win_prob_aux(state, idx)
+      win_prob_aux_loss, win_prob_aux_metrics = self._compute_win_prob_aux(
+        state,
+        idx,
+        row_mask=trainable_step_mask,
+      )
       value_loss_for_optim = total_v_loss + self._split_value_component_coef() * component_v_loss
       loss = pg_loss + config["vf_coef"] * value_loss_for_optim - config["ent_coef"] * entropy_loss + win_prob_aux_loss
 
@@ -3786,22 +5588,87 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       profile("learn", epoch)
       loss.backward()
       if (mb + 1) % self.accumulate_minibatches == 0:
-        torch.nn.utils.clip_grad_norm_(self.policy.parameters(), config["max_grad_norm"])
+        actor_snapshot = None
+        actor_parameter_norm = None
+        if ppo_diagnostics is not None:
+          actor_grad_sq = torch.zeros((), device=device, dtype=torch.float32)
+          actor_parameter_sq = torch.zeros((), device=device, dtype=torch.float32)
+          actor_snapshot = []
+          for parameter in self._ppo_diag_actor_parameters:
+            actor_snapshot.append(parameter.detach().clone())
+            actor_parameter_sq += parameter.detach().float().square().sum()
+            if parameter.grad is not None:
+              actor_grad_sq += parameter.grad.detach().float().square().sum()
+          actor_parameter_norm = actor_parameter_sq.sqrt()
+          ppo_diagnostics["actor_grad_norm"].append(actor_grad_sq.sqrt().reshape(1))
+        total_grad_norm = torch.nn.utils.clip_grad_norm_(
+          self.policy.parameters(),
+          config["max_grad_norm"],
+        )
+        if ppo_diagnostics is not None:
+          ppo_diagnostics["total_grad_norm"].append(
+            torch.as_tensor(total_grad_norm, device=device).detach().float().reshape(1)
+          )
         self.optimizer.step()
+        optimizer_steps_completed += 1
+        if ppo_diagnostics is not None:
+          actor_update_sq = torch.zeros((), device=device, dtype=torch.float32)
+          for parameter, before in zip(
+            self._ppo_diag_actor_parameters,
+            actor_snapshot,
+          ):
+            actor_update_sq += (
+              parameter.detach().float() - before.float()
+            ).square().sum()
+          actor_update_norm = actor_update_sq.sqrt()
+          ppo_diagnostics["actor_update_norm"].append(
+            actor_update_norm.reshape(1)
+          )
+          ppo_diagnostics["actor_update_relative"].append(
+            (
+              actor_update_norm
+              / actor_parameter_norm.clamp_min(1e-12)
+            ).reshape(1)
+          )
         self.optimizer.zero_grad()
 
       amp_cm.__exit__(None, None, None)
+    if ppo_diagnostics is not None:
+      self._finalize_ppo_diagnostics(
+        losses,
+        ppo_diagnostics,
+        ppo_sample_counts,
+      )
+    losses["kl_guard_triggered"] = float(kl_guard_triggered)
+    losses["kl_guard_exact_kl"] = float(kl_guard_exact_kl)
+    losses["kl_guard_optimizer_steps"] = float(optimizer_steps_completed)
 
     profile("train_misc", epoch)
-    leader_credit_metrics = self._train_leader_terminal_credit()
-    for metric_name, metric_value in leader_credit_metrics.items():
-      losses[metric_name] = metric_value
-    draft_credit_metrics = self._train_draft_terminal_credit()
-    for metric_name, metric_value in draft_credit_metrics.items():
-      losses[metric_name] = metric_value
-    draft_episode_credit_metrics = self._train_draft_episode_credit()
-    for metric_name, metric_value in draft_episode_credit_metrics.items():
-      losses[metric_name] = metric_value
+    if kl_guard_triggered:
+      losses["kl_guard_auxiliary_updates_skipped"] = 1.0
+    else:
+      leader_credit_metrics = self._train_leader_terminal_credit()
+      for metric_name, metric_value in leader_credit_metrics.items():
+        losses[metric_name] = metric_value
+      draft_credit_metrics = self._train_draft_terminal_credit()
+      for metric_name, metric_value in draft_credit_metrics.items():
+        losses[metric_name] = metric_value
+      draft_episode_credit_metrics = self._train_draft_episode_credit()
+      for metric_name, metric_value in draft_episode_credit_metrics.items():
+        losses[metric_name] = metric_value
+      ppo_actor_grad_norm = float(
+        losses.get("ppo_diag_actor_grad_norm_mean", 0.0)
+      )
+      credit_grad_norm = float(
+        draft_episode_credit_metrics.get(
+          "draft_episode_credit_gradient_norm", 0.0
+        )
+      )
+      losses["draft_episode_credit_to_ppo_actor_grad_norm"] = (
+        credit_grad_norm / ppo_actor_grad_norm
+        if ppo_actor_grad_norm > 0.0
+        else 0.0
+      )
     if self._draft_episode_credit_enabled:
       losses["draft_episode_credit_standard_actor_rows"] = float(
         draft_episode_standard_actor_rows
@@ -3811,8 +5678,9 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       )
     if config["anneal_lr"]:
       self.scheduler.step()
+    self._advance_running_normalization()
 
-    eval_mask = self._segment_is_trainable
+    eval_mask = self._rollout_is_trainable
     if not bool(eval_mask.any().item()):
       eval_mask = torch.ones_like(eval_mask, dtype=torch.bool)
     y_pred = self.values[eval_mask].flatten()

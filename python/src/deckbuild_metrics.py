@@ -38,7 +38,77 @@ _BEHAVIOR_KEYS = (
   "noop_rate",
   "episode_length",
   "leader_health",
+  "gate_ability_outcomes",
+  "leader_ability_outcomes",
 )
+
+_REWARD_COMPONENT_NAMES = (
+  "terminal_outcome",
+  "truncation_timeout",
+  "truncation_leader_edge",
+  "truncation_board_edge",
+  "potential_leader_health",
+  "potential_garden_attack",
+  "potential_untapped_garden",
+  "potential_untapped_ikz",
+  "direct_leader_edge",
+  "direct_board_edge",
+  "noop_penalty",
+  "portal_gp",
+  "portal_outcome",
+  "early_tempo",
+  "damage_mitigation",
+  "temporary_charge",
+  "temporary_attack",
+  "entity_damage_exchange",
+  "generated_ikz_conversion",
+  "response_reserve",
+  "gate_ability_outcome",
+  "leader_ability_outcome",
+)
+_REWARD_STAT_NAMES = (
+  "raw_sum",
+  "raw_abs_sum",
+  "raw_discounted_sum",
+  "raw_max_abs",
+  "raw_positive_count",
+  "raw_negative_count",
+  "scaled_sum",
+  "scaled_abs_sum",
+  "scaled_discounted_sum",
+  "scaled_max_abs",
+  "scaled_positive_count",
+  "scaled_negative_count",
+)
+_ACTION_TYPE_NAMES = (
+  "noop",
+  "play_entity_to_garden",
+  "play_entity_to_alley",
+  "unused_3",
+  "unused_4",
+  "unused_5",
+  "attack",
+  "attach_weapon_from_hand",
+  "play_spell_from_hand",
+  "declare_defender",
+  "gate_portal",
+  "activate_garden_or_leader_ability",
+  "activate_alley_ability",
+  "select_cost_target",
+  "select_effect_target",
+  "unused_15",
+  "confirm_ability",
+  "unused_17",
+  "select_from_selection",
+  "bottom_deck_card",
+  "bottom_deck_all",
+  "select_to_alley",
+  "select_to_equip",
+  "select_to_garden",
+  "top_deck_card",
+  "mulligan_shuffle",
+)
+_REWARD_TURN_BUCKET_NAMES = ("turn_1_2", "turn_3_4", "turn_5_8", "turn_9_16", "turn_17_plus")
 
 
 def _cost_bucket(cost: int) -> str:
@@ -267,33 +337,228 @@ class NativeDeckbuildHelper:
     out.update(r)
     return out
 
+  @staticmethod
+  def _reward_length_bucket(episode_length: float) -> str:
+    if episode_length <= 20:
+      return "length_0_20"
+    if episode_length <= 50:
+      return "length_21_50"
+    if episode_length <= 100:
+      return "length_51_100"
+    return "length_101_plus"
+
+  @staticmethod
+  def _accumulate_reward_entries(
+    entries,
+    prefixes: tuple[str, ...],
+    sums: dict[str, float],
+    counts: dict[str, int],
+    maxima: dict[str, float],
+    *,
+    include_zeros: bool = False,
+  ) -> None:
+    parsed: dict[int, tuple | list] = {}
+    if isinstance(entries, (list, tuple)):
+      for entry in entries:
+        if not isinstance(entry, (list, tuple)) or len(entry) != 13:
+          continue
+        component_id = int(entry[0])
+        if 0 <= component_id < len(_REWARD_COMPONENT_NAMES):
+          parsed[component_id] = entry
+    component_ids = (
+      range(len(_REWARD_COMPONENT_NAMES)) if include_zeros else parsed
+    )
+    for component_id in component_ids:
+      component = _REWARD_COMPONENT_NAMES[component_id]
+      entry = parsed.get(component_id)
+      for stat_index, stat in enumerate(_REWARD_STAT_NAMES, start=1):
+        value = float(entry[stat_index]) if entry is not None else 0.0
+        for prefix in prefixes:
+          key = f"{prefix}/{component}/{stat}"
+          if stat.endswith("max_abs"):
+            maxima[key] = max(maxima.get(key, 0.0), value)
+          else:
+            sums[key] += value
+            counts[key] += 1
+
   def process_records(self, records: list[dict]) -> dict:
     """Aggregate drained per-episode records into mean metrics + snapshots."""
     sums: dict[str, float] = defaultdict(float)
     counts: dict[str, int] = defaultdict(int)
+    maxima: dict[str, float] = {}
+    minima: dict[str, float] = {}
+    telemetry_seen = False
+    reference_counts: dict[str, int] = defaultdict(int)
+    reference_total = 0
+
+    def add_mean(key: str, value: float) -> None:
+      sums[key] += float(value)
+      counts[key] += 1
+
     for record in records:
       players = record.get("players") or []
       if len(players) != 2:
         continue
+      prebuilt = bool(record.get("prebuilt", False))
+      episode_length = float(record.get("episode_length", 0.0) or 0.0)
+      add_mean("curriculum/prebuilt_game_fraction", float(prebuilt))
+      add_mean("curriculum/drafted_game_fraction", float(not prebuilt))
+      add_mean("curriculum/battle_length", episode_length)
+      add_mean(
+        "curriculum/prebuilt_battle_length",
+        episode_length if prebuilt else 0.0,
+      )
+      add_mean(
+        "curriculum/drafted_battle_length",
+        0.0 if prebuilt else episode_length,
+      )
+      record_telemetry = record.get("reward_telemetry")
+      if isinstance(record_telemetry, dict):
+        telemetry_seen = True
+        for field in (
+          "raw_reconstruction_max_abs_error",
+          "scaled_reconstruction_max_abs_error",
+          "shaping_scale_max",
+        ):
+          key = f"reward_telemetry/{field}"
+          maxima[key] = max(maxima.get(key, 0.0), float(record_telemetry.get(field, 0.0)))
+        scale_min = float(record_telemetry.get("shaping_scale_min", 0.0))
+        minima["reward_telemetry/shaping_scale_min"] = min(
+          minima.get("reward_telemetry/shaping_scale_min", scale_min),
+          scale_min,
+        )
+        step_count = int(record_telemetry.get("shaping_step_count", 0))
+        add_mean("reward_telemetry/shaping_step_count", step_count)
+        add_mean("reward_telemetry/gamma", float(record_telemetry.get("gamma", 0.0)))
+        if step_count > 0:
+          add_mean(
+            "reward_telemetry/shaping_scale_mean",
+            float(record_telemetry.get("shaping_scale_sum", 0.0)) / step_count,
+          )
+
       for idx, player in enumerate(players):
         player = dict(player)
-        player["episode_length"] = record.get("episode_length", 0.0)
+        player["episode_length"] = episode_length
         opponent = players[1 - idx]
-        for key, value in self._player_metrics(player, opponent).items():
-          sums[key] += value
-          counts[key] += 1
+        if not prebuilt:
+          for key, value in self._player_metrics(player, opponent).items():
+            add_mean(key, value)
+
+        telemetry = player.get("reward_telemetry")
+        if not isinstance(telemetry, dict):
+          continue
+        telemetry_seen = True
+        gate_record = self.catalog.records_by_def_id.get(int(player.get("gate", -1)))
+        leader_record = self.catalog.records_by_def_id.get(int(player.get("leader", -1)))
+        win = float(player.get("win", 0.5) or 0.0)
+        outcome = "winner" if win > 0.5 else "loser" if win < 0.5 else "draw"
+        prefixes = [
+          "reward_component/all",
+          f"reward_component/outcome/{outcome}",
+          f"reward_component/episode_length/{self._reward_length_bucket(episode_length)}",
+        ]
+        if gate_record is not None:
+          prefixes.append(f"reward_component/gate/{gate_record.card_code}")
+        if leader_record is not None:
+          prefixes.append(f"reward_component/leader/{leader_record.card_code}")
+        self._accumulate_reward_entries(
+          telemetry.get("overall"),
+          tuple(prefixes),
+          sums,
+          counts,
+          maxima,
+          include_zeros=True,
+        )
+
+        return_prefixes = [
+          "reward_telemetry/return/all",
+          f"reward_telemetry/return/outcome/{outcome}",
+        ]
+        for field in ("raw_shaping_return", "scaled_shaping_return", "terminal_return"):
+          for prefix in return_prefixes:
+            add_mean(f"{prefix}/{field}", float(telemetry.get(field, 0.0)))
+
+        for action_slice in telemetry.get("by_action") or ():
+          if not isinstance(action_slice, (list, tuple)) or len(action_slice) != 3:
+            continue
+          action_id = int(action_slice[0])
+          if not 0 <= action_id < len(_ACTION_TYPE_NAMES):
+            continue
+          action_name = _ACTION_TYPE_NAMES[action_id]
+          add_mean(
+            f"reward_telemetry/action/{action_name}/step_count",
+            float(action_slice[1]),
+          )
+          self._accumulate_reward_entries(
+            action_slice[2],
+            (f"reward_component/action/{action_name}",),
+            sums,
+            counts,
+            maxima,
+            include_zeros=True,
+          )
+        for turn_slice in telemetry.get("by_turn_bucket") or ():
+          if not isinstance(turn_slice, (list, tuple)) or len(turn_slice) != 3:
+            continue
+          bucket_id = int(turn_slice[0])
+          if not 0 <= bucket_id < len(_REWARD_TURN_BUCKET_NAMES):
+            continue
+          bucket_name = _REWARD_TURN_BUCKET_NAMES[bucket_id]
+          add_mean(
+            f"reward_telemetry/turn/{bucket_name}/step_count",
+            float(turn_slice[1]),
+          )
+          self._accumulate_reward_entries(
+            turn_slice[2],
+            (f"reward_component/turn/{bucket_name}",),
+            sums,
+            counts,
+            maxima,
+            include_zeros=True,
+          )
+
       # S4 reference-seat anchor: winrate of the drafting seat against fixed
       # reference decks — the external promotion yardstick.
       ref_seat = int(record.get("ref_seat", -1))
       if 0 <= ref_seat < len(players):
+        reference_total += 1
         drafter = players[1 - ref_seat]
-        sums["ref_anchor_winrate"] += float(drafter.get("win", 0.0) or 0.0)
-        counts["ref_anchor_winrate"] += 1
-      sums["ref_seat_rate"] += 1.0 if 0 <= ref_seat < len(players) else 0.0
-      counts["ref_seat_rate"] += 1
-      self._maybe_write_snapshot(record)
-      self._completed_episodes += 1
-    return {key: sums[key] / counts[key] for key in sums}
+        fixed = players[ref_seat]
+        add_mean("ref_anchor_winrate", float(drafter.get("win", 0.0) or 0.0))
+        reference_counts[f"deck_index/{int(record.get('ref_deck_index', -1))}"] += 1
+        reference_counts[f"seat/{ref_seat}"] += 1
+        reference_counts[
+          f"starting_player/{int(record.get('starting_player', -1))}"
+        ] += 1
+        for prefix, player in (("fixed", fixed), ("opponent", drafter)):
+          gate = self.catalog.records_by_def_id.get(int(player.get("gate", -1)))
+          leader = self.catalog.records_by_def_id.get(int(player.get("leader", -1)))
+          if gate is not None:
+            reference_counts[f"{prefix}_gate/{gate.card_code}"] += 1
+          if leader is not None:
+            reference_counts[f"{prefix}_leader/{leader.card_code}"] += 1
+      add_mean("ref_seat_rate", 1.0 if 0 <= ref_seat < len(players) else 0.0)
+      if not prebuilt:
+        self._maybe_write_snapshot(record)
+        self._completed_episodes += 1
+
+    if telemetry_seen:
+      for component in _REWARD_COMPONENT_NAMES:
+        for stat in _REWARD_STAT_NAMES:
+          key = f"reward_component/all/{component}/{stat}"
+          if stat.endswith("max_abs"):
+            maxima.setdefault(key, 0.0)
+          elif key not in counts:
+            sums[key] = 0.0
+            counts[key] = 1
+    if reference_total:
+      for key, count in reference_counts.items():
+        sums[f"reference_balance/{key}_share"] = float(count) / reference_total
+        counts[f"reference_balance/{key}_share"] = 1
+    metrics = {key: sums[key] / counts[key] for key in sums}
+    metrics.update(maxima)
+    metrics.update(minima)
+    return metrics
 
   # ---- snapshots -------------------------------------------------------------
   def _maybe_write_snapshot(self, record: dict) -> None:
@@ -330,6 +595,9 @@ class NativeDeckbuildHelper:
       eplen = record.get("episode_length")
       if isinstance(eplen, (int, float)):
         summary["episode_length"] = round(float(eplen), 4)
+      reward_telemetry = player.get("reward_telemetry")
+      if isinstance(reward_telemetry, dict):
+        summary["reward_telemetry"] = reward_telemetry
       players_out.append(summary)
 
     payload = {
@@ -339,6 +607,9 @@ class NativeDeckbuildHelper:
       "ref_seat": int(record.get("ref_seat", -1)),
       "players": players_out,
     }
+    reward_telemetry = record.get("reward_telemetry")
+    if isinstance(reward_telemetry, dict):
+      payload["reward_telemetry"] = reward_telemetry
     try:
       if self._snapshot_path is None:
         self._snapshot_dir.mkdir(parents=True, exist_ok=True)

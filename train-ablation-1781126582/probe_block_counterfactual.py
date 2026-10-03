@@ -176,6 +176,7 @@ class BranchRunner:
         """
         import torch
         import azk_puffer.pytorch as azk_pytorch
+        from play_selfplay_games import terminal_winner
 
         runner = self.runner
         torch.manual_seed(rollout_seed)
@@ -257,14 +258,13 @@ class BranchRunner:
             term = np.asarray(term).reshape(-1)
             trunc = np.asarray(trunc).reshape(-1)
             if bool(term.any()) or bool(trunc.any()):
+                if bool(trunc.any()):
+                    return {"error": "episode truncated"}
                 if not branched:
                     return {"error": f"episode ended at battle_step {battle_step} before branch {point['branch_step']}"}
-                rew = np.asarray(rew, dtype=np.float64).reshape(-1)
-                winner = -1
-                if rew[0] > rew[1]:
-                    winner = 0
-                elif rew[1] > rew[0]:
-                    winner = 1
+                winner = terminal_winner(
+                    self.inner, terminated=bool(term.any()), truncated=bool(trunc.any())
+                )
                 return {
                     "arm": forced_kind,
                     "winner": winner,

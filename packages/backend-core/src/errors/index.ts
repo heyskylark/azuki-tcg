@@ -181,3 +181,24 @@ export class UpdateFailedError extends ApiError {
     this.name = "UpdateFailedError";
   }
 }
+
+export class HumanEvaluationNotFoundError extends ApiError {
+  constructor(message = "Human evaluation not found") {
+    super(message, 404);
+    this.name = "HumanEvaluationNotFoundError";
+  }
+}
+
+export class HumanEvaluationUnavailableError extends ApiError {
+  constructor(message: string) {
+    super(message, 409);
+    this.name = "HumanEvaluationUnavailableError";
+  }
+}
+
+export class HumanEvaluationBlindError extends ApiError {
+  constructor(message = "This evaluation has not been revealed") {
+    super(message, 403);
+    this.name = "HumanEvaluationBlindError";
+  }
+}

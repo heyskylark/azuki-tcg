@@ -78,6 +78,13 @@ class EpisodeRunner:
         _apply_checkpoint_resume_policy_config(trainer_args, checkpoint)
         trainer_args["env"]["native"] = False
         trainer_args["env"].pop("native_envs_per_instance", None)
+        # Policy probes use the legacy single-env driver and do not consume
+        # rewards. Native-only reward instrumentation/formulas must not leak
+        # into evaluator construction or make matched treatment configs fail.
+        trainer_args["env"]["reward_telemetry"] = False
+        trainer_args["env"]["pbrs_mode"] = "legacy"
+        trainer_args["env"]["pbrs_terminal_closure"] = False
+        trainer_args["env"]["reward_decomposed_schedule"] = False
         trainer_args["env"]["draft_uniform_assignment"] = bool(uniform_assignment)
         # A privileged-critic checkpoint expects the drafted-deck lists filled;
         # probing it on sanitized obs would mismeasure the critic.

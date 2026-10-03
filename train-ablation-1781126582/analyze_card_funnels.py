@@ -10,6 +10,7 @@ from pathlib import Path
 from action import ActionType
 from analyze_opportunity_rates import _card_at_hand, _legal_actions, _load_card_metadata
 from analyze_selfplay_games import annotate_turns, load_games
+from strategy_descriptor import evaluate_strategy_events
 
 
 PLAY_ACTIONS = frozenset((
@@ -160,8 +161,10 @@ def summarize_card_funnels(games: list[dict], *, label: str) -> dict[str, object
             for code in later_drawn[player]:
                 events[code]["drawn_after_opening_seats"].add((game_index, player))
 
+    strategy = evaluate_strategy_events(games)
+    strategy_cards = strategy["card_funnels"]
     cards: dict[str, dict[str, object]] = {}
-    for code in sorted(counters):
+    for code in sorted(set(counters) | set(strategy_cards)):
         stats = counters[code]
         card_events = events[code]
         for name in (
@@ -171,16 +174,24 @@ def summarize_card_funnels(games: list[dict], *, label: str) -> dict[str, object
             "in_hand_turn_cards",
             "legal_play_turn_cards",
             "selected_play_seats",
-            "realized_effect_seats",
         ):
             stats[name] = len(card_events[name])
         record = metadata[code]
+        evaluated = strategy_cards.get(code, {})
+        draft_funnel = evaluated.get("draft")
+        play_funnel = evaluated.get("play")
+        lifecycle = evaluated.get("lifecycle", {})
+        stable_stats = {
+            key: value
+            for key, value in sorted(stats.items())
+            if not key.startswith("realized_")
+        }
         cards[code] = {
             "name": record.get("name", code),
             "card_type": record.get("card_type"),
             "element": record.get("element"),
             "ikz_cost": record.get("ikz_cost"),
-            **dict(sorted(stats.items())),
+            **stable_stats,
             "deck_inclusion_rate": _ratio(stats["deck_seats"], seat_games),
             "copies_per_included_deck": _ratio(
                 stats["drafted_copies"], stats["deck_seats"]
@@ -197,32 +208,48 @@ def summarize_card_funnels(games: list[dict], *, label: str) -> dict[str, object
             "selected_play_given_legal_window": _ratio(
                 stats["selected_plays"], stats["legal_play_windows"]
             ),
-            "realized_seat_given_selected_play_seat": _ratio(
-                stats["realized_effect_seats"], stats["selected_play_seats"]
+            "draft_funnel": draft_funnel,
+            "play_funnel": play_funnel,
+            "lifecycle": lifecycle,
+            "offered_windows": int(lifecycle.get("offered", 0)),
+            "drafted_picks": int(lifecycle.get("drafted", 0)),
+            "drawn_copies": int(lifecycle.get("drawn", 0)),
+            "recovered_copies": int(lifecycle.get("recovered", 0)),
+            "replayed_copies": int(lifecycle.get("replayed", 0)),
+            "re_equipped_copies": int(lifecycle.get("re_equipped", 0)),
+            "resolved_plays": (
+                int(play_funnel["resolved"]) if isinstance(play_funnel, dict) else 0
+            ),
+            "converted_plays": (
+                int(play_funnel["converted"]) if isinstance(play_funnel, dict) else 0
             ),
             "deck_win_rate": _ratio(stats["deck_wins"], stats["deck_seats"]),
         }
 
     stages = (
-        ("drafted", "deck_seats"),
+        ("offered", "offered_windows"),
+        ("drafted", "drafted_picks"),
         ("opening", "opening_seats"),
-        ("drawn_after_opening", "drawn_after_opening_seats"),
+        ("drawn", "drawn_copies"),
+        ("recovered", "recovered_copies"),
         ("observed", "observed_in_hand_seats"),
         ("legal", "legal_play_windows"),
         ("selected", "selected_plays"),
-        ("realized", "realized_effect_seats"),
+        ("resolved", "resolved_plays"),
+        ("converted", "converted_plays"),
     )
     coverage = {
         name: sum(int(card.get(field, 0)) > 0 for card in cards.values())
         for name, field in stages
     }
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "label": label,
         "games": len(games),
         "seat_games": seat_games,
         "coverage": coverage,
         "cards": cards,
+        "trace_capabilities": strategy["trace_capabilities"],
         "definitions": {
             "drawn_after_opening": (
                 "Card code first observed after that seat's first logged hand; "
@@ -230,9 +257,13 @@ def summarize_card_funnels(games: list[dict], *, label: str) -> dict[str, object
             ),
             "legal": "Decision windows with at least one legal hand-play row for the card.",
             "selected": "Entity, spell, or weapon hand-play actions selected for the card.",
-            "realized": (
-                "A selected spell/weapon, or a card later used to attack, defend, "
-                "portal, activate an ability, or drive an ability follow-up."
+            "resolved": (
+                "Selected hand play produced its card-type-specific post-action state "
+                "transition. Null rates mean the trace omitted post-action state."
+            ),
+            "converted": (
+                "A resolved card was later replayed, re-equipped, or used to attack, "
+                "defend, portal, or activate an ability."
             ),
         },
     }

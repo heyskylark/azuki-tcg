@@ -351,10 +351,10 @@ bool apply_timed_tag_grant(ecs_world_t *world, ecs_entity_t entity, ecs_id_t tag
   return true;
 }
 
-void apply_charge_grant(ecs_world_t *world, ecs_entity_t entity,
+bool apply_charge_grant(ecs_world_t *world, ecs_entity_t entity,
                         TagGrantTickPhase tick_phase, int8_t remaining_ticks) {
   if (entity == 0) {
-    return;
+    return false;
   }
 
   bool has_charge = ecs_has(world, entity, Charge);
@@ -362,7 +362,7 @@ void apply_charge_grant(ecs_world_t *world, ecs_entity_t entity,
       apply_timed_tag_grant(world, entity, ecs_id(Charge), tick_phase,
                             remaining_ticks);
   if (!grant_applied && !has_charge) {
-    return;
+    return false;
   }
 
   const TapState *tap = ecs_get(world, entity, TapState);
@@ -375,6 +375,7 @@ void apply_charge_grant(ecs_world_t *world, ecs_entity_t entity,
   }
 
   cli_render_logf("[Status] Applied Charge grant");
+  return grant_applied;
 }
 
 void clear_card_temporary_state(ecs_world_t *world, ecs_entity_t entity) {

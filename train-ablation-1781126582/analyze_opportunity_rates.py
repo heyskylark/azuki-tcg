@@ -15,6 +15,7 @@ from pathlib import Path
 
 from action import ActionType
 from analyze_selfplay_games import ELEMENT_OF_GATE, annotate_turns, load_games
+from strategy_descriptor import evaluate_strategy_events
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -517,7 +518,9 @@ def summarize_games(
         }
     )
 
+    strategy = evaluate_strategy_events(games)
     return {
+        "schema_version": 2,
         "label": label,
         "n_games": len(games),
         "groups": {
@@ -547,6 +550,11 @@ def summarize_games(
             for element, leaders in sorted(leader_outcomes_by_element.items())
         },
         "reward_overlap": reward_out,
+        "strategy_funnels": strategy["funnels"],
+        "ordered_sequences": strategy["sequences"],
+        "game_profile": strategy["game_profile"],
+        "resource_profile": strategy["resource_profile"],
+        "trace_capabilities": strategy["trace_capabilities"],
     }
 
 

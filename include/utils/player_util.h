@@ -5,6 +5,8 @@
 #include "components/components.h"
 
 uint8_t get_player_number(ecs_world_t *world, ecs_entity_t player);
+void azk_record_gate_ability_outcome(ecs_world_t *world, ecs_entity_t owner);
+void azk_record_leader_ability_outcome(ecs_world_t *world, ecs_entity_t owner);
 
 /**
  * Check if the defending player has any legal response actions.

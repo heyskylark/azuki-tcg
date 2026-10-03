@@ -193,6 +193,8 @@ class LeagueManagerConfig:
   promotion_anchored_leap_relative_pooled_min: float = -0.05
   promotion_anchored_max_timeout_rate: float = 0.01
   promotion_anchored_max_timeout_delta: float = 0.01
+  sampling_policy_budget: int = 0
+  sampling_role_quotas: tuple[tuple[str, int], ...] = ()
 
 
 def _parse_int_tuple(value, *, default: tuple[int, ...]) -> tuple[int, ...]:
@@ -203,6 +205,19 @@ def _parse_int_tuple(value, *, default: tuple[int, ...]) -> tuple[int, ...]:
   if isinstance(value, (list, tuple)):
     return tuple(int(item) for item in value)
   return tuple(int(part.strip()) for part in str(value).split(",") if part.strip())
+
+
+def _parse_role_quota_tuple(value) -> tuple[tuple[str, int], ...]:
+  if value is None or value == "":
+    return ()
+  parts = value if isinstance(value, (list, tuple)) else str(value).split(",")
+  quotas: list[tuple[str, int]] = []
+  for item in parts:
+    role, separator, raw_count = str(item).partition(":")
+    if not separator or not role.strip():
+      raise ValueError("league.sampling_role_quotas must use role:count entries")
+    quotas.append((role.strip(), int(raw_count.strip())))
+  return tuple(quotas)
 
 
 def parse_league_manager_config(trainer_args: dict) -> LeagueManagerConfig:
@@ -349,6 +364,10 @@ def parse_league_manager_config(trainer_args: dict) -> LeagueManagerConfig:
     promotion_anchored_max_timeout_delta=float(
       league.get("promotion_anchored_max_timeout_delta", 0.01)
     ),
+    sampling_policy_budget=int(league.get("sampling_policy_budget", 0)),
+    sampling_role_quotas=_parse_role_quota_tuple(
+      league.get("sampling_role_quotas")
+    ),
   )
   _validate_config(cfg)
   return cfg
@@ -367,6 +386,20 @@ def _validate_config(cfg: LeagueManagerConfig) -> None:
     raise ValueError("league.full_eval_episodes must be >= league.quick_eval_episodes")
   if cfg.eval_max_steps < 1:
     raise ValueError("league.eval_max_steps must be >= 1")
+  if cfg.sampling_policy_budget < 0:
+    raise ValueError("league.sampling_policy_budget must be >= 0")
+  if any(not role or count < 0 for role, count in cfg.sampling_role_quotas):
+    raise ValueError("league.sampling_role_quotas require names and nonnegative counts")
+  if len({role for role, _ in cfg.sampling_role_quotas}) != len(
+    cfg.sampling_role_quotas
+  ):
+    raise ValueError("league.sampling_role_quotas role names must be unique")
+  if (
+    cfg.sampling_policy_budget
+    and sum(count for _, count in cfg.sampling_role_quotas)
+    > cfg.sampling_policy_budget
+  ):
+    raise ValueError("league.sampling_role_quotas exceed sampling_policy_budget")
   if cfg.keep_recent < 0 or cfg.keep_mid < 0 or cfg.keep_old < 0:
     raise ValueError("league.keep_recent/mid/old must be >= 0")
   if cfg.min_candidate_epoch_gap < 1:
@@ -839,11 +872,75 @@ class LeagueManager:
       param.requires_grad_(False)
     return policy
 
-  def opponent_entries_for_training(self, *, exclude_policy_id: str | None = None) -> list[LeaguePolicyEntry]:
+  def _training_role_by_policy_id(self) -> dict[str, str]:
+    panel = active_panel(self.archive_state)
+    panel_roles = (
+      {member.policy_id: member.role for member in panel.members}
+      if panel is not None
+      else {}
+    )
+    quality_ids = {
+      item.policy_id for item in self.archive_state.quality_archive if item.active
+    }
+    anchor_id = self.archive_state.production_anchor_policy_id
+    roles: dict[str, str] = {}
+    for entry in self._active_entries():
+      if entry.policy_id == anchor_id or entry.source == "production_anchor":
+        roles[entry.policy_id] = "anchor"
+      elif (
+        panel_roles.get(entry.policy_id) == "historically_distinct"
+        or entry.policy_id in quality_ids
+      ):
+        roles[entry.policy_id] = "distinct"
+      elif entry.bucket == "recent":
+        roles[entry.policy_id] = "recent"
+      else:
+        roles[entry.policy_id] = "history"
+    return roles
+
+  def opponent_entries_for_training(
+    self,
+    *,
+    exclude_policy_id: str | None = None,
+  ) -> list[LeaguePolicyEntry]:
     entries = self._active_entries()
     if exclude_policy_id is not None:
       entries = [entry for entry in entries if entry.policy_id != exclude_policy_id]
-    return entries
+    budget = int(self.config.sampling_policy_budget)
+    if budget <= 0 or len(entries) <= budget:
+      return sorted(entries, key=lambda entry: (entry.created_epoch, entry.policy_id))
+
+    roles = self._training_role_by_policy_id()
+    selected: list[LeaguePolicyEntry] = []
+    selected_ids: set[str] = set()
+    for role, quota in self.config.sampling_role_quotas:
+      candidates = [entry for entry in entries if roles.get(entry.policy_id) == role]
+      reverse = role != "history"
+      candidates.sort(
+        key=lambda entry: (entry.created_epoch, entry.policy_id),
+        reverse=reverse,
+      )
+      for entry in candidates[:quota]:
+        if entry.policy_id not in selected_ids:
+          selected.append(entry)
+          selected_ids.add(entry.policy_id)
+    remaining = sorted(
+      [entry for entry in entries if entry.policy_id not in selected_ids],
+      key=lambda entry: (entry.created_epoch, entry.policy_id),
+      reverse=True,
+    )
+    selected.extend(remaining[: max(0, budget - len(selected))])
+    return sorted(
+      selected[:budget],
+      key=lambda entry: (entry.created_epoch, entry.policy_id),
+    )
+
+  def opponent_roles_for_training(
+    self,
+    entries: list[LeaguePolicyEntry],
+  ) -> list[str]:
+    roles = self._training_role_by_policy_id()
+    return [roles.get(entry.policy_id, "history") for entry in entries]
 
   def pool_metrics(self) -> dict[str, float]:
     entries = self._active_entries()
@@ -854,16 +951,25 @@ class LeagueManager:
         "league/pool_recent_frac": 0.0,
         "league/pool_mid_frac": 0.0,
         "league/pool_old_frac": 0.0,
+        "league/sampling_pool_size": 0.0,
       }
     recent = sum(1 for e in entries if e.bucket == "recent")
     mid = sum(1 for e in entries if e.bucket == "mid")
     old = sum(1 for e in entries if e.bucket == "old")
-    return {
+    sampling_entries = self.opponent_entries_for_training()
+    sampling_roles = self.opponent_roles_for_training(sampling_entries)
+    metrics = {
       "league/pool_size_active": total,
       "league/pool_recent_frac": float(recent / total),
       "league/pool_mid_frac": float(mid / total),
       "league/pool_old_frac": float(old / total),
+      "league/sampling_pool_size": float(len(sampling_entries)),
     }
+    for role in ("anchor", "recent", "distinct", "history"):
+      metrics[f"league/sampling_pool_role/{role}/count"] = float(
+        sampling_roles.count(role)
+      )
+    return metrics
 
   def maybe_add_checkpoint(self, checkpoint_path: Path, *, epoch: int) -> LeaguePolicyEntry | None:
     if self.config.checkpoint_add_interval <= 0:

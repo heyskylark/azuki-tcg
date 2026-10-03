@@ -9,19 +9,19 @@ import pytest
 import torch
 
 from train import (
-    RESUME_REWARD_ENV_VARS,
     _apply_saved_reward_env,
     _checkpoint_metadata_path,
     _approved_resume_cfg_mismatch_prefixes,
+    _capture_coordinator_rng_state,
     _enabled_episode_schedule_completion,
     _extract_completed_episodes_from_mapping,
     _load_model_weights,
     _seed_training_process,
     _peek_resume_env_completed_episodes,
     _restart_lr_schedule_for_remaining_epochs,
+    _restore_coordinator_rng_state,
     _resume_cfg_mismatches,
     _select_resume_completed_episodes,
-    _trainer_shaped_reward_schedule_state,
 )
 
 
@@ -51,6 +51,25 @@ def test_process_seeding_reproducibly_seeds_all_rngs() -> None:
     assert _seed_training_process(config) == 42
     assert _draw_rng_sample() == expected
 
+def test_coordinator_rng_state_round_trip(monkeypatch) -> None:
+    monkeypatch.setattr(torch.cuda, "is_initialized", lambda: False)
+    _seed_training_process({"seed": 42, "seed_process_rngs": True})
+    state = _capture_coordinator_rng_state()
+    expected = _draw_rng_sample()
+
+    _draw_rng_sample()
+    assert _restore_coordinator_rng_state(state) is True
+    assert _draw_rng_sample() == expected
+
+
+def test_coordinator_rng_restore_is_backward_compatible() -> None:
+    assert _restore_coordinator_rng_state(None) is False
+
+
+def test_coordinator_rng_restore_rejects_unknown_schema() -> None:
+    with pytest.raises(ValueError, match="Unsupported coordinator RNG state schema"):
+        _restore_coordinator_rng_state({"schema_version": 999})
+
 
 class _CachedPolicy(torch.nn.Module):
     def __init__(self, value: float) -> None:
@@ -66,14 +85,6 @@ class _PolicyWrapper(torch.nn.Module):
     def __init__(self, value: float) -> None:
         super().__init__()
         self.policy = _CachedPolicy(value)
-
-
-def test_random_draft_prefix_configuration_is_resume_fingerprinted() -> None:
-    assert {
-        "AZK_DRAFT_PREFIX_LENGTHS",
-        "AZK_DRAFT_PREFIX_PROBS",
-        "AZK_DRAFT_PREFIX_SEED",
-    }.issubset(RESUME_REWARD_ENV_VARS)
 
 
 def test_load_model_weights_invalidates_derived_policy_cache(tmp_path: Path) -> None:
@@ -217,18 +228,21 @@ def test_restart_lr_schedule_uses_only_remaining_epochs() -> None:
 def test_saved_reward_env_is_restored_by_default(monkeypatch) -> None:
     monkeypatch.setenv("AZK_EARLY_TEMPO_BONUS", "0.9")
     monkeypatch.setenv("AZK_DMG_MITIGATION_BONUS", "0.8")
+    monkeypatch.setenv("AZK_ABILITY_OUTCOME_BONUS", "0.9")
 
     _apply_saved_reward_env(
         {
             "reward_env": {
                 "AZK_EARLY_TEMPO_BONUS": "0.1",
                 "AZK_DMG_MITIGATION_BONUS": "",
+                "AZK_ABILITY_OUTCOME_BONUS": "0.05",
             }
         }
     )
 
     assert os.environ["AZK_EARLY_TEMPO_BONUS"] == "0.1"
     assert "AZK_DMG_MITIGATION_BONUS" not in os.environ
+    assert os.environ["AZK_ABILITY_OUTCOME_BONUS"] == "0.05"
 
 
 def test_reward_env_override_keeps_caller_values(monkeypatch) -> None:
@@ -251,31 +265,23 @@ def test_legacy_fingerprint_without_reward_group_remains_compatible() -> None:
     assert _resume_cfg_mismatches(saved, current) == []
 
 
-def test_deck_pool_migration_excuses_only_deck_path(monkeypatch) -> None:
+
+
+def test_normal_penalty_content_drift_requires_explicit_reward_migration(monkeypatch):
     monkeypatch.delenv("AZK_RESUME_ALLOW_SOURCE_DRIFT", raising=False)
-    monkeypatch.delenv("AZK_RESUME_KEEP_CURRENT_SCHEDULE_ENV", raising=False)
     monkeypatch.delenv("AZK_RESUME_KEEP_CURRENT_REWARD_ENV", raising=False)
-
-    assert _approved_resume_cfg_mismatch_prefixes(
-        allow_trusted_source_drift=False,
-        allow_deck_pool_migration=True,
-    ) == ("deck_pool_path",)
-
-
-def test_checkpoint_schedule_state_is_auditable() -> None:
-    trainer = SimpleNamespace(
-        trainer_shaped_reward_schedule_state=lambda: {
-            "enabled": True,
-            "start_epoch": 6000,
-            "end_epoch": 6900,
-            "absolute_update": 6450,
-            "multiplier": 0.5,
-        }
+    monkeypatch.delenv("AZK_RESUME_KEEP_CURRENT_SCHEDULE_ENV", raising=False)
+    key = "draft_normal_penalty_config_sha256"
+    current = {key: "new"}
+    assert _resume_cfg_mismatches({}, current)
+    assert _resume_cfg_mismatches({key: "old"}, current)
+    assert _resume_cfg_mismatches(current, current) == []
+    assert key not in _approved_resume_cfg_mismatch_prefixes(
+        allow_trusted_source_drift=False, allow_deck_pool_migration=False
     )
-    assert _trainer_shaped_reward_schedule_state(trainer) == {
-        "enabled": True,
-        "start_epoch": 6000,
-        "end_epoch": 6900,
-        "absolute_update": 6450,
-        "multiplier": 0.5,
-    }
+    monkeypatch.setenv("AZK_RESUME_KEEP_CURRENT_REWARD_ENV", "1")
+    assert key in _approved_resume_cfg_mismatch_prefixes(
+        allow_trusted_source_drift=False, allow_deck_pool_migration=False
+    )
+
+

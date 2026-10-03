@@ -197,6 +197,8 @@ typedef struct {
   uint32_t entity_damage_taken[MAX_PLAYERS_PER_MATCH];
   uint32_t generated_ikz_created[MAX_PLAYERS_PER_MATCH];
   uint32_t generated_ikz_converted[MAX_PLAYERS_PER_MATCH];
+  uint32_t gate_ability_outcomes[MAX_PLAYERS_PER_MATCH];
+  uint32_t leader_ability_outcomes[MAX_PLAYERS_PER_MATCH];
 } GameState;
 typedef struct {
   uint8_t player_number;

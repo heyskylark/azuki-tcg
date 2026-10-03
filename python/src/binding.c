@@ -3,6 +3,7 @@
 #include <Python.h>
 
 static PyObject* env_reset_with_decks(PyObject* self, PyObject* args);
+static PyObject* vec_draft_snapshot(PyObject* self, PyObject* args);
 static PyObject* vec_drain_deck_records(PyObject* self, PyObject* args);
 static PyObject* vec_reset_evaluation_games(PyObject* self, PyObject* args);
 static PyObject* vec_active_players(PyObject* self, PyObject* args);
@@ -11,6 +12,7 @@ static PyObject* obs_struct_sizes(PyObject* self, PyObject* args);
 
 #define MY_METHODS \
   {"env_reset_with_decks", env_reset_with_decks, METH_VARARGS, "Reset the environment with two explicit deck specs"}, \
+  {"vec_draft_snapshot", vec_draft_snapshot, METH_VARARGS, "Copy a completed native draft for one environment seat"}, \
   {"vec_drain_deck_records", vec_drain_deck_records, METH_VARARGS, "Drain per-episode drafted-deck records from a deck-building vec"}, \
   {"vec_reset_evaluation_games", vec_reset_evaluation_games, METH_VARARGS, "Reset selected native evaluation games with explicit seeds, gates, and optional reference seats"}, \
   {"vec_active_players", vec_active_players, METH_VARARGS, "Return the active player for each native vector environment"}, \
@@ -254,6 +256,229 @@ static int load_training_deck_pool(Env *env, PyObject *deck_pool_obj) {
 
   return 0;
 }
+static int deck_spec_context(
+    const TrainingDeckSpec *spec, int16_t *out_gate, int16_t *out_leader) {
+  int gate_count = 0;
+  int leader_count = 0;
+  *out_gate = -1;
+  *out_leader = -1;
+  for (size_t card_index = 0; card_index < spec->card_count; ++card_index) {
+    const CardDef *def =
+        azk_card_def_from_id((CardDefId)spec->cards[card_index].card_id);
+    if (def == NULL) {
+      return -1;
+    }
+    if (def->type == CARD_TYPE_GATE) {
+      *out_gate = (int16_t)spec->cards[card_index].card_id;
+      gate_count += spec->cards[card_index].card_count;
+    } else if (def->type == CARD_TYPE_LEADER) {
+      *out_leader = (int16_t)spec->cards[card_index].card_id;
+      leader_count += spec->cards[card_index].card_count;
+    }
+  }
+  return gate_count == 1 && leader_count == 1 ? 0 : -1;
+}
+
+static int load_prebuilt_curriculum(
+    Env *env, PyObject *groups_obj, PyObject *probability_obj) {
+  if (groups_obj == NULL || groups_obj == Py_None) {
+    if (probability_obj != NULL && probability_obj != Py_None) {
+      PyErr_SetString(
+          PyExc_ValueError,
+          "prebuilt_probability requires prebuilt_deck_groups");
+      return -1;
+    }
+    return 0;
+  }
+  if (env->deck_pool == NULL || env->deck_pool_count == 0) {
+    PyErr_SetString(
+        PyExc_ValueError, "prebuilt_deck_groups requires a non-empty deck_pool");
+    return -1;
+  }
+  if (probability_obj == NULL || probability_obj == Py_None ||
+      !PyObject_TypeCheck(probability_obj, &PyArray_Type)) {
+    PyErr_SetString(
+        PyExc_TypeError,
+        "prebuilt_probability must be a contiguous float32 NumPy vector of length 1");
+    return -1;
+  }
+  PyArrayObject *probability = (PyArrayObject *)probability_obj;
+  if (!PyArray_ISCONTIGUOUS(probability) ||
+      PyArray_TYPE(probability) != NPY_FLOAT32 ||
+      PyArray_NDIM(probability) != 1 || PyArray_SIZE(probability) != 1) {
+    PyErr_SetString(
+        PyExc_ValueError,
+        "prebuilt_probability must be a contiguous float32 NumPy vector of length 1");
+    return -1;
+  }
+  const float initial_probability = *(float *)PyArray_DATA(probability);
+  if (!(initial_probability >= 0.0f && initial_probability <= 1.0f)) {
+    PyErr_SetString(PyExc_ValueError, "prebuilt_probability must be in [0, 1]");
+    return -1;
+  }
+
+  /* Own immutable snapshots: iterators must not be consumed twice, and user
+   * sequences must not change the allocation size between the two passes. */
+  PyObject *groups = PySequence_List(groups_obj);
+  if (groups == NULL) {
+    return -1;
+  }
+  const Py_ssize_t group_count = PySequence_Fast_GET_SIZE(groups);
+  if (group_count <= 0) {
+    Py_DECREF(groups);
+    PyErr_SetString(
+        PyExc_ValueError, "prebuilt_deck_groups must contain at least one group");
+    return -1;
+  }
+  if ((uint64_t)group_count > UINT32_MAX ||
+      env->deck_pool_count > (size_t)INT_MAX) {
+    Py_DECREF(groups);
+    PyErr_SetString(
+        PyExc_OverflowError, "prebuilt curriculum index space is too large");
+    return -1;
+  }
+
+  size_t total_indices = 0;
+  for (Py_ssize_t group_index = 0; group_index < group_count; ++group_index) {
+    PyObject *group = PySequence_Tuple(
+        PyList_GET_ITEM(groups, group_index));
+    if (group == NULL) {
+      Py_DECREF(groups);
+      return -1;
+    }
+    const Py_ssize_t group_size = PySequence_Fast_GET_SIZE(group);
+    if (group_size <= 0 ||
+        (size_t)group_size > env->deck_pool_count - total_indices) {
+      Py_DECREF(group);
+      Py_DECREF(groups);
+      PyErr_Format(
+          PyExc_ValueError, "prebuilt_deck_groups[%zd] is empty or exceeds deck_pool size",
+          group_index);
+      return -1;
+    }
+    PyList_SetItem(groups, group_index, group);
+    total_indices += (size_t)group_size;
+  }
+
+  int *flat = calloc(total_indices, sizeof(*flat));
+  size_t *offsets =
+      calloc((size_t)group_count + 1, sizeof(*offsets));
+  bool *seen = calloc(env->deck_pool_count, sizeof(*seen));
+  int16_t *context_gates = calloc((size_t)group_count, sizeof(*context_gates));
+  int16_t *context_leaders =
+      calloc((size_t)group_count, sizeof(*context_leaders));
+  if (flat == NULL || offsets == NULL || seen == NULL ||
+      context_gates == NULL || context_leaders == NULL) {
+    free(flat);
+    free(offsets);
+    free(seen);
+    free(context_gates);
+    free(context_leaders);
+    Py_DECREF(groups);
+    PyErr_SetString(
+        PyExc_MemoryError, "Failed to allocate prebuilt curriculum groups");
+    return -1;
+  }
+
+  size_t cursor = 0;
+  int status = 0;
+  for (Py_ssize_t group_index = 0;
+       group_index < group_count && status == 0; ++group_index) {
+    PyObject *group = PyList_GET_ITEM(groups, group_index);
+    offsets[group_index] = cursor;
+    const Py_ssize_t group_size = PySequence_Fast_GET_SIZE(group);
+    int16_t expected_gate = -1;
+    int16_t expected_leader = -1;
+    for (Py_ssize_t item = 0; item < group_size; ++item) {
+      PyObject *index_obj = PySequence_Fast_GET_ITEM(group, item);
+      if (!PyLong_Check(index_obj) || PyBool_Check(index_obj)) {
+        PyErr_Format(
+            PyExc_TypeError,
+            "prebuilt_deck_groups[%zd][%zd] must be an integer",
+            group_index, item);
+        status = -1;
+        break;
+      }
+      const long index = PyLong_AsLong(index_obj);
+      if (PyErr_Occurred()) {
+        status = -1;
+        break;
+      }
+      if (index < 0 || (size_t)index >= env->deck_pool_count) {
+        PyErr_Format(
+            PyExc_IndexError,
+            "prebuilt_deck_groups[%zd][%zd]=%ld is outside deck_pool",
+            group_index, item, index);
+        status = -1;
+        break;
+      }
+      if (seen[index]) {
+        PyErr_Format(
+            PyExc_ValueError,
+            "deck_pool index %ld appears in more than one prebuilt group",
+            index);
+        status = -1;
+        break;
+      }
+      int16_t gate = -1;
+      int16_t leader = -1;
+      if (deck_spec_context(&env->deck_pool[index], &gate, &leader) != 0) {
+        PyErr_Format(
+            PyExc_ValueError,
+            "deck_pool[%ld] must contain exactly one gate and one leader",
+            index);
+        status = -1;
+        break;
+      }
+      if (item == 0) {
+        expected_gate = gate;
+        expected_leader = leader;
+      } else if (gate != expected_gate || leader != expected_leader) {
+        PyErr_Format(
+            PyExc_ValueError,
+            "prebuilt_deck_groups[%zd] mixes gate/leader contexts",
+            group_index);
+        status = -1;
+        break;
+      }
+      seen[index] = true;
+      flat[cursor++] = (int)index;
+    }
+    if (status != 0) {
+      break;
+    }
+    for (Py_ssize_t prior = 0; prior < group_index; ++prior) {
+      if (context_gates[prior] == expected_gate &&
+          context_leaders[prior] == expected_leader) {
+        PyErr_Format(
+            PyExc_ValueError,
+            "prebuilt groups %zd and %zd describe the same gate/leader context",
+            prior, group_index);
+        status = -1;
+        break;
+      }
+    }
+    context_gates[group_index] = expected_gate;
+    context_leaders[group_index] = expected_leader;
+  }
+  offsets[group_count] = cursor;
+  Py_DECREF(groups);
+  free(seen);
+  free(context_gates);
+  free(context_leaders);
+  if (status != 0) {
+    free(flat);
+    free(offsets);
+    return -1;
+  }
+
+  env->prebuilt_deck_indices = flat;
+  env->prebuilt_group_offsets = offsets;
+  env->prebuilt_group_count = (size_t)group_count;
+  env->prebuilt_probability = (float *)PyArray_DATA(probability);
+  return 0;
+}
+
 
 static PyObject* my_get(PyObject* dict, Env* env) {
   PyObject *deck_indices = PyList_New(MAX_PLAYERS_PER_MATCH);
@@ -362,6 +587,115 @@ static int my_init(Env* env, PyObject* args, PyObject* kwargs) {
       env->deck_building_privileged_decks = true;
     }
   }
+  PyObject *prebuilt_groups_obj =
+      PyDict_GetItemString(kwargs, "prebuilt_deck_groups");
+  PyObject *prebuilt_probability_obj =
+      PyDict_GetItemString(kwargs, "prebuilt_probability");
+  if ((prebuilt_groups_obj != NULL || prebuilt_probability_obj != NULL) &&
+      !env->deck_building) {
+    PyErr_SetString(
+        PyExc_ValueError,
+        "prebuilt curriculum requires deck_building=True");
+    free_training_deck_pool(env);
+    return -1;
+  }
+  if (load_prebuilt_curriculum(
+          env, prebuilt_groups_obj, prebuilt_probability_obj) != 0) {
+    free_training_deck_pool(env);
+    return -1;
+  }
+  PyObject* reward_telemetry_obj =
+      PyDict_GetItemString(kwargs, "reward_telemetry");
+  if (reward_telemetry_obj != NULL && PyObject_IsTrue(reward_telemetry_obj)) {
+    if (!env->deck_building) {
+      PyErr_SetString(
+          PyExc_ValueError,
+          "reward_telemetry requires deck_building=True");
+      free_training_deck_pool(env);
+      return -1;
+    }
+    env->reward_telemetry.enabled = true;
+  }
+  PyObject* reward_scales_obj =
+      PyDict_GetItemString(kwargs, "reward_scales");
+  if (reward_scales_obj != NULL) {
+    if (!PyObject_TypeCheck(reward_scales_obj, &PyArray_Type)) {
+      PyErr_SetString(PyExc_TypeError, "reward_scales must be a NumPy array");
+      free_training_deck_pool(env);
+      return -1;
+    }
+    PyArrayObject* reward_scales = (PyArrayObject*)reward_scales_obj;
+    if (!PyArray_ISCONTIGUOUS(reward_scales) ||
+        PyArray_TYPE(reward_scales) != NPY_FLOAT32 ||
+        PyArray_SIZE(reward_scales) != 2) {
+      PyErr_SetString(
+          PyExc_ValueError,
+          "reward_scales must be a contiguous float32 vector of length 2");
+      free_training_deck_pool(env);
+      return -1;
+    }
+    env->reward_scales = (float*)PyArray_DATA(reward_scales);
+  }
+  env->pbrs_gamma = 0.99f;
+  PyObject* pbrs_mode_obj = PyDict_GetItemString(kwargs, "pbrs_mode");
+  if (pbrs_mode_obj != NULL) {
+    const char* pbrs_mode = PyUnicode_AsUTF8(pbrs_mode_obj);
+    if (pbrs_mode == NULL) {
+      free_training_deck_pool(env);
+      return -1;
+    }
+    if (strcmp(pbrs_mode, "legacy") == 0) {
+      env->proper_pbrs = false;
+      env->pbrs_terminal_closure = false;
+    } else if (strcmp(pbrs_mode, "discounted") == 0) {
+      env->proper_pbrs = true;
+      env->pbrs_terminal_closure = true;
+    } else {
+      PyErr_SetString(
+          PyExc_ValueError,
+          "pbrs_mode must be 'legacy' or 'discounted'");
+      free_training_deck_pool(env);
+      return -1;
+    }
+  }
+  PyObject* pbrs_gamma_obj = PyDict_GetItemString(kwargs, "pbrs_gamma");
+  if (pbrs_gamma_obj != NULL) {
+    const double gamma = PyFloat_AsDouble(pbrs_gamma_obj);
+    if (PyErr_Occurred()) {
+      free_training_deck_pool(env);
+      return -1;
+    }
+    if (!(gamma >= 0.0 && gamma <= 1.0)) {
+      PyErr_SetString(PyExc_ValueError, "pbrs_gamma must be in [0, 1]");
+      free_training_deck_pool(env);
+      return -1;
+    }
+    env->pbrs_gamma = (float)gamma;
+  }
+  PyObject* pbrs_closure_obj =
+      PyDict_GetItemString(kwargs, "pbrs_terminal_closure");
+  if (pbrs_closure_obj != NULL && pbrs_closure_obj != Py_None) {
+    const int closure = PyObject_IsTrue(pbrs_closure_obj);
+    if (closure < 0) {
+      free_training_deck_pool(env);
+      return -1;
+    }
+    if (env->proper_pbrs && !closure) {
+      PyErr_SetString(
+          PyExc_ValueError,
+          "pbrs_mode='discounted' requires terminal closure");
+      free_training_deck_pool(env);
+      return -1;
+    }
+    if (!env->proper_pbrs && closure) {
+      PyErr_SetString(
+          PyExc_ValueError,
+          "pbrs_terminal_closure requires pbrs_mode='discounted'");
+      free_training_deck_pool(env);
+      return -1;
+    }
+    env->pbrs_terminal_closure = closure != 0;
+  }
 
   init(env);
   if (!env->deck_building && env->engine == NULL) {
@@ -394,6 +728,8 @@ static int my_log(PyObject* dict, Log* log) {
     assign_to_dict(dict, "winner_terminal_rate", log->winner_terminal_rate);
     assign_to_dict(dict, "curriculum_episode_cap", log->curriculum_episode_cap);
     assign_to_dict(dict, "reward_shaping_scale", log->reward_shaping_scale);
+    assign_to_dict(dict, "potential_reward_scale", log->potential_reward_scale);
+    assign_to_dict(dict, "exploration_reward_scale", log->exploration_reward_scale);
     assign_to_dict(dict, "completed_episodes", log->completed_episodes);
     assign_to_dict(dict, "p0_noop_selected_rate", log->p0_noop_selected_rate);
     assign_to_dict(dict, "p1_noop_selected_rate", log->p1_noop_selected_rate);
@@ -437,6 +773,10 @@ static int my_log(PyObject* dict, Log* log) {
     assign_to_dict(dict, "p1_temporary_attack_damage_realized", log->p1_temporary_attack_damage_realized);
     assign_to_dict(dict, "p0_contextual_response_reserve_opportunities", log->p0_contextual_response_reserve_opportunities);
     assign_to_dict(dict, "p1_contextual_response_reserve_opportunities", log->p1_contextual_response_reserve_opportunities);
+    assign_to_dict(dict, "p0_gate_ability_outcomes", log->p0_gate_ability_outcomes);
+    assign_to_dict(dict, "p1_gate_ability_outcomes", log->p1_gate_ability_outcomes);
+    assign_to_dict(dict, "p0_leader_ability_outcomes", log->p0_leader_ability_outcomes);
+    assign_to_dict(dict, "p1_leader_ability_outcomes", log->p1_leader_ability_outcomes);
     assign_to_dict(dict, "n", log->n);
     return 0;
 }
@@ -641,6 +981,135 @@ static int load_draft_catalog(PyObject* kwargs) {
   return 0;
 }
 
+static PyObject* vec_draft_snapshot(PyObject* self, PyObject* args) {
+  (void)self;
+  if (PyTuple_Size(args) != 3) {
+    PyErr_SetString(
+        PyExc_TypeError,
+        "vec_draft_snapshot requires handle, env_index, and player_index");
+    return NULL;
+  }
+  VecEnv* vec = unpack_vecenv(args);
+  if (vec == NULL) {
+    return NULL;
+  }
+  const long env_index = PyLong_AsLong(PyTuple_GetItem(args, 1));
+  const long player_index = PyLong_AsLong(PyTuple_GetItem(args, 2));
+  if (PyErr_Occurred()) {
+    return NULL;
+  }
+  if (env_index < 0 || env_index >= vec->num_envs) {
+    PyErr_Format(PyExc_IndexError, "Draft snapshot env index %ld is out of range",
+                 env_index);
+    return NULL;
+  }
+  if (player_index < 0 || player_index >= MAX_PLAYERS_PER_MATCH) {
+    PyErr_Format(PyExc_IndexError,
+                 "Draft snapshot player index %ld is out of range",
+                 player_index);
+    return NULL;
+  }
+
+  AzkDraftSnapshot snapshot;
+  if (!c_draft_snapshot(vec->envs[env_index], (int)player_index, &snapshot)) {
+    PyErr_SetString(
+        PyExc_RuntimeError,
+        "Draft snapshot is unavailable until a native deck-building draft has completed");
+    return NULL;
+  }
+  PyObject* main_cards = PyList_New(REQUIRED_DECK_SIZE);
+  if (main_cards == NULL) {
+    return NULL;
+  }
+  for (int index = 0; index < REQUIRED_DECK_SIZE; ++index) {
+    PyObject* card_id = PyLong_FromLong(snapshot.main_card_def_ids[index]);
+    if (card_id == NULL) {
+      Py_DECREF(main_cards);
+      return NULL;
+    }
+    PyList_SET_ITEM(main_cards, index, card_id);
+  }
+  return Py_BuildValue(
+      "{s:i,s:i,s:i,s:N}",
+      "gate", (int)snapshot.gate_card_def_id,
+      "leader", (int)snapshot.leader_card_def_id,
+      "main_count", (int)snapshot.main_count,
+      "main", main_cards);
+}
+
+static bool reward_stats_active(const AzkRewardComponentStats* stats) {
+  return stats->raw_positive_count != 0 || stats->raw_negative_count != 0 ||
+         stats->scaled_positive_count != 0 ||
+         stats->scaled_negative_count != 0 ||
+         stats->raw_sum != 0.0f || stats->scaled_sum != 0.0f;
+}
+
+static PyObject* build_reward_stat_entries(
+    const AzkRewardComponentStats* components) {
+  PyObject* entries = PyList_New(0);
+  if (entries == NULL) {
+    return NULL;
+  }
+  for (int component = 0; component < AZK_REWARD_COMPONENT_COUNT;
+       ++component) {
+    const AzkRewardComponentStats* stats = &components[component];
+    if (!reward_stats_active(stats)) {
+      continue;
+    }
+    PyObject* entry = Py_BuildValue(
+        "(iffffkkffffkk)",
+        component,
+        stats->raw_sum,
+        stats->raw_abs_sum,
+        stats->raw_discounted_sum,
+        stats->raw_max_abs,
+        (unsigned long)stats->raw_positive_count,
+        (unsigned long)stats->raw_negative_count,
+        stats->scaled_sum,
+        stats->scaled_abs_sum,
+        stats->scaled_discounted_sum,
+        stats->scaled_max_abs,
+        (unsigned long)stats->scaled_positive_count,
+        (unsigned long)stats->scaled_negative_count);
+    if (entry == NULL || PyList_Append(entries, entry) < 0) {
+      Py_XDECREF(entry);
+      Py_DECREF(entries);
+      return NULL;
+    }
+    Py_DECREF(entry);
+  }
+  return entries;
+}
+
+static PyObject* build_reward_stat_slices(
+    const AzkRewardComponentStats* slices, const uint32_t* step_counts,
+    int slice_count) {
+  PyObject* output = PyList_New(0);
+  if (output == NULL) {
+    return NULL;
+  }
+  for (int slice = 0; slice < slice_count; ++slice) {
+    if (step_counts[slice] == 0) {
+      continue;
+    }
+    PyObject* entries = build_reward_stat_entries(
+        &slices[slice * AZK_REWARD_COMPONENT_COUNT]);
+    if (entries == NULL) {
+      Py_DECREF(output);
+      return NULL;
+    }
+    PyObject* item = Py_BuildValue(
+        "(ikN)", slice, (unsigned long)step_counts[slice], entries);
+    if (item == NULL || PyList_Append(output, item) < 0) {
+      Py_XDECREF(item);
+      Py_DECREF(output);
+      return NULL;
+    }
+    Py_DECREF(item);
+  }
+  return output;
+}
+
 static PyObject* vec_drain_deck_records(PyObject* self, PyObject* args) {
   (void)self;
   VecEnv* vec = unpack_vecenv(args);
@@ -674,8 +1143,11 @@ static PyObject* vec_drain_deck_records(PyObject* self, PyObject* args) {
                         PyLong_FromLong(env->deck_record_main[p][c]));
       }
       PyObject* player = Py_BuildValue(
-          "{s:i,s:i,s:N,s:f,s:f,s:f,s:f,s:f,s:f,s:f,s:f,s:f}",
+          "{s:i,s:i,s:i,s:O,s:i,s:N,s:f,s:f,s:f,s:f,s:f,s:f,s:f,s:f,s:f}",
           "gate", (int)env->deck_record_gate[p],
+          "original_gate", (int)env->deck_record_original_gate[p],
+          "battle_gate", (int)env->deck_record_gate[p],
+          "gate_swapped", env->deck_record_gate_swapped[p] ? Py_True : Py_False,
           "leader", (int)env->deck_record_leader[p],
           "main", main_list,
           "win", env->deck_record_win[p],
@@ -716,10 +1188,80 @@ static PyObject* vec_drain_deck_records(PyObject* self, PyObject* args) {
                      env->deck_record_behavior[p][16]);
       assign_to_dict(player, "entity_damage_taken",
                      env->deck_record_behavior[p][17]);
+      assign_to_dict(player, "gate_ability_outcomes",
+                     env->deck_record_behavior[p][18]);
+      assign_to_dict(player, "leader_ability_outcomes",
+                     env->deck_record_behavior[p][19]);
+      if (env->reward_telemetry.enabled) {
+        PyObject* overall = build_reward_stat_entries(
+            env->reward_telemetry.overall[p]);
+        PyObject* by_action = build_reward_stat_slices(
+            &env->reward_telemetry.by_action[p][0][0],
+            env->reward_telemetry.action_step_count[p],
+            AZK_ACTION_TYPE_COUNT);
+        PyObject* by_turn_bucket = build_reward_stat_slices(
+            &env->reward_telemetry.by_turn_bucket[p][0][0],
+            env->reward_telemetry.turn_bucket_step_count[p],
+            AZK_REWARD_TURN_BUCKET_COUNT);
+        if (overall == NULL || by_action == NULL || by_turn_bucket == NULL) {
+          Py_XDECREF(overall);
+          Py_XDECREF(by_action);
+          Py_XDECREF(by_turn_bucket);
+          Py_DECREF(player);
+          Py_DECREF(players);
+          Py_DECREF(records);
+          return NULL;
+        }
+        PyObject* telemetry = Py_BuildValue(
+            "{s:f,s:f,s:f,s:N,s:N,s:N}",
+            "raw_shaping_return",
+            env->reward_telemetry.raw_shaping_return[p],
+            "scaled_shaping_return",
+            env->reward_telemetry.scaled_shaping_return[p],
+            "terminal_return",
+            env->reward_telemetry.terminal_return[p],
+            "overall", overall,
+            "by_action", by_action,
+            "by_turn_bucket", by_turn_bucket);
+        if (telemetry == NULL) {
+          Py_DECREF(player);
+          Py_DECREF(players);
+          Py_DECREF(records);
+          return NULL;
+        }
+        assign_to_dict(
+            telemetry, "initial_potential", env->episode_initial_phi[p]);
+        assign_to_dict(
+            telemetry, "initial_scaled_potential",
+            env->episode_initial_scaled_phi[p]);
+        assign_to_dict(
+            telemetry, "final_potential", env->last_phi[p]);
+        assign_to_dict(
+            telemetry, "final_scaled_potential", env->last_scaled_phi[p]);
+        assign_to_dict(
+            telemetry, "final_discount", env->reward_telemetry.discount);
+        if (PyDict_SetItemString(player, "reward_telemetry", telemetry) < 0) {
+          Py_DECREF(telemetry);
+          Py_DECREF(player);
+          Py_DECREF(players);
+          Py_DECREF(records);
+          return NULL;
+        }
+        Py_DECREF(telemetry);
+      }
       PyList_SET_ITEM(players, p, player);
     }
+    PyObject* prebuilt_deck_indices = Py_BuildValue(
+        "[i,i]",
+        env->deck_record_prebuilt_deck_indices[0],
+        env->deck_record_prebuilt_deck_indices[1]);
+    if (prebuilt_deck_indices == NULL) {
+      Py_DECREF(players);
+      Py_DECREF(records);
+      return NULL;
+    }
     PyObject* record = Py_BuildValue(
-        "{s:i,s:k,s:f,s:i,s:i,s:i,s:i,s:N}",
+        "{s:i,s:k,s:f,s:i,s:i,s:i,s:i,s:O,s:N,s:N}",
         "env_index", i,
         "seed", (unsigned long)env->deck_record_seed,
         "episode_length", env->deck_record_episode_length,
@@ -727,10 +1269,56 @@ static PyObject* vec_drain_deck_records(PyObject* self, PyObject* args) {
         "ref_deck_index", (int)env->deck_record_ref_deck_index,
         "end_reason", (int)env->deck_record_end_reason,
         "starting_player", (int)env->deck_record_starting_player,
+        "prebuilt", env->deck_record_prebuilt ? Py_True : Py_False,
+        "prebuilt_deck_indices", prebuilt_deck_indices,
         "players", players);
     if (record == NULL) {
       Py_DECREF(records);
       return NULL;
+    }
+    if (env->reward_telemetry.enabled) {
+      const float scale_min =
+          env->reward_telemetry.shaping_step_count > 0
+              ? env->reward_telemetry.shaping_scale_min
+              : 0.0f;
+      PyObject* telemetry = Py_BuildValue(
+          "{s:f,s:f,s:f,s:f,s:f,s:k,s:f}",
+          "raw_reconstruction_max_abs_error",
+          env->reward_telemetry.raw_reconstruction_max_abs_error,
+          "scaled_reconstruction_max_abs_error",
+          env->reward_telemetry.scaled_reconstruction_max_abs_error,
+          "shaping_scale_sum",
+          env->reward_telemetry.shaping_scale_sum,
+          "shaping_scale_min", scale_min,
+          "shaping_scale_max",
+          env->reward_telemetry.shaping_scale_max,
+          "shaping_step_count",
+          (unsigned long)env->reward_telemetry.shaping_step_count,
+          "gamma",
+          env->proper_pbrs ? env->pbrs_gamma
+                           : AZK_REWARD_TELEMETRY_GAMMA);
+      if (telemetry == NULL) {
+        Py_DECREF(record);
+        Py_DECREF(records);
+        return NULL;
+      }
+      assign_to_dict(telemetry, "pbrs_gamma", env->pbrs_gamma);
+      PyObject* pbrs_mode = PyUnicode_FromString(
+          env->proper_pbrs ? "discounted" : "legacy");
+      if (pbrs_mode == NULL ||
+          PyDict_SetItemString(telemetry, "pbrs_mode", pbrs_mode) < 0 ||
+          PyDict_SetItemString(
+              telemetry, "pbrs_terminal_closure",
+              env->pbrs_terminal_closure ? Py_True : Py_False) < 0 ||
+          PyDict_SetItemString(record, "reward_telemetry", telemetry) < 0) {
+        Py_XDECREF(pbrs_mode);
+        Py_DECREF(telemetry);
+        Py_DECREF(record);
+        Py_DECREF(records);
+        return NULL;
+      }
+      Py_DECREF(pbrs_mode);
+      Py_DECREF(telemetry);
     }
     if (PyList_Append(records, record) < 0) {
       Py_DECREF(record);
@@ -959,6 +1547,7 @@ static PyObject* vec_force_evaluation_truncations(PyObject* self, PyObject* args
       PyErr_SetString(PyExc_RuntimeError, "Cannot truncate evaluation game during draft");
       return NULL;
     }
+    refresh_observations(env);
     apply_truncation_rewards(env, EP_END_REASON_TIMEOUT_TRUNCATION);
     accumulate_step_rewards(env);
     env->truncations[0] = DONE;

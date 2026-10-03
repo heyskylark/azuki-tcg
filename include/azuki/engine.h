@@ -124,6 +124,8 @@ typedef struct {
   float entity_damage_taken[MAX_PLAYERS_PER_MATCH];
   float generated_ikz_created[MAX_PLAYERS_PER_MATCH];
   float generated_ikz_converted[MAX_PLAYERS_PER_MATCH];
+  float gate_ability_outcomes[MAX_PLAYERS_PER_MATCH];
+  float leader_ability_outcomes[MAX_PLAYERS_PER_MATCH];
 } AzkRewardSnapshot;
 
 bool azk_engine_reward_snapshot(AzkEngine *engine, AzkRewardSnapshot *out_snapshot);

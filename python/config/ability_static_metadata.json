@@ -149,6 +149,11 @@
       "has_ability": true,
       "is_optional": false,
       "timing_tag": "AMain"
+    },
+    "STT03-017": {
+      "has_ability": true,
+      "is_optional": false,
+      "timing_tag": "AMain"
     }
   }
 }

@@ -44,6 +44,9 @@ bool azk_can_play_card_from_hand_during_response_window(ecs_world_t *world,
                                                         ecs_entity_t card);
 int8_t azk_get_effective_card_play_cost(ecs_world_t *world, ecs_entity_t player,
                                         ecs_entity_t card);
+void azk_consume_next_card_play_cost_reduction(ecs_world_t *world,
+                                               ecs_entity_t player,
+                                               ecs_entity_t card);
 void discard_card_for_replacement(ecs_world_t *world, ecs_entity_t card);
 
 /**

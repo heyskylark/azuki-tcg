@@ -49,6 +49,38 @@ class LeagueStateTests(unittest.TestCase):
       self.assertIn(ids[2], kept)
       self.assertTrue(state.policies[ids[2]].active)
 
+  def test_pruned_policy_is_never_reactivated(self):
+    with tempfile.TemporaryDirectory() as tmpdir:
+      root = Path(tmpdir)
+      state = LeagueState()
+      ids = []
+      for idx in range(6):
+        checkpoint = root / f"model_{idx:06d}.pt"
+        checkpoint.write_bytes(b"x")
+        ids.append(
+          register_policy(
+            state,
+            checkpoint_path=checkpoint,
+            created_epoch=idx,
+            source="checkpoint",
+          ).policy_id
+        )
+
+      classify_and_prune(state, keep_recent=2, keep_mid=1, keep_old=1)
+      retired = {policy_id for policy_id in ids if not state.policies[policy_id].active}
+      newest = root / "model_000006.pt"
+      newest.write_bytes(b"x")
+      register_policy(
+        state,
+        checkpoint_path=newest,
+        created_epoch=6,
+        source="checkpoint",
+      )
+      classify_and_prune(state, keep_recent=2, keep_mid=1, keep_old=1)
+
+      self.assertTrue(retired)
+      self.assertTrue(all(not state.policies[policy_id].active for policy_id in retired))
+
 
 if __name__ == "__main__":
   unittest.main()

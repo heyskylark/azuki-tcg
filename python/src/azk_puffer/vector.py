@@ -70,6 +70,24 @@ class Serial:
 
 
         set_buffers(self, buf)
+        shared_scales = buf.get("reward_scales") if buf is not None else None
+        self.reward_scales = (
+            np.ones((num_envs, 2), dtype=np.float32)
+            if shared_scales is None
+            else np.broadcast_to(shared_scales, (num_envs, 2))
+        )
+        shared_probability = buf.get("prebuilt_probability") if buf is not None else None
+        self.prebuilt_probability = (
+            np.full((num_envs, 1), getattr(self.driver_env, "initial_prebuilt_probability", 0.0), dtype=np.float32)
+            if shared_probability is None
+            else np.broadcast_to(shared_probability, (num_envs, 1))
+        )
+        if hasattr(self.driver_env, "terminal_rewards"):
+            for name in ("terminal_rewards", "shaped_rewards"):
+                component = buf.get(name) if buf is not None else None
+                if component is None:
+                    component = np.zeros(self.num_agents, dtype=np.float32)
+                setattr(self, name, component)
 
         self.envs = []
         ptr = 0
@@ -81,8 +99,13 @@ class Serial:
                 terminals=self.terminals[ptr:end],
                 truncations=self.truncations[ptr:end],
                 masks=self.masks[ptr:end],
-                actions=self.actions[ptr:end]
+                actions=self.actions[ptr:end],
+                reward_scales=self.reward_scales[i],
+                prebuilt_probability=self.prebuilt_probability[i],
             )
+            if hasattr(self, "terminal_rewards"):
+                buf_i["terminal_rewards"] = self.terminal_rewards[ptr:end]
+                buf_i["shaped_rewards"] = self.shaped_rewards[ptr:end]
             ptr = end
             seed_i = seed + i if seed is not None else None
             env = env_creators[i](*env_args[i], buf=buf_i, seed=seed_i, **env_kwargs[i])
@@ -137,6 +160,8 @@ class Serial:
             actions = np.ascontiguousarray(actions)
 
         actions = send_precheck(self, actions)
+        if actions is not self.actions:
+            self.actions[:] = actions
         rewards, dones, truncateds, self.infos = [], [], [], []
         ptr = 0
         for idx, env in enumerate(self.envs):
@@ -185,7 +210,15 @@ def _worker_process(env_creators, env_args, env_kwargs, obs_shape, obs_dtype, at
         truncations=np.ndarray(shape, dtype=bool, buffer=shm['truncateds'])[worker_idx],
         masks=np.ndarray(shape, dtype=bool, buffer=shm['masks'])[worker_idx],
         actions=atn_arr,
+        reward_scales=np.ndarray((num_workers, 2),
+            dtype=np.float32, buffer=shm['reward_scales'])[worker_idx],
+        prebuilt_probability=np.ndarray((num_workers, 1),
+            dtype=np.float32, buffer=shm['prebuilt_probability'])[worker_idx],
     )
+    for name in ("terminal_rewards", "shaped_rewards"):
+        if name in shm:
+            buf[name] = np.ndarray(
+                shape, dtype=np.float32, buffer=shm[name])[worker_idx]
     buf['masks'][:] = True
 
     if is_native and num_envs == 1:
@@ -307,6 +340,8 @@ class Multiprocessing:
             masks=RawArray('b', num_agents),
             semaphores=RawArray('c', num_workers),
             notify=RawArray('b', num_workers),
+            reward_scales=RawArray('f', num_workers * 2),
+            prebuilt_probability=RawArray('f', num_workers),
         )
         shape = (num_workers, agents_per_worker)
         self.obs_batch_shape = (self.agents_per_batch, *obs_shape)
@@ -322,8 +357,22 @@ class Multiprocessing:
             masks=np.ndarray(shape, dtype=bool, buffer=self.shm['masks']),
             semaphores=np.ndarray(num_workers, dtype=np.uint8, buffer=self.shm['semaphores']),
             notify=np.ndarray(num_workers, dtype=bool, buffer=self.shm['notify']),
+            reward_scales=np.ndarray(
+                (num_workers, 2), dtype=np.float32, buffer=self.shm['reward_scales']),
+            prebuilt_probability=np.ndarray(
+                (num_workers, 1), dtype=np.float32, buffer=self.shm['prebuilt_probability']),
         )
         self.buf['semaphores'][:] = MAIN 
+        self.buf['reward_scales'][:] = 1.0
+        self.reward_scales = self.buf['reward_scales']
+        self.buf['prebuilt_probability'][:] = getattr(driver_env, "initial_prebuilt_probability", 0.0)
+        self.prebuilt_probability = self.buf['prebuilt_probability']
+        if hasattr(driver_env, "terminal_rewards"):
+            for name in ("terminal_rewards", "shaped_rewards"):
+                self.shm[name] = RawArray('f', num_agents)
+                self.buf[name] = np.ndarray(
+                    shape, dtype=np.float32, buffer=self.shm[name])
+                setattr(self, name, self.buf[name].reshape(-1))
 
         from multiprocessing import Pipe, Process
         self.send_pipes, w_recv_pipes = zip(*[Pipe() for _ in range(num_workers)])

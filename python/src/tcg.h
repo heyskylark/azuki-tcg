@@ -27,10 +27,6 @@
 
 #define PBRS_TIME_DECAY_DEFAULT 0.95f
 #define TERMINAL_REWARD 5.0f
-#define TRUNCATION_TIMEOUT_PENALTY 0.35f
-#define TRUNCATION_AUTO_TICK_PENALTY 0.60f
-#define TRUNCATION_LEADER_EDGE_WEIGHT 1.25f
-#define TRUNCATION_BOARD_EDGE_WEIGHT 0.45f
 
 #define SHAPED_LEADER_DELTA_WEIGHT 1.25f
 #define SHAPED_BOARD_DELTA_WEIGHT 0.35f
@@ -63,6 +59,8 @@ typedef struct Log {
     float winner_terminal_rate;
     float curriculum_episode_cap;
     float reward_shaping_scale;
+    float potential_reward_scale;
+    float exploration_reward_scale;
     float completed_episodes;
     float p0_noop_selected_rate;
     float p1_noop_selected_rate;
@@ -106,8 +104,92 @@ typedef struct Log {
     float p1_temporary_attack_damage_realized;
     float p0_contextual_response_reserve_opportunities;
     float p1_contextual_response_reserve_opportunities;
+    float p0_gate_ability_outcomes;
+    float p1_gate_ability_outcomes;
+    float p0_leader_ability_outcomes;
+    float p1_leader_ability_outcomes;
     float n;
 } Log;
+
+#define AZK_REWARD_TELEMETRY_GAMMA 0.99f
+#define AZK_REWARD_TURN_BUCKET_COUNT 5
+
+typedef enum {
+  AZK_REWARD_TERMINAL_OUTCOME = 0,
+  AZK_REWARD_TRUNCATION_TIMEOUT,
+  AZK_REWARD_TRUNCATION_LEADER_EDGE,
+  AZK_REWARD_TRUNCATION_BOARD_EDGE,
+  AZK_REWARD_POTENTIAL_LEADER_HEALTH,
+  AZK_REWARD_POTENTIAL_GARDEN_ATTACK,
+  AZK_REWARD_POTENTIAL_UNTAPPED_GARDEN,
+  AZK_REWARD_POTENTIAL_UNTAPPED_IKZ,
+  AZK_REWARD_DIRECT_LEADER_EDGE,
+  AZK_REWARD_DIRECT_BOARD_EDGE,
+  AZK_REWARD_NOOP_PENALTY,
+  AZK_REWARD_PORTAL_GP,
+  AZK_REWARD_PORTAL_OUTCOME,
+  AZK_REWARD_EARLY_TEMPO,
+  AZK_REWARD_DAMAGE_MITIGATION,
+  AZK_REWARD_TEMPORARY_CHARGE,
+  AZK_REWARD_TEMPORARY_ATTACK,
+  AZK_REWARD_ENTITY_DAMAGE_EXCHANGE,
+  AZK_REWARD_GENERATED_IKZ_CONVERSION,
+  AZK_REWARD_RESPONSE_RESERVE,
+  AZK_REWARD_GATE_ABILITY_OUTCOME,
+  AZK_REWARD_LEADER_ABILITY_OUTCOME,
+  AZK_REWARD_COMPONENT_COUNT
+} AzkRewardComponent;
+
+typedef struct {
+  float raw_sum;
+  float raw_abs_sum;
+  float raw_discounted_sum;
+  float raw_max_abs;
+  uint32_t raw_positive_count;
+  uint32_t raw_negative_count;
+  float scaled_sum;
+  float scaled_abs_sum;
+  float scaled_discounted_sum;
+  float scaled_max_abs;
+  uint32_t scaled_positive_count;
+  uint32_t scaled_negative_count;
+} AzkRewardComponentStats;
+
+typedef struct {
+  float portal_gp;
+  float portal_outcome;
+  float early_tempo;
+  float damage_mitigation;
+  float temporary_charge;
+  float temporary_attack;
+  float response_reserve;
+} AzkActionRewardComponents;
+
+typedef struct {
+  AzkRewardComponentStats
+      overall[MAX_PLAYERS_PER_MATCH][AZK_REWARD_COMPONENT_COUNT];
+  AzkRewardComponentStats
+      by_action[MAX_PLAYERS_PER_MATCH][AZK_ACTION_TYPE_COUNT]
+               [AZK_REWARD_COMPONENT_COUNT];
+  AzkRewardComponentStats
+      by_turn_bucket[MAX_PLAYERS_PER_MATCH][AZK_REWARD_TURN_BUCKET_COUNT]
+                    [AZK_REWARD_COMPONENT_COUNT];
+  uint32_t action_step_count[MAX_PLAYERS_PER_MATCH][AZK_ACTION_TYPE_COUNT];
+  uint32_t turn_bucket_step_count[MAX_PLAYERS_PER_MATCH]
+                                 [AZK_REWARD_TURN_BUCKET_COUNT];
+  float raw_shaping_return[MAX_PLAYERS_PER_MATCH];
+  float scaled_shaping_return[MAX_PLAYERS_PER_MATCH];
+  float terminal_return[MAX_PLAYERS_PER_MATCH];
+  float raw_reconstruction_max_abs_error;
+  float scaled_reconstruction_max_abs_error;
+  float discount;
+  float shaping_scale_sum;
+  float shaping_scale_min;
+  float shaping_scale_max;
+  uint32_t shaping_step_count;
+  int8_t step_action_type;
+  bool enabled;
+} AzkRewardTelemetry;
 
 static inline const char* debug_card_code_for_entity(AzkEngine* engine,
                                                      ecs_entity_t entity) {
@@ -173,7 +255,7 @@ typedef struct {
 #define AZK_DRAFT_MAX_GATES 16
 #define AZK_DRAFT_MAX_POPULATION 512
 #define AZK_DRAFT_MAX_LEADERS 8
-#define AZK_DECKBUILD_BEHAVIOR_COUNT 18
+#define AZK_DECKBUILD_BEHAVIOR_COUNT 20
 
 typedef struct {
   int32_t mode;
@@ -235,6 +317,7 @@ typedef struct {
   float* rewards;                // MAX_PLAYERS_PER_MATCH scalars
   float* terminal_rewards;       // MAX_PLAYERS_PER_MATCH scalars
   float* shaped_rewards;         // MAX_PLAYERS_PER_MATCH scalars
+  float* reward_scales;          // {potential, exploration}; NULL uses legacy schedule
   unsigned char* terminals;      // MAX_PLAYERS_PER_MATCH scalars {0,1}
   unsigned char* truncations;    // MAX_PLAYERS_PER_MATCH scalars {0,1}
   Log log;
@@ -248,9 +331,21 @@ typedef struct {
   TrainingDeckSpec *deck_pool;
   size_t deck_pool_count;
   int current_deck_indices[MAX_PLAYERS_PER_MATCH];
+  // Optional two-seat prebuilt curriculum. Group offsets index the flat
+  // prebuilt_deck_indices array; prebuilt_probability is a caller-owned shared
+  // float32[1] read once at each training episode reset.
+  int *prebuilt_deck_indices;
+  size_t *prebuilt_group_offsets;
+  size_t prebuilt_group_count;
+  float *prebuilt_probability;
+  bool episode_prebuilt;
+  int episode_prebuilt_deck_indices[MAX_PLAYERS_PER_MATCH];
   int tick;
   AzkActionMaskSet action_masks[MAX_PLAYERS_PER_MATCH];
   float last_phi[MAX_PLAYERS_PER_MATCH];
+  float last_scaled_phi[MAX_PLAYERS_PER_MATCH];
+  float last_phi_components[MAX_PLAYERS_PER_MATCH][4];
+  float last_scaled_phi_components[MAX_PLAYERS_PER_MATCH][4];
   float episode_returns[MAX_PLAYERS_PER_MATCH];
   float episode_terminal_returns[MAX_PLAYERS_PER_MATCH];
   float episode_shaped_returns[MAX_PLAYERS_PER_MATCH];
@@ -258,6 +353,11 @@ typedef struct {
   int current_episode_cap;
   float time_weight;
   float time_decay;
+  bool proper_pbrs;
+  float pbrs_gamma;
+  bool pbrs_terminal_closure;
+  float episode_initial_phi[MAX_PLAYERS_PER_MATCH];
+  float episode_initial_scaled_phi[MAX_PLAYERS_PER_MATCH];
   AzkRewardSnapshot last_snapshot;
   bool has_last_snapshot;
   uint32_t episode_action_total[MAX_PLAYERS_PER_MATCH];
@@ -319,6 +419,8 @@ typedef struct {
   int16_t evaluation_reference_deck_index;
   int16_t draft_gate[MAX_PLAYERS_PER_MATCH];
   int draft_gate_slot[MAX_PLAYERS_PER_MATCH];
+  int16_t draft_original_gate[MAX_PLAYERS_PER_MATCH];
+  bool draft_gate_swapped[MAX_PLAYERS_PER_MATCH];
   int16_t draft_leader[MAX_PLAYERS_PER_MATCH];
   int16_t draft_main[MAX_PLAYERS_PER_MATCH][REQUIRED_DECK_SIZE];
   uint8_t draft_main_count[MAX_PLAYERS_PER_MATCH];
@@ -335,6 +437,8 @@ typedef struct {
   bool deck_record_valid;
   uint32_t deck_record_seed;
   int16_t deck_record_gate[MAX_PLAYERS_PER_MATCH];
+  int16_t deck_record_original_gate[MAX_PLAYERS_PER_MATCH];
+  bool deck_record_gate_swapped[MAX_PLAYERS_PER_MATCH];
   int16_t deck_record_leader[MAX_PLAYERS_PER_MATCH];
   int16_t deck_record_main[MAX_PLAYERS_PER_MATCH][REQUIRED_DECK_SIZE];
   float deck_record_win[MAX_PLAYERS_PER_MATCH];
@@ -345,7 +449,36 @@ typedef struct {
   int16_t deck_record_ref_deck_index;
   int8_t deck_record_end_reason;
   int8_t deck_record_starting_player;
+  bool deck_record_prebuilt;
+  int deck_record_prebuilt_deck_indices[MAX_PLAYERS_PER_MATCH];
+  AzkRewardTelemetry reward_telemetry;
 } CAzukiTCG;
+
+typedef struct {
+  int16_t gate_card_def_id;
+  int16_t leader_card_def_id;
+  int16_t main_card_def_ids[REQUIRED_DECK_SIZE];
+  uint8_t main_count;
+} AzkDraftSnapshot;
+
+// Copy a completed native draft without exposing pointers into environment
+// storage. A snapshot only exists after the final pick has created the battle
+// engine, and remains stable for the lifetime of that battle.
+static bool c_draft_snapshot(const CAzukiTCG* env, int player_index,
+                             AzkDraftSnapshot* out) {
+  if (env == NULL || out == NULL || !env->deck_building ||
+      env->draft_active || env->engine == NULL ||
+      player_index < 0 || player_index >= MAX_PLAYERS_PER_MATCH ||
+      env->draft_main_count[player_index] != REQUIRED_DECK_SIZE) {
+    return false;
+  }
+  out->gate_card_def_id = env->draft_gate[player_index];
+  out->leader_card_def_id = env->draft_leader[player_index];
+  out->main_count = env->draft_main_count[player_index];
+  memcpy(out->main_card_def_ids, env->draft_main[player_index],
+         sizeof(out->main_card_def_ids));
+  return true;
+}
 
 static void draft_begin_episode(CAzukiTCG* env);
 
@@ -566,22 +699,25 @@ static inline size_t next_training_deck_index(CAzukiTCG* env) {
 }
 
 static void free_training_deck_pool(CAzukiTCG* env) {
-  if (env == NULL || env->deck_pool == NULL) {
-    if (env != NULL) {
-      env->deck_pool_count = 0;
-      reset_current_deck_indices(env);
-    }
+  if (env == NULL) {
     return;
   }
-
-  for (size_t deck_index = 0; deck_index < env->deck_pool_count; ++deck_index) {
-    free(env->deck_pool[deck_index].cards);
-    env->deck_pool[deck_index].cards = NULL;
-    env->deck_pool[deck_index].card_count = 0;
+  if (env->deck_pool != NULL) {
+    for (size_t deck_index = 0; deck_index < env->deck_pool_count; ++deck_index) {
+      free(env->deck_pool[deck_index].cards);
+      env->deck_pool[deck_index].cards = NULL;
+      env->deck_pool[deck_index].card_count = 0;
+    }
+    free(env->deck_pool);
   }
-  free(env->deck_pool);
+  free(env->prebuilt_deck_indices);
+  free(env->prebuilt_group_offsets);
   env->deck_pool = NULL;
   env->deck_pool_count = 0;
+  env->prebuilt_deck_indices = NULL;
+  env->prebuilt_group_offsets = NULL;
+  env->prebuilt_probability = NULL;
+  env->episode_prebuilt = false;
   reset_current_deck_indices(env);
 }
 
@@ -675,7 +811,9 @@ typedef struct RewardTuningConfig {
   float leader_delta_weight;
   float board_delta_weight;
   float noop_penalty;
-  float truncation_board_edge_weight;
+  float potential_leader_health_weight;
+  float potential_garden_attack_weight;
+  float potential_untapped_garden_weight;
   float untapped_ikz_weight;
   // Annealed portal exposure bonus: on GATE_PORTAL, weight * min(GP,4)/4 of
   // the portaled entity joins base_shaped_reward (rides shaping scale +
@@ -714,6 +852,8 @@ typedef struct RewardTuningConfig {
   int temporary_attack_realization_damage_cap;
   // Once per opposing turn, credit an actually affordable paid response.
   float contextual_response_reserve_bonus;
+  // One fixed bonus per completed nonempty gate/leader effect. Default off.
+  float ability_outcome_bonus;
 } RewardTuningConfig;
 
 // Pre-action summary for grading a portal's realized effect (S2).
@@ -816,10 +956,18 @@ static void init_reward_tuning_if_needed(void) {
       parse_nonnegative_env_float("AZK_REWARD_BOARD_DELTA_WEIGHT", SHAPED_BOARD_DELTA_WEIGHT);
   g_reward_tuning.noop_penalty =
       parse_nonnegative_env_float("AZK_REWARD_NOOP_PENALTY", SHAPED_NOOP_PENALTY);
-  g_reward_tuning.truncation_board_edge_weight =
-      parse_nonnegative_env_float("AZK_TRUNCATION_BOARD_EDGE_WEIGHT", TRUNCATION_BOARD_EDGE_WEIGHT);
+  g_reward_tuning.potential_leader_health_weight =
+      parse_nonnegative_env_float(
+          "AZK_REWARD_LEADER_HEALTH_WEIGHT", PBRS_LEADER_WEIGHT);
+  g_reward_tuning.potential_garden_attack_weight =
+      parse_nonnegative_env_float(
+          "AZK_REWARD_GARDEN_ATTACK_WEIGHT", PBRS_GARDEN_ATTACK_WEIGHT);
+  g_reward_tuning.potential_untapped_garden_weight =
+      parse_nonnegative_env_float(
+          "AZK_REWARD_UNTAPPED_GARDEN_WEIGHT", PBRS_UNTAPPED_GARDEN_WEIGHT);
   g_reward_tuning.untapped_ikz_weight =
-      parse_nonnegative_env_float("AZK_REWARD_UNTAPPED_IKZ_WEIGHT", PBRS_UNTAPPED_IKZ_WEIGHT);
+      parse_nonnegative_env_float(
+          "AZK_REWARD_UNTAPPED_IKZ_WEIGHT", PBRS_UNTAPPED_IKZ_WEIGHT);
   g_reward_tuning.portal_gp_bonus =
       parse_nonnegative_env_float("AZK_PORTAL_GP_BONUS", 0.0f);
   g_reward_tuning.portal_outcome_bonus =
@@ -852,6 +1000,8 @@ static void init_reward_tuning_if_needed(void) {
       (int)parse_nonnegative_env_float("AZK_TEMP_ATTACK_REALIZATION_DAMAGE_CAP", 4.0f);
   g_reward_tuning.contextual_response_reserve_bonus =
       parse_nonnegative_env_float("AZK_CONTEXTUAL_RESPONSE_RESERVE_BONUS", 0.0f);
+  g_reward_tuning.ability_outcome_bonus =
+      parse_nonnegative_env_float("AZK_ABILITY_OUTCOME_BONUS", 0.0f);
 }
 
 // S12: development actions that count toward the early-tempo bonus. Declining
@@ -956,18 +1106,18 @@ static float current_reward_shaping_scale(CAzukiTCG* env) {
   return initial_scale + (final_scale - initial_scale) * fraction;
 }
 
-static inline float board_edge_from_snapshot(const AzkRewardSnapshot *snapshot) {
-  const float attack_edge = safe_delta(
-      snapshot->garden_attack_sum[0] - snapshot->garden_attack_sum[1],
-      PBRS_GARDEN_ATTACK_CAP);
-  const float untapped_edge = safe_delta(
-      snapshot->untapped_garden_count[0] - snapshot->untapped_garden_count[1],
-      PBRS_UNTAPPED_GARDEN_CAP);
-  const float ikz_edge = safe_delta(
-      snapshot->untapped_ikz_count[0] - snapshot->untapped_ikz_count[1],
-      PBRS_UNTAPPED_IKZ_CAP);
-  return 0.6f * attack_edge + 0.3f * untapped_edge + 0.1f * ikz_edge;
+static void current_reward_component_scales(
+    CAzukiTCG* env, float* potential_scale, float* exploration_scale) {
+  if (env->reward_scales != NULL) {
+    *potential_scale = clampf(env->reward_scales[0], 0.0f, 1.0f);
+    *exploration_scale = clampf(env->reward_scales[1], 0.0f, 1.0f);
+    return;
+  }
+  const float legacy_scale = current_reward_shaping_scale(env);
+  *potential_scale = legacy_scale;
+  *exploration_scale = legacy_scale;
 }
+
 
 static inline float leader_health_transform(float normalized_hp) {
   const float x = clampf(normalized_hp, 0.0f, 1.0f);
@@ -980,15 +1130,16 @@ static inline float leader_health_transform(float normalized_hp) {
 // TODO: Amplify rewards for specific actions in ratio to number of turns elapsed (encourages aggressive play)
 static float compute_phi_for_player(const AzkRewardSnapshot* snapshot, int8_t player_index) {
   const int8_t opponent_index = (player_index + 1) % MAX_PLAYERS_PER_MATCH;
-  const float leader_term = PBRS_LEADER_WEIGHT * (
+  const float leader_term = g_reward_tuning.potential_leader_health_weight * (
     leader_health_transform(snapshot->leader_health_ratio[player_index]) -
     leader_health_transform(snapshot->leader_health_ratio[opponent_index])
   );
-  const float attack_term = PBRS_GARDEN_ATTACK_WEIGHT * safe_delta(
+  const float attack_term = g_reward_tuning.potential_garden_attack_weight * safe_delta(
     snapshot->garden_attack_sum[player_index] - snapshot->garden_attack_sum[opponent_index],
     PBRS_GARDEN_ATTACK_CAP
   );
-  const float untapped_garden_term = PBRS_UNTAPPED_GARDEN_WEIGHT * safe_delta(
+  const float untapped_garden_term =
+      g_reward_tuning.potential_untapped_garden_weight * safe_delta(
     snapshot->untapped_garden_count[player_index] - snapshot->untapped_garden_count[opponent_index],
     PBRS_UNTAPPED_GARDEN_CAP
   );
@@ -1010,12 +1161,175 @@ static bool compute_phi_values(CAzukiTCG* env, float out_phi[MAX_PLAYERS_PER_MAT
   for (int8_t player_index = 0; player_index < MAX_PLAYERS_PER_MATCH; ++player_index) {
     out_phi[player_index] = compute_phi_for_player(&snapshot, player_index);
   }
+
   return true;
+}
+static void compute_phi_component_values(
+    const AzkRewardSnapshot* snapshot, int8_t player_index, float out[4]) {
+  const int8_t opponent_index = (player_index + 1) % MAX_PLAYERS_PER_MATCH;
+  const float linear[4] = {
+      g_reward_tuning.potential_leader_health_weight *
+          (leader_health_transform(snapshot->leader_health_ratio[player_index]) -
+           leader_health_transform(snapshot->leader_health_ratio[opponent_index])),
+      g_reward_tuning.potential_garden_attack_weight *
+          safe_delta(snapshot->garden_attack_sum[player_index] -
+                         snapshot->garden_attack_sum[opponent_index],
+                     PBRS_GARDEN_ATTACK_CAP),
+      g_reward_tuning.potential_untapped_garden_weight *
+          safe_delta(snapshot->untapped_garden_count[player_index] -
+                         snapshot->untapped_garden_count[opponent_index],
+                     PBRS_UNTAPPED_GARDEN_CAP),
+      g_reward_tuning.untapped_ikz_weight *
+          safe_delta(snapshot->untapped_ikz_count[player_index] -
+                         snapshot->untapped_ikz_count[opponent_index],
+                     PBRS_UNTAPPED_IKZ_CAP),
+  };
+  // Allocate tanh(sum(linear)) symmetrically and exactly across its linear
+  // inputs. The final residual removes floating-point summation drift.
+  const float input = linear[0] + linear[1] + linear[2] + linear[3];
+  const float phi = tanhf(input);
+  const float factor =
+      fabsf(input) > FLOAT_EPSILON ? phi / input : 1.0f;
+  float allocated = 0.0f;
+  for (int index = 0; index < 4; ++index) {
+    out[index] = linear[index] * factor;
+    allocated += out[index];
+  }
+  out[3] += phi - allocated;
+}
+
+static inline int reward_turn_bucket(uint16_t turn_number) {
+  if (turn_number <= 2) {
+    return 0;
+  }
+  if (turn_number <= 4) {
+    return 1;
+  }
+  if (turn_number <= 8) {
+    return 2;
+  }
+  if (turn_number <= 16) {
+    return 3;
+  }
+  return 4;
+}
+
+static inline void set_zero_sum_reward_component(
+    float components[MAX_PLAYERS_PER_MATCH][AZK_REWARD_COMPONENT_COUNT],
+    int acting_player, int opponent, AzkRewardComponent component,
+    float value) {
+  components[acting_player][component] = value;
+  components[opponent][component] = -value;
+}
+
+static void reward_component_stats_add(
+    AzkRewardComponentStats* stats, float raw, float scaled, float discount) {
+  stats->raw_sum += raw;
+  stats->raw_abs_sum += fabsf(raw);
+  stats->raw_discounted_sum += discount * raw;
+  stats->raw_max_abs = fmaxf(stats->raw_max_abs, fabsf(raw));
+  stats->raw_positive_count += raw > 0.0f ? 1u : 0u;
+  stats->raw_negative_count += raw < 0.0f ? 1u : 0u;
+  stats->scaled_sum += scaled;
+  stats->scaled_abs_sum += fabsf(scaled);
+  stats->scaled_discounted_sum += discount * scaled;
+  stats->scaled_max_abs = fmaxf(stats->scaled_max_abs, fabsf(scaled));
+  stats->scaled_positive_count += scaled > 0.0f ? 1u : 0u;
+  stats->scaled_negative_count += scaled < 0.0f ? 1u : 0u;
+}
+
+static void record_reward_telemetry_step(
+    CAzukiTCG* env,
+    const float raw_components[MAX_PLAYERS_PER_MATCH]
+                              [AZK_REWARD_COMPONENT_COUNT],
+    const float scaled_components[MAX_PLAYERS_PER_MATCH]
+                                 [AZK_REWARD_COMPONENT_COUNT],
+    float potential_scale, bool shaping_step,
+    const float expected_raw[MAX_PLAYERS_PER_MATCH],
+    const float expected_scaled[MAX_PLAYERS_PER_MATCH],
+    bool finalize_step) {
+  AzkRewardTelemetry* telemetry = &env->reward_telemetry;
+  if (!telemetry->enabled) {
+    return;
+  }
+
+  const GameState* game_state =
+      env->engine != NULL ? azk_engine_game_state(env->engine) : NULL;
+  const int turn_bucket =
+      reward_turn_bucket(game_state != NULL ? game_state->turn_number : 0);
+  const int action_type = telemetry->step_action_type;
+  float raw_reconstructed[MAX_PLAYERS_PER_MATCH] = {0.0f};
+  float scaled_reconstructed[MAX_PLAYERS_PER_MATCH] = {0.0f};
+
+  for (int player = 0; player < MAX_PLAYERS_PER_MATCH; ++player) {
+    for (int component = 0; component < AZK_REWARD_COMPONENT_COUNT;
+         ++component) {
+      const float raw = raw_components[player][component];
+      const float scaled = scaled_components[player][component];
+      raw_reconstructed[player] += raw;
+      scaled_reconstructed[player] += scaled;
+      if (raw == 0.0f && scaled == 0.0f) {
+        continue;
+      }
+      reward_component_stats_add(
+          &telemetry->overall[player][component], raw, scaled,
+          telemetry->discount);
+      if (action_type >= 0 && action_type < AZK_ACTION_TYPE_COUNT) {
+        reward_component_stats_add(
+            &telemetry->by_action[player][action_type][component], raw, scaled,
+            telemetry->discount);
+      }
+      reward_component_stats_add(
+          &telemetry->by_turn_bucket[player][turn_bucket][component], raw,
+          scaled, telemetry->discount);
+    }
+    if (finalize_step) {
+      if (action_type >= 0 && action_type < AZK_ACTION_TYPE_COUNT) {
+        telemetry->action_step_count[player][action_type]++;
+      }
+      telemetry->turn_bucket_step_count[player][turn_bucket]++;
+    }
+    if (shaping_step) {
+      telemetry->raw_shaping_return[player] += expected_raw[player];
+      telemetry->scaled_shaping_return[player] += expected_scaled[player];
+    } else {
+      telemetry->terminal_return[player] += expected_scaled[player];
+    }
+    telemetry->raw_reconstruction_max_abs_error =
+        fmaxf(telemetry->raw_reconstruction_max_abs_error,
+              fabsf(raw_reconstructed[player] - expected_raw[player]));
+    telemetry->scaled_reconstruction_max_abs_error =
+        fmaxf(telemetry->scaled_reconstruction_max_abs_error,
+              fabsf(scaled_reconstructed[player] - expected_scaled[player]));
+  }
+
+  if (shaping_step) {
+    telemetry->shaping_scale_sum += potential_scale;
+    telemetry->shaping_scale_min =
+        fminf(telemetry->shaping_scale_min, potential_scale);
+    telemetry->shaping_scale_max =
+        fmaxf(telemetry->shaping_scale_max, potential_scale);
+    telemetry->shaping_step_count++;
+  }
+  if (finalize_step) {
+    telemetry->discount *=
+        env->proper_pbrs ? env->pbrs_gamma : AZK_REWARD_TELEMETRY_GAMMA;
+    telemetry->step_action_type = -1;
+  }
 }
 
 static void reset_reward_tracking(CAzukiTCG* env) {
   init_reward_tuning_if_needed();
   init_reward_shaping_anneal_if_needed();
+  const bool reward_telemetry_enabled = env->reward_telemetry.enabled;
+  memset(&env->reward_telemetry, 0, sizeof(env->reward_telemetry));
+  env->reward_telemetry.enabled = reward_telemetry_enabled;
+  env->reward_telemetry.discount = 1.0f;
+  env->reward_telemetry.shaping_scale_min = INFINITY;
+  env->reward_telemetry.step_action_type = -1;
+  memset(env->last_phi_components, 0, sizeof(env->last_phi_components));
+  memset(env->last_scaled_phi_components, 0,
+         sizeof(env->last_scaled_phi_components));
   env->time_weight = 1.0f;
   env->time_decay = PBRS_TIME_DECAY_DEFAULT;
   for (int8_t player_index = 0; player_index < MAX_PLAYERS_PER_MATCH; ++player_index) {
@@ -1047,19 +1361,67 @@ static void reset_reward_tracking(CAzukiTCG* env) {
   env->has_pending_attack_reward = false;
   AzkRewardSnapshot snapshot = {0};
   env->has_last_snapshot = false;
-  if (azk_engine_reward_snapshot(env->engine, &snapshot)) {
+  if (env->engine != NULL &&
+      azk_engine_reward_snapshot(env->engine, &snapshot)) {
     env->last_snapshot = snapshot;
     env->has_last_snapshot = true;
+    if (reward_telemetry_enabled) {
+      for (int8_t player_index = 0;
+           player_index < MAX_PLAYERS_PER_MATCH; ++player_index) {
+        compute_phi_component_values(
+            &snapshot, player_index, env->last_phi_components[player_index]);
+      }
+    }
   }
 
+  float potential_scale = 1.0f;
+  float exploration_scale = 1.0f;
+  current_reward_component_scales(
+      env, &potential_scale, &exploration_scale);
   float phi_values[MAX_PLAYERS_PER_MATCH] = {0.0f};
-  if (compute_phi_values(env, phi_values)) {
-    for (int8_t player_index = 0; player_index < MAX_PLAYERS_PER_MATCH; ++player_index) {
-      env->last_phi[player_index] = phi_values[player_index];
+  const bool have_phi =
+      env->engine != NULL && compute_phi_values(env, phi_values);
+  for (int8_t player_index = 0;
+       player_index < MAX_PLAYERS_PER_MATCH; ++player_index) {
+    const float phi = have_phi ? phi_values[player_index] : 0.0f;
+    env->last_phi[player_index] = phi;
+    env->last_scaled_phi[player_index] = potential_scale * phi;
+    env->episode_initial_phi[player_index] = phi;
+    env->episode_initial_scaled_phi[player_index] = potential_scale * phi;
+    for (int component = 0; component < 4; ++component) {
+      env->last_scaled_phi_components[player_index][component] =
+          potential_scale *
+          env->last_phi_components[player_index][component];
     }
-  } else {
-    for (int8_t player_index = 0; player_index < MAX_PLAYERS_PER_MATCH; ++player_index) {
-      env->last_phi[player_index] = 0.0f;
+  }
+}
+static void adopt_current_potential_without_reward(CAzukiTCG* env) {
+  float potential_scale = 1.0f;
+  float exploration_scale = 1.0f;
+  current_reward_component_scales(
+      env, &potential_scale, &exploration_scale);
+  float phi_values[MAX_PLAYERS_PER_MATCH] = {0.0f};
+  if (!compute_phi_values(env, phi_values)) {
+    fprintf(stderr, "Failed to initialize battle potential\n");
+    abort();
+  }
+  AzkRewardSnapshot snapshot = {0};
+  if (!azk_engine_reward_snapshot(env->engine, &snapshot)) {
+    fprintf(stderr, "Failed to initialize battle reward snapshot\n");
+    abort();
+  }
+  env->last_snapshot = snapshot;
+  env->has_last_snapshot = true;
+  for (int player = 0; player < MAX_PLAYERS_PER_MATCH; ++player) {
+    env->last_phi[player] = phi_values[player];
+    env->last_scaled_phi[player] = potential_scale * phi_values[player];
+    if (env->reward_telemetry.enabled) {
+      compute_phi_component_values(
+          &snapshot, player, env->last_phi_components[player]);
+      for (int component = 0; component < 4; ++component) {
+        env->last_scaled_phi_components[player][component] =
+            potential_scale * env->last_phi_components[player][component];
+      }
     }
   }
 }
@@ -1074,6 +1436,132 @@ static inline void zero_step_reward_components(CAzukiTCG* env) {
       env->shaped_rewards[player_index] = 0.0f;
     }
   }
+}
+static void record_zero_pbrs_step(CAzukiTCG* env) {
+  float potential_scale = 1.0f;
+  float exploration_scale = 1.0f;
+  current_reward_component_scales(
+      env, &potential_scale, &exploration_scale);
+  const float components[MAX_PLAYERS_PER_MATCH]
+                        [AZK_REWARD_COMPONENT_COUNT] = {{0}};
+  const float rewards[MAX_PLAYERS_PER_MATCH] = {0.0f};
+  record_reward_telemetry_step(
+      env, components, components, potential_scale, true,
+      rewards, rewards, true);
+}
+
+static void apply_pbrs_terminal_closure(CAzukiTCG* env) {
+  if (!env->proper_pbrs || !env->pbrs_terminal_closure) {
+    return;
+  }
+
+  float potential_scale = 1.0f;
+  float exploration_scale = 1.0f;
+  current_reward_component_scales(
+      env, &potential_scale, &exploration_scale);
+  float raw_closure[MAX_PLAYERS_PER_MATCH] = {0.0f};
+  float scaled_closure[MAX_PLAYERS_PER_MATCH] = {0.0f};
+  float raw_components[MAX_PLAYERS_PER_MATCH]
+                      [AZK_REWARD_COMPONENT_COUNT] = {{0}};
+  float scaled_components[MAX_PLAYERS_PER_MATCH]
+                         [AZK_REWARD_COMPONENT_COUNT] = {{0}};
+  for (int8_t player_index = 0;
+       player_index < MAX_PLAYERS_PER_MATCH; ++player_index) {
+    raw_closure[player_index] = -env->last_phi[player_index];
+    scaled_closure[player_index] = -env->last_scaled_phi[player_index];
+    env->rewards[player_index] += scaled_closure[player_index];
+    if (env->shaped_rewards != NULL) {
+      env->shaped_rewards[player_index] += scaled_closure[player_index];
+    }
+
+    float raw_component_sum = 0.0f;
+    float scaled_component_sum = 0.0f;
+    for (int component = 0; component < 4; ++component) {
+      const int reward_component =
+          AZK_REWARD_POTENTIAL_LEADER_HEALTH + component;
+      const float raw_contribution =
+          -env->last_phi_components[player_index][component];
+      const float scaled_contribution =
+          -env->last_scaled_phi_components[player_index][component];
+      raw_components[player_index][reward_component] = raw_contribution;
+      scaled_components[player_index][reward_component] = scaled_contribution;
+      raw_component_sum += raw_contribution;
+      scaled_component_sum += scaled_contribution;
+    }
+    raw_components[player_index][AZK_REWARD_POTENTIAL_UNTAPPED_IKZ] +=
+        raw_closure[player_index] - raw_component_sum;
+    scaled_components[player_index][AZK_REWARD_POTENTIAL_UNTAPPED_IKZ] +=
+        scaled_closure[player_index] - scaled_component_sum;
+  }
+  record_reward_telemetry_step(
+      env, raw_components, scaled_components, potential_scale, true,
+      raw_closure, scaled_closure, false);
+  memset(env->last_phi, 0, sizeof(env->last_phi));
+  memset(env->last_scaled_phi, 0, sizeof(env->last_scaled_phi));
+  memset(env->last_phi_components, 0, sizeof(env->last_phi_components));
+  memset(env->last_scaled_phi_components, 0,
+         sizeof(env->last_scaled_phi_components));
+}
+
+static void ability_outcome_reward_terms(
+    const CAzukiTCG* env, const AzkRewardSnapshot* snapshot, int player,
+    float* gate_term, float* leader_term) {
+  *gate_term = 0.0f;
+  *leader_term = 0.0f;
+  if (!env->has_last_snapshot) {
+    return;
+  }
+  const int opponent = 1 - player;
+  *gate_term = g_reward_tuning.ability_outcome_bonus *
+      ((snapshot->gate_ability_outcomes[player] -
+        env->last_snapshot.gate_ability_outcomes[player]) -
+       (snapshot->gate_ability_outcomes[opponent] -
+        env->last_snapshot.gate_ability_outcomes[opponent]));
+  *leader_term = g_reward_tuning.ability_outcome_bonus *
+      ((snapshot->leader_ability_outcomes[player] -
+        env->last_snapshot.leader_ability_outcomes[player]) -
+       (snapshot->leader_ability_outcomes[opponent] -
+        env->last_snapshot.leader_ability_outcomes[opponent]));
+}
+
+static void apply_terminal_ability_outcomes(CAzukiTCG* env) {
+  AzkRewardSnapshot snapshot;
+  if (g_reward_tuning.ability_outcome_bonus == 0.0f ||
+      !azk_engine_reward_snapshot(env->engine, &snapshot)) {
+    return;
+  }
+  float gate_term, leader_term;
+  ability_outcome_reward_terms(env, &snapshot, 0, &gate_term, &leader_term);
+  env->last_snapshot = snapshot;
+  env->has_last_snapshot = true;
+  if (gate_term == 0.0f && leader_term == 0.0f) {
+    return;
+  }
+  float potential_scale, exploration_scale;
+  current_reward_component_scales(env, &potential_scale, &exploration_scale);
+  const float raw[MAX_PLAYERS_PER_MATCH] = {
+      gate_term + leader_term, -(gate_term + leader_term)};
+  float scaled[MAX_PLAYERS_PER_MATCH];
+  float components[MAX_PLAYERS_PER_MATCH][AZK_REWARD_COMPONENT_COUNT] = {{0}};
+  float scaled_components[MAX_PLAYERS_PER_MATCH][AZK_REWARD_COMPONENT_COUNT] = {{0}};
+  set_zero_sum_reward_component(
+      components, 0, 1, AZK_REWARD_GATE_ABILITY_OUTCOME, gate_term);
+  set_zero_sum_reward_component(
+      components, 0, 1, AZK_REWARD_LEADER_ABILITY_OUTCOME, leader_term);
+  for (int player = 0; player < MAX_PLAYERS_PER_MATCH; ++player) {
+    scaled[player] = exploration_scale * raw[player];
+    env->rewards[player] += scaled[player];
+    if (env->shaped_rewards != NULL) {
+      env->shaped_rewards[player] += scaled[player];
+    }
+    scaled_components[player][AZK_REWARD_GATE_ABILITY_OUTCOME] =
+        exploration_scale * components[player][AZK_REWARD_GATE_ABILITY_OUTCOME];
+    scaled_components[player][AZK_REWARD_LEADER_ABILITY_OUTCOME] =
+        exploration_scale * components[player][AZK_REWARD_LEADER_ABILITY_OUTCOME];
+  }
+  record_reward_telemetry_step(
+      env, components, scaled_components, potential_scale, true,
+      raw, scaled, false);
 }
 
 static void apply_terminal_rewards(CAzukiTCG* env) {
@@ -1093,44 +1581,33 @@ static void apply_terminal_rewards(CAzukiTCG* env) {
     env->rewards[0] = 0.0f;
     env->rewards[1] = 0.0f;
   }
+  float terminal_reward[MAX_PLAYERS_PER_MATCH] = {
+      env->rewards[0], env->rewards[1]};
   if (env->terminal_rewards != NULL) {
-    env->terminal_rewards[0] = env->rewards[0];
-    env->terminal_rewards[1] = env->rewards[1];
+    env->terminal_rewards[0] = terminal_reward[0];
+    env->terminal_rewards[1] = terminal_reward[1];
   }
   if (env->shaped_rewards != NULL) {
     env->shaped_rewards[0] = 0.0f;
     env->shaped_rewards[1] = 0.0f;
   }
+  float components[MAX_PLAYERS_PER_MATCH][AZK_REWARD_COMPONENT_COUNT] = {{0}};
+  components[0][AZK_REWARD_TERMINAL_OUTCOME] = terminal_reward[0];
+  components[1][AZK_REWARD_TERMINAL_OUTCOME] = terminal_reward[1];
+  apply_terminal_ability_outcomes(env);
+  apply_pbrs_terminal_closure(env);
+  record_reward_telemetry_step(
+      env, components, components, 1.0f, false,
+      terminal_reward, terminal_reward, true);
 }
 
 static void apply_truncation_rewards(CAzukiTCG* env, EpisodeEndReason reason) {
-  float timeout_penalty = TRUNCATION_TIMEOUT_PENALTY;
-  if (reason == EP_END_REASON_AUTO_TICK_TRUNCATION ||
-      reason == EP_END_REASON_ZERO_LEGAL_ACTION_TRUNCATION) {
-    timeout_penalty = TRUNCATION_AUTO_TICK_PENALTY;
-  }
-
-  float leader_edge_term = 0.0f;
-  float board_edge_term = 0.0f;
-  AzkRewardSnapshot snapshot = {0};
-  if (azk_engine_reward_snapshot(env->engine, &snapshot)) {
-    const float p0_health = leader_health_transform(snapshot.leader_health_ratio[0]);
-    const float p1_health = leader_health_transform(snapshot.leader_health_ratio[1]);
-    leader_edge_term = TRUNCATION_LEADER_EDGE_WEIGHT * (p0_health - p1_health);
-    board_edge_term = g_reward_tuning.truncation_board_edge_weight *
-                      board_edge_from_snapshot(&snapshot);
-  }
-
-  env->rewards[0] = leader_edge_term + board_edge_term - timeout_penalty;
-  env->rewards[1] = -leader_edge_term - board_edge_term - timeout_penalty;
-  if (env->terminal_rewards != NULL) {
-    env->terminal_rewards[0] = env->rewards[0];
-    env->terminal_rewards[1] = env->rewards[1];
-  }
-  if (env->shaped_rewards != NULL) {
-    env->shaped_rewards[0] = 0.0f;
-    env->shaped_rewards[1] = 0.0f;
-  }
+  (void)reason;
+  // A truncation is a trace boundary, not an MDP terminal. If no action was
+  // taken (forced evaluation or a pre-action zero-mask guard), there is no
+  // state transition to reward. Action-driven truncations apply their normal
+  // nonterminal shaping before this function is called.
+  zero_step_reward_components(env);
 }
 
 static void accumulate_step_rewards(CAzukiTCG* env) {
@@ -1146,7 +1623,10 @@ static void accumulate_step_rewards(CAzukiTCG* env) {
 static void deckbuild_fill_export_record(CAzukiTCG* env);
 
 static void record_episode_stats(CAzukiTCG* env, EpisodeEndReason reason) {
-  const float shaping_scale = current_reward_shaping_scale(env);
+  float potential_scale = 1.0f;
+  float exploration_scale = 1.0f;
+  current_reward_component_scales(
+      env, &potential_scale, &exploration_scale);
   AzkRewardSnapshot snapshot = {0};
   if (!azk_engine_reward_snapshot(env->engine, &snapshot)) {
     fprintf(stderr, "Failed to collect reward snapshot for episode stats\n");
@@ -1166,7 +1646,9 @@ static void record_episode_stats(CAzukiTCG* env, EpisodeEndReason reason) {
   env->log.p0_episode_return += env->episode_returns[0];
   env->log.p1_episode_return += env->episode_returns[1];
   env->log.curriculum_episode_cap += (float)env->current_episode_cap;
-  env->log.reward_shaping_scale += shaping_scale;
+  env->log.reward_shaping_scale += potential_scale;
+  env->log.potential_reward_scale += potential_scale;
+  env->log.exploration_reward_scale += exploration_scale;
   if (reason == EP_END_REASON_GAMEOVER) {
     env->log.gameover_terminal_rate += 1.0f;
   } else if (reason == EP_END_REASON_TIMEOUT_TRUNCATION) {
@@ -1219,6 +1701,10 @@ static void record_episode_stats(CAzukiTCG* env, EpisodeEndReason reason) {
       (float)env->episode_contextual_response_reserve_opportunities[0];
   env->log.p1_contextual_response_reserve_opportunities +=
       (float)env->episode_contextual_response_reserve_opportunities[1];
+  env->log.p0_gate_ability_outcomes += snapshot.gate_ability_outcomes[0];
+  env->log.p1_gate_ability_outcomes += snapshot.gate_ability_outcomes[1];
+  env->log.p0_leader_ability_outcomes += snapshot.leader_ability_outcomes[0];
+  env->log.p1_leader_ability_outcomes += snapshot.leader_ability_outcomes[1];
 
   for (int8_t player_index = 0; player_index < MAX_PLAYERS_PER_MATCH; ++player_index) {
     const float total = (float)env->episode_action_total[player_index];
@@ -1359,7 +1845,8 @@ static bool refreshed_mask_has_ikz_response(CAzukiTCG* env,
 
 static void apply_shaped_rewards(
     CAzukiTCG* env, int8_t acting_player_index, ActionType selected_type,
-    bool noop_had_alternatives, float action_bonus) {
+    bool noop_had_alternatives, float action_bonus,
+    const AzkActionRewardComponents* action_components) {
   if (acting_player_index < 0 || acting_player_index >= MAX_PLAYERS_PER_MATCH) {
     fprintf(stderr, "Invalid acting player index %d when applying shaped rewards\n", acting_player_index);
     abort();
@@ -1370,15 +1857,40 @@ static void apply_shaped_rewards(
     fprintf(stderr, "Failed to compute phi values when applying shaped rewards\n");
     abort();
   }
+  float phi_components[MAX_PLAYERS_PER_MATCH][4] = {{0}};
+  bool have_phi_components = false;
 
-  const int8_t opponent_index = (acting_player_index + 1) % MAX_PLAYERS_PER_MATCH;
-  const float phi_delta = phi_values[acting_player_index] - env->last_phi[acting_player_index];
+  float potential_scale = 1.0f;
+  float exploration_scale = 1.0f;
+  current_reward_component_scales(
+      env, &potential_scale, &exploration_scale);
+  const int8_t opponent_index =
+      (acting_player_index + 1) % MAX_PLAYERS_PER_MATCH;
+  const float potential_term =
+      env->proper_pbrs
+          ? env->pbrs_gamma * phi_values[acting_player_index] -
+                env->last_phi[acting_player_index]
+          : env->time_weight *
+                (phi_values[acting_player_index] -
+                 env->last_phi[acting_player_index]);
+  const float scaled_potential_term =
+      env->proper_pbrs
+          ? env->pbrs_gamma *
+                    (potential_scale * phi_values[acting_player_index]) -
+                env->last_scaled_phi[acting_player_index]
+          : potential_scale * potential_term;
   float leader_delta_term = 0.0f;
   float board_delta_term = 0.0f;
   float entity_damage_exchange_term = 0.0f;
   float generated_ikz_conversion_term = 0.0f;
+  float gate_ability_term = 0.0f;
+  float leader_ability_term = 0.0f;
   AzkRewardSnapshot snapshot = {0};
-  if (azk_engine_reward_snapshot(env->engine, &snapshot)) {
+  const bool have_snapshot = azk_engine_reward_snapshot(env->engine, &snapshot);
+  if (have_snapshot) {
+    ability_outcome_reward_terms(
+        env, &snapshot, acting_player_index,
+        &gate_ability_term, &leader_ability_term);
     if (env->has_last_snapshot) {
       const float prev_leader_edge = env->last_snapshot.leader_health_ratio[acting_player_index] -
                                      env->last_snapshot.leader_health_ratio[opponent_index];
@@ -1432,6 +1944,14 @@ static void apply_shaped_rewards(
     }
     env->last_snapshot = snapshot;
     env->has_last_snapshot = true;
+    if (env->reward_telemetry.enabled) {
+      for (int8_t player_index = 0;
+           player_index < MAX_PLAYERS_PER_MATCH; ++player_index) {
+        compute_phi_component_values(
+            &snapshot, player_index, phi_components[player_index]);
+      }
+      have_phi_components = true;
+    }
   }
 
   float noop_penalty = 0.0f;
@@ -1439,12 +1959,16 @@ static void apply_shaped_rewards(
     noop_penalty = g_reward_tuning.noop_penalty;
   }
 
-  const float base_shaped_reward = env->time_weight * phi_delta + leader_delta_term +
-                                   board_delta_term + entity_damage_exchange_term +
-                                   generated_ikz_conversion_term - noop_penalty +
-                                   action_bonus;
-  const float shaping_scale = current_reward_shaping_scale(env);
-  const float shaped_reward = shaping_scale * base_shaped_reward;
+  const float potential_reward =
+      potential_term + leader_delta_term + board_delta_term;
+  const float exploration_reward =
+      entity_damage_exchange_term + generated_ikz_conversion_term +
+      gate_ability_term + leader_ability_term - noop_penalty + action_bonus;
+  const float base_shaped_reward = potential_reward + exploration_reward;
+  const float shaped_reward =
+      scaled_potential_term +
+      potential_scale * (leader_delta_term + board_delta_term) +
+      exploration_scale * exploration_reward;
   env->rewards[acting_player_index] = shaped_reward;
   env->rewards[opponent_index] = -shaped_reward;
   if (env->terminal_rewards != NULL) {
@@ -1456,10 +1980,142 @@ static void apply_shaped_rewards(
     env->shaped_rewards[opponent_index] = -shaped_reward;
   }
 
-  for (int8_t player_index = 0; player_index < MAX_PLAYERS_PER_MATCH; ++player_index) {
-    env->last_phi[player_index] = phi_values[player_index];
+  if (env->reward_telemetry.enabled) {
+    float components[MAX_PLAYERS_PER_MATCH][AZK_REWARD_COMPONENT_COUNT] = {{0}};
+    float scaled_components[MAX_PLAYERS_PER_MATCH]
+                           [AZK_REWARD_COMPONENT_COUNT] = {{0}};
+    float potential_sum = 0.0f;
+    for (int component = 0; component < 4; ++component) {
+      const float contribution =
+          have_phi_components
+              ? (env->proper_pbrs
+                     ? env->pbrs_gamma *
+                               phi_components[acting_player_index][component] -
+                           env->last_phi_components[acting_player_index][component]
+                     : env->time_weight *
+                           (phi_components[acting_player_index][component] -
+                            env->last_phi_components[acting_player_index][component]))
+              : 0.0f;
+      const int reward_component =
+          AZK_REWARD_POTENTIAL_LEADER_HEALTH + component;
+      components[acting_player_index][reward_component] = contribution;
+      components[opponent_index][reward_component] = -contribution;
+      potential_sum += contribution;
+    }
+    const float potential_total = potential_term;
+    const float potential_residual = potential_total - potential_sum;
+    components[acting_player_index][AZK_REWARD_POTENTIAL_UNTAPPED_IKZ] +=
+        potential_residual;
+    components[opponent_index][AZK_REWARD_POTENTIAL_UNTAPPED_IKZ] -=
+        potential_residual;
+
+    set_zero_sum_reward_component(
+        components, acting_player_index, opponent_index,
+        AZK_REWARD_DIRECT_LEADER_EDGE, leader_delta_term);
+    set_zero_sum_reward_component(
+        components, acting_player_index, opponent_index,
+        AZK_REWARD_DIRECT_BOARD_EDGE, board_delta_term);
+    set_zero_sum_reward_component(
+        components, acting_player_index, opponent_index,
+        AZK_REWARD_NOOP_PENALTY, -noop_penalty);
+    set_zero_sum_reward_component(
+        components, acting_player_index, opponent_index,
+        AZK_REWARD_ENTITY_DAMAGE_EXCHANGE, entity_damage_exchange_term);
+    set_zero_sum_reward_component(
+        components, acting_player_index, opponent_index,
+        AZK_REWARD_GENERATED_IKZ_CONVERSION,
+        generated_ikz_conversion_term);
+    set_zero_sum_reward_component(
+        components, acting_player_index, opponent_index,
+        AZK_REWARD_GATE_ABILITY_OUTCOME, gate_ability_term);
+    set_zero_sum_reward_component(
+        components, acting_player_index, opponent_index,
+        AZK_REWARD_LEADER_ABILITY_OUTCOME, leader_ability_term);
+    if (action_components != NULL) {
+      set_zero_sum_reward_component(
+          components, acting_player_index, opponent_index,
+          AZK_REWARD_PORTAL_GP, action_components->portal_gp);
+      set_zero_sum_reward_component(
+          components, acting_player_index, opponent_index,
+          AZK_REWARD_PORTAL_OUTCOME, action_components->portal_outcome);
+      set_zero_sum_reward_component(
+          components, acting_player_index, opponent_index,
+          AZK_REWARD_EARLY_TEMPO, action_components->early_tempo);
+      set_zero_sum_reward_component(
+          components, acting_player_index, opponent_index,
+          AZK_REWARD_DAMAGE_MITIGATION, action_components->damage_mitigation);
+      set_zero_sum_reward_component(
+          components, acting_player_index, opponent_index,
+          AZK_REWARD_TEMPORARY_CHARGE, action_components->temporary_charge);
+      set_zero_sum_reward_component(
+          components, acting_player_index, opponent_index,
+          AZK_REWARD_TEMPORARY_ATTACK, action_components->temporary_attack);
+      set_zero_sum_reward_component(
+          components, acting_player_index, opponent_index,
+          AZK_REWARD_RESPONSE_RESERVE, action_components->response_reserve);
+    }
+    for (int player = 0; player < MAX_PLAYERS_PER_MATCH; ++player) {
+      for (int component = 0; component < AZK_REWARD_COMPONENT_COUNT;
+           ++component) {
+        const bool potential_component =
+            component >= AZK_REWARD_POTENTIAL_LEADER_HEALTH &&
+            component <= AZK_REWARD_DIRECT_BOARD_EDGE;
+        scaled_components[player][component] =
+            (potential_component ? potential_scale : exploration_scale) *
+            components[player][component];
+      }
+      for (int component = 0; component < 4; ++component) {
+        const int reward_component =
+            AZK_REWARD_POTENTIAL_LEADER_HEALTH + component;
+        scaled_components[player][reward_component] =
+            have_phi_components
+                ? (env->proper_pbrs
+                       ? env->pbrs_gamma * potential_scale *
+                                 phi_components[player][component] -
+                             env->last_scaled_phi_components[player][component]
+                       : potential_scale *
+                             env->time_weight *
+                             (phi_components[player][component] -
+                              env->last_phi_components[player][component]))
+                : 0.0f;
+      }
+      float scaled_pbrs_sum = 0.0f;
+      for (int component = 0; component < 4; ++component) {
+        scaled_pbrs_sum +=
+            scaled_components[player]
+                             [AZK_REWARD_POTENTIAL_LEADER_HEALTH + component];
+      }
+      scaled_components[player][AZK_REWARD_POTENTIAL_UNTAPPED_IKZ] +=
+          (player == acting_player_index ? scaled_potential_term
+                                         : -scaled_potential_term) -
+          scaled_pbrs_sum;
+    }
+    float expected_raw[MAX_PLAYERS_PER_MATCH] = {0.0f};
+    expected_raw[acting_player_index] = base_shaped_reward;
+    expected_raw[opponent_index] = -base_shaped_reward;
+    record_reward_telemetry_step(
+        env, components, scaled_components, potential_scale, true,
+        expected_raw, env->rewards, true);
   }
-  env->time_weight *= env->time_decay;
+
+  for (int8_t player_index = 0;
+       player_index < MAX_PLAYERS_PER_MATCH; ++player_index) {
+    env->last_phi[player_index] = phi_values[player_index];
+    env->last_scaled_phi[player_index] =
+        potential_scale * phi_values[player_index];
+    if (env->reward_telemetry.enabled && have_phi_components) {
+      memcpy(env->last_phi_components[player_index],
+             phi_components[player_index],
+             sizeof(env->last_phi_components[player_index]));
+      for (int component = 0; component < 4; ++component) {
+        env->last_scaled_phi_components[player_index][component] =
+            potential_scale * phi_components[player_index][component];
+      }
+    }
+  }
+  if (!env->proper_pbrs) {
+    env->time_weight *= env->time_decay;
+  }
 }
 
 static int max_episode_ticks_limit(void) {
@@ -2140,14 +2796,69 @@ static bool draft_prefill_from_spec(CAzukiTCG* env, int seat,
   return true;
 }
 
+static void draft_start_battle(CAzukiTCG* env);
+
+static bool draft_select_prebuilt_decks(CAzukiTCG* env) {
+  if (env->evaluation_pause_on_done ||
+      env->prebuilt_probability == NULL ||
+      env->prebuilt_group_count == 0 ||
+      env->prebuilt_group_offsets == NULL ||
+      env->prebuilt_deck_indices == NULL) {
+    return false;
+  }
+  const float probability = env->prebuilt_probability[0];
+  if (!(probability > 0.0f)) {
+    return false;
+  }
+  env->draft_rng_state = advance_episode_seed(env->draft_rng_state);
+  if (probability < 1.0f &&
+      (double)env->draft_rng_state >=
+          (double)probability * 4294967296.0) {
+    return false;
+  }
+  for (int seat = 0; seat < MAX_PLAYERS_PER_MATCH; ++seat) {
+    env->draft_rng_state = advance_episode_seed(env->draft_rng_state);
+    const size_t group =
+        (size_t)(env->draft_rng_state % (uint32_t)env->prebuilt_group_count);
+    const size_t begin = env->prebuilt_group_offsets[group];
+    const size_t end = env->prebuilt_group_offsets[group + 1];
+    env->draft_rng_state = advance_episode_seed(env->draft_rng_state);
+    const size_t selected =
+        begin + (size_t)(env->draft_rng_state % (uint32_t)(end - begin));
+    const int deck_index = env->prebuilt_deck_indices[selected];
+    if (deck_index < 0 || (size_t)deck_index >= env->deck_pool_count ||
+        !draft_prefill_from_spec(
+            env, seat, &env->deck_pool[(size_t)deck_index])) {
+      fprintf(stderr, "Invalid validated prebuilt deck index %d\n", deck_index);
+      abort();
+    }
+    env->episode_prebuilt_deck_indices[seat] = deck_index;
+    env->current_deck_indices[seat] = deck_index;
+  }
+  env->episode_prebuilt = true;
+  return true;
+}
+
 static void draft_begin_episode(CAzukiTCG* env) {
   env->draft_active = true;
   env->draft_active_player = 0;
   env->draft_ref_seat = -1;
   env->draft_ref_deck_index = -1;
+  env->episode_prebuilt = false;
+  reset_current_deck_indices(env);
+  for (int seat = 0; seat < MAX_PLAYERS_PER_MATCH; ++seat) {
+    env->episode_prebuilt_deck_indices[seat] = -1;
+  }
   env->draft_rng_state = advance_episode_seed(env->draft_rng_state);
   env->episode_world_seed = env->draft_rng_state;
-
+  if (draft_select_prebuilt_decks(env)) {
+    for (int seat = 0; seat < MAX_PLAYERS_PER_MATCH; ++seat) {
+      env->draft_original_gate[seat] = env->draft_gate[seat];
+      env->draft_gate_swapped[seat] = false;
+    }
+    draft_start_battle(env);
+    return;
+  }
   int16_t forced[MAX_PLAYERS_PER_MATCH];
   const bool use_forced = draft_forced_gates(env, forced);
   int16_t forced_leaders[MAX_PLAYERS_PER_MATCH];
@@ -2252,7 +2963,15 @@ static void draft_begin_episode(CAzukiTCG* env) {
     env->draft_ref_deck_index = (int16_t)ref_deck;
     env->draft_active_player = (int8_t)(1 - ref_seat);
   }
+  for (int player_index = 0; player_index < MAX_PLAYERS_PER_MATCH;
+       ++player_index) {
+    env->draft_original_gate[player_index] = env->draft_gate[player_index];
+    env->draft_gate_swapped[player_index] = false;
+  }
   fill_draft_observations(env);
+  // Draft observations have zero potential. Start episode accounting here so
+  // the final pick can carry the discounted zero->battle potential transition.
+  reset_reward_tracking(env);
 }
 
 static void draft_apply_pick(CAzukiTCG* env, int player_index, int32_t sub1) {
@@ -2329,14 +3048,9 @@ static size_t draft_assemble_deck(const CAzukiTCG* env, int player_index,
 }
 
 static void draft_start_battle(CAzukiTCG* env) {
-  // S3 cross-gate replay: with prob p, ONE random seat battles with its
-  // drafted deck under the SIBLING gate — same-deck-both-gates outcome
-  // labels for the critic (the gate x composition contrast on-policy data
-  // never contains). Trainer masks that seat's boundary-segment pick steps
-  // (it detects the deck_context gate change itself). prob 0 leaves RNG
-  // streams untouched. NOTE: deck snapshots/metrics report the SWAPPED gate
-  // for those episodes (~p of records).
-  if (env->draft_cross_gate_replay_prob > 0.0f) {
+  // Supplied decks must remain exact. Ordinary drafted episodes retain the
+  // optional sibling-gate counterfactual replay.
+  if (!env->episode_prebuilt && env->draft_cross_gate_replay_prob > 0.0f) {
     env->draft_rng_state = advance_episode_seed(env->draft_rng_state);
     const bool hit = env->draft_cross_gate_replay_prob >= 1.0f ||
                      (double)env->draft_rng_state <
@@ -2344,7 +3058,6 @@ static void draft_start_battle(CAzukiTCG* env) {
     if (hit) {
       env->draft_rng_state = advance_episode_seed(env->draft_rng_state);
       const int seat = (int)(env->draft_rng_state & 1u);
-      // Never swap the reference seat's gate — its deck is fixed to it.
       if (seat != (int)env->draft_ref_seat) {
         const int slot = env->draft_gate_slot[seat];
         const int16_t sibling =
@@ -2354,6 +3067,7 @@ static void draft_start_battle(CAzukiTCG* env) {
           if (sib_slot >= 0) {
             env->draft_gate[seat] = sibling;
             env->draft_gate_slot[seat] = sib_slot;
+            env->draft_gate_swapped[seat] = true;
           }
         }
       }
@@ -2362,17 +3076,22 @@ static void draft_start_battle(CAzukiTCG* env) {
 
   CardInfo deck0[2 + REQUIRED_DECK_SIZE + 1];
   CardInfo deck1[2 + REQUIRED_DECK_SIZE + 1];
-  const size_t n0 = draft_assemble_deck(env, 0, deck0, sizeof(deck0) / sizeof(deck0[0]));
-  const size_t n1 = draft_assemble_deck(env, 1, deck1, sizeof(deck1) / sizeof(deck1[0]));
-
-  // S4: the reference seat battles with its pool spec verbatim (its cards may
-  // lie outside the gate's draftable pool, so the copies-based assembly above
-  // cannot represent it).
+  const size_t n0 =
+      draft_assemble_deck(env, 0, deck0, sizeof(deck0) / sizeof(deck0[0]));
+  const size_t n1 =
+      draft_assemble_deck(env, 1, deck1, sizeof(deck1) / sizeof(deck1[0]));
   const CardInfo* spec0 = deck0;
   const CardInfo* spec1 = deck1;
   size_t count0 = n0;
   size_t count1 = n1;
-  if (env->draft_ref_seat == 0) {
+  if (env->episode_prebuilt) {
+    spec0 = env->deck_pool[env->episode_prebuilt_deck_indices[0]].cards;
+    count0 =
+        env->deck_pool[env->episode_prebuilt_deck_indices[0]].card_count;
+    spec1 = env->deck_pool[env->episode_prebuilt_deck_indices[1]].cards;
+    count1 =
+        env->deck_pool[env->episode_prebuilt_deck_indices[1]].card_count;
+  } else if (env->draft_ref_seat == 0) {
     spec0 = env->deck_pool[env->draft_ref_deck_index].cards;
     count0 = env->deck_pool[env->draft_ref_deck_index].card_count;
   } else if (env->draft_ref_seat == 1) {
@@ -2394,7 +3113,18 @@ static void draft_start_battle(CAzukiTCG* env) {
   env->tick = 0;
   env->current_episode_cap = current_episode_ticks_limit(env);
   refresh_observations(env);
-  reset_reward_tracking(env);
+  if (env->episode_prebuilt) {
+    // The supplied game opens directly in battle. Initial potential is the
+    // baseline, never a fabricated final-pick transition.
+    zero_step_reward_components(env);
+    reset_reward_tracking(env);
+  } else if (env->proper_pbrs) {
+    apply_shaped_rewards(
+        env, env->draft_active_player, ACT_NOOP, false, 0.0f, NULL);
+    accumulate_step_rewards(env);
+  } else {
+    adopt_current_potential_without_reward(env);
+  }
 }
 
 // Fills the per-episode export record consumed by Python for deckbuild
@@ -2410,8 +3140,13 @@ static void deckbuild_fill_export_record(CAzukiTCG* env) {
 
   env->deck_record_seed = env->episode_world_seed;
   env->deck_record_episode_length = (float)env->tick;
+  env->deck_record_prebuilt = env->episode_prebuilt;
   for (int p = 0; p < MAX_PLAYERS_PER_MATCH; ++p) {
+    env->deck_record_prebuilt_deck_indices[p] =
+        env->episode_prebuilt ? env->episode_prebuilt_deck_indices[p] : -1;
     env->deck_record_gate[p] = env->draft_gate[p];
+    env->deck_record_original_gate[p] = env->draft_original_gate[p];
+    env->deck_record_gate_swapped[p] = env->draft_gate_swapped[p];
     env->deck_record_leader[p] = env->draft_leader[p];
     for (int i = 0; i < REQUIRED_DECK_SIZE; ++i) {
       env->deck_record_main[p][i] = env->draft_main[p][i];
@@ -2457,6 +3192,10 @@ static void deckbuild_fill_export_record(CAzukiTCG* env) {
         have_snapshot ? snapshot.entity_damage_taken[1 - p] : 0.0f;
     env->deck_record_behavior[p][17] =
         have_snapshot ? snapshot.entity_damage_taken[p] : 0.0f;
+    env->deck_record_behavior[p][18] =
+        have_snapshot ? snapshot.gate_ability_outcomes[p] : 0.0f;
+    env->deck_record_behavior[p][19] =
+        have_snapshot ? snapshot.leader_ability_outcomes[p] : 0.0f;
     env->deck_record_leader_health[p] =
         have_snapshot ? snapshot.leader_health_ratio[p] : 0.0f;
   }
@@ -2601,9 +3340,9 @@ void c_reset_with_decks(CAzukiTCG* env,
 
 // One draft step: the active drafter's pick is validated against the fresh
 // candidate list and applied; turn order strictly alternates to the other
-// player while they are incomplete. Draft steps carry zero reward and do not
-// consume the battle tick budget. The final pick creates the engine and
-// returns the first battle observation in the same step.
+// player while they are incomplete. Draft potential is zero and draft steps
+// do not consume the battle tick budget. The final pick creates the engine and
+// emits the zero->initial-battle PBRS transition with the first observation.
 static void c_step_draft(CAzukiTCG* env) {
   zero_step_reward_components(env);
   const int player_index = env->draft_active_player;
@@ -2628,6 +3367,9 @@ static void c_step_draft(CAzukiTCG* env) {
     return;
   }
   fill_draft_observations(env);
+  if (env->proper_pbrs) {
+    record_zero_pbrs_step(env);
+  }
 }
 
 void c_step(CAzukiTCG* env) {
@@ -2709,6 +3451,9 @@ void c_step(CAzukiTCG* env) {
     env->has_pending_attack_reward = captured && attack_context.valid;
   }
 
+  if (env->reward_telemetry.enabled) {
+    env->reward_telemetry.step_action_type = (int8_t)parsed_action.type;
+  }
   const bool is_valid = azk_engine_submit_action(env->engine, &parsed_action);
   if (!is_valid) {
     fprintf(
@@ -2971,6 +3716,7 @@ void c_step(CAzukiTCG* env) {
         if (abort_raw != NULL && abort_raw[0] == '1') {
           abort();
         }
+        refresh_observations(env);
         apply_truncation_rewards(env, EP_END_REASON_ZERO_LEGAL_ACTION_TRUNCATION);
         accumulate_step_rewards(env);
         env->truncations[0] = DONE;
@@ -2999,7 +3745,9 @@ void c_step(CAzukiTCG* env) {
   }
 
   if (forced_auto_tick_truncation) {
-    apply_truncation_rewards(env, EP_END_REASON_AUTO_TICK_TRUNCATION);
+    apply_shaped_rewards(
+        env, active_player_index, parsed_action.type, noop_had_alternatives,
+        0.0f, NULL);
     accumulate_step_rewards(env);
     env->truncations[0] = DONE;
     env->truncations[1] = DONE;
@@ -3067,6 +3815,8 @@ void c_step(CAzukiTCG* env) {
   // responder (the acting player) with the realized soak.
   float dmg_mitigation_bonus = 0.0f;
   float temporary_effect_adjustment = 0.0f;
+  float temporary_charge_adjustment = 0.0f;
+  float temporary_attack_adjustment = 0.0f;
   if (have_pre_combat) {
     const GameState* post_gs = azk_engine_game_state(env->engine);
     if (post_gs != NULL &&
@@ -3102,9 +3852,13 @@ void c_step(CAzukiTCG* env) {
         }
 
         float owner_bonus = 0.0f;
+        float owner_charge_bonus = 0.0f;
+        float owner_attack_bonus = 0.0f;
         if (effective_damage > 0 &&
             env->pending_attack_reward.temporary_charge) {
-          owner_bonus += g_reward_tuning.temporary_charge_realization_bonus;
+          owner_charge_bonus =
+              g_reward_tuning.temporary_charge_realization_bonus;
+          owner_bonus += owner_charge_bonus;
           if (owner_index >= 0 && owner_index < MAX_PLAYERS_PER_MATCH) {
             env->episode_temporary_charge_realized[owner_index]++;
           }
@@ -3132,9 +3886,10 @@ void c_step(CAzukiTCG* env) {
           if (damage_cap > 0 && incremental_damage > damage_cap) {
             incremental_damage = damage_cap;
           }
-          owner_bonus +=
+          owner_attack_bonus =
               g_reward_tuning.temporary_attack_realization_per_damage *
               (float)incremental_damage;
+          owner_bonus += owner_attack_bonus;
           if (owner_index >= 0 && owner_index < MAX_PLAYERS_PER_MATCH) {
             env->episode_temporary_attack_damage_realized[owner_index] +=
                 (uint32_t)incremental_damage;
@@ -3143,6 +3898,14 @@ void c_step(CAzukiTCG* env) {
 
         temporary_effect_adjustment =
             owner_index == active_player_index ? owner_bonus : -owner_bonus;
+        temporary_charge_adjustment =
+            owner_index == active_player_index
+                ? owner_charge_bonus
+                : -owner_charge_bonus;
+        temporary_attack_adjustment =
+            owner_index == active_player_index
+                ? owner_attack_bonus
+                : -owner_attack_bonus;
         env->pending_attack_reward = (AzkAttackRewardContext){0};
         env->has_pending_attack_reward = false;
       }
@@ -3158,29 +3921,30 @@ void c_step(CAzukiTCG* env) {
 
   const int max_ticks = current_episode_ticks_limit(env);
   env->current_episode_cap = max_ticks;
-  if (max_ticks > 0 && env->tick >= max_ticks) {
-    apply_truncation_rewards(env, EP_END_REASON_TIMEOUT_TRUNCATION);
-    accumulate_step_rewards(env);
+  const bool timeout_truncation =
+      max_ticks > 0 && env->tick >= max_ticks;
+
+  const AzkActionRewardComponents reward_components = {
+      .portal_gp = outcome_mode ? 0.0f : portal_gp_bonus,
+      .portal_outcome = outcome_mode ? portal_gp_bonus : 0.0f,
+      .early_tempo = early_tempo_bonus,
+      .damage_mitigation = dmg_mitigation_bonus,
+      .temporary_charge = temporary_charge_adjustment,
+      .temporary_attack = temporary_attack_adjustment,
+      .response_reserve = contextual_response_reserve_adjustment,
+  };
+  apply_shaped_rewards(
+      env, active_player_index, parsed_action.type, noop_had_alternatives,
+      portal_gp_bonus + early_tempo_bonus + dmg_mitigation_bonus +
+          temporary_effect_adjustment +
+          contextual_response_reserve_adjustment,
+      &reward_components);
+  accumulate_step_rewards(env);
+  if (timeout_truncation) {
     env->truncations[0] = DONE;
     env->truncations[1] = DONE;
     record_episode_stats(env, EP_END_REASON_TIMEOUT_TRUNCATION);
-    if (g_env_profile.enabled) {
-      const uint64_t step_elapsed_ns = env_now_ns() - step_start_ns;
-      g_env_profile.step_calls++;
-      g_env_profile.total_step_ns += step_elapsed_ns;
-      g_env_profile.total_tick_ns += tick_total_ns;
-      g_env_profile.total_refresh_ns += refresh_total_ns;
-      g_env_profile.total_auto_ticks += auto_tick_count;
-      maybe_report_env_profile();
-    }
-    return;
   }
-
-  apply_shaped_rewards(env, active_player_index, parsed_action.type, noop_had_alternatives,
-                       portal_gp_bonus + early_tempo_bonus + dmg_mitigation_bonus +
-                           temporary_effect_adjustment +
-                           contextual_response_reserve_adjustment);
-  accumulate_step_rewards(env);
   if (g_env_profile.enabled) {
     const uint64_t step_elapsed_ns = env_now_ns() - step_start_ns;
     g_env_profile.step_calls++;

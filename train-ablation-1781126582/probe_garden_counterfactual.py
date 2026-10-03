@@ -128,6 +128,7 @@ class GardenBranchRunner(BranchRunner):
     def rollout(self, point: dict, arm: str, rollout_seed: int, step_cap: int = 4000) -> dict:
         import torch
         import azk_puffer.pytorch as azk_pytorch
+        from play_selfplay_games import terminal_winner
 
         if arm not in {"garden", "alley"}:
             raise ValueError(f"Unknown arm: {arm}")
@@ -239,6 +240,8 @@ class GardenBranchRunner(BranchRunner):
             terminals = np.asarray(terminals).reshape(-1)
             truncations = np.asarray(truncations).reshape(-1)
             if bool(terminals.any()) or bool(truncations.any()):
+                if bool(truncations.any()):
+                    return {"error": "episode truncated"}
                 if not branched:
                     return {
                         "error": (
@@ -246,12 +249,11 @@ class GardenBranchRunner(BranchRunner):
                             f"branch {point['branch_step']}"
                         )
                     }
-                rewards = np.asarray(rewards, dtype=np.float64).reshape(-1)
-                winner = -1
-                if rewards[0] > rewards[1]:
-                    winner = 0
-                elif rewards[1] > rewards[0]:
-                    winner = 1
+                winner = terminal_winner(
+                    self.inner,
+                    terminated=bool(terminals.any()),
+                    truncated=bool(truncations.any()),
+                )
                 score = 0.5 if winner < 0 else float(winner == point["player"])
                 return {
                     "arm": arm,

@@ -1,0 +1,24 @@
+{
+  "models": [
+    {
+      "displayName": "450M upper envelope p21000 efficiency anchor",
+      "modelKey": "experiments/azuki_local_corrected_production_1b_lr1500_fresh_resume_p19500_178757505266/model_azuki_local_021000.pt",
+      "checkpointSha256": "c04062e8b2f529c518422e8595b22184baf62be11f78ad69b21b525744336e1b"
+    },
+    {
+      "displayName": "450M p29300 strategic-origin anchor",
+      "modelKey": "experiments/azuki_local_corrected_production_1b_lr1500_fresh_resume_p19500_178757505266/model_azuki_local_029300.pt",
+      "checkpointSha256": "e16acde734167ea188d837cad645dffdb72e870d6e4d11d01521c6a6e8389b1c"
+    },
+    {
+      "displayName": "800M window p44000 strongest qualified late checkpoint",
+      "modelKey": "experiments/azuki_local_corrected_production_1b_lr1500_fresh_resume_p29300_178765385220/model_azuki_local_044000.pt",
+      "checkpointSha256": "5f8fa51ba75f86a18c478f7485301886c0636bf0d48c329caa06780c8dc2c336"
+    },
+    {
+      "displayName": "800M milestone p52000 strategy-preserving diagnostic",
+      "modelKey": "experiments/azuki_local_corrected_production_1b_lr1500_fresh_resume_p29300_178765385220/model_azuki_local_052000.pt",
+      "checkpointSha256": "912253140a792ae7f7e77ca8cd4b85ca9dc7bcd9b82d144244f0aba216d0d66d"
+    }
+  ]
+}

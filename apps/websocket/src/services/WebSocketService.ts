@@ -4,6 +4,8 @@ import { RoomStatus, UserType } from "@tcg/backend-core/types";
 import { verifyJoinToken } from "@tcg/backend-core/services/authService";
 import { findRoomById } from "@tcg/backend-core/services/roomService";
 import { findUserById } from "@tcg/backend-core/services/userService";
+import { getHumanEvaluationMatchByRoomId } from "@tcg/backend-core/services/humanEvaluationService";
+
 import type { AuthConfig } from "@tcg/backend-core/types/auth";
 import type {
   ConnectionAckMessage,
@@ -43,8 +45,17 @@ import {
 import { handleDebugDraw } from "@/engine/debugDrawHandler";
 import { handleDebugIkz } from "@/engine/debugIkzHandler";
 import { getWorldByRoomId } from "@/engine/WorldManager";
+import { enqueueRoomMutation } from "@/state/RoomMutationQueue";
 
 const INACTIVE_ROOM_STATUSES = [RoomStatus.COMPLETED, RoomStatus.ABORTED, RoomStatus.CLOSED];
+const EVALUATION_RESTRICTED_MESSAGE_TYPES: Readonly<Record<string, true>> = {
+  SELECT_DECK: true,
+  READY: true,
+  DEBUG_DRAW: true,
+  DEBUG_IKZ: true,
+  CLOSE_ROOM: true,
+  START_GAME: true,
+};
 
 const authConfig: AuthConfig = {
   jwtSecret: env.JWT_SECRET,
@@ -195,7 +206,17 @@ export class WebSocketService {
 
     const player0User = room.player0Id ? await findUserById(room.player0Id) : null;
     const player1User = room.player1Id ? await findUserById(room.player1Id) : null;
+    const evaluationMatch = await getHumanEvaluationMatchByRoomId(roomId);
+    const evaluation = evaluationMatch
+      ? {
+          matchId: evaluationMatch.matchId,
+          sessionId: evaluationMatch.sessionId,
+          ordinal: evaluationMatch.ordinal,
+          totalMatches: evaluationMatch.totalMatches,
+        }
+      : null;
 
+    const channelAlreadyExisted = getRoomChannel(roomId) !== null;
     const channel = getOrCreateRoomChannel(
       roomId,
       room,
@@ -204,15 +225,25 @@ export class WebSocketService {
       player0User?.type === UserType.AI,
       player1User?.type === UserType.AI,
       player0User?.modelKey ?? null,
-      player1User?.modelKey ?? null
+      player1User?.modelKey ?? null,
+      evaluation
     );
+    if (evaluationMatch) {
+      const aiPlayer = channel.players[evaluationMatch.aiSlot];
+      if (aiPlayer) {
+        aiPlayer.username = `Opponent ${evaluationMatch.ordinal}`;
+        aiPlayer.modelKey = evaluationMatch.modelKey;
+      }
+    }
 
     const existingPlayer = channel.players[playerSlot];
     if (existingPlayer) {
       existingPlayer.ws = ws;
       existingPlayer.connected = true;
       existingPlayer.disconnectedAt = null;
-      existingPlayer.username = user.username;
+      if (!evaluationMatch || playerSlot !== evaluationMatch.aiSlot) {
+        existingPlayer.username = user.username;
+      }
     } else {
       // Player slot was null (e.g., player1 joined after channel was created)
       // Create a new player connection entry
@@ -250,11 +281,21 @@ export class WebSocketService {
         playerSlot,
         userId,
       });
-      await transitionToAborted(roomId, "Game world not found");
+      await enqueueRoomMutation(roomId, () =>
+        transitionToAborted(
+          roomId,
+          channel.evaluation ? "Evaluation battle could not be initialized" : "Game world not found"
+        )
+      );
       return;
     }
 
     // Broadcast room state to all connected players
+    if (evaluationMatch && room.status === RoomStatus.DECK_SELECTION && !channelAlreadyExisted) {
+      await enqueueRoomMutation(roomId, () => transitionToDeckSelection(roomId));
+      return;
+    }
+
     // Note: Transition to DECK_SELECTION is now triggered by owner via START_GAME message
     broadcastRoomState(channel);
 
@@ -268,10 +309,26 @@ export class WebSocketService {
     }
   }
 
-  public async handleMessage(
+  public handleMessage(
     ws: WebSocket<UserData>,
     message: ArrayBuffer,
     isBinary: boolean
+  ): Promise<void> {
+    const roomId = ws.getUserData().roomId;
+    const receivedAt = new Date();
+    if (!roomId) {
+      return this.dispatchMessage(ws, message, isBinary, receivedAt);
+    }
+    return enqueueRoomMutation(roomId, () =>
+      this.dispatchMessage(ws, message, isBinary, receivedAt)
+    );
+  }
+
+  private async dispatchMessage(
+    ws: WebSocket<UserData>,
+    message: ArrayBuffer,
+    isBinary: boolean,
+    receivedAt: Date
   ): Promise<void> {
     const userData = ws.getUserData();
     const connectionInfo = getConnectionInfo(ws);
@@ -290,6 +347,19 @@ export class WebSocketService {
       type: parsed.type,
       userId: userData.isAnonymous ? null : userData.id,
     });
+
+    if (
+      connectionInfo &&
+      EVALUATION_RESTRICTED_MESSAGE_TYPES[parsed.type] &&
+      getRoomChannel(connectionInfo.roomId)?.evaluation
+    ) {
+      sendJson(ws, {
+        type: "ERROR",
+        code: "EVALUATION_MANAGED",
+        message: "This evaluation match is managed by the server",
+      });
+      return;
+    }
 
     switch (parsed.type) {
       case "PING":
@@ -317,7 +387,7 @@ export class WebSocketService {
           sendJson(ws, { type: "ERROR", code: "NOT_AUTHENTICATED", message: "Not authenticated" });
           return;
         }
-        await handleGameAction(ws, parsed as GameActionMessage, connectionInfo);
+        await handleGameAction(ws, parsed as GameActionMessage, connectionInfo, receivedAt);
         break;
 
       case "DEBUG_DRAW":
@@ -389,7 +459,19 @@ export class WebSocketService {
     });
   }
 
-  public async handleCloseWebSocket(
+  public handleCloseWebSocket(
+    ws: WebSocket<UserData>,
+    code: number,
+    message: ArrayBuffer
+  ): Promise<void> {
+    const roomId = ws.getUserData().roomId;
+    if (!roomId) {
+      return this.closeWebSocket(ws, code, message);
+    }
+    return enqueueRoomMutation(roomId, () => this.closeWebSocket(ws, code, message));
+  }
+
+  private async closeWebSocket(
     ws: WebSocket<UserData>,
     code: number,
     _message: ArrayBuffer
@@ -414,6 +496,9 @@ export class WebSocketService {
     }
 
     const player = channel.players[playerSlot];
+    if (player?.ws !== ws) {
+      return;
+    }
     if (player) {
       player.ws = null;
       player.connected = false;

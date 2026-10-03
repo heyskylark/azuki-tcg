@@ -1,0 +1,2 @@
+ALTER TABLE "human_evaluation_sessions" ADD COLUMN "source_human_deck_id" uuid NOT NULL;--> statement-breakpoint
+ALTER TABLE "human_evaluation_sessions" ADD CONSTRAINT "human_evaluation_sessions_source_human_deck_id_decks_id_fk" FOREIGN KEY ("source_human_deck_id") REFERENCES "public"."decks"("id") ON DELETE no action ON UPDATE no action;

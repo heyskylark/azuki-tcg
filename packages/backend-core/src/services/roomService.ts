@@ -25,6 +25,33 @@ import {
 
 type Database = IDatabase | ITransaction;
 
+function isRoomTransaction(database: Database): database is ITransaction {
+  return "rollback" in database;
+}
+
+async function withRoomTransaction<T>(
+  database: Database,
+  operation: (transaction: ITransaction) => Promise<T>
+): Promise<T> {
+  if (isRoomTransaction(database)) {
+    return operation(database);
+  }
+  return database.transaction(operation);
+}
+
+export async function lockUserRoomMembership(userId: string, database: Database): Promise<void> {
+  const user = await database
+    .select({ id: Users.id })
+    .from(Users)
+    .where(eq(Users.id, userId))
+    .limit(1)
+    .for("update")
+    .then((rows) => rows[0]);
+  if (!user) {
+    throw new Error("Cannot lock room membership for an unknown user");
+  }
+}
+
 export type RoomData = typeof Rooms.$inferSelect;
 
 export interface CreateRoomParams {
@@ -41,12 +68,13 @@ export interface CreateRoomResult {
 function buildAiUsername(modelKey: string): string {
   const normalizedKey = modelKey.trim();
   const hash = createHash("sha256").update(normalizedKey).digest("hex");
-  const sanitizedLabel = normalizedKey
-    .split("/")
-    .at(-1)
-    ?.replace(/[^a-zA-Z0-9_]/g, "")
-    .toLowerCase()
-    .slice(0, 24) ?? "model";
+  const sanitizedLabel =
+    normalizedKey
+      .split("/")
+      .at(-1)
+      ?.replace(/[^a-zA-Z0-9_]/g, "")
+      .toLowerCase()
+      .slice(0, 24) ?? "model";
 
   const label = sanitizedLabel.length > 0 ? sanitizedLabel : "model";
   return `ai_${label}_${hash.slice(0, 10)}`;
@@ -109,14 +137,17 @@ async function getOrCreateAiUserForModel(
   return { id: resolved.id };
 }
 
-async function getOrCreateAiDeckId(
-  userId: string,
-  database: Database
-): Promise<string> {
+async function getOrCreateAiDeckId(userId: string, database: Database): Promise<string> {
   const existingDeckIds = await database
     .select({ id: Decks.id })
     .from(Decks)
-    .where(and(eq(Decks.userId, userId), ne(Decks.status, DeckStatus.DELETED)))
+    .where(
+      and(
+        eq(Decks.userId, userId),
+        ne(Decks.status, DeckStatus.DELETED),
+        eq(Decks.isEvaluationGenerated, false)
+      )
+    )
     .then((results) => results.map((result) => result.id));
 
   if (existingDeckIds.length > 0) {
@@ -132,7 +163,13 @@ async function getOrCreateAiDeckId(
   const starterDeckIds = await database
     .select({ id: Decks.id })
     .from(Decks)
-    .where(and(eq(Decks.userId, userId), ne(Decks.status, DeckStatus.DELETED)))
+    .where(
+      and(
+        eq(Decks.userId, userId),
+        ne(Decks.status, DeckStatus.DELETED),
+        eq(Decks.isEvaluationGenerated, false)
+      )
+    )
     .then((results) => results.map((result) => result.id));
 
   if (starterDeckIds.length === 0) {
@@ -152,45 +189,48 @@ export async function createRoom(
   config: AuthConfig,
   database: Database = db
 ): Promise<CreateRoomResult> {
-  const existingRoom = await findActiveRoomForUser(params.creatorId, database);
-  if (existingRoom) {
-    throw new UserAlreadyInRoomError();
-  }
-
   const passwordHash = params.password
     ? await bcrypt.hash(params.password, config.saltRounds)
     : null;
 
-  let aiUserId: string | null = null;
-  let aiDeckId: string | null = null;
-  let aiModelId: string | null = null;
-  if (params.aiModelId) {
-    const selectedAiModel = await getSelectableAiModelById(params.aiModelId, database);
-    aiModelId = selectedAiModel.id;
-    const aiUser = await getOrCreateAiUserForModel(selectedAiModel.modelKey, database);
-    aiUserId = aiUser.id;
-    aiDeckId = await getOrCreateAiDeckId(aiUser.id, database);
-  }
+  return withRoomTransaction(database, async (transaction) => {
+    await lockUserRoomMembership(params.creatorId, transaction);
+    const existingRoom = await findActiveRoomForUser(params.creatorId, transaction);
+    if (existingRoom) {
+      throw new UserAlreadyInRoomError();
+    }
 
-  const room = await database
-    .insert(Rooms)
-    .values({
-      status: RoomStatus.WAITING_FOR_PLAYERS,
-      type: params.type ?? RoomType.PRIVATE,
-      passwordHash,
-      player0Id: params.creatorId,
-      player1Id: aiUserId,
-      aiModelId,
-      player1DeckId: aiDeckId,
-    })
-    .returning()
-    .then((results) => results[0]);
+    let aiUserId: string | null = null;
+    let aiDeckId: string | null = null;
+    let aiModelId: string | null = null;
+    if (params.aiModelId) {
+      const selectedAiModel = await getSelectableAiModelById(params.aiModelId, transaction);
+      aiModelId = selectedAiModel.id;
+      const aiUser = await getOrCreateAiUserForModel(selectedAiModel.modelKey, transaction);
+      aiUserId = aiUser.id;
+      aiDeckId = await getOrCreateAiDeckId(aiUser.id, transaction);
+    }
 
-  if (!room) {
-    throw new Error("Failed to create room");
-  }
+    const room = await transaction
+      .insert(Rooms)
+      .values({
+        status: RoomStatus.WAITING_FOR_PLAYERS,
+        type: params.type ?? RoomType.PRIVATE,
+        passwordHash,
+        player0Id: params.creatorId,
+        player1Id: aiUserId,
+        aiModelId,
+        player1DeckId: aiDeckId,
+      })
+      .returning()
+      .then((results) => results[0]);
 
-  return { room };
+    if (!room) {
+      throw new Error("Failed to create room");
+    }
+
+    return { room };
+  });
 }
 
 export async function findRoomById(
@@ -328,53 +368,59 @@ export async function joinRoom(
   config: AuthConfig,
   database: Database = db
 ): Promise<JoinRoomResult> {
-  const room = await findRoomById(roomId, database);
+  return withRoomTransaction(database, async (transaction) => {
+    await lockUserRoomMembership(userId, transaction);
+    const room = await transaction
+      .select()
+      .from(Rooms)
+      .where(eq(Rooms.id, roomId))
+      .limit(1)
+      .for("update")
+      .then((rows) => rows[0]);
 
-  if (!room) {
-    throw new RoomNotFoundError();
-  } else if (INACTIVE_ROOM_STATUSES.includes(room.status)) {
-    throw new RoomClosedError();
-  }
-
-  if (room.player0Id === userId) {
-    const joinToken = await createJoinToken(roomId, userId, 0, config, database);
-    return { joinToken, playerSlot: 0, isNewJoin: false };
-  }
-
-  if (room.player1Id === userId) {
-    const joinToken = await createJoinToken(roomId, userId, 1, config, database);
-    return { joinToken, playerSlot: 1, isNewJoin: false };
-  }
-
-  // User is not already in this room - check if they're in another active room
-  const existingRoom = await findActiveRoomForUser(userId, database);
-  if (existingRoom) {
-    throw new UserAlreadyInRoomError();
-  }
-
-  if (room.status !== RoomStatus.WAITING_FOR_PLAYERS) {
-    throw new InvalidRoomStatusError("Room is not accepting new players");
-  }
-
-  if (room.passwordHash) {
-    if (!password) {
-      throw new InvalidRoomPasswordError();
+    if (!room) {
+      throw new RoomNotFoundError();
+    } else if (INACTIVE_ROOM_STATUSES.includes(room.status)) {
+      throw new RoomClosedError();
     }
-    const isValid = await bcrypt.compare(password, room.passwordHash);
-    if (!isValid) {
-      throw new InvalidRoomPasswordError();
+
+    if (room.player0Id === userId) {
+      const joinToken = await createJoinToken(roomId, userId, 0, config, transaction);
+      return { joinToken, playerSlot: 0, isNewJoin: false };
     }
-  }
 
-  if (room.player1Id !== null) {
-    throw new RoomFullError();
-  }
+    if (room.player1Id === userId) {
+      const joinToken = await createJoinToken(roomId, userId, 1, config, transaction);
+      return { joinToken, playerSlot: 1, isNewJoin: false };
+    }
 
-  await database.update(Rooms).set({ player1Id: userId }).where(eq(Rooms.id, roomId));
+    const existingRoom = await findActiveRoomForUser(userId, transaction);
+    if (existingRoom) {
+      throw new UserAlreadyInRoomError();
+    }
 
-  const joinToken = await createJoinToken(roomId, userId, 1, config, database);
+    if (room.status !== RoomStatus.WAITING_FOR_PLAYERS) {
+      throw new InvalidRoomStatusError("Room is not accepting new players");
+    }
 
-  return { joinToken, playerSlot: 1, isNewJoin: true };
+    if (room.passwordHash) {
+      if (!password) {
+        throw new InvalidRoomPasswordError();
+      }
+      const isValid = await bcrypt.compare(password, room.passwordHash);
+      if (!isValid) {
+        throw new InvalidRoomPasswordError();
+      }
+    }
+
+    if (room.player1Id !== null) {
+      throw new RoomFullError();
+    }
+
+    await transaction.update(Rooms).set({ player1Id: userId }).where(eq(Rooms.id, roomId));
+    const joinToken = await createJoinToken(roomId, userId, 1, config, transaction);
+    return { joinToken, playerSlot: 1, isNewJoin: true };
+  });
 }
 
 export async function updateRoomStatus(

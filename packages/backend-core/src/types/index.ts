@@ -51,3 +51,5 @@ export enum AiModelStatus {
   ADMIN = "ADMIN",
   DISABLED = "DISABLED",
 }
+
+export * from "./humanEvaluations";

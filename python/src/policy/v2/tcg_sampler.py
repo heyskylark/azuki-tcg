@@ -286,34 +286,138 @@ def _argmax_stage(logits: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
     return torch.argmax(logits.masked_fill(~valid_mask, MASK_MIN_VALUE), dim=-1)
 
 
+def legal_action_row_distribution(
+    distribution: TCGLegalActionDistribution,
+) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Return normalized legal-row probabilities, log probabilities, and mask."""
+    device = distribution.legal_action_logits.device
+    batch, candidate_count = distribution.legal_action_logits.shape
+    row_indices = torch.arange(candidate_count, device=device).unsqueeze(0).expand(batch, -1)
+    row_mask = row_indices < distribution.legal_action_count.to(
+        device=device, dtype=torch.long
+    ).view(-1, 1)
+    row_mask = _ensure_valid_mask(row_mask)
+    masked_logits = distribution.legal_action_logits.float().masked_fill(
+        ~row_mask, MASK_MIN_VALUE
+    )
+    if _RUNTIME_LEGAL_ROW_TEMPERATURE != 1.0:
+        masked_logits = masked_logits / _RUNTIME_LEGAL_ROW_TEMPERATURE
+    log_probs = torch.log_softmax(masked_logits, dim=-1)
+    if _RUNTIME_DECK_PICK_SMOOTHING_EPS > 0.0:
+        legal_count = row_mask.sum(dim=-1, keepdim=True).clamp(min=1)
+        uniform_log_probs = torch.where(
+            row_mask,
+            -legal_count.to(dtype=log_probs.dtype).log(),
+            torch.full_like(log_probs, -torch.inf),
+        )
+        is_pick_row = (
+            distribution.legal_actions[:, 0, 0].to(device=device, dtype=torch.long)
+            == DECK_PICK_PRIMARY
+        ).unsqueeze(-1)
+        smoothing_eps = torch.as_tensor(
+            _RUNTIME_DECK_PICK_SMOOTHING_EPS,
+            device=device,
+            dtype=log_probs.dtype,
+        )
+        smoothed_log_probs = torch.logaddexp(
+            log_probs + torch.log1p(-smoothing_eps),
+            uniform_log_probs + smoothing_eps.log(),
+        )
+        log_probs = torch.where(is_pick_row, smoothed_log_probs, log_probs)
+    probs = log_probs.exp()
+    return probs, log_probs, row_mask
+
+
+def legal_action_kl(
+    old_distribution: TCGLegalActionDistribution,
+    new_distribution: TCGLegalActionDistribution,
+) -> torch.Tensor:
+    """Compute exact KL(old || new) over unique environment action tuples."""
+    if old_distribution.legal_action_logits.shape != new_distribution.legal_action_logits.shape:
+        raise ValueError("Legal-action KL requires matching distribution shapes")
+    old_probs, old_log_probs, old_mask = legal_action_row_distribution(old_distribution)
+    _, new_log_probs, new_mask = legal_action_row_distribution(new_distribution)
+    if old_mask.shape != new_mask.shape:
+        raise ValueError("Legal-action KL requires matching legal-row masks")
+
+    old_actions = old_distribution.legal_actions.to(
+        device=old_probs.device,
+        dtype=torch.long,
+    )
+    new_actions = new_distribution.legal_actions.to(
+        device=old_probs.device,
+        dtype=torch.long,
+    )
+    candidate_count = old_actions.shape[1]
+    row_ids = torch.arange(candidate_count, device=old_probs.device)
+    earlier_rows = row_ids.view(1, -1) < row_ids.view(-1, 1)
+    result = []
+    for start in range(0, old_actions.shape[0], 256):
+        stop = min(start + 256, old_actions.shape[0])
+        chunk_old_actions = old_actions[start:stop]
+        chunk_new_actions = new_actions[start:stop]
+        chunk_old_mask = old_mask[start:stop]
+        chunk_new_mask = new_mask[start:stop]
+        old_equivalent = (
+            chunk_old_mask.unsqueeze(2)
+            & chunk_old_mask.unsqueeze(1)
+            & (
+                chunk_old_actions.unsqueeze(2)
+                == chunk_old_actions.unsqueeze(1)
+            ).all(dim=-1)
+        )
+        old_to_new = (
+            chunk_old_mask.unsqueeze(2)
+            & chunk_new_mask.unsqueeze(1)
+            & (
+                chunk_old_actions.unsqueeze(2)
+                == chunk_new_actions.unsqueeze(1)
+            ).all(dim=-1)
+        )
+        old_action_log_probs = torch.logsumexp(
+            old_log_probs[start:stop].unsqueeze(1).masked_fill(
+                ~old_equivalent,
+                -torch.inf,
+            ),
+            dim=-1,
+        )
+        new_action_log_probs = torch.logsumexp(
+            new_log_probs[start:stop].unsqueeze(1).masked_fill(
+                ~old_to_new,
+                -torch.inf,
+            ),
+            dim=-1,
+        )
+        representative = chunk_old_mask & ~(
+            old_equivalent & earlier_rows.unsqueeze(0)
+        ).any(dim=-1)
+        terms = torch.where(
+            representative,
+            old_action_log_probs.exp()
+            * (old_action_log_probs - new_action_log_probs),
+            torch.zeros_like(old_action_log_probs),
+        )
+        result.append(terms.sum(dim=-1))
+    return torch.cat(result)
+
+
+def _legal_action_row_probabilities(
+    distribution: TCGLegalActionDistribution,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    probs, _, row_mask = legal_action_row_distribution(distribution)
+    return probs, row_mask
+
+
 def _sample_legal_action_rows(
     distribution: TCGLegalActionDistribution,
     *,
     action=None,
 ):
     device = distribution.legal_action_logits.device
-    batch, candidate_count = distribution.legal_action_logits.shape
-    row_indices = torch.arange(candidate_count, device=device).unsqueeze(0).expand(batch, -1)
-    row_mask = row_indices < distribution.legal_action_count.to(device=device, dtype=torch.long).view(-1, 1)
-    row_mask = _ensure_valid_mask(row_mask)
-
-    masked_logits = distribution.legal_action_logits.masked_fill(~row_mask, MASK_MIN_VALUE)
-    if _RUNTIME_LEGAL_ROW_TEMPERATURE != 1.0:
-        masked_logits = masked_logits / _RUNTIME_LEGAL_ROW_TEMPERATURE
-    probs = torch.softmax(masked_logits, dim=-1)
-    if _RUNTIME_DECK_PICK_SMOOTHING_EPS > 0.0:
-        # Deck-build rows are homogeneous: every legal row is DECK_PICK_CARD.
-        legal_rows = row_mask.to(dtype=probs.dtype)
-        legal_count = legal_rows.sum(dim=-1, keepdim=True).clamp(min=1.0)
-        uniform = legal_rows / legal_count
-        is_pick_row = (
-            distribution.legal_actions[:, 0, 0].to(device=device, dtype=torch.long)
-            == DECK_PICK_PRIMARY
-        ).to(dtype=probs.dtype).unsqueeze(-1)
-        eps = _RUNTIME_DECK_PICK_SMOOTHING_EPS * is_pick_row
-        probs = (1.0 - eps) * probs + eps * uniform
-    log_probs = torch.log(probs + LOG_EPS)
-    entropy = -(probs * log_probs).sum(dim=-1)
+    batch = distribution.legal_action_logits.shape[0]
+    probs, log_probs, row_mask = legal_action_row_distribution(distribution)
+    entropy = -torch.where(probs > 0, probs * log_probs, torch.zeros_like(probs)).sum(dim=-1)
+    legal_actions = distribution.legal_actions.to(device=device, dtype=torch.long)
 
     original_action_shape = None
     provided_action = None
@@ -326,18 +430,25 @@ def _sample_legal_action_rows(
                 f"does not match logits batch ({batch})"
             )
         row_choice = _match_provided_legal_rows(
-            distribution.legal_actions.to(device=device, dtype=torch.long),
+            legal_actions,
             distribution.legal_action_count.to(device=device, dtype=torch.long),
             provided_action,
         )
     else:
         row_choice = torch.multinomial(torch.nan_to_num(probs, nan=0.0), 1).squeeze(-1)
 
-    chosen_actions = distribution.legal_actions.to(device=device, dtype=torch.long)[
+    chosen_actions = legal_actions[
         torch.arange(batch, device=device),
         row_choice,
     ]
-    total_logprob = log_probs.gather(-1, row_choice.unsqueeze(-1)).squeeze(-1)
+    selected_actions = provided_action if provided_action is not None else chosen_actions
+    matching_rows = row_mask & (
+        legal_actions == selected_actions.unsqueeze(1)
+    ).all(dim=-1)
+    total_logprob = torch.logsumexp(
+        log_probs.masked_fill(~matching_rows, -torch.inf),
+        dim=-1,
+    )
 
     if provided_action is not None:
         actions_out = provided_action
@@ -347,6 +458,55 @@ def _sample_legal_action_rows(
         actions_out = chosen_actions
 
     return actions_out, total_logprob, entropy
+
+
+def legal_action_logprob_components(
+    distribution: TCGLegalActionDistribution,
+    action: torch.Tensor,
+) -> torch.Tensor:
+    """Decompose one legal-row log probability by action-tuple prefixes."""
+    device = distribution.legal_action_logits.device
+    batch = distribution.legal_action_logits.shape[0]
+    original_shape = action.shape
+    provided = action.to(device=device, dtype=torch.long).reshape(
+        -1, ACTION_COMPONENT_COUNT
+    )
+    if provided.shape[0] != batch:
+        raise ValueError(
+            f"Provided action batch ({provided.shape[0]}) does not match logits batch ({batch})"
+        )
+
+    _, log_probs, row_mask = legal_action_row_distribution(distribution)
+    legal_actions = distribution.legal_actions.to(device=device, dtype=torch.long)
+    selected_matches = row_mask & (
+        legal_actions == provided.unsqueeze(1)
+    ).all(dim=-1)
+    selected_logprob = torch.logsumexp(
+        log_probs.masked_fill(~selected_matches, -torch.inf),
+        dim=-1,
+    )
+
+    prefix_logprobs: list[torch.Tensor] = []
+    prefix_match = row_mask
+    for component_index in range(ACTION_COMPONENT_COUNT - 1):
+        prefix_match = prefix_match & (
+            legal_actions[..., component_index]
+            == provided[:, component_index].unsqueeze(-1)
+        )
+        prefix_logprobs.append(
+            torch.logsumexp(log_probs.masked_fill(~prefix_match, -torch.inf), dim=-1)
+        )
+
+    components = torch.stack(
+        (
+            prefix_logprobs[0],
+            prefix_logprobs[1] - prefix_logprobs[0],
+            prefix_logprobs[2] - prefix_logprobs[1],
+            selected_logprob - prefix_logprobs[2],
+        ),
+        dim=-1,
+    )
+    return components.reshape(*original_shape[:-1], ACTION_COMPONENT_COUNT)
 
 
 def _sample_stage(

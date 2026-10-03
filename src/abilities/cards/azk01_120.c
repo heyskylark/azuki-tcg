@@ -231,6 +231,11 @@ bool azk01_120_validate_selection_target(ecs_world_t *world, ecs_entity_t card,
 }
 
 void azk01_120_on_selection_complete(ecs_world_t *world, AbilityContext *ctx) {
+  if (ctx->selection.picked_count > 0 &&
+      ctx->selection.picked_cards[0] != 0) {
+    azk_record_gate_ability_outcome(world, ctx->runtime.owner);
+  }
+
   for (uint8_t i = 0;
        i < ctx->selection.count && i < MAX_SELECTION_ZONE_SIZE; ++i) {
     ecs_entity_t weapon = ctx->selection.cards[i];

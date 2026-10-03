@@ -105,6 +105,25 @@ def install_tcg_sampler() -> None:
   azk_pytorch.sample_logits = tcg_sampler.tcg_sample_logits
 
 
+def _configure_pbrs_discount(trainer_args: dict) -> None:
+  env_config = trainer_args.get("env", {})
+  if not bool(env_config.get("native", False)):
+    return
+  gamma = float(trainer_args.get("train", {}).get("gamma", 0.99))
+  if not 0.0 <= gamma <= 1.0:
+    raise ValueError("train.gamma must be finite and in [0, 1]")
+  # An explicit environment value is only a consistency assertion. Training
+  # owns the discount used by both the return estimator and the potential.
+  declared_gamma = env_config.get("pbrs_gamma")
+  if declared_gamma is not None and float(declared_gamma) != gamma:
+    raise ValueError("env.pbrs_gamma must match train.gamma; omit it to derive the discount")
+  env_config["pbrs_gamma"] = gamma
+  if env_config.get("pbrs_mode", "legacy") == "discounted":
+    if env_config.get("pbrs_terminal_closure") is False:
+      raise ValueError("discounted PBRS requires terminal closure")
+    env_config["pbrs_terminal_closure"] = True
+
+
 def load_training_config(config_path: Path, forwarded_cli: Sequence[str]) -> dict:
   def parse_value(raw: str):
     lowered = raw.lower()
@@ -192,6 +211,7 @@ def load_training_config(config_path: Path, forwarded_cli: Sequence[str]) -> dic
     if "no_model_upload" not in parsed:
       parsed["no_model_upload"] = False
 
+  _configure_pbrs_discount(parsed)
   return parsed
 
 
@@ -216,6 +236,15 @@ def make_azuki_env(*, seed: int | None = None, buf=None, **env_kwargs):
   draft_cross_gate_replay_prob = float(
     env_kwargs.pop("draft_cross_gate_replay_prob", 0.0) or 0.0
   )
+  reward_telemetry = bool(env_kwargs.pop("reward_telemetry", False))
+  reward_decomposed_schedule = bool(
+    env_kwargs.pop("reward_decomposed_schedule", False)
+  )
+  pbrs_mode = str(env_kwargs.pop("pbrs_mode", "legacy"))
+  pbrs_gamma = float(env_kwargs.pop("pbrs_gamma", 0.99))
+  pbrs_terminal_closure = env_kwargs.pop("pbrs_terminal_closure", None)
+  prebuilt_curriculum = bool(env_kwargs.pop("prebuilt_curriculum", False))
+  prebuilt_probability = float(env_kwargs.pop("prebuilt_probability", 0.0))
   fixed_seats_raw = env_kwargs.pop("deck_building_fixed_seats", None)
   if fixed_seats_raw is None or fixed_seats_raw == "":
     fixed_deck_seats: tuple[int, ...] = ()
@@ -231,6 +260,15 @@ def make_azuki_env(*, seed: int | None = None, buf=None, **env_kwargs):
     raise ValueError("Pass either env.deck_pool or env.deck_pool_path, not both")
   if deck_pool is None:
     deck_pool = load_training_deck_pool(deck_pool_path)
+  prebuilt_deck_groups = None
+  if prebuilt_curriculum:
+    if not native or not deck_building_enabled or not deck_pool_path:
+      raise ValueError("prebuilt_curriculum requires native deck building and an explicit deck_pool_path")
+    from prebuilt_deck_pool import load_prebuilt_deck_groups
+
+    prebuilt_deck_groups = load_prebuilt_deck_groups(deck_pool_path)
+  elif prebuilt_probability != 0.0:
+    raise ValueError("prebuilt_probability requires prebuilt_curriculum=true")
   if native:
     if direct_parallel:
       raise ValueError("env.native is incompatible with direct_parallel")
@@ -254,7 +292,22 @@ def make_azuki_env(*, seed: int | None = None, buf=None, **env_kwargs):
       deck_building_privileged_decks=deck_building_privileged_decks,
       draft_uniform_assignment=draft_uniform_assignment,
       evaluation_mode=evaluation_mode,
+      reward_telemetry=reward_telemetry,
+      reward_decomposed_schedule=reward_decomposed_schedule,
+      pbrs_mode=pbrs_mode,
+      pbrs_gamma=pbrs_gamma,
+      pbrs_terminal_closure=pbrs_terminal_closure,
+      prebuilt_deck_groups=prebuilt_deck_groups,
+      prebuilt_probability=prebuilt_probability,
     )
+  if reward_telemetry:
+    raise ValueError("env.reward_telemetry requires env.native=true")
+  if reward_decomposed_schedule:
+    raise ValueError(
+      "env.reward_decomposed_schedule requires env.native=true"
+    )
+  if pbrs_mode != "legacy" or pbrs_terminal_closure:
+    raise ValueError("PBRS configuration requires env.native=true")
   if deck_building_enabled:
     env = AzukiTCGParallel(seed=seed, deck_pool=deck_pool)
     env = DeckBuildingParallelEnv(
@@ -284,6 +337,7 @@ def make_azuki_env(*, seed: int | None = None, buf=None, **env_kwargs):
 
 
 def build_vecenv(trainer_args: dict, *, backend=None, num_envs: int | None = None, seed: int | None = None):
+  _configure_pbrs_discount(trainer_args)
   env_kwargs = dict(trainer_args.get("env", {}))
   vec_kwargs = dict(trainer_args.get("vec", {}))
   if backend is not None:

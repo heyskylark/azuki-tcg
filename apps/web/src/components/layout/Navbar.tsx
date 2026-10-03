@@ -70,6 +70,12 @@ export function Navbar() {
             >
               Create Room
             </Link>
+            <Link
+              href="/evaluations"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Evaluations
+            </Link>
           </div>
         </div>
         <div className="flex items-center space-x-4">

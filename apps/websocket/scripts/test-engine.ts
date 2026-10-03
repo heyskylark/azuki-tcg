@@ -185,8 +185,27 @@ function main() {
     console.error(" ", error);
   }
 
-  // Test 2: Create world with minimal/invalid deck (to test error handling)
-  console.log("\n\nTest 2: Creating world with empty decks (should fail)...");
+  // Test 2: Evaluation rooms can force either starting player.
+  console.log("\n\nTest 2: Creating worlds with forced starting players...");
+  for (const startingPlayer of [0, 1] as const) {
+    const result = binding.createWorldWithDecks(12345, raizenDeck, shaoDeck, startingPlayer);
+    if (!result.success) {
+      throw new Error(
+        `Forced-start world creation failed for player ${startingPlayer}: ${result.error ?? "unknown error"}`
+      );
+    }
+    const activePlayer = binding.getActivePlayer(result.worldId);
+    binding.destroyWorld(result.worldId);
+    if (activePlayer !== startingPlayer) {
+      throw new Error(
+        `Forced starting player ${startingPlayer} produced active player ${activePlayer}`
+      );
+    }
+    console.log(`  Player ${startingPlayer} starts as required.`);
+  }
+
+  // Test 3: Create world with minimal/invalid deck (to test error handling)
+  console.log("\n\nTest 3: Creating world with empty decks (should fail)...");
   try {
     const result = binding.createWorldWithDecks(12345, [], []);
     console.log("  Result:", JSON.stringify(result, null, 2));

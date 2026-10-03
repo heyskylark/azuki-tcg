@@ -46,9 +46,9 @@ RUN bun run --filter '@tcg/backend-core' build && bun run --filter '@azuki/webso
 # Production image
 FROM oven/bun:1-debian
 
-# Install runtime dependencies (ncurses for the engine)
 RUN apt-get update && apt-get install -y \
     libncurses6 \
+    nodejs \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
@@ -73,4 +73,4 @@ COPY --from=builder /app/build ./build
 
 EXPOSE 3001
 
-CMD ["bun", "apps/websocket/dist/server.js"]
+CMD ["node", "apps/websocket/dist/server.js"]

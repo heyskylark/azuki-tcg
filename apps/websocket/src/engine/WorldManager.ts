@@ -38,7 +38,8 @@ export function createGameWorld(
   player0UserId: string,
   player0Deck: DeckCardEntry[],
   player1UserId: string,
-  player1Deck: DeckCardEntry[]
+  player1Deck: DeckCardEntry[],
+  startingPlayer?: 0 | 1
 ): ActiveWorld {
   // Check if a world already exists for this room
   if (activeWorlds.has(roomId)) {
@@ -46,7 +47,10 @@ export function createGameWorld(
   }
 
   const binding = getNativeBinding();
-  const result = binding.createWorldWithDecks(seed, player0Deck, player1Deck);
+  const result =
+    startingPlayer === undefined
+      ? binding.createWorldWithDecks(seed, player0Deck, player1Deck)
+      : binding.createWorldWithDecks(seed, player0Deck, player1Deck, startingPlayer);
 
   if (!result.success) {
     const errorMsg = result.error ?? "Unknown error";

@@ -6,6 +6,7 @@ import { OrbitControls } from "@react-three/drei";
 import { Board } from "@/components/game/board/Board";
 import { DraggedCard } from "@/components/game/cards/DraggedCard";
 import { AbilityOverlay } from "@/components/game/abilities/AbilityOverlay";
+import { SpellModeChooser } from "@/components/game/abilities/SpellModeChooser";
 import { ActionButtons3D } from "@/components/game/ActionButtons3D";
 
 /**
@@ -52,6 +53,7 @@ export function GameScene() {
 
       {/* Ability UI overlay - renders on top of 3D canvas */}
       <AbilityOverlay />
+      <SpellModeChooser />
     </div>
   );
 }

@@ -150,8 +150,7 @@ bool draw_cards_with_deckout_check(ecs_world_t *world, ecs_entity_t player,
   int32_t hand_index = ecs_get_ordered_children(world, hand).count;
 
   for (int i = 0; i < draw_count; i++) {
-    if (deck_count == 0) {
-      // Couldn't draw (deck was already empty)
+    if (i >= deck_count) {
       return set_deck_out_loss(world, gs, player_num);
     }
 
@@ -169,10 +168,8 @@ bool draw_cards_with_deckout_check(ecs_world_t *world, ecs_entity_t player,
       out_cards[i] = card;
     }
 
-    // Check if deck is now empty after this draw
-    // (deck_count - i - 1 = remaining cards after this draw)
-    int remaining = deck_count - i - 1;
-    if (remaining == 0) {
+    // Use the snapshot count because deferred moves may leave stale children.
+    if (i + 1 == deck_count) {
       return set_deck_out_loss(world, gs, player_num);
     }
   }

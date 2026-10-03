@@ -1,0 +1,4066 @@
+{
+  "schema_version": 1,
+  "source": {
+    "builder": "train-ablation-1781126582/build_strategic_exposure_pool.py",
+    "base_path": ".codex/docs/azuki_garden_arena_2026-08-15_decks.json",
+    "base_sha256": "e97eaf4cde67d689790c541175c61a8e8d18c12e0952b80b30d0a860106be393"
+  },
+  "normalization_notes": [
+    "Preserved the Arena promotion/holdout reference panel at indices 0-17.",
+    "Appended matched legal strategic and entity-only panels over every element, gate, and compatible leader.",
+    "Each treatment contains one deck for every element x gate x leader stratum."
+  ],
+  "summary": {
+    "reference_panel_size": 18,
+    "promotion_reference_deck_indices": [
+      0,
+      2,
+      4,
+      6,
+      8,
+      10,
+      12,
+      14,
+      16
+    ],
+    "holdout_reference_deck_indices": [
+      1,
+      3,
+      5,
+      7,
+      9,
+      11,
+      13,
+      15,
+      17
+    ],
+    "strategic_exposure_deck_indices": [
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33
+    ],
+    "entity_only_control_deck_indices": [
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49
+    ],
+    "strategic_exposure_deck_count": 16,
+    "entity_only_control_deck_count": 16
+  },
+  "decks": [
+    {
+      "deck_name": "Garden Arena 2026-08-15 submission 048",
+      "deck_slug": "garden-arena-2026-08-15-submission-048",
+      "source_submission_number": 48,
+      "content_sha256": "8f96c94d8fb4cf36ee112441afffec19faf31c340436e0afed72c3204d643449",
+      "element": "FIRE",
+      "leader_card_id": "STT04-001",
+      "gate_card_id": "AZK01-122",
+      "cards": [
+        {
+          "card_id": "STT04-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-122",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-058",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-015",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-016",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "promotion"
+    },
+    {
+      "deck_name": "Garden Arena 2026-08-15 submission 012",
+      "deck_slug": "garden-arena-2026-08-15-submission-012",
+      "source_submission_number": 12,
+      "content_sha256": "8ad5deefed24f075d97c2b3173d546b82a1a3ad79d1baefcc91ec9395969a629",
+      "element": "FIRE",
+      "leader_card_id": "AZK01-121",
+      "gate_card_id": "AZK01-122",
+      "cards": [
+        {
+          "card_id": "AZK01-121",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-122",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-011",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-057",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-058",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-077",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-113",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-015",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-017",
+          "quantity": 2
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "holdout"
+    },
+    {
+      "deck_name": "Garden Arena 2026-08-15 submission 028",
+      "deck_slug": "garden-arena-2026-08-15-submission-028",
+      "source_submission_number": 28,
+      "content_sha256": "ca20452324325c33ad0666d2c68095802ff93ea030a1c98a56239b15ad92c72a",
+      "element": "FIRE",
+      "leader_card_id": "STT04-001",
+      "gate_card_id": "STT04-002",
+      "cards": [
+        {
+          "card_id": "STT04-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-057",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-063",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-071",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-111",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-129",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-005",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-007",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-009",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-014",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-015",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT04-016",
+          "quantity": 3
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "promotion"
+    },
+    {
+      "deck_name": "Garden Arena 2026-08-15 submission 024",
+      "deck_slug": "garden-arena-2026-08-15-submission-024",
+      "source_submission_number": 24,
+      "content_sha256": "6cda2e82c95f45245c896966c6fe7c88f2c7d09bd703f3fc4fd5a25148b8b69e",
+      "element": "FIRE",
+      "leader_card_id": "STT04-001",
+      "gate_card_id": "AZK01-122",
+      "cards": [
+        {
+          "card_id": "STT04-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-122",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-058",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-015",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-016",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "holdout"
+    },
+    {
+      "deck_name": "Garden Arena 2026-08-15 submission 031",
+      "deck_slug": "garden-arena-2026-08-15-submission-031",
+      "source_submission_number": 31,
+      "content_sha256": "8a8f96be9d9dd1bca16bb048450435d64a234263c7c9e04f382f55db740978d5",
+      "element": "FIRE",
+      "leader_card_id": "STT04-001",
+      "gate_card_id": "AZK01-122",
+      "cards": [
+        {
+          "card_id": "STT04-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-122",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-058",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-115",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-015",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-016",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "promotion"
+    },
+    {
+      "deck_name": "Garden Arena 2026-08-15 submission 033",
+      "deck_slug": "garden-arena-2026-08-15-submission-033",
+      "source_submission_number": 33,
+      "content_sha256": "b4243d5ac01b6de55a021a5aa8dae09995471edf532e00dd66729c80ee65c6ce",
+      "element": "FIRE",
+      "leader_card_id": "STT04-001",
+      "gate_card_id": "AZK01-122",
+      "cards": [
+        {
+          "card_id": "STT04-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-122",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-058",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-015",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-016",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "holdout"
+    },
+    {
+      "deck_name": "Garden Arena 2026-08-15 submission 001",
+      "deck_slug": "garden-arena-2026-08-15-submission-001",
+      "source_submission_number": 1,
+      "content_sha256": "08d6646f78fd90a6d5015daadc047d1c7b13fd6152005368c4529966ebfc91c7",
+      "element": "LIGHTNING",
+      "leader_card_id": "STT01-001",
+      "gate_card_id": "STT01-002",
+      "cards": [
+        {
+          "card_id": "STT01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-011",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-015",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-042",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-077",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-094",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-008",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-012",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-017",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "promotion"
+    },
+    {
+      "deck_name": "Garden Arena 2026-08-15 submission 003",
+      "deck_slug": "garden-arena-2026-08-15-submission-003",
+      "source_submission_number": 3,
+      "content_sha256": "d9d334d29bbfc1e560e184d20ca7a0e584560c106348f34d22adb2172ad17eab",
+      "element": "LIGHTNING",
+      "leader_card_id": "STT01-001",
+      "gate_card_id": "AZK01-120",
+      "cards": [
+        {
+          "card_id": "STT01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-120",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-011",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-015",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-033",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-042",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-094",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-097",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-005",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-008",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-012",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-017",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "holdout"
+    },
+    {
+      "deck_name": "Garden Arena 2026-08-15 submission 199",
+      "deck_slug": "garden-arena-2026-08-15-submission-199",
+      "source_submission_number": 199,
+      "content_sha256": "4d636f441c80767232eb53e81bd7245976fd2a28addc98c32145b2bc32fcaf71",
+      "element": "LIGHTNING",
+      "leader_card_id": "STT01-001",
+      "gate_card_id": "STT01-002",
+      "cards": [
+        {
+          "card_id": "STT01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-015",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-077",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-094",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-005",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-008",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-012",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-017",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "promotion"
+    },
+    {
+      "deck_name": "Garden Arena 2026-08-15 submission 004",
+      "deck_slug": "garden-arena-2026-08-15-submission-004",
+      "source_submission_number": 4,
+      "content_sha256": "aa94095799169a953251be20d7aab9f80ed161ed362133163479a6bfa8bce543",
+      "element": "LIGHTNING",
+      "leader_card_id": "STT01-001",
+      "gate_card_id": "STT01-002",
+      "cards": [
+        {
+          "card_id": "STT01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-011",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-015",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-042",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-077",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-094",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-005",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-008",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-012",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-017",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "holdout"
+    },
+    {
+      "deck_name": "Garden Arena 2026-08-15 submission 091",
+      "deck_slug": "garden-arena-2026-08-15-submission-091",
+      "source_submission_number": 91,
+      "content_sha256": "399b6904ca47874ff6dded520448296c9fe784d225c0fcd877ffc715e9f5073e",
+      "element": "EARTH",
+      "leader_card_id": "STT03-001",
+      "gate_card_id": "STT03-002",
+      "cards": [
+        {
+          "card_id": "STT03-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-045",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-047",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-048",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-050",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-054",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-107",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-108",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-128",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT03-005",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT03-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-012",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT03-013",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT03-014",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT03-015",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT03-016",
+          "quantity": 3
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "promotion"
+    },
+    {
+      "deck_name": "Garden Arena 2026-08-15 submission 242",
+      "deck_slug": "garden-arena-2026-08-15-submission-242",
+      "source_submission_number": 242,
+      "content_sha256": "9a26f4c8a6f11acb245baeaaaa035ed8fe2e8c70d0de6991c77226143684afcb",
+      "element": "EARTH",
+      "leader_card_id": "AZK01-123",
+      "gate_card_id": "AZK01-124",
+      "cards": [
+        {
+          "card_id": "AZK01-123",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-124",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-045",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-050",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-054",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-067",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-069",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-105",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-128",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-013",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT03-016",
+          "quantity": 3
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "holdout"
+    },
+    {
+      "deck_name": "Garden Arena 2026-08-15 submission 094",
+      "deck_slug": "garden-arena-2026-08-15-submission-094",
+      "source_submission_number": 94,
+      "content_sha256": "7c75674435e1878613bdf00ec660b09ccbb736a84665541c332a965d5e0d1d5e",
+      "element": "EARTH",
+      "leader_card_id": "STT03-001",
+      "gate_card_id": "STT03-002",
+      "cards": [
+        {
+          "card_id": "STT03-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-045",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-047",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-048",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-049",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-050",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-054",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-105",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-107",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-128",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-003",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT03-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-012",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT03-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-014",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT03-015",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT03-016",
+          "quantity": 3
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "promotion"
+    },
+    {
+      "deck_name": "Garden Arena 2026-08-15 submission 212",
+      "deck_slug": "garden-arena-2026-08-15-submission-212",
+      "source_submission_number": 212,
+      "content_sha256": "ab24d97c19d14631fca9984f08a48a27c9079609ca54ab74473e6bd7e1da6281",
+      "element": "EARTH",
+      "leader_card_id": "STT03-001",
+      "gate_card_id": "STT03-002",
+      "cards": [
+        {
+          "card_id": "STT03-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-045",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-047",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-048",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-050",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-054",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-108",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-128",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT03-005",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT03-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-012",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT03-013",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT03-015",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT03-016",
+          "quantity": 3
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "holdout"
+    },
+    {
+      "deck_name": "Garden Arena 2026-08-15 submission 030",
+      "deck_slug": "garden-arena-2026-08-15-submission-030",
+      "source_submission_number": 30,
+      "content_sha256": "7dd1522c1be509f7df2cd749d720586a037df166037cc5a064e3c7a586683db4",
+      "element": "WATER",
+      "leader_card_id": "STT02-001",
+      "gate_card_id": "STT02-002",
+      "cards": [
+        {
+          "card_id": "STT02-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT02-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-011",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-022",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-024",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-028",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-029",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-077",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-087",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-088",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-089",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-005",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-007",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-012",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-013",
+          "quantity": 3
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "promotion"
+    },
+    {
+      "deck_name": "Garden Arena 2026-08-15 submission 183",
+      "deck_slug": "garden-arena-2026-08-15-submission-183",
+      "source_submission_number": 183,
+      "content_sha256": "191220caed54f9739326944c4ba6f88caeadf977bfce0a20f87494855f72a879",
+      "element": "WATER",
+      "leader_card_id": "AZK01-125",
+      "gate_card_id": "AZK01-126",
+      "cards": [
+        {
+          "card_id": "AZK01-125",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-126",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-022",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-024",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-028",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-031",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-068",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-087",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-088",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-089",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-007",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-008",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-015",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT02-016",
+          "quantity": 2
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "holdout"
+    },
+    {
+      "deck_name": "Garden Arena 2026-08-15 submission 037",
+      "deck_slug": "garden-arena-2026-08-15-submission-037",
+      "source_submission_number": 37,
+      "content_sha256": "9073476b230faae830040eb1c35d495fa9e9717f52f90039716c353375e21d4d",
+      "element": "WATER",
+      "leader_card_id": "STT02-001",
+      "gate_card_id": "STT02-002",
+      "cards": [
+        {
+          "card_id": "STT02-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT02-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-009",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-021",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-022",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-024",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-025",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-028",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-029",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-030",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-031",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-088",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-005",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-008",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-012",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-013",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-015",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-016",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-017",
+          "quantity": 2
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "promotion"
+    },
+    {
+      "deck_name": "Garden Arena 2026-08-15 submission 081",
+      "deck_slug": "garden-arena-2026-08-15-submission-081",
+      "source_submission_number": 81,
+      "content_sha256": "a9485971fd54e83277458d9e1bc8716e3a747453a2eb2d65f0bcd299d6223f0f",
+      "element": "WATER",
+      "leader_card_id": "STT02-001",
+      "gate_card_id": "STT02-002",
+      "cards": [
+        {
+          "card_id": "STT02-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT02-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-009",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-014",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-021",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-022",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-024",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-031",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-087",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-088",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-008",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-012",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-016",
+          "quantity": 3
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "holdout"
+    },
+    {
+      "deck_name": "curriculum-strategic_exposure-lightning-stt01-002-stt01-001",
+      "deck_slug": "curriculum-strategic_exposure-lightning-stt01-002-stt01-001",
+      "source_submission_number": null,
+      "content_sha256": "708c16bbe529aa77ba722e755a5c5e742672513a6ce5b5d59936a1334252fd22",
+      "element": "LIGHTNING",
+      "leader_card_id": "STT01-001",
+      "gate_card_id": "STT01-002",
+      "cards": [
+        {
+          "card_id": "STT01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-033",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-043",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-094",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-012",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-015",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "strategic_exposure"
+    },
+    {
+      "deck_name": "curriculum-strategic_exposure-lightning-stt01-002-azk01-119",
+      "deck_slug": "curriculum-strategic_exposure-lightning-stt01-002-azk01-119",
+      "source_submission_number": null,
+      "content_sha256": "703513a6deca47fc90230e4c90e5fc77cb8cee2293bbb01e9c58ef216c7a1d3b",
+      "element": "LIGHTNING",
+      "leader_card_id": "AZK01-119",
+      "gate_card_id": "STT01-002",
+      "cards": [
+        {
+          "card_id": "AZK01-119",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-033",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-043",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-094",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-012",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-015",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "strategic_exposure"
+    },
+    {
+      "deck_name": "curriculum-strategic_exposure-lightning-azk01-120-stt01-001",
+      "deck_slug": "curriculum-strategic_exposure-lightning-azk01-120-stt01-001",
+      "source_submission_number": null,
+      "content_sha256": "73504b107b2a100dd18437fbdbc0cebbbd5642657cb116bf9d20a3d21a8c34f9",
+      "element": "LIGHTNING",
+      "leader_card_id": "STT01-001",
+      "gate_card_id": "AZK01-120",
+      "cards": [
+        {
+          "card_id": "STT01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-120",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-033",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-043",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-094",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-012",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-015",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "strategic_exposure"
+    },
+    {
+      "deck_name": "curriculum-strategic_exposure-lightning-azk01-120-azk01-119",
+      "deck_slug": "curriculum-strategic_exposure-lightning-azk01-120-azk01-119",
+      "source_submission_number": null,
+      "content_sha256": "27a57e7dea14fa4268ef84af948b61371be4dbf4b71aaf7a2f4ec17ce1387499",
+      "element": "LIGHTNING",
+      "leader_card_id": "AZK01-119",
+      "gate_card_id": "AZK01-120",
+      "cards": [
+        {
+          "card_id": "AZK01-119",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-120",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-033",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-043",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-094",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-012",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-015",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "strategic_exposure"
+    },
+    {
+      "deck_name": "curriculum-strategic_exposure-water-stt02-002-stt02-001",
+      "deck_slug": "curriculum-strategic_exposure-water-stt02-002-stt02-001",
+      "source_submission_number": null,
+      "content_sha256": "72122492ce26747e4cf6b66fff5baad098b00959e1084917535d7f00cf82ba9d",
+      "element": "WATER",
+      "leader_card_id": "STT02-001",
+      "gate_card_id": "STT02-002",
+      "cards": [
+        {
+          "card_id": "STT02-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT02-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-016",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-029",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-016",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "strategic_exposure"
+    },
+    {
+      "deck_name": "curriculum-strategic_exposure-water-stt02-002-azk01-125",
+      "deck_slug": "curriculum-strategic_exposure-water-stt02-002-azk01-125",
+      "source_submission_number": null,
+      "content_sha256": "9b0f8ae20e355ad7e6051652be3b7fbea3e5de729d43a7da8a8b3e824c4d2d6e",
+      "element": "WATER",
+      "leader_card_id": "AZK01-125",
+      "gate_card_id": "STT02-002",
+      "cards": [
+        {
+          "card_id": "AZK01-125",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT02-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-016",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-029",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-016",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "strategic_exposure"
+    },
+    {
+      "deck_name": "curriculum-strategic_exposure-water-azk01-126-stt02-001",
+      "deck_slug": "curriculum-strategic_exposure-water-azk01-126-stt02-001",
+      "source_submission_number": null,
+      "content_sha256": "393815efed1317415012be895919333255cbc42caf82a6b5555acbd0432f76ad",
+      "element": "WATER",
+      "leader_card_id": "STT02-001",
+      "gate_card_id": "AZK01-126",
+      "cards": [
+        {
+          "card_id": "STT02-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-126",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-016",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-029",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-016",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "strategic_exposure"
+    },
+    {
+      "deck_name": "curriculum-strategic_exposure-water-azk01-126-azk01-125",
+      "deck_slug": "curriculum-strategic_exposure-water-azk01-126-azk01-125",
+      "source_submission_number": null,
+      "content_sha256": "bb23ff57228aa118d710a2a60a81ed05748d4b8ff6df27904b2be992b7823a65",
+      "element": "WATER",
+      "leader_card_id": "AZK01-125",
+      "gate_card_id": "AZK01-126",
+      "cards": [
+        {
+          "card_id": "AZK01-125",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-126",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-016",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-029",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-016",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "strategic_exposure"
+    },
+    {
+      "deck_name": "curriculum-strategic_exposure-fire-azk01-122-azk01-121",
+      "deck_slug": "curriculum-strategic_exposure-fire-azk01-122-azk01-121",
+      "source_submission_number": null,
+      "content_sha256": "9cde8a84a9772876b035f9851de457d27641c149c0919c1f1e93bc2843a3c7b0",
+      "element": "FIRE",
+      "leader_card_id": "AZK01-121",
+      "gate_card_id": "AZK01-122",
+      "cards": [
+        {
+          "card_id": "AZK01-121",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-122",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-057",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-067",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-068",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-069",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 2
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "strategic_exposure"
+    },
+    {
+      "deck_name": "curriculum-strategic_exposure-fire-azk01-122-stt04-001",
+      "deck_slug": "curriculum-strategic_exposure-fire-azk01-122-stt04-001",
+      "source_submission_number": null,
+      "content_sha256": "910ca494a64828c0aaca2ab21228faa4f52619d67801849545e1b8e03fe0008c",
+      "element": "FIRE",
+      "leader_card_id": "STT04-001",
+      "gate_card_id": "AZK01-122",
+      "cards": [
+        {
+          "card_id": "STT04-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-122",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-057",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-067",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-068",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-069",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 2
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "strategic_exposure"
+    },
+    {
+      "deck_name": "curriculum-strategic_exposure-fire-stt04-002-azk01-121",
+      "deck_slug": "curriculum-strategic_exposure-fire-stt04-002-azk01-121",
+      "source_submission_number": null,
+      "content_sha256": "94ee4eb3592d0130eaccf64f14fcf187eaba07ab0954352d00bce1167a5d94c1",
+      "element": "FIRE",
+      "leader_card_id": "AZK01-121",
+      "gate_card_id": "STT04-002",
+      "cards": [
+        {
+          "card_id": "AZK01-121",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-057",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-067",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-068",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-069",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 2
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "strategic_exposure"
+    },
+    {
+      "deck_name": "curriculum-strategic_exposure-fire-stt04-002-stt04-001",
+      "deck_slug": "curriculum-strategic_exposure-fire-stt04-002-stt04-001",
+      "source_submission_number": null,
+      "content_sha256": "ce18e761cbb60af8db80c58243b91c981ed0b457387db85e853370c51b7b699d",
+      "element": "FIRE",
+      "leader_card_id": "STT04-001",
+      "gate_card_id": "STT04-002",
+      "cards": [
+        {
+          "card_id": "STT04-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-057",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-067",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-068",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-069",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 2
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "strategic_exposure"
+    },
+    {
+      "deck_name": "curriculum-strategic_exposure-earth-azk01-124-azk01-123",
+      "deck_slug": "curriculum-strategic_exposure-earth-azk01-124-azk01-123",
+      "source_submission_number": null,
+      "content_sha256": "5c60799342623318a020b444779affce2a267989feec967a3f68b9d64e067e1f",
+      "element": "EARTH",
+      "leader_card_id": "AZK01-123",
+      "gate_card_id": "AZK01-124",
+      "cards": [
+        {
+          "card_id": "AZK01-123",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-124",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-016",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-017",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-045",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-046",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-107",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "strategic_exposure"
+    },
+    {
+      "deck_name": "curriculum-strategic_exposure-earth-azk01-124-stt03-001",
+      "deck_slug": "curriculum-strategic_exposure-earth-azk01-124-stt03-001",
+      "source_submission_number": null,
+      "content_sha256": "e35f53da0c3067ecd0577d2db9c463afed118f6da49b88a9d01a22d3a85342c5",
+      "element": "EARTH",
+      "leader_card_id": "STT03-001",
+      "gate_card_id": "AZK01-124",
+      "cards": [
+        {
+          "card_id": "STT03-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-124",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-016",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-017",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-045",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-046",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-107",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "strategic_exposure"
+    },
+    {
+      "deck_name": "curriculum-strategic_exposure-earth-stt03-002-azk01-123",
+      "deck_slug": "curriculum-strategic_exposure-earth-stt03-002-azk01-123",
+      "source_submission_number": null,
+      "content_sha256": "b53d30b189e6fba017bea7c7e9b1186f312ead710909f2cb2960d37a03d311ea",
+      "element": "EARTH",
+      "leader_card_id": "AZK01-123",
+      "gate_card_id": "STT03-002",
+      "cards": [
+        {
+          "card_id": "AZK01-123",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-016",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-017",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-045",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-046",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-107",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "strategic_exposure"
+    },
+    {
+      "deck_name": "curriculum-strategic_exposure-earth-stt03-002-stt03-001",
+      "deck_slug": "curriculum-strategic_exposure-earth-stt03-002-stt03-001",
+      "source_submission_number": null,
+      "content_sha256": "f7c76f52d666a399fa68e5e81bc312fbd6d467c60373b742e1dd4acc18d27fd6",
+      "element": "EARTH",
+      "leader_card_id": "STT03-001",
+      "gate_card_id": "STT03-002",
+      "cards": [
+        {
+          "card_id": "STT03-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-016",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-017",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-045",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-046",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-107",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "strategic_exposure"
+    },
+    {
+      "deck_name": "curriculum-entity_only_control-lightning-stt01-002-stt01-001",
+      "deck_slug": "curriculum-entity_only_control-lightning-stt01-002-stt01-001",
+      "source_submission_number": null,
+      "content_sha256": "812aaa32928ec031ea45156f1f2c00c02a55778b1984da6145f2b17ee53206fc",
+      "element": "LIGHTNING",
+      "leader_card_id": "STT01-001",
+      "gate_card_id": "STT01-002",
+      "cards": [
+        {
+          "card_id": "STT01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-033",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-067",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-068",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-069",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-006",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "entity_only_control"
+    },
+    {
+      "deck_name": "curriculum-entity_only_control-lightning-stt01-002-azk01-119",
+      "deck_slug": "curriculum-entity_only_control-lightning-stt01-002-azk01-119",
+      "source_submission_number": null,
+      "content_sha256": "c614d1951d180dd8d92a1bb6fec50489f0e190658996a7848ec2ba543a44b960",
+      "element": "LIGHTNING",
+      "leader_card_id": "AZK01-119",
+      "gate_card_id": "STT01-002",
+      "cards": [
+        {
+          "card_id": "AZK01-119",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-033",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-067",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-068",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-069",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-006",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "entity_only_control"
+    },
+    {
+      "deck_name": "curriculum-entity_only_control-lightning-azk01-120-stt01-001",
+      "deck_slug": "curriculum-entity_only_control-lightning-azk01-120-stt01-001",
+      "source_submission_number": null,
+      "content_sha256": "dff163001c85ed2d8b676f417a270c95e13cc0b64e05b4c711fea5aa82f0d55b",
+      "element": "LIGHTNING",
+      "leader_card_id": "STT01-001",
+      "gate_card_id": "AZK01-120",
+      "cards": [
+        {
+          "card_id": "STT01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-120",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-033",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-067",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-068",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-069",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-006",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "entity_only_control"
+    },
+    {
+      "deck_name": "curriculum-entity_only_control-lightning-azk01-120-azk01-119",
+      "deck_slug": "curriculum-entity_only_control-lightning-azk01-120-azk01-119",
+      "source_submission_number": null,
+      "content_sha256": "2aca878adde75a02b94139e4c7affe0d38a8531183d8d544479c75a584706c9b",
+      "element": "LIGHTNING",
+      "leader_card_id": "AZK01-119",
+      "gate_card_id": "AZK01-120",
+      "cards": [
+        {
+          "card_id": "AZK01-119",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-120",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-033",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-067",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-068",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-069",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-006",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "entity_only_control"
+    },
+    {
+      "deck_name": "curriculum-entity_only_control-water-stt02-002-stt02-001",
+      "deck_slug": "curriculum-entity_only_control-water-stt02-002-stt02-001",
+      "source_submission_number": null,
+      "content_sha256": "e5b496b12afe47bb87a3c93d97c4aa00fb7959d6344149f71acf6cdd1ecf42d8",
+      "element": "WATER",
+      "leader_card_id": "STT02-001",
+      "gate_card_id": "STT02-002",
+      "cards": [
+        {
+          "card_id": "STT02-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT02-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-021",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-067",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-068",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-069",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-007",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "entity_only_control"
+    },
+    {
+      "deck_name": "curriculum-entity_only_control-water-stt02-002-azk01-125",
+      "deck_slug": "curriculum-entity_only_control-water-stt02-002-azk01-125",
+      "source_submission_number": null,
+      "content_sha256": "3a5fe353a918c2a85be1a448d200b96314f771012e118a75f9fda4b5648f2c0f",
+      "element": "WATER",
+      "leader_card_id": "AZK01-125",
+      "gate_card_id": "STT02-002",
+      "cards": [
+        {
+          "card_id": "AZK01-125",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT02-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-021",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-067",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-068",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-069",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-007",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "entity_only_control"
+    },
+    {
+      "deck_name": "curriculum-entity_only_control-water-azk01-126-stt02-001",
+      "deck_slug": "curriculum-entity_only_control-water-azk01-126-stt02-001",
+      "source_submission_number": null,
+      "content_sha256": "c397d41920c325d548a42be7349194fa94e43805caf471f095a1d54541744d23",
+      "element": "WATER",
+      "leader_card_id": "STT02-001",
+      "gate_card_id": "AZK01-126",
+      "cards": [
+        {
+          "card_id": "STT02-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-126",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-021",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-067",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-068",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-069",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-007",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "entity_only_control"
+    },
+    {
+      "deck_name": "curriculum-entity_only_control-water-azk01-126-azk01-125",
+      "deck_slug": "curriculum-entity_only_control-water-azk01-126-azk01-125",
+      "source_submission_number": null,
+      "content_sha256": "53b2e4aef67052411ef1b712f7598efafb4f715b200e77dda294e691d97ad8c0",
+      "element": "WATER",
+      "leader_card_id": "AZK01-125",
+      "gate_card_id": "AZK01-126",
+      "cards": [
+        {
+          "card_id": "AZK01-125",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-126",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-021",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-067",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-068",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-069",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-007",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "entity_only_control"
+    },
+    {
+      "deck_name": "curriculum-entity_only_control-fire-azk01-122-azk01-121",
+      "deck_slug": "curriculum-entity_only_control-fire-azk01-122-azk01-121",
+      "source_submission_number": null,
+      "content_sha256": "9cde8a84a9772876b035f9851de457d27641c149c0919c1f1e93bc2843a3c7b0",
+      "element": "FIRE",
+      "leader_card_id": "AZK01-121",
+      "gate_card_id": "AZK01-122",
+      "cards": [
+        {
+          "card_id": "AZK01-121",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-122",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-057",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-067",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-068",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-069",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 2
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "entity_only_control"
+    },
+    {
+      "deck_name": "curriculum-entity_only_control-fire-azk01-122-stt04-001",
+      "deck_slug": "curriculum-entity_only_control-fire-azk01-122-stt04-001",
+      "source_submission_number": null,
+      "content_sha256": "910ca494a64828c0aaca2ab21228faa4f52619d67801849545e1b8e03fe0008c",
+      "element": "FIRE",
+      "leader_card_id": "STT04-001",
+      "gate_card_id": "AZK01-122",
+      "cards": [
+        {
+          "card_id": "STT04-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-122",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-057",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-067",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-068",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-069",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 2
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "entity_only_control"
+    },
+    {
+      "deck_name": "curriculum-entity_only_control-fire-stt04-002-azk01-121",
+      "deck_slug": "curriculum-entity_only_control-fire-stt04-002-azk01-121",
+      "source_submission_number": null,
+      "content_sha256": "94ee4eb3592d0130eaccf64f14fcf187eaba07ab0954352d00bce1167a5d94c1",
+      "element": "FIRE",
+      "leader_card_id": "AZK01-121",
+      "gate_card_id": "STT04-002",
+      "cards": [
+        {
+          "card_id": "AZK01-121",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-057",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-067",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-068",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-069",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 2
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "entity_only_control"
+    },
+    {
+      "deck_name": "curriculum-entity_only_control-fire-stt04-002-stt04-001",
+      "deck_slug": "curriculum-entity_only_control-fire-stt04-002-stt04-001",
+      "source_submission_number": null,
+      "content_sha256": "ce18e761cbb60af8db80c58243b91c981ed0b457387db85e853370c51b7b699d",
+      "element": "FIRE",
+      "leader_card_id": "STT04-001",
+      "gate_card_id": "STT04-002",
+      "cards": [
+        {
+          "card_id": "STT04-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-057",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-067",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-068",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-069",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 2
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "entity_only_control"
+    },
+    {
+      "deck_name": "curriculum-entity_only_control-earth-azk01-124-azk01-123",
+      "deck_slug": "curriculum-entity_only_control-earth-azk01-124-azk01-123",
+      "source_submission_number": null,
+      "content_sha256": "963221c64cafa8308ff6cc8113ffd0e9ea63fe7f56e5029714cd76d33131048d",
+      "element": "EARTH",
+      "leader_card_id": "AZK01-123",
+      "gate_card_id": "AZK01-124",
+      "cards": [
+        {
+          "card_id": "AZK01-123",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-124",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-045",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-046",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-067",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-068",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-069",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-004",
+          "quantity": 2
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "entity_only_control"
+    },
+    {
+      "deck_name": "curriculum-entity_only_control-earth-azk01-124-stt03-001",
+      "deck_slug": "curriculum-entity_only_control-earth-azk01-124-stt03-001",
+      "source_submission_number": null,
+      "content_sha256": "04da1918557a7fa80cf68f1a29f01159903c5c0a852b0191968ba5a2b1c415d9",
+      "element": "EARTH",
+      "leader_card_id": "STT03-001",
+      "gate_card_id": "AZK01-124",
+      "cards": [
+        {
+          "card_id": "STT03-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-124",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-045",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-046",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-067",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-068",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-069",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-004",
+          "quantity": 2
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "entity_only_control"
+    },
+    {
+      "deck_name": "curriculum-entity_only_control-earth-stt03-002-azk01-123",
+      "deck_slug": "curriculum-entity_only_control-earth-stt03-002-azk01-123",
+      "source_submission_number": null,
+      "content_sha256": "be2b8fe5056f1fc52f2f9ecf4224ed070734debe7885904bf6aca18890c1d794",
+      "element": "EARTH",
+      "leader_card_id": "AZK01-123",
+      "gate_card_id": "STT03-002",
+      "cards": [
+        {
+          "card_id": "AZK01-123",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-045",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-046",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-067",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-068",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-069",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-004",
+          "quantity": 2
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "entity_only_control"
+    },
+    {
+      "deck_name": "curriculum-entity_only_control-earth-stt03-002-stt03-001",
+      "deck_slug": "curriculum-entity_only_control-earth-stt03-002-stt03-001",
+      "source_submission_number": null,
+      "content_sha256": "7ebbd6713762f9087c8578c7a84e52b2421396fbeb612800b10cc54250bddb1c",
+      "element": "EARTH",
+      "leader_card_id": "STT03-001",
+      "gate_card_id": "STT03-002",
+      "cards": [
+        {
+          "card_id": "STT03-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-045",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-046",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-067",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-068",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-069",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-004",
+          "quantity": 2
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ],
+      "reference_role": "entity_only_control"
+    }
+  ]
+}

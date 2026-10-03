@@ -1,0 +1,2379 @@
+{
+  "id": "71fc2718-2704-452b-a6c6-7a4effe5a57d",
+  "prevId": "b5547c18-867b-42f8-89b7-0384923caabf",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.emails": {
+      "name": "emails",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "citext",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "emails_user_id_users_id_fk": {
+          "name": "emails_user_id_users_id_fk",
+          "tableFrom": "emails",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "emails_email_unique": {
+          "name": "emails_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.users": {
+      "name": "users",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "username": {
+          "name": "username",
+          "type": "citext",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "user_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'HUMAN'"
+        },
+        "status": {
+          "name": "status",
+          "type": "user_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ACTIVE'"
+        },
+        "model_key": {
+          "name": "model_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "users_username_unique": {
+          "name": "users_username_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "username"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ai_models": {
+      "name": "ai_models",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "display_name": {
+          "name": "display_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "model_key": {
+          "name": "model_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "ai_model_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ENABLED'"
+        },
+        "checkpoint_sha256": {
+          "name": "checkpoint_sha256",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "''"
+        },
+        "human_evaluation_enabled": {
+          "name": "human_evaluation_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "ai_models_status_idx": {
+          "name": "ai_models_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ai_models_human_evaluation_idx": {
+          "name": "ai_models_human_evaluation_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "human_evaluation_enabled",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "ai_models_display_name_idx": {
+          "name": "ai_models_display_name_idx",
+          "columns": [
+            {
+              "expression": "display_name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "ai_models_model_key_unique": {
+          "name": "ai_models_model_key_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "model_key"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.cards": {
+      "name": "cards",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "card_code": {
+          "name": "card_code",
+          "type": "citext",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rarity": {
+          "name": "rarity",
+          "type": "card_rarity",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "special_rarity": {
+          "name": "special_rarity",
+          "type": "special_card_rarity",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "element": {
+          "name": "element",
+          "type": "card_element",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "card_type": {
+          "name": "card_type",
+          "type": "card_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "attack": {
+          "name": "attack",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "health": {
+          "name": "health",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "gate_points": {
+          "name": "gate_points",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ikz_cost": {
+          "name": "ikz_cost",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "keywords": {
+          "name": "keywords",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "subtypes": {
+          "name": "subtypes",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'"
+        },
+        "effect_text": {
+          "name": "effect_text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "flavor_text": {
+          "name": "flavor_text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "image_url": {
+          "name": "image_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "cards_card_code_idx": {
+          "name": "cards_card_code_idx",
+          "columns": [
+            {
+              "expression": "card_code",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "cards_card_code_rarity_unique_idx": {
+          "name": "cards_card_code_rarity_unique_idx",
+          "nullsNotDistinct": true,
+          "columns": [
+            "card_code",
+            "rarity",
+            "special_rarity"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.decks": {
+      "name": "decks",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "deck_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'IN_PROGRESS'"
+        },
+        "is_system_deck": {
+          "name": "is_system_deck",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "is_evaluation_generated": {
+          "name": "is_evaluation_generated",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "idx_decks_user_id": {
+          "name": "idx_decks_user_id",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "idx_decks_user_evaluation": {
+          "name": "idx_decks_user_evaluation",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "is_evaluation_generated",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "decks_user_id_users_id_fk": {
+          "name": "decks_user_id_users_id_fk",
+          "tableFrom": "decks",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "system_deck_not_deleted": {
+          "name": "system_deck_not_deleted",
+          "value": "NOT (\"decks\".\"is_system_deck\" = true AND \"decks\".\"status\" = 'DELETED')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.deck_card_junctions": {
+      "name": "deck_card_junctions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "deck_id": {
+          "name": "deck_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "card_id": {
+          "name": "card_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quantity": {
+          "name": "quantity",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "deck_card_junctions_deck_id_decks_id_fk": {
+          "name": "deck_card_junctions_deck_id_decks_id_fk",
+          "tableFrom": "deck_card_junctions",
+          "tableTo": "decks",
+          "columnsFrom": [
+            "deck_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "deck_card_junctions_card_id_cards_id_fk": {
+          "name": "deck_card_junctions_card_id_cards_id_fk",
+          "tableFrom": "deck_card_junctions",
+          "tableTo": "cards",
+          "columnsFrom": [
+            "card_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.rooms": {
+      "name": "rooms",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "room_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'WAITING_FOR_PLAYERS'"
+        },
+        "type": {
+          "name": "type",
+          "type": "room_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'PRIVATE'"
+        },
+        "password_hash": {
+          "name": "password_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "world_id": {
+          "name": "world_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "rng_seed": {
+          "name": "rng_seed",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "player0_id": {
+          "name": "player0_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "player0_deck_id": {
+          "name": "player0_deck_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "player0_ready": {
+          "name": "player0_ready",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "player1_id": {
+          "name": "player1_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ai_model_id": {
+          "name": "ai_model_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "player1_deck_id": {
+          "name": "player1_deck_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "player1_ready": {
+          "name": "player1_ready",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "deck_selection_deadline": {
+          "name": "deck_selection_deadline",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "rooms_player0_status_idx": {
+          "name": "rooms_player0_status_idx",
+          "columns": [
+            {
+              "expression": "player0_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "rooms_player1_status_idx": {
+          "name": "rooms_player1_status_idx",
+          "columns": [
+            {
+              "expression": "player1_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "rooms_player0_id_users_id_fk": {
+          "name": "rooms_player0_id_users_id_fk",
+          "tableFrom": "rooms",
+          "tableTo": "users",
+          "columnsFrom": [
+            "player0_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "rooms_player0_deck_id_decks_id_fk": {
+          "name": "rooms_player0_deck_id_decks_id_fk",
+          "tableFrom": "rooms",
+          "tableTo": "decks",
+          "columnsFrom": [
+            "player0_deck_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "rooms_player1_id_users_id_fk": {
+          "name": "rooms_player1_id_users_id_fk",
+          "tableFrom": "rooms",
+          "tableTo": "users",
+          "columnsFrom": [
+            "player1_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "rooms_ai_model_id_ai_models_id_fk": {
+          "name": "rooms_ai_model_id_ai_models_id_fk",
+          "tableFrom": "rooms",
+          "tableTo": "ai_models",
+          "columnsFrom": [
+            "ai_model_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "rooms_player1_deck_id_decks_id_fk": {
+          "name": "rooms_player1_deck_id_decks_id_fk",
+          "tableFrom": "rooms",
+          "tableTo": "decks",
+          "columnsFrom": [
+            "player1_deck_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.match_results": {
+      "name": "match_results",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "room_id": {
+          "name": "room_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "player0_id": {
+          "name": "player0_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "player1_id": {
+          "name": "player1_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ai_model_id": {
+          "name": "ai_model_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "winner_id": {
+          "name": "winner_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "win_type": {
+          "name": "win_type",
+          "type": "win_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "total_turns": {
+          "name": "total_turns",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "duration_seconds": {
+          "name": "duration_seconds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "match_results_room_id_rooms_id_fk": {
+          "name": "match_results_room_id_rooms_id_fk",
+          "tableFrom": "match_results",
+          "tableTo": "rooms",
+          "columnsFrom": [
+            "room_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "match_results_player0_id_users_id_fk": {
+          "name": "match_results_player0_id_users_id_fk",
+          "tableFrom": "match_results",
+          "tableTo": "users",
+          "columnsFrom": [
+            "player0_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "match_results_player1_id_users_id_fk": {
+          "name": "match_results_player1_id_users_id_fk",
+          "tableFrom": "match_results",
+          "tableTo": "users",
+          "columnsFrom": [
+            "player1_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "match_results_ai_model_id_ai_models_id_fk": {
+          "name": "match_results_ai_model_id_ai_models_id_fk",
+          "tableFrom": "match_results",
+          "tableTo": "ai_models",
+          "columnsFrom": [
+            "ai_model_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "match_results_winner_id_users_id_fk": {
+          "name": "match_results_winner_id_users_id_fk",
+          "tableFrom": "match_results",
+          "tableTo": "users",
+          "columnsFrom": [
+            "winner_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "match_results_room_id_unique": {
+          "name": "match_results_room_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "room_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.game_logs": {
+      "name": "game_logs",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "room_id": {
+          "name": "room_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "batch_number": {
+          "name": "batch_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sequence_number": {
+          "name": "sequence_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "log_type": {
+          "name": "log_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "player": {
+          "name": "player",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "log_data": {
+          "name": "log_data",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "game_logs_room_id_rooms_id_fk": {
+          "name": "game_logs_room_id_rooms_id_fk",
+          "tableFrom": "game_logs",
+          "tableTo": "rooms",
+          "columnsFrom": [
+            "room_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.jwt_tokens": {
+      "name": "jwt_tokens",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "jti": {
+          "name": "jti",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "token_type": {
+          "name": "token_type",
+          "type": "token_type",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "revoked_at": {
+          "name": "revoked_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "jwt_tokens_user_id_idx": {
+          "name": "jwt_tokens_user_id_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "jwt_tokens_expires_at_idx": {
+          "name": "jwt_tokens_expires_at_idx",
+          "columns": [
+            {
+              "expression": "expires_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "jwt_tokens_user_id_users_id_fk": {
+          "name": "jwt_tokens_user_id_users_id_fk",
+          "tableFrom": "jwt_tokens",
+          "tableTo": "users",
+          "columnsFrom": [
+            "user_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "jwt_tokens_jti_unique": {
+          "name": "jwt_tokens_jti_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "jti"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.human_evaluation_actions": {
+      "name": "human_evaluation_actions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "match_id": {
+          "name": "match_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "room_id": {
+          "name": "room_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "action_number": {
+          "name": "action_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor_slot": {
+          "name": "actor_slot",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor_source": {
+          "name": "actor_source",
+          "type": "human_evaluation_actor_source",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "action": {
+          "name": "action",
+          "type": "integer[]",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "accepted": {
+          "name": "accepted",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "error": {
+          "name": "error",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "observation": {
+          "name": "observation",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "legal_action_mask": {
+          "name": "legal_action_mask",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state_hash": {
+          "name": "state_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "received_at": {
+          "name": "received_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "resolved_at": {
+          "name": "resolved_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "human_evaluation_actions_room_idx": {
+          "name": "human_evaluation_actions_room_idx",
+          "columns": [
+            {
+              "expression": "room_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "action_number",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "human_evaluation_actions_match_id_human_evaluation_matches_id_fk": {
+          "name": "human_evaluation_actions_match_id_human_evaluation_matches_id_fk",
+          "tableFrom": "human_evaluation_actions",
+          "tableTo": "human_evaluation_matches",
+          "columnsFrom": [
+            "match_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "human_evaluation_actions_room_id_rooms_id_fk": {
+          "name": "human_evaluation_actions_room_id_rooms_id_fk",
+          "tableFrom": "human_evaluation_actions",
+          "tableTo": "rooms",
+          "columnsFrom": [
+            "room_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "human_evaluation_actions_match_number_unique": {
+          "name": "human_evaluation_actions_match_number_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "match_id",
+            "action_number"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "human_evaluation_actions_number_check": {
+          "name": "human_evaluation_actions_number_check",
+          "value": "\"human_evaluation_actions\".\"action_number\" > 0"
+        },
+        "human_evaluation_actions_actor_slot_check": {
+          "name": "human_evaluation_actions_actor_slot_check",
+          "value": "\"human_evaluation_actions\".\"actor_slot\" IN (0, 1)"
+        },
+        "human_evaluation_actions_tuple_check": {
+          "name": "human_evaluation_actions_tuple_check",
+          "value": "cardinality(\"human_evaluation_actions\".\"action\") = 4"
+        },
+        "human_evaluation_actions_timestamps_check": {
+          "name": "human_evaluation_actions_timestamps_check",
+          "value": "\"human_evaluation_actions\".\"resolved_at\" >= \"human_evaluation_actions\".\"received_at\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.human_evaluation_annotation_observations": {
+      "name": "human_evaluation_annotation_observations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "annotation_id": {
+          "name": "annotation_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ordinal": {
+          "name": "ordinal",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "human_evaluation_observation_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tag": {
+          "name": "tag",
+          "type": "human_evaluation_observation_tag",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "severity": {
+          "name": "severity",
+          "type": "human_evaluation_observation_severity",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "action_number": {
+          "name": "action_number",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "detail": {
+          "name": "detail",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "human_evaluation_annotation_observations_annotation_id_human_evaluation_annotations_id_fk": {
+          "name": "human_evaluation_annotation_observations_annotation_id_human_evaluation_annotations_id_fk",
+          "tableFrom": "human_evaluation_annotation_observations",
+          "tableTo": "human_evaluation_annotations",
+          "columnsFrom": [
+            "annotation_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "human_evaluation_annotation_observations_ordinal_unique": {
+          "name": "human_evaluation_annotation_observations_ordinal_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "annotation_id",
+            "ordinal"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.human_evaluation_annotations": {
+      "name": "human_evaluation_annotations",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "match_id": {
+          "name": "match_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reviewer_id": {
+          "name": "reviewer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "opponent_strength_rating": {
+          "name": "opponent_strength_rating",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "decision_quality_rating": {
+          "name": "decision_quality_rating",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deck_coherence_rating": {
+          "name": "deck_coherence_rating",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "human_likeness_rating": {
+          "name": "human_likeness_rating",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "match_enjoyment_rating": {
+          "name": "match_enjoyment_rating",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "model_guess": {
+          "name": "model_guess",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "guess_confidence": {
+          "name": "guess_confidence",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "human_evaluation_annotations_match_id_human_evaluation_matches_id_fk": {
+          "name": "human_evaluation_annotations_match_id_human_evaluation_matches_id_fk",
+          "tableFrom": "human_evaluation_annotations",
+          "tableTo": "human_evaluation_matches",
+          "columnsFrom": [
+            "match_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "human_evaluation_annotations_reviewer_id_users_id_fk": {
+          "name": "human_evaluation_annotations_reviewer_id_users_id_fk",
+          "tableFrom": "human_evaluation_annotations",
+          "tableTo": "users",
+          "columnsFrom": [
+            "reviewer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "human_evaluation_annotations_match_id_unique": {
+          "name": "human_evaluation_annotations_match_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "match_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "human_evaluation_annotations_ratings_check": {
+          "name": "human_evaluation_annotations_ratings_check",
+          "value": "\"human_evaluation_annotations\".\"opponent_strength_rating\" BETWEEN 1 AND 7\n        AND \"human_evaluation_annotations\".\"decision_quality_rating\" BETWEEN 1 AND 7\n        AND \"human_evaluation_annotations\".\"deck_coherence_rating\" BETWEEN 1 AND 7\n        AND \"human_evaluation_annotations\".\"human_likeness_rating\" BETWEEN 1 AND 7\n        AND \"human_evaluation_annotations\".\"match_enjoyment_rating\" BETWEEN 1 AND 7"
+        },
+        "human_evaluation_annotations_confidence_check": {
+          "name": "human_evaluation_annotations_confidence_check",
+          "value": "\"human_evaluation_annotations\".\"guess_confidence\" IS NULL OR \"human_evaluation_annotations\".\"guess_confidence\" BETWEEN 1 AND 7"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.human_evaluation_deck_artifacts": {
+      "name": "human_evaluation_deck_artifacts",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "match_id": {
+          "name": "match_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deck_id": {
+          "name": "deck_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gate_card_code": {
+          "name": "gate_card_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "leader_card_code": {
+          "name": "leader_card_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ordered_main_card_codes": {
+          "name": "ordered_main_card_codes",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "card_counts": {
+          "name": "card_counts",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "picks": {
+          "name": "picks",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "deck_hash": {
+          "name": "deck_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "catalog_hash": {
+          "name": "catalog_hash",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "checkpoint_sha256": {
+          "name": "checkpoint_sha256",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "human_evaluation_deck_artifacts_match_id_human_evaluation_matches_id_fk": {
+          "name": "human_evaluation_deck_artifacts_match_id_human_evaluation_matches_id_fk",
+          "tableFrom": "human_evaluation_deck_artifacts",
+          "tableTo": "human_evaluation_matches",
+          "columnsFrom": [
+            "match_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "human_evaluation_deck_artifacts_deck_id_decks_id_fk": {
+          "name": "human_evaluation_deck_artifacts_deck_id_decks_id_fk",
+          "tableFrom": "human_evaluation_deck_artifacts",
+          "tableTo": "decks",
+          "columnsFrom": [
+            "deck_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "human_evaluation_deck_artifacts_match_id_unique": {
+          "name": "human_evaluation_deck_artifacts_match_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "match_id"
+          ]
+        },
+        "human_evaluation_deck_artifacts_deck_id_unique": {
+          "name": "human_evaluation_deck_artifacts_deck_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "deck_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "human_evaluation_deck_artifacts_main_count_check": {
+          "name": "human_evaluation_deck_artifacts_main_count_check",
+          "value": "cardinality(\"human_evaluation_deck_artifacts\".\"ordered_main_card_codes\") = 50"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.human_evaluation_matches": {
+      "name": "human_evaluation_matches",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "session_id": {
+          "name": "session_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ordinal": {
+          "name": "ordinal",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "model_id": {
+          "name": "model_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "model_key_snapshot": {
+          "name": "model_key_snapshot",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "model_display_name_snapshot": {
+          "name": "model_display_name_snapshot",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "checkpoint_sha256_snapshot": {
+          "name": "checkpoint_sha256_snapshot",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "session_key": {
+          "name": "session_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "draft_seed": {
+          "name": "draft_seed",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "battle_seed": {
+          "name": "battle_seed",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ai_slot": {
+          "name": "ai_slot",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "starting_player": {
+          "name": "starting_player",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "gate_card_code": {
+          "name": "gate_card_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "leader_card_code": {
+          "name": "leader_card_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "human_evaluation_match_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'SCHEDULED'"
+        },
+        "room_id": {
+          "name": "room_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "match_result_id": {
+          "name": "match_result_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "claimed_at": {
+          "name": "claimed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "human_evaluation_matches_session_status_idx": {
+          "name": "human_evaluation_matches_session_status_idx",
+          "columns": [
+            {
+              "expression": "session_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "human_evaluation_matches_session_id_human_evaluation_sessions_id_fk": {
+          "name": "human_evaluation_matches_session_id_human_evaluation_sessions_id_fk",
+          "tableFrom": "human_evaluation_matches",
+          "tableTo": "human_evaluation_sessions",
+          "columnsFrom": [
+            "session_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "human_evaluation_matches_model_id_ai_models_id_fk": {
+          "name": "human_evaluation_matches_model_id_ai_models_id_fk",
+          "tableFrom": "human_evaluation_matches",
+          "tableTo": "ai_models",
+          "columnsFrom": [
+            "model_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "human_evaluation_matches_room_id_rooms_id_fk": {
+          "name": "human_evaluation_matches_room_id_rooms_id_fk",
+          "tableFrom": "human_evaluation_matches",
+          "tableTo": "rooms",
+          "columnsFrom": [
+            "room_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "human_evaluation_matches_match_result_id_match_results_id_fk": {
+          "name": "human_evaluation_matches_match_result_id_match_results_id_fk",
+          "tableFrom": "human_evaluation_matches",
+          "tableTo": "match_results",
+          "columnsFrom": [
+            "match_result_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "human_evaluation_matches_session_key_unique": {
+          "name": "human_evaluation_matches_session_key_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "session_key"
+          ]
+        },
+        "human_evaluation_matches_session_ordinal_unique": {
+          "name": "human_evaluation_matches_session_ordinal_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "session_id",
+            "ordinal"
+          ]
+        },
+        "human_evaluation_matches_room_unique": {
+          "name": "human_evaluation_matches_room_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "room_id"
+          ]
+        },
+        "human_evaluation_matches_result_unique": {
+          "name": "human_evaluation_matches_result_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "match_result_id"
+          ]
+        }
+      },
+      "policies": {},
+      "checkConstraints": {
+        "human_evaluation_matches_ai_slot_check": {
+          "name": "human_evaluation_matches_ai_slot_check",
+          "value": "\"human_evaluation_matches\".\"ai_slot\" IN (0, 1)"
+        },
+        "human_evaluation_matches_starting_player_check": {
+          "name": "human_evaluation_matches_starting_player_check",
+          "value": "\"human_evaluation_matches\".\"starting_player\" IN (0, 1)"
+        },
+        "human_evaluation_matches_ordinal_check": {
+          "name": "human_evaluation_matches_ordinal_check",
+          "value": "\"human_evaluation_matches\".\"ordinal\" > 0"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.human_evaluation_sessions": {
+      "name": "human_evaluation_sessions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "reviewer_id": {
+          "name": "reviewer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "human_deck_id": {
+          "name": "human_deck_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_human_deck_id": {
+          "name": "source_human_deck_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "games_per_model": {
+          "name": "games_per_model",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "protocol": {
+          "name": "protocol",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "schedule_seed": {
+          "name": "schedule_seed",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "human_evaluation_session_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'ACTIVE'"
+        },
+        "revealed_at": {
+          "name": "revealed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "human_evaluation_sessions_reviewer_idx": {
+          "name": "human_evaluation_sessions_reviewer_idx",
+          "columns": [
+            {
+              "expression": "reviewer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "human_evaluation_sessions_active_reviewer_unique": {
+          "name": "human_evaluation_sessions_active_reviewer_unique",
+          "columns": [
+            {
+              "expression": "reviewer_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"human_evaluation_sessions\".\"status\" = 'ACTIVE'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "human_evaluation_sessions_reviewer_id_users_id_fk": {
+          "name": "human_evaluation_sessions_reviewer_id_users_id_fk",
+          "tableFrom": "human_evaluation_sessions",
+          "tableTo": "users",
+          "columnsFrom": [
+            "reviewer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "human_evaluation_sessions_human_deck_id_decks_id_fk": {
+          "name": "human_evaluation_sessions_human_deck_id_decks_id_fk",
+          "tableFrom": "human_evaluation_sessions",
+          "tableTo": "decks",
+          "columnsFrom": [
+            "human_deck_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "human_evaluation_sessions_source_human_deck_id_decks_id_fk": {
+          "name": "human_evaluation_sessions_source_human_deck_id_decks_id_fk",
+          "tableFrom": "human_evaluation_sessions",
+          "tableTo": "decks",
+          "columnsFrom": [
+            "source_human_deck_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {
+        "human_evaluation_sessions_games_per_model_check": {
+          "name": "human_evaluation_sessions_games_per_model_check",
+          "value": "\"human_evaluation_sessions\".\"games_per_model\" IN (8, 16)"
+        },
+        "human_evaluation_sessions_protocol_check": {
+          "name": "human_evaluation_sessions_protocol_check",
+          "value": "\"human_evaluation_sessions\".\"protocol\" = 'human-eval-v1'"
+        }
+      },
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.user_status": {
+      "name": "user_status",
+      "schema": "public",
+      "values": [
+        "ACTIVE",
+        "DELETED",
+        "BANNED"
+      ]
+    },
+    "public.user_type": {
+      "name": "user_type",
+      "schema": "public",
+      "values": [
+        "HUMAN",
+        "AI"
+      ]
+    },
+    "public.ai_model_status": {
+      "name": "ai_model_status",
+      "schema": "public",
+      "values": [
+        "ENABLED",
+        "ADMIN",
+        "DISABLED"
+      ]
+    },
+    "public.card_element": {
+      "name": "card_element",
+      "schema": "public",
+      "values": [
+        "NORMAL",
+        "LIGHTNING",
+        "WATER",
+        "EARTH",
+        "FIRE"
+      ]
+    },
+    "public.card_rarity": {
+      "name": "card_rarity",
+      "schema": "public",
+      "values": [
+        "L",
+        "L_S",
+        "G",
+        "G_S",
+        "C",
+        "UC",
+        "R",
+        "SR",
+        "SR_S",
+        "SR_SS",
+        "IKZ",
+        "IKZ_S"
+      ]
+    },
+    "public.card_type": {
+      "name": "card_type",
+      "schema": "public",
+      "values": [
+        "LEADER",
+        "GATE",
+        "ENTITY",
+        "WEAPON",
+        "SPELL",
+        "IKZ",
+        "EXTRA_IKZ"
+      ]
+    },
+    "public.special_card_rarity": {
+      "name": "special_card_rarity",
+      "schema": "public",
+      "values": [
+        "INV26_WINNER",
+        "INV26_SECOND",
+        "INV26_TOP8",
+        "TOKEN_AX_WINNER"
+      ]
+    },
+    "public.deck_status": {
+      "name": "deck_status",
+      "schema": "public",
+      "values": [
+        "COMPLETE",
+        "IN_PROGRESS",
+        "DELETED"
+      ]
+    },
+    "public.room_status": {
+      "name": "room_status",
+      "schema": "public",
+      "values": [
+        "WAITING_FOR_PLAYERS",
+        "DECK_SELECTION",
+        "READY_CHECK",
+        "STARTING",
+        "IN_MATCH",
+        "COMPLETED",
+        "ABORTED",
+        "CLOSED"
+      ]
+    },
+    "public.room_type": {
+      "name": "room_type",
+      "schema": "public",
+      "values": [
+        "PRIVATE",
+        "MATCH_MAKING"
+      ]
+    },
+    "public.win_type": {
+      "name": "win_type",
+      "schema": "public",
+      "values": [
+        "WIN",
+        "DRAW",
+        "ABANDON",
+        "FORFEIT",
+        "TIMEOUT"
+      ]
+    },
+    "public.token_type": {
+      "name": "token_type",
+      "schema": "public",
+      "values": [
+        "ACCESS",
+        "REFRESH",
+        "JOIN"
+      ]
+    },
+    "public.human_evaluation_actor_source": {
+      "name": "human_evaluation_actor_source",
+      "schema": "public",
+      "values": [
+        "HUMAN",
+        "AI"
+      ]
+    },
+    "public.human_evaluation_match_status": {
+      "name": "human_evaluation_match_status",
+      "schema": "public",
+      "values": [
+        "SCHEDULED",
+        "CLAIMED",
+        "IN_PROGRESS",
+        "COMPLETED",
+        "ABORTED"
+      ]
+    },
+    "public.human_evaluation_observation_kind": {
+      "name": "human_evaluation_observation_kind",
+      "schema": "public",
+      "values": [
+        "ISSUE",
+        "OPPORTUNITY"
+      ]
+    },
+    "public.human_evaluation_observation_severity": {
+      "name": "human_evaluation_observation_severity",
+      "schema": "public",
+      "values": [
+        "MINOR",
+        "MODERATE",
+        "MAJOR",
+        "CRITICAL"
+      ]
+    },
+    "public.human_evaluation_observation_tag": {
+      "name": "human_evaluation_observation_tag",
+      "schema": "public",
+      "values": [
+        "MISPLAY",
+        "SEQUENCING",
+        "RESOURCE_WASTE",
+        "TARGETING",
+        "ATTACK_CHOICE",
+        "DEFENSE_CHOICE",
+        "TEMPO",
+        "DECK_SYNERGY",
+        "REPETITIVE",
+        "TIMEOUT_OR_STALL",
+        "OTHER"
+      ]
+    },
+    "public.human_evaluation_session_status": {
+      "name": "human_evaluation_session_status",
+      "schema": "public",
+      "values": [
+        "ACTIVE",
+        "REVEALED"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}

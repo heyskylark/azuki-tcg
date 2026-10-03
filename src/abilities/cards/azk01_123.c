@@ -33,6 +33,12 @@ void azk01_123_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
     return;
   }
 
-  apply_health_modifier(world, ctx->effect.entities[0], ctx->runtime.source_card,
-                        1, true);
+  const ecs_entity_t target = ctx->effect.entities[0];
+  const CurStats *before = ecs_get(world, target, CurStats);
+  const int8_t health_before = before != NULL ? before->cur_hp : 0;
+  apply_health_modifier(world, target, ctx->runtime.source_card, 1, true);
+  const CurStats *after = ecs_get(world, target, CurStats);
+  if (after != NULL && after->cur_hp > health_before) {
+    azk_record_leader_ability_outcome(world, ctx->runtime.owner);
+  }
 }

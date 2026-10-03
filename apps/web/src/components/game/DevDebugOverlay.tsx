@@ -4,35 +4,7 @@ import { useState } from "react";
 import { useGameState } from "@/contexts/GameStateContext";
 import { useRoom } from "@/contexts/RoomContext";
 import { useDragStore } from "@/stores/dragStore";
-
-// Action type index to name mapping (from actionValidation.ts)
-const ACTION_NAMES: Record<number, string> = {
-  0: "NOOP",
-  1: "PLAY_ENTITY_GARDEN",
-  2: "PLAY_ENTITY_ALLEY",
-  6: "ATTACK",
-  7: "ATTACH_WEAPON_FROM_HAND",
-  8: "PLAY_SPELL_FROM_HAND",
-  9: "DECLARE_DEFENDER",
-  10: "GATE_PORTAL",
-  11: "ACTIVATE_GARDEN_OR_LEADER_ABILITY",
-  12: "ACTIVATE_ALLEY_ABILITY",
-  13: "SELECT_COST_TARGET",
-  14: "SELECT_EFFECT_TARGET",
-  16: "CONFIRM_ABILITY",
-  18: "SELECT_FROM_SELECTION",
-  19: "BOTTOM_DECK_CARD",
-  20: "BOTTOM_DECK_ALL",
-  21: "SELECT_TO_ALLEY",
-  22: "SELECT_TO_EQUIP",
-  23: "SELECT_TO_GARDEN",
-  24: "TOP_DECK_CARD",
-  25: "MULLIGAN_SHUFFLE",
-};
-
-function getActionName(index: number): string {
-  return ACTION_NAMES[index] ?? `UNKNOWN_${index}`;
-}
+import { getActionTypeName } from "@/lib/game/actionValidation";
 
 function setToString(set: Set<number>): string {
   if (set.size === 0) return "{}";
@@ -49,7 +21,7 @@ export function DevDebugOverlay() {
   const legalActionTypes = gameState?.actionMask?.legalPrimary
     ? [...new Set(gameState.actionMask.legalPrimary)]
     : [];
-  const legalActionNames = legalActionTypes.map(getActionName);
+  const legalActionNames = legalActionTypes.map(getActionTypeName);
 
   // Compute board statistics
   const myGardenFilled = gameState?.myBoard?.garden.filter((c) => c !== null).length ?? 0;
@@ -57,9 +29,7 @@ export function DevDebugOverlay() {
   const oppGardenFilled = gameState?.opponentBoard?.garden.filter((c) => c !== null).length ?? 0;
   const oppAlleyFilled = gameState?.opponentBoard?.alley.filter((c) => c !== null).length ?? 0;
 
-  const isMyTurn = gameState
-    ? gameState.activePlayer === activeRoom?.playerSlot
-    : false;
+  const isMyTurn = gameState ? gameState.activePlayer === activeRoom?.playerSlot : false;
 
   if (isCollapsed) {
     return (
@@ -129,10 +99,7 @@ export function DevDebugOverlay() {
             value={gameState?.actionMask ? "Yes" : "No"}
             valueClass={gameState?.actionMask ? "text-green-400" : "text-gray-400"}
           />
-          <Row
-            label="Legal Count"
-            value={String(gameState?.actionMask?.legalActionCount ?? 0)}
-          />
+          <Row label="Legal Count" value={String(gameState?.actionMask?.legalActionCount ?? 0)} />
           <div className="mt-1">
             <span className="text-gray-400">Types: </span>
             <span className="text-blue-300 break-words">
@@ -143,10 +110,7 @@ export function DevDebugOverlay() {
 
         {/* Board Summary */}
         <Section title="Board - Me">
-          <Row
-            label="Leader HP"
-            value={String(gameState?.myBoard?.leader.curHp ?? "-")}
-          />
+          <Row label="Leader HP" value={String(gameState?.myBoard?.leader.curHp ?? "-")} />
           <Row label="Garden" value={`${myGardenFilled}/5`} />
           <Row label="Alley" value={`${myAlleyFilled}/5`} />
           <Row label="Hand" value={String(gameState?.myHand?.length ?? "-")} />
@@ -158,10 +122,7 @@ export function DevDebugOverlay() {
         </Section>
 
         <Section title="Board - Opp">
-          <Row
-            label="Leader HP"
-            value={String(gameState?.opponentBoard?.leader.curHp ?? "-")}
-          />
+          <Row label="Leader HP" value={String(gameState?.opponentBoard?.leader.curHp ?? "-")} />
           <Row label="Garden" value={`${oppGardenFilled}/5`} />
           <Row label="Alley" value={`${oppAlleyFilled}/5`} />
           <Row label="Hand" value={String(gameState?.opponentBoard?.handCount ?? "-")} />
@@ -189,10 +150,7 @@ export function DevDebugOverlay() {
             label="Player Slot"
             value={activeRoom?.playerSlot !== undefined ? `P${activeRoom.playerSlot}` : "-"}
           />
-          <Row
-            label="Selection"
-            value={`${gameState?.selectionCards?.length ?? 0} cards`}
-          />
+          <Row label="Selection" value={`${gameState?.selectionCards?.length ?? 0} cards`} />
         </Section>
       </div>
     </div>

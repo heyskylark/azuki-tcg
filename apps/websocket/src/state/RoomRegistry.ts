@@ -11,7 +11,8 @@ export function createRoomChannel(
   player0IsAi = false,
   player1IsAi = false,
   player0ModelKey: string | null = null,
-  player1ModelKey: string | null = null
+  player1ModelKey: string | null = null,
+  evaluation: RoomChannelState["evaluation"] = null
 ): RoomChannelState {
   const player0: PlayerConnection | null = roomData.player0Id
     ? {
@@ -49,6 +50,7 @@ export function createRoomChannel(
     player1Ready: roomData.player1Ready,
     deckSelectionDeadline: roomData.deckSelectionDeadline,
     readyCountdownStartedAt: null,
+    evaluation,
   };
 
   roomChannels.set(roomId, channel);
@@ -67,7 +69,8 @@ export function getOrCreateRoomChannel(
   player0IsAi = false,
   player1IsAi = false,
   player0ModelKey: string | null = null,
-  player1ModelKey: string | null = null
+  player1ModelKey: string | null = null,
+  evaluation: RoomChannelState["evaluation"] = null
 ): RoomChannelState {
   const existing = roomChannels.get(roomId);
   if (existing) {
@@ -82,7 +85,8 @@ export function getOrCreateRoomChannel(
     player0IsAi,
     player1IsAi,
     player0ModelKey,
-    player1ModelKey
+    player1ModelKey,
+    evaluation
   );
 }
 

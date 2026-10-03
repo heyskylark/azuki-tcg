@@ -98,6 +98,10 @@ bool azk01_126_validate_selection_target(ecs_world_t *world, ecs_entity_t card,
 }
 
 void azk01_126_on_selection_complete(ecs_world_t *world, AbilityContext *ctx) {
-  azk_move_picked_selection_cards_to_hand_if_still_in_selection(world, ctx);
+  const uint8_t recovered =
+      azk_move_picked_selection_cards_to_hand_if_still_in_selection(world, ctx);
+  if (recovered > 0) {
+    azk_record_gate_ability_outcome(world, ctx->runtime.owner);
+  }
   azk_return_remaining_selection_cards_to_discard(world, ctx);
 }

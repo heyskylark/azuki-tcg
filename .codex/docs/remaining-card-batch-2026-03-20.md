@@ -218,7 +218,7 @@ Last updated: 2026-03-20
 
 ### AZK01-127 Sundering Strike
 - rarity: `UC`
-- element: `LIGHTNING`
+- element: `NORMAL`
 - type: `SPELL`
 - cost `1`
 - subtypes: `Samurai`

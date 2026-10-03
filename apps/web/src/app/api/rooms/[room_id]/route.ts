@@ -3,12 +3,9 @@ import { withErrorHandler } from "@/lib/hof/withErrorHandler";
 import { withAuth, type AuthenticatedRequest } from "@/lib/hof/withAuth";
 import { env } from "@/lib/env";
 import { updateRoomSchema } from "@/lib/validation/rooms";
-import {
-  closeRoom,
-  updateRoom,
-  findRoomById,
-} from "@tcg/backend-core/services/roomService";
-import { RoomNotFoundError } from "@tcg/backend-core/errors";
+import { closeRoom, updateRoom, findRoomById } from "@tcg/backend-core/services/roomService";
+import { getHumanEvaluationMatchByRoomId } from "@tcg/backend-core/services/humanEvaluationService";
+import { HumanEvaluationUnavailableError, RoomNotFoundError } from "@tcg/backend-core/errors";
 import type { AuthConfig } from "@tcg/backend-core/types/auth";
 
 const authConfig: AuthConfig = {
@@ -26,6 +23,12 @@ async function deleteHandler(
   context: RouteContext
 ): Promise<NextResponse> {
   const { room_id: roomId } = await context.params;
+  const evaluationMatch = await getHumanEvaluationMatchByRoomId(roomId);
+  if (evaluationMatch) {
+    throw new HumanEvaluationUnavailableError(
+      "Evaluation rooms must be left through the live game connection"
+    );
+  }
 
   const room = await closeRoom(roomId, request.user.id);
 
@@ -53,8 +56,8 @@ async function patchHandler(
       status: room.status,
       type: room.type,
       hasPassword: room.passwordHash !== null,
-      player0Id: room.player0Id,
-      player1Id: room.player1Id,
+      playerSlot:
+        room.player0Id === request.user.id ? 0 : room.player1Id === request.user.id ? 1 : null,
       updatedAt: room.updatedAt,
     },
   });
@@ -78,8 +81,8 @@ async function getHandler(
       status: room.status,
       type: room.type,
       hasPassword: room.passwordHash !== null,
-      player0Id: room.player0Id,
-      player1Id: room.player1Id,
+      playerSlot:
+        room.player0Id === request.user.id ? 0 : room.player1Id === request.user.id ? 1 : null,
       createdAt: room.createdAt,
       updatedAt: room.updatedAt,
     },
