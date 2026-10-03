@@ -10,6 +10,27 @@
 
 #define AZK_MAX_CARD_ABILITIES 8
 
+// Ability slots of a card: its own registry entries first, then the entries of
+// a CopiedCardText definition (if any).
+typedef struct {
+  CardDefId own_def_id;
+  uint8_t own_count;
+  CardDefId copied_def_id;
+  uint8_t copied_count;
+} AzkCardAbilityLayout;
+
+AzkCardAbilityLayout azk_get_card_ability_layout(ecs_world_t *world,
+                                                 ecs_entity_t card,
+                                                 CardDefId own_def_id);
+
+// Slot of an ability instance within `layout`, or -1 if it does not belong.
+int azk_card_ability_slot(const AzkCardAbilityLayout *layout,
+                          const AbilityInstance *instance);
+
+// True if the card's attached abilities (own and copied) include `timing_tag`.
+bool azk_card_has_timed_ability(ecs_world_t *world, ecs_entity_t card,
+                                ecs_id_t timing_tag);
+
 bool azk_ability_def_has_timing(const AbilityDef *def, ecs_id_t timing_tag);
 
 ecs_entity_t azk_get_ability_source_card(ecs_world_t *world,

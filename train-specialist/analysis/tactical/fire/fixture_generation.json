@@ -1,0 +1,51 @@
+{
+ "accepted": [
+  {
+   "seat": 0,
+   "seed": 103,
+   "case_count": 6
+  },
+  {
+   "seat": 0,
+   "seed": 104,
+   "case_count": 6
+  },
+  {
+   "seat": 1,
+   "seed": 102,
+   "case_count": 6
+  },
+  {
+   "seat": 1,
+   "seed": 104,
+   "case_count": 6
+  }
+ ],
+ "rejected": [
+  {
+   "seat": 0,
+   "seed": 101,
+   "error": "Reject(('cannot legally spend to budget', 4))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_fire.py\", line 63, in build\n    g.spend_to(0, SPEND)\n    ~~~~~~~~~~^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 211, in spend_to\n    raise Reject(('cannot legally spend to budget', amount))\ntb_setup.Reject: ('cannot legally spend to budget', 4)\n"
+  },
+  {
+   "seat": 0,
+   "seed": 102,
+   "error": "Reject(('cannot legally spend to budget', 7))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_fire.py\", line 97, in build\n    g.spend_to(0, spendable, zone='garden')\n    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 211, in spend_to\n    raise Reject(('cannot legally spend to budget', amount))\ntb_setup.Reject: ('cannot legally spend to budget', 7)\n"
+  },
+  {
+   "seat": 1,
+   "seed": 101,
+   "error": "Reject('setup predicate unavailable')",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_fire.py\", line 57, in build\n    g.wait_for(lambda: RITUALIST in g.hand())\n    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 113, in wait_for\n    raise Reject('setup predicate unavailable')\ntb_setup.Reject: setup predicate unavailable\n"
+  },
+  {
+   "seat": 1,
+   "seed": 103,
+   "error": "Reject('chip_opp did not converge')",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_fire.py\", line 53, in build\n    host = setup_host(g, offset)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_fire.py\", line 39, in setup_host\n    g.chip_opp(target, reserve=(hslot,), fodder=[c for c in FODDER if c not in HOSTS])\n    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 139, in chip_opp\n    raise Reject('chip_opp did not converge')\ntb_setup.Reject: chip_opp did not converge\n"
+  }
+ ],
+ "selection_rule": "first 2 seeds per seat (from 101) where every case type constructs legally and verifies against its oracle; no policy outputs consulted"
+}

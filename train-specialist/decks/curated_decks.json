@@ -1,0 +1,2389 @@
+{
+  "schema_version": 1,
+  "generated": "2026-09-30",
+  "description": "Curated tournament-proven constructed decks for per-element specialist fine-tuning. Rushfire Gate (AZK01-122) intentionally kept legal (pre-ban lists valid). Tier A = winner/top-8 at a sanctioned or sizeable event or X-0/X-1 regional swiss; tier B = documented strong finish (top-32/top-10% of a 100+ field, top-16 of the 64-player Invitational, official top-4 archetype with self-reported list) or #1-ladder author list. heldout_eval_only decks (about 1/3 of tier-A per element, rounded) must never be trained on.",
+  "tier_rules": {
+    "A": "winner/top-4/top-8 at a sanctioned or sizeable event, or X-0/X-1 swiss at a regional",
+    "B": "documented strong finish (top-32/top-10% of a 100+ field, top-16 of the 64-player invite-only Invitational, official placement with self-reported list) or #1-ladder author list"
+  },
+  "sources": {
+    "thegate_supabase": "https://pwywekvounseunypnskt.supabase.co/rest/v1/ (snapshot: train-specialist/decks/raw/thegate_supabase_2026-09-30.json)",
+    "egman": "https://deckbuilder.egmanevents.com/api/standalone/azuki (snapshot: train-specialist/decks/raw/egman_azuki_2026-09-30.json)",
+    "garden_arena_submissions": ".codex/docs/azuki_garden_arena_2026-08-15_deck_submissions.json (1-based submission numbers)",
+    "official_cards": "train-specialist/sources/official_cards_api_2026-09-30.json"
+  },
+  "decks": [
+    {
+      "id": "pasadena_ducky_drewwskiee",
+      "deck_name": "Zero Rushfire - ducky/drewwskiee (Garden Arena 1st & 2nd)",
+      "element": "FIRE",
+      "leader_card_id": "STT04-001",
+      "leader_name": "Zero",
+      "gate_card_id": "AZK01-122",
+      "gate_name": "Rushfire Gate",
+      "archetype": "Zero Rushfire Cinderwake burn (Warlord/Pekiro/Ritualist, Fire Orb x2, Sundering x3)",
+      "tier": "A",
+      "heldout_eval_only": false,
+      "event": "Azuki TCG Garden Arena Regional (CoreTCG), Pasadena CA - 315 players, 8 rounds swiss + top 8",
+      "date": "2026-08-15",
+      "rushfire_ban_status": "pre-ban (Rushfire Gate legal at event; ban effective 2026-08-18)",
+      "placements": [
+        {
+          "player": "ducky",
+          "placement": 1,
+          "record": "7-1 swiss, champion (3-0 top cut)"
+        },
+        {
+          "player": "drewwskiee",
+          "placement": 2,
+          "record": "7-1 swiss, finalist"
+        }
+      ],
+      "evidence": "Official Azuki recap lists ducky 1st and drewwskiee 2nd (both Zero/Fire, 7-1 swiss). Official X \"Top 4\" thread image for both players shows this identical 50-card list; MarredPlatypus Top-8 video frames (06:45-11:00) confirm. List exactly equals 4 anonymous Garden Arena submissions.",
+      "source_urls": [
+        "https://tcg.azuki.com/blog/01a017f6-5ed3-7990-a97e-4540e4c0b3d5",
+        "https://x.com/AzukiTCG/status/2089407723720818814",
+        "https://www.youtube.com/watch?v=I00VDjQ0k2E"
+      ],
+      "garden_arena_submission_numbers": [
+        24,
+        122,
+        125,
+        161
+      ],
+      "pending_engine_cards": [],
+      "cards": [
+        {
+          "card_id": "STT04-001",
+          "quantity": 1,
+          "name": "Zero"
+        },
+        {
+          "card_id": "AZK01-122",
+          "quantity": 1,
+          "name": "Rushfire Gate"
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4,
+          "name": "Glass Blower, Hokuto"
+        },
+        {
+          "card_id": "AZK01-058",
+          "quantity": 4,
+          "name": "Black Jade Warlord"
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 4,
+          "name": "Spice"
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 2,
+          "name": "Scarlett"
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4,
+          "name": "Pekiro"
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 2,
+          "name": "Fire Orb"
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 3,
+          "name": "Sundering Strike"
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 3,
+          "name": "Rei"
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 4,
+          "name": "Cinderwake Seer"
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 4,
+          "name": "Fanatic Kindler"
+        },
+        {
+          "card_id": "STT04-005",
+          "quantity": 4,
+          "name": "Ruby"
+        },
+        {
+          "card_id": "STT04-009",
+          "quantity": 4,
+          "name": "Cinderwake Ritualist"
+        },
+        {
+          "card_id": "STT04-015",
+          "quantity": 4,
+          "name": "Detonation Pact"
+        },
+        {
+          "card_id": "STT04-016",
+          "quantity": 4,
+          "name": "Collateral Burst"
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10,
+          "name": "IKZ"
+        }
+      ]
+    },
+    {
+      "id": "pasadena_mrmexicant_jbae",
+      "deck_name": "Zero Rushfire - mrmexicant/jbae (Garden Arena Top 4)",
+      "element": "FIRE",
+      "leader_card_id": "STT04-001",
+      "leader_name": "Zero",
+      "gate_card_id": "AZK01-122",
+      "gate_name": "Rushfire Gate",
+      "archetype": "Zero Rushfire aggro-burn (Alley Thug x4, Fire Orb x4, no Sundering)",
+      "tier": "A",
+      "heldout_eval_only": false,
+      "event": "Azuki TCG Garden Arena Regional (CoreTCG), Pasadena CA - 315 players, 8 rounds swiss + top 8",
+      "date": "2026-08-15",
+      "rushfire_ban_status": "pre-ban (Rushfire Gate legal at event; ban effective 2026-08-18)",
+      "placements": [
+        {
+          "player": "mrmexicant",
+          "placement": 3,
+          "record": "7-1 swiss, top 4"
+        },
+        {
+          "player": "jbae",
+          "placement": 4,
+          "record": "7-1 swiss, top 4"
+        }
+      ],
+      "evidence": "Official recap: mrmexicant 3rd, jbae 4th (Zero/Fire, 7-1). Official X \"Top 4\" images for both show this identical list; video frames 11:15-14:00 confirm. Exactly equals 2 Garden Arena submissions.",
+      "source_urls": [
+        "https://tcg.azuki.com/blog/01a017f6-5ed3-7990-a97e-4540e4c0b3d5",
+        "https://x.com/AzukiTCG/status/2089407723720818814",
+        "https://www.youtube.com/watch?v=I00VDjQ0k2E"
+      ],
+      "garden_arena_submission_numbers": [
+        73,
+        283
+      ],
+      "pending_engine_cards": [],
+      "cards": [
+        {
+          "card_id": "STT04-001",
+          "quantity": 1,
+          "name": "Zero"
+        },
+        {
+          "card_id": "AZK01-122",
+          "quantity": 1,
+          "name": "Rushfire Gate"
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4,
+          "name": "Alley Thug"
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4,
+          "name": "Glass Blower, Hokuto"
+        },
+        {
+          "card_id": "AZK01-058",
+          "quantity": 4,
+          "name": "Black Jade Warlord"
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 2,
+          "name": "Spice"
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4,
+          "name": "Pekiro"
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 4,
+          "name": "Fire Orb"
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4,
+          "name": "Rei"
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 4,
+          "name": "Cinderwake Seer"
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 4,
+          "name": "Fanatic Kindler"
+        },
+        {
+          "card_id": "STT04-005",
+          "quantity": 4,
+          "name": "Ruby"
+        },
+        {
+          "card_id": "STT04-009",
+          "quantity": 4,
+          "name": "Cinderwake Ritualist"
+        },
+        {
+          "card_id": "STT04-015",
+          "quantity": 4,
+          "name": "Detonation Pact"
+        },
+        {
+          "card_id": "STT04-016",
+          "quantity": 4,
+          "name": "Collateral Burst"
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10,
+          "name": "IKZ"
+        }
+      ]
+    },
+    {
+      "id": "pasadena_szerro",
+      "deck_name": "Zero Rushfire Tenshin/Saeko - szerro (Garden Arena Top 8)",
+      "element": "FIRE",
+      "leader_card_id": "STT04-001",
+      "leader_name": "Zero",
+      "gate_card_id": "AZK01-122",
+      "gate_name": "Rushfire Gate",
+      "archetype": "Zero Rushfire with Lounge Siren Saeko x4 and Tenshin x4",
+      "tier": "A",
+      "heldout_eval_only": false,
+      "event": "Azuki TCG Garden Arena Regional (CoreTCG), Pasadena CA - 315 players, 8 rounds swiss + top 8",
+      "date": "2026-08-15",
+      "rushfire_ban_status": "pre-ban (Rushfire Gate legal at event; ban effective 2026-08-18)",
+      "placements": [
+        {
+          "player": "szerro",
+          "placement": 8,
+          "record": "7-1 swiss, top 8"
+        }
+      ],
+      "evidence": "Official recap: szerro 8th (Zero/Fire, 7-1). Official X \"decks 8 through 5\" image \"Garden Arena Regionals - Top 8 By @szerro\" shows this list (not shown in the YouTube video). Exactly equals 3 Garden Arena submissions. Author also won the 10-player NYC local with an earlier list (Gate article Szerro Sligh).",
+      "source_urls": [
+        "https://tcg.azuki.com/blog/01a017f6-5ed3-7990-a97e-4540e4c0b3d5",
+        "https://x.com/AzukiTCG/status/2089407720902238468",
+        "https://thegateikz.com/articles/szerro-sligh"
+      ],
+      "garden_arena_submission_numbers": [
+        51,
+        170,
+        231
+      ],
+      "pending_engine_cards": [],
+      "cards": [
+        {
+          "card_id": "STT04-001",
+          "quantity": 1,
+          "name": "Zero"
+        },
+        {
+          "card_id": "AZK01-122",
+          "quantity": 1,
+          "name": "Rushfire Gate"
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4,
+          "name": "Glass Blower, Hokuto"
+        },
+        {
+          "card_id": "AZK01-057",
+          "quantity": 4,
+          "name": "Lounge Siren, Saeko"
+        },
+        {
+          "card_id": "AZK01-058",
+          "quantity": 4,
+          "name": "Black Jade Warlord"
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 4,
+          "name": "Spice"
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 3,
+          "name": "Pekiro"
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 3,
+          "name": "Fire Orb"
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4,
+          "name": "Tenshin"
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4,
+          "name": "Rei"
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 4,
+          "name": "Cinderwake Seer"
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 4,
+          "name": "Fanatic Kindler"
+        },
+        {
+          "card_id": "STT04-005",
+          "quantity": 4,
+          "name": "Ruby"
+        },
+        {
+          "card_id": "STT04-009",
+          "quantity": 4,
+          "name": "Cinderwake Ritualist"
+        },
+        {
+          "card_id": "STT04-016",
+          "quantity": 4,
+          "name": "Collateral Burst"
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10,
+          "name": "IKZ"
+        }
+      ]
+    },
+    {
+      "id": "pasadena_orion",
+      "deck_name": "Zero Rushfire - orion (Garden Arena Top 8)",
+      "element": "FIRE",
+      "leader_card_id": "STT04-001",
+      "leader_name": "Zero",
+      "gate_card_id": "AZK01-122",
+      "gate_name": "Rushfire Gate",
+      "archetype": "Zero Rushfire midrange (Arsonist/Howler/Scarlett, Tenshin x2)",
+      "tier": "A",
+      "heldout_eval_only": true,
+      "event": "Azuki TCG Garden Arena Regional (CoreTCG), Pasadena CA - 315 players, 8 rounds swiss + top 8",
+      "date": "2026-08-15",
+      "rushfire_ban_status": "pre-ban (Rushfire Gate legal at event; ban effective 2026-08-18)",
+      "placements": [
+        {
+          "player": "orion",
+          "placement": 7,
+          "record": "7-1 swiss, top 8"
+        }
+      ],
+      "evidence": "Official recap: orion 7th (Zero/Fire, 7-1). Official X \"decks 8 through 5\" image and video frames 24:30-28:00 show this list. Exactly equals 1 Garden Arena submission.",
+      "source_urls": [
+        "https://tcg.azuki.com/blog/01a017f6-5ed3-7990-a97e-4540e4c0b3d5",
+        "https://x.com/AzukiTCG/status/2089407720902238468",
+        "https://www.youtube.com/watch?v=I00VDjQ0k2E"
+      ],
+      "garden_arena_submission_numbers": [
+        118
+      ],
+      "pending_engine_cards": [],
+      "cards": [
+        {
+          "card_id": "STT04-001",
+          "quantity": 1,
+          "name": "Zero"
+        },
+        {
+          "card_id": "AZK01-122",
+          "quantity": 1,
+          "name": "Rushfire Gate"
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 3,
+          "name": "Alley Thug"
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4,
+          "name": "Glass Blower, Hokuto"
+        },
+        {
+          "card_id": "AZK01-058",
+          "quantity": 4,
+          "name": "Black Jade Warlord"
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 2,
+          "name": "Spice"
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 2,
+          "name": "Scarlett"
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 2,
+          "name": "Pekiro"
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 3,
+          "name": "Fire Orb"
+        },
+        {
+          "card_id": "AZK01-115",
+          "quantity": 1,
+          "name": "Crazed Arsonist"
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 2,
+          "name": "Sundering Strike"
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 2,
+          "name": "Tenshin"
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 4,
+          "name": "Cinderwake Seer"
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 4,
+          "name": "Fanatic Kindler"
+        },
+        {
+          "card_id": "STT04-005",
+          "quantity": 4,
+          "name": "Ruby"
+        },
+        {
+          "card_id": "STT04-007",
+          "quantity": 1,
+          "name": "Enraged Howler"
+        },
+        {
+          "card_id": "STT04-009",
+          "quantity": 4,
+          "name": "Cinderwake Ritualist"
+        },
+        {
+          "card_id": "STT04-015",
+          "quantity": 4,
+          "name": "Detonation Pact"
+        },
+        {
+          "card_id": "STT04-016",
+          "quantity": 4,
+          "name": "Collateral Burst"
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10,
+          "name": "IKZ"
+        }
+      ]
+    },
+    {
+      "id": "case1_brayan",
+      "deck_name": "Zero Rushfire Black Jade go-wide - brayan (CoreTCG Case 2nd)",
+      "element": "FIRE",
+      "leader_card_id": "STT04-001",
+      "leader_name": "Zero",
+      "gate_card_id": "AZK01-122",
+      "gate_name": "Rushfire Gate",
+      "archetype": "Zero Rushfire Black Jade go-wide (Courier/Decoy/Brawler/Arsonist/Howler)",
+      "tier": "A",
+      "heldout_eval_only": true,
+      "event": "CoreTCG Case Tournament (official \"Small Official\" event, top-8 cut), CoreTCG, CA",
+      "date": "2026-06-30",
+      "rushfire_ban_status": "pre-ban (Rushfire Gate legal at event; ban effective 2026-08-18)",
+      "placements": [
+        {
+          "player": "brayan",
+          "placement": 2,
+          "record": "4-1"
+        }
+      ],
+      "evidence": "Official X result post: \"2nd - Zero/Rushfire\" at the CoreTCG case tournament (top-8 cut). Official X decklist image \"2nd place Zero\" shows this list; Egman deck DB (event_type \"Small Official\", 4-1) has the identical code list.",
+      "source_urls": [
+        "https://x.com/AzukiTCG/status/2072107915411132798",
+        "https://x.com/AzukiTCG/status/2072119400073929202",
+        "https://deckbuilder.egmanevents.com/azuki/tournaments"
+      ],
+      "garden_arena_submission_numbers": [],
+      "pending_engine_cards": [],
+      "cards": [
+        {
+          "card_id": "STT04-001",
+          "quantity": 1,
+          "name": "Zero"
+        },
+        {
+          "card_id": "AZK01-122",
+          "quantity": 1,
+          "name": "Rushfire Gate"
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4,
+          "name": "Black Jade Courier"
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4,
+          "name": "Glass Blower, Hokuto"
+        },
+        {
+          "card_id": "AZK01-058",
+          "quantity": 4,
+          "name": "Black Jade Warlord"
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 2,
+          "name": "Pekiro"
+        },
+        {
+          "card_id": "AZK01-082",
+          "quantity": 3,
+          "name": "Black Jade Brawler"
+        },
+        {
+          "card_id": "AZK01-111",
+          "quantity": 4,
+          "name": "Black Jade Decoy"
+        },
+        {
+          "card_id": "AZK01-113",
+          "quantity": 3,
+          "name": "Cinderwake Pursuer"
+        },
+        {
+          "card_id": "AZK01-115",
+          "quantity": 4,
+          "name": "Crazed Arsonist"
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 2,
+          "name": "Black Jade Dagger"
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 4,
+          "name": "Fanatic Kindler"
+        },
+        {
+          "card_id": "STT04-005",
+          "quantity": 4,
+          "name": "Ruby"
+        },
+        {
+          "card_id": "STT04-007",
+          "quantity": 4,
+          "name": "Enraged Howler"
+        },
+        {
+          "card_id": "STT04-009",
+          "quantity": 3,
+          "name": "Cinderwake Ritualist"
+        },
+        {
+          "card_id": "STT04-015",
+          "quantity": 1,
+          "name": "Detonation Pact"
+        },
+        {
+          "card_id": "STT04-016",
+          "quantity": 4,
+          "name": "Collateral Burst"
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10,
+          "name": "IKZ"
+        }
+      ]
+    },
+    {
+      "id": "inv_xell_toraoy",
+      "deck_name": "Zero Ragefire Healing Flutter - xell/toraoy (2026 Invitational 2nd & 5th)",
+      "element": "FIRE",
+      "leader_card_id": "STT04-001",
+      "leader_name": "Zero",
+      "gate_card_id": "STT04-002",
+      "gate_name": "Ragefire Gate",
+      "archetype": "Zero Ragefire tempo-burn with Healing Flutter x4 and Black Jade Decoy",
+      "tier": "A",
+      "heldout_eval_only": false,
+      "event": "2026 Azuki TCG Invitational, Los Angeles CA - 64 invited players, $10k",
+      "date": "2026-01-11",
+      "rushfire_ban_status": "pre-Rushfire-release (Jan 2026 Alpha-era card pool; Rushfire Gate did not yet exist)",
+      "placements": [
+        {
+          "player": "xell",
+          "placement": 2,
+          "record": "5-1",
+          "deck_url": "https://thegateikz.com/decks/xell-mkd9o4t0"
+        },
+        {
+          "player": "toraoy",
+          "placement": 5,
+          "record": "5-1",
+          "deck_url": "https://thegateikz.com/decks/toraoy-mkdaeblf"
+        }
+      ],
+      "evidence": "The Gate official-tagged \"2026 Invitational\" decklists + tournament_placements table (2nd xell 5-1, 5th toraoy 5-1); two players registered this identical list.",
+      "source_urls": [
+        "https://thegateikz.com/decks/xell-mkd9o4t0",
+        "https://thegateikz.com/decks/toraoy-mkdaeblf",
+        "https://tcg.azuki.com/"
+      ],
+      "garden_arena_submission_numbers": [],
+      "pending_engine_cards": [],
+      "cards": [
+        {
+          "card_id": "STT04-001",
+          "quantity": 1,
+          "name": "Zero"
+        },
+        {
+          "card_id": "STT04-002",
+          "quantity": 1,
+          "name": "Ragefire Gate"
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 2,
+          "name": "Penny"
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4,
+          "name": "Healing Flutter"
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4,
+          "name": "Glass Blower, Hokuto"
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 2,
+          "name": "Spice"
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 4,
+          "name": "Scarlett"
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4,
+          "name": "Pekiro"
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 3,
+          "name": "Fire Orb"
+        },
+        {
+          "card_id": "AZK01-111",
+          "quantity": 3,
+          "name": "Black Jade Decoy"
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4,
+          "name": "Rei"
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 4,
+          "name": "Fanatic Kindler"
+        },
+        {
+          "card_id": "STT04-005",
+          "quantity": 4,
+          "name": "Ruby"
+        },
+        {
+          "card_id": "STT04-007",
+          "quantity": 4,
+          "name": "Enraged Howler"
+        },
+        {
+          "card_id": "STT04-015",
+          "quantity": 4,
+          "name": "Detonation Pact"
+        },
+        {
+          "card_id": "STT04-016",
+          "quantity": 4,
+          "name": "Collateral Burst"
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10,
+          "name": "IKZ"
+        }
+      ]
+    },
+    {
+      "id": "inv_dylhu_jackie",
+      "deck_name": "Zero Ragefire Cinderwake - dylhu/jackie (2026 Invitational 4th & 8th)",
+      "element": "FIRE",
+      "leader_card_id": "STT04-001",
+      "leader_name": "Zero",
+      "gate_card_id": "STT04-002",
+      "gate_name": "Ragefire Gate",
+      "archetype": "Zero Ragefire Cinderwake burn with Tenmoku Daiki",
+      "tier": "A",
+      "heldout_eval_only": true,
+      "event": "2026 Azuki TCG Invitational, Los Angeles CA - 64 invited players, $10k",
+      "date": "2026-01-11",
+      "rushfire_ban_status": "pre-Rushfire-release (Jan 2026 Alpha-era card pool; Rushfire Gate did not yet exist)",
+      "placements": [
+        {
+          "player": "dylhu",
+          "placement": 4,
+          "record": "5-1",
+          "deck_url": "https://thegateikz.com/decks/dylhu-mkda9xis"
+        },
+        {
+          "player": "jackie",
+          "placement": 8,
+          "record": "5-1",
+          "deck_url": "https://thegateikz.com/decks/jackie-mkdabxt6"
+        }
+      ],
+      "evidence": "The Gate official-tagged \"2026 Invitational\" decklists + tournament_placements (4th dylhu 5-1, 8th jackie 5-1); identical lists.",
+      "source_urls": [
+        "https://thegateikz.com/decks/dylhu-mkda9xis",
+        "https://thegateikz.com/decks/jackie-mkdabxt6",
+        "https://tcg.azuki.com/"
+      ],
+      "garden_arena_submission_numbers": [],
+      "pending_engine_cards": [],
+      "cards": [
+        {
+          "card_id": "STT04-001",
+          "quantity": 1,
+          "name": "Zero"
+        },
+        {
+          "card_id": "STT04-002",
+          "quantity": 1,
+          "name": "Ragefire Gate"
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4,
+          "name": "Glass Blower, Hokuto"
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 2,
+          "name": "Spice"
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 4,
+          "name": "Scarlett"
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4,
+          "name": "Pekiro"
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 2,
+          "name": "Fire Orb"
+        },
+        {
+          "card_id": "AZK01-116",
+          "quantity": 2,
+          "name": "Tenmoku Daiki"
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4,
+          "name": "Rei"
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 4,
+          "name": "Cinderwake Seer"
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 4,
+          "name": "Fanatic Kindler"
+        },
+        {
+          "card_id": "STT04-005",
+          "quantity": 4,
+          "name": "Ruby"
+        },
+        {
+          "card_id": "STT04-007",
+          "quantity": 4,
+          "name": "Enraged Howler"
+        },
+        {
+          "card_id": "STT04-009",
+          "quantity": 4,
+          "name": "Cinderwake Ritualist"
+        },
+        {
+          "card_id": "STT04-015",
+          "quantity": 4,
+          "name": "Detonation Pact"
+        },
+        {
+          "card_id": "STT04-016",
+          "quantity": 4,
+          "name": "Collateral Burst"
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10,
+          "name": "IKZ"
+        }
+      ]
+    },
+    {
+      "id": "inv_bfg",
+      "deck_name": "Zero Ragefire Ignition - bfg (2026 Invitational 6th)",
+      "element": "FIRE",
+      "leader_card_id": "STT04-001",
+      "leader_name": "Zero",
+      "gate_card_id": "STT04-002",
+      "gate_name": "Ragefire Gate",
+      "archetype": "Zero Ragefire with Ignition Pact x4, Red Bean, Tenmoku Daiki",
+      "tier": "A",
+      "heldout_eval_only": false,
+      "event": "2026 Azuki TCG Invitational, Los Angeles CA - 64 invited players, $10k",
+      "date": "2026-01-11",
+      "rushfire_ban_status": "pre-Rushfire-release (Jan 2026 Alpha-era card pool; Rushfire Gate did not yet exist)",
+      "placements": [
+        {
+          "player": "bfg",
+          "placement": 6,
+          "record": "4-2",
+          "deck_url": "https://thegateikz.com/decks/bfg-mkdal7lr"
+        }
+      ],
+      "evidence": "The Gate official-tagged \"2026 Invitational\" decklist + tournament_placements (6th, 4-2).",
+      "source_urls": [
+        "https://thegateikz.com/decks/bfg-mkdal7lr",
+        "https://tcg.azuki.com/"
+      ],
+      "garden_arena_submission_numbers": [],
+      "pending_engine_cards": [],
+      "cards": [
+        {
+          "card_id": "STT04-001",
+          "quantity": 1,
+          "name": "Zero"
+        },
+        {
+          "card_id": "STT04-002",
+          "quantity": 1,
+          "name": "Ragefire Gate"
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 1,
+          "name": "Penny"
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4,
+          "name": "Healing Flutter"
+        },
+        {
+          "card_id": "AZK01-009",
+          "quantity": 2,
+          "name": "The Red Bean"
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 3,
+          "name": "Glass Blower, Hokuto"
+        },
+        {
+          "card_id": "AZK01-058",
+          "quantity": 2,
+          "name": "Black Jade Warlord"
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 4,
+          "name": "Scarlett"
+        },
+        {
+          "card_id": "AZK01-061",
+          "quantity": 1,
+          "name": "Firebrand Renji"
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 1,
+          "name": "Pekiro"
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 2,
+          "name": "Fire Orb"
+        },
+        {
+          "card_id": "AZK01-111",
+          "quantity": 3,
+          "name": "Black Jade Decoy"
+        },
+        {
+          "card_id": "AZK01-113",
+          "quantity": 1,
+          "name": "Cinderwake Pursuer"
+        },
+        {
+          "card_id": "AZK01-116",
+          "quantity": 2,
+          "name": "Tenmoku Daiki"
+        },
+        {
+          "card_id": "AZK01-117",
+          "quantity": 4,
+          "name": "Ignition Pact"
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 3,
+          "name": "Cinderwake Seer"
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 4,
+          "name": "Fanatic Kindler"
+        },
+        {
+          "card_id": "STT04-005",
+          "quantity": 3,
+          "name": "Ruby"
+        },
+        {
+          "card_id": "STT04-007",
+          "quantity": 4,
+          "name": "Enraged Howler"
+        },
+        {
+          "card_id": "STT04-009",
+          "quantity": 2,
+          "name": "Cinderwake Ritualist"
+        },
+        {
+          "card_id": "STT04-015",
+          "quantity": 4,
+          "name": "Detonation Pact"
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10,
+          "name": "IKZ"
+        }
+      ]
+    },
+    {
+      "id": "inv_drewwskiee",
+      "deck_name": "Zero Ragefire - drewwskiee (2026 Invitational 7th)",
+      "element": "FIRE",
+      "leader_card_id": "STT04-001",
+      "leader_name": "Zero",
+      "gate_card_id": "STT04-002",
+      "gate_name": "Ragefire Gate",
+      "archetype": "Zero Ragefire Cinderwake with Healing Flutter x3",
+      "tier": "A",
+      "heldout_eval_only": false,
+      "event": "2026 Azuki TCG Invitational, Los Angeles CA - 64 invited players, $10k",
+      "date": "2026-01-11",
+      "rushfire_ban_status": "pre-Rushfire-release (Jan 2026 Alpha-era card pool; Rushfire Gate did not yet exist)",
+      "placements": [
+        {
+          "player": "drewwskiee",
+          "placement": 7,
+          "record": "5-1",
+          "deck_url": "https://thegateikz.com/decks/drewwskiee-mkdanmm6"
+        }
+      ],
+      "evidence": "The Gate official-tagged \"2026 Invitational\" decklist + tournament_placements (7th, 5-1).",
+      "source_urls": [
+        "https://thegateikz.com/decks/drewwskiee-mkdanmm6",
+        "https://tcg.azuki.com/"
+      ],
+      "garden_arena_submission_numbers": [],
+      "pending_engine_cards": [],
+      "cards": [
+        {
+          "card_id": "STT04-001",
+          "quantity": 1,
+          "name": "Zero"
+        },
+        {
+          "card_id": "STT04-002",
+          "quantity": 1,
+          "name": "Ragefire Gate"
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 3,
+          "name": "Healing Flutter"
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4,
+          "name": "Glass Blower, Hokuto"
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 2,
+          "name": "Spice"
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 4,
+          "name": "Scarlett"
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4,
+          "name": "Pekiro"
+        },
+        {
+          "card_id": "AZK01-111",
+          "quantity": 3,
+          "name": "Black Jade Decoy"
+        },
+        {
+          "card_id": "AZK01-116",
+          "quantity": 2,
+          "name": "Tenmoku Daiki"
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 3,
+          "name": "Rei"
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 3,
+          "name": "Cinderwake Seer"
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 4,
+          "name": "Fanatic Kindler"
+        },
+        {
+          "card_id": "STT04-005",
+          "quantity": 4,
+          "name": "Ruby"
+        },
+        {
+          "card_id": "STT04-007",
+          "quantity": 2,
+          "name": "Enraged Howler"
+        },
+        {
+          "card_id": "STT04-009",
+          "quantity": 4,
+          "name": "Cinderwake Ritualist"
+        },
+        {
+          "card_id": "STT04-015",
+          "quantity": 4,
+          "name": "Detonation Pact"
+        },
+        {
+          "card_id": "STT04-016",
+          "quantity": 4,
+          "name": "Collateral Burst"
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10,
+          "name": "IKZ"
+        }
+      ]
+    },
+    {
+      "id": "pasadena_bjmcs_19th",
+      "deck_name": "Zero Rushfire High Stakes Fire - 19th/315 (Garden Arena)",
+      "element": "FIRE",
+      "leader_card_id": "STT04-001",
+      "leader_name": "Zero",
+      "gate_card_id": "AZK01-122",
+      "gate_name": "Rushfire Gate",
+      "archetype": "Zero Rushfire piloting-heavy burn",
+      "tier": "B",
+      "heldout_eval_only": false,
+      "event": "Azuki TCG Garden Arena Regional (CoreTCG), Pasadena CA - 315 players, 8 rounds swiss + top 8",
+      "date": "2026-08-15",
+      "rushfire_ban_status": "pre-ban (Rushfire Gate legal at event; ban effective 2026-08-18)",
+      "placements": [
+        {
+          "player": "(The Gate author of \"High Stakes Fire\")",
+          "placement": 19,
+          "record": "19th of 315 (top 6%); 2 losses to eventual top-8 players"
+        }
+      ],
+      "evidence": "The Gate article \"High Stakes Fire (LA Regionals, 19th out of 315)\" embeds this deck (deckEmbed \"19/315 LA Reg\"); list exactly equals 1 Garden Arena submission. Self-reported placement, top-32/top-10% of a 315 field.",
+      "source_urls": [
+        "https://thegateikz.com/articles/high-stakes-fire-la-regionals-19th-out-of-315",
+        "https://thegateikz.com/decks/bjmcs-mrd70myz"
+      ],
+      "garden_arena_submission_numbers": [
+        274
+      ],
+      "pending_engine_cards": [],
+      "cards": [
+        {
+          "card_id": "STT04-001",
+          "quantity": 1,
+          "name": "Zero"
+        },
+        {
+          "card_id": "AZK01-122",
+          "quantity": 1,
+          "name": "Rushfire Gate"
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 1,
+          "name": "Healing Flutter"
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 2,
+          "name": "Black Jade Courier"
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4,
+          "name": "Glass Blower, Hokuto"
+        },
+        {
+          "card_id": "AZK01-058",
+          "quantity": 4,
+          "name": "Black Jade Warlord"
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 3,
+          "name": "Spice"
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 2,
+          "name": "Scarlett"
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 3,
+          "name": "Pekiro"
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 3,
+          "name": "Fire Orb"
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 1,
+          "name": "Sundering Strike"
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4,
+          "name": "Black Jade Dagger"
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 1,
+          "name": "Rei"
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 4,
+          "name": "Cinderwake Seer"
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 4,
+          "name": "Fanatic Kindler"
+        },
+        {
+          "card_id": "STT04-005",
+          "quantity": 4,
+          "name": "Ruby"
+        },
+        {
+          "card_id": "STT04-009",
+          "quantity": 3,
+          "name": "Cinderwake Ritualist"
+        },
+        {
+          "card_id": "STT04-015",
+          "quantity": 3,
+          "name": "Detonation Pact"
+        },
+        {
+          "card_id": "STT04-016",
+          "quantity": 4,
+          "name": "Collateral Burst"
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10,
+          "name": "IKZ"
+        }
+      ]
+    },
+    {
+      "id": "pasadena_baconman",
+      "deck_name": "Raizan Surge weapons - BaconMan (Garden Arena Top 8, 8-0 swiss)",
+      "element": "LIGHTNING",
+      "leader_card_id": "STT01-001",
+      "leader_name": "Raizan",
+      "gate_card_id": "STT01-002",
+      "gate_name": "Surge Gate",
+      "archetype": "Raizan weapons/Black Jade tempo (15 weapons, Stalking Assassin, Trade Guild Cavalry)",
+      "tier": "A",
+      "heldout_eval_only": false,
+      "event": "Azuki TCG Garden Arena Regional (CoreTCG), Pasadena CA - 315 players, 8 rounds swiss + top 8",
+      "date": "2026-08-15",
+      "rushfire_ban_status": "pre-ban (Rushfire Gate legal at event; ban effective 2026-08-18)",
+      "placements": [
+        {
+          "player": "BaconMan",
+          "placement": 5,
+          "record": "8-0 swiss (only undefeated), top 8"
+        }
+      ],
+      "evidence": "Official recap: BaconMan 5th, only 8-0 swiss. Official X top-8 image, video frames 14:15-17:30 and The Gate deck \"BaconM's Top 8\" all show this list; exactly equals 1 Garden Arena submission.",
+      "source_urls": [
+        "https://tcg.azuki.com/blog/01a017f6-5ed3-7990-a97e-4540e4c0b3d5",
+        "https://x.com/AzukiTCG/status/2089407720902238468",
+        "https://www.youtube.com/watch?v=I00VDjQ0k2E",
+        "https://thegateikz.com/decks/baconms-top-8-msydpdgt"
+      ],
+      "garden_arena_submission_numbers": [
+        210
+      ],
+      "pending_engine_cards": [],
+      "cards": [
+        {
+          "card_id": "STT01-001",
+          "quantity": 1,
+          "name": "Raizan"
+        },
+        {
+          "card_id": "STT01-002",
+          "quantity": 1,
+          "name": "Surge Gate"
+        },
+        {
+          "card_id": "AZK01-014",
+          "quantity": 3,
+          "name": "Trade Guild Cavalry"
+        },
+        {
+          "card_id": "AZK01-042",
+          "quantity": 2,
+          "name": "Thunderclap"
+        },
+        {
+          "card_id": "AZK01-077",
+          "quantity": 3,
+          "name": "Stalking Assassin"
+        },
+        {
+          "card_id": "AZK01-094",
+          "quantity": 4,
+          "name": "Hidden Dagger"
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 2,
+          "name": "Sundering Strike"
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 4,
+          "name": "Crate Rat Kurobo"
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4,
+          "name": "Black Jade Recruit"
+        },
+        {
+          "card_id": "STT01-005",
+          "quantity": 2,
+          "name": "Alpine Prowler"
+        },
+        {
+          "card_id": "STT01-006",
+          "quantity": 4,
+          "name": "Silver Current, Haruhi"
+        },
+        {
+          "card_id": "STT01-008",
+          "quantity": 4,
+          "name": "Black Jade Crewleader"
+        },
+        {
+          "card_id": "STT01-012",
+          "quantity": 3,
+          "name": "Lightning Shuriken"
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4,
+          "name": "Black Jade Dagger"
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4,
+          "name": "Tenshin"
+        },
+        {
+          "card_id": "STT01-017",
+          "quantity": 4,
+          "name": "Lightning Orb"
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 3,
+          "name": "Rei"
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10,
+          "name": "IKZ"
+        }
+      ]
+    },
+    {
+      "id": "case1_banchan",
+      "deck_name": "Raizan Stormchain weapons - notshanenam/banchan (CoreTCG Case 1st)",
+      "element": "LIGHTNING",
+      "leader_card_id": "STT01-001",
+      "leader_name": "Raizan",
+      "gate_card_id": "AZK01-120",
+      "gate_name": "Stormchain Gate",
+      "archetype": "Raizan 16-weapon Black Jade/Mo aggro",
+      "tier": "A",
+      "heldout_eval_only": false,
+      "event": "CoreTCG Case Tournament (official \"Small Official\" event, top-8 cut), CoreTCG, CA",
+      "date": "2026-06-30",
+      "rushfire_ban_status": "pre-ban (Rushfire Gate legal at event; ban effective 2026-08-18)",
+      "placements": [
+        {
+          "player": "notshanenam (Egman: banchan)",
+          "placement": 1,
+          "record": "5-0"
+        }
+      ],
+      "evidence": "Official X result post: @notshanenam won with Raizan; official X decklist image \"1st place Raizan\" shows this list (Egman: 5-0, Small Official). Gate conflict: the decklist image shows Stormchain Gate (AZK01-120) while the result-post text and Egman (transcribed) say Surge Gate; the decklist image is used as authoritative. Mains identical in both sources.",
+      "source_urls": [
+        "https://x.com/AzukiTCG/status/2072107915411132798",
+        "https://x.com/AzukiTCG/status/2072119400073929202",
+        "https://deckbuilder.egmanevents.com/azuki/tournaments"
+      ],
+      "garden_arena_submission_numbers": [],
+      "pending_engine_cards": [],
+      "cards": [
+        {
+          "card_id": "STT01-001",
+          "quantity": 1,
+          "name": "Raizan"
+        },
+        {
+          "card_id": "AZK01-120",
+          "quantity": 1,
+          "name": "Stormchain Gate"
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 2,
+          "name": "Penny"
+        },
+        {
+          "card_id": "AZK01-011",
+          "quantity": 4,
+          "name": "Rooftop Hunter"
+        },
+        {
+          "card_id": "AZK01-015",
+          "quantity": 4,
+          "name": "Mo"
+        },
+        {
+          "card_id": "AZK01-094",
+          "quantity": 4,
+          "name": "Hidden Dagger"
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 4,
+          "name": "Sundering Strike"
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 4,
+          "name": "Crate Rat Kurobo"
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4,
+          "name": "Black Jade Recruit"
+        },
+        {
+          "card_id": "STT01-005",
+          "quantity": 4,
+          "name": "Alpine Prowler"
+        },
+        {
+          "card_id": "STT01-006",
+          "quantity": 4,
+          "name": "Silver Current, Haruhi"
+        },
+        {
+          "card_id": "STT01-012",
+          "quantity": 4,
+          "name": "Lightning Shuriken"
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4,
+          "name": "Black Jade Dagger"
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4,
+          "name": "Tenshin"
+        },
+        {
+          "card_id": "STT01-017",
+          "quantity": 4,
+          "name": "Lightning Orb"
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10,
+          "name": "IKZ"
+        }
+      ]
+    },
+    {
+      "id": "inv_ducky",
+      "deck_name": "Raizan Surge - ducky (2026 Invitational Champion)",
+      "element": "LIGHTNING",
+      "leader_card_id": "STT01-001",
+      "leader_name": "Raizan",
+      "gate_card_id": "STT01-002",
+      "gate_name": "Surge Gate",
+      "archetype": "Raizan weapons tempo (Elder Hoshin, Vault Master, Yamada)",
+      "tier": "A",
+      "heldout_eval_only": false,
+      "event": "2026 Azuki TCG Invitational, Los Angeles CA - 64 invited players, $10k",
+      "date": "2026-01-11",
+      "rushfire_ban_status": "pre-Rushfire-release (Jan 2026 Alpha-era card pool; Rushfire Gate did not yet exist)",
+      "placements": [
+        {
+          "player": "ducky",
+          "placement": 1,
+          "record": "5-1",
+          "deck_url": "https://thegateikz.com/decks/ducky-mkd9pgym"
+        }
+      ],
+      "evidence": "The Gate official-tagged \"2026 Invitational\" decklist + tournament_placements (1st, 5-1); official Azuki recap of Pasadena confirms ducky won the January 2026 Invitational.",
+      "source_urls": [
+        "https://thegateikz.com/decks/ducky-mkd9pgym",
+        "https://tcg.azuki.com/",
+        "https://www.youtube.com/watch?v=_j1y1094k-4"
+      ],
+      "garden_arena_submission_numbers": [],
+      "pending_engine_cards": [],
+      "cards": [
+        {
+          "card_id": "STT01-001",
+          "quantity": 1,
+          "name": "Raizan"
+        },
+        {
+          "card_id": "STT01-002",
+          "quantity": 1,
+          "name": "Surge Gate"
+        },
+        {
+          "card_id": "AZK01-011",
+          "quantity": 4,
+          "name": "Rooftop Hunter"
+        },
+        {
+          "card_id": "AZK01-033",
+          "quantity": 3,
+          "name": "Elder Hoshin"
+        },
+        {
+          "card_id": "AZK01-040",
+          "quantity": 2,
+          "name": "Black Jade Vault Master"
+        },
+        {
+          "card_id": "AZK01-041",
+          "quantity": 1,
+          "name": "Wu Cha"
+        },
+        {
+          "card_id": "AZK01-094",
+          "quantity": 4,
+          "name": "Hidden Dagger"
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 4,
+          "name": "Crate Rat Kurobo"
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4,
+          "name": "Black Jade Recruit"
+        },
+        {
+          "card_id": "STT01-006",
+          "quantity": 4,
+          "name": "Silver Current, Haruhi"
+        },
+        {
+          "card_id": "STT01-008",
+          "quantity": 3,
+          "name": "Black Jade Crewleader"
+        },
+        {
+          "card_id": "STT01-009",
+          "quantity": 2,
+          "name": "Mastersmith Yamada"
+        },
+        {
+          "card_id": "STT01-012",
+          "quantity": 4,
+          "name": "Lightning Shuriken"
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4,
+          "name": "Black Jade Dagger"
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4,
+          "name": "Tenshin"
+        },
+        {
+          "card_id": "STT01-017",
+          "quantity": 4,
+          "name": "Lightning Orb"
+        },
+        {
+          "card_id": "STT03-008",
+          "quantity": 3,
+          "name": "Midnight Courier"
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10,
+          "name": "IKZ"
+        }
+      ]
+    },
+    {
+      "id": "inv_jerry",
+      "deck_name": "Raizan Surge Ikazuchi - jerry (2026 Invitational 3rd, 6-0 swiss)",
+      "element": "LIGHTNING",
+      "leader_card_id": "STT01-001",
+      "leader_name": "Raizan",
+      "gate_card_id": "STT01-002",
+      "gate_name": "Surge Gate",
+      "archetype": "Raizan weapons with Ikazuchi and Pawnbroker",
+      "tier": "A",
+      "heldout_eval_only": true,
+      "event": "2026 Azuki TCG Invitational, Los Angeles CA - 64 invited players, $10k",
+      "date": "2026-01-11",
+      "rushfire_ban_status": "pre-Rushfire-release (Jan 2026 Alpha-era card pool; Rushfire Gate did not yet exist)",
+      "placements": [
+        {
+          "player": "jerry",
+          "placement": 3,
+          "record": "6-0",
+          "deck_url": "https://thegateikz.com/decks/jerry-mkd9tc1y"
+        }
+      ],
+      "evidence": "The Gate official-tagged \"2026 Invitational\" decklist + tournament_placements (3rd, 6-0).",
+      "source_urls": [
+        "https://thegateikz.com/decks/jerry-mkd9tc1y",
+        "https://tcg.azuki.com/"
+      ],
+      "garden_arena_submission_numbers": [],
+      "pending_engine_cards": [],
+      "cards": [
+        {
+          "card_id": "STT01-001",
+          "quantity": 1,
+          "name": "Raizan"
+        },
+        {
+          "card_id": "STT01-002",
+          "quantity": 1,
+          "name": "Surge Gate"
+        },
+        {
+          "card_id": "AZK01-011",
+          "quantity": 2,
+          "name": "Rooftop Hunter"
+        },
+        {
+          "card_id": "AZK01-033",
+          "quantity": 4,
+          "name": "Elder Hoshin"
+        },
+        {
+          "card_id": "AZK01-097",
+          "quantity": 4,
+          "name": "Black Jade Pawnbroker"
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 4,
+          "name": "Crate Rat Kurobo"
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 2,
+          "name": "Black Jade Recruit"
+        },
+        {
+          "card_id": "STT01-006",
+          "quantity": 4,
+          "name": "Silver Current, Haruhi"
+        },
+        {
+          "card_id": "STT01-008",
+          "quantity": 4,
+          "name": "Black Jade Crewleader"
+        },
+        {
+          "card_id": "STT01-011",
+          "quantity": 3,
+          "name": "Raizan"
+        },
+        {
+          "card_id": "STT01-012",
+          "quantity": 4,
+          "name": "Lightning Shuriken"
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4,
+          "name": "Black Jade Dagger"
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4,
+          "name": "Tenshin"
+        },
+        {
+          "card_id": "STT01-016",
+          "quantity": 3,
+          "name": "Ikazuchi"
+        },
+        {
+          "card_id": "STT01-017",
+          "quantity": 4,
+          "name": "Lightning Orb"
+        },
+        {
+          "card_id": "STT03-008",
+          "quantity": 4,
+          "name": "Midnight Courier"
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10,
+          "name": "IKZ"
+        }
+      ]
+    },
+    {
+      "id": "pasadena_cat",
+      "deck_name": "Bobu Stonehaven control - cat (Garden Arena Top 8)",
+      "element": "EARTH",
+      "leader_card_id": "STT03-001",
+      "leader_name": "Bobu",
+      "gate_card_id": "STT03-002",
+      "gate_name": "Stonehaven Gate",
+      "archetype": "Bobu Stonehaven ramp/defender control (Stone Masked Ancient, Sandcoil Python, Teb Fea)",
+      "tier": "A",
+      "heldout_eval_only": false,
+      "event": "Azuki TCG Garden Arena Regional (CoreTCG), Pasadena CA - 315 players, 8 rounds swiss + top 8",
+      "date": "2026-08-15",
+      "rushfire_ban_status": "pre-ban (Rushfire Gate legal at event; ban effective 2026-08-18)",
+      "placements": [
+        {
+          "player": "cat",
+          "placement": 6,
+          "record": "7-1 swiss, top 8"
+        }
+      ],
+      "evidence": "Official recap: cat 6th (Bobu/Earth, 7-1). Official X top-8 image, video frames 17:45-24:15 and The Gate deck \"Cat's Top 8 Earth\" show this list; exactly equals 1 Garden Arena submission.",
+      "source_urls": [
+        "https://tcg.azuki.com/blog/01a017f6-5ed3-7990-a97e-4540e4c0b3d5",
+        "https://x.com/AzukiTCG/status/2089407720902238468",
+        "https://www.youtube.com/watch?v=I00VDjQ0k2E",
+        "https://thegateikz.com/decks/cats-top-8-earth-msydmtsm"
+      ],
+      "garden_arena_submission_numbers": [
+        224
+      ],
+      "pending_engine_cards": [],
+      "cards": [
+        {
+          "card_id": "STT03-001",
+          "quantity": 1,
+          "name": "Bobu"
+        },
+        {
+          "card_id": "STT03-002",
+          "quantity": 1,
+          "name": "Stonehaven Gate"
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 3,
+          "name": "Healing Flutter"
+        },
+        {
+          "card_id": "AZK01-045",
+          "quantity": 3,
+          "name": "Treetop Scout"
+        },
+        {
+          "card_id": "AZK01-050",
+          "quantity": 4,
+          "name": "Shroom Tender"
+        },
+        {
+          "card_id": "AZK01-054",
+          "quantity": 2,
+          "name": "Teb Fea"
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4,
+          "name": "Mocking Dummy"
+        },
+        {
+          "card_id": "AZK01-107",
+          "quantity": 1,
+          "name": "Offering to Stillstone"
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 4,
+          "name": "Sundering Strike"
+        },
+        {
+          "card_id": "AZK01-128",
+          "quantity": 4,
+          "name": "Wrong Step"
+        },
+        {
+          "card_id": "STT03-003",
+          "quantity": 3,
+          "name": "Koyama Farm Potter"
+        },
+        {
+          "card_id": "STT03-005",
+          "quantity": 2,
+          "name": "Wobbly Cabbage Cart"
+        },
+        {
+          "card_id": "STT03-009",
+          "quantity": 4,
+          "name": "Warding Totem"
+        },
+        {
+          "card_id": "STT03-012",
+          "quantity": 3,
+          "name": "Miharu of the White Bloom"
+        },
+        {
+          "card_id": "STT03-013",
+          "quantity": 4,
+          "name": "Stone Masked Ancient"
+        },
+        {
+          "card_id": "STT03-014",
+          "quantity": 4,
+          "name": "Sandcoil Python"
+        },
+        {
+          "card_id": "STT03-015",
+          "quantity": 2,
+          "name": "Jar of Beans"
+        },
+        {
+          "card_id": "STT03-016",
+          "quantity": 2,
+          "name": "Quicksand"
+        },
+        {
+          "card_id": "STT03-017",
+          "quantity": 1,
+          "name": "Sprout of Fortune"
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10,
+          "name": "IKZ"
+        }
+      ]
+    },
+    {
+      "id": "case1_bobu_3rd",
+      "deck_name": "Bobu Stonehaven Kale/Shiko - \"3rd place coretcg\" (CoreTCG Case 3rd)",
+      "element": "EARTH",
+      "leader_card_id": "STT03-001",
+      "leader_name": "Bobu",
+      "gate_card_id": "STT03-002",
+      "gate_name": "Stonehaven Gate",
+      "archetype": "Bobu Stonehaven aggro-control (Kale, Shiko, Treetop Scout, Teb Fea)",
+      "tier": "B",
+      "heldout_eval_only": false,
+      "event": "CoreTCG Case Tournament (official \"Small Official\" event, top-8 cut), CoreTCG, CA",
+      "date": "2026-06-30",
+      "rushfire_ban_status": "pre-ban (Rushfire Gate legal at event; ban effective 2026-08-18)",
+      "placements": [
+        {
+          "player": "unattributed The Gate user",
+          "placement": 3,
+          "record": "unknown"
+        }
+      ],
+      "evidence": "Official X result post lists \"3rd - Bobu/Stonehaven\" at the CoreTCG case tournament; The Gate deck titled \"3rd place coretcg\" (Bobu/Stonehaven) was published the next day (2026-07-01). Placement is official, but the list-to-player link is self-reported, so tier B not A.",
+      "source_urls": [
+        "https://x.com/AzukiTCG/status/2072107915411132798",
+        "https://thegateikz.com/decks/3rd-place-coretcg-mr2krmjk"
+      ],
+      "garden_arena_submission_numbers": [],
+      "pending_engine_cards": [],
+      "cards": [
+        {
+          "card_id": "STT03-001",
+          "quantity": 1,
+          "name": "Bobu"
+        },
+        {
+          "card_id": "STT03-002",
+          "quantity": 1,
+          "name": "Stonehaven Gate"
+        },
+        {
+          "card_id": "AZK01-015",
+          "quantity": 3,
+          "name": "Mo"
+        },
+        {
+          "card_id": "AZK01-045",
+          "quantity": 4,
+          "name": "Treetop Scout"
+        },
+        {
+          "card_id": "AZK01-047",
+          "quantity": 4,
+          "name": "Shiko the Priestess"
+        },
+        {
+          "card_id": "AZK01-048",
+          "quantity": 4,
+          "name": "Kale"
+        },
+        {
+          "card_id": "AZK01-050",
+          "quantity": 4,
+          "name": "Shroom Tender"
+        },
+        {
+          "card_id": "AZK01-054",
+          "quantity": 3,
+          "name": "Teb Fea"
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 2,
+          "name": "Mocking Dummy"
+        },
+        {
+          "card_id": "AZK01-107",
+          "quantity": 4,
+          "name": "Offering to Stillstone"
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 3,
+          "name": "Sundering Strike"
+        },
+        {
+          "card_id": "AZK01-128",
+          "quantity": 4,
+          "name": "Wrong Step"
+        },
+        {
+          "card_id": "STT03-009",
+          "quantity": 4,
+          "name": "Warding Totem"
+        },
+        {
+          "card_id": "STT03-013",
+          "quantity": 3,
+          "name": "Stone Masked Ancient"
+        },
+        {
+          "card_id": "STT03-014",
+          "quantity": 2,
+          "name": "Sandcoil Python"
+        },
+        {
+          "card_id": "STT03-015",
+          "quantity": 3,
+          "name": "Jar of Beans"
+        },
+        {
+          "card_id": "STT03-016",
+          "quantity": 3,
+          "name": "Quicksand"
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10,
+          "name": "IKZ"
+        }
+      ]
+    },
+    {
+      "id": "pasadena_dkb_goro_36th",
+      "deck_name": "Goro Stonehaven Beanz \"Beaniez\" - dkb (Garden Arena 36th, 6-2)",
+      "element": "EARTH",
+      "leader_card_id": "AZK01-123",
+      "leader_name": "Goro Graveloth",
+      "gate_card_id": "STT03-002",
+      "gate_name": "Stonehaven Gate",
+      "archetype": "Goro Beanz defender/heal midrange (Jay, Link, Shroom Tender, Gin and Tonika)",
+      "tier": "B",
+      "heldout_eval_only": false,
+      "event": "Azuki TCG Garden Arena Regional (CoreTCG), Pasadena CA - 315 players, 8 rounds swiss + top 8",
+      "date": "2026-08-15",
+      "rushfire_ban_status": "pre-ban (Rushfire Gate legal at event; ban effective 2026-08-18)",
+      "placements": [
+        {
+          "player": "dkb",
+          "placement": 36,
+          "record": "6-2 (36th of 315, top 11.4%)"
+        }
+      ],
+      "evidence": "The Gate article \"Goro's Gravelly Grit\" (author DKB) shows the decklist image \"Beaniez By @dkb\" and the official app rank screenshot \"36 - 6 wins 2 loss - CoreTCG x Azuki TCG Garden Arena\". List exactly equals 1 Garden Arena submission. BORDERLINE B: just outside the top-10%/top-32 guide; kept because it is the only documented Goro finish (top-64 prize tier). Uses pending card AZK01-079 Gin and Tonika x3.",
+      "source_urls": [
+        "https://thegateikz.com/articles/goros-gravelly-grit"
+      ],
+      "garden_arena_submission_numbers": [
+        307
+      ],
+      "pending_engine_cards": [
+        "AZK01-079"
+      ],
+      "cards": [
+        {
+          "card_id": "AZK01-123",
+          "quantity": 1,
+          "name": "Goro Graveloth"
+        },
+        {
+          "card_id": "STT03-002",
+          "quantity": 1,
+          "name": "Stonehaven Gate"
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4,
+          "name": "Healing Flutter"
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 3,
+          "name": "Alley Thug"
+        },
+        {
+          "card_id": "AZK01-012",
+          "quantity": 3,
+          "name": "Ed"
+        },
+        {
+          "card_id": "AZK01-019",
+          "quantity": 4,
+          "name": "Jay"
+        },
+        {
+          "card_id": "AZK01-050",
+          "quantity": 4,
+          "name": "Shroom Tender"
+        },
+        {
+          "card_id": "AZK01-069",
+          "quantity": 4,
+          "name": "Link"
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4,
+          "name": "Mocking Dummy"
+        },
+        {
+          "card_id": "AZK01-079",
+          "quantity": 3,
+          "name": "Gin and Tonika"
+        },
+        {
+          "card_id": "AZK01-105",
+          "quantity": 4,
+          "name": "Prickly Tumbleweed"
+        },
+        {
+          "card_id": "AZK01-107",
+          "quantity": 2,
+          "name": "Offering to Stillstone"
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 4,
+          "name": "Sundering Strike"
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4,
+          "name": "Tenshin"
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4,
+          "name": "Rei"
+        },
+        {
+          "card_id": "STT03-016",
+          "quantity": 3,
+          "name": "Quicksand"
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10,
+          "name": "IKZ"
+        }
+      ]
+    },
+    {
+      "id": "inv_aez_shao_v1",
+      "deck_name": "Shao Hydromancy - Aez V1 (2026 Invitational 15th, only top-16 Shao)",
+      "element": "WATER",
+      "leader_card_id": "STT02-001",
+      "leader_name": "Shao",
+      "gate_card_id": "STT02-002",
+      "gate_name": "Hydromancy Gate",
+      "archetype": "Shao Hydromancy tempo (Misaki, Young Shao, Red Bean, Tidal Insight)",
+      "tier": "B",
+      "heldout_eval_only": false,
+      "event": "2026 Azuki TCG Invitational, Los Angeles CA - 64 invited players, $10k",
+      "date": "2026-01-11",
+      "rushfire_ban_status": "pre-Rushfire-release (Jan 2026 Alpha-era card pool; Rushfire Gate did not yet exist)",
+      "placements": [
+        {
+          "player": "aez",
+          "placement": 15,
+          "record": "4-2"
+        }
+      ],
+      "evidence": "The Gate article \"Aez's Shao Deck Guide, Q1 2026\" (\"the only Shao deck to place in the top 16 of the 2026 Invitational\") with official app rank screenshot (15th, 4-2, Azuki Invitational); its card images match The Gate deck \"Aez's Shao Deck V1\" exactly. Top-16 of a 64-player invite-only field -> B.",
+      "source_urls": [
+        "https://thegateikz.com/articles/aez-s-shao-deck-guide-q1-2026",
+        "https://thegateikz.com/decks/my-deck-mjfik24h"
+      ],
+      "garden_arena_submission_numbers": [
+        81
+      ],
+      "pending_engine_cards": [],
+      "cards": [
+        {
+          "card_id": "STT02-001",
+          "quantity": 1,
+          "name": "Shao"
+        },
+        {
+          "card_id": "STT02-002",
+          "quantity": 1,
+          "name": "Hydromancy Gate"
+        },
+        {
+          "card_id": "AZK01-009",
+          "quantity": 3,
+          "name": "The Red Bean"
+        },
+        {
+          "card_id": "AZK01-014",
+          "quantity": 1,
+          "name": "Trade Guild Cavalry"
+        },
+        {
+          "card_id": "AZK01-021",
+          "quantity": 4,
+          "name": "Mizuto"
+        },
+        {
+          "card_id": "AZK01-022",
+          "quantity": 4,
+          "name": "Mirage Frog"
+        },
+        {
+          "card_id": "AZK01-024",
+          "quantity": 3,
+          "name": "Fumiko"
+        },
+        {
+          "card_id": "AZK01-031",
+          "quantity": 4,
+          "name": "Tidal Insight"
+        },
+        {
+          "card_id": "AZK01-087",
+          "quantity": 3,
+          "name": "Mizuryuu's Torrent"
+        },
+        {
+          "card_id": "AZK01-088",
+          "quantity": 2,
+          "name": "Pulled Under"
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4,
+          "name": "Tenshin"
+        },
+        {
+          "card_id": "STT02-003",
+          "quantity": 4,
+          "name": "Hayabusa Itto"
+        },
+        {
+          "card_id": "STT02-006",
+          "quantity": 4,
+          "name": "Foamback Crab"
+        },
+        {
+          "card_id": "STT02-008",
+          "quantity": 4,
+          "name": "Serene Fist, Misaki"
+        },
+        {
+          "card_id": "STT02-012",
+          "quantity": 3,
+          "name": "Young Shao"
+        },
+        {
+          "card_id": "STT02-013",
+          "quantity": 4,
+          "name": "Mizuki"
+        },
+        {
+          "card_id": "STT02-016",
+          "quantity": 3,
+          "name": "Water Orb"
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10,
+          "name": "IKZ"
+        }
+      ]
+    },
+    {
+      "id": "ladder1_aez_shao_v2",
+      "deck_name": "Shao Hydromancy - Aez V2 (#1 ladder)",
+      "element": "WATER",
+      "leader_card_id": "STT02-001",
+      "leader_name": "Shao",
+      "gate_card_id": "STT02-002",
+      "gate_name": "Hydromancy Gate",
+      "archetype": "Shao Hydromancy midrange (Mizuki, Benzai the Merchant, Torrent x4, Sundering x4)",
+      "tier": "B",
+      "heldout_eval_only": false,
+      "event": "Azuki TCG app ranked ladder (online)",
+      "date": "2026-09-15",
+      "rushfire_ban_status": "pre-ban build (author notes it predates the Rushfire ban; deck is Rushfire-independent)",
+      "placements": [
+        {
+          "player": "aez",
+          "placement": "#1 ladder",
+          "record": "n/a"
+        }
+      ],
+      "evidence": "The Gate article \"Aez's Shao Deck Guide, Q2 2026\": \"the deck I used to grind to Rank #1 on the Azuki TCG leaderboard\"; article decklist image matches The Gate deck \"Aez's Shao Deck V2\" exactly. Same list was also submitted at Garden Arena (1 submission, placement unknown). #1-ladder author list -> B.",
+      "source_urls": [
+        "https://thegateikz.com/articles/aez-s-shao-deck-guide-q2-2026",
+        "https://thegateikz.com/decks/aezs-shao-deck-v2-mtvwq7ts"
+      ],
+      "garden_arena_submission_numbers": [
+        225
+      ],
+      "pending_engine_cards": [],
+      "cards": [
+        {
+          "card_id": "STT02-001",
+          "quantity": 1,
+          "name": "Shao"
+        },
+        {
+          "card_id": "STT02-002",
+          "quantity": 1,
+          "name": "Hydromancy Gate"
+        },
+        {
+          "card_id": "AZK01-021",
+          "quantity": 3,
+          "name": "Mizuto"
+        },
+        {
+          "card_id": "AZK01-022",
+          "quantity": 2,
+          "name": "Mirage Frog"
+        },
+        {
+          "card_id": "AZK01-024",
+          "quantity": 4,
+          "name": "Fumiko"
+        },
+        {
+          "card_id": "AZK01-028",
+          "quantity": 1,
+          "name": "Sōryū no Rin"
+        },
+        {
+          "card_id": "AZK01-029",
+          "quantity": 2,
+          "name": "Aquatic Veil"
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 2,
+          "name": "Mocking Dummy"
+        },
+        {
+          "card_id": "AZK01-087",
+          "quantity": 4,
+          "name": "Mizuryuu's Torrent"
+        },
+        {
+          "card_id": "AZK01-088",
+          "quantity": 2,
+          "name": "Pulled Under"
+        },
+        {
+          "card_id": "AZK01-089",
+          "quantity": 2,
+          "name": "Mizuryuu Fist Master"
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 4,
+          "name": "Sundering Strike"
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4,
+          "name": "Tenshin"
+        },
+        {
+          "card_id": "STT02-003",
+          "quantity": 4,
+          "name": "Hayabusa Itto"
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 3,
+          "name": "Rei"
+        },
+        {
+          "card_id": "STT02-005",
+          "quantity": 2,
+          "name": "Hayabusa Saburo"
+        },
+        {
+          "card_id": "STT02-006",
+          "quantity": 4,
+          "name": "Foamback Crab"
+        },
+        {
+          "card_id": "STT02-007",
+          "quantity": 3,
+          "name": "Benzai the Merchant"
+        },
+        {
+          "card_id": "STT02-013",
+          "quantity": 4,
+          "name": "Mizuki"
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10,
+          "name": "IKZ"
+        }
+      ]
+    }
+  ]
+}

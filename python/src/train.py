@@ -29,6 +29,7 @@ from production_runtime import (
 )
 from policy.v2 import tcg_sampler
 from league_manager import LeagueManager, parse_league_manager_config
+from specialist import assert_recent_lineage, parse_learner_element
 from league_training import (
     LeagueConfig,
     LeaguePuffeRL,
@@ -2568,6 +2569,20 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
         if missing:
             missing_str = ", ".join(str(path) for path in missing)
             raise FileNotFoundError(f"League opponent checkpoints not found: {missing_str}")
+        env_section = trainer_args.get("env") if isinstance(trainer_args.get("env"), dict) else {}
+        if parse_learner_element(env_section.get("learner_element", "none")) != "none":
+            # Specialists train only against frozen recent-lineage generalists
+            # plus element-mirror self-play; their own snapshots would play
+            # off-element decks in the free frozen seat, so ingestion is off.
+            league_section = trainer_args.get("league") if isinstance(trainer_args.get("league"), dict) else {}
+            if int(league_section.get("checkpoint_add_interval", 1)) != 0:
+                raise ValueError("env.learner_element requires league.checkpoint_add_interval = 0")
+            if not opponent_paths:
+                raise ValueError("env.learner_element requires a non-empty frozen opponent pool")
+            assert_recent_lineage(
+                opponent_paths + ([Path(model_resume_path)] if model_resume_path is not None else [])
+            )
+            print(f"[specialist] frozen opponent pool verified recent-lineage: {len(opponent_paths)} checkpoints")
         for checkpoint_path in opponent_paths:
             opponent_policy = build_policy(vecenv, trainer_args)
             _load_model_weights(

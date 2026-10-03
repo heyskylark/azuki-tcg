@@ -196,6 +196,52 @@ def _load_card_records_from_postgres(database_url: str) -> dict[str, dict[str, A
     return {str(row["card_code"]).upper(): row for row in rows}
 
 
+OFFICIAL_ELEMENT_TO_ELEMENT = {
+    "NEUTRAL": "NORMAL",
+    "FIRE": "FIRE",
+    "EARTH": "EARTH",
+    "LIGHTNING": "LIGHTNING",
+    "WATER": "WATER",
+}
+
+
+def _load_card_records_from_official_dump(path: Path) -> dict[str, dict[str, Any]]:
+    """Map official card API entries to the Postgres row shape.
+
+    Alternate-art entries (id != cardId) are skipped; effect text uses the errata'd
+    wording when present, flattened to one line like the seeded DB text.
+    """
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(payload, list):
+        raise ValueError(f"Expected a list of cards in {path}")
+
+    rows: dict[str, dict[str, Any]] = {}
+    for card in payload:
+        card_code = str(card.get("id", "")).upper()
+        if not card_code or card_code != str(card.get("cardId", "")).upper():
+            continue
+        element = str(card.get("element", "")).upper()
+        if element not in OFFICIAL_ELEMENT_TO_ELEMENT:
+            raise ValueError(f"Unknown official element '{element}' for {card_code}")
+        effect_text = card.get("errataAfter") or card.get("cardText") or ""
+        rows[card_code] = {
+            "card_code": card_code,
+            "name": card.get("name", ""),
+            "effect_text": " ".join(str(effect_text).split()),
+            "keywords": [],
+            "subtypes": list(card.get("subtypes") or []),
+            "card_type": str(card.get("category", "")).upper(),
+            "element": OFFICIAL_ELEMENT_TO_ELEMENT[element],
+            "ikz_cost": int(card.get("ikzCost") or 0),
+            "attack": int(card.get("attack") or 0),
+            "health": int(card.get("health") or 0),
+            "gate_points": int(card.get("gatePower") or 0),
+        }
+    if not rows:
+        raise RuntimeError(f"No card records were loaded from {path}")
+    return rows
+
+
 def _normalize_text(value: Any) -> str:
     if value is None:
         return ""
@@ -343,6 +389,98 @@ def _embed_unique_texts(
     return embeddings
 
 
+def _empty_artifact_arrays(
+    table_len: int, keyword_count: int, embedding_dim: int
+) -> dict[str, np.ndarray]:
+    return {
+        "card_present_mask": np.zeros(table_len, dtype=np.float32),
+        "card_type_ids": np.zeros(table_len, dtype=np.int16),
+        "element_ids": np.zeros(table_len, dtype=np.int16),
+        "ikz_cost": np.zeros(table_len, dtype=np.float32),
+        "attack": np.zeros(table_len, dtype=np.float32),
+        "health": np.zeros(table_len, dtype=np.float32),
+        "gate_points": np.zeros(table_len, dtype=np.float32),
+        "has_ability": np.zeros(table_len, dtype=np.float32),
+        "ability_timing_ids": np.zeros(table_len, dtype=np.int16),
+        "ability_is_optional": np.zeros(table_len, dtype=np.float32),
+        "keyword_multi_hot": np.zeros((table_len, keyword_count), dtype=np.float32),
+        "name_embeddings": np.zeros((table_len, embedding_dim), dtype=np.float32),
+        "effect_embeddings": np.zeros((table_len, embedding_dim), dtype=np.float32),
+        "subtype_pooled_embeddings": np.zeros((table_len, embedding_dim), dtype=np.float32),
+    }
+
+
+def _write_card_row(
+    arrays: dict[str, np.ndarray],
+    card_def_id: int,
+    record: CardMetadataRecord,
+    *,
+    embeddings_by_text: dict[str, np.ndarray],
+    subtype_embedding_matrix: np.ndarray,
+    subtype_to_index: dict[str, int],
+    keyword_to_index: dict[str, int],
+) -> dict[str, Any]:
+    zero_vector = np.zeros(subtype_embedding_matrix.shape[1], dtype=np.float32)
+    table_index = card_def_id + 1
+    arrays["card_present_mask"][table_index] = 1.0
+    arrays["card_type_ids"][table_index] = CARD_TYPE_TO_ID[record.card_type]
+    arrays["element_ids"][table_index] = ELEMENT_TO_ID[record.element]
+    arrays["ikz_cost"][table_index] = float(record.ikz_cost)
+    arrays["attack"][table_index] = float(record.attack)
+    arrays["health"][table_index] = float(record.health)
+    arrays["gate_points"][table_index] = float(record.gate_points)
+    arrays["has_ability"][table_index] = 1.0 if record.has_ability else 0.0
+    arrays["ability_timing_ids"][table_index] = np.int16(record.ability_timing_id)
+    arrays["ability_is_optional"][table_index] = 1.0 if record.ability_is_optional else 0.0
+    arrays["name_embeddings"][table_index] = embeddings_by_text.get(record.name, zero_vector)
+    arrays["effect_embeddings"][table_index] = embeddings_by_text.get(
+        record.effect_text, zero_vector
+    )
+
+    if record.subtypes:
+        pooled = np.stack(
+            [subtype_embedding_matrix[subtype_to_index[subtype]] for subtype in record.subtypes],
+            axis=0,
+        ).mean(axis=0)
+        pooled_norm = float(np.linalg.norm(pooled))
+        if pooled_norm > 0.0:
+            pooled = pooled / pooled_norm
+        arrays["subtype_pooled_embeddings"][table_index] = pooled.astype(np.float32)
+
+    for keyword in record.keywords:
+        arrays["keyword_multi_hot"][table_index, keyword_to_index[keyword]] = 1.0
+
+    return {
+        "card_code": record.card_code,
+        "card_def_id": card_def_id,
+        "table_index": table_index,
+        "name": record.name,
+        "effect_text": record.effect_text,
+        "keywords": list(record.keywords),
+        "subtypes": list(record.subtypes),
+        "card_type": record.card_type,
+        "element": record.element,
+        "ikz_cost": record.ikz_cost,
+        "attack": record.attack,
+        "health": record.health,
+        "gate_points": record.gate_points,
+        "has_ability": record.has_ability,
+        "ability_timing_id": record.ability_timing_id,
+        "ability_is_optional": record.ability_is_optional,
+    }
+
+
+def _record_text_corpus(records: dict[str, CardMetadataRecord]) -> list[str]:
+    text_corpus: list[str] = []
+    for record in records.values():
+        if record.name:
+            text_corpus.append(record.name)
+        if record.effect_text:
+            text_corpus.append(record.effect_text)
+        text_corpus.extend(record.subtypes)
+    return text_corpus
+
+
 def _build_artifact_arrays(
     card_def_id_map: dict[str, int],
     records: dict[str, CardMetadataRecord],
@@ -354,15 +492,8 @@ def _build_artifact_arrays(
     keyword_vocab = sorted({keyword for record in records.values() for keyword in record.keywords})
     subtype_vocab = sorted({subtype for record in records.values() for subtype in record.subtypes})
 
-    text_corpus: list[str] = []
-    for record in records.values():
-        if record.name:
-            text_corpus.append(record.name)
-        if record.effect_text:
-            text_corpus.append(record.effect_text)
-        text_corpus.extend(record.subtypes)
     embeddings_by_text = _embed_unique_texts(
-        text_corpus,
+        _record_text_corpus(records),
         model=embedding_model,
         api_key=api_key,
     )
@@ -372,21 +503,7 @@ def _build_artifact_arrays(
 
     embedding_dim = next(iter(embeddings_by_text.values())).shape[0]
     zero_vector = np.zeros(embedding_dim, dtype=np.float32)
-
-    card_present_mask = np.zeros(table_len, dtype=np.float32)
-    card_type_ids = np.zeros(table_len, dtype=np.int16)
-    element_ids = np.zeros(table_len, dtype=np.int16)
-    ikz_cost = np.zeros(table_len, dtype=np.float32)
-    attack = np.zeros(table_len, dtype=np.float32)
-    health = np.zeros(table_len, dtype=np.float32)
-    gate_points = np.zeros(table_len, dtype=np.float32)
-    has_ability = np.zeros(table_len, dtype=np.float32)
-    ability_timing_ids = np.zeros(table_len, dtype=np.int16)
-    ability_is_optional = np.zeros(table_len, dtype=np.float32)
-    keyword_multi_hot = np.zeros((table_len, len(keyword_vocab)), dtype=np.float32)
-    name_embeddings = np.zeros((table_len, embedding_dim), dtype=np.float32)
-    effect_embeddings = np.zeros((table_len, embedding_dim), dtype=np.float32)
-    subtype_pooled_embeddings = np.zeros((table_len, embedding_dim), dtype=np.float32)
+    arrays = _empty_artifact_arrays(table_len, len(keyword_vocab), embedding_dim)
 
     subtype_embedding_matrix = np.zeros((len(subtype_vocab), embedding_dim), dtype=np.float32)
     for subtype_index, subtype in enumerate(subtype_vocab):
@@ -397,71 +514,19 @@ def _build_artifact_arrays(
 
     manifest_records: list[dict[str, Any]] = []
     for card_code, record in sorted(records.items(), key=lambda item: card_def_id_map[item[0]]):
-        table_index = card_def_id_map[card_code] + 1
-        card_present_mask[table_index] = 1.0
-        card_type_ids[table_index] = CARD_TYPE_TO_ID[record.card_type]
-        element_ids[table_index] = ELEMENT_TO_ID[record.element]
-        ikz_cost[table_index] = float(record.ikz_cost)
-        attack[table_index] = float(record.attack)
-        health[table_index] = float(record.health)
-        gate_points[table_index] = float(record.gate_points)
-        has_ability[table_index] = 1.0 if record.has_ability else 0.0
-        ability_timing_ids[table_index] = np.int16(record.ability_timing_id)
-        ability_is_optional[table_index] = 1.0 if record.ability_is_optional else 0.0
-        name_embeddings[table_index] = embeddings_by_text.get(record.name, zero_vector)
-        effect_embeddings[table_index] = embeddings_by_text.get(record.effect_text, zero_vector)
-
-        if record.subtypes:
-            pooled = np.stack(
-                [subtype_embedding_matrix[subtype_to_index[subtype]] for subtype in record.subtypes],
-                axis=0,
-            ).mean(axis=0)
-            pooled_norm = float(np.linalg.norm(pooled))
-            if pooled_norm > 0.0:
-                pooled = pooled / pooled_norm
-            subtype_pooled_embeddings[table_index] = pooled.astype(np.float32)
-
-        for keyword in record.keywords:
-            keyword_multi_hot[table_index, keyword_to_index[keyword]] = 1.0
-
         manifest_records.append(
-            {
-                "card_code": record.card_code,
-                "card_def_id": card_def_id_map[card_code],
-                "table_index": table_index,
-                "name": record.name,
-                "effect_text": record.effect_text,
-                "keywords": list(record.keywords),
-                "subtypes": list(record.subtypes),
-                "card_type": record.card_type,
-                "element": record.element,
-                "ikz_cost": record.ikz_cost,
-                "attack": record.attack,
-                "health": record.health,
-                "gate_points": record.gate_points,
-                "has_ability": record.has_ability,
-                "ability_timing_id": record.ability_timing_id,
-                "ability_is_optional": record.ability_is_optional,
-            }
+            _write_card_row(
+                arrays,
+                card_def_id_map[card_code],
+                record,
+                embeddings_by_text=embeddings_by_text,
+                subtype_embedding_matrix=subtype_embedding_matrix,
+                subtype_to_index=subtype_to_index,
+                keyword_to_index=keyword_to_index,
+            )
         )
 
-    arrays = {
-        "card_present_mask": card_present_mask,
-        "card_type_ids": card_type_ids,
-        "element_ids": element_ids,
-        "ikz_cost": ikz_cost,
-        "attack": attack,
-        "health": health,
-        "gate_points": gate_points,
-        "has_ability": has_ability,
-        "ability_timing_ids": ability_timing_ids,
-        "ability_is_optional": ability_is_optional,
-        "keyword_multi_hot": keyword_multi_hot,
-        "name_embeddings": name_embeddings,
-        "effect_embeddings": effect_embeddings,
-        "subtype_pooled_embeddings": subtype_pooled_embeddings,
-        "subtype_embeddings": subtype_embedding_matrix,
-    }
+    arrays["subtype_embeddings"] = subtype_embedding_matrix
     manifest = {
         "artifact_version": ARTIFACT_VERSION,
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -477,6 +542,102 @@ def _build_artifact_arrays(
         "ability_timing_to_id": TIMING_TAG_TO_ID,
         "records": manifest_records,
     }
+    return arrays, manifest
+
+
+def _append_artifact_arrays(
+    card_def_id_map: dict[str, int],
+    new_records: dict[str, CardMetadataRecord],
+    existing_arrays: dict[str, np.ndarray],
+    existing_manifest: dict[str, Any],
+    *,
+    embedding_model: str,
+    api_key: str,
+) -> tuple[dict[str, np.ndarray], dict[str, Any]]:
+    """Append rows for new cards; every existing row and vocab entry is kept as-is."""
+    if existing_manifest.get("artifact_version") != ARTIFACT_VERSION:
+        raise ValueError("Existing artifact version does not match")
+    if existing_manifest.get("embedding_model") != embedding_model:
+        raise ValueError(
+            f"Existing artifact uses embedding model {existing_manifest.get('embedding_model')!r}"
+        )
+
+    old_table_len = int(existing_manifest["table_len"])
+    table_len = max(card_def_id_map.values()) + 2
+    for card_code in new_records:
+        if card_def_id_map[card_code] + 1 < old_table_len:
+            raise ValueError(
+                f"{card_code} would overwrite existing table row {card_def_id_map[card_code] + 1}; "
+                "new cards must be appended at the end of the card defs"
+            )
+
+    keyword_vocab = list(existing_manifest["keyword_vocab"])
+    unknown_keywords = sorted(
+        {keyword for record in new_records.values() for keyword in record.keywords}
+        - set(keyword_vocab)
+    )
+    if unknown_keywords:
+        raise ValueError(f"New keywords would change the keyword vocab: {unknown_keywords}")
+
+    subtype_vocab = list(existing_manifest["subtype_vocab"])
+    new_subtypes = sorted(
+        {subtype for record in new_records.values() for subtype in record.subtypes}
+        - set(subtype_vocab)
+    )
+    subtype_vocab.extend(new_subtypes)
+
+    new_texts = [
+        text
+        for text in _record_text_corpus(new_records)
+        if text not in existing_manifest["subtype_vocab"]
+    ]
+    embeddings_by_text = _embed_unique_texts(new_texts, model=embedding_model, api_key=api_key)
+    embedding_dim = int(existing_manifest["embedding_dim"])
+    for text, vector in embeddings_by_text.items():
+        if vector.shape != (embedding_dim,):
+            raise ValueError(f"Embedding for {text!r} has shape {vector.shape}")
+
+    old_subtype_matrix = existing_arrays["subtype_embeddings"]
+    subtype_embedding_matrix = np.concatenate(
+        [old_subtype_matrix]
+        + [embeddings_by_text[subtype][None, :] for subtype in new_subtypes],
+        axis=0,
+    ).astype(np.float32, copy=False)
+
+    arrays = _empty_artifact_arrays(table_len, len(keyword_vocab), embedding_dim)
+    for name, array in arrays.items():
+        old = existing_arrays[name]
+        if old.dtype != array.dtype or old.shape[1:] != array.shape[1:]:
+            raise ValueError(f"Existing array {name} has incompatible layout {old.dtype} {old.shape}")
+        array[:old_table_len] = old
+
+    subtype_to_index = {subtype: index for index, subtype in enumerate(subtype_vocab)}
+    keyword_to_index = {keyword: index for index, keyword in enumerate(keyword_vocab)}
+    manifest_records = list(existing_manifest["records"])
+    for card_code, record in sorted(new_records.items(), key=lambda item: card_def_id_map[item[0]]):
+        manifest_records.append(
+            _write_card_row(
+                arrays,
+                card_def_id_map[card_code],
+                record,
+                embeddings_by_text=embeddings_by_text,
+                subtype_embedding_matrix=subtype_embedding_matrix,
+                subtype_to_index=subtype_to_index,
+                keyword_to_index=keyword_to_index,
+            )
+        )
+
+    arrays["subtype_embeddings"] = subtype_embedding_matrix
+    manifest = dict(existing_manifest)
+    manifest.update(
+        {
+            "table_len": table_len,
+            "real_card_count": len(manifest_records),
+            "subtype_vocab": subtype_vocab,
+            "records": manifest_records,
+            "appended_at_utc": datetime.now(timezone.utc).isoformat(),
+        }
+    )
     return arrays, manifest
 
 
@@ -506,6 +667,23 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_EMBEDDING_MODEL,
         help="OpenAI embedding model to use for name/effect/subtype text.",
     )
+    parser.add_argument(
+        "--official-cards-json",
+        type=Path,
+        default=None,
+        help=(
+            "Read card metadata from an official card API dump "
+            "(https://tcg.azuki.com/api/cards) instead of Postgres."
+        ),
+    )
+    parser.add_argument(
+        "--append",
+        action="store_true",
+        help=(
+            "Keep the existing manifest/array rows and vocabularies unchanged and only "
+            "append rows for card defs missing from the existing artifact."
+        ),
+    )
     return parser.parse_args()
 
 
@@ -522,19 +700,50 @@ def main() -> None:
     generated_card_defs = _load_generated_card_defs(
         REPO_ROOT / "scripts" / "azuki-card-defs.jsonl"
     )
-    postgres_records = _load_card_records_from_postgres(args.database_url)
-    records = _build_card_metadata_records(
-        card_def_id_map,
-        postgres_records,
-        ability_metadata,
-        generated_card_defs,
-    )
-    arrays, manifest = _build_artifact_arrays(
-        card_def_id_map,
-        records,
-        embedding_model=args.embedding_model,
-        api_key=api_key,
-    )
+    if args.official_cards_json is not None:
+        source_records = _load_card_records_from_official_dump(args.official_cards_json)
+    else:
+        source_records = _load_card_records_from_postgres(args.database_url)
+
+    if args.append:
+        existing_manifest = json.loads(args.manifest_path.read_text(encoding="utf-8"))
+        with np.load(args.array_path, allow_pickle=False) as bundle:
+            existing_arrays = {name: bundle[name] for name in bundle.files}
+        existing_codes = {str(record["card_code"]) for record in existing_manifest["records"]}
+        new_card_def_id_map = {
+            card_code: card_def_id
+            for card_code, card_def_id in card_def_id_map.items()
+            if card_code not in existing_codes
+        }
+        if not new_card_def_id_map:
+            raise RuntimeError("Artifact already covers every generated card def")
+        new_records = _build_card_metadata_records(
+            new_card_def_id_map,
+            source_records,
+            ability_metadata,
+            generated_card_defs,
+        )
+        arrays, manifest = _append_artifact_arrays(
+            card_def_id_map,
+            new_records,
+            existing_arrays,
+            existing_manifest,
+            embedding_model=args.embedding_model,
+            api_key=api_key,
+        )
+    else:
+        records = _build_card_metadata_records(
+            card_def_id_map,
+            source_records,
+            ability_metadata,
+            generated_card_defs,
+        )
+        arrays, manifest = _build_artifact_arrays(
+            card_def_id_map,
+            records,
+            embedding_model=args.embedding_model,
+            api_key=api_key,
+        )
 
     args.manifest_path.parent.mkdir(parents=True, exist_ok=True)
     args.array_path.parent.mkdir(parents=True, exist_ok=True)

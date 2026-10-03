@@ -383,6 +383,9 @@ void clear_card_temporary_state(ecs_world_t *world, ecs_entity_t entity) {
     return;
   }
 
+  // Leaving the field ends "until end of turn" card-text copies.
+  azk_clear_copied_card_text(world, entity);
+
   bool has_prefab_effect_immune =
       prefab_has_tag(world, entity, ecs_id(EffectImmune));
   if (ecs_has(world, entity, Frozen)) {
@@ -522,6 +525,16 @@ void tick_end_of_turn_effects_for_player(ecs_world_t *world,
                            TAG_GRANT_TICK_END_OF_TURN);
   tick_zone_status_effects(world, gs->zones[player_index].leader,
                            TAG_GRANT_TICK_END_OF_TURN);
+
+  // Copied card text lasts "until the end of your turn".
+  const ecs_entity_t zones[] = {gs->zones[player_index].garden,
+                                gs->zones[player_index].alley};
+  for (size_t z = 0; z < sizeof(zones) / sizeof(zones[0]); ++z) {
+    ecs_entities_t cards = ecs_get_ordered_children(world, zones[z]);
+    for (int32_t i = 0; i < cards.count; ++i) {
+      azk_clear_copied_card_text(world, cards.ids[i]);
+    }
+  }
 }
 
 // Helper to iterate AttackBuff pairs on an entity and sum modifiers

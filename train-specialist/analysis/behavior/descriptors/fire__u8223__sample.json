@@ -1,0 +1,4794 @@
+{
+ "arm": "u8223",
+ "draft": {
+  "context_pairs": {
+   "Ragefire/Kagoro vs Ragefire/Zero": {
+    "between_wjaccard_mean": 0.32233177203207874
+   },
+   "Ragefire/Kagoro vs Rushfire/Kagoro": {
+    "between_wjaccard_mean": 0.3225073979910053
+   },
+   "Ragefire/Kagoro vs Rushfire/Zero": {
+    "between_wjaccard_mean": 0.32395213612802387
+   },
+   "Ragefire/Zero vs Rushfire/Kagoro": {
+    "between_wjaccard_mean": 0.3162083542286507
+   },
+   "Ragefire/Zero vs Rushfire/Zero": {
+    "between_wjaccard_mean": 0.3188615718556407
+   },
+   "Rushfire/Kagoro vs Rushfire/Zero": {
+    "between_wjaccard_mean": 0.3392168487202068
+   }
+  },
+  "contexts": {
+   "Ragefire/Kagoro": {
+    "curated_reference": "same gate",
+    "curated_reference_indices": [
+     2,
+     16,
+     17,
+     18
+    ],
+    "curve_mean": {
+     "0": 0.0,
+     "1": 16.520833333333332,
+     "2": 9.104166666666666,
+     "3": 10.875,
+     "4": 5.229166666666667,
+     "5": 5.25,
+     "6": 2.7916666666666665,
+     "7": 0.22916666666666666
+    },
+    "decks": 48,
+    "entity_share": 0.8645833333333334,
+    "max_wjaccard_to_curated_mean": 0.18232729294558833,
+    "mean_cost": 2.6620833333333334,
+    "normal_share": 0.515,
+    "per_deck": [
+     {
+      "block": "free_draft:FIRE:r0:STT04-002:AZK01-121:opp0",
+      "entity_share": 0.86,
+      "max_wjacc_curated": 0.14583333333333334,
+      "mean_cost": 2.4,
+      "normal_share": 0.56,
+      "spell_share": 0.08,
+      "unique_cards": 38,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r0:STT04-002:AZK01-121:opp0",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 2.56,
+      "normal_share": 0.56,
+      "spell_share": 0.06,
+      "unique_cards": 32,
+      "weapon_share": 0.1
+     },
+     {
+      "block": "free_draft:FIRE:r0:STT04-002:AZK01-121:opp11",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 2.72,
+      "normal_share": 0.58,
+      "spell_share": 0.08,
+      "unique_cards": 39,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r0:STT04-002:AZK01-121:opp11",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 3.04,
+      "normal_share": 0.58,
+      "spell_share": 0.04,
+      "unique_cards": 35,
+      "weapon_share": 0.12
+     },
+     {
+      "block": "free_draft:FIRE:r1:STT04-002:AZK01-121:opp0",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.2087912087912088,
+      "mean_cost": 2.64,
+      "normal_share": 0.52,
+      "spell_share": 0.06,
+      "unique_cards": 35,
+      "weapon_share": 0.1
+     },
+     {
+      "block": "free_draft:FIRE:r1:STT04-002:AZK01-121:opp0",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.2222222222222222,
+      "mean_cost": 2.68,
+      "normal_share": 0.52,
+      "spell_share": 0.06,
+      "unique_cards": 33,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r1:STT04-002:AZK01-121:opp11",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.23595505617977527,
+      "mean_cost": 2.6,
+      "normal_share": 0.44,
+      "spell_share": 0.12,
+      "unique_cards": 33,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r1:STT04-002:AZK01-121:opp11",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 2.5,
+      "normal_share": 0.52,
+      "spell_share": 0.02,
+      "unique_cards": 31,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r2:STT04-002:AZK01-121:opp0",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.23595505617977527,
+      "mean_cost": 2.72,
+      "normal_share": 0.44,
+      "spell_share": 0.08,
+      "unique_cards": 34,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r2:STT04-002:AZK01-121:opp0",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 2.32,
+      "normal_share": 0.52,
+      "spell_share": 0.06,
+      "unique_cards": 37,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r2:STT04-002:AZK01-121:opp11",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 3.02,
+      "normal_share": 0.5,
+      "spell_share": 0.08,
+      "unique_cards": 36,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r2:STT04-002:AZK01-121:opp11",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 3.16,
+      "normal_share": 0.46,
+      "spell_share": 0.04,
+      "unique_cards": 33,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r0:STT04-002:AZK01-121:opp2",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.14583333333333334,
+      "mean_cost": 2.76,
+      "normal_share": 0.52,
+      "spell_share": 0.04,
+      "unique_cards": 33,
+      "weapon_share": 0.12
+     },
+     {
+      "block": "free_draft:FIRE:r0:STT04-002:AZK01-121:opp2",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 2.58,
+      "normal_share": 0.5,
+      "spell_share": 0.04,
+      "unique_cards": 37,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r0:STT04-002:AZK01-121:opp12",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 2.54,
+      "normal_share": 0.6,
+      "spell_share": 0.04,
+      "unique_cards": 31,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r0:STT04-002:AZK01-121:opp12",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 2.5,
+      "normal_share": 0.56,
+      "spell_share": 0.04,
+      "unique_cards": 35,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r1:STT04-002:AZK01-121:opp2",
+      "entity_share": 0.8,
+      "max_wjacc_curated": 0.23595505617977527,
+      "mean_cost": 2.66,
+      "normal_share": 0.44,
+      "spell_share": 0.12,
+      "unique_cards": 35,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r1:STT04-002:AZK01-121:opp2",
+      "entity_share": 0.86,
+      "max_wjacc_curated": 0.25,
+      "mean_cost": 2.68,
+      "normal_share": 0.4,
+      "spell_share": 0.12,
+      "unique_cards": 36,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:FIRE:r1:STT04-002:AZK01-121:opp12",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 2.22,
+      "normal_share": 0.56,
+      "spell_share": 0.08,
+      "unique_cards": 33,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r1:STT04-002:AZK01-121:opp12",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.1956521739130435,
+      "mean_cost": 2.42,
+      "normal_share": 0.46,
+      "spell_share": 0.06,
+      "unique_cards": 35,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r2:STT04-002:AZK01-121:opp2",
+      "entity_share": 0.86,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 2.52,
+      "normal_share": 0.56,
+      "spell_share": 0.04,
+      "unique_cards": 36,
+      "weapon_share": 0.1
+     },
+     {
+      "block": "free_draft:FIRE:r2:STT04-002:AZK01-121:opp2",
+      "entity_share": 0.8,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 2.56,
+      "normal_share": 0.56,
+      "spell_share": 0.12,
+      "unique_cards": 37,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r2:STT04-002:AZK01-121:opp12",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 2.52,
+      "normal_share": 0.48,
+      "spell_share": 0.06,
+      "unique_cards": 30,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r2:STT04-002:AZK01-121:opp12",
+      "entity_share": 0.86,
+      "max_wjacc_curated": 0.2222222222222222,
+      "mean_cost": 2.98,
+      "normal_share": 0.38,
+      "spell_share": 0.06,
+      "unique_cards": 34,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r0:STT04-002:AZK01-121:opp3",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 2.8,
+      "normal_share": 0.48,
+      "spell_share": 0.06,
+      "unique_cards": 39,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:FIRE:r0:STT04-002:AZK01-121:opp3",
+      "entity_share": 0.86,
+      "max_wjacc_curated": 0.12244897959183673,
+      "mean_cost": 2.98,
+      "normal_share": 0.6,
+      "spell_share": 0.06,
+      "unique_cards": 37,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r0:STT04-002:AZK01-121:opp13",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.14583333333333334,
+      "mean_cost": 2.62,
+      "normal_share": 0.56,
+      "spell_share": 0.1,
+      "unique_cards": 36,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r0:STT04-002:AZK01-121:opp13",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 2.7,
+      "normal_share": 0.52,
+      "spell_share": 0.04,
+      "unique_cards": 34,
+      "weapon_share": 0.12
+     },
+     {
+      "block": "free_draft:FIRE:r1:STT04-002:AZK01-121:opp3",
+      "entity_share": 0.96,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 2.74,
+      "normal_share": 0.5,
+      "spell_share": 0.0,
+      "unique_cards": 33,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r1:STT04-002:AZK01-121:opp3",
+      "entity_share": 0.8,
+      "max_wjacc_curated": 0.23595505617977527,
+      "mean_cost": 2.58,
+      "normal_share": 0.46,
+      "spell_share": 0.12,
+      "unique_cards": 34,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r1:STT04-002:AZK01-121:opp13",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 2.36,
+      "normal_share": 0.56,
+      "spell_share": 0.04,
+      "unique_cards": 36,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r1:STT04-002:AZK01-121:opp13",
+      "entity_share": 0.8,
+      "max_wjacc_curated": 0.25,
+      "mean_cost": 2.52,
+      "normal_share": 0.52,
+      "spell_share": 0.12,
+      "unique_cards": 37,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r2:STT04-002:AZK01-121:opp3",
+      "entity_share": 0.82,
+      "max_wjacc_curated": 0.13402061855670103,
+      "mean_cost": 2.76,
+      "normal_share": 0.66,
+      "spell_share": 0.06,
+      "unique_cards": 33,
+      "weapon_share": 0.12
+     },
+     {
+      "block": "free_draft:FIRE:r2:STT04-002:AZK01-121:opp3",
+      "entity_share": 0.82,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 2.52,
+      "normal_share": 0.48,
+      "spell_share": 0.08,
+      "unique_cards": 34,
+      "weapon_share": 0.1
+     },
+     {
+      "block": "free_draft:FIRE:r2:STT04-002:AZK01-121:opp13",
+      "entity_share": 0.82,
+      "max_wjacc_curated": 0.13402061855670103,
+      "mean_cost": 2.5,
+      "normal_share": 0.58,
+      "spell_share": 0.08,
+      "unique_cards": 36,
+      "weapon_share": 0.1
+     },
+     {
+      "block": "free_draft:FIRE:r2:STT04-002:AZK01-121:opp13",
+      "entity_share": 0.8,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 2.88,
+      "normal_share": 0.52,
+      "spell_share": 0.08,
+      "unique_cards": 33,
+      "weapon_share": 0.12
+     },
+     {
+      "block": "free_draft:FIRE:r0:STT04-002:AZK01-121:opp4",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 2.7,
+      "normal_share": 0.56,
+      "spell_share": 0.06,
+      "unique_cards": 34,
+      "weapon_share": 0.1
+     },
+     {
+      "block": "free_draft:FIRE:r0:STT04-002:AZK01-121:opp4",
+      "entity_share": 0.86,
+      "max_wjacc_curated": 0.1956521739130435,
+      "mean_cost": 2.6,
+      "normal_share": 0.54,
+      "spell_share": 0.06,
+      "unique_cards": 36,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r0:STT04-002:AZK01-121:opp14",
+      "entity_share": 0.94,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 2.4,
+      "normal_share": 0.52,
+      "spell_share": 0.02,
+      "unique_cards": 32,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r0:STT04-002:AZK01-121:opp14",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.1956521739130435,
+      "mean_cost": 2.72,
+      "normal_share": 0.46,
+      "spell_share": 0.06,
+      "unique_cards": 33,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r1:STT04-002:AZK01-121:opp4",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.25,
+      "mean_cost": 2.58,
+      "normal_share": 0.46,
+      "spell_share": 0.06,
+      "unique_cards": 33,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r1:STT04-002:AZK01-121:opp4",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.14583333333333334,
+      "mean_cost": 2.4,
+      "normal_share": 0.48,
+      "spell_share": 0.1,
+      "unique_cards": 37,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r1:STT04-002:AZK01-121:opp14",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 2.98,
+      "normal_share": 0.5,
+      "spell_share": 0.02,
+      "unique_cards": 35,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r1:STT04-002:AZK01-121:opp14",
+      "entity_share": 0.86,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 2.48,
+      "normal_share": 0.5,
+      "spell_share": 0.04,
+      "unique_cards": 34,
+      "weapon_share": 0.1
+     },
+     {
+      "block": "free_draft:FIRE:r2:STT04-002:AZK01-121:opp4",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.2087912087912088,
+      "mean_cost": 2.84,
+      "normal_share": 0.5,
+      "spell_share": 0.02,
+      "unique_cards": 36,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r2:STT04-002:AZK01-121:opp4",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 2.76,
+      "normal_share": 0.56,
+      "spell_share": 0.04,
+      "unique_cards": 36,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r2:STT04-002:AZK01-121:opp14",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 2.98,
+      "normal_share": 0.52,
+      "spell_share": 0.04,
+      "unique_cards": 31,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r2:STT04-002:AZK01-121:opp14",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 3.08,
+      "normal_share": 0.46,
+      "spell_share": 0.06,
+      "unique_cards": 35,
+      "weapon_share": 0.02
+     }
+    ],
+    "spell_share": 0.06291666666666666,
+    "top_cards_per_deck": {
+     "AZK01-010": 0.98,
+     "AZK01-011": 1.27,
+     "AZK01-056": 1.81,
+     "AZK01-058": 1.04,
+     "AZK01-060": 1.71,
+     "AZK01-069": 1.15,
+     "AZK01-082": 1.33,
+     "AZK01-113": 0.96,
+     "AZK01-114": 1.04,
+     "STT01-014": 1.62,
+     "STT01-015": 0.94,
+     "STT02-004": 2.27,
+     "STT04-003": 2.5,
+     "STT04-004": 2.33,
+     "STT04-014": 1.69
+    },
+    "unique_cards": 34.625,
+    "weapon_share": 0.0725,
+    "within_context_wjaccard_mean": 0.3233849365380076
+   },
+   "Ragefire/Zero": {
+    "curated_reference": "same gate+leader",
+    "curated_reference_indices": [
+     2,
+     16,
+     17,
+     18
+    ],
+    "curve_mean": {
+     "0": 0.0,
+     "1": 16.5625,
+     "2": 8.479166666666666,
+     "3": 10.729166666666666,
+     "4": 5.6875,
+     "5": 5.5,
+     "6": 2.8958333333333335,
+     "7": 0.14583333333333334
+    },
+    "decks": 48,
+    "entity_share": 0.8537499999999999,
+    "max_wjaccard_to_curated_mean": 0.1750814340618652,
+    "mean_cost": 2.69,
+    "normal_share": 0.5354166666666667,
+    "per_deck": [
+     {
+      "block": "free_draft:FIRE:r0:STT04-002:STT04-001:opp0",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 2.7,
+      "normal_share": 0.52,
+      "spell_share": 0.04,
+      "unique_cards": 37,
+      "weapon_share": 0.12
+     },
+     {
+      "block": "free_draft:FIRE:r0:STT04-002:STT04-001:opp0",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.2222222222222222,
+      "mean_cost": 2.72,
+      "normal_share": 0.6,
+      "spell_share": 0.08,
+      "unique_cards": 33,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r0:STT04-002:STT04-001:opp11",
+      "entity_share": 0.82,
+      "max_wjacc_curated": 0.1111111111111111,
+      "mean_cost": 2.94,
+      "normal_share": 0.64,
+      "spell_share": 0.06,
+      "unique_cards": 34,
+      "weapon_share": 0.12
+     },
+     {
+      "block": "free_draft:FIRE:r0:STT04-002:STT04-001:opp11",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 2.84,
+      "normal_share": 0.44,
+      "spell_share": 0.06,
+      "unique_cards": 36,
+      "weapon_share": 0.1
+     },
+     {
+      "block": "free_draft:FIRE:r1:STT04-002:STT04-001:opp0",
+      "entity_share": 0.8,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 2.88,
+      "normal_share": 0.56,
+      "spell_share": 0.14,
+      "unique_cards": 35,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r1:STT04-002:STT04-001:opp0",
+      "entity_share": 0.78,
+      "max_wjacc_curated": 0.2087912087912088,
+      "mean_cost": 2.66,
+      "normal_share": 0.52,
+      "spell_share": 0.14,
+      "unique_cards": 33,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r1:STT04-002:STT04-001:opp11",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.1956521739130435,
+      "mean_cost": 2.78,
+      "normal_share": 0.52,
+      "spell_share": 0.04,
+      "unique_cards": 34,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r1:STT04-002:STT04-001:opp11",
+      "entity_share": 0.86,
+      "max_wjacc_curated": 0.14583333333333334,
+      "mean_cost": 2.58,
+      "normal_share": 0.54,
+      "spell_share": 0.06,
+      "unique_cards": 37,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r2:STT04-002:STT04-001:opp0",
+      "entity_share": 0.94,
+      "max_wjacc_curated": 0.2222222222222222,
+      "mean_cost": 2.76,
+      "normal_share": 0.44,
+      "spell_share": 0.04,
+      "unique_cards": 36,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:FIRE:r2:STT04-002:STT04-001:opp0",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 2.3,
+      "normal_share": 0.56,
+      "spell_share": 0.08,
+      "unique_cards": 32,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r2:STT04-002:STT04-001:opp11",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 2.72,
+      "normal_share": 0.6,
+      "spell_share": 0.02,
+      "unique_cards": 34,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r2:STT04-002:STT04-001:opp11",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 2.52,
+      "normal_share": 0.6,
+      "spell_share": 0.08,
+      "unique_cards": 36,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r0:STT04-002:STT04-001:opp2",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 2.72,
+      "normal_share": 0.56,
+      "spell_share": 0.04,
+      "unique_cards": 37,
+      "weapon_share": 0.12
+     },
+     {
+      "block": "free_draft:FIRE:r0:STT04-002:STT04-001:opp2",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.2222222222222222,
+      "mean_cost": 2.58,
+      "normal_share": 0.62,
+      "spell_share": 0.06,
+      "unique_cards": 32,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r0:STT04-002:STT04-001:opp12",
+      "entity_share": 0.86,
+      "max_wjacc_curated": 0.14583333333333334,
+      "mean_cost": 2.7,
+      "normal_share": 0.46,
+      "spell_share": 0.06,
+      "unique_cards": 34,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r0:STT04-002:STT04-001:opp12",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 2.78,
+      "normal_share": 0.46,
+      "spell_share": 0.04,
+      "unique_cards": 38,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r1:STT04-002:STT04-001:opp2",
+      "entity_share": 0.86,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 2.58,
+      "normal_share": 0.64,
+      "spell_share": 0.04,
+      "unique_cards": 36,
+      "weapon_share": 0.1
+     },
+     {
+      "block": "free_draft:FIRE:r1:STT04-002:STT04-001:opp2",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.1956521739130435,
+      "mean_cost": 2.6,
+      "normal_share": 0.56,
+      "spell_share": 0.06,
+      "unique_cards": 34,
+      "weapon_share": 0.1
+     },
+     {
+      "block": "free_draft:FIRE:r1:STT04-002:STT04-001:opp12",
+      "entity_share": 0.82,
+      "max_wjacc_curated": 0.26436781609195403,
+      "mean_cost": 2.32,
+      "normal_share": 0.48,
+      "spell_share": 0.06,
+      "unique_cards": 33,
+      "weapon_share": 0.12
+     },
+     {
+      "block": "free_draft:FIRE:r1:STT04-002:STT04-001:opp12",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 2.42,
+      "normal_share": 0.52,
+      "spell_share": 0.04,
+      "unique_cards": 33,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r2:STT04-002:STT04-001:opp2",
+      "entity_share": 0.82,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 2.46,
+      "normal_share": 0.6,
+      "spell_share": 0.1,
+      "unique_cards": 35,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r2:STT04-002:STT04-001:opp2",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 2.64,
+      "normal_share": 0.6,
+      "spell_share": 0.08,
+      "unique_cards": 33,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:FIRE:r2:STT04-002:STT04-001:opp12",
+      "entity_share": 0.82,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 2.58,
+      "normal_share": 0.52,
+      "spell_share": 0.06,
+      "unique_cards": 39,
+      "weapon_share": 0.12
+     },
+     {
+      "block": "free_draft:FIRE:r2:STT04-002:STT04-001:opp12",
+      "entity_share": 0.86,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 2.44,
+      "normal_share": 0.56,
+      "spell_share": 0.06,
+      "unique_cards": 37,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r0:STT04-002:STT04-001:opp3",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.14583333333333334,
+      "mean_cost": 2.82,
+      "normal_share": 0.52,
+      "spell_share": 0.06,
+      "unique_cards": 41,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r0:STT04-002:STT04-001:opp3",
+      "entity_share": 0.86,
+      "max_wjacc_curated": 0.1956521739130435,
+      "mean_cost": 2.62,
+      "normal_share": 0.52,
+      "spell_share": 0.1,
+      "unique_cards": 34,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r0:STT04-002:STT04-001:opp13",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 2.92,
+      "normal_share": 0.5,
+      "spell_share": 0.06,
+      "unique_cards": 38,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r0:STT04-002:STT04-001:opp13",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.2087912087912088,
+      "mean_cost": 2.78,
+      "normal_share": 0.48,
+      "spell_share": 0.08,
+      "unique_cards": 34,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r1:STT04-002:STT04-001:opp3",
+      "entity_share": 0.82,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 2.78,
+      "normal_share": 0.5,
+      "spell_share": 0.08,
+      "unique_cards": 40,
+      "weapon_share": 0.1
+     },
+     {
+      "block": "free_draft:FIRE:r1:STT04-002:STT04-001:opp3",
+      "entity_share": 0.82,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 2.84,
+      "normal_share": 0.58,
+      "spell_share": 0.06,
+      "unique_cards": 34,
+      "weapon_share": 0.12
+     },
+     {
+      "block": "free_draft:FIRE:r1:STT04-002:STT04-001:opp13",
+      "entity_share": 0.82,
+      "max_wjacc_curated": 0.1956521739130435,
+      "mean_cost": 2.92,
+      "normal_share": 0.48,
+      "spell_share": 0.08,
+      "unique_cards": 36,
+      "weapon_share": 0.1
+     },
+     {
+      "block": "free_draft:FIRE:r1:STT04-002:STT04-001:opp13",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 2.9,
+      "normal_share": 0.54,
+      "spell_share": 0.08,
+      "unique_cards": 35,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r2:STT04-002:STT04-001:opp3",
+      "entity_share": 0.8,
+      "max_wjacc_curated": 0.1956521739130435,
+      "mean_cost": 3.0,
+      "normal_share": 0.48,
+      "spell_share": 0.1,
+      "unique_cards": 34,
+      "weapon_share": 0.1
+     },
+     {
+      "block": "free_draft:FIRE:r2:STT04-002:STT04-001:opp3",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.2087912087912088,
+      "mean_cost": 2.58,
+      "normal_share": 0.52,
+      "spell_share": 0.04,
+      "unique_cards": 29,
+      "weapon_share": 0.12
+     },
+     {
+      "block": "free_draft:FIRE:r2:STT04-002:STT04-001:opp13",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 2.96,
+      "normal_share": 0.42,
+      "spell_share": 0.1,
+      "unique_cards": 39,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r2:STT04-002:STT04-001:opp13",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.14583333333333334,
+      "mean_cost": 2.82,
+      "normal_share": 0.58,
+      "spell_share": 0.06,
+      "unique_cards": 38,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r0:STT04-002:STT04-001:opp4",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.14583333333333334,
+      "mean_cost": 2.74,
+      "normal_share": 0.58,
+      "spell_share": 0.08,
+      "unique_cards": 36,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r0:STT04-002:STT04-001:opp4",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.1111111111111111,
+      "mean_cost": 2.72,
+      "normal_share": 0.56,
+      "spell_share": 0.06,
+      "unique_cards": 35,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r0:STT04-002:STT04-001:opp14",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.14583333333333334,
+      "mean_cost": 2.76,
+      "normal_share": 0.48,
+      "spell_share": 0.02,
+      "unique_cards": 33,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r0:STT04-002:STT04-001:opp14",
+      "entity_share": 0.86,
+      "max_wjacc_curated": 0.14583333333333334,
+      "mean_cost": 2.8,
+      "normal_share": 0.62,
+      "spell_share": 0.1,
+      "unique_cards": 35,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r1:STT04-002:STT04-001:opp4",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.2087912087912088,
+      "mean_cost": 2.6,
+      "normal_share": 0.5,
+      "spell_share": 0.06,
+      "unique_cards": 33,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r1:STT04-002:STT04-001:opp4",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.14583333333333334,
+      "mean_cost": 2.32,
+      "normal_share": 0.62,
+      "spell_share": 0.04,
+      "unique_cards": 32,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r1:STT04-002:STT04-001:opp14",
+      "entity_share": 0.8,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 3.1,
+      "normal_share": 0.54,
+      "spell_share": 0.1,
+      "unique_cards": 34,
+      "weapon_share": 0.1
+     },
+     {
+      "block": "free_draft:FIRE:r1:STT04-002:STT04-001:opp14",
+      "entity_share": 0.82,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 2.38,
+      "normal_share": 0.5,
+      "spell_share": 0.08,
+      "unique_cards": 31,
+      "weapon_share": 0.1
+     },
+     {
+      "block": "free_draft:FIRE:r2:STT04-002:STT04-001:opp4",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.1956521739130435,
+      "mean_cost": 2.64,
+      "normal_share": 0.48,
+      "spell_share": 0.04,
+      "unique_cards": 34,
+      "weapon_share": 0.12
+     },
+     {
+      "block": "free_draft:FIRE:r2:STT04-002:STT04-001:opp4",
+      "entity_share": 0.86,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 2.76,
+      "normal_share": 0.58,
+      "spell_share": 0.08,
+      "unique_cards": 35,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r2:STT04-002:STT04-001:opp14",
+      "entity_share": 0.76,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 2.78,
+      "normal_share": 0.54,
+      "spell_share": 0.08,
+      "unique_cards": 37,
+      "weapon_share": 0.16
+     },
+     {
+      "block": "free_draft:FIRE:r2:STT04-002:STT04-001:opp14",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 2.36,
+      "normal_share": 0.46,
+      "spell_share": 0.04,
+      "unique_cards": 34,
+      "weapon_share": 0.06
+     }
+    ],
+    "spell_share": 0.06708333333333334,
+    "top_cards_per_deck": {
+     "AZK01-003": 0.88,
+     "AZK01-010": 0.9,
+     "AZK01-011": 1.08,
+     "AZK01-015": 0.92,
+     "AZK01-056": 1.65,
+     "AZK01-058": 0.9,
+     "AZK01-060": 1.6,
+     "AZK01-069": 1.02,
+     "AZK01-082": 1.27,
+     "STT01-014": 1.81,
+     "STT01-015": 1.12,
+     "STT02-004": 2.54,
+     "STT04-003": 2.6,
+     "STT04-004": 2.35,
+     "STT04-014": 1.69
+    },
+    "unique_cards": 34.979166666666664,
+    "weapon_share": 0.07916666666666666,
+    "within_context_wjaccard_mean": 0.3193281036789515
+   },
+   "Rushfire/Kagoro": {
+    "curated_reference": "same gate",
+    "curated_reference_indices": [
+     0,
+     1,
+     5,
+     6,
+     7,
+     8
+    ],
+    "curve_mean": {
+     "0": 0.0,
+     "1": 18.5,
+     "2": 10.3125,
+     "3": 9.291666666666666,
+     "4": 4.520833333333333,
+     "5": 5.145833333333333,
+     "6": 1.9791666666666667,
+     "7": 0.25
+    },
+    "decks": 48,
+    "entity_share": 0.9095833333333333,
+    "max_wjaccard_to_curated_mean": 0.19339032312825108,
+    "mean_cost": 2.49375,
+    "normal_share": 0.5279166666666667,
+    "per_deck": [
+     {
+      "block": "free_draft:FIRE:r0:AZK01-122:AZK01-121:opp0",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.1956521739130435,
+      "mean_cost": 2.32,
+      "normal_share": 0.52,
+      "spell_share": 0.06,
+      "unique_cards": 34,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:FIRE:r0:AZK01-122:AZK01-121:opp0",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.2087912087912088,
+      "mean_cost": 2.38,
+      "normal_share": 0.5,
+      "spell_share": 0.06,
+      "unique_cards": 34,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:FIRE:r0:AZK01-122:AZK01-121:opp11",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.1956521739130435,
+      "mean_cost": 2.44,
+      "normal_share": 0.5,
+      "spell_share": 0.04,
+      "unique_cards": 36,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r0:AZK01-122:AZK01-121:opp11",
+      "entity_share": 0.94,
+      "max_wjacc_curated": 0.2222222222222222,
+      "mean_cost": 2.4,
+      "normal_share": 0.48,
+      "spell_share": 0.0,
+      "unique_cards": 35,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r1:AZK01-122:AZK01-121:opp0",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 2.58,
+      "normal_share": 0.54,
+      "spell_share": 0.08,
+      "unique_cards": 33,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r1:AZK01-122:AZK01-121:opp0",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.2087912087912088,
+      "mean_cost": 2.72,
+      "normal_share": 0.56,
+      "spell_share": 0.06,
+      "unique_cards": 35,
+      "weapon_share": 0.1
+     },
+     {
+      "block": "free_draft:FIRE:r1:AZK01-122:AZK01-121:opp11",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.2222222222222222,
+      "mean_cost": 2.5,
+      "normal_share": 0.58,
+      "spell_share": 0.06,
+      "unique_cards": 32,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r1:AZK01-122:AZK01-121:opp11",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.29411764705882354,
+      "mean_cost": 2.26,
+      "normal_share": 0.58,
+      "spell_share": 0.02,
+      "unique_cards": 32,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r2:AZK01-122:AZK01-121:opp0",
+      "entity_share": 0.94,
+      "max_wjacc_curated": 0.2087912087912088,
+      "mean_cost": 2.56,
+      "normal_share": 0.4,
+      "spell_share": 0.0,
+      "unique_cards": 32,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r2:AZK01-122:AZK01-121:opp0",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 2.48,
+      "normal_share": 0.48,
+      "spell_share": 0.04,
+      "unique_cards": 38,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r2:AZK01-122:AZK01-121:opp11",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 2.62,
+      "normal_share": 0.52,
+      "spell_share": 0.04,
+      "unique_cards": 37,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r2:AZK01-122:AZK01-121:opp11",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 2.62,
+      "normal_share": 0.5,
+      "spell_share": 0.04,
+      "unique_cards": 36,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r0:AZK01-122:AZK01-121:opp2",
+      "entity_share": 0.94,
+      "max_wjacc_curated": 0.25,
+      "mean_cost": 2.1,
+      "normal_share": 0.52,
+      "spell_share": 0.04,
+      "unique_cards": 34,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:FIRE:r0:AZK01-122:AZK01-121:opp2",
+      "entity_share": 0.94,
+      "max_wjacc_curated": 0.25,
+      "mean_cost": 1.92,
+      "normal_share": 0.5,
+      "spell_share": 0.02,
+      "unique_cards": 30,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r0:AZK01-122:AZK01-121:opp12",
+      "entity_share": 0.94,
+      "max_wjacc_curated": 0.23595505617977527,
+      "mean_cost": 2.5,
+      "normal_share": 0.5,
+      "spell_share": 0.04,
+      "unique_cards": 32,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:FIRE:r0:AZK01-122:AZK01-121:opp12",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.1956521739130435,
+      "mean_cost": 2.28,
+      "normal_share": 0.5,
+      "spell_share": 0.04,
+      "unique_cards": 33,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r1:AZK01-122:AZK01-121:opp2",
+      "entity_share": 0.86,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 2.6,
+      "normal_share": 0.5,
+      "spell_share": 0.1,
+      "unique_cards": 33,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r1:AZK01-122:AZK01-121:opp2",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.14583333333333334,
+      "mean_cost": 2.7,
+      "normal_share": 0.56,
+      "spell_share": 0.0,
+      "unique_cards": 32,
+      "weapon_share": 0.1
+     },
+     {
+      "block": "free_draft:FIRE:r1:AZK01-122:AZK01-121:opp12",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.2222222222222222,
+      "mean_cost": 2.22,
+      "normal_share": 0.52,
+      "spell_share": 0.04,
+      "unique_cards": 31,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r1:AZK01-122:AZK01-121:opp12",
+      "entity_share": 0.94,
+      "max_wjacc_curated": 0.23595505617977527,
+      "mean_cost": 2.62,
+      "normal_share": 0.48,
+      "spell_share": 0.02,
+      "unique_cards": 33,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r2:AZK01-122:AZK01-121:opp2",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.1956521739130435,
+      "mean_cost": 2.54,
+      "normal_share": 0.44,
+      "spell_share": 0.08,
+      "unique_cards": 33,
+      "weapon_share": 0.0
+     },
+     {
+      "block": "free_draft:FIRE:r2:AZK01-122:AZK01-121:opp2",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.2222222222222222,
+      "mean_cost": 2.42,
+      "normal_share": 0.46,
+      "spell_share": 0.04,
+      "unique_cards": 34,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r2:AZK01-122:AZK01-121:opp12",
+      "entity_share": 0.94,
+      "max_wjacc_curated": 0.2087912087912088,
+      "mean_cost": 2.5,
+      "normal_share": 0.5,
+      "spell_share": 0.0,
+      "unique_cards": 36,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r2:AZK01-122:AZK01-121:opp12",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 2.7,
+      "normal_share": 0.56,
+      "spell_share": 0.04,
+      "unique_cards": 39,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r0:AZK01-122:AZK01-121:opp3",
+      "entity_share": 0.94,
+      "max_wjacc_curated": 0.1956521739130435,
+      "mean_cost": 2.48,
+      "normal_share": 0.48,
+      "spell_share": 0.04,
+      "unique_cards": 36,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:FIRE:r0:AZK01-122:AZK01-121:opp3",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.1956521739130435,
+      "mean_cost": 2.56,
+      "normal_share": 0.5,
+      "spell_share": 0.02,
+      "unique_cards": 33,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r0:AZK01-122:AZK01-121:opp13",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 2.56,
+      "normal_share": 0.56,
+      "spell_share": 0.06,
+      "unique_cards": 35,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:FIRE:r0:AZK01-122:AZK01-121:opp13",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 2.56,
+      "normal_share": 0.62,
+      "spell_share": 0.02,
+      "unique_cards": 34,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r1:AZK01-122:AZK01-121:opp3",
+      "entity_share": 0.82,
+      "max_wjacc_curated": 0.2087912087912088,
+      "mean_cost": 2.38,
+      "normal_share": 0.4,
+      "spell_share": 0.1,
+      "unique_cards": 36,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r1:AZK01-122:AZK01-121:opp3",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.2087912087912088,
+      "mean_cost": 2.52,
+      "normal_share": 0.56,
+      "spell_share": 0.06,
+      "unique_cards": 37,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r1:AZK01-122:AZK01-121:opp13",
+      "entity_share": 0.86,
+      "max_wjacc_curated": 0.23595505617977527,
+      "mean_cost": 2.2,
+      "normal_share": 0.46,
+      "spell_share": 0.08,
+      "unique_cards": 34,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r1:AZK01-122:AZK01-121:opp13",
+      "entity_share": 1.0,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 2.48,
+      "normal_share": 0.54,
+      "spell_share": 0.0,
+      "unique_cards": 33,
+      "weapon_share": 0.0
+     },
+     {
+      "block": "free_draft:FIRE:r2:AZK01-122:AZK01-121:opp3",
+      "entity_share": 0.86,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 2.64,
+      "normal_share": 0.54,
+      "spell_share": 0.1,
+      "unique_cards": 38,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r2:AZK01-122:AZK01-121:opp3",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.1956521739130435,
+      "mean_cost": 2.7,
+      "normal_share": 0.58,
+      "spell_share": 0.04,
+      "unique_cards": 36,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r2:AZK01-122:AZK01-121:opp13",
+      "entity_share": 0.94,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 2.64,
+      "normal_share": 0.62,
+      "spell_share": 0.0,
+      "unique_cards": 30,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r2:AZK01-122:AZK01-121:opp13",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 2.78,
+      "normal_share": 0.58,
+      "spell_share": 0.0,
+      "unique_cards": 32,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r0:AZK01-122:AZK01-121:opp4",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.2087912087912088,
+      "mean_cost": 2.56,
+      "normal_share": 0.54,
+      "spell_share": 0.08,
+      "unique_cards": 33,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:FIRE:r0:AZK01-122:AZK01-121:opp4",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.14583333333333334,
+      "mean_cost": 2.84,
+      "normal_share": 0.56,
+      "spell_share": 0.0,
+      "unique_cards": 37,
+      "weapon_share": 0.12
+     },
+     {
+      "block": "free_draft:FIRE:r0:AZK01-122:AZK01-121:opp14",
+      "entity_share": 0.82,
+      "max_wjacc_curated": 0.14583333333333334,
+      "mean_cost": 2.7,
+      "normal_share": 0.62,
+      "spell_share": 0.08,
+      "unique_cards": 36,
+      "weapon_share": 0.1
+     },
+     {
+      "block": "free_draft:FIRE:r0:AZK01-122:AZK01-121:opp14",
+      "entity_share": 0.94,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 2.54,
+      "normal_share": 0.58,
+      "spell_share": 0.0,
+      "unique_cards": 34,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r1:AZK01-122:AZK01-121:opp4",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.25,
+      "mean_cost": 2.34,
+      "normal_share": 0.48,
+      "spell_share": 0.02,
+      "unique_cards": 30,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r1:AZK01-122:AZK01-121:opp4",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.14583333333333334,
+      "mean_cost": 2.34,
+      "normal_share": 0.58,
+      "spell_share": 0.06,
+      "unique_cards": 32,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:FIRE:r1:AZK01-122:AZK01-121:opp14",
+      "entity_share": 0.96,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 2.54,
+      "normal_share": 0.54,
+      "spell_share": 0.04,
+      "unique_cards": 32,
+      "weapon_share": 0.0
+     },
+     {
+      "block": "free_draft:FIRE:r1:AZK01-122:AZK01-121:opp14",
+      "entity_share": 0.82,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 2.54,
+      "normal_share": 0.56,
+      "spell_share": 0.08,
+      "unique_cards": 37,
+      "weapon_share": 0.1
+     },
+     {
+      "block": "free_draft:FIRE:r2:AZK01-122:AZK01-121:opp4",
+      "entity_share": 0.96,
+      "max_wjacc_curated": 0.2087912087912088,
+      "mean_cost": 2.48,
+      "normal_share": 0.48,
+      "spell_share": 0.02,
+      "unique_cards": 35,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:FIRE:r2:AZK01-122:AZK01-121:opp4",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 2.46,
+      "normal_share": 0.6,
+      "spell_share": 0.04,
+      "unique_cards": 33,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r2:AZK01-122:AZK01-121:opp14",
+      "entity_share": 0.96,
+      "max_wjacc_curated": 0.1111111111111111,
+      "mean_cost": 2.52,
+      "normal_share": 0.66,
+      "spell_share": 0.04,
+      "unique_cards": 35,
+      "weapon_share": 0.0
+     },
+     {
+      "block": "free_draft:FIRE:r2:AZK01-122:AZK01-121:opp14",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 2.36,
+      "normal_share": 0.5,
+      "spell_share": 0.06,
+      "unique_cards": 32,
+      "weapon_share": 0.02
+     }
+    ],
+    "spell_share": 0.041666666666666664,
+    "top_cards_per_deck": {
+     "AZK01-003": 1.42,
+     "AZK01-011": 1.33,
+     "AZK01-056": 1.62,
+     "AZK01-058": 1.35,
+     "AZK01-059": 1.21,
+     "AZK01-060": 1.65,
+     "AZK01-069": 1.1,
+     "AZK01-082": 1.5,
+     "AZK01-113": 1.23,
+     "STT01-014": 1.17,
+     "STT02-004": 2.6,
+     "STT04-003": 3.1,
+     "STT04-004": 2.19,
+     "STT04-006": 1.02,
+     "STT04-014": 1.08
+    },
+    "unique_cards": 34.041666666666664,
+    "weapon_share": 0.048749999999999995,
+    "within_context_wjaccard_mean": 0.33970319508044433
+   },
+   "Rushfire/Zero": {
+    "curated_reference": "same gate+leader",
+    "curated_reference_indices": [
+     0,
+     1,
+     5,
+     6,
+     7,
+     8
+    ],
+    "curve_mean": {
+     "0": 0.0,
+     "1": 18.8125,
+     "2": 9.208333333333334,
+     "3": 9.291666666666666,
+     "4": 4.875,
+     "5": 4.708333333333333,
+     "6": 2.7708333333333335,
+     "7": 0.3333333333333333
+    },
+    "decks": 48,
+    "entity_share": 0.9183333333333333,
+    "max_wjaccard_to_curated_mean": 0.1928963271960983,
+    "mean_cost": 2.54875,
+    "normal_share": 0.5229166666666667,
+    "per_deck": [
+     {
+      "block": "free_draft:FIRE:r0:AZK01-122:STT04-001:opp0",
+      "entity_share": 0.86,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 2.46,
+      "normal_share": 0.62,
+      "spell_share": 0.04,
+      "unique_cards": 33,
+      "weapon_share": 0.1
+     },
+     {
+      "block": "free_draft:FIRE:r0:AZK01-122:STT04-001:opp0",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.1956521739130435,
+      "mean_cost": 2.82,
+      "normal_share": 0.56,
+      "spell_share": 0.04,
+      "unique_cards": 37,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r0:AZK01-122:STT04-001:opp11",
+      "entity_share": 0.96,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 2.54,
+      "normal_share": 0.48,
+      "spell_share": 0.0,
+      "unique_cards": 35,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r0:AZK01-122:STT04-001:opp11",
+      "entity_share": 0.98,
+      "max_wjacc_curated": 0.2087912087912088,
+      "mean_cost": 2.26,
+      "normal_share": 0.56,
+      "spell_share": 0.0,
+      "unique_cards": 37,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:FIRE:r1:AZK01-122:STT04-001:opp0",
+      "entity_share": 0.94,
+      "max_wjacc_curated": 0.1956521739130435,
+      "mean_cost": 2.38,
+      "normal_share": 0.56,
+      "spell_share": 0.02,
+      "unique_cards": 31,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r1:AZK01-122:STT04-001:opp0",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.1956521739130435,
+      "mean_cost": 2.34,
+      "normal_share": 0.56,
+      "spell_share": 0.02,
+      "unique_cards": 32,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r1:AZK01-122:STT04-001:opp11",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 2.74,
+      "normal_share": 0.56,
+      "spell_share": 0.04,
+      "unique_cards": 31,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r1:AZK01-122:STT04-001:opp11",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 2.68,
+      "normal_share": 0.5,
+      "spell_share": 0.02,
+      "unique_cards": 35,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r2:AZK01-122:STT04-001:opp0",
+      "entity_share": 0.96,
+      "max_wjacc_curated": 0.26436781609195403,
+      "mean_cost": 2.4,
+      "normal_share": 0.42,
+      "spell_share": 0.02,
+      "unique_cards": 35,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:FIRE:r2:AZK01-122:STT04-001:opp0",
+      "entity_share": 0.96,
+      "max_wjacc_curated": 0.23595505617977527,
+      "mean_cost": 2.32,
+      "normal_share": 0.48,
+      "spell_share": 0.02,
+      "unique_cards": 33,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:FIRE:r2:AZK01-122:STT04-001:opp11",
+      "entity_share": 0.94,
+      "max_wjacc_curated": 0.2087912087912088,
+      "mean_cost": 2.54,
+      "normal_share": 0.44,
+      "spell_share": 0.04,
+      "unique_cards": 36,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:FIRE:r2:AZK01-122:STT04-001:opp11",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.23595505617977527,
+      "mean_cost": 2.3,
+      "normal_share": 0.56,
+      "spell_share": 0.06,
+      "unique_cards": 33,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r0:AZK01-122:STT04-001:opp2",
+      "entity_share": 0.94,
+      "max_wjacc_curated": 0.2222222222222222,
+      "mean_cost": 2.14,
+      "normal_share": 0.5,
+      "spell_share": 0.02,
+      "unique_cards": 36,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r0:AZK01-122:STT04-001:opp2",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.23595505617977527,
+      "mean_cost": 2.32,
+      "normal_share": 0.54,
+      "spell_share": 0.02,
+      "unique_cards": 34,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r0:AZK01-122:STT04-001:opp12",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.1956521739130435,
+      "mean_cost": 2.88,
+      "normal_share": 0.5,
+      "spell_share": 0.06,
+      "unique_cards": 32,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r0:AZK01-122:STT04-001:opp12",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.2222222222222222,
+      "mean_cost": 2.52,
+      "normal_share": 0.54,
+      "spell_share": 0.06,
+      "unique_cards": 35,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r1:AZK01-122:STT04-001:opp2",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 2.18,
+      "normal_share": 0.58,
+      "spell_share": 0.02,
+      "unique_cards": 32,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r1:AZK01-122:STT04-001:opp2",
+      "entity_share": 0.96,
+      "max_wjacc_curated": 0.2087912087912088,
+      "mean_cost": 2.6,
+      "normal_share": 0.52,
+      "spell_share": 0.0,
+      "unique_cards": 30,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r1:AZK01-122:STT04-001:opp12",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 2.56,
+      "normal_share": 0.56,
+      "spell_share": 0.04,
+      "unique_cards": 34,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r1:AZK01-122:STT04-001:opp12",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 2.62,
+      "normal_share": 0.46,
+      "spell_share": 0.08,
+      "unique_cards": 37,
+      "weapon_share": 0.0
+     },
+     {
+      "block": "free_draft:FIRE:r2:AZK01-122:STT04-001:opp2",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.23595505617977527,
+      "mean_cost": 2.38,
+      "normal_share": 0.48,
+      "spell_share": 0.06,
+      "unique_cards": 33,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:FIRE:r2:AZK01-122:STT04-001:opp2",
+      "entity_share": 0.94,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 2.58,
+      "normal_share": 0.56,
+      "spell_share": 0.0,
+      "unique_cards": 37,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r2:AZK01-122:STT04-001:opp12",
+      "entity_share": 0.94,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 2.92,
+      "normal_share": 0.5,
+      "spell_share": 0.02,
+      "unique_cards": 34,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r2:AZK01-122:STT04-001:opp12",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 2.32,
+      "normal_share": 0.54,
+      "spell_share": 0.06,
+      "unique_cards": 35,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r0:AZK01-122:STT04-001:opp3",
+      "entity_share": 0.96,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 2.34,
+      "normal_share": 0.56,
+      "spell_share": 0.0,
+      "unique_cards": 34,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r0:AZK01-122:STT04-001:opp3",
+      "entity_share": 0.82,
+      "max_wjacc_curated": 0.14583333333333334,
+      "mean_cost": 3.04,
+      "normal_share": 0.52,
+      "spell_share": 0.08,
+      "unique_cards": 34,
+      "weapon_share": 0.1
+     },
+     {
+      "block": "free_draft:FIRE:r0:AZK01-122:STT04-001:opp13",
+      "entity_share": 0.94,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 2.8,
+      "normal_share": 0.44,
+      "spell_share": 0.02,
+      "unique_cards": 36,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r0:AZK01-122:STT04-001:opp13",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 2.54,
+      "normal_share": 0.64,
+      "spell_share": 0.02,
+      "unique_cards": 32,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r1:AZK01-122:STT04-001:opp3",
+      "entity_share": 0.96,
+      "max_wjacc_curated": 0.23595505617977527,
+      "mean_cost": 2.72,
+      "normal_share": 0.42,
+      "spell_share": 0.02,
+      "unique_cards": 34,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:FIRE:r1:AZK01-122:STT04-001:opp3",
+      "entity_share": 0.94,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 2.74,
+      "normal_share": 0.56,
+      "spell_share": 0.04,
+      "unique_cards": 38,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:FIRE:r1:AZK01-122:STT04-001:opp13",
+      "entity_share": 0.94,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 2.62,
+      "normal_share": 0.5,
+      "spell_share": 0.02,
+      "unique_cards": 35,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r1:AZK01-122:STT04-001:opp13",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 2.9,
+      "normal_share": 0.6,
+      "spell_share": 0.0,
+      "unique_cards": 36,
+      "weapon_share": 0.1
+     },
+     {
+      "block": "free_draft:FIRE:r2:AZK01-122:STT04-001:opp3",
+      "entity_share": 0.98,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 2.56,
+      "normal_share": 0.6,
+      "spell_share": 0.02,
+      "unique_cards": 33,
+      "weapon_share": 0.0
+     },
+     {
+      "block": "free_draft:FIRE:r2:AZK01-122:STT04-001:opp3",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 2.74,
+      "normal_share": 0.5,
+      "spell_share": 0.02,
+      "unique_cards": 32,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r2:AZK01-122:STT04-001:opp13",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.2087912087912088,
+      "mean_cost": 2.64,
+      "normal_share": 0.54,
+      "spell_share": 0.08,
+      "unique_cards": 33,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r2:AZK01-122:STT04-001:opp13",
+      "entity_share": 0.94,
+      "max_wjacc_curated": 0.14583333333333334,
+      "mean_cost": 2.7,
+      "normal_share": 0.52,
+      "spell_share": 0.02,
+      "unique_cards": 34,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r0:AZK01-122:STT04-001:opp4",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 2.56,
+      "normal_share": 0.5,
+      "spell_share": 0.08,
+      "unique_cards": 35,
+      "weapon_share": 0.0
+     },
+     {
+      "block": "free_draft:FIRE:r0:AZK01-122:STT04-001:opp4",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.2222222222222222,
+      "mean_cost": 2.6,
+      "normal_share": 0.52,
+      "spell_share": 0.06,
+      "unique_cards": 36,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r0:AZK01-122:STT04-001:opp14",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.25,
+      "mean_cost": 2.48,
+      "normal_share": 0.42,
+      "spell_share": 0.06,
+      "unique_cards": 34,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r0:AZK01-122:STT04-001:opp14",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 2.44,
+      "normal_share": 0.44,
+      "spell_share": 0.06,
+      "unique_cards": 34,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r1:AZK01-122:STT04-001:opp4",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.1956521739130435,
+      "mean_cost": 2.56,
+      "normal_share": 0.5,
+      "spell_share": 0.08,
+      "unique_cards": 35,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:FIRE:r1:AZK01-122:STT04-001:opp4",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.2087912087912088,
+      "mean_cost": 2.56,
+      "normal_share": 0.5,
+      "spell_share": 0.06,
+      "unique_cards": 36,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:FIRE:r1:AZK01-122:STT04-001:opp14",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.2087912087912088,
+      "mean_cost": 2.5,
+      "normal_share": 0.52,
+      "spell_share": 0.06,
+      "unique_cards": 33,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:FIRE:r1:AZK01-122:STT04-001:opp14",
+      "entity_share": 0.86,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 2.52,
+      "normal_share": 0.6,
+      "spell_share": 0.06,
+      "unique_cards": 35,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:FIRE:r2:AZK01-122:STT04-001:opp4",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.2087912087912088,
+      "mean_cost": 2.22,
+      "normal_share": 0.48,
+      "spell_share": 0.06,
+      "unique_cards": 34,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:FIRE:r2:AZK01-122:STT04-001:opp4",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.25,
+      "mean_cost": 2.72,
+      "normal_share": 0.5,
+      "spell_share": 0.06,
+      "unique_cards": 32,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:FIRE:r2:AZK01-122:STT04-001:opp14",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 2.46,
+      "normal_share": 0.56,
+      "spell_share": 0.02,
+      "unique_cards": 34,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:FIRE:r2:AZK01-122:STT04-001:opp14",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 2.58,
+      "normal_share": 0.58,
+      "spell_share": 0.02,
+      "unique_cards": 32,
+      "weapon_share": 0.08
+     }
+    ],
+    "spell_share": 0.037083333333333336,
+    "top_cards_per_deck": {
+     "AZK01-003": 1.1,
+     "AZK01-004": 1.06,
+     "AZK01-011": 1.4,
+     "AZK01-056": 1.67,
+     "AZK01-058": 1.4,
+     "AZK01-060": 1.65,
+     "AZK01-067": 1.04,
+     "AZK01-082": 1.44,
+     "AZK01-113": 1.15,
+     "STT01-014": 1.12,
+     "STT02-004": 2.65,
+     "STT04-003": 2.96,
+     "STT04-004": 2.4,
+     "STT04-005": 1.21,
+     "STT04-014": 1.46
+    },
+    "unique_cards": 34.125,
+    "weapon_share": 0.044583333333333336,
+    "within_context_wjaccard_mean": 0.3377383728753731
+   }
+  }
+ },
+ "element": "FIRE",
+ "examples": {
+  "block/favorable_survive_or_kill": [
+   {
+    "file": "fire__u8223__sample__s1.jsonl",
+    "game": 126,
+    "step": 106,
+    "task_id": "free_draft:FIRE:r1:STT04-002:STT04-001:opp12:seat0"
+   },
+   {
+    "file": "fire__u8223__sample__s1.jsonl",
+    "game": 143,
+    "step": 51,
+    "task_id": "free_draft:FIRE:r2:STT04-002:STT04-001:opp12:seat1"
+   },
+   {
+    "file": "fire__u8223__sample__s2.jsonl",
+    "game": 123,
+    "step": 65,
+    "task_id": "free_draft:FIRE:r1:STT04-002:AZK01-121:opp13:seat1"
+   }
+  ],
+  "gate/Ragefire/buffed_then_attacks_same_turn": [
+   {
+    "file": "fire__u8223__sample__s0.jsonl",
+    "game": 14,
+    "step": 33,
+    "task_id": "fixed:FIRE:r0:cand2:opp11:seat0"
+   },
+   {
+    "file": "fire__u8223__sample__s0.jsonl",
+    "game": 23,
+    "step": 20,
+    "task_id": "fixed:FIRE:r0:cand17:opp11:seat1"
+   },
+   {
+    "file": "fire__u8223__sample__s0.jsonl",
+    "game": 36,
+    "step": 24,
+    "task_id": "fixed:FIRE:r1:cand2:opp0:seat0"
+   }
+  ],
+  "gate/Rushfire/payload_then_attack_same_turn": [
+   {
+    "file": "fire__u8223__sample__s0.jsonl",
+    "game": 0,
+    "step": 11,
+    "task_id": "fixed:FIRE:r0:cand0:opp0:seat0"
+   },
+   {
+    "file": "fire__u8223__sample__s0.jsonl",
+    "game": 1,
+    "step": 22,
+    "task_id": "fixed:FIRE:r0:cand0:opp0:seat1"
+   },
+   {
+    "file": "fire__u8223__sample__s0.jsonl",
+    "game": 2,
+    "step": 8,
+    "task_id": "fixed:FIRE:r0:cand0:opp11:seat0"
+   }
+  ],
+  "leader/Zero/target_then_attacks_same_turn": [
+   {
+    "file": "fire__u8223__sample__s1.jsonl",
+    "game": 125,
+    "step": 51,
+    "task_id": "free_draft:FIRE:r1:STT04-002:STT04-001:opp2:seat1"
+   }
+  ]
+ },
+ "games": 576,
+ "mode": "sample",
+ "slices": {
+  "all|ALL": {
+   "games": 576,
+   "metrics": {
+    "block/attacker_destroyed": {
+     "den": 31,
+     "num": 0,
+     "rate": 0.0
+    },
+    "block/blocker_survives": {
+     "den": 31,
+     "num": 4,
+     "rate": 0.12903225806451613
+    },
+    "block/favorable_survive_or_kill": {
+     "den": 31,
+     "num": 4,
+     "rate": 0.12903225806451613
+    },
+    "draft/max_wjaccard_to_curated": {
+     "den": 192,
+     "num": 35.69737811192654,
+     "rate": 0.18592384433295073
+    },
+    "draft/mean_cost": {
+     "den": 9600,
+     "num": 24947.0,
+     "rate": 2.5986458333333333
+    },
+    "draft/normal_share": {
+     "den": 9600,
+     "num": 5043.0,
+     "rate": 0.5253125
+    },
+    "draft/spell_share": {
+     "den": 9600,
+     "num": 501.0,
+     "rate": 0.0521875
+    },
+    "draft/unique_cards": {
+     "den": 192,
+     "num": 6613,
+     "rate": 34.442708333333336
+    },
+    "draft/weapon_share": {
+     "den": 9600,
+     "num": 588.0,
+     "rate": 0.06125
+    },
+    "fire/burn_cast_per_legal_turn": {
+     "den": 1969,
+     "num": 553,
+     "rate": 0.2808532249873032
+    },
+    "fire/burn_cast_then_opp_damage": {
+     "den": 715,
+     "num": 676,
+     "rate": 0.9454545454545454
+    },
+    "fire/zero_ping_redirect_target_then_opp_damage": {
+     "den": 6,
+     "num": 6,
+     "rate": 1.0
+    },
+    "fire/zero_ping_target_is_redirect_card": {
+     "den": 67,
+     "num": 6,
+     "rate": 0.08955223880597014
+    },
+    "gate/Ragefire/buffed_then_attacks_same_turn": {
+     "den": 227,
+     "num": 100,
+     "rate": 0.44052863436123346
+    },
+    "gate/Ragefire/portal_then_buff": {
+     "den": 879,
+     "num": 227,
+     "rate": 0.2582480091012514
+    },
+    "gate/Rushfire/payload_then_attack_same_turn": {
+     "den": 982,
+     "num": 961,
+     "rate": 0.9786150712830958
+    },
+    "gate/Rushfire/portal_then_payload": {
+     "den": 1421,
+     "num": 982,
+     "rate": 0.6910626319493315
+    },
+    "gate/portal_per_legal_turn": {
+     "den": 2324,
+     "num": 2300,
+     "rate": 0.9896729776247849
+    },
+    "heal/heal_spell_per_legal_turn_below_max_hp": {
+     "den": 345,
+     "num": 92,
+     "rate": 0.26666666666666666
+    },
+    "ikz/held_at_end_of_own_turn": {
+     "den": 3581,
+     "num": 805,
+     "rate": 0.22479754258586987
+    },
+    "ikz/held_then_spent_in_opp_turn": {
+     "den": 805,
+     "num": 28,
+     "rate": 0.034782608695652174
+    },
+    "leader/Kagoro/use_then_leader_attacks_same_turn": {
+     "den": 138,
+     "num": 134,
+     "rate": 0.9710144927536232
+    },
+    "leader/Zero/target_then_attacks_same_turn": {
+     "den": 68,
+     "num": 1,
+     "rate": 0.014705882352941176
+    },
+    "leader/Zero/use_with_target": {
+     "den": 74,
+     "num": 68,
+     "rate": 0.918918918918919
+    },
+    "leader/use_per_legal_turn": {
+     "den": 3198,
+     "num": 212,
+     "rate": 0.06629143214509069
+    },
+    "lightning/weapon_attach_per_legal_turn": {
+     "den": 678,
+     "num": 106,
+     "rate": 0.15634218289085547
+    },
+    "lightning/weapon_attach_to_entity_share": {
+     "den": 119,
+     "num": 0,
+     "rate": 0.0
+    },
+    "outcome/battle_decisions": {
+     "den": 576,
+     "num": 28209,
+     "rate": 48.973958333333336
+    },
+    "outcome/own_turns": {
+     "den": 576,
+     "num": 3581,
+     "rate": 6.217013888888889
+    },
+    "outcome/win": {
+     "den": 576,
+     "num": 362,
+     "rate": 0.6284722222222222
+    },
+    "outcome/win_vs_EARTH": {
+     "den": 144,
+     "num": 84,
+     "rate": 0.5833333333333334
+    },
+    "outcome/win_vs_FIRE": {
+     "den": 144,
+     "num": 73,
+     "rate": 0.5069444444444444
+    },
+    "outcome/win_vs_LIGHTNING": {
+     "den": 144,
+     "num": 100,
+     "rate": 0.6944444444444444
+    },
+    "outcome/win_vs_WATER": {
+     "den": 144,
+     "num": 105,
+     "rate": 0.7291666666666666
+    },
+    "response/any_nonblock_response_when_legal": {
+     "den": 133,
+     "num": 93,
+     "rate": 0.6992481203007519
+    },
+    "response/defender_declared_when_legal": {
+     "den": 141,
+     "num": 31,
+     "rate": 0.2198581560283688
+    },
+    "response/spell_played_when_legal": {
+     "den": 63,
+     "num": 28,
+     "rate": 0.4444444444444444
+    },
+    "sequence/fire.kagoro_after_multi_play/completed_per_eligible_game": {
+     "den": 91,
+     "num": 13,
+     "rate": 0.14285714285714285
+    },
+    "sequence/fire.kagoro_after_multi_play/converted_per_eligible_game": {
+     "den": 91,
+     "num": 8,
+     "rate": 0.08791208791208792
+    },
+    "sequence/fire.rushfire_charge_conversion/completed_per_eligible_game": {
+     "den": 288,
+     "num": 288,
+     "rate": 1.0
+    },
+    "sequence/fire.rushfire_charge_conversion/converted_per_eligible_game": {
+     "den": 288,
+     "num": 199,
+     "rate": 0.6909722222222222
+    },
+    "sequence/fire.zero_before_attack/completed_per_eligible_game": {
+     "den": 480,
+     "num": 1,
+     "rate": 0.0020833333333333333
+    },
+    "sequence/fire.zero_before_attack/converted_per_eligible_game": {
+     "den": 480,
+     "num": 1,
+     "rate": 0.0020833333333333333
+    },
+    "strategy/attacks_by_equipped_attacker": {
+     "den": 7310,
+     "num": 83,
+     "rate": 0.011354309165526676
+    },
+    "strategy/face_target_share_when_both_legal": {
+     "den": 4259,
+     "num": 2869,
+     "rate": 0.6736323080535337
+    },
+    "strategy/favorable_trade_taken_per_available_turn": {
+     "den": 1107,
+     "num": 584,
+     "rate": 0.5275519421860885
+    },
+    "strategy/spell_cast_per_legal_main_turn": {
+     "den": 2339,
+     "num": 634,
+     "rate": 0.27105600684053016
+    }
+   }
+  },
+  "all|Ragefire/Kagoro": {
+   "games": 48,
+   "metrics": {
+    "block/attacker_destroyed": {
+     "den": 1,
+     "num": 0,
+     "rate": 0.0
+    },
+    "block/blocker_survives": {
+     "den": 1,
+     "num": 1,
+     "rate": 1.0
+    },
+    "block/favorable_survive_or_kill": {
+     "den": 1,
+     "num": 1,
+     "rate": 1.0
+    },
+    "draft/max_wjaccard_to_curated": {
+     "den": 48,
+     "num": 8.751710061388241,
+     "rate": 0.18232729294558836
+    },
+    "draft/mean_cost": {
+     "den": 2400,
+     "num": 6389.0,
+     "rate": 2.6620833333333334
+    },
+    "draft/normal_share": {
+     "den": 2400,
+     "num": 1236.0,
+     "rate": 0.515
+    },
+    "draft/spell_share": {
+     "den": 2400,
+     "num": 151.0,
+     "rate": 0.06291666666666666
+    },
+    "draft/unique_cards": {
+     "den": 48,
+     "num": 1662,
+     "rate": 34.625
+    },
+    "draft/weapon_share": {
+     "den": 2400,
+     "num": 174.0,
+     "rate": 0.0725
+    },
+    "fire/burn_cast_per_legal_turn": {
+     "den": 80,
+     "num": 11,
+     "rate": 0.1375
+    },
+    "fire/burn_cast_then_opp_damage": {
+     "den": 11,
+     "num": 9,
+     "rate": 0.8181818181818182
+    },
+    "gate/Ragefire/buffed_then_attacks_same_turn": {
+     "den": 32,
+     "num": 12,
+     "rate": 0.375
+    },
+    "gate/Ragefire/portal_then_buff": {
+     "den": 138,
+     "num": 32,
+     "rate": 0.2318840579710145
+    },
+    "gate/portal_per_legal_turn": {
+     "den": 138,
+     "num": 138,
+     "rate": 1.0
+    },
+    "heal/heal_spell_per_legal_turn_below_max_hp": {
+     "den": 9,
+     "num": 2,
+     "rate": 0.2222222222222222
+    },
+    "ikz/held_at_end_of_own_turn": {
+     "den": 307,
+     "num": 32,
+     "rate": 0.10423452768729642
+    },
+    "ikz/held_then_spent_in_opp_turn": {
+     "den": 32,
+     "num": 0,
+     "rate": 0.0
+    },
+    "leader/Kagoro/use_then_leader_attacks_same_turn": {
+     "den": 64,
+     "num": 63,
+     "rate": 0.984375
+    },
+    "leader/use_per_legal_turn": {
+     "den": 161,
+     "num": 64,
+     "rate": 0.39751552795031053
+    },
+    "lightning/weapon_attach_per_legal_turn": {
+     "den": 166,
+     "num": 26,
+     "rate": 0.1566265060240964
+    },
+    "lightning/weapon_attach_to_entity_share": {
+     "den": 32,
+     "num": 0,
+     "rate": 0.0
+    },
+    "outcome/battle_decisions": {
+     "den": 48,
+     "num": 2041,
+     "rate": 42.520833333333336
+    },
+    "outcome/own_turns": {
+     "den": 48,
+     "num": 307,
+     "rate": 6.395833333333333
+    },
+    "outcome/win": {
+     "den": 48,
+     "num": 22,
+     "rate": 0.4583333333333333
+    },
+    "outcome/win_vs_EARTH": {
+     "den": 12,
+     "num": 8,
+     "rate": 0.6666666666666666
+    },
+    "outcome/win_vs_FIRE": {
+     "den": 12,
+     "num": 1,
+     "rate": 0.08333333333333333
+    },
+    "outcome/win_vs_LIGHTNING": {
+     "den": 12,
+     "num": 7,
+     "rate": 0.5833333333333334
+    },
+    "outcome/win_vs_WATER": {
+     "den": 12,
+     "num": 6,
+     "rate": 0.5
+    },
+    "response/any_nonblock_response_when_legal": {
+     "den": 1,
+     "num": 1,
+     "rate": 1.0
+    },
+    "response/defender_declared_when_legal": {
+     "den": 3,
+     "num": 1,
+     "rate": 0.3333333333333333
+    },
+    "sequence/fire.kagoro_after_multi_play/completed_per_eligible_game": {
+     "den": 48,
+     "num": 11,
+     "rate": 0.22916666666666666
+    },
+    "sequence/fire.kagoro_after_multi_play/converted_per_eligible_game": {
+     "den": 48,
+     "num": 7,
+     "rate": 0.14583333333333334
+    },
+    "strategy/attacks_by_equipped_attacker": {
+     "den": 592,
+     "num": 19,
+     "rate": 0.03209459459459459
+    },
+    "strategy/face_target_share_when_both_legal": {
+     "den": 380,
+     "num": 261,
+     "rate": 0.6868421052631579
+    },
+    "strategy/favorable_trade_taken_per_available_turn": {
+     "den": 94,
+     "num": 44,
+     "rate": 0.46808510638297873
+    },
+    "strategy/spell_cast_per_legal_main_turn": {
+     "den": 122,
+     "num": 13,
+     "rate": 0.10655737704918032
+    }
+   }
+  },
+  "all|Ragefire/Zero": {
+   "games": 240,
+   "metrics": {
+    "block/attacker_destroyed": {
+     "den": 27,
+     "num": 0,
+     "rate": 0.0
+    },
+    "block/blocker_survives": {
+     "den": 27,
+     "num": 2,
+     "rate": 0.07407407407407407
+    },
+    "block/favorable_survive_or_kill": {
+     "den": 27,
+     "num": 2,
+     "rate": 0.07407407407407407
+    },
+    "draft/max_wjaccard_to_curated": {
+     "den": 48,
+     "num": 8.40390883496953,
+     "rate": 0.1750814340618652
+    },
+    "draft/mean_cost": {
+     "den": 2400,
+     "num": 6456.0,
+     "rate": 2.69
+    },
+    "draft/normal_share": {
+     "den": 2400,
+     "num": 1285.0,
+     "rate": 0.5354166666666667
+    },
+    "draft/spell_share": {
+     "den": 2400,
+     "num": 161.0,
+     "rate": 0.06708333333333333
+    },
+    "draft/unique_cards": {
+     "den": 48,
+     "num": 1679,
+     "rate": 34.979166666666664
+    },
+    "draft/weapon_share": {
+     "den": 2400,
+     "num": 190.0,
+     "rate": 0.07916666666666666
+    },
+    "fire/burn_cast_per_legal_turn": {
+     "den": 992,
+     "num": 270,
+     "rate": 0.2721774193548387
+    },
+    "fire/burn_cast_then_opp_damage": {
+     "den": 364,
+     "num": 349,
+     "rate": 0.9587912087912088
+    },
+    "fire/zero_ping_redirect_target_then_opp_damage": {
+     "den": 3,
+     "num": 3,
+     "rate": 1.0
+    },
+    "fire/zero_ping_target_is_redirect_card": {
+     "den": 39,
+     "num": 3,
+     "rate": 0.07692307692307693
+    },
+    "gate/Ragefire/buffed_then_attacks_same_turn": {
+     "den": 195,
+     "num": 88,
+     "rate": 0.4512820512820513
+    },
+    "gate/Ragefire/portal_then_buff": {
+     "den": 741,
+     "num": 195,
+     "rate": 0.2631578947368421
+    },
+    "gate/portal_per_legal_turn": {
+     "den": 749,
+     "num": 741,
+     "rate": 0.9893190921228304
+    },
+    "heal/heal_spell_per_legal_turn_below_max_hp": {
+     "den": 307,
+     "num": 82,
+     "rate": 0.2671009771986971
+    },
+    "ikz/held_at_end_of_own_turn": {
+     "den": 1564,
+     "num": 374,
+     "rate": 0.2391304347826087
+    },
+    "ikz/held_then_spent_in_opp_turn": {
+     "den": 374,
+     "num": 1,
+     "rate": 0.00267379679144385
+    },
+    "leader/Zero/target_then_attacks_same_turn": {
+     "den": 39,
+     "num": 1,
+     "rate": 0.02564102564102564
+    },
+    "leader/Zero/use_with_target": {
+     "den": 44,
+     "num": 39,
+     "rate": 0.8863636363636364
+    },
+    "leader/use_per_legal_turn": {
+     "den": 1537,
+     "num": 44,
+     "rate": 0.028627195836044242
+    },
+    "lightning/weapon_attach_per_legal_turn": {
+     "den": 126,
+     "num": 25,
+     "rate": 0.1984126984126984
+    },
+    "lightning/weapon_attach_to_entity_share": {
+     "den": 26,
+     "num": 0,
+     "rate": 0.0
+    },
+    "outcome/battle_decisions": {
+     "den": 240,
+     "num": 11235,
+     "rate": 46.8125
+    },
+    "outcome/own_turns": {
+     "den": 240,
+     "num": 1564,
+     "rate": 6.516666666666667
+    },
+    "outcome/win": {
+     "den": 240,
+     "num": 100,
+     "rate": 0.4166666666666667
+    },
+    "outcome/win_vs_EARTH": {
+     "den": 60,
+     "num": 23,
+     "rate": 0.38333333333333336
+    },
+    "outcome/win_vs_FIRE": {
+     "den": 60,
+     "num": 20,
+     "rate": 0.3333333333333333
+    },
+    "outcome/win_vs_LIGHTNING": {
+     "den": 60,
+     "num": 28,
+     "rate": 0.4666666666666667
+    },
+    "outcome/win_vs_WATER": {
+     "den": 60,
+     "num": 29,
+     "rate": 0.48333333333333334
+    },
+    "response/any_nonblock_response_when_legal": {
+     "den": 27,
+     "num": 26,
+     "rate": 0.9629629629629629
+    },
+    "response/defender_declared_when_legal": {
+     "den": 123,
+     "num": 27,
+     "rate": 0.21951219512195122
+    },
+    "response/spell_played_when_legal": {
+     "den": 1,
+     "num": 1,
+     "rate": 1.0
+    },
+    "sequence/fire.zero_before_attack/completed_per_eligible_game": {
+     "den": 240,
+     "num": 1,
+     "rate": 0.004166666666666667
+    },
+    "sequence/fire.zero_before_attack/converted_per_eligible_game": {
+     "den": 240,
+     "num": 1,
+     "rate": 0.004166666666666667
+    },
+    "strategy/attacks_by_equipped_attacker": {
+     "den": 2597,
+     "num": 21,
+     "rate": 0.008086253369272238
+    },
+    "strategy/face_target_share_when_both_legal": {
+     "den": 1769,
+     "num": 1105,
+     "rate": 0.6246466930469191
+    },
+    "strategy/favorable_trade_taken_per_available_turn": {
+     "den": 512,
+     "num": 287,
+     "rate": 0.560546875
+    },
+    "strategy/spell_cast_per_legal_main_turn": {
+     "den": 1231,
+     "num": 338,
+     "rate": 0.2745735174654752
+    }
+   }
+  },
+  "all|Rushfire/Kagoro": {
+   "games": 48,
+   "metrics": {
+    "block/attacker_destroyed": {
+     "den": 1,
+     "num": 0,
+     "rate": 0.0
+    },
+    "block/blocker_survives": {
+     "den": 1,
+     "num": 0,
+     "rate": 0.0
+    },
+    "block/favorable_survive_or_kill": {
+     "den": 1,
+     "num": 0,
+     "rate": 0.0
+    },
+    "draft/max_wjaccard_to_curated": {
+     "den": 48,
+     "num": 9.282735510156051,
+     "rate": 0.19339032312825108
+    },
+    "draft/mean_cost": {
+     "den": 2400,
+     "num": 5985.0,
+     "rate": 2.49375
+    },
+    "draft/normal_share": {
+     "den": 2400,
+     "num": 1267.0,
+     "rate": 0.5279166666666667
+    },
+    "draft/spell_share": {
+     "den": 2400,
+     "num": 100.0,
+     "rate": 0.041666666666666664
+    },
+    "draft/unique_cards": {
+     "den": 48,
+     "num": 1634,
+     "rate": 34.041666666666664
+    },
+    "draft/weapon_share": {
+     "den": 2400,
+     "num": 117.0,
+     "rate": 0.04875
+    },
+    "fire/burn_cast_per_legal_turn": {
+     "den": 35,
+     "num": 3,
+     "rate": 0.08571428571428572
+    },
+    "fire/burn_cast_then_opp_damage": {
+     "den": 4,
+     "num": 4,
+     "rate": 1.0
+    },
+    "gate/Rushfire/payload_then_attack_same_turn": {
+     "den": 155,
+     "num": 150,
+     "rate": 0.967741935483871
+    },
+    "gate/Rushfire/portal_then_payload": {
+     "den": 239,
+     "num": 155,
+     "rate": 0.6485355648535565
+    },
+    "gate/portal_per_legal_turn": {
+     "den": 241,
+     "num": 239,
+     "rate": 0.991701244813278
+    },
+    "heal/heal_spell_per_legal_turn_below_max_hp": {
+     "den": 6,
+     "num": 1,
+     "rate": 0.16666666666666666
+    },
+    "ikz/held_at_end_of_own_turn": {
+     "den": 282,
+     "num": 36,
+     "rate": 0.1276595744680851
+    },
+    "ikz/held_then_spent_in_opp_turn": {
+     "den": 36,
+     "num": 0,
+     "rate": 0.0
+    },
+    "leader/Kagoro/use_then_leader_attacks_same_turn": {
+     "den": 74,
+     "num": 71,
+     "rate": 0.9594594594594594
+    },
+    "leader/use_per_legal_turn": {
+     "den": 92,
+     "num": 74,
+     "rate": 0.8043478260869565
+    },
+    "lightning/weapon_attach_per_legal_turn": {
+     "den": 109,
+     "num": 14,
+     "rate": 0.12844036697247707
+    },
+    "lightning/weapon_attach_to_entity_share": {
+     "den": 14,
+     "num": 0,
+     "rate": 0.0
+    },
+    "outcome/battle_decisions": {
+     "den": 48,
+     "num": 2267,
+     "rate": 47.229166666666664
+    },
+    "outcome/own_turns": {
+     "den": 48,
+     "num": 282,
+     "rate": 5.875
+    },
+    "outcome/win": {
+     "den": 48,
+     "num": 40,
+     "rate": 0.8333333333333334
+    },
+    "outcome/win_vs_EARTH": {
+     "den": 12,
+     "num": 11,
+     "rate": 0.9166666666666666
+    },
+    "outcome/win_vs_FIRE": {
+     "den": 12,
+     "num": 10,
+     "rate": 0.8333333333333334
+    },
+    "outcome/win_vs_LIGHTNING": {
+     "den": 12,
+     "num": 8,
+     "rate": 0.6666666666666666
+    },
+    "outcome/win_vs_WATER": {
+     "den": 12,
+     "num": 11,
+     "rate": 0.9166666666666666
+    },
+    "response/any_nonblock_response_when_legal": {
+     "den": 4,
+     "num": 3,
+     "rate": 0.75
+    },
+    "response/defender_declared_when_legal": {
+     "den": 4,
+     "num": 1,
+     "rate": 0.25
+    },
+    "sequence/fire.kagoro_after_multi_play/completed_per_eligible_game": {
+     "den": 43,
+     "num": 2,
+     "rate": 0.046511627906976744
+    },
+    "sequence/fire.kagoro_after_multi_play/converted_per_eligible_game": {
+     "den": 43,
+     "num": 1,
+     "rate": 0.023255813953488372
+    },
+    "sequence/fire.rushfire_charge_conversion/completed_per_eligible_game": {
+     "den": 48,
+     "num": 48,
+     "rate": 1.0
+    },
+    "sequence/fire.rushfire_charge_conversion/converted_per_eligible_game": {
+     "den": 48,
+     "num": 38,
+     "rate": 0.7916666666666666
+    },
+    "strategy/attacks_by_equipped_attacker": {
+     "den": 716,
+     "num": 9,
+     "rate": 0.012569832402234637
+    },
+    "strategy/face_target_share_when_both_legal": {
+     "den": 351,
+     "num": 255,
+     "rate": 0.7264957264957265
+    },
+    "strategy/favorable_trade_taken_per_available_turn": {
+     "den": 93,
+     "num": 35,
+     "rate": 0.3763440860215054
+    },
+    "strategy/spell_cast_per_legal_main_turn": {
+     "den": 64,
+     "num": 5,
+     "rate": 0.078125
+    }
+   }
+  },
+  "all|Rushfire/Zero": {
+   "games": 240,
+   "metrics": {
+    "block/attacker_destroyed": {
+     "den": 2,
+     "num": 0,
+     "rate": 0.0
+    },
+    "block/blocker_survives": {
+     "den": 2,
+     "num": 1,
+     "rate": 0.5
+    },
+    "block/favorable_survive_or_kill": {
+     "den": 2,
+     "num": 1,
+     "rate": 0.5
+    },
+    "draft/max_wjaccard_to_curated": {
+     "den": 48,
+     "num": 9.259023705412718,
+     "rate": 0.19289632719609828
+    },
+    "draft/mean_cost": {
+     "den": 2400,
+     "num": 6117.0,
+     "rate": 2.54875
+    },
+    "draft/normal_share": {
+     "den": 2400,
+     "num": 1255.0,
+     "rate": 0.5229166666666667
+    },
+    "draft/spell_share": {
+     "den": 2400,
+     "num": 89.0,
+     "rate": 0.037083333333333336
+    },
+    "draft/unique_cards": {
+     "den": 48,
+     "num": 1638,
+     "rate": 34.125
+    },
+    "draft/weapon_share": {
+     "den": 2400,
+     "num": 107.0,
+     "rate": 0.044583333333333336
+    },
+    "fire/burn_cast_per_legal_turn": {
+     "den": 862,
+     "num": 269,
+     "rate": 0.31206496519721577
+    },
+    "fire/burn_cast_then_opp_damage": {
+     "den": 336,
+     "num": 314,
+     "rate": 0.9345238095238095
+    },
+    "fire/zero_ping_redirect_target_then_opp_damage": {
+     "den": 3,
+     "num": 3,
+     "rate": 1.0
+    },
+    "fire/zero_ping_target_is_redirect_card": {
+     "den": 28,
+     "num": 3,
+     "rate": 0.10714285714285714
+    },
+    "gate/Rushfire/payload_then_attack_same_turn": {
+     "den": 827,
+     "num": 811,
+     "rate": 0.9806529625151149
+    },
+    "gate/Rushfire/portal_then_payload": {
+     "den": 1182,
+     "num": 827,
+     "rate": 0.6996615905245347
+    },
+    "gate/portal_per_legal_turn": {
+     "den": 1196,
+     "num": 1182,
+     "rate": 0.9882943143812709
+    },
+    "heal/heal_spell_per_legal_turn_below_max_hp": {
+     "den": 23,
+     "num": 7,
+     "rate": 0.30434782608695654
+    },
+    "ikz/held_at_end_of_own_turn": {
+     "den": 1428,
+     "num": 363,
+     "rate": 0.2542016806722689
+    },
+    "ikz/held_then_spent_in_opp_turn": {
+     "den": 363,
+     "num": 27,
+     "rate": 0.0743801652892562
+    },
+    "leader/Zero/target_then_attacks_same_turn": {
+     "den": 29,
+     "num": 0,
+     "rate": 0.0
+    },
+    "leader/Zero/use_with_target": {
+     "den": 30,
+     "num": 29,
+     "rate": 0.9666666666666667
+    },
+    "leader/use_per_legal_turn": {
+     "den": 1408,
+     "num": 30,
+     "rate": 0.02130681818181818
+    },
+    "lightning/weapon_attach_per_legal_turn": {
+     "den": 277,
+     "num": 41,
+     "rate": 0.148014440433213
+    },
+    "lightning/weapon_attach_to_entity_share": {
+     "den": 47,
+     "num": 0,
+     "rate": 0.0
+    },
+    "outcome/battle_decisions": {
+     "den": 240,
+     "num": 12666,
+     "rate": 52.775
+    },
+    "outcome/own_turns": {
+     "den": 240,
+     "num": 1428,
+     "rate": 5.95
+    },
+    "outcome/win": {
+     "den": 240,
+     "num": 200,
+     "rate": 0.8333333333333334
+    },
+    "outcome/win_vs_EARTH": {
+     "den": 60,
+     "num": 42,
+     "rate": 0.7
+    },
+    "outcome/win_vs_FIRE": {
+     "den": 60,
+     "num": 42,
+     "rate": 0.7
+    },
+    "outcome/win_vs_LIGHTNING": {
+     "den": 60,
+     "num": 57,
+     "rate": 0.95
+    },
+    "outcome/win_vs_WATER": {
+     "den": 60,
+     "num": 59,
+     "rate": 0.9833333333333333
+    },
+    "response/any_nonblock_response_when_legal": {
+     "den": 101,
+     "num": 63,
+     "rate": 0.6237623762376238
+    },
+    "response/defender_declared_when_legal": {
+     "den": 11,
+     "num": 2,
+     "rate": 0.18181818181818182
+    },
+    "response/spell_played_when_legal": {
+     "den": 62,
+     "num": 27,
+     "rate": 0.43548387096774194
+    },
+    "sequence/fire.rushfire_charge_conversion/completed_per_eligible_game": {
+     "den": 240,
+     "num": 240,
+     "rate": 1.0
+    },
+    "sequence/fire.rushfire_charge_conversion/converted_per_eligible_game": {
+     "den": 240,
+     "num": 161,
+     "rate": 0.6708333333333333
+    },
+    "sequence/fire.zero_before_attack/completed_per_eligible_game": {
+     "den": 240,
+     "num": 0,
+     "rate": 0.0
+    },
+    "sequence/fire.zero_before_attack/converted_per_eligible_game": {
+     "den": 240,
+     "num": 0,
+     "rate": 0.0
+    },
+    "strategy/attacks_by_equipped_attacker": {
+     "den": 3405,
+     "num": 34,
+     "rate": 0.00998531571218796
+    },
+    "strategy/face_target_share_when_both_legal": {
+     "den": 1759,
+     "num": 1248,
+     "rate": 0.709494030699261
+    },
+    "strategy/favorable_trade_taken_per_available_turn": {
+     "den": 408,
+     "num": 218,
+     "rate": 0.5343137254901961
+    },
+    "strategy/spell_cast_per_legal_main_turn": {
+     "den": 922,
+     "num": 278,
+     "rate": 0.30151843817787416
+    }
+   }
+  },
+  "fixed|ALL": {
+   "games": 384,
+   "metrics": {
+    "block/attacker_destroyed": {
+     "den": 21,
+     "num": 0,
+     "rate": 0.0
+    },
+    "block/blocker_survives": {
+     "den": 21,
+     "num": 0,
+     "rate": 0.0
+    },
+    "block/favorable_survive_or_kill": {
+     "den": 21,
+     "num": 0,
+     "rate": 0.0
+    },
+    "fire/burn_cast_per_legal_turn": {
+     "den": 1741,
+     "num": 516,
+     "rate": 0.2963813900057438
+    },
+    "fire/burn_cast_then_opp_damage": {
+     "den": 677,
+     "num": 642,
+     "rate": 0.948301329394387
+    },
+    "fire/zero_ping_redirect_target_then_opp_damage": {
+     "den": 5,
+     "num": 5,
+     "rate": 1.0
+    },
+    "fire/zero_ping_target_is_redirect_card": {
+     "den": 40,
+     "num": 5,
+     "rate": 0.125
+    },
+    "gate/Ragefire/buffed_then_attacks_same_turn": {
+     "den": 157,
+     "num": 66,
+     "rate": 0.42038216560509556
+    },
+    "gate/Ragefire/portal_then_buff": {
+     "den": 595,
+     "num": 157,
+     "rate": 0.2638655462184874
+    },
+    "gate/Rushfire/payload_then_attack_same_turn": {
+     "den": 672,
+     "num": 662,
+     "rate": 0.9851190476190477
+    },
+    "gate/Rushfire/portal_then_payload": {
+     "den": 907,
+     "num": 672,
+     "rate": 0.74090407938258
+    },
+    "gate/portal_per_legal_turn": {
+     "den": 1519,
+     "num": 1502,
+     "rate": 0.9888084265964451
+    },
+    "heal/heal_spell_per_legal_turn_below_max_hp": {
+     "den": 294,
+     "num": 79,
+     "rate": 0.2687074829931973
+    },
+    "ikz/held_at_end_of_own_turn": {
+     "den": 2347,
+     "num": 555,
+     "rate": 0.23647209203238176
+    },
+    "ikz/held_then_spent_in_opp_turn": {
+     "den": 555,
+     "num": 27,
+     "rate": 0.04864864864864865
+    },
+    "leader/Zero/target_then_attacks_same_turn": {
+     "den": 40,
+     "num": 0,
+     "rate": 0.0
+    },
+    "leader/Zero/use_with_target": {
+     "den": 44,
+     "num": 40,
+     "rate": 0.9090909090909091
+    },
+    "leader/use_per_legal_turn": {
+     "den": 2306,
+     "num": 44,
+     "rate": 0.019080659150043366
+    },
+    "lightning/weapon_attach_per_legal_turn": {
+     "den": 198,
+     "num": 26,
+     "rate": 0.13131313131313133
+    },
+    "lightning/weapon_attach_to_entity_share": {
+     "den": 27,
+     "num": 0,
+     "rate": 0.0
+    },
+    "outcome/battle_decisions": {
+     "den": 384,
+     "num": 19457,
+     "rate": 50.669270833333336
+    },
+    "outcome/own_turns": {
+     "den": 384,
+     "num": 2347,
+     "rate": 6.111979166666667
+    },
+    "outcome/win": {
+     "den": 384,
+     "num": 250,
+     "rate": 0.6510416666666666
+    },
+    "outcome/win_vs_EARTH": {
+     "den": 96,
+     "num": 54,
+     "rate": 0.5625
+    },
+    "outcome/win_vs_FIRE": {
+     "den": 96,
+     "num": 51,
+     "rate": 0.53125
+    },
+    "outcome/win_vs_LIGHTNING": {
+     "den": 96,
+     "num": 72,
+     "rate": 0.75
+    },
+    "outcome/win_vs_WATER": {
+     "den": 96,
+     "num": 73,
+     "rate": 0.7604166666666666
+    },
+    "response/any_nonblock_response_when_legal": {
+     "den": 122,
+     "num": 83,
+     "rate": 0.680327868852459
+    },
+    "response/defender_declared_when_legal": {
+     "den": 94,
+     "num": 21,
+     "rate": 0.22340425531914893
+    },
+    "response/spell_played_when_legal": {
+     "den": 62,
+     "num": 27,
+     "rate": 0.43548387096774194
+    },
+    "sequence/fire.rushfire_charge_conversion/completed_per_eligible_game": {
+     "den": 192,
+     "num": 192,
+     "rate": 1.0
+    },
+    "sequence/fire.rushfire_charge_conversion/converted_per_eligible_game": {
+     "den": 192,
+     "num": 127,
+     "rate": 0.6614583333333334
+    },
+    "sequence/fire.zero_before_attack/completed_per_eligible_game": {
+     "den": 384,
+     "num": 0,
+     "rate": 0.0
+    },
+    "sequence/fire.zero_before_attack/converted_per_eligible_game": {
+     "den": 384,
+     "num": 0,
+     "rate": 0.0
+    },
+    "strategy/attacks_by_equipped_attacker": {
+     "den": 4759,
+     "num": 20,
+     "rate": 0.004202563563773902
+    },
+    "strategy/face_target_share_when_both_legal": {
+     "den": 2786,
+     "num": 1880,
+     "rate": 0.674802584350323
+    },
+    "strategy/favorable_trade_taken_per_available_turn": {
+     "den": 691,
+     "num": 389,
+     "rate": 0.5629522431259045
+    },
+    "strategy/spell_cast_per_legal_main_turn": {
+     "den": 1919,
+     "num": 577,
+     "rate": 0.3006774361646691
+    }
+   }
+  },
+  "fixed|Ragefire/Zero": {
+   "games": 192,
+   "metrics": {
+    "block/attacker_destroyed": {
+     "den": 21,
+     "num": 0,
+     "rate": 0.0
+    },
+    "block/blocker_survives": {
+     "den": 21,
+     "num": 0,
+     "rate": 0.0
+    },
+    "block/favorable_survive_or_kill": {
+     "den": 21,
+     "num": 0,
+     "rate": 0.0
+    },
+    "fire/burn_cast_per_legal_turn": {
+     "den": 923,
+     "num": 255,
+     "rate": 0.27627302275189597
+    },
+    "fire/burn_cast_then_opp_damage": {
+     "den": 349,
+     "num": 335,
+     "rate": 0.9598853868194842
+    },
+    "fire/zero_ping_redirect_target_then_opp_damage": {
+     "den": 3,
+     "num": 3,
+     "rate": 1.0
+    },
+    "fire/zero_ping_target_is_redirect_card": {
+     "den": 27,
+     "num": 3,
+     "rate": 0.1111111111111111
+    },
+    "gate/Ragefire/buffed_then_attacks_same_turn": {
+     "den": 157,
+     "num": 66,
+     "rate": 0.42038216560509556
+    },
+    "gate/Ragefire/portal_then_buff": {
+     "den": 595,
+     "num": 157,
+     "rate": 0.2638655462184874
+    },
+    "gate/portal_per_legal_turn": {
+     "den": 602,
+     "num": 595,
+     "rate": 0.9883720930232558
+    },
+    "heal/heal_spell_per_legal_turn_below_max_hp": {
+     "den": 294,
+     "num": 79,
+     "rate": 0.2687074829931973
+    },
+    "ikz/held_at_end_of_own_turn": {
+     "den": 1246,
+     "num": 292,
+     "rate": 0.23434991974317818
+    },
+    "ikz/held_then_spent_in_opp_turn": {
+     "den": 292,
+     "num": 0,
+     "rate": 0.0
+    },
+    "leader/Zero/target_then_attacks_same_turn": {
+     "den": 27,
+     "num": 0,
+     "rate": 0.0
+    },
+    "leader/Zero/use_with_target": {
+     "den": 30,
+     "num": 27,
+     "rate": 0.9
+    },
+    "leader/use_per_legal_turn": {
+     "den": 1222,
+     "num": 30,
+     "rate": 0.024549918166939442
+    },
+    "outcome/battle_decisions": {
+     "den": 192,
+     "num": 9248,
+     "rate": 48.166666666666664
+    },
+    "outcome/own_turns": {
+     "den": 192,
+     "num": 1246,
+     "rate": 6.489583333333333
+    },
+    "outcome/win": {
+     "den": 192,
+     "num": 86,
+     "rate": 0.4479166666666667
+    },
+    "outcome/win_vs_EARTH": {
+     "den": 48,
+     "num": 20,
+     "rate": 0.4166666666666667
+    },
+    "outcome/win_vs_FIRE": {
+     "den": 48,
+     "num": 16,
+     "rate": 0.3333333333333333
+    },
+    "outcome/win_vs_LIGHTNING": {
+     "den": 48,
+     "num": 25,
+     "rate": 0.5208333333333334
+    },
+    "outcome/win_vs_WATER": {
+     "den": 48,
+     "num": 25,
+     "rate": 0.5208333333333334
+    },
+    "response/any_nonblock_response_when_legal": {
+     "den": 21,
+     "num": 20,
+     "rate": 0.9523809523809523
+    },
+    "response/defender_declared_when_legal": {
+     "den": 94,
+     "num": 21,
+     "rate": 0.22340425531914893
+    },
+    "sequence/fire.zero_before_attack/completed_per_eligible_game": {
+     "den": 192,
+     "num": 0,
+     "rate": 0.0
+    },
+    "sequence/fire.zero_before_attack/converted_per_eligible_game": {
+     "den": 192,
+     "num": 0,
+     "rate": 0.0
+    },
+    "strategy/attacks_by_equipped_attacker": {
+     "den": 2098,
+     "num": 0,
+     "rate": 0.0
+    },
+    "strategy/face_target_share_when_both_legal": {
+     "den": 1431,
+     "num": 899,
+     "rate": 0.6282320055904962
+    },
+    "strategy/favorable_trade_taken_per_available_turn": {
+     "den": 396,
+     "num": 229,
+     "rate": 0.5782828282828283
+    },
+    "strategy/spell_cast_per_legal_main_turn": {
+     "den": 1101,
+     "num": 316,
+     "rate": 0.28701180744777477
+    }
+   }
+  },
+  "fixed|Rushfire/Zero": {
+   "games": 192,
+   "metrics": {
+    "fire/burn_cast_per_legal_turn": {
+     "den": 818,
+     "num": 261,
+     "rate": 0.31907090464547677
+    },
+    "fire/burn_cast_then_opp_damage": {
+     "den": 328,
+     "num": 307,
+     "rate": 0.9359756097560976
+    },
+    "fire/zero_ping_redirect_target_then_opp_damage": {
+     "den": 2,
+     "num": 2,
+     "rate": 1.0
+    },
+    "fire/zero_ping_target_is_redirect_card": {
+     "den": 13,
+     "num": 2,
+     "rate": 0.15384615384615385
+    },
+    "gate/Rushfire/payload_then_attack_same_turn": {
+     "den": 672,
+     "num": 662,
+     "rate": 0.9851190476190477
+    },
+    "gate/Rushfire/portal_then_payload": {
+     "den": 907,
+     "num": 672,
+     "rate": 0.74090407938258
+    },
+    "gate/portal_per_legal_turn": {
+     "den": 917,
+     "num": 907,
+     "rate": 0.9890948745910578
+    },
+    "ikz/held_at_end_of_own_turn": {
+     "den": 1101,
+     "num": 263,
+     "rate": 0.23887375113533152
+    },
+    "ikz/held_then_spent_in_opp_turn": {
+     "den": 263,
+     "num": 27,
+     "rate": 0.10266159695817491
+    },
+    "leader/Zero/target_then_attacks_same_turn": {
+     "den": 13,
+     "num": 0,
+     "rate": 0.0
+    },
+    "leader/Zero/use_with_target": {
+     "den": 14,
+     "num": 13,
+     "rate": 0.9285714285714286
+    },
+    "leader/use_per_legal_turn": {
+     "den": 1084,
+     "num": 14,
+     "rate": 0.012915129151291513
+    },
+    "lightning/weapon_attach_per_legal_turn": {
+     "den": 198,
+     "num": 26,
+     "rate": 0.13131313131313133
+    },
+    "lightning/weapon_attach_to_entity_share": {
+     "den": 27,
+     "num": 0,
+     "rate": 0.0
+    },
+    "outcome/battle_decisions": {
+     "den": 192,
+     "num": 10209,
+     "rate": 53.171875
+    },
+    "outcome/own_turns": {
+     "den": 192,
+     "num": 1101,
+     "rate": 5.734375
+    },
+    "outcome/win": {
+     "den": 192,
+     "num": 164,
+     "rate": 0.8541666666666666
+    },
+    "outcome/win_vs_EARTH": {
+     "den": 48,
+     "num": 34,
+     "rate": 0.7083333333333334
+    },
+    "outcome/win_vs_FIRE": {
+     "den": 48,
+     "num": 35,
+     "rate": 0.7291666666666666
+    },
+    "outcome/win_vs_LIGHTNING": {
+     "den": 48,
+     "num": 47,
+     "rate": 0.9791666666666666
+    },
+    "outcome/win_vs_WATER": {
+     "den": 48,
+     "num": 48,
+     "rate": 1.0
+    },
+    "response/any_nonblock_response_when_legal": {
+     "den": 101,
+     "num": 63,
+     "rate": 0.6237623762376238
+    },
+    "response/spell_played_when_legal": {
+     "den": 62,
+     "num": 27,
+     "rate": 0.43548387096774194
+    },
+    "sequence/fire.rushfire_charge_conversion/completed_per_eligible_game": {
+     "den": 192,
+     "num": 192,
+     "rate": 1.0
+    },
+    "sequence/fire.rushfire_charge_conversion/converted_per_eligible_game": {
+     "den": 192,
+     "num": 127,
+     "rate": 0.6614583333333334
+    },
+    "sequence/fire.zero_before_attack/completed_per_eligible_game": {
+     "den": 192,
+     "num": 0,
+     "rate": 0.0
+    },
+    "sequence/fire.zero_before_attack/converted_per_eligible_game": {
+     "den": 192,
+     "num": 0,
+     "rate": 0.0
+    },
+    "strategy/attacks_by_equipped_attacker": {
+     "den": 2661,
+     "num": 20,
+     "rate": 0.00751597143930853
+    },
+    "strategy/face_target_share_when_both_legal": {
+     "den": 1355,
+     "num": 981,
+     "rate": 0.7239852398523985
+    },
+    "strategy/favorable_trade_taken_per_available_turn": {
+     "den": 295,
+     "num": 160,
+     "rate": 0.5423728813559322
+    },
+    "strategy/spell_cast_per_legal_main_turn": {
+     "den": 818,
+     "num": 261,
+     "rate": 0.31907090464547677
+    }
+   }
+  },
+  "free_draft|ALL": {
+   "games": 192,
+   "metrics": {
+    "block/attacker_destroyed": {
+     "den": 10,
+     "num": 0,
+     "rate": 0.0
+    },
+    "block/blocker_survives": {
+     "den": 10,
+     "num": 4,
+     "rate": 0.4
+    },
+    "block/favorable_survive_or_kill": {
+     "den": 10,
+     "num": 4,
+     "rate": 0.4
+    },
+    "draft/max_wjaccard_to_curated": {
+     "den": 192,
+     "num": 35.69737811192654,
+     "rate": 0.18592384433295073
+    },
+    "draft/mean_cost": {
+     "den": 9600,
+     "num": 24947.0,
+     "rate": 2.5986458333333333
+    },
+    "draft/normal_share": {
+     "den": 9600,
+     "num": 5043.0,
+     "rate": 0.5253125
+    },
+    "draft/spell_share": {
+     "den": 9600,
+     "num": 501.0,
+     "rate": 0.0521875
+    },
+    "draft/unique_cards": {
+     "den": 192,
+     "num": 6613,
+     "rate": 34.442708333333336
+    },
+    "draft/weapon_share": {
+     "den": 9600,
+     "num": 588.0,
+     "rate": 0.06125
+    },
+    "fire/burn_cast_per_legal_turn": {
+     "den": 228,
+     "num": 37,
+     "rate": 0.16228070175438597
+    },
+    "fire/burn_cast_then_opp_damage": {
+     "den": 38,
+     "num": 34,
+     "rate": 0.8947368421052632
+    },
+    "fire/zero_ping_redirect_target_then_opp_damage": {
+     "den": 1,
+     "num": 1,
+     "rate": 1.0
+    },
+    "fire/zero_ping_target_is_redirect_card": {
+     "den": 27,
+     "num": 1,
+     "rate": 0.037037037037037035
+    },
+    "gate/Ragefire/buffed_then_attacks_same_turn": {
+     "den": 70,
+     "num": 34,
+     "rate": 0.4857142857142857
+    },
+    "gate/Ragefire/portal_then_buff": {
+     "den": 284,
+     "num": 70,
+     "rate": 0.24647887323943662
+    },
+    "gate/Rushfire/payload_then_attack_same_turn": {
+     "den": 310,
+     "num": 299,
+     "rate": 0.964516129032258
+    },
+    "gate/Rushfire/portal_then_payload": {
+     "den": 514,
+     "num": 310,
+     "rate": 0.603112840466926
+    },
+    "gate/portal_per_legal_turn": {
+     "den": 805,
+     "num": 798,
+     "rate": 0.991304347826087
+    },
+    "heal/heal_spell_per_legal_turn_below_max_hp": {
+     "den": 51,
+     "num": 13,
+     "rate": 0.2549019607843137
+    },
+    "ikz/held_at_end_of_own_turn": {
+     "den": 1234,
+     "num": 250,
+     "rate": 0.2025931928687196
+    },
+    "ikz/held_then_spent_in_opp_turn": {
+     "den": 250,
+     "num": 1,
+     "rate": 0.004
+    },
+    "leader/Kagoro/use_then_leader_attacks_same_turn": {
+     "den": 138,
+     "num": 134,
+     "rate": 0.9710144927536232
+    },
+    "leader/Zero/target_then_attacks_same_turn": {
+     "den": 28,
+     "num": 1,
+     "rate": 0.03571428571428571
+    },
+    "leader/Zero/use_with_target": {
+     "den": 30,
+     "num": 28,
+     "rate": 0.9333333333333333
+    },
+    "leader/use_per_legal_turn": {
+     "den": 892,
+     "num": 168,
+     "rate": 0.18834080717488788
+    },
+    "lightning/weapon_attach_per_legal_turn": {
+     "den": 480,
+     "num": 80,
+     "rate": 0.16666666666666666
+    },
+    "lightning/weapon_attach_to_entity_share": {
+     "den": 92,
+     "num": 0,
+     "rate": 0.0
+    },
+    "outcome/battle_decisions": {
+     "den": 192,
+     "num": 8752,
+     "rate": 45.583333333333336
+    },
+    "outcome/own_turns": {
+     "den": 192,
+     "num": 1234,
+     "rate": 6.427083333333333
+    },
+    "outcome/win": {
+     "den": 192,
+     "num": 112,
+     "rate": 0.5833333333333334
+    },
+    "outcome/win_vs_EARTH": {
+     "den": 48,
+     "num": 30,
+     "rate": 0.625
+    },
+    "outcome/win_vs_FIRE": {
+     "den": 48,
+     "num": 22,
+     "rate": 0.4583333333333333
+    },
+    "outcome/win_vs_LIGHTNING": {
+     "den": 48,
+     "num": 28,
+     "rate": 0.5833333333333334
+    },
+    "outcome/win_vs_WATER": {
+     "den": 48,
+     "num": 32,
+     "rate": 0.6666666666666666
+    },
+    "response/any_nonblock_response_when_legal": {
+     "den": 11,
+     "num": 10,
+     "rate": 0.9090909090909091
+    },
+    "response/defender_declared_when_legal": {
+     "den": 47,
+     "num": 10,
+     "rate": 0.2127659574468085
+    },
+    "response/spell_played_when_legal": {
+     "den": 1,
+     "num": 1,
+     "rate": 1.0
+    },
+    "sequence/fire.kagoro_after_multi_play/completed_per_eligible_game": {
+     "den": 91,
+     "num": 13,
+     "rate": 0.14285714285714285
+    },
+    "sequence/fire.kagoro_after_multi_play/converted_per_eligible_game": {
+     "den": 91,
+     "num": 8,
+     "rate": 0.08791208791208792
+    },
+    "sequence/fire.rushfire_charge_conversion/completed_per_eligible_game": {
+     "den": 96,
+     "num": 96,
+     "rate": 1.0
+    },
+    "sequence/fire.rushfire_charge_conversion/converted_per_eligible_game": {
+     "den": 96,
+     "num": 72,
+     "rate": 0.75
+    },
+    "sequence/fire.zero_before_attack/completed_per_eligible_game": {
+     "den": 96,
+     "num": 1,
+     "rate": 0.010416666666666666
+    },
+    "sequence/fire.zero_before_attack/converted_per_eligible_game": {
+     "den": 96,
+     "num": 1,
+     "rate": 0.010416666666666666
+    },
+    "strategy/attacks_by_equipped_attacker": {
+     "den": 2551,
+     "num": 63,
+     "rate": 0.024696197569580556
+    },
+    "strategy/face_target_share_when_both_legal": {
+     "den": 1473,
+     "num": 989,
+     "rate": 0.6714188730482009
+    },
+    "strategy/favorable_trade_taken_per_available_turn": {
+     "den": 416,
+     "num": 195,
+     "rate": 0.46875
+    },
+    "strategy/spell_cast_per_legal_main_turn": {
+     "den": 420,
+     "num": 57,
+     "rate": 0.1357142857142857
+    }
+   }
+  },
+  "free_draft|Ragefire/Kagoro": {
+   "games": 48,
+   "metrics": {
+    "block/attacker_destroyed": {
+     "den": 1,
+     "num": 0,
+     "rate": 0.0
+    },
+    "block/blocker_survives": {
+     "den": 1,
+     "num": 1,
+     "rate": 1.0
+    },
+    "block/favorable_survive_or_kill": {
+     "den": 1,
+     "num": 1,
+     "rate": 1.0
+    },
+    "draft/max_wjaccard_to_curated": {
+     "den": 48,
+     "num": 8.751710061388241,
+     "rate": 0.18232729294558836
+    },
+    "draft/mean_cost": {
+     "den": 2400,
+     "num": 6389.0,
+     "rate": 2.6620833333333334
+    },
+    "draft/normal_share": {
+     "den": 2400,
+     "num": 1236.0,
+     "rate": 0.515
+    },
+    "draft/spell_share": {
+     "den": 2400,
+     "num": 151.0,
+     "rate": 0.06291666666666666
+    },
+    "draft/unique_cards": {
+     "den": 48,
+     "num": 1662,
+     "rate": 34.625
+    },
+    "draft/weapon_share": {
+     "den": 2400,
+     "num": 174.0,
+     "rate": 0.0725
+    },
+    "fire/burn_cast_per_legal_turn": {
+     "den": 80,
+     "num": 11,
+     "rate": 0.1375
+    },
+    "fire/burn_cast_then_opp_damage": {
+     "den": 11,
+     "num": 9,
+     "rate": 0.8181818181818182
+    },
+    "gate/Ragefire/buffed_then_attacks_same_turn": {
+     "den": 32,
+     "num": 12,
+     "rate": 0.375
+    },
+    "gate/Ragefire/portal_then_buff": {
+     "den": 138,
+     "num": 32,
+     "rate": 0.2318840579710145
+    },
+    "gate/portal_per_legal_turn": {
+     "den": 138,
+     "num": 138,
+     "rate": 1.0
+    },
+    "heal/heal_spell_per_legal_turn_below_max_hp": {
+     "den": 9,
+     "num": 2,
+     "rate": 0.2222222222222222
+    },
+    "ikz/held_at_end_of_own_turn": {
+     "den": 307,
+     "num": 32,
+     "rate": 0.10423452768729642
+    },
+    "ikz/held_then_spent_in_opp_turn": {
+     "den": 32,
+     "num": 0,
+     "rate": 0.0
+    },
+    "leader/Kagoro/use_then_leader_attacks_same_turn": {
+     "den": 64,
+     "num": 63,
+     "rate": 0.984375
+    },
+    "leader/use_per_legal_turn": {
+     "den": 161,
+     "num": 64,
+     "rate": 0.39751552795031053
+    },
+    "lightning/weapon_attach_per_legal_turn": {
+     "den": 166,
+     "num": 26,
+     "rate": 0.1566265060240964
+    },
+    "lightning/weapon_attach_to_entity_share": {
+     "den": 32,
+     "num": 0,
+     "rate": 0.0
+    },
+    "outcome/battle_decisions": {
+     "den": 48,
+     "num": 2041,
+     "rate": 42.520833333333336
+    },
+    "outcome/own_turns": {
+     "den": 48,
+     "num": 307,
+     "rate": 6.395833333333333
+    },
+    "outcome/win": {
+     "den": 48,
+     "num": 22,
+     "rate": 0.4583333333333333
+    },
+    "outcome/win_vs_EARTH": {
+     "den": 12,
+     "num": 8,
+     "rate": 0.6666666666666666
+    },
+    "outcome/win_vs_FIRE": {
+     "den": 12,
+     "num": 1,
+     "rate": 0.08333333333333333
+    },
+    "outcome/win_vs_LIGHTNING": {
+     "den": 12,
+     "num": 7,
+     "rate": 0.5833333333333334
+    },
+    "outcome/win_vs_WATER": {
+     "den": 12,
+     "num": 6,
+     "rate": 0.5
+    },
+    "response/any_nonblock_response_when_legal": {
+     "den": 1,
+     "num": 1,
+     "rate": 1.0
+    },
+    "response/defender_declared_when_legal": {
+     "den": 3,
+     "num": 1,
+     "rate": 0.3333333333333333
+    },
+    "sequence/fire.kagoro_after_multi_play/completed_per_eligible_game": {
+     "den": 48,
+     "num": 11,
+     "rate": 0.22916666666666666
+    },
+    "sequence/fire.kagoro_after_multi_play/converted_per_eligible_game": {
+     "den": 48,
+     "num": 7,
+     "rate": 0.14583333333333334
+    },
+    "strategy/attacks_by_equipped_attacker": {
+     "den": 592,
+     "num": 19,
+     "rate": 0.03209459459459459
+    },
+    "strategy/face_target_share_when_both_legal": {
+     "den": 380,
+     "num": 261,
+     "rate": 0.6868421052631579
+    },
+    "strategy/favorable_trade_taken_per_available_turn": {
+     "den": 94,
+     "num": 44,
+     "rate": 0.46808510638297873
+    },
+    "strategy/spell_cast_per_legal_main_turn": {
+     "den": 122,
+     "num": 13,
+     "rate": 0.10655737704918032
+    }
+   }
+  },
+  "free_draft|Ragefire/Zero": {
+   "games": 48,
+   "metrics": {
+    "block/attacker_destroyed": {
+     "den": 6,
+     "num": 0,
+     "rate": 0.0
+    },
+    "block/blocker_survives": {
+     "den": 6,
+     "num": 2,
+     "rate": 0.3333333333333333
+    },
+    "block/favorable_survive_or_kill": {
+     "den": 6,
+     "num": 2,
+     "rate": 0.3333333333333333
+    },
+    "draft/max_wjaccard_to_curated": {
+     "den": 48,
+     "num": 8.40390883496953,
+     "rate": 0.1750814340618652
+    },
+    "draft/mean_cost": {
+     "den": 2400,
+     "num": 6456.0,
+     "rate": 2.69
+    },
+    "draft/normal_share": {
+     "den": 2400,
+     "num": 1285.0,
+     "rate": 0.5354166666666667
+    },
+    "draft/spell_share": {
+     "den": 2400,
+     "num": 161.0,
+     "rate": 0.06708333333333333
+    },
+    "draft/unique_cards": {
+     "den": 48,
+     "num": 1679,
+     "rate": 34.979166666666664
+    },
+    "draft/weapon_share": {
+     "den": 2400,
+     "num": 190.0,
+     "rate": 0.07916666666666666
+    },
+    "fire/burn_cast_per_legal_turn": {
+     "den": 69,
+     "num": 15,
+     "rate": 0.21739130434782608
+    },
+    "fire/burn_cast_then_opp_damage": {
+     "den": 15,
+     "num": 14,
+     "rate": 0.9333333333333333
+    },
+    "fire/zero_ping_target_is_redirect_card": {
+     "den": 12,
+     "num": 0,
+     "rate": 0.0
+    },
+    "gate/Ragefire/buffed_then_attacks_same_turn": {
+     "den": 38,
+     "num": 22,
+     "rate": 0.5789473684210527
+    },
+    "gate/Ragefire/portal_then_buff": {
+     "den": 146,
+     "num": 38,
+     "rate": 0.2602739726027397
+    },
+    "gate/portal_per_legal_turn": {
+     "den": 147,
+     "num": 146,
+     "rate": 0.9931972789115646
+    },
+    "heal/heal_spell_per_legal_turn_below_max_hp": {
+     "den": 13,
+     "num": 3,
+     "rate": 0.23076923076923078
+    },
+    "ikz/held_at_end_of_own_turn": {
+     "den": 318,
+     "num": 82,
+     "rate": 0.2578616352201258
+    },
+    "ikz/held_then_spent_in_opp_turn": {
+     "den": 82,
+     "num": 1,
+     "rate": 0.012195121951219513
+    },
+    "leader/Zero/target_then_attacks_same_turn": {
+     "den": 12,
+     "num": 1,
+     "rate": 0.08333333333333333
+    },
+    "leader/Zero/use_with_target": {
+     "den": 14,
+     "num": 12,
+     "rate": 0.8571428571428571
+    },
+    "leader/use_per_legal_turn": {
+     "den": 315,
+     "num": 14,
+     "rate": 0.044444444444444446
+    },
+    "lightning/weapon_attach_per_legal_turn": {
+     "den": 126,
+     "num": 25,
+     "rate": 0.1984126984126984
+    },
+    "lightning/weapon_attach_to_entity_share": {
+     "den": 26,
+     "num": 0,
+     "rate": 0.0
+    },
+    "outcome/battle_decisions": {
+     "den": 48,
+     "num": 1987,
+     "rate": 41.395833333333336
+    },
+    "outcome/own_turns": {
+     "den": 48,
+     "num": 318,
+     "rate": 6.625
+    },
+    "outcome/win": {
+     "den": 48,
+     "num": 14,
+     "rate": 0.2916666666666667
+    },
+    "outcome/win_vs_EARTH": {
+     "den": 12,
+     "num": 3,
+     "rate": 0.25
+    },
+    "outcome/win_vs_FIRE": {
+     "den": 12,
+     "num": 4,
+     "rate": 0.3333333333333333
+    },
+    "outcome/win_vs_LIGHTNING": {
+     "den": 12,
+     "num": 3,
+     "rate": 0.25
+    },
+    "outcome/win_vs_WATER": {
+     "den": 12,
+     "num": 4,
+     "rate": 0.3333333333333333
+    },
+    "response/any_nonblock_response_when_legal": {
+     "den": 6,
+     "num": 6,
+     "rate": 1.0
+    },
+    "response/defender_declared_when_legal": {
+     "den": 29,
+     "num": 6,
+     "rate": 0.20689655172413793
+    },
+    "response/spell_played_when_legal": {
+     "den": 1,
+     "num": 1,
+     "rate": 1.0
+    },
+    "sequence/fire.zero_before_attack/completed_per_eligible_game": {
+     "den": 48,
+     "num": 1,
+     "rate": 0.020833333333333332
+    },
+    "sequence/fire.zero_before_attack/converted_per_eligible_game": {
+     "den": 48,
+     "num": 1,
+     "rate": 0.020833333333333332
+    },
+    "strategy/attacks_by_equipped_attacker": {
+     "den": 499,
+     "num": 21,
+     "rate": 0.04208416833667335
+    },
+    "strategy/face_target_share_when_both_legal": {
+     "den": 338,
+     "num": 206,
+     "rate": 0.6094674556213018
+    },
+    "strategy/favorable_trade_taken_per_available_turn": {
+     "den": 116,
+     "num": 58,
+     "rate": 0.5
+    },
+    "strategy/spell_cast_per_legal_main_turn": {
+     "den": 130,
+     "num": 22,
+     "rate": 0.16923076923076924
+    }
+   }
+  },
+  "free_draft|Rushfire/Kagoro": {
+   "games": 48,
+   "metrics": {
+    "block/attacker_destroyed": {
+     "den": 1,
+     "num": 0,
+     "rate": 0.0
+    },
+    "block/blocker_survives": {
+     "den": 1,
+     "num": 0,
+     "rate": 0.0
+    },
+    "block/favorable_survive_or_kill": {
+     "den": 1,
+     "num": 0,
+     "rate": 0.0
+    },
+    "draft/max_wjaccard_to_curated": {
+     "den": 48,
+     "num": 9.282735510156051,
+     "rate": 0.19339032312825108
+    },
+    "draft/mean_cost": {
+     "den": 2400,
+     "num": 5985.0,
+     "rate": 2.49375
+    },
+    "draft/normal_share": {
+     "den": 2400,
+     "num": 1267.0,
+     "rate": 0.5279166666666667
+    },
+    "draft/spell_share": {
+     "den": 2400,
+     "num": 100.0,
+     "rate": 0.041666666666666664
+    },
+    "draft/unique_cards": {
+     "den": 48,
+     "num": 1634,
+     "rate": 34.041666666666664
+    },
+    "draft/weapon_share": {
+     "den": 2400,
+     "num": 117.0,
+     "rate": 0.04875
+    },
+    "fire/burn_cast_per_legal_turn": {
+     "den": 35,
+     "num": 3,
+     "rate": 0.08571428571428572
+    },
+    "fire/burn_cast_then_opp_damage": {
+     "den": 4,
+     "num": 4,
+     "rate": 1.0
+    },
+    "gate/Rushfire/payload_then_attack_same_turn": {
+     "den": 155,
+     "num": 150,
+     "rate": 0.967741935483871
+    },
+    "gate/Rushfire/portal_then_payload": {
+     "den": 239,
+     "num": 155,
+     "rate": 0.6485355648535565
+    },
+    "gate/portal_per_legal_turn": {
+     "den": 241,
+     "num": 239,
+     "rate": 0.991701244813278
+    },
+    "heal/heal_spell_per_legal_turn_below_max_hp": {
+     "den": 6,
+     "num": 1,
+     "rate": 0.16666666666666666
+    },
+    "ikz/held_at_end_of_own_turn": {
+     "den": 282,
+     "num": 36,
+     "rate": 0.1276595744680851
+    },
+    "ikz/held_then_spent_in_opp_turn": {
+     "den": 36,
+     "num": 0,
+     "rate": 0.0
+    },
+    "leader/Kagoro/use_then_leader_attacks_same_turn": {
+     "den": 74,
+     "num": 71,
+     "rate": 0.9594594594594594
+    },
+    "leader/use_per_legal_turn": {
+     "den": 92,
+     "num": 74,
+     "rate": 0.8043478260869565
+    },
+    "lightning/weapon_attach_per_legal_turn": {
+     "den": 109,
+     "num": 14,
+     "rate": 0.12844036697247707
+    },
+    "lightning/weapon_attach_to_entity_share": {
+     "den": 14,
+     "num": 0,
+     "rate": 0.0
+    },
+    "outcome/battle_decisions": {
+     "den": 48,
+     "num": 2267,
+     "rate": 47.229166666666664
+    },
+    "outcome/own_turns": {
+     "den": 48,
+     "num": 282,
+     "rate": 5.875
+    },
+    "outcome/win": {
+     "den": 48,
+     "num": 40,
+     "rate": 0.8333333333333334
+    },
+    "outcome/win_vs_EARTH": {
+     "den": 12,
+     "num": 11,
+     "rate": 0.9166666666666666
+    },
+    "outcome/win_vs_FIRE": {
+     "den": 12,
+     "num": 10,
+     "rate": 0.8333333333333334
+    },
+    "outcome/win_vs_LIGHTNING": {
+     "den": 12,
+     "num": 8,
+     "rate": 0.6666666666666666
+    },
+    "outcome/win_vs_WATER": {
+     "den": 12,
+     "num": 11,
+     "rate": 0.9166666666666666
+    },
+    "response/any_nonblock_response_when_legal": {
+     "den": 4,
+     "num": 3,
+     "rate": 0.75
+    },
+    "response/defender_declared_when_legal": {
+     "den": 4,
+     "num": 1,
+     "rate": 0.25
+    },
+    "sequence/fire.kagoro_after_multi_play/completed_per_eligible_game": {
+     "den": 43,
+     "num": 2,
+     "rate": 0.046511627906976744
+    },
+    "sequence/fire.kagoro_after_multi_play/converted_per_eligible_game": {
+     "den": 43,
+     "num": 1,
+     "rate": 0.023255813953488372
+    },
+    "sequence/fire.rushfire_charge_conversion/completed_per_eligible_game": {
+     "den": 48,
+     "num": 48,
+     "rate": 1.0
+    },
+    "sequence/fire.rushfire_charge_conversion/converted_per_eligible_game": {
+     "den": 48,
+     "num": 38,
+     "rate": 0.7916666666666666
+    },
+    "strategy/attacks_by_equipped_attacker": {
+     "den": 716,
+     "num": 9,
+     "rate": 0.012569832402234637
+    },
+    "strategy/face_target_share_when_both_legal": {
+     "den": 351,
+     "num": 255,
+     "rate": 0.7264957264957265
+    },
+    "strategy/favorable_trade_taken_per_available_turn": {
+     "den": 93,
+     "num": 35,
+     "rate": 0.3763440860215054
+    },
+    "strategy/spell_cast_per_legal_main_turn": {
+     "den": 64,
+     "num": 5,
+     "rate": 0.078125
+    }
+   }
+  },
+  "free_draft|Rushfire/Zero": {
+   "games": 48,
+   "metrics": {
+    "block/attacker_destroyed": {
+     "den": 2,
+     "num": 0,
+     "rate": 0.0
+    },
+    "block/blocker_survives": {
+     "den": 2,
+     "num": 1,
+     "rate": 0.5
+    },
+    "block/favorable_survive_or_kill": {
+     "den": 2,
+     "num": 1,
+     "rate": 0.5
+    },
+    "draft/max_wjaccard_to_curated": {
+     "den": 48,
+     "num": 9.259023705412718,
+     "rate": 0.19289632719609828
+    },
+    "draft/mean_cost": {
+     "den": 2400,
+     "num": 6117.0,
+     "rate": 2.54875
+    },
+    "draft/normal_share": {
+     "den": 2400,
+     "num": 1255.0,
+     "rate": 0.5229166666666667
+    },
+    "draft/spell_share": {
+     "den": 2400,
+     "num": 89.0,
+     "rate": 0.037083333333333336
+    },
+    "draft/unique_cards": {
+     "den": 48,
+     "num": 1638,
+     "rate": 34.125
+    },
+    "draft/weapon_share": {
+     "den": 2400,
+     "num": 107.0,
+     "rate": 0.044583333333333336
+    },
+    "fire/burn_cast_per_legal_turn": {
+     "den": 44,
+     "num": 8,
+     "rate": 0.18181818181818182
+    },
+    "fire/burn_cast_then_opp_damage": {
+     "den": 8,
+     "num": 7,
+     "rate": 0.875
+    },
+    "fire/zero_ping_redirect_target_then_opp_damage": {
+     "den": 1,
+     "num": 1,
+     "rate": 1.0
+    },
+    "fire/zero_ping_target_is_redirect_card": {
+     "den": 15,
+     "num": 1,
+     "rate": 0.06666666666666667
+    },
+    "gate/Rushfire/payload_then_attack_same_turn": {
+     "den": 155,
+     "num": 149,
+     "rate": 0.9612903225806452
+    },
+    "gate/Rushfire/portal_then_payload": {
+     "den": 275,
+     "num": 155,
+     "rate": 0.5636363636363636
+    },
+    "gate/portal_per_legal_turn": {
+     "den": 279,
+     "num": 275,
+     "rate": 0.985663082437276
+    },
+    "heal/heal_spell_per_legal_turn_below_max_hp": {
+     "den": 23,
+     "num": 7,
+     "rate": 0.30434782608695654
+    },
+    "ikz/held_at_end_of_own_turn": {
+     "den": 327,
+     "num": 100,
+     "rate": 0.3058103975535168
+    },
+    "ikz/held_then_spent_in_opp_turn": {
+     "den": 100,
+     "num": 0,
+     "rate": 0.0
+    },
+    "leader/Zero/target_then_attacks_same_turn": {
+     "den": 16,
+     "num": 0,
+     "rate": 0.0
+    },
+    "leader/Zero/use_with_target": {
+     "den": 16,
+     "num": 16,
+     "rate": 1.0
+    },
+    "leader/use_per_legal_turn": {
+     "den": 324,
+     "num": 16,
+     "rate": 0.04938271604938271
+    },
+    "lightning/weapon_attach_per_legal_turn": {
+     "den": 79,
+     "num": 15,
+     "rate": 0.189873417721519
+    },
+    "lightning/weapon_attach_to_entity_share": {
+     "den": 20,
+     "num": 0,
+     "rate": 0.0
+    },
+    "outcome/battle_decisions": {
+     "den": 48,
+     "num": 2457,
+     "rate": 51.1875
+    },
+    "outcome/own_turns": {
+     "den": 48,
+     "num": 327,
+     "rate": 6.8125
+    },
+    "outcome/win": {
+     "den": 48,
+     "num": 36,
+     "rate": 0.75
+    },
+    "outcome/win_vs_EARTH": {
+     "den": 12,
+     "num": 8,
+     "rate": 0.6666666666666666
+    },
+    "outcome/win_vs_FIRE": {
+     "den": 12,
+     "num": 7,
+     "rate": 0.5833333333333334
+    },
+    "outcome/win_vs_LIGHTNING": {
+     "den": 12,
+     "num": 10,
+     "rate": 0.8333333333333334
+    },
+    "outcome/win_vs_WATER": {
+     "den": 12,
+     "num": 11,
+     "rate": 0.9166666666666666
+    },
+    "response/defender_declared_when_legal": {
+     "den": 11,
+     "num": 2,
+     "rate": 0.18181818181818182
+    },
+    "sequence/fire.rushfire_charge_conversion/completed_per_eligible_game": {
+     "den": 48,
+     "num": 48,
+     "rate": 1.0
+    },
+    "sequence/fire.rushfire_charge_conversion/converted_per_eligible_game": {
+     "den": 48,
+     "num": 34,
+     "rate": 0.7083333333333334
+    },
+    "sequence/fire.zero_before_attack/completed_per_eligible_game": {
+     "den": 48,
+     "num": 0,
+     "rate": 0.0
+    },
+    "sequence/fire.zero_before_attack/converted_per_eligible_game": {
+     "den": 48,
+     "num": 0,
+     "rate": 0.0
+    },
+    "strategy/attacks_by_equipped_attacker": {
+     "den": 744,
+     "num": 14,
+     "rate": 0.01881720430107527
+    },
+    "strategy/face_target_share_when_both_legal": {
+     "den": 404,
+     "num": 267,
+     "rate": 0.6608910891089109
+    },
+    "strategy/favorable_trade_taken_per_available_turn": {
+     "den": 113,
+     "num": 58,
+     "rate": 0.5132743362831859
+    },
+    "strategy/spell_cast_per_legal_main_turn": {
+     "den": 104,
+     "num": 17,
+     "rate": 0.16346153846153846
+    }
+   }
+  }
+ }
+}

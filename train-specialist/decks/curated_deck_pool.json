@@ -1,0 +1,1967 @@
+{
+  "schema_version": 1,
+  "source": {
+    "builder": "train-specialist/decks/build_curated_pool.py",
+    "inputs": [
+      {
+        "path": "train-specialist/decks/curated_decks.json",
+        "sha256": "137d8f7c8d8a97cdc1c37c169b5ccded94a92976c1668e463ffb21cf2ac07082",
+        "deck_count": 19,
+        "role": "curated_tournament_decks"
+      },
+      {
+        "path": "train-specialist/sources/official_cards_api_2026-09-30.json",
+        "sha256": "2baf05d547faf068c536ac76cc4a91dbcddeb5e7f59ab903133d98fe9b082dae",
+        "role": "official_card_legality"
+      }
+    ]
+  },
+  "normalization_notes": [
+    "Every deck is a curated, tiered tournament list (see curated_decks.json for evidence and URLs).",
+    "Decks contain 1 leader, 1 gate, 50 element-legal main cards, and IKZ-001 x10.",
+    "Held-out evaluation decks come first and are listed in summary.holdout_reference_deck_indices; they are never training decks.",
+    "Training decks are grouped by (gate, leader) context; only contexts with curated decks are present.",
+    "Rushfire Gate (AZK01-122) is intentionally legal; pending engine cards AZK01-013, AZK01-076, AZK01-079, AZK01-083, AZK01-099 are allowed.",
+    "sampling_weight is informational (tier A=2, B=1)."
+  ],
+  "summary": {
+    "reference_panel_size": 4,
+    "holdout_reference_deck_indices": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "prebuilt_training_deck_indices": [
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18
+    ],
+    "prebuilt_training_deck_count": 15,
+    "prebuilt_deck_groups": [
+      {
+        "gate_card_id": "AZK01-120",
+        "leader_card_id": "STT01-001",
+        "element": "LIGHTNING",
+        "deck_count": 1,
+        "deck_indices": [
+          4
+        ]
+      },
+      {
+        "gate_card_id": "AZK01-122",
+        "leader_card_id": "STT04-001",
+        "element": "FIRE",
+        "deck_count": 4,
+        "deck_indices": [
+          5,
+          6,
+          7,
+          8
+        ]
+      },
+      {
+        "gate_card_id": "STT01-002",
+        "leader_card_id": "STT01-001",
+        "element": "LIGHTNING",
+        "deck_count": 2,
+        "deck_indices": [
+          9,
+          10
+        ]
+      },
+      {
+        "gate_card_id": "STT02-002",
+        "leader_card_id": "STT02-001",
+        "element": "WATER",
+        "deck_count": 2,
+        "deck_indices": [
+          11,
+          12
+        ]
+      },
+      {
+        "gate_card_id": "STT03-002",
+        "leader_card_id": "AZK01-123",
+        "element": "EARTH",
+        "deck_count": 1,
+        "deck_indices": [
+          13
+        ]
+      },
+      {
+        "gate_card_id": "STT03-002",
+        "leader_card_id": "STT03-001",
+        "element": "EARTH",
+        "deck_count": 2,
+        "deck_indices": [
+          14,
+          15
+        ]
+      },
+      {
+        "gate_card_id": "STT04-002",
+        "leader_card_id": "STT04-001",
+        "element": "FIRE",
+        "deck_count": 3,
+        "deck_indices": [
+          16,
+          17,
+          18
+        ]
+      }
+    ],
+    "element_groups": [
+      {
+        "element": "FIRE",
+        "training_deck_indices": [
+          5,
+          6,
+          7,
+          8,
+          16,
+          17,
+          18
+        ],
+        "heldout_deck_indices": [
+          0,
+          1,
+          2
+        ],
+        "contexts": [
+          {
+            "gate_card_id": "AZK01-122",
+            "leader_card_id": "STT04-001",
+            "deck_count": 4
+          },
+          {
+            "gate_card_id": "STT04-002",
+            "leader_card_id": "STT04-001",
+            "deck_count": 3
+          }
+        ],
+        "training_tier_counts": {
+          "A": 6,
+          "B": 1
+        },
+        "heldout_tier_counts": {
+          "A": 3
+        }
+      },
+      {
+        "element": "WATER",
+        "training_deck_indices": [
+          11,
+          12
+        ],
+        "heldout_deck_indices": [],
+        "contexts": [
+          {
+            "gate_card_id": "STT02-002",
+            "leader_card_id": "STT02-001",
+            "deck_count": 2
+          }
+        ],
+        "training_tier_counts": {
+          "B": 2
+        },
+        "heldout_tier_counts": {}
+      },
+      {
+        "element": "EARTH",
+        "training_deck_indices": [
+          13,
+          14,
+          15
+        ],
+        "heldout_deck_indices": [],
+        "contexts": [
+          {
+            "gate_card_id": "STT03-002",
+            "leader_card_id": "AZK01-123",
+            "deck_count": 1
+          },
+          {
+            "gate_card_id": "STT03-002",
+            "leader_card_id": "STT03-001",
+            "deck_count": 2
+          }
+        ],
+        "training_tier_counts": {
+          "B": 2,
+          "A": 1
+        },
+        "heldout_tier_counts": {}
+      },
+      {
+        "element": "LIGHTNING",
+        "training_deck_indices": [
+          4,
+          9,
+          10
+        ],
+        "heldout_deck_indices": [
+          3
+        ],
+        "contexts": [
+          {
+            "gate_card_id": "AZK01-120",
+            "leader_card_id": "STT01-001",
+            "deck_count": 1
+          },
+          {
+            "gate_card_id": "STT01-002",
+            "leader_card_id": "STT01-001",
+            "deck_count": 2
+          }
+        ],
+        "training_tier_counts": {
+          "A": 3
+        },
+        "heldout_tier_counts": {
+          "A": 1
+        }
+      }
+    ]
+  },
+  "decks": [
+    {
+      "deck_name": "Zero Rushfire - orion (Garden Arena Top 8)",
+      "deck_slug": "pasadena_orion",
+      "element": "FIRE",
+      "leader_card_id": "STT04-001",
+      "gate_card_id": "AZK01-122",
+      "tier": "A",
+      "sampling_weight": 2,
+      "heldout_eval_only": true,
+      "event": "Azuki TCG Garden Arena Regional (CoreTCG), Pasadena CA - 315 players, 8 rounds swiss + top 8",
+      "date": "2026-08-15",
+      "source_urls": [
+        "https://tcg.azuki.com/blog/01a017f6-5ed3-7990-a97e-4540e4c0b3d5",
+        "https://x.com/AzukiTCG/status/2089407720902238468",
+        "https://www.youtube.com/watch?v=I00VDjQ0k2E"
+      ],
+      "cards": [
+        {
+          "card_id": "STT04-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-122",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-058",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-115",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-007",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-015",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-016",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "Zero Rushfire Black Jade go-wide - brayan (CoreTCG Case 2nd)",
+      "deck_slug": "case1_brayan",
+      "element": "FIRE",
+      "leader_card_id": "STT04-001",
+      "gate_card_id": "AZK01-122",
+      "tier": "A",
+      "sampling_weight": 2,
+      "heldout_eval_only": true,
+      "event": "CoreTCG Case Tournament (official \"Small Official\" event, top-8 cut), CoreTCG, CA",
+      "date": "2026-06-30",
+      "source_urls": [
+        "https://x.com/AzukiTCG/status/2072107915411132798",
+        "https://x.com/AzukiTCG/status/2072119400073929202",
+        "https://deckbuilder.egmanevents.com/azuki/tournaments"
+      ],
+      "cards": [
+        {
+          "card_id": "STT04-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-122",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-058",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-082",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-111",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-113",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-115",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-007",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-009",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT04-015",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-016",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "Zero Ragefire Cinderwake - dylhu/jackie (2026 Invitational 4th & 8th)",
+      "deck_slug": "inv_dylhu_jackie",
+      "element": "FIRE",
+      "leader_card_id": "STT04-001",
+      "gate_card_id": "STT04-002",
+      "tier": "A",
+      "sampling_weight": 2,
+      "heldout_eval_only": true,
+      "event": "2026 Azuki TCG Invitational, Los Angeles CA - 64 invited players, $10k",
+      "date": "2026-01-11",
+      "source_urls": [
+        "https://thegateikz.com/decks/dylhu-mkda9xis",
+        "https://thegateikz.com/decks/jackie-mkdabxt6",
+        "https://tcg.azuki.com/"
+      ],
+      "cards": [
+        {
+          "card_id": "STT04-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-116",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-007",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-015",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-016",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "Raizan Surge Ikazuchi - jerry (2026 Invitational 3rd, 6-0 swiss)",
+      "deck_slug": "inv_jerry",
+      "element": "LIGHTNING",
+      "leader_card_id": "STT01-001",
+      "gate_card_id": "STT01-002",
+      "tier": "A",
+      "sampling_weight": 2,
+      "heldout_eval_only": true,
+      "event": "2026 Azuki TCG Invitational, Los Angeles CA - 64 invited players, $10k",
+      "date": "2026-01-11",
+      "source_urls": [
+        "https://thegateikz.com/decks/jerry-mkd9tc1y",
+        "https://tcg.azuki.com/"
+      ],
+      "cards": [
+        {
+          "card_id": "STT01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-011",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-033",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-097",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-008",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-011",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-012",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-016",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-017",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-008",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "Raizan Stormchain weapons - notshanenam/banchan (CoreTCG Case 1st)",
+      "deck_slug": "case1_banchan",
+      "element": "LIGHTNING",
+      "leader_card_id": "STT01-001",
+      "gate_card_id": "AZK01-120",
+      "tier": "A",
+      "sampling_weight": 2,
+      "heldout_eval_only": false,
+      "event": "CoreTCG Case Tournament (official \"Small Official\" event, top-8 cut), CoreTCG, CA",
+      "date": "2026-06-30",
+      "source_urls": [
+        "https://x.com/AzukiTCG/status/2072107915411132798",
+        "https://x.com/AzukiTCG/status/2072119400073929202",
+        "https://deckbuilder.egmanevents.com/azuki/tournaments"
+      ],
+      "cards": [
+        {
+          "card_id": "STT01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-120",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-011",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-015",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-094",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-012",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-017",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "Zero Rushfire - ducky/drewwskiee (Garden Arena 1st & 2nd)",
+      "deck_slug": "pasadena_ducky_drewwskiee",
+      "element": "FIRE",
+      "leader_card_id": "STT04-001",
+      "gate_card_id": "AZK01-122",
+      "tier": "A",
+      "sampling_weight": 2,
+      "heldout_eval_only": false,
+      "event": "Azuki TCG Garden Arena Regional (CoreTCG), Pasadena CA - 315 players, 8 rounds swiss + top 8",
+      "date": "2026-08-15",
+      "source_urls": [
+        "https://tcg.azuki.com/blog/01a017f6-5ed3-7990-a97e-4540e4c0b3d5",
+        "https://x.com/AzukiTCG/status/2089407723720818814",
+        "https://www.youtube.com/watch?v=I00VDjQ0k2E"
+      ],
+      "cards": [
+        {
+          "card_id": "STT04-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-122",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-058",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-015",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-016",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "Zero Rushfire - mrmexicant/jbae (Garden Arena Top 4)",
+      "deck_slug": "pasadena_mrmexicant_jbae",
+      "element": "FIRE",
+      "leader_card_id": "STT04-001",
+      "gate_card_id": "AZK01-122",
+      "tier": "A",
+      "sampling_weight": 2,
+      "heldout_eval_only": false,
+      "event": "Azuki TCG Garden Arena Regional (CoreTCG), Pasadena CA - 315 players, 8 rounds swiss + top 8",
+      "date": "2026-08-15",
+      "source_urls": [
+        "https://tcg.azuki.com/blog/01a017f6-5ed3-7990-a97e-4540e4c0b3d5",
+        "https://x.com/AzukiTCG/status/2089407723720818814",
+        "https://www.youtube.com/watch?v=I00VDjQ0k2E"
+      ],
+      "cards": [
+        {
+          "card_id": "STT04-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-122",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-058",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-015",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-016",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "Zero Rushfire Tenshin/Saeko - szerro (Garden Arena Top 8)",
+      "deck_slug": "pasadena_szerro",
+      "element": "FIRE",
+      "leader_card_id": "STT04-001",
+      "gate_card_id": "AZK01-122",
+      "tier": "A",
+      "sampling_weight": 2,
+      "heldout_eval_only": false,
+      "event": "Azuki TCG Garden Arena Regional (CoreTCG), Pasadena CA - 315 players, 8 rounds swiss + top 8",
+      "date": "2026-08-15",
+      "source_urls": [
+        "https://tcg.azuki.com/blog/01a017f6-5ed3-7990-a97e-4540e4c0b3d5",
+        "https://x.com/AzukiTCG/status/2089407720902238468",
+        "https://thegateikz.com/articles/szerro-sligh"
+      ],
+      "cards": [
+        {
+          "card_id": "STT04-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-122",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-057",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-058",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-016",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "Zero Rushfire High Stakes Fire - 19th/315 (Garden Arena)",
+      "deck_slug": "pasadena_bjmcs_19th",
+      "element": "FIRE",
+      "leader_card_id": "STT04-001",
+      "gate_card_id": "AZK01-122",
+      "tier": "B",
+      "sampling_weight": 1,
+      "heldout_eval_only": false,
+      "event": "Azuki TCG Garden Arena Regional (CoreTCG), Pasadena CA - 315 players, 8 rounds swiss + top 8",
+      "date": "2026-08-15",
+      "source_urls": [
+        "https://thegateikz.com/articles/high-stakes-fire-la-regionals-19th-out-of-315",
+        "https://thegateikz.com/decks/bjmcs-mrd70myz"
+      ],
+      "cards": [
+        {
+          "card_id": "STT04-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-122",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-003",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-058",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-009",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT04-015",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT04-016",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "Raizan Surge weapons - BaconMan (Garden Arena Top 8, 8-0 swiss)",
+      "deck_slug": "pasadena_baconman",
+      "element": "LIGHTNING",
+      "leader_card_id": "STT01-001",
+      "gate_card_id": "STT01-002",
+      "tier": "A",
+      "sampling_weight": 2,
+      "heldout_eval_only": false,
+      "event": "Azuki TCG Garden Arena Regional (CoreTCG), Pasadena CA - 315 players, 8 rounds swiss + top 8",
+      "date": "2026-08-15",
+      "source_urls": [
+        "https://tcg.azuki.com/blog/01a017f6-5ed3-7990-a97e-4540e4c0b3d5",
+        "https://x.com/AzukiTCG/status/2089407720902238468",
+        "https://www.youtube.com/watch?v=I00VDjQ0k2E",
+        "https://thegateikz.com/decks/baconms-top-8-msydpdgt"
+      ],
+      "cards": [
+        {
+          "card_id": "STT01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-014",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-042",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-077",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-094",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-005",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-008",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-012",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-017",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 3
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "Raizan Surge - ducky (2026 Invitational Champion)",
+      "deck_slug": "inv_ducky",
+      "element": "LIGHTNING",
+      "leader_card_id": "STT01-001",
+      "gate_card_id": "STT01-002",
+      "tier": "A",
+      "sampling_weight": 2,
+      "heldout_eval_only": false,
+      "event": "2026 Azuki TCG Invitational, Los Angeles CA - 64 invited players, $10k",
+      "date": "2026-01-11",
+      "source_urls": [
+        "https://thegateikz.com/decks/ducky-mkd9pgym",
+        "https://tcg.azuki.com/",
+        "https://www.youtube.com/watch?v=_j1y1094k-4"
+      ],
+      "cards": [
+        {
+          "card_id": "STT01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT01-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-011",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-033",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-040",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-041",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-094",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-008",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT01-009",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-012",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-017",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-008",
+          "quantity": 3
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "Shao Hydromancy - Aez V1 (2026 Invitational 15th, only top-16 Shao)",
+      "deck_slug": "inv_aez_shao_v1",
+      "element": "WATER",
+      "leader_card_id": "STT02-001",
+      "gate_card_id": "STT02-002",
+      "tier": "B",
+      "sampling_weight": 1,
+      "heldout_eval_only": false,
+      "event": "2026 Azuki TCG Invitational, Los Angeles CA - 64 invited players, $10k",
+      "date": "2026-01-11",
+      "source_urls": [
+        "https://thegateikz.com/articles/aez-s-shao-deck-guide-q1-2026",
+        "https://thegateikz.com/decks/my-deck-mjfik24h"
+      ],
+      "cards": [
+        {
+          "card_id": "STT02-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT02-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-009",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-014",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-021",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-022",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-024",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-031",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-087",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-088",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-008",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-012",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-016",
+          "quantity": 3
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "Shao Hydromancy - Aez V2 (#1 ladder)",
+      "deck_slug": "ladder1_aez_shao_v2",
+      "element": "WATER",
+      "leader_card_id": "STT02-001",
+      "gate_card_id": "STT02-002",
+      "tier": "B",
+      "sampling_weight": 1,
+      "heldout_eval_only": false,
+      "event": "Azuki TCG app ranked ladder (online)",
+      "date": "2026-09-15",
+      "source_urls": [
+        "https://thegateikz.com/articles/aez-s-shao-deck-guide-q2-2026",
+        "https://thegateikz.com/decks/aezs-shao-deck-v2-mtvwq7ts"
+      ],
+      "cards": [
+        {
+          "card_id": "STT02-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT02-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-021",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-022",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-024",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-028",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-029",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-087",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-088",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-089",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-003",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-005",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-007",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "Goro Stonehaven Beanz \"Beaniez\" - dkb (Garden Arena 36th, 6-2)",
+      "deck_slug": "pasadena_dkb_goro_36th",
+      "element": "EARTH",
+      "leader_card_id": "AZK01-123",
+      "gate_card_id": "STT03-002",
+      "tier": "B",
+      "sampling_weight": 1,
+      "heldout_eval_only": false,
+      "event": "Azuki TCG Garden Arena Regional (CoreTCG), Pasadena CA - 315 players, 8 rounds swiss + top 8",
+      "date": "2026-08-15",
+      "source_urls": [
+        "https://thegateikz.com/articles/goros-gravelly-grit"
+      ],
+      "cards": [
+        {
+          "card_id": "AZK01-123",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-004",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-012",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-019",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-050",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-069",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-079",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-105",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-107",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-016",
+          "quantity": 3
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "Bobu Stonehaven control - cat (Garden Arena Top 8)",
+      "deck_slug": "pasadena_cat",
+      "element": "EARTH",
+      "leader_card_id": "STT03-001",
+      "gate_card_id": "STT03-002",
+      "tier": "A",
+      "sampling_weight": 2,
+      "heldout_eval_only": false,
+      "event": "Azuki TCG Garden Arena Regional (CoreTCG), Pasadena CA - 315 players, 8 rounds swiss + top 8",
+      "date": "2026-08-15",
+      "source_urls": [
+        "https://tcg.azuki.com/blog/01a017f6-5ed3-7990-a97e-4540e4c0b3d5",
+        "https://x.com/AzukiTCG/status/2089407720902238468",
+        "https://www.youtube.com/watch?v=I00VDjQ0k2E",
+        "https://thegateikz.com/decks/cats-top-8-earth-msydmtsm"
+      ],
+      "cards": [
+        {
+          "card_id": "STT03-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-045",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-050",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-054",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-107",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-128",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-003",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT03-005",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT03-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-012",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT03-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-015",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT03-016",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT03-017",
+          "quantity": 1
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "Bobu Stonehaven Kale/Shiko - \"3rd place coretcg\" (CoreTCG Case 3rd)",
+      "deck_slug": "case1_bobu_3rd",
+      "element": "EARTH",
+      "leader_card_id": "STT03-001",
+      "gate_card_id": "STT03-002",
+      "tier": "B",
+      "sampling_weight": 1,
+      "heldout_eval_only": false,
+      "event": "CoreTCG Case Tournament (official \"Small Official\" event, top-8 cut), CoreTCG, CA",
+      "date": "2026-06-30",
+      "source_urls": [
+        "https://x.com/AzukiTCG/status/2072107915411132798",
+        "https://thegateikz.com/decks/3rd-place-coretcg-mr2krmjk"
+      ],
+      "cards": [
+        {
+          "card_id": "STT03-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-015",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-045",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-047",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-048",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-050",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-054",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-107",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-128",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-013",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT03-014",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT03-015",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT03-016",
+          "quantity": 3
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "Zero Ragefire Healing Flutter - xell/toraoy (2026 Invitational 2nd & 5th)",
+      "deck_slug": "inv_xell_toraoy",
+      "element": "FIRE",
+      "leader_card_id": "STT04-001",
+      "gate_card_id": "STT04-002",
+      "tier": "A",
+      "sampling_weight": 2,
+      "heldout_eval_only": false,
+      "event": "2026 Azuki TCG Invitational, Los Angeles CA - 64 invited players, $10k",
+      "date": "2026-01-11",
+      "source_urls": [
+        "https://thegateikz.com/decks/xell-mkd9o4t0",
+        "https://thegateikz.com/decks/toraoy-mkdaeblf",
+        "https://tcg.azuki.com/"
+      ],
+      "cards": [
+        {
+          "card_id": "STT04-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-111",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-007",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-015",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-016",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "Zero Ragefire Ignition - bfg (2026 Invitational 6th)",
+      "deck_slug": "inv_bfg",
+      "element": "FIRE",
+      "leader_card_id": "STT04-001",
+      "gate_card_id": "STT04-002",
+      "tier": "A",
+      "sampling_weight": 2,
+      "heldout_eval_only": false,
+      "event": "2026 Azuki TCG Invitational, Los Angeles CA - 64 invited players, $10k",
+      "date": "2026-01-11",
+      "source_urls": [
+        "https://thegateikz.com/decks/bfg-mkdal7lr",
+        "https://tcg.azuki.com/"
+      ],
+      "cards": [
+        {
+          "card_id": "STT04-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-009",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-058",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-061",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-065",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-111",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-113",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-116",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-117",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-005",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT04-007",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-009",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-015",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "Zero Ragefire - drewwskiee (2026 Invitational 7th)",
+      "deck_slug": "inv_drewwskiee",
+      "element": "FIRE",
+      "leader_card_id": "STT04-001",
+      "gate_card_id": "STT04-002",
+      "tier": "A",
+      "sampling_weight": 2,
+      "heldout_eval_only": false,
+      "event": "2026 Azuki TCG Invitational, Los Angeles CA - 64 invited players, $10k",
+      "date": "2026-01-11",
+      "source_urls": [
+        "https://thegateikz.com/decks/drewwskiee-mkdanmm6",
+        "https://tcg.azuki.com/"
+      ],
+      "cards": [
+        {
+          "card_id": "STT04-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT04-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-056",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-059",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-060",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-062",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-111",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-116",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT04-003",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT04-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-005",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-007",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT04-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-015",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT04-016",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    }
+  ]
+}

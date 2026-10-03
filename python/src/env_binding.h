@@ -559,6 +559,15 @@ static PyObject* vec_init(PyObject* self, PyObject* args, PyObject* kwargs) {
             return NULL;
         }
         Py_DECREF(py_seed);
+        PyObject* py_env_index = PyLong_FromLong(i);
+        if (py_env_index == NULL ||
+            PyDict_SetItemString(kwargs, "env_index", py_env_index) < 0) {
+            PyErr_SetString(PyExc_RuntimeError, "Failed to set env_index in kwargs");
+            Py_XDECREF(py_env_index);
+            Py_DECREF(kwargs);
+            return NULL;
+        }
+        Py_DECREF(py_env_index);
 
         PyObject* empty_args = PyTuple_New(0);
         my_init(env, empty_args, kwargs);

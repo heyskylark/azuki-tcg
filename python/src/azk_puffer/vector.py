@@ -82,6 +82,12 @@ class Serial:
             if shared_probability is None
             else np.broadcast_to(shared_probability, (num_envs, 1))
         )
+        shared_seat_mask = buf.get("learner_seat_mask") if buf is not None else None
+        self.learner_seat_mask = (
+            np.ones(self.num_agents, dtype=np.uint8)
+            if shared_seat_mask is None
+            else shared_seat_mask
+        )
         if hasattr(self.driver_env, "terminal_rewards"):
             for name in ("terminal_rewards", "shaped_rewards"):
                 component = buf.get(name) if buf is not None else None
@@ -102,6 +108,7 @@ class Serial:
                 actions=self.actions[ptr:end],
                 reward_scales=self.reward_scales[i],
                 prebuilt_probability=self.prebuilt_probability[i],
+                learner_seat_mask=self.learner_seat_mask[ptr:end],
             )
             if hasattr(self, "terminal_rewards"):
                 buf_i["terminal_rewards"] = self.terminal_rewards[ptr:end]
@@ -214,6 +221,8 @@ def _worker_process(env_creators, env_args, env_kwargs, obs_shape, obs_dtype, at
             dtype=np.float32, buffer=shm['reward_scales'])[worker_idx],
         prebuilt_probability=np.ndarray((num_workers, 1),
             dtype=np.float32, buffer=shm['prebuilt_probability'])[worker_idx],
+        learner_seat_mask=np.ndarray(shape, dtype=np.uint8,
+            buffer=shm['learner_seat_mask'])[worker_idx],
     )
     for name in ("terminal_rewards", "shaped_rewards"):
         if name in shm:
@@ -342,6 +351,7 @@ class Multiprocessing:
             notify=RawArray('b', num_workers),
             reward_scales=RawArray('f', num_workers * 2),
             prebuilt_probability=RawArray('f', num_workers),
+            learner_seat_mask=RawArray('B', num_agents),
         )
         shape = (num_workers, agents_per_worker)
         self.obs_batch_shape = (self.agents_per_batch, *obs_shape)
@@ -361,12 +371,18 @@ class Multiprocessing:
                 (num_workers, 2), dtype=np.float32, buffer=self.shm['reward_scales']),
             prebuilt_probability=np.ndarray(
                 (num_workers, 1), dtype=np.float32, buffer=self.shm['prebuilt_probability']),
+            learner_seat_mask=np.ndarray(
+                shape, dtype=np.uint8, buffer=self.shm['learner_seat_mask']),
         )
         self.buf['semaphores'][:] = MAIN 
         self.buf['reward_scales'][:] = 1.0
         self.reward_scales = self.buf['reward_scales']
         self.buf['prebuilt_probability'][:] = getattr(driver_env, "initial_prebuilt_probability", 0.0)
         self.prebuilt_probability = self.buf['prebuilt_probability']
+        # Per-agent-row learner-element seat flags (see AzukiNativeEnv); start
+        # all-ones so episodes begun before the trainer writes are mirrors.
+        self.buf['learner_seat_mask'][:] = 1
+        self.learner_seat_mask = self.buf['learner_seat_mask'].reshape(-1)
         if hasattr(driver_env, "terminal_rewards"):
             for name in ("terminal_rewards", "shaped_rewards"):
                 self.shm[name] = RawArray('f', num_agents)

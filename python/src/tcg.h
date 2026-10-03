@@ -340,6 +340,16 @@ typedef struct {
   float *prebuilt_probability;
   bool episode_prebuilt;
   int episode_prebuilt_deck_indices[MAX_PLAYERS_PER_MATCH];
+  // Optional element-specialist knob (learner_element is a CardElement; 0 =
+  // disabled, leaving every RNG stream untouched). learner_seat_mask points at
+  // this env's two caller-owned per-seat flags (1 = seat is learner-controlled
+  // and must play learner_element), read once at each training episode reset.
+  // prebuilt_learner_decks: learner seats' prebuilt deck indices (all of
+  // learner_element, repeated by sampling weight), drawn uniformly.
+  int8_t learner_element;
+  const uint8_t *learner_seat_mask;
+  int *prebuilt_learner_decks;
+  size_t prebuilt_learner_deck_count;
   int tick;
   AzkActionMaskSet action_masks[MAX_PLAYERS_PER_MATCH];
   float last_phi[MAX_PLAYERS_PER_MATCH];
@@ -417,6 +427,9 @@ typedef struct {
   int16_t evaluation_forced_leader[MAX_PLAYERS_PER_MATCH];
   int8_t evaluation_reference_seat;
   int16_t evaluation_reference_deck_index;
+  // Evaluation-only deck for the seat opposite evaluation_reference_seat (-1:
+  // that seat drafts).
+  int16_t evaluation_other_deck_index;
   int16_t draft_gate[MAX_PLAYERS_PER_MATCH];
   int draft_gate_slot[MAX_PLAYERS_PER_MATCH];
   int16_t draft_original_gate[MAX_PLAYERS_PER_MATCH];
@@ -712,6 +725,9 @@ static void free_training_deck_pool(CAzukiTCG* env) {
   }
   free(env->prebuilt_deck_indices);
   free(env->prebuilt_group_offsets);
+  free(env->prebuilt_learner_decks);
+  env->prebuilt_learner_decks = NULL;
+  env->prebuilt_learner_deck_count = 0;
   env->deck_pool = NULL;
   env->deck_pool_count = 0;
   env->prebuilt_deck_indices = NULL;
@@ -2542,6 +2558,56 @@ static int16_t draft_sample_assigned_leader(CAzukiTCG* env, int slot) {
       .leader_flat[begin + env->draft_rng_state % (uint32_t)count];
 }
 
+// Seats that must play learner_element this episode (learner-controlled seats
+// flagged by the caller-owned mask). Never active in evaluation mode, where
+// callers pin gates/decks explicitly.
+static void learner_forced_seats(const CAzukiTCG* env,
+                                 bool out[MAX_PLAYERS_PER_MATCH]) {
+  const bool enabled = env->learner_element > 0 &&
+                       env->learner_seat_mask != NULL &&
+                       !env->evaluation_pause_on_done;
+  for (int seat = 0; seat < MAX_PLAYERS_PER_MATCH; ++seat) {
+    out[seat] = enabled && env->learner_seat_mask[seat] != 0;
+  }
+}
+
+static bool draft_gate_has_element(int16_t gate_def_id, int8_t element) {
+  const CardDef* def = azk_card_def_from_id((CardDefId)gate_def_id);
+  return def != NULL && (int8_t)def->element == element;
+}
+
+// Gate of learner_element drawn with the same weighting the unforced path
+// uses (uniform over catalog gates, or population-weighted), consuming only
+// the caller's single draw so the episode RNG stream length is unchanged.
+static int16_t draft_sample_learner_gate(const CAzukiTCG* env, uint32_t draw) {
+  const bool uniform = env->draft_uniform_assignment;
+  const int16_t* source = uniform ? g_draft_catalog.gate_def_ids
+                                  : g_draft_catalog.gate_population;
+  const int count = uniform ? g_draft_catalog.gate_count
+                            : g_draft_catalog.population_count;
+  int matches = 0;
+  for (int i = 0; i < count; ++i) {
+    if (draft_gate_has_element(source[i], env->learner_element)) {
+      matches++;
+    }
+  }
+  if (matches == 0) {
+    fprintf(stderr, "Draft catalog has no gate of learner element %d\n",
+            (int)env->learner_element);
+    abort();
+  }
+  int target = (int)(draw % (uint32_t)matches);
+  for (int i = 0; i < count; ++i) {
+    if (draft_gate_has_element(source[i], env->learner_element)) {
+      if (target == 0) {
+        return source[i];
+      }
+      target--;
+    }
+  }
+  abort();
+}
+
 static int draft_active_candidates(const CAzukiTCG* env, int player_index,
                                    int16_t* out_ids, uint8_t* out_copies,
                                    int max_out) {
@@ -2798,7 +2864,8 @@ static bool draft_prefill_from_spec(CAzukiTCG* env, int seat,
 
 static void draft_start_battle(CAzukiTCG* env);
 
-static bool draft_select_prebuilt_decks(CAzukiTCG* env) {
+static bool draft_select_prebuilt_decks(
+    CAzukiTCG* env, const bool learner_forced[MAX_PLAYERS_PER_MATCH]) {
   if (env->evaluation_pause_on_done ||
       env->prebuilt_probability == NULL ||
       env->prebuilt_group_count == 0 ||
@@ -2818,14 +2885,21 @@ static bool draft_select_prebuilt_decks(CAzukiTCG* env) {
   }
   for (int seat = 0; seat < MAX_PLAYERS_PER_MATCH; ++seat) {
     env->draft_rng_state = advance_episode_seed(env->draft_rng_state);
-    const size_t group =
-        (size_t)(env->draft_rng_state % (uint32_t)env->prebuilt_group_count);
-    const size_t begin = env->prebuilt_group_offsets[group];
-    const size_t end = env->prebuilt_group_offsets[group + 1];
-    env->draft_rng_state = advance_episode_seed(env->draft_rng_state);
-    const size_t selected =
-        begin + (size_t)(env->draft_rng_state % (uint32_t)(end - begin));
-    const int deck_index = env->prebuilt_deck_indices[selected];
+    int deck_index;
+    if (learner_forced[seat]) {
+      // One draw over the learner element's (weight-repeated) deck list.
+      deck_index = env->prebuilt_learner_decks[
+          env->draft_rng_state % (uint32_t)env->prebuilt_learner_deck_count];
+    } else {
+      const size_t group =
+          (size_t)(env->draft_rng_state % (uint32_t)env->prebuilt_group_count);
+      const size_t begin = env->prebuilt_group_offsets[group];
+      const size_t end = env->prebuilt_group_offsets[group + 1];
+      env->draft_rng_state = advance_episode_seed(env->draft_rng_state);
+      const size_t selected =
+          begin + (size_t)(env->draft_rng_state % (uint32_t)(end - begin));
+      deck_index = env->prebuilt_deck_indices[selected];
+    }
     if (deck_index < 0 || (size_t)deck_index >= env->deck_pool_count ||
         !draft_prefill_from_spec(
             env, seat, &env->deck_pool[(size_t)deck_index])) {
@@ -2834,6 +2908,29 @@ static bool draft_select_prebuilt_decks(CAzukiTCG* env) {
     }
     env->episode_prebuilt_deck_indices[seat] = deck_index;
     env->current_deck_indices[seat] = deck_index;
+  }
+  env->episode_prebuilt = true;
+  return true;
+}
+
+// Evaluation-only constructed-vs-constructed game: the reference seat and the
+// other seat both battle supplied pool decks, exactly like a prebuilt episode.
+static bool draft_select_evaluation_fixed_decks(CAzukiTCG* env) {
+  if (!env->evaluation_pause_on_done || env->evaluation_reference_deck_index < 0 ||
+      env->evaluation_other_deck_index < 0) {
+    return false;
+  }
+  const int ref_seat = (int)env->evaluation_reference_seat;
+  int decks[MAX_PLAYERS_PER_MATCH];
+  decks[ref_seat] = (int)env->evaluation_reference_deck_index;
+  decks[1 - ref_seat] = (int)env->evaluation_other_deck_index;
+  for (int seat = 0; seat < MAX_PLAYERS_PER_MATCH; ++seat) {
+    if (!draft_prefill_from_spec(env, seat, &env->deck_pool[(size_t)decks[seat]])) {
+      fprintf(stderr, "Invalid evaluation fixed deck index %d\n", decks[seat]);
+      abort();
+    }
+    env->episode_prebuilt_deck_indices[seat] = decks[seat];
+    env->current_deck_indices[seat] = decks[seat];
   }
   env->episode_prebuilt = true;
   return true;
@@ -2851,7 +2948,10 @@ static void draft_begin_episode(CAzukiTCG* env) {
   }
   env->draft_rng_state = advance_episode_seed(env->draft_rng_state);
   env->episode_world_seed = env->draft_rng_state;
-  if (draft_select_prebuilt_decks(env)) {
+  bool learner_forced[MAX_PLAYERS_PER_MATCH];
+  learner_forced_seats(env, learner_forced);
+  if (draft_select_prebuilt_decks(env, learner_forced) ||
+      draft_select_evaluation_fixed_decks(env)) {
     for (int seat = 0; seat < MAX_PLAYERS_PER_MATCH; ++seat) {
       env->draft_original_gate[seat] = env->draft_gate[seat];
       env->draft_gate_swapped[seat] = false;
@@ -2872,7 +2972,10 @@ static void draft_begin_episode(CAzukiTCG* env) {
       gates[player_index] = forced[player_index];
     } else {
       env->draft_rng_state = advance_episode_seed(env->draft_rng_state);
-      if (env->draft_uniform_assignment) {
+      if (learner_forced[player_index]) {
+        gates[player_index] =
+            draft_sample_learner_gate(env, env->draft_rng_state);
+      } else if (env->draft_uniform_assignment) {
         gates[player_index] =
             g_draft_catalog.gate_def_ids[env->draft_rng_state %
                                          (uint32_t)g_draft_catalog.gate_count];
@@ -2901,7 +3004,9 @@ static void draft_begin_episode(CAzukiTCG* env) {
   }
   if (ref_deck >= 0) {
     const int16_t ref_gate = draft_spec_gate(&env->deck_pool[ref_deck]);
-    if (ref_gate >= 0 && draft_gate_slot_for(ref_gate) >= 0) {
+    if (ref_gate >= 0 && draft_gate_slot_for(ref_gate) >= 0 &&
+        (!learner_forced[ref_seat] ||
+         draft_gate_has_element(ref_gate, env->learner_element))) {
       gates[ref_seat] = ref_gate;
     } else {
       ref_deck = -1;
@@ -2914,7 +3019,16 @@ static void draft_begin_episode(CAzukiTCG* env) {
     const bool hit = sibling_prob >= 1.0f ||
                      (double)env->draft_rng_state <
                          (double)sibling_prob * 4294967296.0;
-    if (hit) {
+    if (hit && learner_forced[1] && !learner_forced[0]) {
+      // Keep the learner seat's element: pair the free seat 0 with the
+      // sibling of seat 1's gate instead.
+      const int slot1 = draft_gate_slot_for(gates[1]);
+      const int16_t sibling =
+          slot1 >= 0 ? g_draft_catalog.gate_sibling_def_ids[slot1] : -1;
+      if (sibling >= 0 && ref_seat != 0) {
+        gates[0] = sibling;
+      }
+    } else if (hit) {
       const int slot0 = draft_gate_slot_for(gates[0]);
       const int16_t sibling =
           slot0 >= 0 ? g_draft_catalog.gate_sibling_def_ids[slot0] : -1;

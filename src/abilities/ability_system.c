@@ -357,6 +357,121 @@ bool azk_trigger_start_of_each_turn_abilities(ecs_world_t *world) {
   return queued_any;
 }
 
+#define AZK_MODAL_CONFIRM_MODE_ORDER 1
+#define AZK_MODAL_DECLINE_MODE_ORDER 2
+
+static ecs_entity_t get_modal_chooser(ecs_world_t *world, const AbilityDef *def,
+                                      ecs_entity_t owner) {
+  if (!def->modal_chosen_by_opponent) {
+    return owner;
+  }
+
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  const uint8_t owner_num = get_player_number(world, owner);
+  return gs->players[(owner_num + 1) % MAX_PLAYERS_PER_MATCH];
+}
+
+static bool is_modal_mode_available(ecs_world_t *world, ecs_entity_t card,
+                                    ecs_entity_t chooser,
+                                    ecs_entity_t mode_ability) {
+  if (mode_ability == 0) {
+    return false;
+  }
+
+  const AbilityDef *mode_def =
+      azk_get_ability_def_for_entity(world, mode_ability);
+  if (mode_def == NULL || !mode_def->has_ability) {
+    return false;
+  }
+
+  return mode_def->validate == NULL || mode_def->validate(world, card, chooser);
+}
+
+// Start the chosen mode with the choosing player as the context owner.
+// Returns true if the mode needs user input.
+static bool begin_modal_mode(ecs_world_t *world, ecs_entity_t mode_ability,
+                             ecs_entity_t chooser) {
+  const AbilityDef *mode_def =
+      azk_get_ability_def_for_entity(world, mode_ability);
+  if (mode_def == NULL) {
+    return false;
+  }
+
+  ecs_entity_t card = azk_get_ability_source_card(world, mode_ability);
+  const uint8_t available_effect_targets = azk_count_ability_target_choices(
+      world, mode_def, ABILITY_TARGET_SCOPE_EFFECT, card, chooser);
+  return azk_begin_ability(
+      world, mode_ability, chooser, mode_def,
+      &(AbilityBeginOptions){
+          .transfer_control_on_user_input = true,
+          .available_effect_targets = available_effect_targets,
+          .clamp_effect_expected_to_available = true,
+          .select_effects_when_max_positive = true,
+          .apply_costs_before_effect_selection = true,
+          .clear_context_on_immediate_resolve = true,
+          .applied_log = "[Ability] Applied modal choice",
+          .effect_selection_log =
+              "[Ability] Modal choice made, selecting effect targets",
+      });
+}
+
+// Returns true if the modal ability needs user input.
+static bool begin_binary_modal_ability(ecs_world_t *world,
+                                       ecs_entity_t ability_entity,
+                                       ecs_entity_t card, ecs_entity_t owner,
+                                       const AbilityDef *def) {
+  ecs_entity_t chooser = get_modal_chooser(world, def, owner);
+  ecs_entity_t confirm_mode = azk_find_card_ability_by_registry_order(
+      world, card, AZK_MODAL_CONFIRM_MODE_ORDER);
+  ecs_entity_t decline_mode = azk_find_card_ability_by_registry_order(
+      world, card, AZK_MODAL_DECLINE_MODE_ORDER);
+  const bool confirm_available =
+      is_modal_mode_available(world, card, chooser, confirm_mode);
+  const bool decline_available =
+      is_modal_mode_available(world, card, chooser, decline_mode);
+
+  if (!confirm_available && !decline_available) {
+    cli_render_logf("[Ability] Modal ability has no available mode");
+    return false;
+  }
+
+  if (!confirm_available || !decline_available) {
+    cli_render_logf("[Ability] Modal ability has one available mode");
+    return begin_modal_mode(world,
+                            confirm_available ? confirm_mode : decline_mode,
+                            chooser);
+  }
+
+  AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
+  azk_init_ability_context(world, ctx, ability_entity, chooser, def, 0, NULL);
+  // Both ACT_CONFIRM_ABILITY and ACT_NOOP are legal mode picks.
+  ctx->runtime.is_optional = true;
+  ctx->runtime.phase = ABILITY_PHASE_CONFIRMATION;
+  azk_maybe_transfer_triggered_ability_control(world, ctx);
+  cli_render_logf("[Ability] Modal ability waiting for player %d to choose",
+                  get_player_number(world, chooser));
+  ecs_singleton_modified(world, AbilityContext);
+  return true;
+}
+
+static bool resolve_binary_modal_choice(ecs_world_t *world,
+                                        AbilityContext *ctx,
+                                        uint8_t mode_order) {
+  ecs_entity_t card = ctx->runtime.source_card;
+  ecs_entity_t chooser = ctx->runtime.owner;
+  ecs_entity_t mode =
+      azk_find_card_ability_by_registry_order(world, card, mode_order);
+  if (!is_modal_mode_available(world, card, chooser, mode)) {
+    return false;
+  }
+
+  // Restore control first so the mode can transfer it again if it needs input.
+  azk_clear_ability_context(world);
+  cli_render_logf("[Ability] Modal mode %u chosen", (unsigned)mode_order);
+  (void)begin_modal_mode(world, mode, chooser);
+  return true;
+}
+
 bool azk_process_ability_confirmation(ecs_world_t *world) {
   AbilityContext *ctx = ecs_singleton_get_mut(world, AbilityContext);
 
@@ -374,6 +489,11 @@ bool azk_process_ability_confirmation(ecs_world_t *world) {
   if (!def) {
     azk_clear_ability_context(world);
     return false;
+  }
+
+  if (def->is_binary_modal) {
+    return resolve_binary_modal_choice(world, ctx,
+                                       AZK_MODAL_CONFIRM_MODE_ORDER);
   }
 
   if (def->cost_req.min > 0) {
@@ -417,6 +537,12 @@ bool azk_process_ability_decline(ecs_world_t *world) {
 
   if (ctx->runtime.phase != ABILITY_PHASE_CONFIRMATION) {
     return false;
+  }
+
+  const AbilityDef *def = get_context_ability_def(world, ctx);
+  if (def != NULL && def->is_binary_modal) {
+    return resolve_binary_modal_choice(world, ctx,
+                                       AZK_MODAL_DECLINE_MODE_ORDER);
   }
 
   if (!ctx->runtime.is_optional) {
@@ -1589,6 +1715,10 @@ bool azk_process_triggered_effect_queue(ecs_world_t *world) {
   if (def->validate && !def->validate(world, card, owner)) {
     cli_render_logf("[Ability] Queued effect: validation failed");
     return false;
+  }
+
+  if (def->is_binary_modal) {
+    return begin_binary_modal_ability(world, ability_entity, card, owner, def);
   }
 
   uint8_t available_effect_targets = azk_count_ability_target_choices(

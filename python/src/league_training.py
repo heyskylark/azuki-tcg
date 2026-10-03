@@ -20,6 +20,7 @@ import torch.nn.functional as F
 from draft_normal_penalty import load_leader_normal_penalty, leader_normal_cost
 from action import ActionType
 from observation import MAX_DECK_BUILD_CANDIDATES
+from specialist import LEARNER_ELEMENT_CODES, gate_element_codes
 
 from draft_prefix_outcome import (
   FrozenDraftPrefixPredictor,
@@ -931,6 +932,25 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     self._pfsp_wins = np.zeros(len(self.opponent_policies), dtype=np.float64)
     self._pfsp_games = np.zeros(len(self.opponent_policies), dtype=np.float64)
     self._pfsp_keys = list(self.opponent_keys)
+    self._learner_element = str(getattr(driver, "learner_element", "none") or "none")
+    self._learner_element_code = LEARNER_ELEMENT_CODES[self._learner_element]
+    self._learner_seat_mask: np.ndarray | None = None
+    # [trainable, frozen] x element code battle decisions; [prebuilt, draft]
+    # episode starts; games whose first post-reset row is not yet classified.
+    self._specialist_element_rows = np.zeros((2, len(LEARNER_ELEMENT_CODES)), dtype=np.int64)
+    self._specialist_episode_starts = np.zeros(2, dtype=np.int64)
+    self._env_episode_unclassified = np.ones(self._num_envs_total, dtype=np.bool_)
+    if self._learner_element != "none":
+      mask = getattr(vecenv, "learner_seat_mask", None)
+      if (
+        not isinstance(mask, np.ndarray)
+        or mask.dtype != np.uint8
+        or mask.shape != (self.total_agents,)
+      ):
+        raise ValueError("learner_element requires a shared per-agent uint8 learner_seat_mask")
+      if self._reference_alignment_enabled or self._reference_matchup_probability != 0.0:
+        raise ValueError("learner_element is incompatible with draft reference-seat matchups")
+      self._learner_seat_mask = mask
     self._refresh_frozen_window()
     self._resample_matchups(np.arange(self._num_envs_total, dtype=np.int32))
     self._decomposed_reward_schedule = (
@@ -1450,6 +1470,39 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       self.prebuilt_battle_decisions, self._prebuilt_initial_probability, self.config
     )
 
+  def _record_specialist_rows(
+    self,
+    observations: torch.Tensor,
+    env_id_np: np.ndarray,
+    active_rows: np.ndarray,
+    trainable_rows: np.ndarray,
+    done: np.ndarray,
+  ) -> None:
+    """Count the element of every learner/frozen battle decision and episode types."""
+    if self._learner_seat_mask is None:
+      return
+    from observation import DECKBUILD_OBSERVATION_CTYPE
+
+    rows = observations.numpy().view(np.dtype(DECKBUILD_OBSERVATION_CTYPE)).reshape(-1)
+    meaningful = rows["action_mask"]["primary_action_mask"][:, 1:].any(axis=1)
+    modes = rows["deck_context"]["mode"]
+    decisions = meaningful & (modes == 0) & active_rows & ~done
+    elements = gate_element_codes(rows["deck_context"]["gate_card_def_id"])
+    width = self._specialist_element_rows.shape[1]
+    for role_index, role_rows in enumerate((trainable_rows, ~trainable_rows)):
+      selected = elements[decisions & role_rows]
+      if np.any(selected < 0):
+        raise RuntimeError("battle row carries an invalid gate_card_def_id")
+      self._specialist_element_rows[role_index] += np.bincount(selected, minlength=width)[:width]
+    env_indices = (env_id_np // self._agents_per_env).astype(np.int64)
+    fresh = self._env_episode_unclassified[env_indices] & ~done
+    if np.any(fresh):
+      fresh_envs, first = np.unique(env_indices[fresh], return_index=True)
+      prebuilt = modes[fresh][first] == 0
+      self._specialist_episode_starts[0] += int(np.count_nonzero(prebuilt))
+      self._specialist_episode_starts[1] += int(prebuilt.size - np.count_nonzero(prebuilt))
+      self._env_episode_unclassified[fresh_envs] = False
+
   def _refresh_frozen_window(self) -> None:
     """Redraw the window's allowed frozen-policy ids when the window rolls."""
     window_epochs = int(getattr(self.league_cfg, "frozen_window_epochs", 0) or 0)
@@ -1524,9 +1577,47 @@ class LeaguePuffeRL(pufferl.PuffeRL):
       self.stats["league/pfsp_picked_winrate"].append(float(winrate[picked]))
       self.stats["league/pfsp_pool_min_winrate"].append(float(winrate[available].min()))
 
-  def _resample_matchups(self, env_indices: np.ndarray) -> None:
+  def _resample_matchups(self, env_indices: np.ndarray, *, episode_boundary: bool = True) -> None:
     if env_indices.size == 0:
       return
+    if getattr(self, "_learner_seat_mask", None) is None:
+      self._sample_matchups(env_indices)
+      return
+    if not episode_boundary:
+      # The native env already dealt this episode's decks for the published
+      # seat flags: only the frozen opponent identity may change mid-game.
+      seats = self._env_learner_seat[env_indices].copy()
+      use_latest = self._env_use_latest[env_indices].copy()
+      self._sample_matchups(env_indices)
+      self._env_learner_seat[env_indices] = seats
+      self._env_use_latest[env_indices] = use_latest
+      if bool(np.any(self._env_opp_policy[env_indices[~use_latest]] < 0)):
+        raise RuntimeError("learner_element frozen games lost their opponent pool mid-episode")
+      self._env_opp_role[env_indices[use_latest]] = "latest"
+      return
+    self._sample_matchups(env_indices)
+    self._publish_learner_seats(env_indices)
+
+  def _publish_learner_seats(self, env_indices: np.ndarray) -> None:
+    """Flag every learner-controlled seat of the next episode for learner_element.
+
+    The native env resets a finished game on the step after its terminal row,
+    i.e. after this write and before the next actions are sent, and reads the
+    flags exactly once at that reset. Self-play (latest) games train both
+    seats, so both are flagged (element mirror); frozen games flag only the
+    learner seat and the frozen seat samples any element.
+    """
+    rows = env_indices.astype(np.int64)[:, None] * self._agents_per_env + np.arange(
+      self._agents_per_env, dtype=np.int64
+    )[None, :]
+    flags = np.logical_or(
+      np.arange(self._agents_per_env)[None, :] == self._env_learner_seat[env_indices][:, None],
+      self._env_use_latest[env_indices][:, None],
+    )
+    self._learner_seat_mask[rows] = flags.astype(np.uint8)
+    self._env_episode_unclassified[env_indices] = True
+
+  def _sample_matchups(self, env_indices: np.ndarray) -> None:
 
     if self.league_cfg.randomize_learner_seat:
       self._env_learner_seat[env_indices] = self._rng.integers(
@@ -1831,7 +1922,7 @@ class LeaguePuffeRL(pufferl.PuffeRL):
     invalid_envs = np.nonzero(
       np.logical_and(self._env_opp_policy < 0, ~self._env_use_latest)
     )[0].astype(np.int32)
-    self._resample_matchups(invalid_envs)
+    self._resample_matchups(invalid_envs, episode_boundary=False)
     self.stats["league/opponent_sampling_pool_size"].append(float(len(desired_keys)))
     self.stats["league/opponent_resident_count"].append(float(len(resident_keys)))
 
@@ -4346,6 +4437,7 @@ class LeaguePuffeRL(pufferl.PuffeRL):
         done_mask,
         hand_size_counts,
       )
+      self._record_specialist_rows(o, env_id_np, active_rows_np, trainable_rows_np, done_mask)
       reference_actor_mask_np: np.ndarray | None = None
       if self._reference_alignment_enabled:
         reference_rows = self._env_is_reference[env_indices]
@@ -4957,6 +5049,30 @@ class LeaguePuffeRL(pufferl.PuffeRL):
           self.prebuilt_battle_decisions, self._prebuilt_initial_probability, config
         )
       )
+
+    if self._learner_seat_mask is not None:
+      counts = self._specialist_element_rows
+      learner_rows = int(counts[0].sum())
+      element_rows = int(counts[0, self._learner_element_code])
+      self.stats["specialist/learner_battle_rows"].append(float(learner_rows))
+      self.stats["specialist/learner_battle_element_rows"].append(float(element_rows))
+      self.stats["specialist/learner_battle_element_fraction"].append(
+        element_rows / learner_rows if learner_rows else 0.0
+      )
+      opponent_rows = int(counts[1].sum())
+      for name, code in LEARNER_ELEMENT_CODES.items():
+        if code:
+          self.stats[f"specialist/opponent_battle_fraction/{name}"].append(
+            float(counts[1, code]) / opponent_rows if opponent_rows else 0.0
+          )
+      started = self._specialist_episode_starts
+      self.stats["specialist/prebuilt_episodes"].append(float(started[0]))
+      self.stats["specialist/draft_episodes"].append(float(started[1]))
+      self.stats["specialist/prebuilt_episode_fraction"].append(
+        float(started[0]) / float(started.sum()) if started.sum() else 0.0
+      )
+      counts[:] = 0
+      started[:] = 0
 
     # Match base PuffeRL buffer lifecycle: reset row indexing state after each
     # evaluate pass so the next epoch starts with fresh contiguous row slots.

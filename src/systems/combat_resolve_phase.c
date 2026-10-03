@@ -60,9 +60,7 @@ void HandleCombatResolution(ecs_iter_t *it) {
   ecs_entity_t attacker_owner = 0;
   if (attacker != 0) {
     attacker_owner = ecs_get_target(world, attacker, Rel_OwnedBy, 0);
-    const CardId *attacker_id = ecs_get(world, attacker, CardId);
-    if (attacker_id != NULL &&
-        azk_has_ability_with_timing(attacker_id->id, ecs_id(AAfterAttacking))) {
+    if (azk_card_has_timed_ability(world, attacker, ecs_id(AAfterAttacking))) {
       ecs_entity_t abilities[AZK_MAX_CARD_ABILITIES] = {0};
       uint8_t ability_count = azk_collect_card_timed_abilities(
           world, attacker, ecs_id(AAfterAttacking), abilities,

@@ -31,3 +31,10 @@ node_modules
 .next
 next-env.d.ts
 tsconfig.tsbuildinfo
+
+# Element-specialist training outputs (checkpoints, logs) and heavy analysis artifacts
+train-specialist/runs/
+train-specialist/analysis/behavior/traces/
+train-specialist/analysis/trend/*.json
+train-specialist/analysis/tactical/**/*_results.json
+train-specialist/analysis/tactical/superseded/

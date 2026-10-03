@@ -15,6 +15,7 @@
 #include "utils/player_util.h"
 #include "utils/status_util.h"
 #include "utils/zone_util.h"
+#include "utils/ability_util.h"
 
 typedef struct {
   bool initialized;
@@ -704,7 +705,10 @@ static TrainingAbilityContextObservationData build_ability_context_observation(
   observation.has_source_card_def_id = true;
   observation.source_card_def_id = (int16_t)card_id->id;
 
-  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  // Use the resolving ability (modal modes and copied text differ from the
+  // card's primary registry entry).
+  const AbilityDef *def =
+      azk_get_ability_def_for_entity(world, ctx->runtime.source_ability);
   if (def == NULL) {
     return observation;
   }

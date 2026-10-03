@@ -21,6 +21,18 @@ typedef struct {
   bool selection_pick_is_optional; // If true, ACT_NOOP may skip selection pick
   bool can_topdeck_selection; // If true, remaining selection cards may be placed on top
   bool clear_selection_if_still_active; // If true, do not auto-bottom-deck leftovers
+  // Binary modal ability ("choose 1"). The primary def only carries timing and
+  // validation; the modes are the additional abilities at registry order 1
+  // (picked with ACT_CONFIRM_ABILITY) and registry order 2 (picked with
+  // ACT_NOOP) during ABILITY_PHASE_CONFIRMATION. A mode is offered only when its
+  // validate callback passes for the choosing player; if exactly one mode is
+  // available it resolves without a choice.
+  bool is_binary_modal;
+  // The owner's opponent picks the mode and makes that mode's selections.
+  // The mode abilities then run with AbilityContext.runtime.owner set to the
+  // choosing player; effects for the card's controller must resolve the
+  // controller via the source card's Rel_OwnedBy.
+  bool modal_chosen_by_opponent;
   int8_t ikz_cost;         // IKZ cost for activating ability (0 = no cost)
   AbilityCostRequirements cost_req;
   AbilityEffectRequirements effect_req;

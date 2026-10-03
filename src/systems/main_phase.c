@@ -182,9 +182,8 @@ static void handle_attack(ecs_world_t *world, GameState *gs,
   azk_log_combat_declared(world, intent.attacking_card, intent.defending_card);
 
   // Check if attacking card has a "when attacking" ability before queueing
-  const CardId *card_id = ecs_get(world, intent.attacking_card, CardId);
-  if (card_id &&
-      azk_has_ability_with_timing(card_id->id, ecs_id(AWhenAttacking))) {
+  if (azk_card_has_timed_ability(world, intent.attacking_card,
+                                 ecs_id(AWhenAttacking))) {
     ecs_entity_t abilities[AZK_MAX_CARD_ABILITIES] = {0};
     uint8_t ability_count = azk_collect_card_timed_abilities(
         world, intent.attacking_card, ecs_id(AWhenAttacking), abilities,

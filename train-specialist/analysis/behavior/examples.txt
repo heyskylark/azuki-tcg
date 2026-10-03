@@ -1,0 +1,34 @@
+fixed:EARTH:r0:cand13:opp0:seat0 arm=earth mode=argmax cand_seat=0 deck=STT03-002/AZK01-123 score=0.0
+  [40] CAND MAIN     hp=[12, 20] ikz=[2, 3] {'t': 'ATTACK', 'attacker': 'AZK01-019', 'target': 'STT04-003'} | my_g=['AZK01-019@2:2/3'] opp_g=['AZK01-058@0:2/1', 'AZK01-056@1:1/1', 'AZK01-058@2:2/1T', 'STT04-003@4:2/1T']
+  [41] CAND MAIN     hp=[12, 20] ikz=[2, 3] {'t': 'GATE_PORTAL', 'card': 'AZK01-069', 'slot': 1} | my_g=['AZK01-019@2:2/1T'] opp_g=['AZK01-058@0:2/1', 'AZK01-056@1:1/1', 'AZK01-058@2:2/1T']
+fixed:EARTH:r0:cand13:opp0:seat0 arm=earth mode=argmax cand_seat=0 deck=STT03-002/AZK01-123 score=0.0
+  [15] CAND MAIN     hp=[16, 20] ikz=[0, 2] {'t': 'ATTACK', 'attacker': 'AZK01-004', 'target': 'AZK01-004'} | my_g=['AZK01-004@0:1/1'] opp_g=['AZK01-004@0:1/1T', 'AZK01-004@1:1/1T', 'AZK01-058@2:2/1']
+  [16] CAND MAIN     hp=[16, 20] ikz=[0, 2] {'t': 'GATE_PORTAL', 'card': 'AZK01-019', 'slot': 2} | my_g=[] opp_g=['AZK01-004@1:1/1T', 'AZK01-058@2:2/1']
+  [17] CAND MAIN     hp=[16, 20] ikz=[0, 2] {'t': 'SELECT_EFFECT_TARGET', 'src': 'STT03-002'} | my_g=['AZK01-019@2:2/3'] opp_g=['AZK01-004@1:1/1T', 'AZK01-058@2:2/1']
+  [18] CAND MAIN     hp=[16, 20] ikz=[0, 2] {'t': 'NOOP'} | my_g=['AZK01-019@2:2/3D'] opp_g=['AZK01-004@1:1/1T', 'AZK01-058@2:2/1']
+  [19] opp  MAIN     hp=[16, 20] ikz=[3, 3] {'t': 'PLAY_ENTITY_TO_ALLEY', 'card': 'AZK01-058', 'slot': 4} | my_g=['AZK01-004@1:1/1', 'AZK01-058@2:2/1'] opp_g=['AZK01-019@2:2/3D']
+  [20] opp  MAIN     hp=[16, 20] ikz=[1, 3] {'t': 'GATE_PORTAL', 'card': 'AZK01-058', 'slot': 0} | my_g=['AZK01-004@1:1/1', 'AZK01-058@2:2/1'] opp_g=['AZK01-019@2:2/3D']
+  [21] opp  MAIN     hp=[16, 20] ikz=[1, 3] {'t': 'SELECT_TO_GARDEN', 'card': 'STT04-003', 'arg': 4, 'src': 'AZK01-122'} | my_g=['AZK01-058@0:2/1', 'AZK01-004@1:1/1', 'AZK01-058@2:2/1'] opp_g=['AZK01-019@2:2/3D']
+  [22] opp  MAIN     hp=[16, 20] ikz=[1, 3] {'t': 'ATTACK', 'attacker': 'AZK01-004', 'target': 'OPP_LEADER'} | my_g=['AZK01-058@0:2/1', 'AZK01-004@1:1/1', 'AZK01-058@2:2/1', 'STT04-003@4:2/2'] opp_g=['AZK01-019@2:2/3D']
+  [23] CAND RESPONSE hp=[16, 20] ikz=[0, 2] {'t': 'DECLARE_DEFENDER', 'card': 'AZK01-019'} | my_g=['AZK01-019@2:2/3D'] opp_g=['AZK01-058@0:2/1', 'AZK01-004@1:2/1T', 'AZK01-058@2:2/1', 'STT04-003@4:2/2'] combat={'attacker': 'AZK01-004', 'target': 'LEADER', 'attacker_is_self': False, 'response_open': True, 'intercepted': False}
+fixed:FIRE:r0:cand0:opp11:seat1 arm=fire mode=sample cand_seat=1 deck=AZK01-122/STT04-001 score=1.0
+  [73] opp  MAIN     hp=[6, 17] ikz=[0, 5] {'t': 'ATTACK', 'attacker': 'AZK01-022', 'target': 'AZK01-004'} | my_g=['AZK01-022@2:1/2'] opp_g=['STT04-005@1:1/1T', 'AZK01-004@3:1/1T', 'AZK01-062@4:2/1']
+  [74] CAND RESPONSE hp=[6, 17] ikz=[1, 4] {'t': 'PLAY_SPELL_FROM_HAND', 'card': 'AZK01-127'} | my_g=['STT04-005@1:1/1T', 'AZK01-004@3:1/1T', 'AZK01-062@4:2/1'] opp_g=['AZK01-022@2:1/2T'] combat={'attacker': 'AZK01-022', 'target': 'AZK01-004', 'attacker_is_self': False, 'response_open': True, 'intercepted': False}
+  [75] CAND RESPONSE hp=[6, 17] ikz=[0, 4] {'t': 'SELECT_EFFECT_TARGET', 'src': 'AZK01-127'} | my_g=['STT04-005@1:1/1T', 'AZK01-004@3:1/1T', 'AZK01-062@4:2/1'] opp_g=['AZK01-022@2:1/2T'] combat={'attacker': 'AZK01-022', 'target': 'AZK01-004', 'attacker_is_self': False, 'response_open': True, 'intercepted': False}
+  [76] opp  MAIN     hp=[6, 17] ikz=[0, 5] {'t': 'GATE_PORTAL', 'card': 'STT02-013', 'slot': 2} | my_g=[] opp_g=['STT04-005@1:1/1T', 'AZK01-062@4:2/1']
+fixed:FIRE:r1:cand2:opp0:seat0 arm=fire mode=argmax cand_seat=0 deck=STT04-002/STT04-001 score=0.0
+  [23] CAND MAIN     hp=[13, 20] ikz=[0, 2] {'t': 'ATTACK', 'attacker': 'STT02-004', 'target': 'STT04-005'} | my_g=['STT04-003@0:2/1', 'STT02-004@2:1/2'] opp_g=['STT04-005@0:1/1T', 'STT04-003@1:2/1T', 'STT04-003@2:2/1T', 'AZK01-058@4:2/1']
+  [24] CAND MAIN     hp=[13, 20] ikz=[0, 2] {'t': 'GATE_PORTAL', 'card': 'STT04-007', 'slot': 1} | my_g=['STT04-003@0:2/1', 'STT02-004@2:1/1T'] opp_g=['STT04-003@1:2/1T', 'STT04-003@2:2/1T', 'AZK01-058@4:2/1']
+  [25] CAND MAIN     hp=[13, 20] ikz=[0, 2] {'t': 'SELECT_EFFECT_TARGET', 'src': 'STT04-002'} | my_g=['STT04-003@0:2/1', 'STT04-007@1:1/2', 'STT02-004@2:1/1T'] opp_g=['STT04-003@1:2/1T', 'STT04-003@2:2/1T', 'AZK01-058@4:2/1']
+  [26] CAND MAIN     hp=[13, 20] ikz=[0, 2] {'t': 'ATTACK', 'attacker': 'STT04-003', 'target': 'STT04-003'} | my_g=['STT04-003@0:3/1', 'STT04-007@1:1/2', 'STT02-004@2:1/1T'] opp_g=['STT04-003@1:2/1T', 'STT04-003@2:2/1T', 'AZK01-058@4:2/1']
+  [27] CAND MAIN     hp=[13, 20] ikz=[0, 2] {'t': 'NOOP'} | my_g=['STT04-007@1:1/2', 'STT02-004@2:1/1T'] opp_g=['STT04-003@2:2/1T', 'AZK01-058@4:2/1']
+fixed:LIGHTNING:r0:cand3:opp0:seat0 arm=lightning mode=argmax cand_seat=0 deck=STT01-002/STT01-001 score=0.0
+  [15] CAND MAIN     hp=[19, 20] ikz=[0, 1] {'t': 'GATE_PORTAL', 'card': 'STT01-003', 'slot': 2} | my_g=[] opp_g=['AZK01-056@0:1/1', 'STT04-004@2:1/2T']
+  [16] CAND MAIN     hp=[19, 20] ikz=[0, 1] {'t': 'SELECT_TO_EQUIP', 'card': 'STT01-012', 'arg': 5, 'src': 'STT01-002'} | my_g=['STT01-003@2:1/1'] opp_g=['AZK01-056@0:1/1', 'STT04-004@2:1/2T']
+  [17] CAND MAIN     hp=[19, 20] ikz=[0, 1] {'t': 'ATTACK', 'attacker': 'MY_LEADER', 'target': 'OPP_LEADER'} | my_g=['STT01-003@2:1/1'] opp_g=['AZK01-056@0:1/1', 'STT04-004@2:1/2T']
+  [18] CAND MAIN     hp=[19, 19] ikz=[0, 1] {'t': 'NOOP'} | my_g=['STT01-003@2:1/1'] opp_g=['AZK01-056@0:1/1', 'STT04-004@2:1/2T']
+fixed:WATER:r0:cand11:opp11:seat0 arm=water mode=argmax cand_seat=0 deck=STT02-002/STT02-001 score=1.0
+  [38] opp  MAIN     hp=[20, 19] ikz=[0, 2] {'t': 'ATTACK', 'attacker': 'STT02-003', 'target': 'OPP_LEADER'} | my_g=['STT02-003@0:1/1', 'STT02-008@1:2/1', 'AZK01-021@2:1/1'] opp_g=['AZK01-022@0:1/2', 'STT02-003@2:1/1T']
+  [39] CAND RESPONSE hp=[20, 19] ikz=[1, 2] {'t': 'ACTIVATE_GARDEN_OR_LEADER_ABILITY', 'card': 'MY_LEADER', 'ability': 0} | my_g=['AZK01-022@0:1/2', 'STT02-003@2:1/1T'] opp_g=['STT02-003@0:1/1T', 'STT02-008@1:2/1', 'AZK01-021@2:1/1'] combat={'attacker': 'STT02-003', 'target': 'LEADER', 'attacker_is_self': False, 'response_open': True, 'intercepted': False}
+  [40] CAND RESPONSE hp=[20, 19] ikz=[0, 2] {'t': 'SELECT_EFFECT_TARGET', 'target': 'STT02-003', 'src': 'STT02-001'} | my_g=['AZK01-022@0:1/2', 'STT02-003@2:1/1T'] opp_g=['STT02-003@0:1/1T', 'STT02-008@1:2/1', 'AZK01-021@2:1/1'] combat={'attacker': 'STT02-003', 'target': 'LEADER', 'attacker_is_self': False, 'response_open': True, 'intercepted': False}
+  [41] opp  MAIN     hp=[20, 19] ikz=[0, 2] {'t': 'NOOP'} | my_g=['STT02-003@0:0/1T', 'STT02-008@1:2/1', 'AZK01-021@2:1/1'] opp_g=['AZK01-022@0:1/2', 'STT02-003@2:1/1T']

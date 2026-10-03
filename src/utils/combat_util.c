@@ -111,10 +111,7 @@ bool azk_queue_current_defender_when_attacked(ecs_world_t *world) {
   }
 
   const ecs_entity_t defender = gs->combat_state.defender_card;
-  const CardId *defender_card_id = ecs_get(world, defender, CardId);
-  if (defender_card_id == NULL ||
-      !azk_has_ability_with_timing(defender_card_id->id,
-                                   ecs_id(AWhenAttacked))) {
+  if (!azk_card_has_timed_ability(world, defender, ecs_id(AWhenAttacked))) {
     return false;
   }
 

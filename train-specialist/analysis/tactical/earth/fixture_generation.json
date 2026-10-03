@@ -1,0 +1,309 @@
+{
+ "accepted": [
+  {
+   "seat": 0,
+   "seed": 107,
+   "case_count": 5
+  },
+  {
+   "seat": 0,
+   "seed": 114,
+   "case_count": 5
+  },
+  {
+   "seat": 1,
+   "seed": 120,
+   "case_count": 5
+  },
+  {
+   "seat": 1,
+   "seed": 137,
+   "case_count": 5
+  }
+ ],
+ "rejected": [
+  {
+   "seat": 0,
+   "seed": 101,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 73, in build\n    body = setup_stonehaven(g, 1)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  },
+  {
+   "seat": 0,
+   "seed": 102,
+   "error": "AssertionError(('no free slot; refusing to replace a card', 'garden', 'AZK01-048'))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 84, in build\n    hslot = g.play(host)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_fixture.py\", line 150, in play\n    assert free, ('no free slot; refusing to replace a card', zone, code)\n           ^^^^\nAssertionError: ('no free slot; refusing to replace a card', 'garden', 'AZK01-048')\n"
+  },
+  {
+   "seat": 0,
+   "seed": 103,
+   "error": "Reject(('cannot legally spend to budget', 5))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 91, in build\n    g.spend_to(5, [c for c in SAFE if c in ST] + ['AZK01-050', 'AZK01-015'], zone='alley', free_garden=1)\n    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 216, in spend_to\n    raise Reject(('cannot legally spend to budget', amount))\ntb_setup.Reject: ('cannot legally spend to budget', 5)\n"
+  },
+  {
+   "seat": 0,
+   "seed": 104,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  },
+  {
+   "seat": 0,
+   "seed": 105,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  },
+  {
+   "seat": 0,
+   "seed": 106,
+   "error": "Reject(('cannot legally spend to budget', 3))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 142, in build\n    g.spend_to(1, ['STT02-004', 'AZK01-069', 'AZK01-019', 'AZK01-012', 'AZK01-004', 'AZK01-050', 'AZK01-070'], zone='alley')\n    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 216, in spend_to\n    raise Reject(('cannot legally spend to budget', amount))\ntb_setup.Reject: ('cannot legally spend to budget', 3)\n"
+  },
+  {
+   "seat": 0,
+   "seed": 108,
+   "error": "Reject(('cannot legally spend to budget', 5))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 91, in build\n    g.spend_to(5, [c for c in SAFE if c in ST] + ['AZK01-050', 'AZK01-015'], zone='alley', free_garden=1)\n    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 216, in spend_to\n    raise Reject(('cannot legally spend to budget', amount))\ntb_setup.Reject: ('cannot legally spend to budget', 5)\n"
+  },
+  {
+   "seat": 0,
+   "seed": 109,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  },
+  {
+   "seat": 0,
+   "seed": 110,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  },
+  {
+   "seat": 0,
+   "seed": 111,
+   "error": "Reject(('cannot spend below alternatives', 1))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 1)\n"
+  },
+  {
+   "seat": 0,
+   "seed": 112,
+   "error": "AssertionError('fixture exceeds observation hand capacity')",
+   "where": "ethal', 'win', f'One ready attacker ({host}) with exact lethal, but the opponent has an untapped Foamback Crab defender and blocks. Quicksand (5 IKZ, all 5 open) clears every <=2-HP entity first. Bobu\\'s 1-IKZ ability first makes Quicksand uncastable (harmful).',\n                 ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n                        horizon='turn', opp_block=True, host=host, leader_needed=False, gate_needed=False, harmful_leader=True))\n                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_fixture.py\", line 172, in save\n    assert snap['hand_n'] <= 30 and self.snap(self.opp)['hand_n'] <= 30, 'fixture exceeds observation hand capacity'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture exceeds observation hand capacity\n"
+  },
+  {
+   "seat": 0,
+   "seed": 113,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  },
+  {
+   "seat": 1,
+   "seed": 101,
+   "error": "Reject(('cannot spend below alternatives', 1))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 1)\n"
+  },
+  {
+   "seat": 1,
+   "seed": 102,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  },
+  {
+   "seat": 1,
+   "seed": 103,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  },
+  {
+   "seat": 1,
+   "seed": 104,
+   "error": "Reject('setup predicate unavailable')",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 82, in build\n    g.wait_for(lambda: QUICKSAND in g.hand() and any(c in g.hand() for c in FODDER) and g.ikz() >= 1, opp=opp_foam)\n    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 115, in wait_for\n    raise Reject('setup predicate unavailable')\ntb_setup.Reject: setup predicate unavailable\n"
+  },
+  {
+   "seat": 1,
+   "seed": 105,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  },
+  {
+   "seat": 1,
+   "seed": 106,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  },
+  {
+   "seat": 1,
+   "seed": 107,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  },
+  {
+   "seat": 1,
+   "seed": 108,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  },
+  {
+   "seat": 1,
+   "seed": 109,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  },
+  {
+   "seat": 1,
+   "seed": 110,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  },
+  {
+   "seat": 1,
+   "seed": 111,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  },
+  {
+   "seat": 1,
+   "seed": 112,
+   "error": "Reject('no Goro trade pair')",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 135, in build\n    raise Reject('no Goro trade pair')\ntb_setup.Reject: no Goro trade pair\n"
+  },
+  {
+   "seat": 1,
+   "seed": 113,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  },
+  {
+   "seat": 1,
+   "seed": 114,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  },
+  {
+   "seat": 1,
+   "seed": 115,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  },
+  {
+   "seat": 1,
+   "seed": 116,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  },
+  {
+   "seat": 1,
+   "seed": 117,
+   "error": "Reject(('cannot spend below alternatives', 3))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 3)\n"
+  },
+  {
+   "seat": 1,
+   "seed": 118,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  },
+  {
+   "seat": 1,
+   "seed": 119,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  },
+  {
+   "seat": 1,
+   "seed": 121,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  },
+  {
+   "seat": 1,
+   "seed": 122,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  },
+  {
+   "seat": 1,
+   "seed": 123,
+   "error": "Reject('no Goro trade pair')",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 135, in build\n    raise Reject('no Goro trade pair')\ntb_setup.Reject: no Goro trade pair\n"
+  },
+  {
+   "seat": 1,
+   "seed": 124,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  },
+  {
+   "seat": 1,
+   "seed": 125,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  },
+  {
+   "seat": 1,
+   "seed": 126,
+   "error": "Reject(('cannot legally spend to budget', 3))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 142, in build\n    g.spend_to(1, ['STT02-004', 'AZK01-069', 'AZK01-019', 'AZK01-012', 'AZK01-004', 'AZK01-050', 'AZK01-070'], zone='alley')\n    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 216, in spend_to\n    raise Reject(('cannot legally spend to budget', amount))\ntb_setup.Reject: ('cannot legally spend to budget', 3)\n"
+  },
+  {
+   "seat": 1,
+   "seed": 127,
+   "error": "AssertionError('fixture exceeds observation hand capacity')",
+   "where": "ethal', 'win', f'One ready attacker ({host}) with exact lethal, but the opponent has an untapped Foamback Crab defender and blocks. Quicksand (5 IKZ, all 5 open) clears every <=2-HP entity first. Bobu\\'s 1-IKZ ability first makes Quicksand uncastable (harmful).',\n                 ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n                        horizon='turn', opp_block=True, host=host, leader_needed=False, gate_needed=False, harmful_leader=True))\n                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_fixture.py\", line 172, in save\n    assert snap['hand_n'] <= 30 and self.snap(self.opp)['hand_n'] <= 30, 'fixture exceeds observation hand capacity'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture exceeds observation hand capacity\n"
+  },
+  {
+   "seat": 1,
+   "seed": 128,
+   "error": "AssertionError('fixture exceeds observation hand capacity')",
+   "where": "ethal', 'win', f'One ready attacker ({host}) with exact lethal, but the opponent has an untapped Foamback Crab defender and blocks. Quicksand (5 IKZ, all 5 open) clears every <=2-HP entity first. Bobu\\'s 1-IKZ ability first makes Quicksand uncastable (harmful).',\n                 ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n                        horizon='turn', opp_block=True, host=host, leader_needed=False, gate_needed=False, harmful_leader=True))\n                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_fixture.py\", line 172, in save\n    assert snap['hand_n'] <= 30 and self.snap(self.opp)['hand_n'] <= 30, 'fixture exceeds observation hand capacity'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture exceeds observation hand capacity\n"
+  },
+  {
+   "seat": 1,
+   "seed": 129,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  },
+  {
+   "seat": 1,
+   "seed": 130,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  },
+  {
+   "seat": 1,
+   "seed": 131,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  },
+  {
+   "seat": 1,
+   "seed": 132,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  },
+  {
+   "seat": 1,
+   "seed": 133,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  },
+  {
+   "seat": 1,
+   "seed": 134,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  },
+  {
+   "seat": 1,
+   "seed": 135,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  },
+  {
+   "seat": 1,
+   "seed": 136,
+   "error": "Reject(('cannot spend below alternatives', 0))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 44, in build\n    body = setup_stonehaven(g, 0)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_earth.py\", line 34, in setup_stonehaven\n    g.spend_at_most(ALTS, [c for c in SAFE if c != body], zone='garden')\n    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 252, in spend_at_most\n    raise Reject(('cannot spend below alternatives', cap))\ntb_setup.Reject: ('cannot spend below alternatives', 0)\n"
+  }
+ ],
+ "selection_rule": "first 2 seeds per seat (from 101) where every case type constructs legally and verifies against its oracle; no policy outputs consulted"
+}

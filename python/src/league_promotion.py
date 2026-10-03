@@ -49,9 +49,15 @@ class PromotionGameSpec:
   schedule_version: str = SCHEDULE_VERSION
   reference_seat: int = -1
   reference_deck_index: int = -1
+  # Deck for the seat opposite reference_seat; -1 means that seat drafts.
+  other_deck_index: int = -1
 
   def to_dict(self) -> dict:
-    return asdict(self)
+    payload = asdict(self)
+    # Omitted when unused so existing schedule hashes and caches stay valid.
+    if payload["other_deck_index"] < 0:
+      del payload["other_deck_index"]
+    return payload
 
 
 @dataclass(frozen=True)

@@ -154,6 +154,31 @@
       "has_ability": true,
       "is_optional": false,
       "timing_tag": "AMain"
+    },
+    "AZK01-013": {
+      "has_ability": true,
+      "is_optional": false,
+      "timing_tag": "AOnPlay"
+    },
+    "AZK01-076": {
+      "has_ability": true,
+      "is_optional": false,
+      "timing_tag": "AOnPlay"
+    },
+    "AZK01-079": {
+      "has_ability": true,
+      "is_optional": false,
+      "timing_tag": "AOnPlay"
+    },
+    "AZK01-083": {
+      "has_ability": true,
+      "is_optional": false,
+      "timing_tag": "AMain"
+    },
+    "AZK01-099": {
+      "has_ability": true,
+      "is_optional": false,
+      "timing_tag": "AOnPlay"
     }
   }
 }

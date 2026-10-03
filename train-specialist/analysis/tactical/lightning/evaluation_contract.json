@@ -1,0 +1,52 @@
+{
+  "runtime": "/home/skylark/git/azuki-tcg-specialist-runtime",
+  "fixtures_sha256": "0e5536f9502f526a29f3062d1d6e4fe398a5878e0c5355219c590f45a10b93d6",
+  "policies": {
+    "u8223": {
+      "checkpoint": "/home/skylark/git/azuki-tcg/train-ablation-1781126582/results/control_strategy_scale_30m_v1/runs/control/artifacts/azuki_local_control_strategy_scale_30m_s43_179038406361/model_azuki_local_008223.pt",
+      "checkpoint_sha256": "89ac0c8e5337cc260ba9d080ffe89798dbc6e065734f7d01a8cbb3dfa62f9e8a",
+      "deck_pool": "/home/skylark/git/azuki-tcg/train-ablation-1781126582/results/bptt_league_15m_v3/deck_pool.json"
+    },
+    "u9305": {
+      "checkpoint": "/home/skylark/git/azuki-tcg/train-ablation-1781126582/results/control_strategy_scale_30m_v1/runs/control/artifacts/azuki_local_control_strategy_scale_30m_s43_179039793722/model_azuki_local_009305.pt",
+      "checkpoint_sha256": "3de04e7ae902a9f334d4784158c519c5f8e8df38ad4795719e282109c11edacc",
+      "deck_pool": "/home/skylark/git/azuki-tcg/train-ablation-1781126582/results/bptt_league_15m_v3/deck_pool.json"
+    },
+    "water": {
+      "checkpoint": "/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/runs/water/artifacts/azuki_local_specialist_water_s43_179083097333/model_azuki_local_011361.pt",
+      "checkpoint_sha256": "77fd65e339ada3e7c7e49e7e984ff62246e513830651d82940f7fc3b5fccc67b",
+      "deck_pool": "/home/skylark/git/azuki-tcg/train-ablation-1781126582/results/bptt_league_15m_v3/deck_pool.json"
+    },
+    "earth": {
+      "checkpoint": "/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/runs/earth/artifacts/azuki_local_specialist_earth_s43_179084927273/model_azuki_local_011422.pt",
+      "checkpoint_sha256": "dc33a00b96fcaca34631b3b58de0a4b5042b5d40e848139efc39f343d1acbd38",
+      "deck_pool": "/home/skylark/git/azuki-tcg/train-ablation-1781126582/results/bptt_league_15m_v3/deck_pool.json"
+    },
+    "lightning": {
+      "checkpoint": "/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/runs/lightning/artifacts/azuki_local_specialist_lightning_s43_179087061766/model_azuki_local_011502.pt",
+      "checkpoint_sha256": "8e003f533c32425c6bcb0a8acf71b8d5f9cfc3f9126feeebfdb593065a28b4b2",
+      "deck_pool": "/home/skylark/git/azuki-tcg/train-ablation-1781126582/results/bptt_league_15m_v3/deck_pool.json"
+    },
+    "fire": {
+      "checkpoint": "/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/runs/fire/artifacts/azuki_local_specialist_fire_s43_179089277894/model_azuki_local_011477.pt",
+      "checkpoint_sha256": "27c2c5275e23ffbf5bbe2d2c3f10c08aef25ad15515554069ada3eea8f9a35cd",
+      "deck_pool": "/home/skylark/git/azuki-tcg/train-ablation-1781126582/results/bptt_league_15m_v3/deck_pool.json"
+    }
+  },
+  "samples": 4,
+  "sample_seeds": [
+    91001,
+    91002,
+    91003,
+    91004
+  ],
+  "history": "Every active candidate draft and battle observation is replayed through its own checkpoint. Shared-prefix memoization is scoped to one model and keyed by the entire observation/mask history.",
+  "grade": "Actual terminal win, target removal with the actual attacker surviving combat, or avoidance of provably useless activation. Equivalent wins all succeed.",
+  "limitations": [
+    "Constructed conditional tactical fixtures, not naturally occurring frequency or broad matchup strength.",
+    "Opponent passes responses; no claim of robustness to adversarial responses.",
+    "One deck family, two feasible world seeds per seat; no population confidence claims.",
+    "Favorable trade is an available tactic, not proof that face damage or development is globally inferior.",
+    "Frozen Raizan outcome counter ignored; engine winners and board transitions used."
+  ]
+}

@@ -2,6 +2,8 @@
 #define AZUKI_ECS_ABILITIES_H
 
 #include <flecs.h>
+
+#include "generated/card_defs.h"
 #include <stdint.h>
 
 typedef enum {
@@ -211,10 +213,26 @@ typedef struct {
 
 extern ECS_COMPONENT_DECLARE(DamageTracker);
 
+/* Card text copied from another card definition until the end of the turn
+ * (AZK01-083 "Gurugumi Imitator"). The copied definition's abilities are
+ * attached to the card after its own abilities; keyword tags are granted
+ * separately as end-of-turn tag grants. */
+typedef struct {
+  CardDefId card_def_id;
+} CopiedCardText;
+
+extern ECS_COMPONENT_DECLARE(CopiedCardText);
+
 void azk_register_ability_components(ecs_world_t *world);
 uint8_t azk_sync_card_abilities(ecs_world_t *world, ecs_entity_t card,
                                 ecs_entity_t *out_abilities,
                                 uint8_t out_cap);
 void attach_ability_components(ecs_world_t *world, ecs_entity_t card);
+/* Attach the abilities and keywords of `source_def_id` to `card` until the end
+ * of the turn or until `card` leaves the field. Replaces any prior copy. */
+bool azk_grant_copied_card_text(ecs_world_t *world, ecs_entity_t card,
+                                CardDefId source_def_id);
+/* Drop copied abilities from `card` (keyword grants expire on their own). */
+void azk_clear_copied_card_text(ecs_world_t *world, ecs_entity_t card);
 
 #endif

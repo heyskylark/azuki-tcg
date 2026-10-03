@@ -268,7 +268,12 @@ typedef enum {
     CARD_DEF_STT04_016 = 191,
     CARD_DEF_STT04_017 = 192,
     CARD_DEF_STT03_017 = 193,
-    CARD_DEF_COUNT = 194
+    CARD_DEF_AZK01_013 = 194,
+    CARD_DEF_AZK01_076 = 195,
+    CARD_DEF_AZK01_079 = 196,
+    CARD_DEF_AZK01_083 = 197,
+    CARD_DEF_AZK01_099 = 198,
+    CARD_DEF_COUNT = 199
 } CardDefId;
 
 typedef struct {
@@ -337,6 +342,7 @@ extern ECS_TAG_DECLARE(TSubtype_Earthfury);
 extern ECS_TAG_DECLARE(TSubtype_Earthwarden);
 extern ECS_TAG_DECLARE(TSubtype_Elder);
 extern ECS_TAG_DECLARE(TSubtype_Farmer);
+extern ECS_TAG_DECLARE(TSubtype_Fatedealer);
 extern ECS_TAG_DECLARE(TSubtype_Firemancer);
 extern ECS_TAG_DECLARE(TSubtype_FoxFire);
 extern ECS_TAG_DECLARE(TSubtype_Frog);

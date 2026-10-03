@@ -59,7 +59,8 @@ ecs_entity_t azk_get_ability_source_card(ecs_world_t *world,
 
 const AbilityDef *azk_get_ability_def_for_entity(ecs_world_t *world,
                                                  ecs_entity_t ability_entity) {
-  if (world == NULL || ability_entity == 0) {
+  if (world == NULL || ability_entity == 0 ||
+      !ecs_is_alive(world, ability_entity)) {
     return NULL;
   }
 
@@ -72,7 +73,71 @@ const AbilityDef *azk_get_ability_def_for_entity(ecs_world_t *world,
   return azk_get_ability_def_at(instance->card_def_id, instance->registry_order);
 }
 
+AzkCardAbilityLayout azk_get_card_ability_layout(ecs_world_t *world,
+                                                 ecs_entity_t card,
+                                                 CardDefId own_def_id) {
+  AzkCardAbilityLayout layout = {
+      .own_def_id = own_def_id,
+      .own_count = azk_get_ability_count(own_def_id),
+  };
+
+  const CopiedCardText *copied =
+      card != 0 ? ecs_get(world, card, CopiedCardText) : NULL;
+  if (copied == NULL || copied->card_def_id == own_def_id) {
+    return layout;
+  }
+
+  uint8_t copied_count = azk_get_ability_count(copied->card_def_id);
+  const uint8_t capacity = layout.own_count < AZK_MAX_CARD_ABILITIES
+                               ? AZK_MAX_CARD_ABILITIES - layout.own_count
+                               : 0;
+  if (copied_count > capacity) {
+    copied_count = capacity;
+  }
+  layout.copied_def_id = copied->card_def_id;
+  layout.copied_count = copied_count;
+  return layout;
+}
+
+int azk_card_ability_slot(const AzkCardAbilityLayout *layout,
+                          const AbilityInstance *instance) {
+  if (layout == NULL || instance == NULL) {
+    return -1;
+  }
+
+  if (instance->card_def_id == layout->own_def_id &&
+      instance->registry_order < layout->own_count) {
+    return instance->registry_order;
+  }
+
+  if (layout->copied_count > 0 &&
+      instance->card_def_id == layout->copied_def_id &&
+      instance->registry_order < layout->copied_count) {
+    return layout->own_count + instance->registry_order;
+  }
+
+  return -1;
+}
+
+static int ability_sort_key(const AzkCardAbilityLayout *layout,
+                            const AbilityInstance *instance) {
+  if (layout == NULL) {
+    return instance->registry_order;
+  }
+
+  const int slot = azk_card_ability_slot(layout, instance);
+  return slot >= 0 ? slot : AZK_MAX_CARD_ABILITIES + instance->registry_order;
+}
+
+bool azk_card_has_timed_ability(ecs_world_t *world, ecs_entity_t card,
+                                ecs_id_t timing_tag) {
+  ecs_entity_t abilities[AZK_MAX_CARD_ABILITIES] = {0};
+  return azk_collect_card_timed_abilities(world, card, timing_tag, abilities,
+                                          AZK_MAX_CARD_ABILITIES) > 0;
+}
+
 static void insert_sorted_ability(ecs_world_t *world, ecs_entity_t ability_entity,
+                                  const AzkCardAbilityLayout *layout,
                                   ecs_entity_t *out_abilities,
                                   uint8_t *io_count, uint8_t out_cap) {
   if (out_abilities == NULL || io_count == NULL || *io_count >= out_cap) {
@@ -84,11 +149,12 @@ static void insert_sorted_ability(ecs_world_t *world, ecs_entity_t ability_entit
     return;
   }
 
+  const int key = ability_sort_key(layout, instance);
   uint8_t insert_at = *io_count;
   while (insert_at > 0) {
     const AbilityInstance *prev =
         ecs_get(world, out_abilities[insert_at - 1], AbilityInstance);
-    if (prev == NULL || prev->registry_order <= instance->registry_order) {
+    if (prev == NULL || ability_sort_key(layout, prev) <= key) {
       break;
     }
 
@@ -137,12 +203,18 @@ uint8_t azk_collect_card_abilities(ecs_world_t *world, ecs_entity_t card,
   }
 
   const CardId *card_id = ecs_get(world, card, CardId);
+  AzkCardAbilityLayout layout = {0};
+  if (card_id != NULL) {
+    layout = azk_get_card_ability_layout(world, card, card_id->id);
+  }
+  const AzkCardAbilityLayout *layout_ptr = card_id != NULL ? &layout : NULL;
+
   uint8_t count = 0;
   ecs_iter_t it = ecs_each_id(world, ecs_pair(Rel_AbilityOf, card));
   while (ecs_each_next(&it)) {
     for (int32_t i = 0; i < it.count && count < out_cap; ++i) {
-      insert_sorted_ability(world, it.entities[i], out_abilities, &count,
-                            out_cap);
+      insert_sorted_ability(world, it.entities[i], layout_ptr, out_abilities,
+                            &count, out_cap);
     }
   }
 
@@ -150,11 +222,11 @@ uint8_t azk_collect_card_abilities(ecs_world_t *world, ecs_entity_t card,
     return count;
   }
 
-  bool stale = count != azk_get_ability_count(card_id->id);
+  bool stale = count != layout.own_count + layout.copied_count;
   for (uint8_t i = 0; i < count && !stale; ++i) {
     const AbilityInstance *instance =
         ecs_get(world, out_abilities[i], AbilityInstance);
-    if (instance == NULL || instance->card_def_id != card_id->id) {
+    if (azk_card_ability_slot(&layout, instance) != (int)i) {
       stale = true;
     }
   }
@@ -235,12 +307,14 @@ ecs_entity_t azk_find_card_ability_by_registry_order(ecs_world_t *world,
     return 0;
   }
 
+  const CardId *card_id = ecs_get(world, card, CardId);
   ecs_entity_t abilities[AZK_MAX_CARD_ABILITIES] = {0};
   uint8_t ability_count =
       azk_collect_card_abilities(world, card, abilities, AZK_MAX_CARD_ABILITIES);
   for (uint8_t i = 0; i < ability_count; ++i) {
     const AbilityInstance *instance = ecs_get(world, abilities[i], AbilityInstance);
-    if (instance != NULL && instance->registry_order == registry_order) {
+    if (instance != NULL && instance->registry_order == registry_order &&
+        (card_id == NULL || instance->card_def_id == card_id->id)) {
       return abilities[i];
     }
   }

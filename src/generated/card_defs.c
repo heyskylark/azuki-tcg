@@ -52,6 +52,7 @@ ECS_TAG_DECLARE(TSubtype_Earthfury);
 ECS_TAG_DECLARE(TSubtype_Earthwarden);
 ECS_TAG_DECLARE(TSubtype_Elder);
 ECS_TAG_DECLARE(TSubtype_Farmer);
+ECS_TAG_DECLARE(TSubtype_Fatedealer);
 ECS_TAG_DECLARE(TSubtype_Firemancer);
 ECS_TAG_DECLARE(TSubtype_FoxFire);
 ECS_TAG_DECLARE(TSubtype_Frog);
@@ -2629,6 +2630,71 @@ static const CardDef kGeneratedCardDefs[CARD_DEF_COUNT] = {
         .has_ikz_cost = true,
         .ikz_cost = { .ikz_cost = 3 },
     },
+    {
+        .card_id = "AZK01-013",
+        .name = "Gou the Iron Judge",
+        .rarity = CARD_RARITY_UC,
+        .element = CARD_ELEMENT_NORMAL,
+        .type = CARD_TYPE_ENTITY,
+        .has_base_stats = true,
+        .base_stats = { .attack = 3, .health = 3 },
+        .has_gate_points = true,
+        .gate_points = { .gate_points = 1 },
+        .has_ikz_cost = true,
+        .ikz_cost = { .ikz_cost = 5 },
+    },
+    {
+        .card_id = "AZK01-076",
+        .name = "Hōren of Two Paths",
+        .rarity = CARD_RARITY_C,
+        .element = CARD_ELEMENT_NORMAL,
+        .type = CARD_TYPE_ENTITY,
+        .has_base_stats = true,
+        .base_stats = { .attack = 1, .health = 2 },
+        .has_gate_points = true,
+        .gate_points = { .gate_points = 1 },
+        .has_ikz_cost = true,
+        .ikz_cost = { .ikz_cost = 3 },
+    },
+    {
+        .card_id = "AZK01-079",
+        .name = "Gin and Tonika",
+        .rarity = CARD_RARITY_SR,
+        .element = CARD_ELEMENT_NORMAL,
+        .type = CARD_TYPE_ENTITY,
+        .has_base_stats = true,
+        .base_stats = { .attack = 3, .health = 4 },
+        .has_gate_points = true,
+        .gate_points = { .gate_points = 3 },
+        .has_ikz_cost = true,
+        .ikz_cost = { .ikz_cost = 6 },
+    },
+    {
+        .card_id = "AZK01-083",
+        .name = "Gurugumi Imitator",
+        .rarity = CARD_RARITY_R,
+        .element = CARD_ELEMENT_NORMAL,
+        .type = CARD_TYPE_ENTITY,
+        .has_base_stats = true,
+        .base_stats = { .attack = 2, .health = 2 },
+        .has_gate_points = true,
+        .gate_points = { .gate_points = 1 },
+        .has_ikz_cost = true,
+        .ikz_cost = { .ikz_cost = 4 },
+    },
+    {
+        .card_id = "AZK01-099",
+        .name = "Raiko's Wrath, Shin",
+        .rarity = CARD_RARITY_SR,
+        .element = CARD_ELEMENT_LIGHTNING,
+        .type = CARD_TYPE_ENTITY,
+        .has_base_stats = true,
+        .base_stats = { .attack = 4, .health = 4 },
+        .has_gate_points = true,
+        .gate_points = { .gate_points = 3 },
+        .has_ikz_cost = true,
+        .ikz_cost = { .ikz_cost = 7 },
+    },
 };
 
 static ecs_entity_t kGeneratedPrefabs[CARD_DEF_COUNT];
@@ -2839,6 +2905,11 @@ static const CardDefLookupEntry kGeneratedCardLookup[CARD_DEF_COUNT] = {
     { .card_id = "STT04-016", .def = &kGeneratedCardDefs[CARD_DEF_STT04_016] },
     { .card_id = "STT04-017", .def = &kGeneratedCardDefs[CARD_DEF_STT04_017] },
     { .card_id = "STT03-017", .def = &kGeneratedCardDefs[CARD_DEF_STT03_017] },
+    { .card_id = "AZK01-013", .def = &kGeneratedCardDefs[CARD_DEF_AZK01_013] },
+    { .card_id = "AZK01-076", .def = &kGeneratedCardDefs[CARD_DEF_AZK01_076] },
+    { .card_id = "AZK01-079", .def = &kGeneratedCardDefs[CARD_DEF_AZK01_079] },
+    { .card_id = "AZK01-083", .def = &kGeneratedCardDefs[CARD_DEF_AZK01_083] },
+    { .card_id = "AZK01-099", .def = &kGeneratedCardDefs[CARD_DEF_AZK01_099] },
 };
 
 const CardDefLookupEntry *azk_card_def_lookup_table(size_t *out_count) {
@@ -2901,6 +2972,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ECS_TAG_DEFINE(world, TSubtype_Earthwarden);
         ECS_TAG_DEFINE(world, TSubtype_Elder);
         ECS_TAG_DEFINE(world, TSubtype_Farmer);
+        ECS_TAG_DEFINE(world, TSubtype_Fatedealer);
         ECS_TAG_DEFINE(world, TSubtype_Firemancer);
         ECS_TAG_DEFINE(world, TSubtype_FoxFire);
         ECS_TAG_DEFINE(world, TSubtype_Frog);
@@ -6591,6 +6663,104 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 3 });
         ecs_add(world, prefab, TSubtype_Verdant);
+    }
+    {
+        ecs_entity_desc_t desc = {
+            .name = "CardPrefab::AZK01-013",
+            .add = (ecs_id_t[]){ EcsPrefab, TEntity, 0 }
+        };
+        ecs_entity_t prefab = ecs_entity_init(world, &desc);
+        ecs_assert(prefab != 0, ECS_INVALID_PARAMETER, "failed to create prefab for card AZK01-013");
+        kGeneratedPrefabs[CARD_DEF_AZK01_013] = prefab;
+        ecs_set(world, prefab, CardId, { .id = CARD_DEF_AZK01_013, .code = "AZK01-013" });
+        ecs_set(world, prefab, Name, { .value = "Gou the Iron Judge" });
+        ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_NORMAL });
+        ecs_set(world, prefab, Type, { .value = CARD_TYPE_ENTITY });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
+        ecs_set(world, prefab, BaseStats, { .attack = 3, .health = 3 });
+        ecs_set(world, prefab, CurStats, { .cur_atk = 3, .cur_hp = 3 });
+        ecs_set(world, prefab, GatePoints, { .gate_points = 1 });
+        ecs_set(world, prefab, IKZCost, { .ikz_cost = 5 });
+        ecs_add(world, prefab, TSubtype_Fatedealer);
+    }
+    {
+        ecs_entity_desc_t desc = {
+            .name = "CardPrefab::AZK01-076",
+            .add = (ecs_id_t[]){ EcsPrefab, TEntity, 0 }
+        };
+        ecs_entity_t prefab = ecs_entity_init(world, &desc);
+        ecs_assert(prefab != 0, ECS_INVALID_PARAMETER, "failed to create prefab for card AZK01-076");
+        kGeneratedPrefabs[CARD_DEF_AZK01_076] = prefab;
+        ecs_set(world, prefab, CardId, { .id = CARD_DEF_AZK01_076, .code = "AZK01-076" });
+        ecs_set(world, prefab, Name, { .value = "Hōren of Two Paths" });
+        ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_NORMAL });
+        ecs_set(world, prefab, Type, { .value = CARD_TYPE_ENTITY });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
+        ecs_set(world, prefab, BaseStats, { .attack = 1, .health = 2 });
+        ecs_set(world, prefab, CurStats, { .cur_atk = 1, .cur_hp = 2 });
+        ecs_set(world, prefab, GatePoints, { .gate_points = 1 });
+        ecs_set(world, prefab, IKZCost, { .ikz_cost = 3 });
+        ecs_add(world, prefab, TSubtype_Fatedealer);
+        ecs_add(world, prefab, TSubtype_Monk);
+    }
+    {
+        ecs_entity_desc_t desc = {
+            .name = "CardPrefab::AZK01-079",
+            .add = (ecs_id_t[]){ EcsPrefab, TEntity, 0 }
+        };
+        ecs_entity_t prefab = ecs_entity_init(world, &desc);
+        ecs_assert(prefab != 0, ECS_INVALID_PARAMETER, "failed to create prefab for card AZK01-079");
+        kGeneratedPrefabs[CARD_DEF_AZK01_079] = prefab;
+        ecs_set(world, prefab, CardId, { .id = CARD_DEF_AZK01_079, .code = "AZK01-079" });
+        ecs_set(world, prefab, Name, { .value = "Gin and Tonika" });
+        ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_NORMAL });
+        ecs_set(world, prefab, Type, { .value = CARD_TYPE_ENTITY });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
+        ecs_set(world, prefab, BaseStats, { .attack = 3, .health = 4 });
+        ecs_set(world, prefab, CurStats, { .cur_atk = 3, .cur_hp = 4 });
+        ecs_set(world, prefab, GatePoints, { .gate_points = 3 });
+        ecs_set(world, prefab, IKZCost, { .ikz_cost = 6 });
+        ecs_add(world, prefab, TSubtype_Fatedealer);
+    }
+    {
+        ecs_entity_desc_t desc = {
+            .name = "CardPrefab::AZK01-083",
+            .add = (ecs_id_t[]){ EcsPrefab, TEntity, 0 }
+        };
+        ecs_entity_t prefab = ecs_entity_init(world, &desc);
+        ecs_assert(prefab != 0, ECS_INVALID_PARAMETER, "failed to create prefab for card AZK01-083");
+        kGeneratedPrefabs[CARD_DEF_AZK01_083] = prefab;
+        ecs_set(world, prefab, CardId, { .id = CARD_DEF_AZK01_083, .code = "AZK01-083" });
+        ecs_set(world, prefab, Name, { .value = "Gurugumi Imitator" });
+        ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_NORMAL });
+        ecs_set(world, prefab, Type, { .value = CARD_TYPE_ENTITY });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
+        ecs_set(world, prefab, BaseStats, { .attack = 2, .health = 2 });
+        ecs_set(world, prefab, CurStats, { .cur_atk = 2, .cur_hp = 2 });
+        ecs_set(world, prefab, GatePoints, { .gate_points = 1 });
+        ecs_set(world, prefab, IKZCost, { .ikz_cost = 4 });
+        ecs_add(world, prefab, TSubtype_Gurijutsu);
+    }
+    {
+        ecs_entity_desc_t desc = {
+            .name = "CardPrefab::AZK01-099",
+            .add = (ecs_id_t[]){ EcsPrefab, TEntity, 0 }
+        };
+        ecs_entity_t prefab = ecs_entity_init(world, &desc);
+        ecs_assert(prefab != 0, ECS_INVALID_PARAMETER, "failed to create prefab for card AZK01-099");
+        kGeneratedPrefabs[CARD_DEF_AZK01_099] = prefab;
+        ecs_set(world, prefab, CardId, { .id = CARD_DEF_AZK01_099, .code = "AZK01-099" });
+        ecs_set(world, prefab, Name, { .value = "Raiko's Wrath, Shin" });
+        ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_LIGHTNING });
+        ecs_set(world, prefab, Type, { .value = CARD_TYPE_ENTITY });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
+        ecs_set(world, prefab, BaseStats, { .attack = 4, .health = 4 });
+        ecs_set(world, prefab, CurStats, { .cur_atk = 4, .cur_hp = 4 });
+        ecs_set(world, prefab, GatePoints, { .gate_points = 3 });
+        ecs_set(world, prefab, IKZCost, { .ikz_cost = 7 });
+        ecs_add(world, prefab, TSubtype_Shockcoil);
+        ecs_add(world, prefab, TSubtype_Stormcaller);
+        ecs_add(world, prefab, TSubtype_Tiger);
     }
 }
 

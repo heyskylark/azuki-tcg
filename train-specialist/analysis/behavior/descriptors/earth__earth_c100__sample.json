@@ -1,0 +1,2873 @@
+{
+ "arm": "earth_c100",
+ "draft": {
+  "context_pairs": {
+   "Stonehaven/Bobu vs Stonehaven/Goro": {
+    "between_wjaccard_mean": 0.30047118822606406
+   }
+  },
+  "contexts": {
+   "Stonehaven/Bobu": {
+    "curated_reference": "same gate+leader",
+    "curated_reference_indices": [
+     14,
+     15
+    ],
+    "curve_mean": {
+     "0": 0.0625,
+     "1": 13.979166666666666,
+     "2": 7.229166666666667,
+     "3": 8.0625,
+     "4": 7.041666666666667,
+     "5": 6.041666666666667,
+     "6": 3.7916666666666665,
+     "7": 3.7916666666666665
+    },
+    "decks": 48,
+    "entity_share": 0.8895833333333334,
+    "max_wjaccard_to_curated_mean": 0.12724326461042978,
+    "mean_cost": 3.247916666666667,
+    "normal_share": 0.6433333333333333,
+    "per_deck": [
+     {
+      "block": "free_draft:EARTH:r0:STT03-002:STT03-001:opp0",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.0891089108910891,
+      "mean_cost": 3.0,
+      "normal_share": 0.68,
+      "spell_share": 0.04,
+      "unique_cards": 33,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r0:STT03-002:STT03-001:opp0",
+      "entity_share": 0.82,
+      "max_wjacc_curated": 0.1,
+      "mean_cost": 3.2,
+      "normal_share": 0.62,
+      "spell_share": 0.12,
+      "unique_cards": 37,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:EARTH:r0:STT03-002:STT03-001:opp11",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.12244897959183673,
+      "mean_cost": 3.46,
+      "normal_share": 0.64,
+      "spell_share": 0.16,
+      "unique_cards": 33,
+      "weapon_share": 0.0
+     },
+     {
+      "block": "free_draft:EARTH:r0:STT03-002:STT03-001:opp11",
+      "entity_share": 0.86,
+      "max_wjacc_curated": 0.14583333333333334,
+      "mean_cost": 3.5,
+      "normal_share": 0.52,
+      "spell_share": 0.14,
+      "unique_cards": 34,
+      "weapon_share": 0.0
+     },
+     {
+      "block": "free_draft:EARTH:r1:STT03-002:STT03-001:opp0",
+      "entity_share": 0.94,
+      "max_wjacc_curated": 0.0784313725490196,
+      "mean_cost": 2.88,
+      "normal_share": 0.72,
+      "spell_share": 0.06,
+      "unique_cards": 35,
+      "weapon_share": 0.0
+     },
+     {
+      "block": "free_draft:EARTH:r1:STT03-002:STT03-001:opp0",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.1111111111111111,
+      "mean_cost": 3.3,
+      "normal_share": 0.66,
+      "spell_share": 0.06,
+      "unique_cards": 33,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r1:STT03-002:STT03-001:opp11",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 2.96,
+      "normal_share": 0.58,
+      "spell_share": 0.1,
+      "unique_cards": 29,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r1:STT03-002:STT03-001:opp11",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 3.24,
+      "normal_share": 0.68,
+      "spell_share": 0.1,
+      "unique_cards": 32,
+      "weapon_share": 0.0
+     },
+     {
+      "block": "free_draft:EARTH:r2:STT03-002:STT03-001:opp0",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.13402061855670103,
+      "mean_cost": 3.06,
+      "normal_share": 0.68,
+      "spell_share": 0.08,
+      "unique_cards": 38,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r2:STT03-002:STT03-001:opp0",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.13402061855670103,
+      "mean_cost": 3.44,
+      "normal_share": 0.48,
+      "spell_share": 0.12,
+      "unique_cards": 34,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r2:STT03-002:STT03-001:opp11",
+      "entity_share": 0.86,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 3.64,
+      "normal_share": 0.6,
+      "spell_share": 0.1,
+      "unique_cards": 37,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r2:STT03-002:STT03-001:opp11",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.12244897959183673,
+      "mean_cost": 3.54,
+      "normal_share": 0.68,
+      "spell_share": 0.06,
+      "unique_cards": 36,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r0:STT03-002:STT03-001:opp2",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.0891089108910891,
+      "mean_cost": 3.18,
+      "normal_share": 0.66,
+      "spell_share": 0.06,
+      "unique_cards": 36,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r0:STT03-002:STT03-001:opp2",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.13402061855670103,
+      "mean_cost": 3.1,
+      "normal_share": 0.66,
+      "spell_share": 0.08,
+      "unique_cards": 35,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r0:STT03-002:STT03-001:opp12",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.13402061855670103,
+      "mean_cost": 3.18,
+      "normal_share": 0.62,
+      "spell_share": 0.08,
+      "unique_cards": 34,
+      "weapon_share": 0.0
+     },
+     {
+      "block": "free_draft:EARTH:r0:STT03-002:STT03-001:opp12",
+      "entity_share": 0.82,
+      "max_wjacc_curated": 0.1111111111111111,
+      "mean_cost": 3.14,
+      "normal_share": 0.66,
+      "spell_share": 0.1,
+      "unique_cards": 34,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:EARTH:r1:STT03-002:STT03-001:opp2",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.12244897959183673,
+      "mean_cost": 3.68,
+      "normal_share": 0.7,
+      "spell_share": 0.06,
+      "unique_cards": 33,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r1:STT03-002:STT03-001:opp2",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 3.08,
+      "normal_share": 0.58,
+      "spell_share": 0.06,
+      "unique_cards": 35,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r1:STT03-002:STT03-001:opp12",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.0784313725490196,
+      "mean_cost": 3.12,
+      "normal_share": 0.72,
+      "spell_share": 0.08,
+      "unique_cards": 39,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r1:STT03-002:STT03-001:opp12",
+      "entity_share": 0.94,
+      "max_wjacc_curated": 0.1111111111111111,
+      "mean_cost": 3.3,
+      "normal_share": 0.7,
+      "spell_share": 0.06,
+      "unique_cards": 34,
+      "weapon_share": 0.0
+     },
+     {
+      "block": "free_draft:EARTH:r2:STT03-002:STT03-001:opp2",
+      "entity_share": 0.94,
+      "max_wjacc_curated": 0.13402061855670103,
+      "mean_cost": 3.4,
+      "normal_share": 0.56,
+      "spell_share": 0.02,
+      "unique_cards": 34,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r2:STT03-002:STT03-001:opp2",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.0891089108910891,
+      "mean_cost": 3.28,
+      "normal_share": 0.66,
+      "spell_share": 0.06,
+      "unique_cards": 36,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r2:STT03-002:STT03-001:opp12",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 3.1,
+      "normal_share": 0.6,
+      "spell_share": 0.14,
+      "unique_cards": 36,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r2:STT03-002:STT03-001:opp12",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.12244897959183673,
+      "mean_cost": 3.16,
+      "normal_share": 0.68,
+      "spell_share": 0.08,
+      "unique_cards": 32,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r0:STT03-002:STT03-001:opp3",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.12244897959183673,
+      "mean_cost": 3.5,
+      "normal_share": 0.58,
+      "spell_share": 0.06,
+      "unique_cards": 32,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r0:STT03-002:STT03-001:opp3",
+      "entity_share": 0.86,
+      "max_wjacc_curated": 0.14583333333333334,
+      "mean_cost": 3.68,
+      "normal_share": 0.5,
+      "spell_share": 0.1,
+      "unique_cards": 35,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r0:STT03-002:STT03-001:opp13",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.13402061855670103,
+      "mean_cost": 3.7,
+      "normal_share": 0.66,
+      "spell_share": 0.16,
+      "unique_cards": 32,
+      "weapon_share": 0.0
+     },
+     {
+      "block": "free_draft:EARTH:r0:STT03-002:STT03-001:opp13",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 3.24,
+      "normal_share": 0.66,
+      "spell_share": 0.12,
+      "unique_cards": 39,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r1:STT03-002:STT03-001:opp3",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.1,
+      "mean_cost": 3.1,
+      "normal_share": 0.74,
+      "spell_share": 0.08,
+      "unique_cards": 34,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r1:STT03-002:STT03-001:opp3",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.14583333333333334,
+      "mean_cost": 2.86,
+      "normal_share": 0.66,
+      "spell_share": 0.08,
+      "unique_cards": 39,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r1:STT03-002:STT03-001:opp13",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.1111111111111111,
+      "mean_cost": 2.82,
+      "normal_share": 0.64,
+      "spell_share": 0.06,
+      "unique_cards": 36,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r1:STT03-002:STT03-001:opp13",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.0891089108910891,
+      "mean_cost": 2.96,
+      "normal_share": 0.72,
+      "spell_share": 0.08,
+      "unique_cards": 34,
+      "weapon_share": 0.0
+     },
+     {
+      "block": "free_draft:EARTH:r2:STT03-002:STT03-001:opp3",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.1111111111111111,
+      "mean_cost": 3.64,
+      "normal_share": 0.68,
+      "spell_share": 0.08,
+      "unique_cards": 39,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r2:STT03-002:STT03-001:opp3",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.0891089108910891,
+      "mean_cost": 2.8,
+      "normal_share": 0.84,
+      "spell_share": 0.04,
+      "unique_cards": 29,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r2:STT03-002:STT03-001:opp13",
+      "entity_share": 0.98,
+      "max_wjacc_curated": 0.12244897959183673,
+      "mean_cost": 3.0,
+      "normal_share": 0.62,
+      "spell_share": 0.02,
+      "unique_cards": 36,
+      "weapon_share": 0.0
+     },
+     {
+      "block": "free_draft:EARTH:r2:STT03-002:STT03-001:opp13",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.1,
+      "mean_cost": 3.48,
+      "normal_share": 0.6,
+      "spell_share": 0.08,
+      "unique_cards": 36,
+      "weapon_share": 0.0
+     },
+     {
+      "block": "free_draft:EARTH:r0:STT03-002:STT03-001:opp4",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.1111111111111111,
+      "mean_cost": 3.16,
+      "normal_share": 0.66,
+      "spell_share": 0.1,
+      "unique_cards": 34,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r0:STT03-002:STT03-001:opp4",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.0891089108910891,
+      "mean_cost": 2.98,
+      "normal_share": 0.72,
+      "spell_share": 0.04,
+      "unique_cards": 31,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r0:STT03-002:STT03-001:opp14",
+      "entity_share": 0.82,
+      "max_wjacc_curated": 0.14583333333333334,
+      "mean_cost": 2.92,
+      "normal_share": 0.6,
+      "spell_share": 0.16,
+      "unique_cards": 35,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r0:STT03-002:STT03-001:opp14",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.13402061855670103,
+      "mean_cost": 3.1,
+      "normal_share": 0.68,
+      "spell_share": 0.1,
+      "unique_cards": 32,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r1:STT03-002:STT03-001:opp4",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 3.56,
+      "normal_share": 0.62,
+      "spell_share": 0.06,
+      "unique_cards": 34,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r1:STT03-002:STT03-001:opp4",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.06796116504854369,
+      "mean_cost": 3.68,
+      "normal_share": 0.66,
+      "spell_share": 0.06,
+      "unique_cards": 37,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r1:STT03-002:STT03-001:opp14",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.1956521739130435,
+      "mean_cost": 3.58,
+      "normal_share": 0.52,
+      "spell_share": 0.08,
+      "unique_cards": 36,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r1:STT03-002:STT03-001:opp14",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 3.46,
+      "normal_share": 0.66,
+      "spell_share": 0.08,
+      "unique_cards": 34,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r2:STT03-002:STT03-001:opp4",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.1,
+      "mean_cost": 3.08,
+      "normal_share": 0.76,
+      "spell_share": 0.08,
+      "unique_cards": 36,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r2:STT03-002:STT03-001:opp4",
+      "entity_share": 0.94,
+      "max_wjacc_curated": 0.1111111111111111,
+      "mean_cost": 3.38,
+      "normal_share": 0.6,
+      "spell_share": 0.04,
+      "unique_cards": 38,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r2:STT03-002:STT03-001:opp14",
+      "entity_share": 0.8,
+      "max_wjacc_curated": 0.23595505617977527,
+      "mean_cost": 3.12,
+      "normal_share": 0.52,
+      "spell_share": 0.16,
+      "unique_cards": 35,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r2:STT03-002:STT03-001:opp14",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 3.16,
+      "normal_share": 0.64,
+      "spell_share": 0.06,
+      "unique_cards": 31,
+      "weapon_share": 0.02
+     }
+    ],
+    "spell_share": 0.08333333333333333,
+    "top_cards_per_deck": {
+     "AZK01-003": 0.83,
+     "AZK01-004": 0.88,
+     "AZK01-010": 0.98,
+     "AZK01-012": 1.69,
+     "AZK01-013": 1.33,
+     "AZK01-015": 1.73,
+     "AZK01-019": 1.85,
+     "AZK01-045": 1.69,
+     "AZK01-069": 2.04,
+     "AZK01-074": 1.67,
+     "STT02-004": 2.21,
+     "STT03-003": 1.56,
+     "STT03-013": 1.9,
+     "STT03-014": 0.98,
+     "STT03-016": 0.85
+    },
+    "unique_cards": 34.645833333333336,
+    "weapon_share": 0.027083333333333334,
+    "within_context_wjaccard_mean": 0.3003188893025287
+   },
+   "Stonehaven/Goro": {
+    "curated_reference": "same gate+leader",
+    "curated_reference_indices": [
+     13
+    ],
+    "curve_mean": {
+     "0": 0.10416666666666667,
+     "1": 13.375,
+     "2": 6.875,
+     "3": 8.041666666666666,
+     "4": 7.729166666666667,
+     "5": 6.8125,
+     "6": 3.6666666666666665,
+     "7": 3.3958333333333335
+    },
+    "decks": 48,
+    "entity_share": 0.8791666666666668,
+    "max_wjaccard_to_curated_mean": 0.13326021816581704,
+    "mean_cost": 3.27,
+    "normal_share": 0.6508333333333334,
+    "per_deck": [
+     {
+      "block": "free_draft:EARTH:r0:STT03-002:AZK01-123:opp0",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.057692307692307696,
+      "mean_cost": 3.26,
+      "normal_share": 0.6,
+      "spell_share": 0.06,
+      "unique_cards": 34,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:EARTH:r0:STT03-002:AZK01-123:opp0",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.12244897959183673,
+      "mean_cost": 3.28,
+      "normal_share": 0.66,
+      "spell_share": 0.08,
+      "unique_cards": 37,
+      "weapon_share": 0.0
+     },
+     {
+      "block": "free_draft:EARTH:r0:STT03-002:AZK01-123:opp11",
+      "entity_share": 0.86,
+      "max_wjacc_curated": 0.1,
+      "mean_cost": 3.36,
+      "normal_share": 0.56,
+      "spell_share": 0.12,
+      "unique_cards": 36,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r0:STT03-002:AZK01-123:opp11",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.0891089108910891,
+      "mean_cost": 3.34,
+      "normal_share": 0.56,
+      "spell_share": 0.1,
+      "unique_cards": 38,
+      "weapon_share": 0.0
+     },
+     {
+      "block": "free_draft:EARTH:r1:STT03-002:AZK01-123:opp0",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.12244897959183673,
+      "mean_cost": 3.4,
+      "normal_share": 0.58,
+      "spell_share": 0.06,
+      "unique_cards": 36,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r1:STT03-002:AZK01-123:opp0",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 2.98,
+      "normal_share": 0.68,
+      "spell_share": 0.1,
+      "unique_cards": 37,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r1:STT03-002:AZK01-123:opp11",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 3.1,
+      "normal_share": 0.68,
+      "spell_share": 0.04,
+      "unique_cards": 35,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r1:STT03-002:AZK01-123:opp11",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 3.14,
+      "normal_share": 0.64,
+      "spell_share": 0.08,
+      "unique_cards": 35,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r2:STT03-002:AZK01-123:opp0",
+      "entity_share": 0.86,
+      "max_wjacc_curated": 0.13402061855670103,
+      "mean_cost": 3.02,
+      "normal_share": 0.62,
+      "spell_share": 0.12,
+      "unique_cards": 34,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r2:STT03-002:AZK01-123:opp0",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 2.98,
+      "normal_share": 0.58,
+      "spell_share": 0.06,
+      "unique_cards": 35,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r2:STT03-002:AZK01-123:opp11",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.1,
+      "mean_cost": 3.34,
+      "normal_share": 0.66,
+      "spell_share": 0.12,
+      "unique_cards": 36,
+      "weapon_share": 0.0
+     },
+     {
+      "block": "free_draft:EARTH:r2:STT03-002:AZK01-123:opp11",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.13402061855670103,
+      "mean_cost": 3.38,
+      "normal_share": 0.58,
+      "spell_share": 0.06,
+      "unique_cards": 33,
+      "weapon_share": 0.1
+     },
+     {
+      "block": "free_draft:EARTH:r0:STT03-002:AZK01-123:opp2",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 3.34,
+      "normal_share": 0.68,
+      "spell_share": 0.04,
+      "unique_cards": 32,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:EARTH:r0:STT03-002:AZK01-123:opp2",
+      "entity_share": 0.86,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 3.14,
+      "normal_share": 0.58,
+      "spell_share": 0.12,
+      "unique_cards": 34,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r0:STT03-002:AZK01-123:opp12",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 3.14,
+      "normal_share": 0.66,
+      "spell_share": 0.08,
+      "unique_cards": 28,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r0:STT03-002:AZK01-123:opp12",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.1111111111111111,
+      "mean_cost": 3.26,
+      "normal_share": 0.76,
+      "spell_share": 0.04,
+      "unique_cards": 33,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r1:STT03-002:AZK01-123:opp2",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.0784313725490196,
+      "mean_cost": 3.5,
+      "normal_share": 0.56,
+      "spell_share": 0.08,
+      "unique_cards": 35,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r1:STT03-002:AZK01-123:opp2",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.14583333333333334,
+      "mean_cost": 3.34,
+      "normal_share": 0.68,
+      "spell_share": 0.06,
+      "unique_cards": 37,
+      "weapon_share": 0.06
+     },
+     {
+      "block": "free_draft:EARTH:r1:STT03-002:AZK01-123:opp12",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 3.08,
+      "normal_share": 0.7,
+      "spell_share": 0.06,
+      "unique_cards": 39,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r1:STT03-002:AZK01-123:opp12",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 3.24,
+      "normal_share": 0.78,
+      "spell_share": 0.08,
+      "unique_cards": 34,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:EARTH:r2:STT03-002:AZK01-123:opp2",
+      "entity_share": 0.94,
+      "max_wjacc_curated": 0.13402061855670103,
+      "mean_cost": 3.3,
+      "normal_share": 0.66,
+      "spell_share": 0.04,
+      "unique_cards": 28,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r2:STT03-002:AZK01-123:opp2",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.12244897959183673,
+      "mean_cost": 3.46,
+      "normal_share": 0.66,
+      "spell_share": 0.14,
+      "unique_cards": 35,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r2:STT03-002:AZK01-123:opp12",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.1,
+      "mean_cost": 3.56,
+      "normal_share": 0.64,
+      "spell_share": 0.16,
+      "unique_cards": 36,
+      "weapon_share": 0.0
+     },
+     {
+      "block": "free_draft:EARTH:r2:STT03-002:AZK01-123:opp12",
+      "entity_share": 0.82,
+      "max_wjacc_curated": 0.12244897959183673,
+      "mean_cost": 3.54,
+      "normal_share": 0.58,
+      "spell_share": 0.16,
+      "unique_cards": 35,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r0:STT03-002:AZK01-123:opp3",
+      "entity_share": 0.86,
+      "max_wjacc_curated": 0.13402061855670103,
+      "mean_cost": 3.14,
+      "normal_share": 0.64,
+      "spell_share": 0.12,
+      "unique_cards": 30,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r0:STT03-002:AZK01-123:opp3",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.12244897959183673,
+      "mean_cost": 3.1,
+      "normal_share": 0.62,
+      "spell_share": 0.06,
+      "unique_cards": 35,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r0:STT03-002:AZK01-123:opp13",
+      "entity_share": 0.86,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 3.32,
+      "normal_share": 0.68,
+      "spell_share": 0.06,
+      "unique_cards": 38,
+      "weapon_share": 0.08
+     },
+     {
+      "block": "free_draft:EARTH:r0:STT03-002:AZK01-123:opp13",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.14583333333333334,
+      "mean_cost": 3.22,
+      "normal_share": 0.64,
+      "spell_share": 0.1,
+      "unique_cards": 37,
+      "weapon_share": 0.0
+     },
+     {
+      "block": "free_draft:EARTH:r1:STT03-002:AZK01-123:opp3",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.1,
+      "mean_cost": 3.6,
+      "normal_share": 0.66,
+      "spell_share": 0.06,
+      "unique_cards": 37,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r1:STT03-002:AZK01-123:opp3",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.14583333333333334,
+      "mean_cost": 3.1,
+      "normal_share": 0.62,
+      "spell_share": 0.08,
+      "unique_cards": 31,
+      "weapon_share": 0.0
+     },
+     {
+      "block": "free_draft:EARTH:r1:STT03-002:AZK01-123:opp13",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 3.24,
+      "normal_share": 0.78,
+      "spell_share": 0.06,
+      "unique_cards": 29,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r1:STT03-002:AZK01-123:opp13",
+      "entity_share": 0.82,
+      "max_wjacc_curated": 0.1111111111111111,
+      "mean_cost": 3.04,
+      "normal_share": 0.66,
+      "spell_share": 0.16,
+      "unique_cards": 35,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r2:STT03-002:AZK01-123:opp3",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.12244897959183673,
+      "mean_cost": 3.3,
+      "normal_share": 0.62,
+      "spell_share": 0.12,
+      "unique_cards": 35,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r2:STT03-002:AZK01-123:opp3",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.0784313725490196,
+      "mean_cost": 3.74,
+      "normal_share": 0.56,
+      "spell_share": 0.06,
+      "unique_cards": 35,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r2:STT03-002:AZK01-123:opp13",
+      "entity_share": 0.92,
+      "max_wjacc_curated": 0.13402061855670103,
+      "mean_cost": 3.28,
+      "normal_share": 0.68,
+      "spell_share": 0.04,
+      "unique_cards": 32,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r2:STT03-002:AZK01-123:opp13",
+      "entity_share": 0.82,
+      "max_wjacc_curated": 0.0891089108910891,
+      "mean_cost": 3.06,
+      "normal_share": 0.6,
+      "spell_share": 0.14,
+      "unique_cards": 36,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r0:STT03-002:AZK01-123:opp4",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.12244897959183673,
+      "mean_cost": 3.38,
+      "normal_share": 0.68,
+      "spell_share": 0.08,
+      "unique_cards": 37,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r0:STT03-002:AZK01-123:opp4",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 3.0,
+      "normal_share": 0.7,
+      "spell_share": 0.16,
+      "unique_cards": 35,
+      "weapon_share": 0.0
+     },
+     {
+      "block": "free_draft:EARTH:r0:STT03-002:AZK01-123:opp14",
+      "entity_share": 0.82,
+      "max_wjacc_curated": 0.1111111111111111,
+      "mean_cost": 3.38,
+      "normal_share": 0.68,
+      "spell_share": 0.14,
+      "unique_cards": 36,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r0:STT03-002:AZK01-123:opp14",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.1702127659574468,
+      "mean_cost": 3.02,
+      "normal_share": 0.7,
+      "spell_share": 0.1,
+      "unique_cards": 39,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r1:STT03-002:AZK01-123:opp4",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.14583333333333334,
+      "mean_cost": 3.08,
+      "normal_share": 0.66,
+      "spell_share": 0.1,
+      "unique_cards": 35,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r1:STT03-002:AZK01-123:opp4",
+      "entity_share": 0.84,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 3.46,
+      "normal_share": 0.64,
+      "spell_share": 0.12,
+      "unique_cards": 36,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r1:STT03-002:AZK01-123:opp14",
+      "entity_share": 0.86,
+      "max_wjacc_curated": 0.13402061855670103,
+      "mean_cost": 3.22,
+      "normal_share": 0.72,
+      "spell_share": 0.1,
+      "unique_cards": 37,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r1:STT03-002:AZK01-123:opp14",
+      "entity_share": 0.94,
+      "max_wjacc_curated": 0.0784313725490196,
+      "mean_cost": 3.48,
+      "normal_share": 0.68,
+      "spell_share": 0.04,
+      "unique_cards": 38,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r2:STT03-002:AZK01-123:opp4",
+      "entity_share": 0.88,
+      "max_wjacc_curated": 0.15789473684210525,
+      "mean_cost": 3.58,
+      "normal_share": 0.64,
+      "spell_share": 0.1,
+      "unique_cards": 38,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r2:STT03-002:AZK01-123:opp4",
+      "entity_share": 0.9,
+      "max_wjacc_curated": 0.0891089108910891,
+      "mean_cost": 3.2,
+      "normal_share": 0.68,
+      "spell_share": 0.08,
+      "unique_cards": 32,
+      "weapon_share": 0.02
+     },
+     {
+      "block": "free_draft:EARTH:r2:STT03-002:AZK01-123:opp14",
+      "entity_share": 0.82,
+      "max_wjacc_curated": 0.14583333333333334,
+      "mean_cost": 3.58,
+      "normal_share": 0.6,
+      "spell_share": 0.14,
+      "unique_cards": 36,
+      "weapon_share": 0.04
+     },
+     {
+      "block": "free_draft:EARTH:r2:STT03-002:AZK01-123:opp14",
+      "entity_share": 0.86,
+      "max_wjacc_curated": 0.1827956989247312,
+      "mean_cost": 2.96,
+      "normal_share": 0.76,
+      "spell_share": 0.1,
+      "unique_cards": 36,
+      "weapon_share": 0.04
+     }
+    ],
+    "spell_share": 0.09125,
+    "top_cards_per_deck": {
+     "AZK01-010": 0.94,
+     "AZK01-012": 2.06,
+     "AZK01-013": 1.71,
+     "AZK01-015": 1.6,
+     "AZK01-019": 1.46,
+     "AZK01-045": 1.48,
+     "AZK01-069": 2.23,
+     "AZK01-074": 1.54,
+     "STT02-004": 2.33,
+     "STT03-003": 1.17,
+     "STT03-009": 0.94,
+     "STT03-011": 1.04,
+     "STT03-013": 1.71,
+     "STT03-016": 0.96,
+     "STT03-017": 0.9
+    },
+    "unique_cards": 34.9375,
+    "weapon_share": 0.029583333333333333,
+    "within_context_wjaccard_mean": 0.29936493781774226
+   }
+  }
+ },
+ "element": "EARTH",
+ "examples": {
+  "block/favorable_survive_or_kill": [
+   {
+    "file": "earth__earth_c100__sample__s0.jsonl",
+    "game": 0,
+    "step": 36,
+    "task_id": "fixed:EARTH:r0:cand13:opp0:seat0"
+   },
+   {
+    "file": "earth__earth_c100__sample__s0.jsonl",
+    "game": 1,
+    "step": 23,
+    "task_id": "fixed:EARTH:r0:cand13:opp0:seat1"
+   },
+   {
+    "file": "earth__earth_c100__sample__s0.jsonl",
+    "game": 2,
+    "step": 40,
+    "task_id": "fixed:EARTH:r0:cand13:opp11:seat0"
+   }
+  ],
+  "gate/Stonehaven/grant_then_block": [
+   {
+    "file": "earth__earth_c100__sample__s0.jsonl",
+    "game": 0,
+    "step": 24,
+    "task_id": "fixed:EARTH:r0:cand13:opp0:seat0"
+   },
+   {
+    "file": "earth__earth_c100__sample__s0.jsonl",
+    "game": 1,
+    "step": 16,
+    "task_id": "fixed:EARTH:r0:cand13:opp0:seat1"
+   },
+   {
+    "file": "earth__earth_c100__sample__s0.jsonl",
+    "game": 2,
+    "step": 25,
+    "task_id": "fixed:EARTH:r0:cand13:opp11:seat0"
+   }
+  ],
+  "leader/Goro/target_then_attacks_same_turn": [
+   {
+    "file": "earth__earth_c100__sample__s0.jsonl",
+    "game": 27,
+    "step": 26,
+    "task_id": "fixed:EARTH:r2:cand13:opp11:seat1"
+   },
+   {
+    "file": "earth__earth_c100__sample__s1.jsonl",
+    "game": 14,
+    "step": 49,
+    "task_id": "fixed:EARTH:r1:cand13:opp12:seat0"
+   },
+   {
+    "file": "earth__earth_c100__sample__s2.jsonl",
+    "game": 15,
+    "step": 111,
+    "task_id": "fixed:EARTH:r1:cand13:opp13:seat1"
+   }
+  ]
+ },
+ "games": 288,
+ "mode": "sample",
+ "slices": {
+  "all|ALL": {
+   "games": 288,
+   "metrics": {
+    "block/attacker_destroyed": {
+     "den": 776,
+     "num": 238,
+     "rate": 0.30670103092783507
+    },
+    "block/blocker_survives": {
+     "den": 776,
+     "num": 231,
+     "rate": 0.297680412371134
+    },
+    "block/favorable_survive_or_kill": {
+     "den": 776,
+     "num": 357,
+     "rate": 0.46005154639175255
+    },
+    "draft/max_wjaccard_to_curated": {
+     "den": 96,
+     "num": 12.504167173259841,
+     "rate": 0.13025174138812334
+    },
+    "draft/mean_cost": {
+     "den": 4800,
+     "num": 15643.0,
+     "rate": 3.258958333333333
+    },
+    "draft/normal_share": {
+     "den": 4800,
+     "num": 3106.0,
+     "rate": 0.6470833333333333
+    },
+    "draft/spell_share": {
+     "den": 4800,
+     "num": 419.0,
+     "rate": 0.08729166666666667
+    },
+    "draft/unique_cards": {
+     "den": 96,
+     "num": 3340,
+     "rate": 34.791666666666664
+    },
+    "draft/weapon_share": {
+     "den": 4800,
+     "num": 136.0,
+     "rate": 0.028333333333333332
+    },
+    "earth/quicksand_cast_multi_removal": {
+     "den": 133,
+     "num": 110,
+     "rate": 0.8270676691729323
+    },
+    "earth/quicksand_cast_per_legal_turn": {
+     "den": 329,
+     "num": 133,
+     "rate": 0.40425531914893614
+    },
+    "gate/Stonehaven/grant_then_block": {
+     "den": 1210,
+     "num": 643,
+     "rate": 0.531404958677686
+    },
+    "gate/Stonehaven/portal_then_grant": {
+     "den": 1485,
+     "num": 1210,
+     "rate": 0.8148148148148148
+    },
+    "gate/portal_per_legal_turn": {
+     "den": 1531,
+     "num": 1484,
+     "rate": 0.969301110385369
+    },
+    "heal/heal_spell_per_legal_turn_below_max_hp": {
+     "den": 793,
+     "num": 220,
+     "rate": 0.27742749054224464
+    },
+    "ikz/held_at_end_of_own_turn": {
+     "den": 2423,
+     "num": 871,
+     "rate": 0.3594717292612464
+    },
+    "ikz/held_then_spent_in_opp_turn": {
+     "den": 871,
+     "num": 223,
+     "rate": 0.25602755453501724
+    },
+    "leader/Bobu/earth_loss_before_next_turn": {
+     "den": 6,
+     "num": 4,
+     "rate": 0.6666666666666666
+    },
+    "leader/Bobu/use_then_heal_observed": {
+     "den": 7,
+     "num": 2,
+     "rate": 0.2857142857142857
+    },
+    "leader/Goro/target_then_attacks_same_turn": {
+     "den": 73,
+     "num": 5,
+     "rate": 0.0684931506849315
+    },
+    "leader/Goro/use_with_target": {
+     "den": 73,
+     "num": 73,
+     "rate": 1.0
+    },
+    "leader/use_per_legal_turn": {
+     "den": 2337,
+     "num": 80,
+     "rate": 0.03423192126658109
+    },
+    "lightning/weapon_attach_per_legal_turn": {
+     "den": 354,
+     "num": 59,
+     "rate": 0.16666666666666666
+    },
+    "lightning/weapon_attach_to_entity_share": {
+     "den": 70,
+     "num": 1,
+     "rate": 0.014285714285714285
+    },
+    "outcome/battle_decisions": {
+     "den": 288,
+     "num": 17281,
+     "rate": 60.00347222222222
+    },
+    "outcome/own_turns": {
+     "den": 288,
+     "num": 2423,
+     "rate": 8.413194444444445
+    },
+    "outcome/win": {
+     "den": 288,
+     "num": 169,
+     "rate": 0.5868055555555556
+    },
+    "outcome/win_vs_EARTH": {
+     "den": 72,
+     "num": 44,
+     "rate": 0.6111111111111112
+    },
+    "outcome/win_vs_FIRE": {
+     "den": 72,
+     "num": 29,
+     "rate": 0.4027777777777778
+    },
+    "outcome/win_vs_LIGHTNING": {
+     "den": 72,
+     "num": 46,
+     "rate": 0.6388888888888888
+    },
+    "outcome/win_vs_WATER": {
+     "den": 72,
+     "num": 50,
+     "rate": 0.6944444444444444
+    },
+    "response/any_nonblock_response_when_legal": {
+     "den": 663,
+     "num": 412,
+     "rate": 0.6214177978883861
+    },
+    "response/defender_declared_when_legal": {
+     "den": 1719,
+     "num": 776,
+     "rate": 0.4514252472367656
+    },
+    "response/spell_played_when_legal": {
+     "den": 389,
+     "num": 229,
+     "rate": 0.5886889460154242
+    },
+    "sequence/earth.bobu_before_destruction/completed_per_eligible_game": {
+     "den": 176,
+     "num": 4,
+     "rate": 0.022727272727272728
+    },
+    "sequence/earth.bobu_before_destruction/converted_per_eligible_game": {
+     "den": 176,
+     "num": 2,
+     "rate": 0.011363636363636364
+    },
+    "sequence/earth.stone_defender_portal_attack/completed_per_eligible_game": {
+     "den": 276,
+     "num": 188,
+     "rate": 0.6811594202898551
+    },
+    "sequence/earth.stone_defender_portal_attack/converted_per_eligible_game": {
+     "den": 276,
+     "num": 112,
+     "rate": 0.4057971014492754
+    },
+    "strategy/attacks_by_equipped_attacker": {
+     "den": 2801,
+     "num": 44,
+     "rate": 0.01570867547304534
+    },
+    "strategy/face_target_share_when_both_legal": {
+     "den": 1593,
+     "num": 634,
+     "rate": 0.3979912115505336
+    },
+    "strategy/favorable_trade_taken_per_available_turn": {
+     "den": 723,
+     "num": 486,
+     "rate": 0.6721991701244814
+    },
+    "strategy/spell_cast_per_legal_main_turn": {
+     "den": 1517,
+     "num": 368,
+     "rate": 0.24258404746209625
+    }
+   }
+  },
+  "all|Stonehaven/Bobu": {
+   "games": 176,
+   "metrics": {
+    "block/attacker_destroyed": {
+     "den": 534,
+     "num": 141,
+     "rate": 0.2640449438202247
+    },
+    "block/blocker_survives": {
+     "den": 534,
+     "num": 146,
+     "rate": 0.27340823970037453
+    },
+    "block/favorable_survive_or_kill": {
+     "den": 534,
+     "num": 228,
+     "rate": 0.42696629213483145
+    },
+    "draft/max_wjaccard_to_curated": {
+     "den": 48,
+     "num": 6.107676701300631,
+     "rate": 0.1272432646104298
+    },
+    "draft/mean_cost": {
+     "den": 2400,
+     "num": 7795.0,
+     "rate": 3.247916666666667
+    },
+    "draft/normal_share": {
+     "den": 2400,
+     "num": 1544.0,
+     "rate": 0.6433333333333333
+    },
+    "draft/spell_share": {
+     "den": 2400,
+     "num": 200.0,
+     "rate": 0.08333333333333333
+    },
+    "draft/unique_cards": {
+     "den": 48,
+     "num": 1663,
+     "rate": 34.645833333333336
+    },
+    "draft/weapon_share": {
+     "den": 2400,
+     "num": 65.0,
+     "rate": 0.027083333333333334
+    },
+    "earth/quicksand_cast_multi_removal": {
+     "den": 93,
+     "num": 79,
+     "rate": 0.8494623655913979
+    },
+    "earth/quicksand_cast_per_legal_turn": {
+     "den": 244,
+     "num": 93,
+     "rate": 0.38114754098360654
+    },
+    "gate/Stonehaven/grant_then_block": {
+     "den": 807,
+     "num": 414,
+     "rate": 0.5130111524163569
+    },
+    "gate/Stonehaven/portal_then_grant": {
+     "den": 1006,
+     "num": 807,
+     "rate": 0.8021868787276342
+    },
+    "gate/portal_per_legal_turn": {
+     "den": 1045,
+     "num": 1006,
+     "rate": 0.9626794258373206
+    },
+    "heal/heal_spell_per_legal_turn_below_max_hp": {
+     "den": 542,
+     "num": 156,
+     "rate": 0.2878228782287823
+    },
+    "ikz/held_at_end_of_own_turn": {
+     "den": 1568,
+     "num": 621,
+     "rate": 0.3960459183673469
+    },
+    "ikz/held_then_spent_in_opp_turn": {
+     "den": 621,
+     "num": 166,
+     "rate": 0.2673107890499195
+    },
+    "leader/Bobu/earth_loss_before_next_turn": {
+     "den": 6,
+     "num": 4,
+     "rate": 0.6666666666666666
+    },
+    "leader/Bobu/use_then_heal_observed": {
+     "den": 7,
+     "num": 2,
+     "rate": 0.2857142857142857
+    },
+    "leader/use_per_legal_turn": {
+     "den": 1568,
+     "num": 7,
+     "rate": 0.004464285714285714
+    },
+    "lightning/weapon_attach_per_legal_turn": {
+     "den": 48,
+     "num": 5,
+     "rate": 0.10416666666666667
+    },
+    "lightning/weapon_attach_to_entity_share": {
+     "den": 5,
+     "num": 0,
+     "rate": 0.0
+    },
+    "outcome/battle_decisions": {
+     "den": 176,
+     "num": 11001,
+     "rate": 62.50568181818182
+    },
+    "outcome/own_turns": {
+     "den": 176,
+     "num": 1568,
+     "rate": 8.909090909090908
+    },
+    "outcome/win": {
+     "den": 176,
+     "num": 107,
+     "rate": 0.6079545454545454
+    },
+    "outcome/win_vs_EARTH": {
+     "den": 44,
+     "num": 28,
+     "rate": 0.6363636363636364
+    },
+    "outcome/win_vs_FIRE": {
+     "den": 44,
+     "num": 19,
+     "rate": 0.4318181818181818
+    },
+    "outcome/win_vs_LIGHTNING": {
+     "den": 44,
+     "num": 27,
+     "rate": 0.6136363636363636
+    },
+    "outcome/win_vs_WATER": {
+     "den": 44,
+     "num": 33,
+     "rate": 0.75
+    },
+    "response/any_nonblock_response_when_legal": {
+     "den": 482,
+     "num": 287,
+     "rate": 0.5954356846473029
+    },
+    "response/defender_declared_when_legal": {
+     "den": 1236,
+     "num": 534,
+     "rate": 0.4320388349514563
+    },
+    "response/spell_played_when_legal": {
+     "den": 291,
+     "num": 172,
+     "rate": 0.5910652920962199
+    },
+    "sequence/earth.bobu_before_destruction/completed_per_eligible_game": {
+     "den": 176,
+     "num": 4,
+     "rate": 0.022727272727272728
+    },
+    "sequence/earth.bobu_before_destruction/converted_per_eligible_game": {
+     "den": 176,
+     "num": 2,
+     "rate": 0.011363636363636364
+    },
+    "sequence/earth.stone_defender_portal_attack/completed_per_eligible_game": {
+     "den": 172,
+     "num": 116,
+     "rate": 0.6744186046511628
+    },
+    "sequence/earth.stone_defender_portal_attack/converted_per_eligible_game": {
+     "den": 172,
+     "num": 64,
+     "rate": 0.37209302325581395
+    },
+    "strategy/attacks_by_equipped_attacker": {
+     "den": 1631,
+     "num": 3,
+     "rate": 0.0018393623543838135
+    },
+    "strategy/face_target_share_when_both_legal": {
+     "den": 886,
+     "num": 309,
+     "rate": 0.34875846501128666
+    },
+    "strategy/favorable_trade_taken_per_available_turn": {
+     "den": 423,
+     "num": 308,
+     "rate": 0.7281323877068558
+    },
+    "strategy/spell_cast_per_legal_main_turn": {
+     "den": 1046,
+     "num": 258,
+     "rate": 0.24665391969407266
+    }
+   }
+  },
+  "all|Stonehaven/Goro": {
+   "games": 112,
+   "metrics": {
+    "block/attacker_destroyed": {
+     "den": 242,
+     "num": 97,
+     "rate": 0.40082644628099173
+    },
+    "block/blocker_survives": {
+     "den": 242,
+     "num": 85,
+     "rate": 0.3512396694214876
+    },
+    "block/favorable_survive_or_kill": {
+     "den": 242,
+     "num": 129,
+     "rate": 0.5330578512396694
+    },
+    "draft/max_wjaccard_to_curated": {
+     "den": 48,
+     "num": 6.396490471959218,
+     "rate": 0.13326021816581704
+    },
+    "draft/mean_cost": {
+     "den": 2400,
+     "num": 7848.0,
+     "rate": 3.27
+    },
+    "draft/normal_share": {
+     "den": 2400,
+     "num": 1562.0,
+     "rate": 0.6508333333333334
+    },
+    "draft/spell_share": {
+     "den": 2400,
+     "num": 219.0,
+     "rate": 0.09125
+    },
+    "draft/unique_cards": {
+     "den": 48,
+     "num": 1677,
+     "rate": 34.9375
+    },
+    "draft/weapon_share": {
+     "den": 2400,
+     "num": 71.0,
+     "rate": 0.029583333333333333
+    },
+    "earth/quicksand_cast_multi_removal": {
+     "den": 40,
+     "num": 31,
+     "rate": 0.775
+    },
+    "earth/quicksand_cast_per_legal_turn": {
+     "den": 85,
+     "num": 40,
+     "rate": 0.47058823529411764
+    },
+    "gate/Stonehaven/grant_then_block": {
+     "den": 403,
+     "num": 229,
+     "rate": 0.5682382133995038
+    },
+    "gate/Stonehaven/portal_then_grant": {
+     "den": 479,
+     "num": 403,
+     "rate": 0.8413361169102297
+    },
+    "gate/portal_per_legal_turn": {
+     "den": 486,
+     "num": 478,
+     "rate": 0.9835390946502057
+    },
+    "heal/heal_spell_per_legal_turn_below_max_hp": {
+     "den": 251,
+     "num": 64,
+     "rate": 0.2549800796812749
+    },
+    "ikz/held_at_end_of_own_turn": {
+     "den": 855,
+     "num": 250,
+     "rate": 0.29239766081871343
+    },
+    "ikz/held_then_spent_in_opp_turn": {
+     "den": 250,
+     "num": 57,
+     "rate": 0.228
+    },
+    "leader/Goro/target_then_attacks_same_turn": {
+     "den": 73,
+     "num": 5,
+     "rate": 0.0684931506849315
+    },
+    "leader/Goro/use_with_target": {
+     "den": 73,
+     "num": 73,
+     "rate": 1.0
+    },
+    "leader/use_per_legal_turn": {
+     "den": 769,
+     "num": 73,
+     "rate": 0.09492847854356307
+    },
+    "lightning/weapon_attach_per_legal_turn": {
+     "den": 306,
+     "num": 54,
+     "rate": 0.17647058823529413
+    },
+    "lightning/weapon_attach_to_entity_share": {
+     "den": 65,
+     "num": 1,
+     "rate": 0.015384615384615385
+    },
+    "outcome/battle_decisions": {
+     "den": 112,
+     "num": 6280,
+     "rate": 56.07142857142857
+    },
+    "outcome/own_turns": {
+     "den": 112,
+     "num": 855,
+     "rate": 7.633928571428571
+    },
+    "outcome/win": {
+     "den": 112,
+     "num": 62,
+     "rate": 0.5535714285714286
+    },
+    "outcome/win_vs_EARTH": {
+     "den": 28,
+     "num": 16,
+     "rate": 0.5714285714285714
+    },
+    "outcome/win_vs_FIRE": {
+     "den": 28,
+     "num": 10,
+     "rate": 0.35714285714285715
+    },
+    "outcome/win_vs_LIGHTNING": {
+     "den": 28,
+     "num": 19,
+     "rate": 0.6785714285714286
+    },
+    "outcome/win_vs_WATER": {
+     "den": 28,
+     "num": 17,
+     "rate": 0.6071428571428571
+    },
+    "response/any_nonblock_response_when_legal": {
+     "den": 181,
+     "num": 125,
+     "rate": 0.6906077348066298
+    },
+    "response/defender_declared_when_legal": {
+     "den": 483,
+     "num": 242,
+     "rate": 0.5010351966873706
+    },
+    "response/spell_played_when_legal": {
+     "den": 98,
+     "num": 57,
+     "rate": 0.5816326530612245
+    },
+    "sequence/earth.stone_defender_portal_attack/completed_per_eligible_game": {
+     "den": 104,
+     "num": 72,
+     "rate": 0.6923076923076923
+    },
+    "sequence/earth.stone_defender_portal_attack/converted_per_eligible_game": {
+     "den": 104,
+     "num": 48,
+     "rate": 0.46153846153846156
+    },
+    "strategy/attacks_by_equipped_attacker": {
+     "den": 1170,
+     "num": 41,
+     "rate": 0.03504273504273504
+    },
+    "strategy/face_target_share_when_both_legal": {
+     "den": 707,
+     "num": 325,
+     "rate": 0.4596888260254597
+    },
+    "strategy/favorable_trade_taken_per_available_turn": {
+     "den": 300,
+     "num": 178,
+     "rate": 0.5933333333333334
+    },
+    "strategy/spell_cast_per_legal_main_turn": {
+     "den": 471,
+     "num": 110,
+     "rate": 0.23354564755838642
+    }
+   }
+  },
+  "fixed|ALL": {
+   "games": 192,
+   "metrics": {
+    "block/attacker_destroyed": {
+     "den": 551,
+     "num": 171,
+     "rate": 0.3103448275862069
+    },
+    "block/blocker_survives": {
+     "den": 551,
+     "num": 176,
+     "rate": 0.3194192377495463
+    },
+    "block/favorable_survive_or_kill": {
+     "den": 551,
+     "num": 264,
+     "rate": 0.4791288566243194
+    },
+    "earth/quicksand_cast_multi_removal": {
+     "den": 113,
+     "num": 95,
+     "rate": 0.8407079646017699
+    },
+    "earth/quicksand_cast_per_legal_turn": {
+     "den": 277,
+     "num": 113,
+     "rate": 0.40794223826714804
+    },
+    "gate/Stonehaven/grant_then_block": {
+     "den": 827,
+     "num": 449,
+     "rate": 0.5429262394195888
+    },
+    "gate/Stonehaven/portal_then_grant": {
+     "den": 1031,
+     "num": 827,
+     "rate": 0.8021338506304558
+    },
+    "gate/portal_per_legal_turn": {
+     "den": 1063,
+     "num": 1031,
+     "rate": 0.9698965192850423
+    },
+    "heal/heal_spell_per_legal_turn_below_max_hp": {
+     "den": 668,
+     "num": 191,
+     "rate": 0.28592814371257486
+    },
+    "ikz/held_at_end_of_own_turn": {
+     "den": 1668,
+     "num": 684,
+     "rate": 0.41007194244604317
+    },
+    "ikz/held_then_spent_in_opp_turn": {
+     "den": 684,
+     "num": 213,
+     "rate": 0.31140350877192985
+    },
+    "leader/Bobu/earth_loss_before_next_turn": {
+     "den": 4,
+     "num": 2,
+     "rate": 0.5
+    },
+    "leader/Bobu/use_then_heal_observed": {
+     "den": 5,
+     "num": 0,
+     "rate": 0.0
+    },
+    "leader/Goro/target_then_attacks_same_turn": {
+     "den": 57,
+     "num": 5,
+     "rate": 0.08771929824561403
+    },
+    "leader/Goro/use_with_target": {
+     "den": 57,
+     "num": 57,
+     "rate": 1.0
+    },
+    "leader/use_per_legal_turn": {
+     "den": 1616,
+     "num": 62,
+     "rate": 0.038366336633663366
+    },
+    "lightning/weapon_attach_per_legal_turn": {
+     "den": 234,
+     "num": 48,
+     "rate": 0.20512820512820512
+    },
+    "lightning/weapon_attach_to_entity_share": {
+     "den": 58,
+     "num": 0,
+     "rate": 0.0
+    },
+    "outcome/battle_decisions": {
+     "den": 192,
+     "num": 11588,
+     "rate": 60.354166666666664
+    },
+    "outcome/own_turns": {
+     "den": 192,
+     "num": 1668,
+     "rate": 8.6875
+    },
+    "outcome/win": {
+     "den": 192,
+     "num": 124,
+     "rate": 0.6458333333333334
+    },
+    "outcome/win_vs_EARTH": {
+     "den": 48,
+     "num": 30,
+     "rate": 0.625
+    },
+    "outcome/win_vs_FIRE": {
+     "den": 48,
+     "num": 24,
+     "rate": 0.5
+    },
+    "outcome/win_vs_LIGHTNING": {
+     "den": 48,
+     "num": 33,
+     "rate": 0.6875
+    },
+    "outcome/win_vs_WATER": {
+     "den": 48,
+     "num": 37,
+     "rate": 0.7708333333333334
+    },
+    "response/any_nonblock_response_when_legal": {
+     "den": 634,
+     "num": 388,
+     "rate": 0.61198738170347
+    },
+    "response/defender_declared_when_legal": {
+     "den": 1231,
+     "num": 551,
+     "rate": 0.4476035743298132
+    },
+    "response/spell_played_when_legal": {
+     "den": 378,
+     "num": 219,
+     "rate": 0.5793650793650794
+    },
+    "sequence/earth.bobu_before_destruction/completed_per_eligible_game": {
+     "den": 128,
+     "num": 2,
+     "rate": 0.015625
+    },
+    "sequence/earth.bobu_before_destruction/converted_per_eligible_game": {
+     "den": 128,
+     "num": 0,
+     "rate": 0.0
+    },
+    "sequence/earth.stone_defender_portal_attack/completed_per_eligible_game": {
+     "den": 186,
+     "num": 131,
+     "rate": 0.7043010752688172
+    },
+    "sequence/earth.stone_defender_portal_attack/converted_per_eligible_game": {
+     "den": 186,
+     "num": 73,
+     "rate": 0.3924731182795699
+    },
+    "strategy/attacks_by_equipped_attacker": {
+     "den": 1696,
+     "num": 38,
+     "rate": 0.02240566037735849
+    },
+    "strategy/face_target_share_when_both_legal": {
+     "den": 878,
+     "num": 391,
+     "rate": 0.44533029612756264
+    },
+    "strategy/favorable_trade_taken_per_available_turn": {
+     "den": 440,
+     "num": 277,
+     "rate": 0.6295454545454545
+    },
+    "strategy/spell_cast_per_legal_main_turn": {
+     "den": 1230,
+     "num": 311,
+     "rate": 0.2528455284552846
+    }
+   }
+  },
+  "fixed|Stonehaven/Bobu": {
+   "games": 128,
+   "metrics": {
+    "block/attacker_destroyed": {
+     "den": 421,
+     "num": 110,
+     "rate": 0.26128266033254155
+    },
+    "block/blocker_survives": {
+     "den": 421,
+     "num": 117,
+     "rate": 0.27790973871733965
+    },
+    "block/favorable_survive_or_kill": {
+     "den": 421,
+     "num": 182,
+     "rate": 0.4323040380047506
+    },
+    "earth/quicksand_cast_multi_removal": {
+     "den": 82,
+     "num": 71,
+     "rate": 0.8658536585365854
+    },
+    "earth/quicksand_cast_per_legal_turn": {
+     "den": 213,
+     "num": 82,
+     "rate": 0.38497652582159625
+    },
+    "gate/Stonehaven/grant_then_block": {
+     "den": 614,
+     "num": 319,
+     "rate": 0.5195439739413681
+    },
+    "gate/Stonehaven/portal_then_grant": {
+     "den": 782,
+     "num": 614,
+     "rate": 0.7851662404092071
+    },
+    "gate/portal_per_legal_turn": {
+     "den": 813,
+     "num": 782,
+     "rate": 0.9618696186961869
+    },
+    "heal/heal_spell_per_legal_turn_below_max_hp": {
+     "den": 485,
+     "num": 143,
+     "rate": 0.2948453608247423
+    },
+    "ikz/held_at_end_of_own_turn": {
+     "den": 1188,
+     "num": 522,
+     "rate": 0.4393939393939394
+    },
+    "ikz/held_then_spent_in_opp_turn": {
+     "den": 522,
+     "num": 161,
+     "rate": 0.30842911877394635
+    },
+    "leader/Bobu/earth_loss_before_next_turn": {
+     "den": 4,
+     "num": 2,
+     "rate": 0.5
+    },
+    "leader/Bobu/use_then_heal_observed": {
+     "den": 5,
+     "num": 0,
+     "rate": 0.0
+    },
+    "leader/use_per_legal_turn": {
+     "den": 1188,
+     "num": 5,
+     "rate": 0.004208754208754209
+    },
+    "outcome/battle_decisions": {
+     "den": 128,
+     "num": 8113,
+     "rate": 63.3828125
+    },
+    "outcome/own_turns": {
+     "den": 128,
+     "num": 1188,
+     "rate": 9.28125
+    },
+    "outcome/win": {
+     "den": 128,
+     "num": 86,
+     "rate": 0.671875
+    },
+    "outcome/win_vs_EARTH": {
+     "den": 32,
+     "num": 22,
+     "rate": 0.6875
+    },
+    "outcome/win_vs_FIRE": {
+     "den": 32,
+     "num": 17,
+     "rate": 0.53125
+    },
+    "outcome/win_vs_LIGHTNING": {
+     "den": 32,
+     "num": 21,
+     "rate": 0.65625
+    },
+    "outcome/win_vs_WATER": {
+     "den": 32,
+     "num": 26,
+     "rate": 0.8125
+    },
+    "response/any_nonblock_response_when_legal": {
+     "den": 463,
+     "num": 272,
+     "rate": 0.5874730021598272
+    },
+    "response/defender_declared_when_legal": {
+     "den": 987,
+     "num": 421,
+     "rate": 0.4265450861195542
+    },
+    "response/spell_played_when_legal": {
+     "den": 285,
+     "num": 167,
+     "rate": 0.5859649122807018
+    },
+    "sequence/earth.bobu_before_destruction/completed_per_eligible_game": {
+     "den": 128,
+     "num": 2,
+     "rate": 0.015625
+    },
+    "sequence/earth.bobu_before_destruction/converted_per_eligible_game": {
+     "den": 128,
+     "num": 0,
+     "rate": 0.0
+    },
+    "sequence/earth.stone_defender_portal_attack/completed_per_eligible_game": {
+     "den": 125,
+     "num": 86,
+     "rate": 0.688
+    },
+    "sequence/earth.stone_defender_portal_attack/converted_per_eligible_game": {
+     "den": 125,
+     "num": 46,
+     "rate": 0.368
+    },
+    "strategy/attacks_by_equipped_attacker": {
+     "den": 1083,
+     "num": 0,
+     "rate": 0.0
+    },
+    "strategy/face_target_share_when_both_legal": {
+     "den": 522,
+     "num": 181,
+     "rate": 0.34674329501915707
+    },
+    "strategy/favorable_trade_taken_per_available_turn": {
+     "den": 274,
+     "num": 201,
+     "rate": 0.7335766423357665
+    },
+    "strategy/spell_cast_per_legal_main_turn": {
+     "den": 909,
+     "num": 232,
+     "rate": 0.2552255225522552
+    }
+   }
+  },
+  "fixed|Stonehaven/Goro": {
+   "games": 64,
+   "metrics": {
+    "block/attacker_destroyed": {
+     "den": 130,
+     "num": 61,
+     "rate": 0.46923076923076923
+    },
+    "block/blocker_survives": {
+     "den": 130,
+     "num": 59,
+     "rate": 0.45384615384615384
+    },
+    "block/favorable_survive_or_kill": {
+     "den": 130,
+     "num": 82,
+     "rate": 0.6307692307692307
+    },
+    "earth/quicksand_cast_multi_removal": {
+     "den": 31,
+     "num": 24,
+     "rate": 0.7741935483870968
+    },
+    "earth/quicksand_cast_per_legal_turn": {
+     "den": 64,
+     "num": 31,
+     "rate": 0.484375
+    },
+    "gate/Stonehaven/grant_then_block": {
+     "den": 213,
+     "num": 130,
+     "rate": 0.6103286384976526
+    },
+    "gate/Stonehaven/portal_then_grant": {
+     "den": 249,
+     "num": 213,
+     "rate": 0.8554216867469879
+    },
+    "gate/portal_per_legal_turn": {
+     "den": 250,
+     "num": 249,
+     "rate": 0.996
+    },
+    "heal/heal_spell_per_legal_turn_below_max_hp": {
+     "den": 183,
+     "num": 48,
+     "rate": 0.26229508196721313
+    },
+    "ikz/held_at_end_of_own_turn": {
+     "den": 480,
+     "num": 162,
+     "rate": 0.3375
+    },
+    "ikz/held_then_spent_in_opp_turn": {
+     "den": 162,
+     "num": 52,
+     "rate": 0.32098765432098764
+    },
+    "leader/Goro/target_then_attacks_same_turn": {
+     "den": 57,
+     "num": 5,
+     "rate": 0.08771929824561403
+    },
+    "leader/Goro/use_with_target": {
+     "den": 57,
+     "num": 57,
+     "rate": 1.0
+    },
+    "leader/use_per_legal_turn": {
+     "den": 428,
+     "num": 57,
+     "rate": 0.13317757009345793
+    },
+    "lightning/weapon_attach_per_legal_turn": {
+     "den": 234,
+     "num": 48,
+     "rate": 0.20512820512820512
+    },
+    "lightning/weapon_attach_to_entity_share": {
+     "den": 58,
+     "num": 0,
+     "rate": 0.0
+    },
+    "outcome/battle_decisions": {
+     "den": 64,
+     "num": 3475,
+     "rate": 54.296875
+    },
+    "outcome/own_turns": {
+     "den": 64,
+     "num": 480,
+     "rate": 7.5
+    },
+    "outcome/win": {
+     "den": 64,
+     "num": 38,
+     "rate": 0.59375
+    },
+    "outcome/win_vs_EARTH": {
+     "den": 16,
+     "num": 8,
+     "rate": 0.5
+    },
+    "outcome/win_vs_FIRE": {
+     "den": 16,
+     "num": 7,
+     "rate": 0.4375
+    },
+    "outcome/win_vs_LIGHTNING": {
+     "den": 16,
+     "num": 12,
+     "rate": 0.75
+    },
+    "outcome/win_vs_WATER": {
+     "den": 16,
+     "num": 11,
+     "rate": 0.6875
+    },
+    "response/any_nonblock_response_when_legal": {
+     "den": 171,
+     "num": 116,
+     "rate": 0.6783625730994152
+    },
+    "response/defender_declared_when_legal": {
+     "den": 244,
+     "num": 130,
+     "rate": 0.5327868852459017
+    },
+    "response/spell_played_when_legal": {
+     "den": 93,
+     "num": 52,
+     "rate": 0.5591397849462365
+    },
+    "sequence/earth.stone_defender_portal_attack/completed_per_eligible_game": {
+     "den": 61,
+     "num": 45,
+     "rate": 0.7377049180327869
+    },
+    "sequence/earth.stone_defender_portal_attack/converted_per_eligible_game": {
+     "den": 61,
+     "num": 27,
+     "rate": 0.4426229508196721
+    },
+    "strategy/attacks_by_equipped_attacker": {
+     "den": 613,
+     "num": 38,
+     "rate": 0.06199021207177814
+    },
+    "strategy/face_target_share_when_both_legal": {
+     "den": 356,
+     "num": 210,
+     "rate": 0.5898876404494382
+    },
+    "strategy/favorable_trade_taken_per_available_turn": {
+     "den": 166,
+     "num": 76,
+     "rate": 0.4578313253012048
+    },
+    "strategy/spell_cast_per_legal_main_turn": {
+     "den": 321,
+     "num": 79,
+     "rate": 0.24610591900311526
+    }
+   }
+  },
+  "free_draft|ALL": {
+   "games": 96,
+   "metrics": {
+    "block/attacker_destroyed": {
+     "den": 225,
+     "num": 67,
+     "rate": 0.29777777777777775
+    },
+    "block/blocker_survives": {
+     "den": 225,
+     "num": 55,
+     "rate": 0.24444444444444444
+    },
+    "block/favorable_survive_or_kill": {
+     "den": 225,
+     "num": 93,
+     "rate": 0.41333333333333333
+    },
+    "draft/max_wjaccard_to_curated": {
+     "den": 96,
+     "num": 12.504167173259841,
+     "rate": 0.13025174138812334
+    },
+    "draft/mean_cost": {
+     "den": 4800,
+     "num": 15643.0,
+     "rate": 3.258958333333333
+    },
+    "draft/normal_share": {
+     "den": 4800,
+     "num": 3106.0,
+     "rate": 0.6470833333333333
+    },
+    "draft/spell_share": {
+     "den": 4800,
+     "num": 419.0,
+     "rate": 0.08729166666666667
+    },
+    "draft/unique_cards": {
+     "den": 96,
+     "num": 3340,
+     "rate": 34.791666666666664
+    },
+    "draft/weapon_share": {
+     "den": 4800,
+     "num": 136.0,
+     "rate": 0.028333333333333332
+    },
+    "earth/quicksand_cast_multi_removal": {
+     "den": 20,
+     "num": 15,
+     "rate": 0.75
+    },
+    "earth/quicksand_cast_per_legal_turn": {
+     "den": 52,
+     "num": 20,
+     "rate": 0.38461538461538464
+    },
+    "gate/Stonehaven/grant_then_block": {
+     "den": 383,
+     "num": 194,
+     "rate": 0.5065274151436031
+    },
+    "gate/Stonehaven/portal_then_grant": {
+     "den": 454,
+     "num": 383,
+     "rate": 0.8436123348017621
+    },
+    "gate/portal_per_legal_turn": {
+     "den": 468,
+     "num": 453,
+     "rate": 0.967948717948718
+    },
+    "heal/heal_spell_per_legal_turn_below_max_hp": {
+     "den": 125,
+     "num": 29,
+     "rate": 0.232
+    },
+    "ikz/held_at_end_of_own_turn": {
+     "den": 755,
+     "num": 187,
+     "rate": 0.247682119205298
+    },
+    "ikz/held_then_spent_in_opp_turn": {
+     "den": 187,
+     "num": 10,
+     "rate": 0.053475935828877004
+    },
+    "leader/Bobu/earth_loss_before_next_turn": {
+     "den": 2,
+     "num": 2,
+     "rate": 1.0
+    },
+    "leader/Bobu/use_then_heal_observed": {
+     "den": 2,
+     "num": 2,
+     "rate": 1.0
+    },
+    "leader/Goro/target_then_attacks_same_turn": {
+     "den": 16,
+     "num": 0,
+     "rate": 0.0
+    },
+    "leader/Goro/use_with_target": {
+     "den": 16,
+     "num": 16,
+     "rate": 1.0
+    },
+    "leader/use_per_legal_turn": {
+     "den": 721,
+     "num": 18,
+     "rate": 0.024965325936199722
+    },
+    "lightning/weapon_attach_per_legal_turn": {
+     "den": 120,
+     "num": 11,
+     "rate": 0.09166666666666666
+    },
+    "lightning/weapon_attach_to_entity_share": {
+     "den": 12,
+     "num": 1,
+     "rate": 0.08333333333333333
+    },
+    "outcome/battle_decisions": {
+     "den": 96,
+     "num": 5693,
+     "rate": 59.302083333333336
+    },
+    "outcome/own_turns": {
+     "den": 96,
+     "num": 755,
+     "rate": 7.864583333333333
+    },
+    "outcome/win": {
+     "den": 96,
+     "num": 45,
+     "rate": 0.46875
+    },
+    "outcome/win_vs_EARTH": {
+     "den": 24,
+     "num": 14,
+     "rate": 0.5833333333333334
+    },
+    "outcome/win_vs_FIRE": {
+     "den": 24,
+     "num": 5,
+     "rate": 0.20833333333333334
+    },
+    "outcome/win_vs_LIGHTNING": {
+     "den": 24,
+     "num": 13,
+     "rate": 0.5416666666666666
+    },
+    "outcome/win_vs_WATER": {
+     "den": 24,
+     "num": 13,
+     "rate": 0.5416666666666666
+    },
+    "response/any_nonblock_response_when_legal": {
+     "den": 29,
+     "num": 24,
+     "rate": 0.8275862068965517
+    },
+    "response/defender_declared_when_legal": {
+     "den": 488,
+     "num": 225,
+     "rate": 0.4610655737704918
+    },
+    "response/spell_played_when_legal": {
+     "den": 11,
+     "num": 10,
+     "rate": 0.9090909090909091
+    },
+    "sequence/earth.bobu_before_destruction/completed_per_eligible_game": {
+     "den": 48,
+     "num": 2,
+     "rate": 0.041666666666666664
+    },
+    "sequence/earth.bobu_before_destruction/converted_per_eligible_game": {
+     "den": 48,
+     "num": 2,
+     "rate": 0.041666666666666664
+    },
+    "sequence/earth.stone_defender_portal_attack/completed_per_eligible_game": {
+     "den": 90,
+     "num": 57,
+     "rate": 0.6333333333333333
+    },
+    "sequence/earth.stone_defender_portal_attack/converted_per_eligible_game": {
+     "den": 90,
+     "num": 39,
+     "rate": 0.43333333333333335
+    },
+    "strategy/attacks_by_equipped_attacker": {
+     "den": 1105,
+     "num": 6,
+     "rate": 0.005429864253393665
+    },
+    "strategy/face_target_share_when_both_legal": {
+     "den": 715,
+     "num": 243,
+     "rate": 0.33986013986013985
+    },
+    "strategy/favorable_trade_taken_per_available_turn": {
+     "den": 283,
+     "num": 209,
+     "rate": 0.7385159010600707
+    },
+    "strategy/spell_cast_per_legal_main_turn": {
+     "den": 287,
+     "num": 57,
+     "rate": 0.1986062717770035
+    }
+   }
+  },
+  "free_draft|Stonehaven/Bobu": {
+   "games": 48,
+   "metrics": {
+    "block/attacker_destroyed": {
+     "den": 113,
+     "num": 31,
+     "rate": 0.2743362831858407
+    },
+    "block/blocker_survives": {
+     "den": 113,
+     "num": 29,
+     "rate": 0.25663716814159293
+    },
+    "block/favorable_survive_or_kill": {
+     "den": 113,
+     "num": 46,
+     "rate": 0.40707964601769914
+    },
+    "draft/max_wjaccard_to_curated": {
+     "den": 48,
+     "num": 6.107676701300631,
+     "rate": 0.1272432646104298
+    },
+    "draft/mean_cost": {
+     "den": 2400,
+     "num": 7795.0,
+     "rate": 3.247916666666667
+    },
+    "draft/normal_share": {
+     "den": 2400,
+     "num": 1544.0,
+     "rate": 0.6433333333333333
+    },
+    "draft/spell_share": {
+     "den": 2400,
+     "num": 200.0,
+     "rate": 0.08333333333333333
+    },
+    "draft/unique_cards": {
+     "den": 48,
+     "num": 1663,
+     "rate": 34.645833333333336
+    },
+    "draft/weapon_share": {
+     "den": 2400,
+     "num": 65.0,
+     "rate": 0.027083333333333334
+    },
+    "earth/quicksand_cast_multi_removal": {
+     "den": 11,
+     "num": 8,
+     "rate": 0.7272727272727273
+    },
+    "earth/quicksand_cast_per_legal_turn": {
+     "den": 31,
+     "num": 11,
+     "rate": 0.3548387096774194
+    },
+    "gate/Stonehaven/grant_then_block": {
+     "den": 193,
+     "num": 95,
+     "rate": 0.49222797927461137
+    },
+    "gate/Stonehaven/portal_then_grant": {
+     "den": 224,
+     "num": 193,
+     "rate": 0.8616071428571429
+    },
+    "gate/portal_per_legal_turn": {
+     "den": 232,
+     "num": 224,
+     "rate": 0.9655172413793104
+    },
+    "heal/heal_spell_per_legal_turn_below_max_hp": {
+     "den": 57,
+     "num": 13,
+     "rate": 0.22807017543859648
+    },
+    "ikz/held_at_end_of_own_turn": {
+     "den": 380,
+     "num": 99,
+     "rate": 0.26052631578947366
+    },
+    "ikz/held_then_spent_in_opp_turn": {
+     "den": 99,
+     "num": 5,
+     "rate": 0.050505050505050504
+    },
+    "leader/Bobu/earth_loss_before_next_turn": {
+     "den": 2,
+     "num": 2,
+     "rate": 1.0
+    },
+    "leader/Bobu/use_then_heal_observed": {
+     "den": 2,
+     "num": 2,
+     "rate": 1.0
+    },
+    "leader/use_per_legal_turn": {
+     "den": 380,
+     "num": 2,
+     "rate": 0.005263157894736842
+    },
+    "lightning/weapon_attach_per_legal_turn": {
+     "den": 48,
+     "num": 5,
+     "rate": 0.10416666666666667
+    },
+    "lightning/weapon_attach_to_entity_share": {
+     "den": 5,
+     "num": 0,
+     "rate": 0.0
+    },
+    "outcome/battle_decisions": {
+     "den": 48,
+     "num": 2888,
+     "rate": 60.166666666666664
+    },
+    "outcome/own_turns": {
+     "den": 48,
+     "num": 380,
+     "rate": 7.916666666666667
+    },
+    "outcome/win": {
+     "den": 48,
+     "num": 21,
+     "rate": 0.4375
+    },
+    "outcome/win_vs_EARTH": {
+     "den": 12,
+     "num": 6,
+     "rate": 0.5
+    },
+    "outcome/win_vs_FIRE": {
+     "den": 12,
+     "num": 2,
+     "rate": 0.16666666666666666
+    },
+    "outcome/win_vs_LIGHTNING": {
+     "den": 12,
+     "num": 6,
+     "rate": 0.5
+    },
+    "outcome/win_vs_WATER": {
+     "den": 12,
+     "num": 7,
+     "rate": 0.5833333333333334
+    },
+    "response/any_nonblock_response_when_legal": {
+     "den": 19,
+     "num": 15,
+     "rate": 0.7894736842105263
+    },
+    "response/defender_declared_when_legal": {
+     "den": 249,
+     "num": 113,
+     "rate": 0.4538152610441767
+    },
+    "response/spell_played_when_legal": {
+     "den": 6,
+     "num": 5,
+     "rate": 0.8333333333333334
+    },
+    "sequence/earth.bobu_before_destruction/completed_per_eligible_game": {
+     "den": 48,
+     "num": 2,
+     "rate": 0.041666666666666664
+    },
+    "sequence/earth.bobu_before_destruction/converted_per_eligible_game": {
+     "den": 48,
+     "num": 2,
+     "rate": 0.041666666666666664
+    },
+    "sequence/earth.stone_defender_portal_attack/completed_per_eligible_game": {
+     "den": 47,
+     "num": 30,
+     "rate": 0.6382978723404256
+    },
+    "sequence/earth.stone_defender_portal_attack/converted_per_eligible_game": {
+     "den": 47,
+     "num": 18,
+     "rate": 0.3829787234042553
+    },
+    "strategy/attacks_by_equipped_attacker": {
+     "den": 548,
+     "num": 3,
+     "rate": 0.005474452554744526
+    },
+    "strategy/face_target_share_when_both_legal": {
+     "den": 364,
+     "num": 128,
+     "rate": 0.3516483516483517
+    },
+    "strategy/favorable_trade_taken_per_available_turn": {
+     "den": 149,
+     "num": 107,
+     "rate": 0.7181208053691275
+    },
+    "strategy/spell_cast_per_legal_main_turn": {
+     "den": 137,
+     "num": 26,
+     "rate": 0.1897810218978102
+    }
+   }
+  },
+  "free_draft|Stonehaven/Goro": {
+   "games": 48,
+   "metrics": {
+    "block/attacker_destroyed": {
+     "den": 112,
+     "num": 36,
+     "rate": 0.32142857142857145
+    },
+    "block/blocker_survives": {
+     "den": 112,
+     "num": 26,
+     "rate": 0.23214285714285715
+    },
+    "block/favorable_survive_or_kill": {
+     "den": 112,
+     "num": 47,
+     "rate": 0.41964285714285715
+    },
+    "draft/max_wjaccard_to_curated": {
+     "den": 48,
+     "num": 6.396490471959218,
+     "rate": 0.13326021816581704
+    },
+    "draft/mean_cost": {
+     "den": 2400,
+     "num": 7848.0,
+     "rate": 3.27
+    },
+    "draft/normal_share": {
+     "den": 2400,
+     "num": 1562.0,
+     "rate": 0.6508333333333334
+    },
+    "draft/spell_share": {
+     "den": 2400,
+     "num": 219.0,
+     "rate": 0.09125
+    },
+    "draft/unique_cards": {
+     "den": 48,
+     "num": 1677,
+     "rate": 34.9375
+    },
+    "draft/weapon_share": {
+     "den": 2400,
+     "num": 71.0,
+     "rate": 0.029583333333333333
+    },
+    "earth/quicksand_cast_multi_removal": {
+     "den": 9,
+     "num": 7,
+     "rate": 0.7777777777777778
+    },
+    "earth/quicksand_cast_per_legal_turn": {
+     "den": 21,
+     "num": 9,
+     "rate": 0.42857142857142855
+    },
+    "gate/Stonehaven/grant_then_block": {
+     "den": 190,
+     "num": 99,
+     "rate": 0.5210526315789473
+    },
+    "gate/Stonehaven/portal_then_grant": {
+     "den": 230,
+     "num": 190,
+     "rate": 0.8260869565217391
+    },
+    "gate/portal_per_legal_turn": {
+     "den": 236,
+     "num": 229,
+     "rate": 0.9703389830508474
+    },
+    "heal/heal_spell_per_legal_turn_below_max_hp": {
+     "den": 68,
+     "num": 16,
+     "rate": 0.23529411764705882
+    },
+    "ikz/held_at_end_of_own_turn": {
+     "den": 375,
+     "num": 88,
+     "rate": 0.23466666666666666
+    },
+    "ikz/held_then_spent_in_opp_turn": {
+     "den": 88,
+     "num": 5,
+     "rate": 0.056818181818181816
+    },
+    "leader/Goro/target_then_attacks_same_turn": {
+     "den": 16,
+     "num": 0,
+     "rate": 0.0
+    },
+    "leader/Goro/use_with_target": {
+     "den": 16,
+     "num": 16,
+     "rate": 1.0
+    },
+    "leader/use_per_legal_turn": {
+     "den": 341,
+     "num": 16,
+     "rate": 0.0469208211143695
+    },
+    "lightning/weapon_attach_per_legal_turn": {
+     "den": 72,
+     "num": 6,
+     "rate": 0.08333333333333333
+    },
+    "lightning/weapon_attach_to_entity_share": {
+     "den": 7,
+     "num": 1,
+     "rate": 0.14285714285714285
+    },
+    "outcome/battle_decisions": {
+     "den": 48,
+     "num": 2805,
+     "rate": 58.4375
+    },
+    "outcome/own_turns": {
+     "den": 48,
+     "num": 375,
+     "rate": 7.8125
+    },
+    "outcome/win": {
+     "den": 48,
+     "num": 24,
+     "rate": 0.5
+    },
+    "outcome/win_vs_EARTH": {
+     "den": 12,
+     "num": 8,
+     "rate": 0.6666666666666666
+    },
+    "outcome/win_vs_FIRE": {
+     "den": 12,
+     "num": 3,
+     "rate": 0.25
+    },
+    "outcome/win_vs_LIGHTNING": {
+     "den": 12,
+     "num": 7,
+     "rate": 0.5833333333333334
+    },
+    "outcome/win_vs_WATER": {
+     "den": 12,
+     "num": 6,
+     "rate": 0.5
+    },
+    "response/any_nonblock_response_when_legal": {
+     "den": 10,
+     "num": 9,
+     "rate": 0.9
+    },
+    "response/defender_declared_when_legal": {
+     "den": 239,
+     "num": 112,
+     "rate": 0.4686192468619247
+    },
+    "response/spell_played_when_legal": {
+     "den": 5,
+     "num": 5,
+     "rate": 1.0
+    },
+    "sequence/earth.stone_defender_portal_attack/completed_per_eligible_game": {
+     "den": 43,
+     "num": 27,
+     "rate": 0.627906976744186
+    },
+    "sequence/earth.stone_defender_portal_attack/converted_per_eligible_game": {
+     "den": 43,
+     "num": 21,
+     "rate": 0.4883720930232558
+    },
+    "strategy/attacks_by_equipped_attacker": {
+     "den": 557,
+     "num": 3,
+     "rate": 0.005385996409335727
+    },
+    "strategy/face_target_share_when_both_legal": {
+     "den": 351,
+     "num": 115,
+     "rate": 0.32763532763532766
+    },
+    "strategy/favorable_trade_taken_per_available_turn": {
+     "den": 134,
+     "num": 102,
+     "rate": 0.7611940298507462
+    },
+    "strategy/spell_cast_per_legal_main_turn": {
+     "den": 150,
+     "num": 31,
+     "rate": 0.20666666666666667
+    }
+   }
+  }
+ }
+}

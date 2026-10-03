@@ -192,3 +192,8 @@
 {"card_id": "STT04-016", "name": "Collateral Burst", "rarity": "UC", "element": "FIRE", "type": "SPELL", "ikz_cost": 2, "subtypes": ["Pyreskin", "Scorchweaver"]}
 {"card_id": "STT04-017", "name": "Wrath of Sinder", "rarity": "R", "element": "FIRE", "type": "SPELL", "ikz_cost": 3, "subtypes": ["Blazerker"]}
 {"card_id": "STT03-017", "name": "Sprout of Fortune", "rarity": "C", "element": "EARTH", "type": "SPELL", "ikz_cost": 3, "subtypes": ["Verdant"]}
+{"card_id": "AZK01-013", "name": "Gou the Iron Judge", "rarity": "UC", "element": "NORMAL", "type": "ENTITY", "ikz_cost": 5, "attack": 3, "health": 3, "gate_points": 1, "subtypes": ["Fatedealer"]}
+{"card_id": "AZK01-076", "name": "Hōren of Two Paths", "rarity": "C", "element": "NORMAL", "type": "ENTITY", "ikz_cost": 3, "attack": 1, "health": 2, "gate_points": 1, "subtypes": ["Fatedealer", "Monk"]}
+{"card_id": "AZK01-079", "name": "Gin and Tonika", "rarity": "SR", "element": "NORMAL", "type": "ENTITY", "ikz_cost": 6, "attack": 3, "health": 4, "gate_points": 3, "subtypes": ["Fatedealer"]}
+{"card_id": "AZK01-083", "name": "Gurugumi Imitator", "rarity": "R", "element": "NORMAL", "type": "ENTITY", "ikz_cost": 4, "attack": 2, "health": 2, "gate_points": 1, "subtypes": ["Gurijutsu"]}
+{"card_id": "AZK01-099", "name": "Raiko's Wrath, Shin", "rarity": "SR", "element": "LIGHTNING", "type": "ENTITY", "ikz_cost": 7, "attack": 4, "health": 4, "gate_points": 3, "subtypes": ["Shockcoil", "Stormcaller", "Tiger"]}

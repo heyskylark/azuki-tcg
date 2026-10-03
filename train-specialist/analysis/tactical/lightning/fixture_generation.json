@@ -1,0 +1,573 @@
+{
+  "accepted": [
+    {
+      "seat": 0,
+      "seed": 107,
+      "case_count": 14
+    },
+    {
+      "seat": 0,
+      "seed": 138,
+      "case_count": 14
+    },
+    {
+      "seat": 1,
+      "seed": 144,
+      "case_count": 14
+    },
+    {
+      "seat": 1,
+      "seed": 157,
+      "case_count": 14
+    }
+  ],
+  "rejected": [
+    {
+      "seat": 0,
+      "seed": 101,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 102,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 103,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 104,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 105,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 106,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 108,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 109,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 110,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 111,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 112,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 113,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 114,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 115,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 116,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 117,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 118,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 119,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 120,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 121,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 122,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 123,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 124,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 125,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 126,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 127,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 128,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 129,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 130,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 131,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 132,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 133,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 134,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 135,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 136,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 0,
+      "seed": 137,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 101,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 102,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 103,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 104,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 105,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 106,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 107,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 108,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 109,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 110,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 111,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 112,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 113,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 114,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 115,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 116,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 117,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 118,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 119,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 120,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 121,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 122,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 123,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 124,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 125,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 126,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 127,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 128,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 129,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 130,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 131,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 132,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 133,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 134,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 135,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 136,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 137,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 138,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 139,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 140,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 141,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 142,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 143,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 145,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 146,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 147,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 148,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 149,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 150,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 151,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 152,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 153,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 154,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 155,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    },
+    {
+      "seat": 1,
+      "seed": 156,
+      "error": "fixture prerequisites not drawn within first twenty cards",
+      "traceback": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 268, in generate\n    game, payload = setup(runner, seed, seat, leader)\n                    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 218, in setup\n    game.wait(lambda: all(c in game.hand() for c in needed) and game.hand().count(DAGGER) >= (1 if zero else 4) and game.resources() >= 10)\n    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/lightning/history_benchmark.py\", line 153, in wait\n    assert self.snap()['my_deck_n'] >= 30, 'fixture prerequisites not drawn within first twenty cards'\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAssertionError: fixture prerequisites not drawn within first twenty cards\n"
+    }
+  ],
+  "selection_rule": "first two seeds per seat where all legal fixtures construct; no policy outputs consulted"
+}

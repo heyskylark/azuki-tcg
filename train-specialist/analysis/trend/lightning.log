@@ -1,0 +1,25 @@
+[ensemble-eval] fixed vs u8223: games=608 routed_rows={'lightning->lightning:model_azuki_local_008775.pt': 28031}
+[ensemble-eval] free_draft vs u8223: games=304 routed_rows={'lightning->lightning:model_azuki_local_008775.pt': 26529}
+[ensemble-eval] fixed vs u9305: games=608 routed_rows={'lightning->lightning:model_azuki_local_008775.pt': 28208}
+[ensemble-eval] free_draft vs u9305: games=304 routed_rows={'lightning->lightning:model_azuki_local_008775.pt': 26467}
+[ensemble-eval] games=1824 score=0.43256578947368424 wall=302.2s json=train-specialist/analysis/trend/lightning_u8775.json
+[ensemble-eval] fixed vs u8223: games=608 routed_rows={'lightning->lightning:model_azuki_local_009425.pt': 28073}
+[ensemble-eval] free_draft vs u8223: games=304 routed_rows={'lightning->lightning:model_azuki_local_009425.pt': 26770}
+[ensemble-eval] fixed vs u9305: games=608 routed_rows={'lightning->lightning:model_azuki_local_009425.pt': 28049}
+[ensemble-eval] free_draft vs u9305: games=304 routed_rows={'lightning->lightning:model_azuki_local_009425.pt': 26896}
+[ensemble-eval] games=1824 score=0.44298245614035087 wall=299.6s json=train-specialist/analysis/trend/lightning_u9425.json
+[ensemble-eval] fixed vs u8223: games=608 routed_rows={'lightning->lightning:model_azuki_local_009750.pt': 28379}
+[ensemble-eval] free_draft vs u8223: games=304 routed_rows={'lightning->lightning:model_azuki_local_009750.pt': 27877}
+[ensemble-eval] fixed vs u9305: games=608 routed_rows={'lightning->lightning:model_azuki_local_009750.pt': 28410}
+[ensemble-eval] free_draft vs u9305: games=304 routed_rows={'lightning->lightning:model_azuki_local_009750.pt': 28053}
+[ensemble-eval] games=1824 score=0.47094298245614036 wall=306.3s json=train-specialist/analysis/trend/lightning_u9750.json
+[ensemble-eval] fixed vs u8223: games=608 routed_rows={'lightning->lightning:model_azuki_local_010400.pt': 28256}
+[ensemble-eval] free_draft vs u8223: games=304 routed_rows={'lightning->lightning:model_azuki_local_010400.pt': 28624}
+[ensemble-eval] fixed vs u9305: games=608 routed_rows={'lightning->lightning:model_azuki_local_010400.pt': 28120}
+[ensemble-eval] free_draft vs u9305: games=304 routed_rows={'lightning->lightning:model_azuki_local_010400.pt': 28688}
+[ensemble-eval] games=1824 score=0.4895833333333333 wall=312.2s json=train-specialist/analysis/trend/lightning_u10400.json
+[ensemble-eval] fixed vs u8223: games=608 routed_rows={'lightning->lightning:model_azuki_local_011050.pt': 28182}
+[ensemble-eval] free_draft vs u8223: games=304 routed_rows={'lightning->lightning:model_azuki_local_011050.pt': 27778}
+[ensemble-eval] fixed vs u9305: games=608 routed_rows={'lightning->lightning:model_azuki_local_011050.pt': 28246}
+[ensemble-eval] free_draft vs u9305: games=304 routed_rows={'lightning->lightning:model_azuki_local_011050.pt': 27848}
+[ensemble-eval] games=1824 score=0.4786184210526316 wall=308.4s json=train-specialist/analysis/trend/lightning_u11050.json

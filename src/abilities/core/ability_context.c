@@ -117,7 +117,10 @@ void azk_clear_ability_context(ecs_world_t *world) {
     return;
   }
 
+  // A copied ability (CopiedCardText) is deleted when its card leaves the
+  // field, which can happen while that ability resolves.
   if (ctx->runtime.source_ability != 0 &&
+      ecs_is_alive(world, ctx->runtime.source_ability) &&
       ecs_has(world, ctx->runtime.source_ability, AOnceTurn)) {
     ecs_set(world, ctx->runtime.source_ability, AbilityRepeatContext,
             {.is_once_per_turn = true, .was_applied = true});

@@ -374,8 +374,9 @@ def parse_league_manager_config(trainer_args: dict) -> LeagueManagerConfig:
 
 
 def _validate_config(cfg: LeagueManagerConfig) -> None:
-  if cfg.checkpoint_add_interval < 1:
-    raise ValueError("league.checkpoint_add_interval must be >= 1")
+  # 0 freezes the training pool: learner checkpoints are never ingested.
+  if cfg.checkpoint_add_interval < 0:
+    raise ValueError("league.checkpoint_add_interval must be >= 0")
   if cfg.quick_eval_interval < 1:
     raise ValueError("league.quick_eval_interval must be >= 1")
   if cfg.full_eval_interval < 1:

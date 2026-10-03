@@ -31,6 +31,7 @@ from observation import (
   DECKBUILD_OBSERVATION_CTYPE,
   DECKBUILD_OBSERVATION_STRUCT_SIZE,
 )
+from specialist import LEARNER_ELEMENT_CODES, parse_learner_element
 
 # Exact numpy mirror of the packed C observation struct (field names/offsets
 # straight from ctypes). The policy builds its decode offsets from this.
@@ -75,6 +76,8 @@ class AzukiNativeEnv(PufferEnv):
     pbrs_terminal_closure: bool | None = None,
     prebuilt_deck_groups: tuple[tuple[int, ...], ...] | None = None,
     prebuilt_probability: float = 0.0,
+    learner_element: str = "none",
+    learner_prebuilt_deck_indices: tuple[int, ...] | None = None,
   ) -> None:
     num_envs = int(num_envs)
     if num_envs < 1:
@@ -129,6 +132,30 @@ class AzukiNativeEnv(PufferEnv):
     ):
       raise ValueError("prebuilt_probability buffer must be a contiguous float32 vector of length 1")
     self.prebuilt_probability = probability_buffer
+    self.learner_element = parse_learner_element(learner_element)
+    self.learner_element_code = LEARNER_ELEMENT_CODES[self.learner_element]
+    if self.learner_element_code and not self._deck_building:
+      raise ValueError("learner_element requires deck_building=True")
+    # Per-agent-row flags [game0_p0, game0_p1, ...]: 1 = that seat is
+    # learner-controlled next episode and must play learner_element. The
+    # trainer owns the contents; all-ones (mirror) until it writes them.
+    seat_mask = buf.get("learner_seat_mask") if buf is not None else None
+    if seat_mask is None:
+      seat_mask = np.ones(self.num_agents, dtype=np.uint8)
+    if (
+      not isinstance(seat_mask, np.ndarray)
+      or seat_mask.shape != (self.num_agents,)
+      or seat_mask.dtype != np.uint8
+      or not seat_mask.flags["C_CONTIGUOUS"]
+    ):
+      raise ValueError("learner_seat_mask must be a contiguous per-agent uint8 buffer")
+    self.learner_seat_mask = seat_mask
+    if learner_prebuilt_deck_indices is not None and not self.learner_element_code:
+      raise ValueError("learner_prebuilt_deck_indices requires learner_element")
+    self._learner_prebuilt_deck_indices = (
+      None if learner_prebuilt_deck_indices is None
+      else tuple(int(index) for index in learner_prebuilt_deck_indices)
+    )
 
     for name in ("observations", "actions", "rewards", "terminals", "truncations"):
       if not getattr(self, name).flags["C_CONTIGUOUS"]:
@@ -246,6 +273,11 @@ class AzukiNativeEnv(PufferEnv):
     if self.prebuilt_curriculum:
       kwargs["prebuilt_deck_groups"] = self._prebuilt_deck_groups
       kwargs["prebuilt_probability"] = self.prebuilt_probability
+    if self.learner_element_code:
+      kwargs["learner_element"] = self.learner_element_code
+      kwargs["learner_seat_mask"] = self.learner_seat_mask
+      if self._learner_prebuilt_deck_indices is not None:
+        kwargs["learner_prebuilt_deck_indices"] = self._learner_prebuilt_deck_indices
     self._handle = binding.vec_init(
       self._c_obs,
       self._c_actions,
@@ -353,6 +385,7 @@ class AzukiNativeEnv(PufferEnv):
       [int(game.get("leader1", -1)) for game in games],
       [int(game.get("reference_seat", -1)) for game in games],
       [int(game.get("reference_deck_index", -1)) for game in games],
+      [int(game.get("other_deck_index", -1)) for game in games],
     )
 
   def active_players(self) -> np.ndarray:

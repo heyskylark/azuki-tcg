@@ -1,0 +1,1969 @@
+{
+ "IKZ-001": {
+  "name": null,
+  "element": null,
+  "type": null,
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 0
+ },
+ "IKZ-002": {
+  "name": "Extra IKZ Card",
+  "element": "NORMAL",
+  "type": "IKZ",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 0
+ },
+ "STT01-001": {
+  "name": "Raizan",
+  "element": "LIGHTNING",
+  "type": "LEADER",
+  "attack": 0,
+  "health": 20,
+  "gp": 0,
+  "cost": 0,
+  "registry_comment": "STT01-001: [Main] [Once/Turn] Pay 1 IKZ: Give a friendly garden entity equipped with a weapon Charge."
+ },
+ "STT01-002": {
+  "name": "Surge",
+  "element": "LIGHTNING",
+  "type": "GATE",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 0,
+  "registry_comment": "STT01-002 \"Surge\": On Gate Portal; you may play from your discard pile a weapon card with cost <= gate points of the portaled entity Note: is_optional=false skips confirmation; the \"may\" is handled by allowing ACT_NOOP during selection pick phase"
+ },
+ "STT01-003": {
+  "name": "Crate Rat Kurobo",
+  "element": "LIGHTNING",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 1,
+  "gp": 1,
+  "cost": 1,
+  "registry_comment": "STT01-003 \"Crate Rat Kurobo\": On Play; Put 3 cards from the top of your deck into your discard pile. If you have no weapon cards in your discard pile when you activate this ability, put 5 cards instead."
+ },
+ "STT01-004": {
+  "name": "Black Jade Recruit",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 1,
+  "gp": 1,
+  "cost": 1,
+  "registry_comment": "STT01-004: \"On Play; You may discard a weapon card: look at the top 5 cards of your deck, reveal up to 1 weapon card and add it to your hand, then bottom deck the rest in any order\""
+ },
+ "STT01-005": {
+  "name": "Alpine Prowler",
+  "element": "LIGHTNING",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 1,
+  "gp": 2,
+  "cost": 2,
+  "registry_comment": "STT01-005: \"Main; Alley Only; You may sacrifice this card: Draw 3 cards and discard 2\""
+ },
+ "STT01-006": {
+  "name": "Silver Current, Haruhi",
+  "element": "LIGHTNING",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 2,
+  "gp": 1,
+  "cost": 2,
+  "registry_comment": "STT01-006 \"Silver Current, Haruhi\": [Once/Turn][When Attacking] Deal 1 damage to a leader or entity in your opponent's garden."
+ },
+ "STT01-007": {
+  "name": "Alley Guy",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 2,
+  "gp": 0,
+  "cost": 2,
+  "registry_comment": "ST01-007 \"Alley Guy\": On Play; You may discard 1:Draw 1"
+ },
+ "STT01-008": {
+  "name": "Black Jade Crewleader",
+  "element": "LIGHTNING",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 2,
+  "gp": 1,
+  "cost": 3,
+  "registry_comment": "STT01-008: When equipped with a weapon card, this card has +1 attack. This is a passive observer-based ability - no timing tag needed."
+ },
+ "STT01-009": {
+  "name": "Weapon Master Yamada",
+  "element": "LIGHTNING",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 2,
+  "gp": 2,
+  "cost": 4,
+  "registry_comment": "STT01-009: If there are 6 or more weapon cards in your discard pile, this card has +2 attack."
+ },
+ "STT01-010": {
+  "name": "Indra",
+  "element": "LIGHTNING",
+  "type": "ENTITY",
+  "attack": 3,
+  "health": 2,
+  "gp": 3,
+  "cost": 5
+ },
+ "STT01-011": {
+  "name": "Raizan",
+  "element": "LIGHTNING",
+  "type": "ENTITY",
+  "attack": 4,
+  "health": 3,
+  "gp": 4,
+  "cost": 6,
+  "registry_comment": "STT01-011 \"Raizan\": As long as this card is in play, the card Ikazuchi (STT01-016 \"Raizan's Zanbato\") has +5 attack instead of +4."
+ },
+ "STT01-012": {
+  "name": "Lightning Shuriken",
+  "element": "LIGHTNING",
+  "type": "WEAPON",
+  "attack": 1,
+  "health": 0,
+  "gp": 0,
+  "cost": 1,
+  "registry_comment": "STT01-012 \"Lightning Shuriken\": [When Attacking] Put the top card of your deck into your discard pile."
+ },
+ "STT01-013": {
+  "name": "Black Jade Dagger",
+  "element": "NORMAL",
+  "type": "WEAPON",
+  "attack": 1,
+  "health": 0,
+  "gp": 0,
+  "cost": 1,
+  "registry_comment": "STT01-013 \"Black Jade Dagger\": On Play; You may deal damage to your leader: this card gives an additional +1 attack"
+ },
+ "STT01-014": {
+  "name": "Tenshin",
+  "element": "NORMAL",
+  "type": "WEAPON",
+  "attack": 2,
+  "health": 0,
+  "gp": 0,
+  "cost": 2,
+  "registry_comment": "STT01-014 \"Tenshin\": [On Play] Deal up to 1 damage to a leader."
+ },
+ "STT01-015": {
+  "name": "Tenraku",
+  "element": "NORMAL",
+  "type": "WEAPON",
+  "attack": 3,
+  "health": 0,
+  "gp": 0,
+  "cost": 3,
+  "registry_comment": "STT01-015 \"Tenraku\": [When Equipped] If you have 15 or more cards in your discard pile, this card gives an additional +1 attack."
+ },
+ "STT01-016": {
+  "name": "Raizan's Zanbato",
+  "element": "LIGHTNING",
+  "type": "WEAPON",
+  "attack": 4,
+  "health": 0,
+  "gp": 0,
+  "cost": 4,
+  "registry_comment": "STT01-016 \"Raizan's Zanbato\": [When Attacking] If equipped to a (Raizan) card, deal 1 damage to all entities in your opponent's garden."
+ },
+ "STT01-017": {
+  "name": "Lightning Orb",
+  "element": "LIGHTNING",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 1,
+  "registry_comment": "STT01-017 \"Lightning Orb\": [Response] Deal 1 damage to an entity in your opponent's garden and 1 damage to another entity in your opponent's garden."
+ },
+ "STT02-001": {
+  "name": "Shao",
+  "element": "WATER",
+  "type": "LEADER",
+  "attack": 0,
+  "health": 20,
+  "gp": 0,
+  "cost": 0,
+  "registry_comment": "STT02-001 \"Shao\": [Response] [Once/Turn] Pay 1 IKZ: Reduce a leader's or entity's attack by 1 until the end of the turn."
+ },
+ "STT02-002": {
+  "name": "Hydromancy",
+  "element": "WATER",
+  "type": "GATE",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 0,
+  "registry_comment": "STT02-002 \"Hydromancy\": On Gate Portal; untap IKZ up to portaled card's gate points"
+ },
+ "STT02-003": {
+  "name": "Hayabusa Itto",
+  "element": "WATER",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 1,
+  "gp": 1,
+  "cost": 1,
+  "registry_comment": "STT02-003 \"Hayabusa Itto\": [On Play] Look at the top 5 cards of your deck, reveal up to 1 (Watercrafting) card and add it to your hand, then bottom deck the rest in any order"
+ },
+ "STT02-004": {
+  "name": "Rei",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 2,
+  "gp": 0,
+  "cost": 1
+ },
+ "STT02-005": {
+  "name": "Hayabusa Saburo",
+  "element": "WATER",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 1,
+  "gp": 1,
+  "cost": 1,
+  "registry_comment": "STT02-005: On Play; If you played 2 other entities this turn, draw 1"
+ },
+ "STT02-006": {
+  "name": "Foamback Crab",
+  "element": "WATER",
+  "type": "ENTITY",
+  "attack": 0,
+  "health": 1,
+  "gp": 1,
+  "cost": 2
+ },
+ "STT02-007": {
+  "name": "Benzai the Merchant",
+  "element": "WATER",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 2,
+  "gp": 0,
+  "cost": 2,
+  "registry_comment": "STT02-007 \"Benzai the Merchant\": On Play; Draw 1"
+ },
+ "STT02-008": {
+  "name": "Serene Fist, Misaki",
+  "element": "WATER",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 1,
+  "gp": 0,
+  "cost": 2
+ },
+ "STT02-009": {
+  "name": "Aya",
+  "element": "WATER",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 2,
+  "gp": 1,
+  "cost": 3,
+  "registry_comment": "STT02-009 \"Aya\": [On Play] You may return an entity with cost >= 2 in your Garden to your hand: Return up to 1 entity with cost <= 2 in opponent's Garden to its owner's hand."
+ },
+ "STT02-010": {
+  "name": "Selis of the Shore",
+  "element": "WATER",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 3,
+  "gp": 1,
+  "cost": 3,
+  "registry_comment": "STT02-010: \"Garden only; whenever an entity is returned to its owner's hand, you may tap this card, then draw 1. (this ability is not affected by cooldown)\""
+ },
+ "STT02-011": {
+  "name": "Bubblemancer",
+  "element": "WATER",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 2,
+  "gp": 0,
+  "cost": 3,
+  "registry_comment": "STT02-011: \"Garden only; Main; You may sacrifice this card: choose an entity in your garden; it cannot take damage from card effects until the start of your next turn.\""
+ },
+ "STT02-012": {
+  "name": "Young Shao",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 2,
+  "gp": 2,
+  "cost": 4,
+  "registry_comment": "STT02-012: If the number of entities in your garden is 2 or more than the number of entities in your opponent's garden, this card has +1/+1. This is a passive observer-based ability - no timing tag needed."
+ },
+ "STT02-013": {
+  "name": "Mizuki",
+  "element": "WATER",
+  "type": "ENTITY",
+  "attack": 3,
+  "health": 4,
+  "gp": 2,
+  "cost": 5,
+  "registry_comment": "STT02-013: [On Play] Look at top 3 cards, reveal up to 1 <=2 cost water card and add to hand OR play to alley if entity, bottom deck rest"
+ },
+ "STT02-014": {
+  "name": "Chilling Water",
+  "element": "WATER",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 1,
+  "registry_comment": "STT02-014 \"Chilling Water\": [Main] Freeze an entity with cost <= 2 in opponent's garden for 2 turns"
+ },
+ "STT02-015": {
+  "name": "Commune with Water",
+  "element": "WATER",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 2,
+  "registry_comment": "STT02-015 \"Commune with Water\": [Response] Return an entity with cost <= 3 in any Garden to its owner's hand"
+ },
+ "STT02-016": {
+  "name": "Water Orb",
+  "element": "WATER",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 1,
+  "registry_comment": "STT02-016: [Response] Discard 1: Reduce a leader's or entity's attack by 2 until the end of the turn."
+ },
+ "STT02-017": {
+  "name": "Shao's Perseverance",
+  "element": "WATER",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 6,
+  "registry_comment": "STT02-017 \"Shao's Perseverance\": [Main] If your leader's Shao, return all entities with cost <= 4 in opponent's garden to their owner's hand"
+ },
+ "AZK01-001": {
+  "name": "Penny",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 0,
+  "health": 1,
+  "gp": 0,
+  "cost": 1
+ },
+ "AZK01-002": {
+  "name": "Healing Flutter",
+  "element": "NORMAL",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 1,
+  "registry_comment": "AZK01-002 \"Healing Flutter\": [Main] Heal 2 to your leader."
+ },
+ "AZK01-003": {
+  "name": "Black Jade Courier",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 1,
+  "gp": 0,
+  "cost": 1,
+  "registry_comment": "AZK01-003 \"Black Jade Courier\": [On Play] Look at the top 5 cards of your deck, reveal up to 1 Black Jade subtype card other than Black Jade Courier and add it to your hand, then bottom deck the rest in any order."
+ },
+ "AZK01-004": {
+  "name": "Alley Thug",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 1,
+  "gp": 0,
+  "cost": 1,
+  "registry_comment": "AZK01-004 \"Alley Thug\": [When Attacking] This card gets +1 attack until the end of the turn."
+ },
+ "AZK01-005": {
+  "name": "Caravan Guard",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 2,
+  "gp": 1,
+  "cost": 4,
+  "registry_comment": "AZK01-005 \"Caravan Guard\": [On Play] Deal up to 1 damage to an entity in your opponent's Garden."
+ },
+ "AZK01-006": {
+  "name": "Gus",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 1,
+  "gp": 1,
+  "cost": 2,
+  "registry_comment": "AZK01-006 \"Gus\": [When Attacked] You may return this card to your hand."
+ },
+ "AZK01-007": {
+  "name": "Johnny",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 1,
+  "gp": 0,
+  "cost": 2,
+  "registry_comment": "AZK01-007 \"Johnny\": [On Play] Give an entity in your Garden +1 attack until the end of the turn."
+ },
+ "AZK01-008": {
+  "name": "Rainy Day Assassin",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 1,
+  "gp": 1,
+  "cost": 3,
+  "registry_comment": "AZK01-008 \"Rainy Day Assassin\": [On Play] You may sacrifice this card: destroy an entity with a cost of 3 or less in your opponent's Garden."
+ },
+ "AZK01-009": {
+  "name": "The Red Bean",
+  "element": "NORMAL",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 1,
+  "registry_comment": "AZK01-009 \"The Red Bean\": [Main] Give an entity with a cost of 4 or less Charge until the end of the turn."
+ },
+ "AZK01-010": {
+  "name": "JD",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 2,
+  "gp": 1,
+  "cost": 3,
+  "registry_comment": "AZK01-010 \"JD\": If you only have (Normal) entities in your Garden, this card has +2 attack."
+ },
+ "AZK01-011": {
+  "name": "Rooftop Hunter",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 1,
+  "gp": 1,
+  "cost": 3,
+  "registry_comment": "AZK01-011 \"Rooftop Hunter\": [Garden Only] If this card is untapped at the end of your turn, sacrifice it."
+ },
+ "AZK01-012": {
+  "name": "Ed",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 3,
+  "health": 3,
+  "gp": 1,
+  "cost": 4
+ },
+ "AZK01-014": {
+  "name": "Trade Guild Cavalry",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 3,
+  "health": 3,
+  "gp": 2,
+  "cost": 5,
+  "registry_comment": "AZK01-014 \"Trade Guild Cavalry\": [When Attacking] Give another entity in your Garden +2 attack until the end of the turn."
+ },
+ "AZK01-015": {
+  "name": "Mo",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 4,
+  "health": 4,
+  "gp": 1,
+  "cost": 6,
+  "registry_comment": "AZK01-015 \"Mo\": Element-based on-play effect keyed off your leader."
+ },
+ "AZK01-016": {
+  "name": "Sleight of Hand",
+  "element": "NORMAL",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 1,
+  "registry_comment": "AZK01-016 \"Sleight of Hand\": [Main] Draw 2, then discard 2."
+ },
+ "AZK01-017": {
+  "name": "Hook Sword Strike",
+  "element": "NORMAL",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 2,
+  "registry_comment": "AZK01-017 \"Hook Sword Strike\": [Main] Deal up to 1 damage to an entity in any Garden and up to 1 damage to a leader."
+ },
+ "AZK01-018": {
+  "name": "Monk Staff of Warding",
+  "element": "NORMAL",
+  "type": "WEAPON",
+  "attack": 3,
+  "health": 0,
+  "gp": 0,
+  "cost": 4
+ },
+ "AZK01-019": {
+  "name": "Jay",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 1,
+  "gp": 1,
+  "cost": 3,
+  "registry_comment": "AZK01-019 \"Jay\": If you only have (Normal) entities in your Garden, this card has +2 health."
+ },
+ "AZK01-020": {
+  "name": "Power of Friendship",
+  "element": "NORMAL",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 3,
+  "registry_comment": "AZK01-020 \"Power of Friendship\": Main and Response spell on one card."
+ },
+ "AZK01-021": {
+  "name": "Mizuto",
+  "element": "WATER",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 1,
+  "gp": 1,
+  "cost": 1,
+  "registry_comment": "AZK01-021 \"Mizuto\": [On Play] Look at the top 5 cards of your deck, reveal up to 1 Driftward card and add it to your hand, then bottom deck the rest in any order."
+ },
+ "AZK01-022": {
+  "name": "Mirage Frog",
+  "element": "WATER",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 2,
+  "gp": 1,
+  "cost": 2,
+  "registry_comment": "AZK01-022 \"Mirage Frog\": [On Play] You may discard 1: Return an entity with cost <= 2 in any Garden to its owner's hand."
+ },
+ "AZK01-023": {
+  "name": "Maho",
+  "element": "WATER",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 2,
+  "gp": 1,
+  "cost": 3,
+  "registry_comment": "AZK01-023 \"Maho\": [End of Your Turn] If you have 2 or less cards in your hand, draw 1."
+ },
+ "AZK01-024": {
+  "name": "Fumiko",
+  "element": "WATER",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 2,
+  "gp": 1,
+  "cost": 3,
+  "registry_comment": "AZK01-024 \"Fumiko\": [On Play] You may return an entity in your Garden to your hand: Play an entity with cost <= 2 from your hand."
+ },
+ "AZK01-025": {
+  "name": "Lighthouse Keeper",
+  "element": "WATER",
+  "type": "ENTITY",
+  "attack": 0,
+  "health": 3,
+  "gp": 0,
+  "cost": 4
+ },
+ "AZK01-026": {
+  "name": "Moonlit Crane",
+  "element": "WATER",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 2,
+  "gp": 2,
+  "cost": 5,
+  "registry_comment": "AZK01-026 \"Moonlit Crane\": [Response] [Once/Turn] You may discard 1: Reduce a leader's or entity's attack by 1 until end of turn."
+ },
+ "AZK01-027": {
+  "name": "Kaiya Mizumi",
+  "element": "WATER",
+  "type": "ENTITY",
+  "attack": 3,
+  "health": 3,
+  "gp": 2,
+  "cost": 6,
+  "registry_comment": "AZK01-027 \"Kaiya Mizumi\": [On Play] You may discard up to 4 cards: Draw that many cards."
+ },
+ "AZK01-028": {
+  "name": "Soryu no Rin",
+  "element": "WATER",
+  "type": "ENTITY",
+  "attack": 7,
+  "health": 7,
+  "gp": 2,
+  "cost": 8,
+  "registry_comment": "AZK01-028 \"Soryu no Rin\": [On Play] You must discard your hand: Return all other entities in each player's Garden to their owner's hand."
+ },
+ "AZK01-029": {
+  "name": "Aquatic Veil",
+  "element": "WATER",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 0,
+  "registry_comment": "AZK01-029 \"Aquatic Veil\": [Response] Discard 2: Reduce a leader's or entity's attack by 3 until end of turn."
+ },
+ "AZK01-030": {
+  "name": "Lotus of Paradise",
+  "element": "WATER",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 1,
+  "registry_comment": "AZK01-030 \"Lotus of Paradise\": [Response] Untap up to 2 IKZ."
+ },
+ "AZK01-031": {
+  "name": "Tidal Insight",
+  "element": "WATER",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 1,
+  "registry_comment": "AZK01-031 \"Tidal Insight\": [Main] Look at the top 3 cards of your deck, reveal up to 1 Water card and add it to your hand, then put the rest on the top or bottom of your deck in any order."
+ },
+ "AZK01-032": {
+  "name": "Rippling Recall",
+  "element": "WATER",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 3,
+  "registry_comment": "AZK01-032 \"Rippling Recall\": [Main] Return an entity with cost >= 2 in your Garden to your hand: Return up to 1 entity with cost <= 4 in your opponent's Garden to its owner's hand."
+ },
+ "AZK01-033": {
+  "name": "Elder Hoshin",
+  "element": "LIGHTNING",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 1,
+  "gp": 1,
+  "cost": 1,
+  "registry_comment": "AZK01-033 \"Elder Hoshin\": [On Play] Look at the top 5 cards of your deck, reveal up to 1 Steelborn card and add it to your hand, then bottom deck the rest."
+ },
+ "AZK01-034": {
+  "name": "Kira",
+  "element": "LIGHTNING",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 1,
+  "gp": 1,
+  "cost": 2,
+  "registry_comment": "AZK01-034 \"Kira\": [In Alley Only Ability] Whenever an entity in your Garden is attacked, you may swap that entity and this card, then make this card the new attack target."
+ },
+ "AZK01-035": {
+  "name": "Raimaru the Stolen",
+  "element": "LIGHTNING",
+  "type": "ENTITY",
+  "attack": 0,
+  "health": 1,
+  "gp": 0,
+  "cost": 3,
+  "registry_comment": "AZK01-035 \"Raimaru the Stolen\": This entity can be played as a response."
+ },
+ "AZK01-036": {
+  "name": "Denmu",
+  "element": "LIGHTNING",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 2,
+  "gp": 1,
+  "cost": 3,
+  "registry_comment": "AZK01-036 \"Denmu\": [When Attacked] The attacking leader or entity becomes Shocked."
+ },
+ "AZK01-037": {
+  "name": "Stormcaller Tenkichi",
+  "element": "LIGHTNING",
+  "type": "ENTITY",
+  "attack": 3,
+  "health": 2,
+  "gp": 0,
+  "cost": 4
+ },
+ "AZK01-038": {
+  "name": "Riven Flashborne",
+  "element": "LIGHTNING",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 2,
+  "gp": 1,
+  "cost": 3
+ },
+ "AZK01-039": {
+  "name": "Piko",
+  "element": "LIGHTNING",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 3,
+  "gp": 0,
+  "cost": 4,
+  "registry_comment": "AZK01-039 \"Piko\": [When Equipped] Gain Charge."
+ },
+ "AZK01-040": {
+  "name": "Black Jade Vault Master",
+  "element": "LIGHTNING",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 3,
+  "gp": 2,
+  "cost": 5,
+  "registry_comment": "AZK01-040 \"Black Jade Vault Master\": [When Attacked] Deal up to 1 damage to a leader."
+ },
+ "AZK01-041": {
+  "name": "Wu Cha",
+  "element": "LIGHTNING",
+  "type": "ENTITY",
+  "attack": 7,
+  "health": 7,
+  "gp": 2,
+  "cost": 8,
+  "registry_comment": "AZK01-041 \"Wu Cha\": [In Garden Only Ability] [Once/Turn] [Main] Pay 1 IKZ: Equip up to 2 weapons with cost <= 2 from your discard pile to this card."
+ },
+ "AZK01-042": {
+  "name": "Thunderclap",
+  "element": "LIGHTNING",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 5,
+  "registry_comment": "AZK01-042 \"Thunderclap\": [Main] Deal 3, 2, and 1 damage to 3 different entities in your opponent's Garden."
+ },
+ "AZK01-043": {
+  "name": "Stormglass Daggers",
+  "element": "LIGHTNING",
+  "type": "WEAPON",
+  "attack": 1,
+  "health": 0,
+  "gp": 0,
+  "cost": 2,
+  "registry_comment": "AZK01-043 \"Stormglass Daggers\": While equipped to your leader, it can target tapped and untapped cards in the opponent's Alley."
+ },
+ "AZK01-044": {
+  "name": "Lightning Kanabo",
+  "element": "LIGHTNING",
+  "type": "WEAPON",
+  "attack": 2,
+  "health": 0,
+  "gp": 0,
+  "cost": 3,
+  "registry_comment": "AZK01-044 \"Lightning Kanabo\": [Once/Turn] Whenever the equipped host deals combat damage to an opponent's card, that card becomes Shocked."
+ },
+ "AZK01-045": {
+  "name": "Treetop Scout",
+  "element": "EARTH",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 1,
+  "gp": 1,
+  "cost": 1,
+  "registry_comment": "AZK01-045 \"Treetop Scout\": [On Play] Look at the top 5 cards of your deck, reveal up to 1 Obsidian card and add it to your hand, then bottom deck the rest."
+ },
+ "AZK01-046": {
+  "name": "Mina the Geomancer",
+  "element": "EARTH",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 1,
+  "gp": 0,
+  "cost": 1,
+  "registry_comment": "AZK01-046 \"Mina the Geomancer\": [Start of Your Turn] Deal up to 1 damage to a leader while this card is in your Garden."
+ },
+ "AZK01-047": {
+  "name": "Shiko the Priestess",
+  "element": "EARTH",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 2,
+  "gp": 1,
+  "cost": 2,
+  "registry_comment": "AZK01-047 \"Shiko the Priestess\": [Once/Turn] [When Attacking] Heal 1 to your leader."
+ },
+ "AZK01-048": {
+  "name": "Kale",
+  "element": "EARTH",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 2,
+  "gp": 2,
+  "cost": 3,
+  "registry_comment": "AZK01-048 \"Kale\": Carapace 1."
+ },
+ "AZK01-049": {
+  "name": "Lone Journeyman",
+  "element": "EARTH",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 2,
+  "gp": 2,
+  "cost": 3
+ },
+ "AZK01-050": {
+  "name": "Shroom Tender",
+  "element": "EARTH",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 2,
+  "gp": 2,
+  "cost": 4,
+  "registry_comment": "AZK01-050 \"Shroom Tender\": [On Play] Heal 2 to your leader."
+ },
+ "AZK01-051": {
+  "name": "Chillax",
+  "element": "EARTH",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 3,
+  "gp": 2,
+  "cost": 4,
+  "registry_comment": "AZK01-051 \"Chillax\": [When Attacked] You may give another entity in your Garden +1 health until the end of the turn."
+ },
+ "AZK01-052": {
+  "name": "Yojin",
+  "element": "EARTH",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 4,
+  "gp": 2,
+  "cost": 5,
+  "registry_comment": "AZK01-052 \"Yojin\": Conditional Defender while in the Garden."
+ },
+ "AZK01-053": {
+  "name": "Geodust Smuggler",
+  "element": "EARTH",
+  "type": "ENTITY",
+  "attack": 4,
+  "health": 5,
+  "gp": 3,
+  "cost": 7,
+  "registry_comment": "AZK01-053 \"Geodust Smuggler\": Other entities in your Garden have +1 health while this card is in play."
+ },
+ "AZK01-054": {
+  "name": "Teb Fea",
+  "element": "EARTH",
+  "type": "ENTITY",
+  "attack": 7,
+  "health": 7,
+  "gp": 2,
+  "cost": 8
+ },
+ "AZK01-055": {
+  "name": "Earth Orb",
+  "element": "EARTH",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 2,
+  "registry_comment": "AZK01-055 \"Earth Orb\": [Response] Deal up to 1 damage to a leader or an entity in your opponent's Garden and reduce that card's attack by 1 until end of turn."
+ },
+ "AZK01-056": {
+  "name": "Glass Blower, Hokuto",
+  "element": "FIRE",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 1,
+  "gp": 1,
+  "cost": 1,
+  "registry_comment": "AZK01-056 \"Glass Blower, Hokuto\": [On Play] Look at the top 5 cards of your deck, reveal up to 1 Scorchweaver card and add it to your hand, then bottom deck the rest."
+ },
+ "AZK01-057": {
+  "name": "Lounge Siren, Saeko",
+  "element": "FIRE",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 1,
+  "gp": 1,
+  "cost": 1,
+  "registry_comment": "AZK01-057 \"Lounge Siren, Saeko\": [Start of Your Turn] Deal 1 damage to an entity in your Garden and 1 damage to an entity in your opponent's Garden."
+ },
+ "AZK01-058": {
+  "name": "Black Jade Warlord",
+  "element": "FIRE",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 1,
+  "gp": 1,
+  "cost": 2,
+  "registry_comment": "AZK01-058 \"Black Jade Warlord\": [After Attacking] You may sacrifice this card: Give a leader or an entity in your Garden +2 attack until end of turn."
+ },
+ "AZK01-059": {
+  "name": "Spice",
+  "element": "FIRE",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 2,
+  "gp": 1,
+  "cost": 2,
+  "registry_comment": "AZK01-059 \"Spice\": [Once/Turn] Whenever this card takes damage, give another entity in your Garden +1 attack until the end of the turn."
+ },
+ "AZK01-060": {
+  "name": "Scarlett",
+  "element": "FIRE",
+  "type": "ENTITY",
+  "attack": 3,
+  "health": 2,
+  "gp": 2,
+  "cost": 5,
+  "registry_comment": "AZK01-060 \"Scarlett\": [When Attacking] You may give this card Infiltrate and +1 attack until end of turn. If you do, sacrifice it at end of turn."
+ },
+ "AZK01-061": {
+  "name": "Firebrand Renji",
+  "element": "FIRE",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 3,
+  "gp": 1,
+  "cost": 3,
+  "registry_comment": "AZK01-061 \"Firebrand Renji\": [Once/Turn] Whenever this card takes damage from 3 different sources in one turn, deal up to 3 damage to a leader or entity in any Garden."
+ },
+ "AZK01-062": {
+  "name": "Pekiro",
+  "element": "FIRE",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 1,
+  "gp": 2,
+  "cost": 3,
+  "registry_comment": "AZK01-062 \"Pekiro\": [Once/Turn] Whenever this card would take damage from an ability or spell, you may redirect that damage to another entity in any Garden."
+ },
+ "AZK01-063": {
+  "name": "Enzo",
+  "element": "FIRE",
+  "type": "ENTITY",
+  "attack": 3,
+  "health": 3,
+  "gp": 2,
+  "cost": 6,
+  "registry_comment": "AZK01-063 \"Enzo\": [On Play] If this card is played in the Garden, deal up to 3 damage to a leader or entity in any Garden."
+ },
+ "AZK01-064": {
+  "name": "Zero",
+  "element": "FIRE",
+  "type": "ENTITY",
+  "attack": 7,
+  "health": 7,
+  "gp": 2,
+  "cost": 8,
+  "registry_comment": "AZK01-064 \"Zero\": When this card enters the Garden, deal 2 damage to all entities in each player's Garden."
+ },
+ "AZK01-065": {
+  "name": "Fire Orb",
+  "element": "FIRE",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 4,
+  "registry_comment": "AZK01-065 \"Fire Orb\": [Main] Deal 3 damage to your leader: Deal up to 5 damage to a leader or an entity in any Garden."
+ },
+ "AZK01-066": {
+  "name": "Firestorm",
+  "element": "FIRE",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 5,
+  "registry_comment": "AZK01-066 \"Firestorm\": [Main] Deal 2 damage to all leaders and entities in each player's Garden."
+ },
+ "AZK01-067": {
+  "name": "Frida",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 1,
+  "gp": 1,
+  "cost": 1
+ },
+ "AZK01-068": {
+  "name": "Pip",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 1,
+  "gp": 1,
+  "cost": 1,
+  "registry_comment": "AZK01-068 \"Pip\": [On Play] When this card is played in the Alley, draw 1, then discard 1."
+ },
+ "AZK01-069": {
+  "name": "Link",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 1,
+  "gp": 1,
+  "cost": 1,
+  "registry_comment": "AZK01-069 \"Link\": [On Play] Look at the top 5 cards of your deck, reveal up to 1 Beanz card and add it to your hand, then bottom deck the rest."
+ },
+ "AZK01-070": {
+  "name": "Mocking Dummy",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 0,
+  "health": 2,
+  "gp": 0,
+  "cost": 1,
+  "registry_comment": "AZK01-070 \"Mocking Dummy\": [In Garden Only Ability][Response] Tap this card and deal 1 damage to it: Reduce an opponent entity's attack by 1 until end of turn."
+ },
+ "AZK01-071": {
+  "name": "Alley Fetchduck",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 2,
+  "gp": 1,
+  "cost": 2,
+  "registry_comment": "AZK01-071 \"Alley Fetchduck\": [End of Your Turn] You may bottom deck this card: Draw 1."
+ },
+ "AZK01-072": {
+  "name": "Beanz Mentor",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 1,
+  "gp": 1,
+  "cost": 2,
+  "registry_comment": "AZK01-072 \"Beanz Mentor\": [When Attacking] Give another Beanz entity in your Garden +1 attack until the end of the turn."
+ },
+ "AZK01-073": {
+  "name": "Top Beanz",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 1,
+  "gp": 2,
+  "cost": 3,
+  "registry_comment": "AZK01-073 \"Top Beanz\": Passive +1/+1 while your Garden only contains Beanz subtype entities."
+ },
+ "AZK01-074": {
+  "name": "Gurugumi Vanguard",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 0,
+  "health": 2,
+  "gp": 1,
+  "cost": 2,
+  "registry_comment": "AZK01-074 \"Gurugumi Vanguard\": [Once/Turn][Main] This card's attack becomes the attack of an entity in your opponent's Garden until end of turn."
+ },
+ "AZK01-075": {
+  "name": "Drunken Brewmaster",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 2,
+  "gp": 1,
+  "cost": 4,
+  "registry_comment": "AZK01-075 \"Drunken Brewmaster\": [Once/Turn] You may sacrifice 2 Beanz entities in your Garden: This card gets +2/+2 until end of turn."
+ },
+ "AZK01-077": {
+  "name": "Stalking Assassin",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 2,
+  "gp": 2,
+  "cost": 3
+ },
+ "AZK01-078": {
+  "name": "Fermented Beanz",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 2,
+  "gp": 2,
+  "cost": 4,
+  "registry_comment": "AZK01-078 \"Fermented Beanz\": [When Destroyed] Deal 1 damage to a leader or entity in your opponent's Garden."
+ },
+ "AZK01-080": {
+  "name": "Bladebound Ally",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 3,
+  "health": 2,
+  "gp": 3,
+  "cost": 5,
+  "registry_comment": "AZK01-080 \"Bladebound Ally\": [On Play] If this card is played in the Garden, give another entity in your Garden +2 attack until end of turn."
+ },
+ "AZK01-081": {
+  "name": "Gurugumi Mentor",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 3,
+  "health": 3,
+  "gp": 2,
+  "cost": 5
+ },
+ "AZK01-082": {
+  "name": "Black Jade Brawler",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 3,
+  "health": 2,
+  "gp": 2,
+  "cost": 5
+ },
+ "AZK01-084": {
+  "name": "Good Enough Replica",
+  "element": "NORMAL",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 2,
+  "registry_comment": "AZK01-084 \"Good Enough Replica\": [Main] Return a Normal entity card with cost <= 6 from your discard pile to your hand."
+ },
+ "AZK01-085": {
+  "name": "Invigorating Concoction",
+  "element": "NORMAL",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 3,
+  "registry_comment": "AZK01-085 \"Invigorating Concoction\": [Main][Response] Give an entity in your Garden +2 attack until the end of the turn."
+ },
+ "AZK01-086": {
+  "name": "Forging Tricks",
+  "element": "NORMAL",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 4,
+  "registry_comment": "AZK01-086 \"Forging Tricks\": [Main] You may place up to 5 Weapon cards from your discard pile to the bottom of your deck in any order: Until end of turn, give your leader +1 attack for each card you bottom decked."
+ },
+ "AZK01-087": {
+  "name": "Mizuryuu's Torrent",
+  "element": "WATER",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 4,
+  "registry_comment": "AZK01-087 \"Mizuryuu's Torrent\": [Main] Put up to 2 entities with a combined cost of 5 or less in your opponent's Garden to the bottom of their owner's deck."
+ },
+ "AZK01-088": {
+  "name": "Pulled Under",
+  "element": "WATER",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 6,
+  "registry_comment": "AZK01-088 \"Pulled Under\": [Main] Put an entity with cost <= 7 in your opponent's Garden to the bottom of its owner's deck."
+ },
+ "AZK01-089": {
+  "name": "Mizuryuu Fist Master",
+  "element": "WATER",
+  "type": "ENTITY",
+  "attack": 5,
+  "health": 5,
+  "gp": 3,
+  "cost": 7,
+  "registry_comment": "AZK01-089 \"Mizuryuu Fist Master\": [In Alley Only Ability][Main] You may bottom deck this card: Put up to 2 entity cards with a combined cost of 5 or less in your opponent's Garden to the bottom of their owner's deck."
+ },
+ "AZK01-090": {
+  "name": "Priestess of the Mists",
+  "element": "WATER",
+  "type": "ENTITY",
+  "attack": 3,
+  "health": 3,
+  "gp": 2,
+  "cost": 5,
+  "registry_comment": "AZK01-090 \"Priestess of the Mists\": [On Play] If played in the Garden, you may return a friendly Garden entity with cost <= 2 to your hand."
+ },
+ "AZK01-091": {
+  "name": "Bubble Adept",
+  "element": "WATER",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 1,
+  "gp": 1,
+  "cost": 2,
+  "registry_comment": "AZK01-091 \"Bubble Adept\": [In Garden Only Ability][Response] You may sacrifice this card: Reduce an entity's attack by 1 until the end of your opponent's turn."
+ },
+ "AZK01-092": {
+  "name": "Lotus of Reflection",
+  "element": "WATER",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 2,
+  "registry_comment": "AZK01-092 \"Lotus of Reflection\": [Main] Look at the top 5 cards of your deck, reveal up to 1 Water card with cost <= 2, add it to your hand, then bottom deck the rest. You may play the revealed card."
+ },
+ "AZK01-093": {
+  "name": "Naiyara the Tideweaver",
+  "element": "WATER",
+  "type": "ENTITY",
+  "attack": 4,
+  "health": 4,
+  "gp": 3,
+  "cost": 7,
+  "registry_comment": "AZK01-093 \"Naiyara the Tideweaver\": [On Play] If this card is played in the Garden, put an opposing Garden entity with cost <= 4 on the bottom of its owner's deck."
+ },
+ "AZK01-094": {
+  "name": "Hidden Dagger",
+  "element": "LIGHTNING",
+  "type": "WEAPON",
+  "attack": 1,
+  "health": 0,
+  "gp": 0,
+  "cost": 1,
+  "registry_comment": "AZK01-094 \"Hidden Dagger\": This weapon can be played as a response."
+ },
+ "AZK01-095": {
+  "name": "Stormglass Katana",
+  "element": "LIGHTNING",
+  "type": "WEAPON",
+  "attack": 3,
+  "health": 0,
+  "gp": 0,
+  "cost": 4,
+  "registry_comment": "AZK01-095 \"Stormglass Katana\": While equipped to your leader, it can target tapped and untapped cards in the opponent's Alley."
+ },
+ "AZK01-096": {
+  "name": "Ninpo: Thunderstep",
+  "element": "LIGHTNING",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 2,
+  "registry_comment": "AZK01-096 \"Ninpo: Thunderstep\": [Response] Swap an entity in your Garden with an entity in your Alley. If the Garden entity was being attacked, the Alley entity becomes the new target."
+ },
+ "AZK01-097": {
+  "name": "Black Jade Pawnbroker",
+  "element": "LIGHTNING",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 1,
+  "gp": 1,
+  "cost": 2,
+  "registry_comment": "AZK01-097 \"Black Jade Pawnbroker\": [On Play] Mill 5. If any milled cards are weapons, you may add 1 of them to your hand."
+ },
+ "AZK01-098": {
+  "name": "Arms Dealer, Kin",
+  "element": "LIGHTNING",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 2,
+  "gp": 1,
+  "cost": 4,
+  "registry_comment": "AZK01-098 \"Arms Dealer, Kin\": [On Play] If this card is played in the Alley, you may tap this card: Play a weapon card with cost <= 3 from your hand."
+ },
+ "AZK01-100": {
+  "name": "Raizan's Riposte",
+  "element": "LIGHTNING",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 2,
+  "registry_comment": "AZK01-100 \"Raizan's Riposte\": [Response] Play from your discard pile a weapon card with cost <= 2."
+ },
+ "AZK01-101": {
+  "name": "Sand Stands Still",
+  "element": "EARTH",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 3,
+  "registry_comment": "AZK01-101 \"Sand Stands Still\": [Main][Response] Give an Earth entity in your Garden +3 health until the end of turn."
+ },
+ "AZK01-102": {
+  "name": "Oathstone",
+  "element": "EARTH",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 2,
+  "registry_comment": "AZK01-102 \"Oathstone\": [Response] Give an entity with cost <= 4 Carapace 1 until the end of turn."
+ },
+ "AZK01-103": {
+  "name": "Dropline Station",
+  "element": "EARTH",
+  "type": "ENTITY",
+  "attack": 0,
+  "health": 4,
+  "gp": 3,
+  "cost": 5,
+  "registry_comment": "AZK01-103 \"Dropline Station\": [In Garden Only Ability][Main] Sacrifice an untapped Earth entity in your Garden: Deal damage equal to the sacrificed card's health to a leader, capped at 5 damage. If it had 3+ health, draw 1."
+ },
+ "AZK01-104": {
+  "name": "Sanzu's Envoy",
+  "element": "EARTH",
+  "type": "ENTITY",
+  "attack": 4,
+  "health": 4,
+  "gp": 3,
+  "cost": 6,
+  "registry_comment": "AZK01-104 \"Sanzu's Envoy\": [On Play] If this card is played in the Garden, you may discard 1: Heal 2 to your leader."
+ },
+ "AZK01-105": {
+  "name": "Prickly Tumbleweed",
+  "element": "EARTH",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 3,
+  "gp": 2,
+  "cost": 4,
+  "registry_comment": "AZK01-105 \"Prickly Tumbleweed\": [In Garden Only Ability][Main] Sacrifice this card: Deal damage equal to this card's health to a leader or an entity in your opponent's Garden."
+ },
+ "AZK01-106": {
+  "name": "Lord of Sands, Osunanami",
+  "element": "EARTH",
+  "type": "ENTITY",
+  "attack": 6,
+  "health": 6,
+  "gp": 3,
+  "cost": 10
+ },
+ "AZK01-107": {
+  "name": "Offering to Stillstone",
+  "element": "EARTH",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 0,
+  "registry_comment": "AZK01-107 \"Offering to Stillstone\": [Main] Discard 1: If you do not have an IKZ token, add 1. The IKZ token expires at the end of the turn."
+ },
+ "AZK01-108": {
+  "name": "Crushing Weight",
+  "element": "EARTH",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 5,
+  "registry_comment": "AZK01-108 \"Crushing Weight\": [Main] Deal damage equal to the health of an Earth entity in your Garden to a leader or an entity in your opponent's Garden, capped at 5 damage."
+ },
+ "AZK01-109": {
+  "name": "Rock Sloth",
+  "element": "EARTH",
+  "type": "ENTITY",
+  "attack": 3,
+  "health": 4,
+  "gp": 3,
+  "cost": 6,
+  "registry_comment": "AZK01-109 \"Rock Sloth\": Carapace 1."
+ },
+ "AZK01-110": {
+  "name": "Gluttonous Devourer, Kasha",
+  "element": "FIRE",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 2,
+  "gp": 2,
+  "cost": 4,
+  "registry_comment": "AZK01-110 \"Gluttonous Devourer, Kasha\": [When Attacking] You may sacrifice all other entities in your Garden: Until the end of the turn, this entity gains +1 attack for each entity sacrificed this way."
+ },
+ "AZK01-111": {
+  "name": "Black Jade Decoy",
+  "element": "FIRE",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 2,
+  "gp": 1,
+  "cost": 3,
+  "registry_comment": "AZK01-111 \"Black Jade Decoy\": [In Alley Only Ability][Main] You may sacrifice this card: Deal up to 2 damage to an entity in your opponent's Garden, then you may play an entity with a cost of 2 or less from your hand in the Garden."
+ },
+ "AZK01-112": {
+  "name": "Enrai Shakunetsu",
+  "element": "FIRE",
+  "type": "ENTITY",
+  "attack": 4,
+  "health": 3,
+  "gp": 2,
+  "cost": 6,
+  "registry_comment": "AZK01-112 \"Enrai Shakunetsu\": [On Play] You may sacrifice an untapped entity in your Garden: If you control no entities in the Garden, this entity gains Charge while it remains in play."
+ },
+ "AZK01-113": {
+  "name": "Cinderwake Pursuer",
+  "element": "FIRE",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 1,
+  "gp": 1,
+  "cost": 2,
+  "registry_comment": "AZK01-113 \"Cinderwake Pursuer\": [On Play] If you played 2 other cards this turn, this entity gains Charge until the end of the turn."
+ },
+ "AZK01-114": {
+  "name": "Omen Peddler",
+  "element": "FIRE",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 1,
+  "gp": 0,
+  "cost": 3,
+  "registry_comment": "AZK01-114 \"Omen Peddler\": [On Play] If this card is played in the Alley, deal 2 damage to an entity in your opponent's Garden."
+ },
+ "AZK01-115": {
+  "name": "Crazed Arsonist",
+  "element": "FIRE",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 2,
+  "gp": 0,
+  "cost": 2,
+  "registry_comment": "AZK01-115 \"Crazed Arsonist\": [When Attacking] and [When Sacrificed]: Deal 1 damage to all leaders."
+ },
+ "AZK01-116": {
+  "name": "Tenmoku Daiki",
+  "element": "FIRE",
+  "type": "ENTITY",
+  "attack": 3,
+  "health": 2,
+  "gp": 3,
+  "cost": 4,
+  "registry_comment": "AZK01-116 \"Tenmoku Daiki\": [On Play] You must deal 3 damage to your leader."
+ },
+ "AZK01-117": {
+  "name": "Ignition Pact",
+  "element": "FIRE",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 1,
+  "registry_comment": "AZK01-117 \"Ignition Pact\": [Main] Deal 2 damage to your leader: Give an entity with a cost of 5 or less Charge until the end of the turn."
+ },
+ "AZK01-118": {
+  "name": "Bandit Ringleader",
+  "element": "FIRE",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 2,
+  "gp": 2,
+  "cost": 4,
+  "registry_comment": "AZK01-118 \"Bandit Ringleader\": [On Play] You may deal 1 damage to an entity in your Garden: If you played 2 other cards this turn, deal up to 2 damage to an entity in your opponent's Garden."
+ },
+ "AZK01-119": {
+  "name": "Piko of Thousand Blades",
+  "element": "LIGHTNING",
+  "type": "LEADER",
+  "attack": 0,
+  "health": 20,
+  "gp": 0,
+  "cost": 0,
+  "registry_comment": "AZK01-119 \"Piko of Thousand Blades\": [Once/Turn][Main] Pay 3 IKZ: Friendly equipped entity gets +1 attack for each Weapon in your discard, capped at +3 until end of turn."
+ },
+ "AZK01-120": {
+  "name": "Stormchain Gate",
+  "element": "LIGHTNING",
+  "type": "GATE",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 0,
+  "registry_comment": "AZK01-120 \"Stormchain Gate\": On Gate Portal; you may re-equip a weapon with cost <= the portaled entity's gate power to a different friendly leader or Garden entity."
+ },
+ "AZK01-121": {
+  "name": "Kagoro of the Burnt Path",
+  "element": "FIRE",
+  "type": "LEADER",
+  "attack": 0,
+  "health": 20,
+  "gp": 0,
+  "cost": 0,
+  "registry_comment": "AZK01-121 \"Kagoro of the Burnt Path\": [Once/Turn][Main] Pay 1 IKZ: This card gains +1 attack for each entity you played this turn, capped at +2, until the end of the turn."
+ },
+ "AZK01-122": {
+  "name": "Rushfire Gate",
+  "element": "FIRE",
+  "type": "GATE",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 0,
+  "registry_comment": "AZK01-122 \"Rushfire Gate\": On Gate Portal; you may play an entity with cost <= the portaled entity's gate power from your hand into the Alley or Garden. It gains Charge while it remains in play."
+ },
+ "AZK01-123": {
+  "name": "Goro Graveloth",
+  "element": "EARTH",
+  "type": "LEADER",
+  "attack": 0,
+  "health": 20,
+  "gp": 0,
+  "cost": 0,
+  "registry_comment": "AZK01-123 \"Goro Graveloth\": [Once/Turn][Main] Pay 1 IKZ: Give an entity in your Garden +1 health until end of turn."
+ },
+ "AZK01-124": {
+  "name": "Gate of Devotion",
+  "element": "EARTH",
+  "type": "GATE",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 0,
+  "registry_comment": "AZK01-124 \"Gate of Devotion\": On Gate Portal; you may sacrifice another untapped entity in your Garden with cost <= the portaled entity's gate power. If you do, you may deal damage equal to its health to an entity in your opponent's Garden."
+ },
+ "AZK01-125": {
+  "name": "Benzai the Sly",
+  "element": "WATER",
+  "type": "LEADER",
+  "attack": 0,
+  "health": 20,
+  "gp": 0,
+  "cost": 0,
+  "registry_comment": "AZK01-125 \"Benzai the Sly\": [Once/Turn][Main][Response] Pay 1 IKZ: If you discarded a card this turn, the next card you play this turn costs 2 less IKZ."
+ },
+ "AZK01-126": {
+  "name": "Gate of Echoed Waves",
+  "element": "WATER",
+  "type": "GATE",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 0,
+  "registry_comment": "AZK01-126 \"Gate of Echoed Waves\": On Gate Portal; return a spell card with cost <= the portaled entity's gate power from your discard pile to your hand."
+ },
+ "AZK01-127": {
+  "name": "Sundering Strike",
+  "element": "NORMAL",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 1,
+  "registry_comment": "AZK01-127 \"Sundering Strike\": [Response] Deal 1 damage to an entity in your opponent's Garden."
+ },
+ "AZK01-128": {
+  "name": "Wrong Step",
+  "element": "EARTH",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 2,
+  "registry_comment": "AZK01-128 \"Wrong Step\": [Response] Destroy an attacking entity with a health of 2 or less."
+ },
+ "AZK01-129": {
+  "name": "Silk Tongue Veyla",
+  "element": "FIRE",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 4,
+  "gp": 1,
+  "cost": 5,
+  "registry_comment": "AZK01-129 \"Silk Tongue Veyla\": [Once/Turn] Whenever this entity takes or deals damage, deal 1 damage to all leaders."
+ },
+ "STT03-001": {
+  "name": "Bobu",
+  "element": "EARTH",
+  "type": "LEADER",
+  "attack": 0,
+  "health": 20,
+  "gp": 0,
+  "cost": 0,
+  "registry_comment": "STT03-001 \"Bobu\": [Once/Turn][Main] Pay 1 IKZ: Until the start of your next turn, the first time an Earth entity in your Garden or Alley is destroyed or sacrificed, heal 1 to your leader."
+ },
+ "STT03-002": {
+  "name": "Stonehaven Gate",
+  "element": "EARTH",
+  "type": "GATE",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 0,
+  "registry_comment": "STT03-002 \"Stonehaven Gate\": On Gate Portal; you may give a friendly Garden entity with base health <= gate power Defender until the start of your next turn."
+ },
+ "STT03-003": {
+  "name": "Koyama Farm Potter",
+  "element": "EARTH",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 1,
+  "gp": 1,
+  "cost": 1,
+  "registry_comment": "STT03-003 \"Koyama Farm Potter\": [On Play] Look at the top 5 cards of your deck, reveal up to 1 Verdant card and add it to your hand, then bottom deck the rest."
+ },
+ "STT03-004": {
+  "name": "Sloth Scarecrow",
+  "element": "EARTH",
+  "type": "ENTITY",
+  "attack": 0,
+  "health": 1,
+  "gp": 0,
+  "cost": 1,
+  "registry_comment": "STT03-004 \"Sloth Scarecrow\": [Main] Sacrifice this card: Heal 1 to your leader."
+ },
+ "STT03-005": {
+  "name": "Wobbly Cabbage Cart",
+  "element": "EARTH",
+  "type": "ENTITY",
+  "attack": 0,
+  "health": 1,
+  "gp": 1,
+  "cost": 2,
+  "registry_comment": "STT03-005 \"Wobbly Cabbage Cart\": [When Destroyed] You may destroy an entity with 1 health in your opponent's Garden."
+ },
+ "STT03-006": {
+  "name": "Cactus Farmer",
+  "element": "EARTH",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 1,
+  "gp": 1,
+  "cost": 2,
+  "registry_comment": "STT03-006 \"Cactus Farmer\": [When Destroyed] Draw 1, then discard 1."
+ },
+ "STT03-007": {
+  "name": "Koyama Farm Caretaker",
+  "element": "EARTH",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 1,
+  "gp": 0,
+  "cost": 3
+ },
+ "STT03-008": {
+  "name": "Midnight Courier",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 2,
+  "gp": 1,
+  "cost": 3
+ },
+ "STT03-009": {
+  "name": "Warding Totem",
+  "element": "EARTH",
+  "type": "ENTITY",
+  "attack": 0,
+  "health": 2,
+  "gp": 2,
+  "cost": 4,
+  "registry_comment": "STT03-009 \"Warding Totem\": [On Play] Move 1 IKZ from pile to area tapped."
+ },
+ "STT03-010": {
+  "name": "Shroommancer",
+  "element": "EARTH",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 2,
+  "gp": 2,
+  "cost": 4,
+  "registry_comment": "STT03-010 \"Shroommancer\": [Once/Turn][After Attacking] If this card destroyed an opposing Garden entity, heal 1 to your leader."
+ },
+ "STT03-011": {
+  "name": "Koyama Farm Plowman",
+  "element": "EARTH",
+  "type": "ENTITY",
+  "attack": 3,
+  "health": 3,
+  "gp": 3,
+  "cost": 5,
+  "registry_comment": "STT03-011 \"Koyama Farm Plowman\": [On Play] If played in the Garden, you may destroy an opposing Garden entity with base health <= 2."
+ },
+ "STT03-012": {
+  "name": "Miharu of the White Bloom",
+  "element": "EARTH",
+  "type": "ENTITY",
+  "attack": 3,
+  "health": 3,
+  "gp": 3,
+  "cost": 6,
+  "registry_comment": "STT03-012 \"Miharu of the White Bloom\": [On Play] You may play an entity with cost <= 2 from your hand into your Garden."
+ },
+ "STT03-013": {
+  "name": "Stone Masked Ancient",
+  "element": "EARTH",
+  "type": "ENTITY",
+  "attack": 3,
+  "health": 6,
+  "gp": 3,
+  "cost": 7,
+  "registry_comment": "STT03-013 \"Stone Masked Ancient\": [When Enters Garden] You may tap it."
+ },
+ "STT03-014": {
+  "name": "Sandcoil Python",
+  "element": "EARTH",
+  "type": "ENTITY",
+  "attack": 6,
+  "health": 6,
+  "gp": 4,
+  "cost": 8,
+  "registry_comment": "STT03-014 \"Sandcoil Python\": [On Play] Root opposing Garden entities with base attack <= 3 until the start of your next turn."
+ },
+ "STT03-015": {
+  "name": "Jar of Beans",
+  "element": "EARTH",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 4,
+  "registry_comment": "STT03-015 \"Jar of Beans\": [Main] Heal 3 to your leader, or 5 if you have 7 or more IKZ in your IKZ area."
+ },
+ "STT03-016": {
+  "name": "Quicksand",
+  "element": "EARTH",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 5,
+  "registry_comment": "STT03-016 \"Quicksand\": [Main] Destroy all opposing Garden entities with 2 health or less."
+ },
+ "STT04-001": {
+  "name": "Zero",
+  "element": "FIRE",
+  "type": "LEADER",
+  "attack": 0,
+  "health": 20,
+  "gp": 0,
+  "cost": 0,
+  "registry_comment": "STT04-001 \"Zero\": [Once/Turn][Main] Deal 1 damage to this card: Deal 1 damage to a friendly Garden or Alley entity, then give it +1 attack until end of turn."
+ },
+ "STT04-002": {
+  "name": "Ragefire Gate",
+  "element": "FIRE",
+  "type": "GATE",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 0,
+  "registry_comment": "STT04-002 \"Ragefire Gate\": On Gate Portal; you may give a friendly Garden entity that took damage this turn +Attack equal to gate power until end of turn."
+ },
+ "STT04-003": {
+  "name": "Cinderwake Seer",
+  "element": "FIRE",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 2,
+  "gp": 0,
+  "cost": 1,
+  "registry_comment": "STT04-003 \"Cinderwake Seer\": [Start of Each Turn] Deal 1 damage to this card."
+ },
+ "STT04-004": {
+  "name": "Fanatic Kindler",
+  "element": "FIRE",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 2,
+  "gp": 0,
+  "cost": 1,
+  "registry_comment": "STT04-004 \"Fanatic Kindler\": [On Play] You may sacrifice this card to deal 1 damage to an entity in any Garden."
+ },
+ "STT04-005": {
+  "name": "Ruby",
+  "element": "FIRE",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 1,
+  "gp": 1,
+  "cost": 1,
+  "registry_comment": "STT04-005 \"Ruby\": [On Play] Look at the top 5 cards of your deck, reveal up to 1 Pyreskin card and add it to your hand, then bottom deck the rest."
+ },
+ "STT04-006": {
+  "name": "Wolf Cub",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 2,
+  "gp": 1,
+  "cost": 2
+ },
+ "STT04-007": {
+  "name": "Enraged Howler",
+  "element": "FIRE",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 2,
+  "gp": 1,
+  "cost": 2,
+  "registry_comment": "STT04-007 \"Enraged Howler\": [Once/Turn] Whenever this entity takes damage, it gets +1 attack until end of turn."
+ },
+ "STT04-008": {
+  "name": "Lady Emberheart",
+  "element": "FIRE",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 2,
+  "gp": 0,
+  "cost": 3,
+  "registry_comment": "STT04-008 \"Lady Emberheart\": [Once/Turn][After Attacking] On your turn, after this card attacks an entity, you may untap it."
+ },
+ "STT04-009": {
+  "name": "Cinderwake Ritualist",
+  "element": "FIRE",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 2,
+  "gp": 2,
+  "cost": 3,
+  "registry_comment": "STT04-009 \"Cinderwake Ritualist\": [In Garden Only Ability][Once/Turn] Whenever this card takes damage from card effects, you may deal that much damage, capped at 2, to another leader or Garden entity."
+ },
+ "STT04-010": {
+  "name": "Reckless Tinkerer",
+  "element": "FIRE",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 2,
+  "gp": 1,
+  "cost": 3,
+  "registry_comment": "STT04-010 \"Reckless Tinkerer\": [On Play] Deal 1 damage to this card."
+ },
+ "STT04-011": {
+  "name": "Scorchland Raven",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 2,
+  "gp": 3,
+  "cost": 4
+ },
+ "STT04-012": {
+  "name": "Spiteful Raider",
+  "element": "FIRE",
+  "type": "ENTITY",
+  "attack": 3,
+  "health": 2,
+  "gp": 1,
+  "cost": 4,
+  "registry_comment": "STT04-012 \"Spiteful Raider\": [Once/Turn] Whenever this card takes damage, deal 1 damage to a leader or entity in any Garden."
+ },
+ "STT04-013": {
+  "name": "Kurai the Volcano",
+  "element": "FIRE",
+  "type": "ENTITY",
+  "attack": 3,
+  "health": 3,
+  "gp": 1,
+  "cost": 5,
+  "registry_comment": "STT04-013 \"Kurai the Volcano\": once per turn, when an opposing Garden entity is destroyed, untap this card. The actual trigger is handled from the discard path."
+ },
+ "STT04-014": {
+  "name": "Scorchveil Shinobi, Suzuka",
+  "element": "FIRE",
+  "type": "ENTITY",
+  "attack": 3,
+  "health": 3,
+  "gp": 1,
+  "cost": 6,
+  "registry_comment": "STT04-014 \"Scorchveil Shinobi, Suzuka\": [On Play] If your leader has the Scorchweaver subtype, deal 1 damage to all Garden entities, then give all other friendly Garden entities +1 attack until end of turn."
+ },
+ "STT04-015": {
+  "name": "Detonation Pact",
+  "element": "FIRE",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 1,
+  "registry_comment": "STT04-015 \"Detonation Pact\": [Main] Deal 1 damage to your leader: deal 2 damage to your opponent's leader."
+ },
+ "STT04-016": {
+  "name": "Collateral Burst",
+  "element": "FIRE",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 2,
+  "registry_comment": "STT04-016 \"Collateral Burst\": [Main] Deal 1 damage to a friendly Garden entity: deal up to 2 damage to an enemy leader or Garden entity."
+ },
+ "STT04-017": {
+  "name": "Wrath of Sinder",
+  "element": "FIRE",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 3,
+  "registry_comment": "STT04-017 \"Wrath of Sinder\": [Main] Sacrifice one or more entities in your Garden: deal damage equal to the number sacrificed to a leader or an entity in any Garden."
+ },
+ "STT03-017": {
+  "name": "Sprout of Fortune",
+  "element": "EARTH",
+  "type": "SPELL",
+  "attack": 0,
+  "health": 0,
+  "gp": 0,
+  "cost": 3,
+  "registry_comment": "STT03-017 \"Sprout of Fortune\": [Main] Choose 1 - move 1 IKZ from your pile to your area tapped, then heal up to 1 to your leader; or draw 1."
+ },
+ "AZK01-013": {
+  "name": "Gou the Iron Judge",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 3,
+  "health": 3,
+  "gp": 1,
+  "cost": 5,
+  "registry_comment": "AZK01-013 \"Gou the Iron Judge\": [On Play] Your opponent chooses 1: Sacrifice an entity in their Garden or discard 2."
+ },
+ "AZK01-076": {
+  "name": "H\u014dren of Two Paths",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 1,
+  "health": 2,
+  "gp": 1,
+  "cost": 3,
+  "registry_comment": "AZK01-076 \"H\u014dren of Two Paths\": [On Play] Your opponent chooses 1: This entity gains Charge until the end of the turn; or heal 2 to your leader."
+ },
+ "AZK01-079": {
+  "name": "Gin and Tonika",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 3,
+  "health": 4,
+  "gp": 3,
+  "cost": 6,
+  "registry_comment": "AZK01-079 \"Gin and Tonika\": [On Play] Your opponent chooses 1: You draw 2 or deal 3 damage to their leader."
+ },
+ "AZK01-083": {
+  "name": "Gurugumi Imitator",
+  "element": "NORMAL",
+  "type": "ENTITY",
+  "attack": 2,
+  "health": 2,
+  "gp": 1,
+  "cost": 4,
+  "registry_comment": "AZK01-083 \"Gurugumi Imitator\": [Once/Turn][Main] This card gets the card text of another (Neutral) card in your Garden until the end of your turn."
+ },
+ "AZK01-099": {
+  "name": "Raiko's Wrath, Shin",
+  "element": "LIGHTNING",
+  "type": "ENTITY",
+  "attack": 4,
+  "health": 4,
+  "gp": 3,
+  "cost": 7,
+  "registry_comment": "AZK01-099 \"Raiko's Wrath, Shin\": [On Play] Choose one: an entity with a cost of 5 or less in your opponent's Garden becomes Shocked; or this entity gains Charge until the end of the turn."
+ }
+}

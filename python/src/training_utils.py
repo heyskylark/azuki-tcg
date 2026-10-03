@@ -245,6 +245,11 @@ def make_azuki_env(*, seed: int | None = None, buf=None, **env_kwargs):
   pbrs_terminal_closure = env_kwargs.pop("pbrs_terminal_closure", None)
   prebuilt_curriculum = bool(env_kwargs.pop("prebuilt_curriculum", False))
   prebuilt_probability = float(env_kwargs.pop("prebuilt_probability", 0.0))
+  from specialist import parse_learner_element
+
+  learner_element = parse_learner_element(env_kwargs.pop("learner_element", "none"))
+  if learner_element != "none" and not (native and deck_building_enabled):
+    raise ValueError("env.learner_element requires env.native=true and deck_building_enabled=true")
   fixed_seats_raw = env_kwargs.pop("deck_building_fixed_seats", None)
   if fixed_seats_raw is None or fixed_seats_raw == "":
     fixed_deck_seats: tuple[int, ...] = ()
@@ -261,12 +266,19 @@ def make_azuki_env(*, seed: int | None = None, buf=None, **env_kwargs):
   if deck_pool is None:
     deck_pool = load_training_deck_pool(deck_pool_path)
   prebuilt_deck_groups = None
+  learner_prebuilt_deck_indices = None
   if prebuilt_curriculum:
     if not native or not deck_building_enabled or not deck_pool_path:
       raise ValueError("prebuilt_curriculum requires native deck building and an explicit deck_pool_path")
-    from prebuilt_deck_pool import load_prebuilt_deck_groups
+    if learner_element == "none":
+      from prebuilt_deck_pool import load_prebuilt_deck_groups
 
-    prebuilt_deck_groups = load_prebuilt_deck_groups(deck_pool_path)
+      prebuilt_deck_groups = load_prebuilt_deck_groups(deck_pool_path)
+    else:
+      from prebuilt_deck_pool import load_specialist_deck_groups, specialist_learner_deck_indices
+
+      prebuilt_deck_groups = load_specialist_deck_groups(deck_pool_path)
+      learner_prebuilt_deck_indices = specialist_learner_deck_indices(deck_pool_path, learner_element)
   elif prebuilt_probability != 0.0:
     raise ValueError("prebuilt_probability requires prebuilt_curriculum=true")
   if native:
@@ -299,6 +311,8 @@ def make_azuki_env(*, seed: int | None = None, buf=None, **env_kwargs):
       pbrs_terminal_closure=pbrs_terminal_closure,
       prebuilt_deck_groups=prebuilt_deck_groups,
       prebuilt_probability=prebuilt_probability,
+      learner_element=learner_element,
+      learner_prebuilt_deck_indices=learner_prebuilt_deck_indices,
     )
   if reward_telemetry:
     raise ValueError("env.reward_telemetry requires env.native=true")

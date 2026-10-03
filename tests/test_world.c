@@ -9131,6 +9131,760 @@ static void test_leader_resolved_outcomes_count_effects_and_delayed_consumption(
   ecs_fini(world);
 }
 
+/* ---- AZK01-013/076/079/083/099 (2026-09 card batch) ---- */
+
+static void setup_two_player_new_card_fixture(
+    ecs_world_t *world, ecs_entity_t players[MAX_PLAYERS_PER_MATCH],
+    PlayerZones zones[MAX_PLAYERS_PER_MATCH],
+    ecs_entity_t leaders[MAX_PLAYERS_PER_MATCH]) {
+  setup_single_player_play_fixture(world, &players[0], &zones[0]);
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  players[1] = gs->players[1];
+  zones[1] = gs->zones[1];
+  leaders[0] = create_basic_leader(world, players[0], zones[0].leader,
+                                   CARD_DEF_STT01_001, CARD_ELEMENT_LIGHTNING,
+                                   "NewCardLeader_P0");
+  leaders[1] = create_basic_leader(world, players[1], zones[1].leader,
+                                   CARD_DEF_STT01_001, CARD_ELEMENT_LIGHTNING,
+                                   "NewCardLeader_P1");
+}
+
+static ecs_entity_t create_new_card_test_entity(ecs_world_t *world,
+                                                ecs_entity_t player,
+                                                ecs_entity_t zone,
+                                                CardDefId card_id,
+                                                const char *name,
+                                                uint8_t zone_index) {
+  const CardDef *def = azk_card_def_from_id(card_id);
+  AZK_TEST_ASSERT(def != NULL);
+  ecs_entity_t card = create_basic_entity_card(
+      world, player, zone, card_id, (CardElement)def->element, name,
+      zone_index);
+  ecs_set(world, card, IKZCost, {.ikz_cost = def->ikz_cost.ikz_cost});
+  return card;
+}
+
+static void fill_hand(ecs_world_t *world, ecs_entity_t player,
+                      ecs_entity_t hand, int count, const char *prefix) {
+  for (int i = 0; i < count; ++i) {
+    char name[48];
+    snprintf(name, sizeof(name), "%s_%d", prefix, i);
+    (void)create_new_card_test_entity(world, player, hand, CARD_DEF_AZK01_070,
+                                      name, (uint8_t)i);
+  }
+}
+
+static AzkActionMaskSet *build_test_mask(ecs_world_t *world,
+                                         int8_t player_index) {
+  static AzkActionMaskSet mask;
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  const bool built =
+      azk_build_action_mask_for_player(world, gs, player_index, &mask);
+  AZK_TEST_ASSERT(built);
+  return &mask;
+}
+
+static bool mask_has_action(const AzkActionMaskSet *mask, ActionType type,
+                            int subaction_1) {
+  for (uint16_t i = 0; i < mask->legal_action_count; ++i) {
+    if (mask->legal_actions[i].type == type &&
+        mask->legal_actions[i].subaction_1 == subaction_1) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static uint16_t mask_count_type(const AzkActionMaskSet *mask,
+                                ActionType type) {
+  uint16_t count = 0;
+  for (uint16_t i = 0; i < mask->legal_action_count; ++i) {
+    if (mask->legal_actions[i].type == type) {
+      count++;
+    }
+  }
+  return count;
+}
+
+static bool trigger_on_play_and_process(ecs_world_t *world, ecs_entity_t card,
+                                        ecs_entity_t owner) {
+  const bool queued = azk_trigger_on_play_ability(world, card, owner);
+  AZK_TEST_ASSERT(queued);
+  return azk_process_triggered_effect_queue(world);
+}
+
+static void test_azk01_013_opponent_chooses_sacrifice(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+  ecs_entity_t players[MAX_PLAYERS_PER_MATCH] = {0};
+  PlayerZones zones[MAX_PLAYERS_PER_MATCH] = {0};
+  ecs_entity_t leaders[MAX_PLAYERS_PER_MATCH] = {0};
+  setup_two_player_new_card_fixture(world, players, zones, leaders);
+
+  ecs_entity_t gou = create_new_card_test_entity(
+      world, players[0], zones[0].garden, CARD_DEF_AZK01_013, "Gou_Test", 0);
+  ecs_entity_t keep = create_new_card_test_entity(
+      world, players[1], zones[1].garden, CARD_DEF_AZK01_070, "OppKeep", 0);
+  ecs_entity_t victim = create_new_card_test_entity(
+      world, players[1], zones[1].garden, CARD_DEF_AZK01_070, "OppVictim", 2);
+  fill_hand(world, players[1], zones[1].hand, 3, "OppHand");
+
+  AZK_TEST_ASSERT(trigger_on_play_and_process(world, gou, players[0]));
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  const AbilityContext *ctx = ecs_singleton_get(world, AbilityContext);
+  AZK_TEST_ASSERT(ctx->runtime.phase == ABILITY_PHASE_CONFIRMATION);
+  AZK_TEST_ASSERT(gs->active_player_index == 1);
+  AZK_TEST_ASSERT(ctx->runtime.owner == players[1]);
+  AZK_TEST_ASSERT(ctx->runtime.source_card == gou);
+
+  // Only the opponent acts; both modes are legal picks.
+  AZK_TEST_ASSERT(build_test_mask(world, 0)->legal_action_count == 0);
+  AzkActionMaskSet *mask = build_test_mask(world, 1);
+  AZK_TEST_ASSERT(mask->legal_action_count == 2);
+  AZK_TEST_ASSERT(mask->head0_mask[ACT_CONFIRM_ABILITY] == 1);
+  AZK_TEST_ASSERT(mask->head0_mask[ACT_NOOP] == 1);
+
+  AZK_TEST_ASSERT(azk_process_ability_confirmation(world));
+  ctx = ecs_singleton_get(world, AbilityContext);
+  AZK_TEST_ASSERT(ctx->runtime.phase == ABILITY_PHASE_EFFECT_SELECTION);
+  AZK_TEST_ASSERT(gs->active_player_index == 1);
+  AZK_TEST_ASSERT(ctx->runtime.owner == players[1]);
+
+  // The opponent picks one of their own Garden entities.
+  mask = build_test_mask(world, 1);
+  AZK_TEST_ASSERT(mask_count_type(mask, ACT_SELECT_EFFECT_TARGET) == 2);
+  AZK_TEST_ASSERT(mask_has_action(mask, ACT_SELECT_EFFECT_TARGET, 0));
+  AZK_TEST_ASSERT(mask_has_action(mask, ACT_SELECT_EFFECT_TARGET, 2));
+  AZK_TEST_ASSERT(mask->head0_mask[ACT_NOOP] == 0);
+
+  AZK_TEST_ASSERT(azk_process_effect_selection(world, 2));
+  AZK_TEST_ASSERT(!azk_is_in_ability_phase(world));
+  AZK_TEST_ASSERT(gs->active_player_index == 0);
+  AZK_TEST_ASSERT(ecs_get_target(world, victim, EcsChildOf, 0) ==
+                  zones[1].discard);
+  AZK_TEST_ASSERT(ecs_get_target(world, keep, EcsChildOf, 0) ==
+                  zones[1].garden);
+  AZK_TEST_ASSERT(ecs_get_target(world, gou, EcsChildOf, 0) ==
+                  zones[0].garden);
+  AZK_TEST_ASSERT(ecs_get_ordered_children(world, zones[1].hand).count == 3);
+
+  ecs_fini(world);
+}
+
+static void test_azk01_013_discard_mode_with_short_hand(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+  ecs_entity_t players[MAX_PLAYERS_PER_MATCH] = {0};
+  PlayerZones zones[MAX_PLAYERS_PER_MATCH] = {0};
+  ecs_entity_t leaders[MAX_PLAYERS_PER_MATCH] = {0};
+  setup_two_player_new_card_fixture(world, players, zones, leaders);
+
+  ecs_entity_t gou = create_new_card_test_entity(
+      world, players[0], zones[0].garden, CARD_DEF_AZK01_013, "Gou_Test", 0);
+  (void)create_new_card_test_entity(world, players[1], zones[1].garden,
+                                    CARD_DEF_AZK01_070, "OppGarden", 0);
+  fill_hand(world, players[1], zones[1].hand, 1, "OppHand");
+
+  AZK_TEST_ASSERT(trigger_on_play_and_process(world, gou, players[0]));
+  AZK_TEST_ASSERT(azk_process_ability_decline(world));
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  const AbilityContext *ctx = ecs_singleton_get(world, AbilityContext);
+  AZK_TEST_ASSERT(ctx->runtime.phase == ABILITY_PHASE_EFFECT_SELECTION);
+  AZK_TEST_ASSERT(gs->active_player_index == 1);
+  // Hand < 2: discard as many as possible (the whole hand).
+  AZK_TEST_ASSERT(ctx->effect.min_required == 1);
+  AZK_TEST_ASSERT(ctx->effect.max_allowed == 1);
+  AzkActionMaskSet *mask = build_test_mask(world, 1);
+  AZK_TEST_ASSERT(mask_count_type(mask, ACT_SELECT_EFFECT_TARGET) == 1);
+  AZK_TEST_ASSERT(mask->head0_mask[ACT_NOOP] == 0);
+
+  AZK_TEST_ASSERT(azk_process_effect_selection(world, 0));
+  AZK_TEST_ASSERT(!azk_is_in_ability_phase(world));
+  AZK_TEST_ASSERT(gs->active_player_index == 0);
+  AZK_TEST_ASSERT(ecs_get_ordered_children(world, zones[1].hand).count == 0);
+  AZK_TEST_ASSERT(ecs_get_ordered_children(world, zones[1].discard).count == 1);
+  AZK_TEST_ASSERT(ecs_get_ordered_children(world, zones[1].garden).count == 1);
+
+  ecs_fini(world);
+}
+
+static void test_azk01_013_unavailable_modes_are_forced_or_skipped(void) {
+  // Empty Garden: sacrifice is unavailable, discard 2 is forced.
+  {
+    ecs_world_t *world = ecs_init();
+    azk_register_components(world);
+    ecs_entity_t players[MAX_PLAYERS_PER_MATCH] = {0};
+    PlayerZones zones[MAX_PLAYERS_PER_MATCH] = {0};
+    ecs_entity_t leaders[MAX_PLAYERS_PER_MATCH] = {0};
+    setup_two_player_new_card_fixture(world, players, zones, leaders);
+    ecs_entity_t gou = create_new_card_test_entity(
+        world, players[0], zones[0].garden, CARD_DEF_AZK01_013, "Gou_Test", 0);
+    fill_hand(world, players[1], zones[1].hand, 3, "OppHand");
+
+    AZK_TEST_ASSERT(trigger_on_play_and_process(world, gou, players[0]));
+    const GameState *gs = ecs_singleton_get(world, GameState);
+    const AbilityContext *ctx = ecs_singleton_get(world, AbilityContext);
+    AZK_TEST_ASSERT(ctx->runtime.phase == ABILITY_PHASE_EFFECT_SELECTION);
+    AZK_TEST_ASSERT(ctx->effect.min_required == 2);
+    AZK_TEST_ASSERT(gs->active_player_index == 1);
+    AZK_TEST_ASSERT(azk_process_effect_selection(world, 0));
+    // Already-selected cards cannot be picked twice.
+    AZK_TEST_ASSERT(!azk_process_effect_selection(world, 0));
+    AZK_TEST_ASSERT(azk_process_effect_selection(world, 2));
+    AZK_TEST_ASSERT(!azk_is_in_ability_phase(world));
+    AZK_TEST_ASSERT(gs->active_player_index == 0);
+    AZK_TEST_ASSERT(ecs_get_ordered_children(world, zones[1].hand).count == 1);
+    ecs_fini(world);
+  }
+
+  // Empty hand: sacrifice is forced.
+  {
+    ecs_world_t *world = ecs_init();
+    azk_register_components(world);
+    ecs_entity_t players[MAX_PLAYERS_PER_MATCH] = {0};
+    PlayerZones zones[MAX_PLAYERS_PER_MATCH] = {0};
+    ecs_entity_t leaders[MAX_PLAYERS_PER_MATCH] = {0};
+    setup_two_player_new_card_fixture(world, players, zones, leaders);
+    ecs_entity_t gou = create_new_card_test_entity(
+        world, players[0], zones[0].garden, CARD_DEF_AZK01_013, "Gou_Test", 0);
+    ecs_entity_t victim = create_new_card_test_entity(
+        world, players[1], zones[1].garden, CARD_DEF_AZK01_070, "OppVictim", 3);
+
+    AZK_TEST_ASSERT(trigger_on_play_and_process(world, gou, players[0]));
+    const AbilityContext *ctx = ecs_singleton_get(world, AbilityContext);
+    AZK_TEST_ASSERT(ctx->runtime.phase == ABILITY_PHASE_EFFECT_SELECTION);
+    AZK_TEST_ASSERT(ecs_singleton_get(world, GameState)->active_player_index ==
+                    1);
+    AZK_TEST_ASSERT(azk_process_effect_selection(world, 3));
+    AZK_TEST_ASSERT(ecs_get_target(world, victim, EcsChildOf, 0) ==
+                    zones[1].discard);
+    AZK_TEST_ASSERT(ecs_singleton_get(world, GameState)->active_player_index ==
+                    0);
+    ecs_fini(world);
+  }
+
+  // Empty Garden and empty hand: nothing to choose, nothing happens.
+  {
+    ecs_world_t *world = ecs_init();
+    azk_register_components(world);
+    ecs_entity_t players[MAX_PLAYERS_PER_MATCH] = {0};
+    PlayerZones zones[MAX_PLAYERS_PER_MATCH] = {0};
+    ecs_entity_t leaders[MAX_PLAYERS_PER_MATCH] = {0};
+    setup_two_player_new_card_fixture(world, players, zones, leaders);
+    ecs_entity_t gou = create_new_card_test_entity(
+        world, players[0], zones[0].garden, CARD_DEF_AZK01_013, "Gou_Test", 0);
+
+    AZK_TEST_ASSERT(!trigger_on_play_and_process(world, gou, players[0]));
+    AZK_TEST_ASSERT(!azk_is_in_ability_phase(world));
+    AZK_TEST_ASSERT(ecs_singleton_get(world, GameState)->active_player_index ==
+                    0);
+    ecs_fini(world);
+  }
+}
+
+static void test_azk01_079_opponent_chooses_draw_or_damage(void) {
+  for (int choose_damage = 0; choose_damage <= 1; ++choose_damage) {
+    ecs_world_t *world = ecs_init();
+    azk_register_components(world);
+    ecs_entity_t players[MAX_PLAYERS_PER_MATCH] = {0};
+    PlayerZones zones[MAX_PLAYERS_PER_MATCH] = {0};
+    ecs_entity_t leaders[MAX_PLAYERS_PER_MATCH] = {0};
+    setup_two_player_new_card_fixture(world, players, zones, leaders);
+    ecs_entity_t gin = create_new_card_test_entity(
+        world, players[0], zones[0].garden, CARD_DEF_AZK01_079, "Gin_Test", 0);
+    fill_hand(world, players[0], zones[0].deck, 3, "OwnDeck");
+
+    AZK_TEST_ASSERT(trigger_on_play_and_process(world, gin, players[0]));
+    const GameState *gs = ecs_singleton_get(world, GameState);
+    AZK_TEST_ASSERT(azk_get_ability_phase(world) == ABILITY_PHASE_CONFIRMATION);
+    AZK_TEST_ASSERT(gs->active_player_index == 1);
+
+    const bool resolved = choose_damage ? azk_process_ability_decline(world)
+                                        : azk_process_ability_confirmation(world);
+    AZK_TEST_ASSERT(resolved);
+    AZK_TEST_ASSERT(!azk_is_in_ability_phase(world));
+    AZK_TEST_ASSERT(gs->active_player_index == 0);
+
+    const CurStats *opp_leader = ecs_get(world, leaders[1], CurStats);
+    const int32_t own_hand =
+        ecs_get_ordered_children(world, zones[0].hand).count;
+    if (choose_damage) {
+      AZK_TEST_ASSERT(opp_leader->cur_hp == 17);
+      AZK_TEST_ASSERT(own_hand == 0);
+    } else {
+      AZK_TEST_ASSERT(opp_leader->cur_hp == 20);
+      AZK_TEST_ASSERT(own_hand == 2);
+    }
+    AZK_TEST_ASSERT(ecs_get(world, leaders[0], CurStats)->cur_hp == 20);
+    ecs_fini(world);
+  }
+}
+
+static void test_azk01_076_opponent_chooses_charge_or_heal(void) {
+  // Charge mode: lasts until end of turn and lifts cooldown.
+  {
+    ecs_world_t *world = ecs_init();
+    azk_register_components(world);
+    ecs_entity_t players[MAX_PLAYERS_PER_MATCH] = {0};
+    PlayerZones zones[MAX_PLAYERS_PER_MATCH] = {0};
+    ecs_entity_t leaders[MAX_PLAYERS_PER_MATCH] = {0};
+    setup_two_player_new_card_fixture(world, players, zones, leaders);
+    ecs_entity_t horen = create_new_card_test_entity(
+        world, players[0], zones[0].garden, CARD_DEF_AZK01_076, "Horen", 0);
+    ecs_set(world, horen, TapState, {.tapped = false, .cooldown = true});
+    AZK_TEST_ASSERT(!ecs_has(world, horen, Charge));
+
+    AZK_TEST_ASSERT(trigger_on_play_and_process(world, horen, players[0]));
+    AZK_TEST_ASSERT(ecs_singleton_get(world, GameState)->active_player_index ==
+                    1);
+    AZK_TEST_ASSERT(azk_process_ability_confirmation(world));
+    AZK_TEST_ASSERT(ecs_singleton_get(world, GameState)->active_player_index ==
+                    0);
+    AZK_TEST_ASSERT(ecs_has(world, horen, Charge));
+    AZK_TEST_ASSERT(!ecs_get(world, horen, TapState)->cooldown);
+    tick_end_of_turn_effects_for_player(world, 0);
+    AZK_TEST_ASSERT(!ecs_has(world, horen, Charge));
+    ecs_fini(world);
+  }
+
+  // Heal mode: heals the controller's leader by 2, capped at max health.
+  const int8_t start_hp[] = {15, 19};
+  const int8_t expected_hp[] = {17, 20};
+  for (int i = 0; i < 2; ++i) {
+    ecs_world_t *world = ecs_init();
+    azk_register_components(world);
+    ecs_entity_t players[MAX_PLAYERS_PER_MATCH] = {0};
+    PlayerZones zones[MAX_PLAYERS_PER_MATCH] = {0};
+    ecs_entity_t leaders[MAX_PLAYERS_PER_MATCH] = {0};
+    setup_two_player_new_card_fixture(world, players, zones, leaders);
+    ecs_set(world, leaders[0], CurStats, {.cur_atk = 0, .cur_hp = start_hp[i]});
+    ecs_set(world, leaders[1], CurStats, {.cur_atk = 0, .cur_hp = 10});
+    ecs_entity_t horen = create_new_card_test_entity(
+        world, players[0], zones[0].garden, CARD_DEF_AZK01_076, "Horen", 0);
+
+    AZK_TEST_ASSERT(trigger_on_play_and_process(world, horen, players[0]));
+    AZK_TEST_ASSERT(azk_process_ability_decline(world));
+    AZK_TEST_ASSERT(!ecs_has(world, horen, Charge));
+    AZK_TEST_ASSERT(ecs_get(world, leaders[0], CurStats)->cur_hp ==
+                    expected_hp[i]);
+    AZK_TEST_ASSERT(ecs_get(world, leaders[1], CurStats)->cur_hp == 10);
+    AZK_TEST_ASSERT(ecs_singleton_get(world, GameState)->active_player_index ==
+                    0);
+    ecs_fini(world);
+  }
+}
+
+static void test_azk01_099_owner_chooses_shock_or_charge(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+  ecs_entity_t players[MAX_PLAYERS_PER_MATCH] = {0};
+  PlayerZones zones[MAX_PLAYERS_PER_MATCH] = {0};
+  ecs_entity_t leaders[MAX_PLAYERS_PER_MATCH] = {0};
+  setup_two_player_new_card_fixture(world, players, zones, leaders);
+  ecs_entity_t raiko = create_new_card_test_entity(
+      world, players[0], zones[0].garden, CARD_DEF_AZK01_099, "Raiko", 0);
+  // Gin and Tonika costs 6 (not shockable); Trade Guild Cavalry costs 5.
+  ecs_entity_t big = create_new_card_test_entity(
+      world, players[1], zones[1].garden, CARD_DEF_AZK01_079, "OppBig", 0);
+  ecs_entity_t small = create_new_card_test_entity(
+      world, players[1], zones[1].garden, CARD_DEF_AZK01_014, "OppSmall", 1);
+
+  AZK_TEST_ASSERT(trigger_on_play_and_process(world, raiko, players[0]));
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  const AbilityContext *ctx = ecs_singleton_get(world, AbilityContext);
+  AZK_TEST_ASSERT(ctx->runtime.phase == ABILITY_PHASE_CONFIRMATION);
+  AZK_TEST_ASSERT(gs->active_player_index == 0);
+  AZK_TEST_ASSERT(ctx->runtime.owner == players[0]);
+
+  AZK_TEST_ASSERT(azk_process_ability_confirmation(world));
+  AzkActionMaskSet *mask = build_test_mask(world, 0);
+  AZK_TEST_ASSERT(mask_count_type(mask, ACT_SELECT_EFFECT_TARGET) == 1);
+  AZK_TEST_ASSERT(mask_has_action(mask, ACT_SELECT_EFFECT_TARGET, 1));
+  AZK_TEST_ASSERT(!azk_process_effect_selection(world, 0));
+  AZK_TEST_ASSERT(azk_process_effect_selection(world, 1));
+  AZK_TEST_ASSERT(ecs_has(world, small, Shocked));
+  AZK_TEST_ASSERT(!ecs_has(world, big, Shocked));
+  AZK_TEST_ASSERT(!ecs_has(world, raiko, Charge));
+  AZK_TEST_ASSERT(!azk_is_in_ability_phase(world));
+  ecs_fini(world);
+
+  // No entity with cost <= 5: Charge resolves without a choice.
+  world = ecs_init();
+  azk_register_components(world);
+  setup_two_player_new_card_fixture(world, players, zones, leaders);
+  raiko = create_new_card_test_entity(world, players[0], zones[0].garden,
+                                      CARD_DEF_AZK01_099, "Raiko", 0);
+  ecs_set(world, raiko, TapState, {.tapped = false, .cooldown = true});
+  big = create_new_card_test_entity(world, players[1], zones[1].garden,
+                                    CARD_DEF_AZK01_079, "OppBig", 0);
+  AZK_TEST_ASSERT(!trigger_on_play_and_process(world, raiko, players[0]));
+  AZK_TEST_ASSERT(!azk_is_in_ability_phase(world));
+  AZK_TEST_ASSERT(ecs_has(world, raiko, Charge));
+  AZK_TEST_ASSERT(!ecs_get(world, raiko, TapState)->cooldown);
+  AZK_TEST_ASSERT(!ecs_has(world, big, Shocked));
+  ecs_fini(world);
+}
+
+static uint8_t count_action_abilities(ecs_world_t *world, ecs_entity_t card) {
+  ecs_entity_t abilities[AZK_MAX_CARD_ABILITIES] = {0};
+  return azk_collect_card_action_abilities(world, card, abilities,
+                                           AZK_MAX_CARD_ABILITIES);
+}
+
+static void test_azk01_083_copies_neutral_text_until_end_of_turn(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+  ecs_entity_t players[MAX_PLAYERS_PER_MATCH] = {0};
+  PlayerZones zones[MAX_PLAYERS_PER_MATCH] = {0};
+  ecs_entity_t leaders[MAX_PLAYERS_PER_MATCH] = {0};
+  setup_two_player_new_card_fixture(world, players, zones, leaders);
+
+  ecs_entity_t imitator = create_new_card_test_entity(
+      world, players[0], zones[0].garden, CARD_DEF_AZK01_083, "Imitator", 0);
+  ecs_set(world, imitator, BaseStats, {.attack = 2, .health = 2});
+  ecs_set(world, imitator, CurStats, {.cur_atk = 2, .cur_hp = 2});
+  ecs_set(world, imitator, TapState, {.tapped = false, .cooldown = true});
+  (void)create_new_card_test_entity(world, players[0], zones[0].garden,
+                                    CARD_DEF_AZK01_074, "Vanguard", 1);
+  (void)create_new_card_test_entity(world, players[0], zones[0].garden,
+                                    CARD_DEF_AZK01_082, "Brawler", 2);
+  (void)create_new_card_test_entity(world, players[0], zones[0].garden,
+                                    CARD_DEF_AZK01_036, "LightningDenmu", 3);
+  ecs_entity_t enemy = create_new_card_test_entity(
+      world, players[1], zones[1].garden, CARD_DEF_AZK01_079, "OppGin", 0);
+  ecs_set(world, enemy, CurStats, {.cur_atk = 5, .cur_hp = 4});
+
+  AZK_TEST_ASSERT(count_action_abilities(world, imitator) == 1);
+  AZK_TEST_ASSERT(azk_trigger_main_ability(world, imitator, players[0], 0));
+  // Lightning entities are not valid sources.
+  AZK_TEST_ASSERT(!azk_process_effect_selection(world, 3));
+  AZK_TEST_ASSERT(azk_process_effect_selection(world, 1));
+  AZK_TEST_ASSERT(!azk_is_in_ability_phase(world));
+  const CopiedCardText *copied = ecs_get(world, imitator, CopiedCardText);
+  AZK_TEST_ASSERT(copied != NULL &&
+                  copied->card_def_id == CARD_DEF_AZK01_074);
+
+  // Own [Once/Turn] ability is spent; the copied Vanguard [Main] is usable.
+  ecs_entity_t own_ability =
+      azk_find_card_ability_by_registry_order(world, imitator, 0);
+  const AbilityRepeatContext *repeat =
+      ecs_get(world, own_ability, AbilityRepeatContext);
+  AZK_TEST_ASSERT(repeat != NULL && repeat->was_applied);
+  AZK_TEST_ASSERT(count_action_abilities(world, imitator) == 2);
+  ecs_entity_t copied_ability = azk_find_card_action_ability(world, imitator, 1);
+  const AbilityInstance *copied_instance =
+      ecs_get(world, copied_ability, AbilityInstance);
+  AZK_TEST_ASSERT(copied_instance != NULL &&
+                  copied_instance->card_def_id == CARD_DEF_AZK01_074);
+  AZK_TEST_ASSERT(azk_trigger_main_ability(world, imitator, players[0], 1));
+  AZK_TEST_ASSERT(azk_process_effect_selection(world, 0));
+  AZK_TEST_ASSERT(ecs_get(world, imitator, CurStats)->cur_atk == 5);
+
+  // The copy ends at end of turn.
+  tick_end_of_turn_effects_for_player(world, 0);
+  AZK_TEST_ASSERT(!ecs_has(world, imitator, CopiedCardText));
+  AZK_TEST_ASSERT(count_action_abilities(world, imitator) == 1);
+  ecs_fini(world);
+}
+
+static void test_azk01_083_garden_only_once_per_turn(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+  ecs_entity_t players[MAX_PLAYERS_PER_MATCH] = {0};
+  PlayerZones zones[MAX_PLAYERS_PER_MATCH] = {0};
+  ecs_entity_t leaders[MAX_PLAYERS_PER_MATCH] = {0};
+  setup_two_player_new_card_fixture(world, players, zones, leaders);
+
+  (void)create_new_card_test_entity(world, players[0], zones[0].garden,
+                                    CARD_DEF_AZK01_074, "Vanguard", 0);
+  (void)create_new_card_test_entity(world, players[0], zones[0].alley,
+                                    CARD_DEF_AZK01_083, "AlleyImitator", 0);
+  // A valid Neutral source is in the Garden, but the Imitator is in the Alley.
+  UserAction alley_action = {.player = players[0],
+                             .type = ACT_ACTIVATE_ALLEY_ABILITY,
+                             .subaction_1 = 0,
+                             .subaction_2 = 0};
+  AZK_TEST_ASSERT(!azk_validate_activate_alley_ability_action(
+      world, ecs_singleton_get(world, GameState), players[0], &alley_action,
+      false, NULL));
+
+  ecs_entity_t imitator = create_new_card_test_entity(
+      world, players[0], zones[0].garden, CARD_DEF_AZK01_083, "Imitator", 1);
+  UserAction garden_action = {.player = players[0],
+                              .type = ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY,
+                              .subaction_1 = 1,
+                              .subaction_2 = 0};
+  AZK_TEST_ASSERT(azk_validate_activate_garden_or_leader_ability_action(
+      world, ecs_singleton_get(world, GameState), players[0], &garden_action,
+      true, NULL));
+  AZK_TEST_ASSERT(azk_trigger_main_ability(world, imitator, players[0], 0));
+  AZK_TEST_ASSERT(azk_process_effect_selection(world, 0));
+  AZK_TEST_ASSERT(ecs_has(world, imitator, CopiedCardText));
+  // [Once/Turn]: a second activation in the same turn is rejected.
+  AZK_TEST_ASSERT(!azk_validate_activate_garden_or_leader_ability_action(
+      world, ecs_singleton_get(world, GameState), players[0], &garden_action,
+      false, NULL));
+  ecs_fini(world);
+}
+
+static void test_azk01_083_copies_keywords_and_ends_on_leave(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+  ecs_entity_t players[MAX_PLAYERS_PER_MATCH] = {0};
+  PlayerZones zones[MAX_PLAYERS_PER_MATCH] = {0};
+  ecs_entity_t leaders[MAX_PLAYERS_PER_MATCH] = {0};
+  setup_two_player_new_card_fixture(world, players, zones, leaders);
+
+  ecs_entity_t imitator = create_new_card_test_entity(
+      world, players[0], zones[0].garden, CARD_DEF_AZK01_083, "Imitator", 0);
+  ecs_set(world, imitator, TapState, {.tapped = false, .cooldown = true});
+  ecs_entity_t other_imitator = create_new_card_test_entity(
+      world, players[0], zones[0].garden, CARD_DEF_AZK01_083, "Imitator2", 1);
+
+  // Another Imitator is not a valid source; with no other source the
+  // ability cannot be activated.
+  AZK_TEST_ASSERT(!azk_trigger_main_ability(world, imitator, players[0], 0));
+  AZK_TEST_ASSERT(!azk_is_in_ability_phase(world));
+  (void)other_imitator;
+
+  (void)create_new_card_test_entity(world, players[0], zones[0].garden,
+                                    CARD_DEF_AZK01_082, "Brawler", 2);
+  AZK_TEST_ASSERT(azk_trigger_main_ability(world, imitator, players[0], 0));
+  AZK_TEST_ASSERT(!azk_process_effect_selection(world, 1));
+  AZK_TEST_ASSERT(azk_process_effect_selection(world, 2));
+  AZK_TEST_ASSERT(ecs_has(world, imitator, Charge));
+  AZK_TEST_ASSERT(!ecs_get(world, imitator, TapState)->cooldown);
+
+  discard_card(world, imitator);
+  AZK_TEST_ASSERT(!ecs_has(world, imitator, CopiedCardText));
+  AZK_TEST_ASSERT(!ecs_has(world, imitator, Charge));
+  AZK_TEST_ASSERT(count_action_abilities(world, imitator) == 1);
+  ecs_fini(world);
+}
+
+static void test_azk01_083_copied_trigger_can_remove_its_own_card(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+  ecs_entity_t players[MAX_PLAYERS_PER_MATCH] = {0};
+  PlayerZones zones[MAX_PLAYERS_PER_MATCH] = {0};
+  ecs_entity_t leaders[MAX_PLAYERS_PER_MATCH] = {0};
+  setup_two_player_new_card_fixture(world, players, zones, leaders);
+
+  ecs_entity_t imitator = create_new_card_test_entity(
+      world, players[0], zones[0].garden, CARD_DEF_AZK01_083, "Imitator", 0);
+  ecs_entity_t hunter = create_new_card_test_entity(
+      world, players[0], zones[0].garden, CARD_DEF_AZK01_011, "Hunter", 1);
+  ecs_set(world, hunter, TapState, {.tapped = true, .cooldown = false});
+
+  AZK_TEST_ASSERT(azk_trigger_main_ability(world, imitator, players[0], 0));
+  AZK_TEST_ASSERT(azk_process_effect_selection(world, 1));
+  AZK_TEST_ASSERT(ecs_has(world, imitator, CopiedCardText));
+
+  // The copied Rooftop Hunter end-of-turn trigger sacrifices the untapped
+  // Imitator, which deletes the copied ability while it resolves.
+  AZK_TEST_ASSERT(azk_trigger_end_of_turn_abilities(world));
+  while (azk_has_queued_triggered_effects(world)) {
+    (void)azk_process_triggered_effect_queue(world);
+    AZK_TEST_ASSERT(!azk_is_in_ability_phase(world));
+  }
+  AZK_TEST_ASSERT(ecs_get_target(world, imitator, EcsChildOf, 0) ==
+                  zones[0].discard);
+  AZK_TEST_ASSERT(ecs_get_target(world, hunter, EcsChildOf, 0) ==
+                  zones[0].garden);
+  AZK_TEST_ASSERT(!ecs_has(world, imitator, CopiedCardText));
+  AZK_TEST_ASSERT(count_action_abilities(world, imitator) == 1);
+  ecs_fini(world);
+}
+
+static void test_fatedealer_engine_flow_routes_choice_to_opponent(void) {
+  const CardInfo deck[] = {
+      {.card_id = CARD_DEF_STT01_001, .card_count = 1},
+      {.card_id = CARD_DEF_STT01_002, .card_count = 1},
+      {.card_id = CARD_DEF_AZK01_079, .card_count = 50},
+      {.card_id = CARD_DEF_IKZ_001, .card_count = 10},
+  };
+  const size_t deck_count = sizeof(deck) / sizeof(deck[0]);
+  AzkEngine *engine =
+      azk_engine_create_with_decks(777, deck, deck_count, deck, deck_count);
+  AZK_TEST_ASSERT(engine != NULL);
+
+  GameState *gs = ecs_singleton_get_mut(engine, GameState);
+  gs->phase = PHASE_MAIN;
+  gs->active_player_index = 0;
+  gs->turn_number = 1;
+  ecs_singleton_modified(engine, GameState);
+  ecs_entity_t player0 = gs->players[0];
+  ecs_entity_t player1 = gs->players[1];
+  grant_ikz_cards_to_player(engine, 0, 6);
+  ecs_entity_t opp_leader = find_leader_card_in_zone(
+      engine, ecs_singleton_get(engine, GameState)->zones[1].leader);
+  const int8_t opp_hp_before = ecs_get(engine, opp_leader, CurStats)->cur_hp;
+
+  submit_engine_action_and_advance(
+      engine, &(UserAction){.player = player0,
+                            .type = ACT_PLAY_ENTITY_TO_GARDEN,
+                            .subaction_1 = 0,
+                            .subaction_2 = 0,
+                            .subaction_3 = 0});
+
+  const GameState *after_play = ecs_singleton_get(engine, GameState);
+  AZK_TEST_ASSERT(after_play->phase == PHASE_MAIN);
+  AZK_TEST_ASSERT(after_play->active_player_index == 1);
+  AZK_TEST_ASSERT(azk_engine_get_ability_phase(engine) ==
+                  ABILITY_PHASE_CONFIRMATION);
+  AZK_TEST_ASSERT(build_test_mask(engine, 0)->legal_action_count == 0);
+  AzkActionMaskSet *mask = build_test_mask(engine, 1);
+  AZK_TEST_ASSERT(mask->head0_mask[ACT_CONFIRM_ABILITY] == 1);
+  AZK_TEST_ASSERT(mask->head0_mask[ACT_NOOP] == 1);
+
+  submit_engine_action_and_advance(
+      engine, &(UserAction){.player = player1, .type = ACT_NOOP});
+  AZK_TEST_ASSERT(!azk_engine_was_prev_action_invalid(engine));
+  const GameState *after_choice = ecs_singleton_get(engine, GameState);
+  AZK_TEST_ASSERT(after_choice->active_player_index == 0);
+  AZK_TEST_ASSERT(after_choice->phase == PHASE_MAIN);
+  AZK_TEST_ASSERT(azk_engine_get_ability_phase(engine) == ABILITY_PHASE_NONE);
+  AZK_TEST_ASSERT(ecs_get(engine, opp_leader, CurStats)->cur_hp ==
+                  opp_hp_before - 3);
+
+  azk_engine_destroy(engine);
+}
+
+static uint64_t fnv1a_mix(uint64_t hash, uint64_t value) {
+  for (int i = 0; i < 8; ++i) {
+    hash ^= (value >> (i * 8)) & 0xffu;
+    hash *= 1099511628211ull;
+  }
+  return hash;
+}
+
+typedef struct {
+  uint64_t trace_hash;
+  uint32_t steps;
+  uint32_t opponent_choices;
+  uint32_t new_card_plays;
+  bool finished;
+} NewCardRandomGameResult;
+
+static bool is_fatedealer_card(CardDefId id) {
+  return id == CARD_DEF_AZK01_013 || id == CARD_DEF_AZK01_076 ||
+         id == CARD_DEF_AZK01_079;
+}
+
+static NewCardRandomGameResult run_new_card_random_game(uint32_t seed) {
+  const CardInfo deck[] = {
+      {.card_id = CARD_DEF_STT01_001, .card_count = 1},
+      {.card_id = CARD_DEF_STT01_002, .card_count = 1},
+      {.card_id = CARD_DEF_AZK01_013, .card_count = 4},
+      {.card_id = CARD_DEF_AZK01_076, .card_count = 4},
+      {.card_id = CARD_DEF_AZK01_079, .card_count = 4},
+      {.card_id = CARD_DEF_AZK01_083, .card_count = 4},
+      {.card_id = CARD_DEF_AZK01_099, .card_count = 4},
+      {.card_id = CARD_DEF_AZK01_074, .card_count = 4},
+      {.card_id = CARD_DEF_AZK01_082, .card_count = 4},
+      {.card_id = CARD_DEF_AZK01_014, .card_count = 4},
+      {.card_id = CARD_DEF_AZK01_011, .card_count = 4},
+      {.card_id = CARD_DEF_AZK01_012, .card_count = 4},
+      {.card_id = CARD_DEF_AZK01_001, .card_count = 4},
+      {.card_id = CARD_DEF_AZK01_070, .card_count = 4},
+      {.card_id = CARD_DEF_AZK01_016, .card_count = 2},
+      {.card_id = CARD_DEF_IKZ_001, .card_count = 10},
+  };
+  const size_t deck_count = sizeof(deck) / sizeof(deck[0]);
+  AzkEngine *engine =
+      azk_engine_create_with_decks(seed, deck, deck_count, deck, deck_count);
+  AZK_TEST_ASSERT(engine != NULL);
+  while (!azk_engine_requires_action(engine) &&
+         !azk_engine_is_game_over(engine)) {
+    azk_engine_tick(engine);
+  }
+
+  NewCardRandomGameResult result = {.trace_hash = 1469598103934665603ull};
+  uint32_t rng = seed * 2654435761u + 1u;
+  while (!azk_engine_is_game_over(engine) && result.steps < 6000) {
+    const GameState *gs = ecs_singleton_get(engine, GameState);
+    const int8_t actor = gs->active_player_index;
+    const AbilityContext *ctx = ecs_singleton_get(engine, AbilityContext);
+    if (ctx->runtime.phase == ABILITY_PHASE_CONFIRMATION) {
+      const CardId *source_id = ecs_get(engine, ctx->runtime.source_card, CardId);
+      if (source_id != NULL && is_fatedealer_card(source_id->id)) {
+        ecs_entity_t controller =
+            ecs_get_target(engine, ctx->runtime.source_card, Rel_OwnedBy, 0);
+        AZK_TEST_ASSERT(get_player_number(engine, controller) != actor);
+        AZK_TEST_ASSERT(gs->players[actor] == ctx->runtime.owner);
+        result.opponent_choices++;
+      }
+    }
+
+    AzkActionMaskSet *mask = build_test_mask(engine, actor);
+    AZK_TEST_ASSERT(mask->legal_action_count > 0);
+    rng = rng * 1664525u + 1013904223u;
+    UserAction action = mask->legal_actions[(rng >> 8) % mask->legal_action_count];
+    if (action.type == ACT_PLAY_ENTITY_TO_GARDEN ||
+        action.type == ACT_PLAY_ENTITY_TO_ALLEY) {
+      ecs_entities_t hand =
+          ecs_get_ordered_children(engine, gs->zones[actor].hand);
+      const CardId *played = ecs_get(engine, hand.ids[action.subaction_1], CardId);
+      if (played != NULL && (is_fatedealer_card(played->id) ||
+                             played->id == CARD_DEF_AZK01_083 ||
+                             played->id == CARD_DEF_AZK01_099)) {
+        result.new_card_plays++;
+      }
+    }
+    result.trace_hash = fnv1a_mix(result.trace_hash, (uint64_t)actor);
+    result.trace_hash = fnv1a_mix(result.trace_hash, (uint64_t)action.type);
+    result.trace_hash = fnv1a_mix(result.trace_hash, (uint64_t)action.subaction_1);
+    result.trace_hash = fnv1a_mix(result.trace_hash, (uint64_t)action.subaction_2);
+    result.trace_hash = fnv1a_mix(result.trace_hash, (uint64_t)action.subaction_3);
+
+    submit_engine_action_and_advance(engine, &action);
+    AZK_TEST_ASSERT(!azk_engine_was_prev_action_invalid(engine));
+    result.steps++;
+  }
+
+  const GameState *final_gs = ecs_singleton_get(engine, GameState);
+  result.finished = azk_engine_is_game_over(engine);
+  result.trace_hash = fnv1a_mix(result.trace_hash, (uint64_t)final_gs->winner);
+  result.trace_hash =
+      fnv1a_mix(result.trace_hash, (uint64_t)final_gs->turn_number);
+  azk_engine_destroy(engine);
+  return result;
+}
+
+static void test_new_cards_random_games_are_valid_and_deterministic(void) {
+  uint32_t opponent_choices = 0;
+  uint32_t new_card_plays = 0;
+  for (uint32_t seed = 1; seed <= 6; ++seed) {
+    const NewCardRandomGameResult first = run_new_card_random_game(seed);
+    const NewCardRandomGameResult second = run_new_card_random_game(seed);
+    AZK_TEST_ASSERT(first.finished);
+    AZK_TEST_ASSERT(first.trace_hash == second.trace_hash);
+    AZK_TEST_ASSERT(first.steps == second.steps);
+    opponent_choices += first.opponent_choices;
+    new_card_plays += first.new_card_plays;
+  }
+  printf("New card random games: %u new-card plays, %u opponent choices\n",
+         new_card_plays, opponent_choices);
+  AZK_TEST_ASSERT(new_card_plays > 0);
+  AZK_TEST_ASSERT(opponent_choices > 0);
+}
+
+static void run_new_card_batch_regressions(void) {
+  test_azk01_013_opponent_chooses_sacrifice();
+  test_azk01_013_discard_mode_with_short_hand();
+  test_azk01_013_unavailable_modes_are_forced_or_skipped();
+  test_azk01_079_opponent_chooses_draw_or_damage();
+  test_azk01_076_opponent_chooses_charge_or_heal();
+  test_azk01_099_owner_chooses_shock_or_charge();
+  test_azk01_083_copies_neutral_text_until_end_of_turn();
+  test_azk01_083_copies_keywords_and_ends_on_leave();
+  test_azk01_083_garden_only_once_per_turn();
+  test_azk01_083_copied_trigger_can_remove_its_own_card();
+  test_fatedealer_engine_flow_routes_choice_to_opponent();
+  test_new_cards_random_games_are_valid_and_deterministic();
+  puts("New card batch regressions passed");
+}
+
 int main(int argc, char **argv) {
   if (argc > 1 &&
       strcmp(argv[1], "--run-ability-outcome-regression") == 0) {
@@ -9157,6 +9911,11 @@ int main(int argc, char **argv) {
     test_stt03_017_registry_masks_and_legality();
     test_stt03_017_ramp_heal_skip_and_reset();
     test_stt03_017_draw_deck_boundaries();
+    return 0;
+  }
+  if (argc > 1 &&
+      strcmp(argv[1], "--run-new-card-batch-regression") == 0) {
+    run_new_card_batch_regressions();
     return 0;
   }
 
@@ -9288,6 +10047,8 @@ int main(int argc, char **argv) {
   test_azk01_118_on_play_does_not_prompt_without_enemy_garden_entity();
   test_azk01_028_returns_all_other_garden_entities_without_skipping();
   test_observation_hides_action_mask_while_trigger_queue_pending();
+
+  run_new_card_batch_regressions();
 
   // Game log tests
   printf("Running game log tests...\n");

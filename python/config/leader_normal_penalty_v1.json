@@ -15,9 +15,9 @@
   "provenance": {
     "regional_source": ".codex/docs/azuki_garden_arena_2026-08-15_decks.json",
     "regional_sha256": "e97eaf4cde67d689790c541175c61a8e8d18c12e0952b80b30d0a860106be393",
-    "metadata_sha256": "1b1387e8004ee39f70857aac67d64e807f03d93b4d56c407a25fcbd107402c9b",
+    "metadata_sha256": "d9c7db626cc181d78c2627032919270c194a00c96240aaf2db2b5649e34efaa9",
     "catalog_correction": "AZK01-127 Sundering Strike is NORMAL; PR #50, c8444daaf1b193c0f11261ed8d322b6af78ee9df",
-    "catalog_addition": "STT03-017 Sprout of Fortune is EARTH; existing card records and Normal allowances are unchanged.",
+    "catalog_addition": "STT03-017 Sprout of Fortune is EARTH; 2026-09-30 batch appends AZK01-013/076/079/083 (NORMAL) and AZK01-099 (LIGHTNING), no leaders; existing card records and Normal allowances are unchanged.",
     "guidance": "Submission-weighted median Normal share plus 10 percentage points, rounded upward to a whole card. Experimental soft allowance, not an optimality claim or hard cap.",
     "normal_cost": "weight * (max(0, normal_count / 50 - max_normal_fraction) / (1 - max_normal_fraction)) ** 2",
     "regional_leaders": {

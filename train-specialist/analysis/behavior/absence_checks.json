@@ -1,0 +1,411 @@
+{
+ "FIRE|fire|argmax|AZK01-122|AZK01-121": {
+  "games": 48,
+  "decisions": 2450,
+  "portal_legal_decisions": 291,
+  "leader_legal_decisions": 302,
+  "leader_used": 84
+ },
+ "FIRE|fire|argmax|AZK01-122|STT04-001": {
+  "games": 240,
+  "decisions": 12880,
+  "leader_legal_decisions": 7189,
+  "portal_legal_decisions": 1607,
+  "attach_legal_decisions": 479,
+  "attach_to_entity_legal_decisions": 433,
+  "attach_chosen": 24,
+  "attach_chosen_entity": 0,
+  "leader_used": 4
+ },
+ "FIRE|fire|argmax|STT04-002|AZK01-121": {
+  "games": 48,
+  "decisions": 2518,
+  "attach_legal_decisions": 308,
+  "leader_legal_decisions": 398,
+  "attach_to_entity_legal_decisions": 276,
+  "portal_legal_decisions": 246,
+  "leader_used": 44,
+  "attach_chosen": 33,
+  "attach_chosen_entity": 0
+ },
+ "FIRE|fire|argmax|STT04-002|STT04-001": {
+  "games": 240,
+  "decisions": 11309,
+  "leader_legal_decisions": 7106,
+  "portal_legal_decisions": 1071,
+  "leader_used": 30,
+  "attach_legal_decisions": 252,
+  "attach_to_entity_legal_decisions": 223,
+  "attach_chosen": 15,
+  "attach_chosen_entity": 0
+ },
+ "FIRE|fire|sample|AZK01-122|AZK01-121": {
+  "games": 48,
+  "decisions": 2208,
+  "portal_legal_decisions": 315,
+  "leader_legal_decisions": 248,
+  "leader_used": 71,
+  "attach_legal_decisions": 149,
+  "attach_to_entity_legal_decisions": 137,
+  "attach_chosen": 16,
+  "attach_chosen_entity": 0
+ },
+ "FIRE|fire|sample|AZK01-122|STT04-001": {
+  "games": 240,
+  "decisions": 12745,
+  "leader_legal_decisions": 7388,
+  "portal_legal_decisions": 1673,
+  "attach_legal_decisions": 630,
+  "attach_to_entity_legal_decisions": 576,
+  "attach_chosen": 40,
+  "attach_chosen_entity": 0,
+  "leader_used": 7
+ },
+ "FIRE|fire|sample|STT04-002|AZK01-121": {
+  "games": 48,
+  "decisions": 2008,
+  "leader_legal_decisions": 334,
+  "attach_legal_decisions": 220,
+  "attach_to_entity_legal_decisions": 207,
+  "portal_legal_decisions": 182,
+  "leader_used": 76,
+  "attach_chosen": 24,
+  "attach_chosen_entity": 0
+ },
+ "FIRE|fire|sample|STT04-002|STT04-001": {
+  "games": 240,
+  "decisions": 11151,
+  "leader_legal_decisions": 7130,
+  "portal_legal_decisions": 1107,
+  "leader_used": 22,
+  "attach_legal_decisions": 141,
+  "attach_to_entity_legal_decisions": 127,
+  "attach_chosen": 9,
+  "attach_chosen_entity": 0
+ },
+ "FIRE|u8223|argmax|AZK01-122|AZK01-121": {
+  "games": 48,
+  "decisions": 2444,
+  "portal_legal_decisions": 309,
+  "leader_legal_decisions": 262,
+  "leader_used": 84,
+  "attach_legal_decisions": 118,
+  "attach_to_entity_legal_decisions": 110,
+  "attach_chosen": 9,
+  "attach_chosen_entity": 0
+ },
+ "FIRE|u8223|argmax|AZK01-122|STT04-001": {
+  "games": 240,
+  "decisions": 12727,
+  "leader_legal_decisions": 7154,
+  "portal_legal_decisions": 1555,
+  "attach_legal_decisions": 643,
+  "attach_to_entity_legal_decisions": 562,
+  "attach_chosen": 38,
+  "attach_chosen_entity": 0,
+  "leader_used": 20
+ },
+ "FIRE|u8223|argmax|STT04-002|AZK01-121": {
+  "games": 48,
+  "decisions": 2333,
+  "leader_legal_decisions": 343,
+  "portal_legal_decisions": 216,
+  "attach_legal_decisions": 423,
+  "attach_to_entity_legal_decisions": 372,
+  "leader_used": 39,
+  "attach_chosen": 41,
+  "attach_chosen_entity": 0
+ },
+ "FIRE|u8223|argmax|STT04-002|STT04-001": {
+  "games": 240,
+  "decisions": 11506,
+  "leader_legal_decisions": 7107,
+  "portal_legal_decisions": 1222,
+  "leader_used": 40,
+  "attach_legal_decisions": 323,
+  "attach_to_entity_legal_decisions": 269,
+  "attach_chosen": 36,
+  "attach_chosen_entity": 0
+ },
+ "FIRE|u8223|sample|AZK01-122|AZK01-121": {
+  "games": 48,
+  "decisions": 2267,
+  "portal_legal_decisions": 336,
+  "leader_legal_decisions": 261,
+  "leader_used": 74,
+  "attach_legal_decisions": 188,
+  "attach_to_entity_legal_decisions": 173,
+  "attach_chosen": 14,
+  "attach_chosen_entity": 0
+ },
+ "FIRE|u8223|sample|AZK01-122|STT04-001": {
+  "games": 240,
+  "decisions": 12666,
+  "leader_legal_decisions": 7298,
+  "portal_legal_decisions": 1603,
+  "attach_legal_decisions": 705,
+  "attach_to_entity_legal_decisions": 627,
+  "attach_chosen": 47,
+  "attach_chosen_entity": 0,
+  "leader_used": 30
+ },
+ "FIRE|u8223|sample|STT04-002|AZK01-121": {
+  "games": 48,
+  "decisions": 2041,
+  "leader_legal_decisions": 322,
+  "portal_legal_decisions": 219,
+  "attach_legal_decisions": 302,
+  "attach_to_entity_legal_decisions": 278,
+  "leader_used": 64,
+  "attach_chosen": 32,
+  "attach_chosen_entity": 0
+ },
+ "FIRE|u8223|sample|STT04-002|STT04-001": {
+  "games": 240,
+  "decisions": 11235,
+  "leader_legal_decisions": 6974,
+  "portal_legal_decisions": 1211,
+  "leader_used": 44,
+  "attach_legal_decisions": 227,
+  "attach_to_entity_legal_decisions": 200,
+  "attach_chosen": 26,
+  "attach_chosen_entity": 0
+ },
+ "FIRE|u9305|argmax|AZK01-122|AZK01-121": {
+  "games": 48,
+  "decisions": 2412,
+  "portal_legal_decisions": 319,
+  "leader_legal_decisions": 252,
+  "leader_used": 93,
+  "attach_legal_decisions": 206,
+  "attach_to_entity_legal_decisions": 186,
+  "attach_chosen": 18,
+  "attach_chosen_entity": 0
+ },
+ "FIRE|u9305|argmax|AZK01-122|STT04-001": {
+  "games": 240,
+  "decisions": 12732,
+  "leader_legal_decisions": 7205,
+  "portal_legal_decisions": 1557,
+  "attach_legal_decisions": 705,
+  "attach_to_entity_legal_decisions": 629,
+  "attach_chosen": 41,
+  "attach_chosen_entity": 0,
+  "leader_used": 14
+ },
+ "FIRE|u9305|argmax|STT04-002|AZK01-121": {
+  "games": 48,
+  "decisions": 2322,
+  "attach_legal_decisions": 441,
+  "leader_legal_decisions": 330,
+  "attach_to_entity_legal_decisions": 401,
+  "portal_legal_decisions": 251,
+  "attach_chosen": 34,
+  "attach_chosen_entity": 0,
+  "leader_used": 47
+ },
+ "FIRE|u9305|argmax|STT04-002|STT04-001": {
+  "games": 240,
+  "decisions": 11580,
+  "leader_legal_decisions": 7226,
+  "portal_legal_decisions": 1307,
+  "leader_used": 25,
+  "attach_legal_decisions": 360,
+  "attach_to_entity_legal_decisions": 322,
+  "attach_chosen": 28,
+  "attach_chosen_entity": 0
+ },
+ "LIGHTNING|lightning|argmax|AZK01-120|AZK01-119": {
+  "games": 48,
+  "decisions": 2042,
+  "portal_legal_decisions": 118,
+  "attach_legal_decisions": 511,
+  "attach_to_entity_legal_decisions": 426,
+  "attach_chosen": 87,
+  "attach_chosen_entity": 0,
+  "decisions_with_weapon_on_garden_entity": 2
+ },
+ "LIGHTNING|lightning|argmax|AZK01-120|STT01-001": {
+  "games": 112,
+  "decisions": 4914,
+  "attach_legal_decisions": 1482,
+  "portal_legal_decisions": 277,
+  "attach_to_entity_legal_decisions": 1197,
+  "attach_chosen": 296,
+  "attach_chosen_entity": 0
+ },
+ "LIGHTNING|lightning|argmax|STT01-002|AZK01-119": {
+  "games": 48,
+  "decisions": 2334,
+  "attach_legal_decisions": 480,
+  "portal_legal_decisions": 375,
+  "attach_to_entity_legal_decisions": 389,
+  "attach_chosen": 87,
+  "attach_chosen_entity": 0
+ },
+ "LIGHTNING|lightning|argmax|STT01-002|STT01-001": {
+  "games": 240,
+  "decisions": 12335,
+  "attach_legal_decisions": 3630,
+  "portal_legal_decisions": 1536,
+  "attach_to_entity_legal_decisions": 3059,
+  "decisions_with_weapon_on_garden_entity": 33,
+  "attach_chosen": 614,
+  "attach_chosen_entity": 0
+ },
+ "LIGHTNING|lightning|sample|AZK01-120|AZK01-119": {
+  "games": 48,
+  "decisions": 1785,
+  "attach_legal_decisions": 474,
+  "attach_to_entity_legal_decisions": 424,
+  "attach_chosen": 79,
+  "attach_chosen_entity": 0,
+  "portal_legal_decisions": 103
+ },
+ "LIGHTNING|lightning|sample|AZK01-120|STT01-001": {
+  "games": 112,
+  "decisions": 4571,
+  "attach_legal_decisions": 1476,
+  "portal_legal_decisions": 243,
+  "attach_to_entity_legal_decisions": 1178,
+  "attach_chosen": 299,
+  "attach_chosen_entity": 0
+ },
+ "LIGHTNING|lightning|sample|STT01-002|AZK01-119": {
+  "games": 48,
+  "decisions": 2131,
+  "attach_legal_decisions": 385,
+  "attach_to_entity_legal_decisions": 327,
+  "portal_legal_decisions": 378,
+  "attach_chosen": 73,
+  "attach_chosen_entity": 0,
+  "decisions_with_weapon_on_garden_entity": 3
+ },
+ "LIGHTNING|lightning|sample|STT01-002|STT01-001": {
+  "games": 240,
+  "decisions": 12355,
+  "attach_legal_decisions": 3595,
+  "portal_legal_decisions": 1516,
+  "attach_to_entity_legal_decisions": 3097,
+  "attach_chosen": 631,
+  "attach_chosen_entity": 2,
+  "decisions_with_weapon_on_garden_entity": 31
+ },
+ "LIGHTNING|u8223|argmax|AZK01-120|AZK01-119": {
+  "games": 48,
+  "decisions": 1926,
+  "attach_legal_decisions": 438,
+  "portal_legal_decisions": 128,
+  "attach_to_entity_legal_decisions": 375,
+  "attach_chosen": 60,
+  "attach_chosen_entity": 0
+ },
+ "LIGHTNING|u8223|argmax|AZK01-120|STT01-001": {
+  "games": 112,
+  "decisions": 4694,
+  "attach_legal_decisions": 1481,
+  "portal_legal_decisions": 371,
+  "attach_to_entity_legal_decisions": 1173,
+  "attach_chosen": 259,
+  "attach_chosen_entity": 0
+ },
+ "LIGHTNING|u8223|argmax|STT01-002|AZK01-119": {
+  "games": 48,
+  "decisions": 2123,
+  "attach_legal_decisions": 420,
+  "attach_to_entity_legal_decisions": 344,
+  "portal_legal_decisions": 306,
+  "attach_chosen": 69,
+  "attach_chosen_entity": 0,
+  "decisions_with_weapon_on_garden_entity": 2
+ },
+ "LIGHTNING|u8223|argmax|STT01-002|STT01-001": {
+  "games": 240,
+  "decisions": 12151,
+  "attach_legal_decisions": 3470,
+  "portal_legal_decisions": 1455,
+  "attach_to_entity_legal_decisions": 3002,
+  "attach_chosen": 647,
+  "attach_chosen_entity": 3,
+  "decisions_with_weapon_on_garden_entity": 20
+ },
+ "LIGHTNING|u8223|sample|AZK01-120|AZK01-119": {
+  "games": 48,
+  "decisions": 1922,
+  "portal_legal_decisions": 149,
+  "attach_legal_decisions": 476,
+  "attach_to_entity_legal_decisions": 416,
+  "attach_chosen": 82,
+  "attach_chosen_entity": 0
+ },
+ "LIGHTNING|u8223|sample|AZK01-120|STT01-001": {
+  "games": 112,
+  "decisions": 4656,
+  "attach_legal_decisions": 1431,
+  "portal_legal_decisions": 386,
+  "attach_to_entity_legal_decisions": 1127,
+  "attach_chosen": 270,
+  "attach_chosen_entity": 0,
+  "decisions_with_weapon_on_garden_entity": 8
+ },
+ "LIGHTNING|u8223|sample|STT01-002|AZK01-119": {
+  "games": 48,
+  "decisions": 1922,
+  "portal_legal_decisions": 314,
+  "attach_legal_decisions": 364,
+  "attach_to_entity_legal_decisions": 311,
+  "attach_chosen": 64,
+  "attach_chosen_entity": 0
+ },
+ "LIGHTNING|u8223|sample|STT01-002|STT01-001": {
+  "games": 240,
+  "decisions": 11914,
+  "attach_legal_decisions": 3364,
+  "portal_legal_decisions": 1425,
+  "attach_to_entity_legal_decisions": 2887,
+  "attach_chosen": 612,
+  "attach_chosen_entity": 4,
+  "decisions_with_weapon_on_garden_entity": 26
+ },
+ "LIGHTNING|u9305|argmax|AZK01-120|AZK01-119": {
+  "games": 48,
+  "decisions": 1830,
+  "attach_legal_decisions": 377,
+  "portal_legal_decisions": 180,
+  "attach_to_entity_legal_decisions": 310,
+  "attach_chosen": 66,
+  "attach_chosen_entity": 0
+ },
+ "LIGHTNING|u9305|argmax|AZK01-120|STT01-001": {
+  "games": 112,
+  "decisions": 4676,
+  "attach_legal_decisions": 1494,
+  "portal_legal_decisions": 412,
+  "attach_to_entity_legal_decisions": 1166,
+  "attach_chosen": 266,
+  "attach_chosen_entity": 0,
+  "decisions_with_weapon_on_garden_entity": 2
+ },
+ "LIGHTNING|u9305|argmax|STT01-002|AZK01-119": {
+  "games": 48,
+  "decisions": 1970,
+  "portal_legal_decisions": 309,
+  "attach_legal_decisions": 368,
+  "attach_to_entity_legal_decisions": 303,
+  "attach_chosen": 60,
+  "attach_chosen_entity": 0,
+  "decisions_with_weapon_on_garden_entity": 3
+ },
+ "LIGHTNING|u9305|argmax|STT01-002|STT01-001": {
+  "games": 240,
+  "decisions": 11922,
+  "attach_legal_decisions": 3599,
+  "portal_legal_decisions": 1513,
+  "attach_to_entity_legal_decisions": 3113,
+  "attach_chosen": 629,
+  "attach_chosen_entity": 1,
+  "leader_legal_decisions": 1,
+  "leader_used": 1,
+  "decisions_with_weapon_on_garden_entity": 12
+ }
+}

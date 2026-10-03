@@ -479,6 +479,119 @@ static int load_prebuilt_curriculum(
   return 0;
 }
 
+// Element-specialist knob: learner_element (CardElement, 0 = disabled) plus a
+// caller-owned uint8 per-seat mask indexed [2 * env_index + seat]. Default
+// (absent/0) leaves every field zero so RNG streams are untouched.
+static int load_learner_element(Env *env, PyObject *kwargs) {
+  PyObject *element_obj = PyDict_GetItemString(kwargs, "learner_element");
+  if (element_obj == NULL || element_obj == Py_None) {
+    return 0;
+  }
+  const long element = PyLong_AsLong(element_obj);
+  if (PyErr_Occurred()) {
+    return -1;
+  }
+  if (element == CARD_ELEMENT_NORMAL) {
+    return 0;
+  }
+  if (element != CARD_ELEMENT_FIRE && element != CARD_ELEMENT_WATER &&
+      element != CARD_ELEMENT_EARTH && element != CARD_ELEMENT_LIGHTNING) {
+    PyErr_Format(PyExc_ValueError, "learner_element %ld is not a playable element", element);
+    return -1;
+  }
+  if (!env->deck_building) {
+    PyErr_SetString(PyExc_ValueError, "learner_element requires deck_building=True");
+    return -1;
+  }
+  PyObject *mask_obj = PyDict_GetItemString(kwargs, "learner_seat_mask");
+  PyObject *index_obj = PyDict_GetItemString(kwargs, "env_index");
+  if (mask_obj == NULL || !PyObject_TypeCheck(mask_obj, &PyArray_Type) ||
+      index_obj == NULL) {
+    PyErr_SetString(
+        PyExc_ValueError,
+        "learner_element requires a learner_seat_mask uint8 array and env_index");
+    return -1;
+  }
+  PyArrayObject *mask = (PyArrayObject *)mask_obj;
+  const long env_index = PyLong_AsLong(index_obj);
+  if (PyErr_Occurred()) {
+    return -1;
+  }
+  if (!PyArray_ISCONTIGUOUS(mask) || PyArray_TYPE(mask) != NPY_UINT8 ||
+      env_index < 0 ||
+      PyArray_SIZE(mask) < (npy_intp)(MAX_PLAYERS_PER_MATCH * (env_index + 1))) {
+    PyErr_SetString(
+        PyExc_ValueError,
+        "learner_seat_mask must be a contiguous uint8 array covering every env seat");
+    return -1;
+  }
+  int gate_matches = 0;
+  for (int i = 0; i < g_draft_catalog.gate_count; ++i) {
+    if (draft_gate_has_element(g_draft_catalog.gate_def_ids[i], (int8_t)element)) {
+      gate_matches++;
+    }
+  }
+  if (gate_matches == 0) {
+    PyErr_Format(PyExc_ValueError, "draft catalog has no gate of learner_element %ld", element);
+    return -1;
+  }
+  PyObject *decks_obj = PyDict_GetItemString(kwargs, "learner_prebuilt_deck_indices");
+  if (env->prebuilt_group_count > 0) {
+    PyObject *decks = decks_obj == NULL
+        ? NULL
+        : PySequence_Fast(decks_obj, "learner_prebuilt_deck_indices must be a sequence");
+    if (decks == NULL || PySequence_Fast_GET_SIZE(decks) == 0) {
+      Py_XDECREF(decks);
+      if (!PyErr_Occurred()) {
+        PyErr_SetString(
+            PyExc_ValueError,
+            "learner_element with prebuilt decks requires non-empty learner_prebuilt_deck_indices");
+      }
+      return -1;
+    }
+    const Py_ssize_t count = PySequence_Fast_GET_SIZE(decks);
+    int *learner_decks = (int *)calloc((size_t)count, sizeof(int));
+    if (learner_decks == NULL) {
+      Py_DECREF(decks);
+      PyErr_SetString(PyExc_MemoryError, "Failed to allocate learner prebuilt decks");
+      return -1;
+    }
+    for (Py_ssize_t item = 0; item < count; ++item) {
+      const long index = PyLong_AsLong(PySequence_Fast_GET_ITEM(decks, item));
+      bool in_curriculum = false;
+      for (size_t flat = 0; !PyErr_Occurred() &&
+                            flat < env->prebuilt_group_offsets[env->prebuilt_group_count];
+           ++flat) {
+        in_curriculum = in_curriculum || env->prebuilt_deck_indices[flat] == (int)index;
+      }
+      const int16_t gate = in_curriculum ? draft_spec_gate(&env->deck_pool[index]) : -1;
+      if (PyErr_Occurred() || gate < 0 || !draft_gate_has_element(gate, (int8_t)element)) {
+        free(learner_decks);
+        Py_DECREF(decks);
+        if (!PyErr_Occurred()) {
+          PyErr_Format(
+              PyExc_ValueError,
+              "learner_prebuilt_deck_indices[%zd]=%ld is not a prebuilt deck of learner_element %ld",
+              item, index, element);
+        }
+        return -1;
+      }
+      learner_decks[item] = (int)index;
+    }
+    Py_DECREF(decks);
+    env->prebuilt_learner_decks = learner_decks;
+    env->prebuilt_learner_deck_count = (size_t)count;
+  } else if (decks_obj != NULL && decks_obj != Py_None) {
+    PyErr_SetString(
+        PyExc_ValueError, "learner_prebuilt_deck_indices requires prebuilt_deck_groups");
+    return -1;
+  }
+  env->learner_element = (int8_t)element;
+  env->learner_seat_mask =
+      (const uint8_t *)PyArray_DATA(mask) + MAX_PLAYERS_PER_MATCH * env_index;
+  return 0;
+}
+
 
 static PyObject* my_get(PyObject* dict, Env* env) {
   PyObject *deck_indices = PyList_New(MAX_PLAYERS_PER_MATCH);
@@ -539,6 +652,7 @@ static int my_init(Env* env, PyObject* args, PyObject* kwargs) {
     env->evaluation_forced_leader[1] = -1;
     env->evaluation_reference_seat = -1;
     env->evaluation_reference_deck_index = -1;
+    env->evaluation_other_deck_index = -1;
     PyObject* pause_obj =
         PyDict_GetItemString(kwargs, "evaluation_pause_on_done");
     if (pause_obj != NULL && PyObject_IsTrue(pause_obj)) {
@@ -601,6 +715,10 @@ static int my_init(Env* env, PyObject* args, PyObject* kwargs) {
   }
   if (load_prebuilt_curriculum(
           env, prebuilt_groups_obj, prebuilt_probability_obj) != 0) {
+    free_training_deck_pool(env);
+    return -1;
+  }
+  if (load_learner_element(env, kwargs) != 0) {
     free_training_deck_pool(env);
     return -1;
   }
@@ -1345,10 +1463,13 @@ static int sequence_long_at(PyObject* sequence, Py_ssize_t index, long* out) {
 
 static PyObject* vec_reset_evaluation_games(PyObject* self, PyObject* args) {
   (void)self;
-  if (PyTuple_Size(args) != 9) {
+  // Optional 10th sequence: a fixed deck for the seat opposite ref_seat, so
+  // both seats battle supplied decks (constructed-vs-constructed evaluation).
+  const Py_ssize_t arg_count = PyTuple_Size(args);
+  if (arg_count != 9 && arg_count != 10) {
     PyErr_SetString(
         PyExc_TypeError,
-        "vec_reset_evaluation_games requires handle, indices, seeds, gate0, gate1, leader0, leader1, ref_seats, ref_decks");
+        "vec_reset_evaluation_games requires handle, indices, seeds, gate0, gate1, leader0, leader1, ref_seats, ref_decks[, other_decks]");
     return NULL;
   }
   VecEnv* vec = unpack_vecenv(args);
@@ -1356,11 +1477,12 @@ static PyObject* vec_reset_evaluation_games(PyObject* self, PyObject* args) {
     return NULL;
   }
 
-  const char* labels[8] = {
+  const int sequence_count = (int)arg_count - 1;
+  const char* labels[9] = {
       "indices", "seeds", "gate0", "gate1", "leader0", "leader1",
-      "ref_seats", "ref_decks"};
-  PyObject* sequences[8] = {NULL};
-  for (int sequence_index = 0; sequence_index < 8; ++sequence_index) {
+      "ref_seats", "ref_decks", "other_decks"};
+  PyObject* sequences[9] = {NULL};
+  for (int sequence_index = 0; sequence_index < sequence_count; ++sequence_index) {
     sequences[sequence_index] = int_sequence_fast(
         PyTuple_GetItem(args, sequence_index + 1), labels[sequence_index]);
     if (sequences[sequence_index] == NULL) {
@@ -1371,9 +1493,9 @@ static PyObject* vec_reset_evaluation_games(PyObject* self, PyObject* args) {
     }
   }
   const Py_ssize_t count = PySequence_Fast_GET_SIZE(sequences[0]);
-  for (int sequence_index = 1; sequence_index < 8; ++sequence_index) {
+  for (int sequence_index = 1; sequence_index < sequence_count; ++sequence_index) {
     if (PySequence_Fast_GET_SIZE(sequences[sequence_index]) != count) {
-      for (int i = 0; i < 8; ++i) {
+      for (int i = 0; i < sequence_count; ++i) {
         Py_DECREF(sequences[i]);
       }
       PyErr_SetString(PyExc_ValueError, "Evaluation reset sequences must have equal lengths");
@@ -1390,6 +1512,7 @@ static PyObject* vec_reset_evaluation_games(PyObject* self, PyObject* args) {
     long leader1 = -1;
     long ref_seat = -1;
     long ref_deck = -1;
+    long other_deck = -1;
     if (sequence_long_at(sequences[0], item, &index) != 0 ||
         sequence_long_at(sequences[1], item, &seed) != 0 ||
         sequence_long_at(sequences[2], item, &gate0) != 0 ||
@@ -1397,14 +1520,15 @@ static PyObject* vec_reset_evaluation_games(PyObject* self, PyObject* args) {
         sequence_long_at(sequences[4], item, &leader0) != 0 ||
         sequence_long_at(sequences[5], item, &leader1) != 0 ||
         sequence_long_at(sequences[6], item, &ref_seat) != 0 ||
-        sequence_long_at(sequences[7], item, &ref_deck) != 0) {
-      for (int i = 0; i < 8; ++i) {
+        sequence_long_at(sequences[7], item, &ref_deck) != 0 ||
+        (sequence_count == 9 && sequence_long_at(sequences[8], item, &other_deck) != 0)) {
+      for (int i = 0; i < sequence_count; ++i) {
         Py_DECREF(sequences[i]);
       }
       return NULL;
     }
     if (index < 0 || index >= vec->num_envs) {
-      for (int i = 0; i < 8; ++i) {
+      for (int i = 0; i < sequence_count; ++i) {
         Py_DECREF(sequences[i]);
       }
       PyErr_Format(PyExc_IndexError, "Evaluation env index %ld is out of range", index);
@@ -1412,7 +1536,7 @@ static PyObject* vec_reset_evaluation_games(PyObject* self, PyObject* args) {
     }
     Env* env = vec->envs[index];
     if (!env->deck_building) {
-      for (int i = 0; i < 8; ++i) {
+      for (int i = 0; i < sequence_count; ++i) {
         Py_DECREF(sequences[i]);
       }
       PyErr_SetString(PyExc_ValueError, "Scheduled evaluation requires deck_building mode");
@@ -1423,7 +1547,7 @@ static PyObject* vec_reset_evaluation_games(PyObject* self, PyObject* args) {
         (gate0 < 0 || gate1 < 0 ||
          draft_gate_slot_for((int16_t)gate0) < 0 ||
          draft_gate_slot_for((int16_t)gate1) < 0)) {
-      for (int i = 0; i < 8; ++i) {
+      for (int i = 0; i < sequence_count; ++i) {
         Py_DECREF(sequences[i]);
       }
       PyErr_Format(PyExc_ValueError, "Invalid forced evaluation gates [%ld,%ld]", gate0, gate1);
@@ -1437,7 +1561,7 @@ static PyObject* vec_reset_evaluation_games(PyObject* self, PyObject* args) {
               draft_gate_slot_for((int16_t)gate0), (int16_t)leader0) ||
           !draft_leader_valid_for_slot(
               draft_gate_slot_for((int16_t)gate1), (int16_t)leader1)) {
-        for (int i = 0; i < 8; ++i) {
+        for (int i = 0; i < sequence_count; ++i) {
           Py_DECREF(sequences[i]);
         }
         PyErr_Format(PyExc_ValueError,
@@ -1447,15 +1571,17 @@ static PyObject* vec_reset_evaluation_games(PyObject* self, PyObject* args) {
       }
     }
     const bool no_reference = ref_seat < 0 && ref_deck < 0;
-    if (!no_reference &&
-        (ref_seat < 0 || ref_seat >= MAX_PLAYERS_PER_MATCH ||
-         ref_deck < 0 || (size_t)ref_deck >= env->deck_pool_count)) {
-      for (int i = 0; i < 8; ++i) {
+    if ((!no_reference &&
+         (ref_seat < 0 || ref_seat >= MAX_PLAYERS_PER_MATCH ||
+          ref_deck < 0 || (size_t)ref_deck >= env->deck_pool_count)) ||
+        (other_deck >= 0 && (no_reference || (size_t)other_deck >= env->deck_pool_count))) {
+      for (int i = 0; i < sequence_count; ++i) {
         Py_DECREF(sequences[i]);
       }
       PyErr_Format(
           PyExc_ValueError,
-          "Invalid evaluation reference seat/deck [%ld,%ld]", ref_seat, ref_deck);
+          "Invalid evaluation reference seat/deck/other deck [%ld,%ld,%ld]",
+          ref_seat, ref_deck, other_deck);
       return NULL;
     }
 
@@ -1468,6 +1594,7 @@ static PyObject* vec_reset_evaluation_games(PyObject* self, PyObject* args) {
     env->evaluation_forced_leader[1] = (int16_t)leader1;
     env->evaluation_reference_seat = no_reference ? -1 : (int8_t)ref_seat;
     env->evaluation_reference_deck_index = no_reference ? -1 : (int16_t)ref_deck;
+    env->evaluation_other_deck_index = (int16_t)(other_deck >= 0 ? other_deck : -1);
     env->deck_record_valid = false;
     env->seed = (uint32_t)seed;
     env->starter_rng_state = starter_seed_from_env_seed(env->seed);
@@ -1476,7 +1603,7 @@ static PyObject* vec_reset_evaluation_games(PyObject* self, PyObject* args) {
     c_reset(env);
   }
 
-  for (int i = 0; i < 8; ++i) {
+  for (int i = 0; i < sequence_count; ++i) {
     Py_DECREF(sequences[i]);
   }
   Py_RETURN_NONE;

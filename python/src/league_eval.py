@@ -464,6 +464,7 @@ class NativeLeagueEvaluator(LeagueEvaluator):
             "leader1": spec.leader1,
             "reference_seat": spec.reference_seat,
             "reference_deck_index": spec.reference_deck_index,
+            "other_deck_index": spec.other_deck_index,
           }
         )
       if resets:

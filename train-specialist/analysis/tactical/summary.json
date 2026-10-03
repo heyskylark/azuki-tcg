@@ -1,0 +1,4835 @@
+{
+ "families": {
+  "lightning": {
+   "models": [
+    "u8223",
+    "u9305",
+    "lightning",
+    "fire",
+    "water",
+    "earth"
+   ],
+   "case_types": {
+    "ability_dependent_lethal": {
+     "u8223": {
+      "greedy": [
+       0,
+       8
+      ],
+      "sampled": [
+       0,
+       32
+      ],
+      "sampled_ci": [
+       0.0,
+       0.109
+      ],
+      "greedy_ci": [
+       0.0,
+       0.369
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "u9305": {
+      "greedy": [
+       0,
+       8
+      ],
+      "sampled": [
+       0,
+       32
+      ],
+      "sampled_ci": [
+       0.0,
+       0.109
+      ],
+      "greedy_ci": [
+       0.0,
+       0.369
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "lightning": {
+      "greedy": [
+       0,
+       8
+      ],
+      "sampled": [
+       0,
+       32
+      ],
+      "sampled_ci": [
+       0.0,
+       0.109
+      ],
+      "greedy_ci": [
+       0.0,
+       0.369
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "fire": {
+      "greedy": [
+       0,
+       8
+      ],
+      "sampled": [
+       0,
+       32
+      ],
+      "sampled_ci": [
+       0.0,
+       0.109
+      ],
+      "greedy_ci": [
+       0.0,
+       0.369
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "water": {
+      "greedy": [
+       0,
+       8
+      ],
+      "sampled": [
+       0,
+       32
+      ],
+      "sampled_ci": [
+       0.0,
+       0.109
+      ],
+      "greedy_ci": [
+       0.0,
+       0.369
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "earth": {
+      "greedy": [
+       0,
+       8
+      ],
+      "sampled": [
+       0,
+       32
+      ],
+      "sampled_ci": [
+       0.0,
+       0.109
+      ],
+      "greedy_ci": [
+       0.0,
+       0.369
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     }
+    },
+    "favorable_trade": {
+     "u8223": {
+      "greedy": [
+       0,
+       16
+      ],
+      "sampled": [
+       0,
+       64
+      ],
+      "sampled_ci": [
+       0.0,
+       0.056
+      ],
+      "greedy_ci": [
+       0.0,
+       0.206
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "u9305": {
+      "greedy": [
+       0,
+       16
+      ],
+      "sampled": [
+       0,
+       64
+      ],
+      "sampled_ci": [
+       0.0,
+       0.056
+      ],
+      "greedy_ci": [
+       0.0,
+       0.206
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "lightning": {
+      "greedy": [
+       0,
+       16
+      ],
+      "sampled": [
+       0,
+       64
+      ],
+      "sampled_ci": [
+       0.0,
+       0.056
+      ],
+      "greedy_ci": [
+       0.0,
+       0.206
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "fire": {
+      "greedy": [
+       0,
+       16
+      ],
+      "sampled": [
+       0,
+       64
+      ],
+      "sampled_ci": [
+       0.0,
+       0.056
+      ],
+      "greedy_ci": [
+       0.0,
+       0.206
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "water": {
+      "greedy": [
+       0,
+       16
+      ],
+      "sampled": [
+       0,
+       64
+      ],
+      "sampled_ci": [
+       0.0,
+       0.056
+      ],
+      "greedy_ci": [
+       0.0,
+       0.206
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "earth": {
+      "greedy": [
+       0,
+       16
+      ],
+      "sampled": [
+       0,
+       64
+      ],
+      "sampled_ci": [
+       0.0,
+       0.056
+      ],
+      "greedy_ci": [
+       0.0,
+       0.206
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     }
+    },
+    "pointless_piko_avoided": {
+     "u8223": {
+      "greedy": [
+       8,
+       8
+      ],
+      "sampled": [
+       32,
+       32
+      ],
+      "sampled_ci": [
+       0.891,
+       1.0
+      ],
+      "greedy_ci": [
+       0.631,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "u9305": {
+      "greedy": [
+       8,
+       8
+      ],
+      "sampled": [
+       32,
+       32
+      ],
+      "sampled_ci": [
+       0.891,
+       1.0
+      ],
+      "greedy_ci": [
+       0.631,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "lightning": {
+      "greedy": [
+       8,
+       8
+      ],
+      "sampled": [
+       32,
+       32
+      ],
+      "sampled_ci": [
+       0.891,
+       1.0
+      ],
+      "greedy_ci": [
+       0.631,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "fire": {
+      "greedy": [
+       8,
+       8
+      ],
+      "sampled": [
+       32,
+       32
+      ],
+      "sampled_ci": [
+       0.891,
+       1.0
+      ],
+      "greedy_ci": [
+       0.631,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "water": {
+      "greedy": [
+       8,
+       8
+      ],
+      "sampled": [
+       32,
+       32
+      ],
+      "sampled_ci": [
+       0.891,
+       1.0
+      ],
+      "greedy_ci": [
+       0.631,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "earth": {
+      "greedy": [
+       8,
+       8
+      ],
+      "sampled": [
+       32,
+       32
+      ],
+      "sampled_ci": [
+       0.891,
+       1.0
+      ],
+      "greedy_ci": [
+       0.631,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     }
+    },
+    "setup_dependent_lethal": {
+     "u8223": {
+      "greedy": [
+       0,
+       8
+      ],
+      "sampled": [
+       0,
+       32
+      ],
+      "sampled_ci": [
+       0.0,
+       0.109
+      ],
+      "greedy_ci": [
+       0.0,
+       0.369
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "u9305": {
+      "greedy": [
+       0,
+       8
+      ],
+      "sampled": [
+       0,
+       32
+      ],
+      "sampled_ci": [
+       0.0,
+       0.109
+      ],
+      "greedy_ci": [
+       0.0,
+       0.369
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "lightning": {
+      "greedy": [
+       0,
+       8
+      ],
+      "sampled": [
+       0,
+       32
+      ],
+      "sampled_ci": [
+       0.0,
+       0.109
+      ],
+      "greedy_ci": [
+       0.0,
+       0.369
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "fire": {
+      "greedy": [
+       0,
+       8
+      ],
+      "sampled": [
+       0,
+       32
+      ],
+      "sampled_ci": [
+       0.0,
+       0.109
+      ],
+      "greedy_ci": [
+       0.0,
+       0.369
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "water": {
+      "greedy": [
+       0,
+       8
+      ],
+      "sampled": [
+       0,
+       32
+      ],
+      "sampled_ci": [
+       0.0,
+       0.109
+      ],
+      "greedy_ci": [
+       0.0,
+       0.369
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "earth": {
+      "greedy": [
+       0,
+       8
+      ],
+      "sampled": [
+       0,
+       32
+      ],
+      "sampled_ci": [
+       0.0,
+       0.109
+      ],
+      "greedy_ci": [
+       0.0,
+       0.369
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     }
+    },
+    "simpler_wins": {
+     "u8223": {
+      "greedy": [
+       16,
+       16
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.794,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "u9305": {
+      "greedy": [
+       16,
+       16
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.794,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "lightning": {
+      "greedy": [
+       16,
+       16
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.794,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "fire": {
+      "greedy": [
+       16,
+       16
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.794,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "water": {
+      "greedy": [
+       16,
+       16
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.794,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "earth": {
+      "greedy": [
+       16,
+       16
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.794,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     }
+    }
+   },
+   "paired": {
+    "lightning-u8223:ability_dependent_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "lightning-u8223:favorable_trade": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "lightning-u8223:pointless_piko_avoided": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "lightning-u8223:setup_dependent_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "lightning-u8223:simpler_wins": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "lightning-u8223:ALL": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "lightning-u9305:ability_dependent_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "lightning-u9305:favorable_trade": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "lightning-u9305:pointless_piko_avoided": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "lightning-u9305:setup_dependent_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "lightning-u9305:simpler_wins": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "lightning-u9305:ALL": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "fire-u8223:ability_dependent_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "fire-u8223:favorable_trade": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "fire-u8223:pointless_piko_avoided": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "fire-u8223:setup_dependent_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "fire-u8223:simpler_wins": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "fire-u8223:ALL": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "fire-u9305:ability_dependent_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "fire-u9305:favorable_trade": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "fire-u9305:pointless_piko_avoided": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "fire-u9305:setup_dependent_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "fire-u9305:simpler_wins": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "fire-u9305:ALL": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "water-u8223:ability_dependent_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "water-u8223:favorable_trade": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "water-u8223:pointless_piko_avoided": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "water-u8223:setup_dependent_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "water-u8223:simpler_wins": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "water-u8223:ALL": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "water-u9305:ability_dependent_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "water-u9305:favorable_trade": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "water-u9305:pointless_piko_avoided": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "water-u9305:setup_dependent_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "water-u9305:simpler_wins": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "water-u9305:ALL": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "earth-u8223:ability_dependent_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "earth-u8223:favorable_trade": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "earth-u8223:pointless_piko_avoided": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "earth-u8223:setup_dependent_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "earth-u8223:simpler_wins": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "earth-u8223:ALL": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "earth-u9305:ability_dependent_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "earth-u9305:favorable_trade": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "earth-u9305:pointless_piko_avoided": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "earth-u9305:setup_dependent_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "earth-u9305:simpler_wins": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "earth-u9305:ALL": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    }
+   }
+  },
+  "lightning_c": {
+   "models": [
+    "u8223",
+    "u9305",
+    "lightning",
+    "fire"
+   ],
+   "case_types": {
+    "raizan_charge_lethal": {
+     "u8223": {
+      "greedy": [
+       0,
+       6
+      ],
+      "sampled": [
+       0,
+       96
+      ],
+      "sampled_ci": [
+       0.0,
+       0.038
+      ],
+      "greedy_ci": [
+       0.0,
+       0.459
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0001
+     },
+     "u9305": {
+      "greedy": [
+       0,
+       6
+      ],
+      "sampled": [
+       0,
+       96
+      ],
+      "sampled_ci": [
+       0.0,
+       0.038
+      ],
+      "greedy_ci": [
+       0.0,
+       0.459
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0007
+     },
+     "lightning": {
+      "greedy": [
+       1,
+       6
+      ],
+      "sampled": [
+       16,
+       96
+      ],
+      "sampled_ci": [
+       0.098,
+       0.256
+      ],
+      "greedy_ci": [
+       0.004,
+       0.641
+      ],
+      "leader_uses_greedy": 1,
+      "leader_uses_sampled": 16,
+      "leader_rollouts_sampled": 16,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 16,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.1666
+     },
+     "fire": {
+      "greedy": [
+       0,
+       6
+      ],
+      "sampled": [
+       0,
+       96
+      ],
+      "sampled_ci": [
+       0.0,
+       0.038
+      ],
+      "greedy_ci": [
+       0.0,
+       0.459
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     }
+    },
+    "surge_lethal": {
+     "u8223": {
+      "greedy": [
+       6,
+       6
+      ],
+      "sampled": [
+       96,
+       96
+      ],
+      "sampled_ci": [
+       0.962,
+       1.0
+      ],
+      "greedy_ci": [
+       0.541,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 6,
+      "portals_sampled": 96,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "u9305": {
+      "greedy": [
+       6,
+       6
+      ],
+      "sampled": [
+       96,
+       96
+      ],
+      "sampled_ci": [
+       0.962,
+       1.0
+      ],
+      "greedy_ci": [
+       0.541,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 6,
+      "portals_sampled": 96,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "lightning": {
+      "greedy": [
+       6,
+       6
+      ],
+      "sampled": [
+       96,
+       96
+      ],
+      "sampled_ci": [
+       0.962,
+       1.0
+      ],
+      "greedy_ci": [
+       0.541,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 6,
+      "portals_sampled": 96,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "fire": {
+      "greedy": [
+       6,
+       6
+      ],
+      "sampled": [
+       96,
+       96
+      ],
+      "sampled_ci": [
+       0.962,
+       1.0
+      ],
+      "greedy_ci": [
+       0.541,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 6,
+      "portals_sampled": 96,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     }
+    }
+   },
+   "paired": {
+    "lightning-u8223:raizan_charge_lethal": {
+     "argmax": [
+      0.167,
+      0.0,
+      0.5
+     ],
+     "sample": [
+      0.167,
+      0.0,
+      0.5
+     ]
+    },
+    "lightning-u8223:surge_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "lightning-u8223:ALL": {
+     "argmax": [
+      0.083,
+      0.0,
+      0.25
+     ],
+     "sample": [
+      0.083,
+      0.0,
+      0.25
+     ]
+    },
+    "lightning-u9305:raizan_charge_lethal": {
+     "argmax": [
+      0.167,
+      0.0,
+      0.5
+     ],
+     "sample": [
+      0.167,
+      0.0,
+      0.5
+     ]
+    },
+    "lightning-u9305:surge_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "lightning-u9305:ALL": {
+     "argmax": [
+      0.083,
+      0.0,
+      0.25
+     ],
+     "sample": [
+      0.083,
+      0.0,
+      0.25
+     ]
+    },
+    "fire-u8223:raizan_charge_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "fire-u8223:surge_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "fire-u8223:ALL": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "fire-u9305:raizan_charge_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "fire-u9305:surge_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "fire-u9305:ALL": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    }
+   }
+  },
+  "fire": {
+   "models": [
+    "u8223",
+    "u9305",
+    "fire",
+    "water"
+   ],
+   "case_types": {
+    "ragefire_combo": {
+     "u8223": {
+      "greedy": [
+       0,
+       4
+      ],
+      "sampled": [
+       0,
+       64
+      ],
+      "sampled_ci": [
+       0.0,
+       0.056
+      ],
+      "greedy_ci": [
+       0.0,
+       0.602
+      ],
+      "leader_uses_greedy": 4,
+      "leader_uses_sampled": 64,
+      "leader_rollouts_sampled": 64,
+      "portals_greedy": 4,
+      "portals_sampled": 64,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 4,
+      "failed_with_leader_sampled": 64,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "u9305": {
+      "greedy": [
+       0,
+       4
+      ],
+      "sampled": [
+       0,
+       64
+      ],
+      "sampled_ci": [
+       0.0,
+       0.056
+      ],
+      "greedy_ci": [
+       0.0,
+       0.602
+      ],
+      "leader_uses_greedy": 4,
+      "leader_uses_sampled": 64,
+      "leader_rollouts_sampled": 64,
+      "portals_greedy": 4,
+      "portals_sampled": 64,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 4,
+      "failed_with_leader_sampled": 64,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "fire": {
+      "greedy": [
+       0,
+       4
+      ],
+      "sampled": [
+       0,
+       64
+      ],
+      "sampled_ci": [
+       0.0,
+       0.056
+      ],
+      "greedy_ci": [
+       0.0,
+       0.602
+      ],
+      "leader_uses_greedy": 1,
+      "leader_uses_sampled": 14,
+      "leader_rollouts_sampled": 14,
+      "portals_greedy": 4,
+      "portals_sampled": 64,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 1,
+      "failed_with_leader_sampled": 14,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "water": {
+      "greedy": [
+       0,
+       4
+      ],
+      "sampled": [
+       0,
+       64
+      ],
+      "sampled_ci": [
+       0.0,
+       0.056
+      ],
+      "greedy_ci": [
+       0.0,
+       0.602
+      ],
+      "leader_uses_greedy": 4,
+      "leader_uses_sampled": 64,
+      "leader_rollouts_sampled": 64,
+      "portals_greedy": 4,
+      "portals_sampled": 64,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 4,
+      "failed_with_leader_sampled": 64,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     }
+    },
+    "rushfire_lethal": {
+     "u8223": {
+      "greedy": [
+       4,
+       4
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.398,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 4,
+      "portals_sampled": 64,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "u9305": {
+      "greedy": [
+       4,
+       4
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.398,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 4,
+      "portals_sampled": 64,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "fire": {
+      "greedy": [
+       3,
+       4
+      ],
+      "sampled": [
+       51,
+       64
+      ],
+      "sampled_ci": [
+       0.678,
+       0.887
+      ],
+      "greedy_ci": [
+       0.194,
+       0.994
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 5,
+      "leader_rollouts_sampled": 5,
+      "portals_greedy": 4,
+      "portals_sampled": 64,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 5,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "water": {
+      "greedy": [
+       4,
+       4
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.398,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 4,
+      "portals_sampled": 64,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     }
+    },
+    "zero_equivalent": {
+     "u8223": {
+      "greedy": [
+       4,
+       4
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.398,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "u9305": {
+      "greedy": [
+       4,
+       4
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.398,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "fire": {
+      "greedy": [
+       4,
+       4
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.398,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "water": {
+      "greedy": [
+       4,
+       4
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.398,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     }
+    },
+    "zero_lethal": {
+     "u8223": {
+      "greedy": [
+       0,
+       4
+      ],
+      "sampled": [
+       0,
+       64
+      ],
+      "sampled_ci": [
+       0.0,
+       0.056
+      ],
+      "greedy_ci": [
+       0.0,
+       0.602
+      ],
+      "leader_uses_greedy": 4,
+      "leader_uses_sampled": 63,
+      "leader_rollouts_sampled": 63,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 4,
+      "failed_with_leader_sampled": 63,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "u9305": {
+      "greedy": [
+       0,
+       4
+      ],
+      "sampled": [
+       0,
+       64
+      ],
+      "sampled_ci": [
+       0.0,
+       0.056
+      ],
+      "greedy_ci": [
+       0.0,
+       0.602
+      ],
+      "leader_uses_greedy": 4,
+      "leader_uses_sampled": 62,
+      "leader_rollouts_sampled": 62,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 4,
+      "failed_with_leader_sampled": 62,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "fire": {
+      "greedy": [
+       0,
+       4
+      ],
+      "sampled": [
+       0,
+       64
+      ],
+      "sampled_ci": [
+       0.0,
+       0.056
+      ],
+      "greedy_ci": [
+       0.0,
+       0.602
+      ],
+      "leader_uses_greedy": 1,
+      "leader_uses_sampled": 14,
+      "leader_rollouts_sampled": 14,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 1,
+      "failed_with_leader_sampled": 14,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "water": {
+      "greedy": [
+       0,
+       4
+      ],
+      "sampled": [
+       0,
+       64
+      ],
+      "sampled_ci": [
+       0.0,
+       0.056
+      ],
+      "greedy_ci": [
+       0.0,
+       0.602
+      ],
+      "leader_uses_greedy": 4,
+      "leader_uses_sampled": 64,
+      "leader_rollouts_sampled": 64,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 4,
+      "failed_with_leader_sampled": 64,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     }
+    },
+    "zero_ritualist_burn": {
+     "u8223": {
+      "greedy": [
+       0,
+       4
+      ],
+      "sampled": [
+       0,
+       64
+      ],
+      "sampled_ci": [
+       0.0,
+       0.056
+      ],
+      "greedy_ci": [
+       0.0,
+       0.602
+      ],
+      "leader_uses_greedy": 3,
+      "leader_uses_sampled": 48,
+      "leader_rollouts_sampled": 48,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 3,
+      "failed_with_leader_sampled": 48,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.7418
+     },
+     "u9305": {
+      "greedy": [
+       0,
+       4
+      ],
+      "sampled": [
+       0,
+       64
+      ],
+      "sampled_ci": [
+       0.0,
+       0.056
+      ],
+      "greedy_ci": [
+       0.0,
+       0.602
+      ],
+      "leader_uses_greedy": 2,
+      "leader_uses_sampled": 32,
+      "leader_rollouts_sampled": 32,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 2,
+      "failed_with_leader_sampled": 32,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.504
+     },
+     "fire": {
+      "greedy": [
+       0,
+       4
+      ],
+      "sampled": [
+       0,
+       64
+      ],
+      "sampled_ci": [
+       0.0,
+       0.056
+      ],
+      "greedy_ci": [
+       0.0,
+       0.602
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0005
+     },
+     "water": {
+      "greedy": [
+       0,
+       4
+      ],
+      "sampled": [
+       0,
+       64
+      ],
+      "sampled_ci": [
+       0.0,
+       0.056
+      ],
+      "greedy_ci": [
+       0.0,
+       0.602
+      ],
+      "leader_uses_greedy": 4,
+      "leader_uses_sampled": 64,
+      "leader_rollouts_sampled": 64,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 4,
+      "failed_with_leader_sampled": 64,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.9998
+     }
+    },
+    "zero_suicide": {
+     "u8223": {
+      "greedy": [
+       1,
+       4
+      ],
+      "sampled": [
+       15,
+       64
+      ],
+      "sampled_ci": [
+       0.138,
+       0.357
+      ],
+      "greedy_ci": [
+       0.006,
+       0.806
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 3,
+      "portals_sampled": 55,
+      "harmful_greedy": 3,
+      "harmful_sampled": 49,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "u9305": {
+      "greedy": [
+       2,
+       4
+      ],
+      "sampled": [
+       28,
+       64
+      ],
+      "sampled_ci": [
+       0.314,
+       0.567
+      ],
+      "greedy_ci": [
+       0.068,
+       0.932
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 4,
+      "portals_sampled": 63,
+      "harmful_greedy": 2,
+      "harmful_sampled": 36,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "fire": {
+      "greedy": [
+       2,
+       4
+      ],
+      "sampled": [
+       43,
+       64
+      ],
+      "sampled_ci": [
+       0.543,
+       0.784
+      ],
+      "greedy_ci": [
+       0.068,
+       0.932
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 4,
+      "portals_sampled": 64,
+      "harmful_greedy": 2,
+      "harmful_sampled": 21,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "water": {
+      "greedy": [
+       0,
+       4
+      ],
+      "sampled": [
+       0,
+       64
+      ],
+      "sampled_ci": [
+       0.0,
+       0.056
+      ],
+      "greedy_ci": [
+       0.0,
+       0.602
+      ],
+      "leader_uses_greedy": 2,
+      "leader_uses_sampled": 29,
+      "leader_rollouts_sampled": 29,
+      "portals_greedy": 4,
+      "portals_sampled": 64,
+      "harmful_greedy": 4,
+      "harmful_sampled": 64,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 2,
+      "failed_with_leader_sampled": 29,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     }
+    }
+   },
+   "paired": {
+    "fire-u8223:ragefire_combo": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "fire-u8223:rushfire_lethal": {
+     "argmax": [
+      -0.25,
+      -0.75,
+      0.0
+     ],
+     "sample": [
+      -0.203,
+      -0.609,
+      0.0
+     ]
+    },
+    "fire-u8223:zero_equivalent": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "fire-u8223:zero_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "fire-u8223:zero_ritualist_burn": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "fire-u8223:zero_suicide": {
+     "argmax": [
+      0.25,
+      0.0,
+      0.75
+     ],
+     "sample": [
+      0.438,
+      0.031,
+      0.844
+     ]
+    },
+    "fire-u8223:ALL": {
+     "argmax": [
+      0.0,
+      -0.125,
+      0.125
+     ],
+     "sample": [
+      0.039,
+      -0.07,
+      0.156
+     ]
+    },
+    "fire-u9305:ragefire_combo": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "fire-u9305:rushfire_lethal": {
+     "argmax": [
+      -0.25,
+      -0.75,
+      0.0
+     ],
+     "sample": [
+      -0.203,
+      -0.609,
+      0.0
+     ]
+    },
+    "fire-u9305:zero_equivalent": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "fire-u9305:zero_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "fire-u9305:zero_ritualist_burn": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "fire-u9305:zero_suicide": {
+     "argmax": [
+      0.0,
+      -0.75,
+      0.75
+     ],
+     "sample": [
+      0.234,
+      -0.047,
+      0.75
+     ]
+    },
+    "fire-u9305:ALL": {
+     "argmax": [
+      -0.042,
+      -0.167,
+      0.083
+     ],
+     "sample": [
+      0.005,
+      -0.102,
+      0.122
+     ]
+    },
+    "water-u8223:ragefire_combo": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "water-u8223:rushfire_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "water-u8223:zero_equivalent": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "water-u8223:zero_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "water-u8223:zero_ritualist_burn": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "water-u8223:zero_suicide": {
+     "argmax": [
+      -0.25,
+      -0.75,
+      0.0
+     ],
+     "sample": [
+      -0.234,
+      -0.703,
+      0.0
+     ]
+    },
+    "water-u8223:ALL": {
+     "argmax": [
+      -0.042,
+      -0.125,
+      0.0
+     ],
+     "sample": [
+      -0.039,
+      -0.117,
+      0.0
+     ]
+    },
+    "water-u9305:ragefire_combo": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "water-u9305:rushfire_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "water-u9305:zero_equivalent": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "water-u9305:zero_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "water-u9305:zero_ritualist_burn": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "water-u9305:zero_suicide": {
+     "argmax": [
+      -0.5,
+      -1.0,
+      0.0
+     ],
+     "sample": [
+      -0.438,
+      -0.875,
+      0.0
+     ]
+    },
+    "water-u9305:ALL": {
+     "argmax": [
+      -0.083,
+      -0.208,
+      0.0
+     ],
+     "sample": [
+      -0.073,
+      -0.188,
+      0.0
+     ]
+    }
+   }
+  },
+  "water": {
+   "models": [
+    "u8223",
+    "u9305",
+    "water",
+    "earth"
+   ],
+   "case_types": {
+    "hold_ikz": {
+     "u8223": {
+      "greedy": [
+       0,
+       4
+      ],
+      "sampled": [
+       0,
+       64
+      ],
+      "sampled_ci": [
+       0.0,
+       0.056
+      ],
+      "greedy_ci": [
+       0.0,
+       0.602
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "u9305": {
+      "greedy": [
+       0,
+       4
+      ],
+      "sampled": [
+       0,
+       64
+      ],
+      "sampled_ci": [
+       0.0,
+       0.056
+      ],
+      "greedy_ci": [
+       0.0,
+       0.602
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "water": {
+      "greedy": [
+       0,
+       4
+      ],
+      "sampled": [
+       0,
+       64
+      ],
+      "sampled_ci": [
+       0.0,
+       0.056
+      ],
+      "greedy_ci": [
+       0.0,
+       0.602
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "earth": {
+      "greedy": [
+       0,
+       4
+      ],
+      "sampled": [
+       0,
+       64
+      ],
+      "sampled_ci": [
+       0.0,
+       0.056
+      ],
+      "greedy_ci": [
+       0.0,
+       0.602
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     }
+    },
+    "hydro_equivalent": {
+     "u8223": {
+      "greedy": [
+       4,
+       4
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.398,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 3,
+      "portals_sampled": 48,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "u9305": {
+      "greedy": [
+       4,
+       4
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.398,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 3,
+      "portals_sampled": 49,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "water": {
+      "greedy": [
+       4,
+       4
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.398,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 4,
+      "portals_sampled": 59,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "earth": {
+      "greedy": [
+       4,
+       4
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.398,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 3,
+      "portals_sampled": 51,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     }
+    },
+    "hydro_tenshin_lethal": {
+     "u8223": {
+      "greedy": [
+       4,
+       4
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.398,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 4,
+      "portals_sampled": 64,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "u9305": {
+      "greedy": [
+       4,
+       4
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.398,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 4,
+      "portals_sampled": 64,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "water": {
+      "greedy": [
+       4,
+       4
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.398,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 4,
+      "portals_sampled": 64,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "earth": {
+      "greedy": [
+       4,
+       4
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.398,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 4,
+      "portals_sampled": 64,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     }
+    },
+    "shao_response": {
+     "u8223": {
+      "greedy": [
+       4,
+       4
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.398,
+       1.0
+      ],
+      "leader_uses_greedy": 3,
+      "leader_uses_sampled": 52,
+      "leader_rollouts_sampled": 52,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 52,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.8252
+     },
+     "u9305": {
+      "greedy": [
+       4,
+       4
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.398,
+       1.0
+      ],
+      "leader_uses_greedy": 3,
+      "leader_uses_sampled": 48,
+      "leader_rollouts_sampled": 48,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 48,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.7902
+     },
+     "water": {
+      "greedy": [
+       4,
+       4
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.398,
+       1.0
+      ],
+      "leader_uses_greedy": 4,
+      "leader_uses_sampled": 64,
+      "leader_rollouts_sampled": 64,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 64,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 1.0
+     },
+     "earth": {
+      "greedy": [
+       4,
+       4
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.398,
+       1.0
+      ],
+      "leader_uses_greedy": 3,
+      "leader_uses_sampled": 48,
+      "leader_rollouts_sampled": 48,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 48,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.7504
+     }
+    }
+   },
+   "paired": {
+    "water-u8223:hold_ikz": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "water-u8223:hydro_equivalent": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "water-u8223:hydro_tenshin_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "water-u8223:shao_response": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "water-u8223:ALL": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "water-u9305:hold_ikz": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "water-u9305:hydro_equivalent": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "water-u9305:hydro_tenshin_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "water-u9305:shao_response": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "water-u9305:ALL": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "earth-u8223:hold_ikz": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "earth-u8223:hydro_equivalent": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "earth-u8223:hydro_tenshin_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "earth-u8223:shao_response": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "earth-u8223:ALL": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "earth-u9305:hold_ikz": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "earth-u9305:hydro_equivalent": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "earth-u9305:hydro_tenshin_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "earth-u9305:shao_response": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "earth-u9305:ALL": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    }
+   }
+  },
+  "earth": {
+   "models": [
+    "u8223",
+    "u9305",
+    "earth",
+    "lightning"
+   ],
+   "case_types": {
+    "declare_defender": {
+     "u8223": {
+      "greedy": [
+       4,
+       4
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.398,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 64,
+      "root_leader_prob": 0.0
+     },
+     "u9305": {
+      "greedy": [
+       4,
+       4
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.398,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 64,
+      "root_leader_prob": 0.0
+     },
+     "earth": {
+      "greedy": [
+       4,
+       4
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.398,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 64,
+      "root_leader_prob": 0.0
+     },
+     "lightning": {
+      "greedy": [
+       4,
+       4
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.398,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 0,
+      "portals_sampled": 0,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 64,
+      "root_leader_prob": 0.0
+     }
+    },
+    "goro_trade": {
+     "u8223": {
+      "greedy": [
+       0,
+       4
+      ],
+      "sampled": [
+       0,
+       64
+      ],
+      "sampled_ci": [
+       0.0,
+       0.056
+      ],
+      "greedy_ci": [
+       0.0,
+       0.602
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 4,
+      "portals_sampled": 64,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "u9305": {
+      "greedy": [
+       0,
+       4
+      ],
+      "sampled": [
+       0,
+       64
+      ],
+      "sampled_ci": [
+       0.0,
+       0.056
+      ],
+      "greedy_ci": [
+       0.0,
+       0.602
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 4,
+      "portals_sampled": 64,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "earth": {
+      "greedy": [
+       0,
+       4
+      ],
+      "sampled": [
+       0,
+       64
+      ],
+      "sampled_ci": [
+       0.0,
+       0.056
+      ],
+      "greedy_ci": [
+       0.0,
+       0.602
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 1,
+      "leader_rollouts_sampled": 1,
+      "portals_greedy": 4,
+      "portals_sampled": 64,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 1,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "lightning": {
+      "greedy": [
+       0,
+       4
+      ],
+      "sampled": [
+       0,
+       64
+      ],
+      "sampled_ci": [
+       0.0,
+       0.056
+      ],
+      "greedy_ci": [
+       0.0,
+       0.602
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 4,
+      "portals_sampled": 64,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     }
+    },
+    "quicksand_lethal": {
+     "u8223": {
+      "greedy": [
+       0,
+       4
+      ],
+      "sampled": [
+       0,
+       64
+      ],
+      "sampled_ci": [
+       0.0,
+       0.056
+      ],
+      "greedy_ci": [
+       0.0,
+       0.602
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 5,
+      "leader_rollouts_sampled": 5,
+      "portals_greedy": 4,
+      "portals_sampled": 64,
+      "harmful_greedy": 0,
+      "harmful_sampled": 5,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 5,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "u9305": {
+      "greedy": [
+       0,
+       4
+      ],
+      "sampled": [
+       0,
+       64
+      ],
+      "sampled_ci": [
+       0.0,
+       0.056
+      ],
+      "greedy_ci": [
+       0.0,
+       0.602
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 4,
+      "portals_sampled": 64,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "earth": {
+      "greedy": [
+       0,
+       4
+      ],
+      "sampled": [
+       0,
+       64
+      ],
+      "sampled_ci": [
+       0.0,
+       0.056
+      ],
+      "greedy_ci": [
+       0.0,
+       0.602
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 3,
+      "leader_rollouts_sampled": 3,
+      "portals_greedy": 4,
+      "portals_sampled": 64,
+      "harmful_greedy": 0,
+      "harmful_sampled": 3,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 3,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     },
+     "lightning": {
+      "greedy": [
+       0,
+       4
+      ],
+      "sampled": [
+       0,
+       64
+      ],
+      "sampled_ci": [
+       0.0,
+       0.056
+      ],
+      "greedy_ci": [
+       0.0,
+       0.602
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 4,
+      "portals_sampled": 64,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 0,
+      "root_leader_prob": 0.0
+     }
+    },
+    "stonehaven_block": {
+     "u8223": {
+      "greedy": [
+       4,
+       4
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.398,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 4,
+      "portals_sampled": 64,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 64,
+      "root_leader_prob": 0.0
+     },
+     "u9305": {
+      "greedy": [
+       4,
+       4
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.398,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 4,
+      "portals_sampled": 64,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 64,
+      "root_leader_prob": 0.0
+     },
+     "earth": {
+      "greedy": [
+       3,
+       4
+      ],
+      "sampled": [
+       49,
+       64
+      ],
+      "sampled_ci": [
+       0.643,
+       0.862
+      ],
+      "greedy_ci": [
+       0.194,
+       0.994
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 4,
+      "portals_sampled": 64,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 49,
+      "root_leader_prob": 0.0
+     },
+     "lightning": {
+      "greedy": [
+       4,
+       4
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.398,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 4,
+      "portals_sampled": 64,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 64,
+      "root_leader_prob": 0.0
+     }
+    },
+    "stonehaven_unneeded": {
+     "u8223": {
+      "greedy": [
+       4,
+       4
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.398,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 4,
+      "portals_sampled": 64,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 64,
+      "root_leader_prob": 0.0
+     },
+     "u9305": {
+      "greedy": [
+       4,
+       4
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.398,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 4,
+      "portals_sampled": 64,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 64,
+      "root_leader_prob": 0.0
+     },
+     "earth": {
+      "greedy": [
+       4,
+       4
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.398,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 4,
+      "portals_sampled": 64,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 64,
+      "root_leader_prob": 0.0
+     },
+     "lightning": {
+      "greedy": [
+       4,
+       4
+      ],
+      "sampled": [
+       64,
+       64
+      ],
+      "sampled_ci": [
+       0.944,
+       1.0
+      ],
+      "greedy_ci": [
+       0.398,
+       1.0
+      ],
+      "leader_uses_greedy": 0,
+      "leader_uses_sampled": 0,
+      "leader_rollouts_sampled": 0,
+      "portals_greedy": 4,
+      "portals_sampled": 64,
+      "harmful_greedy": 0,
+      "harmful_sampled": 0,
+      "pointless_greedy": 0,
+      "pointless_sampled": 0,
+      "success_with_leader_sampled": 0,
+      "failed_with_leader_greedy": 0,
+      "failed_with_leader_sampled": 0,
+      "defends_sampled": 64,
+      "root_leader_prob": 0.0
+     }
+    }
+   },
+   "paired": {
+    "earth-u8223:declare_defender": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "earth-u8223:goro_trade": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "earth-u8223:quicksand_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "earth-u8223:stonehaven_block": {
+     "argmax": [
+      -0.25,
+      -0.75,
+      0.0
+     ],
+     "sample": [
+      -0.234,
+      -0.703,
+      0.0
+     ]
+    },
+    "earth-u8223:stonehaven_unneeded": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "earth-u8223:ALL": {
+     "argmax": [
+      -0.05,
+      -0.15,
+      0.0
+     ],
+     "sample": [
+      -0.047,
+      -0.141,
+      0.0
+     ]
+    },
+    "earth-u9305:declare_defender": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "earth-u9305:goro_trade": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "earth-u9305:quicksand_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "earth-u9305:stonehaven_block": {
+     "argmax": [
+      -0.25,
+      -0.75,
+      0.0
+     ],
+     "sample": [
+      -0.234,
+      -0.703,
+      0.0
+     ]
+    },
+    "earth-u9305:stonehaven_unneeded": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "earth-u9305:ALL": {
+     "argmax": [
+      -0.05,
+      -0.15,
+      0.0
+     ],
+     "sample": [
+      -0.047,
+      -0.141,
+      0.0
+     ]
+    },
+    "lightning-u8223:declare_defender": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "lightning-u8223:goro_trade": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "lightning-u8223:quicksand_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "lightning-u8223:stonehaven_block": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "lightning-u8223:stonehaven_unneeded": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "lightning-u8223:ALL": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "lightning-u9305:declare_defender": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "lightning-u9305:goro_trade": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "lightning-u9305:quicksand_lethal": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "lightning-u9305:stonehaven_block": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "lightning-u9305:stonehaven_unneeded": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    },
+    "lightning-u9305:ALL": {
+     "argmax": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "sample": [
+      0.0,
+      0.0,
+      0.0
+     ]
+    }
+   }
+  }
+ },
+ "notes": [
+  "Bootstrap resamples fixture instances (seat x world seed) within case type; sampled rates are per-instance means over sample seeds.",
+  "CP intervals treat rollouts as independent; sample repetitions share fixtures, so they understate uncertainty.",
+  "harmful = activation that the oracle shows costs the outcome (zero_suicide any Zero use; quicksand_lethal Bobu use that leaves Quicksand uncastable; ritualist trigger aimed at own leader). pointless = original Piko zero/tapped definition."
+ ]
+}

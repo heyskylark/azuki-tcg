@@ -1,0 +1,45 @@
+{
+ "accepted": [
+  {
+   "seat": 0,
+   "seed": 102,
+   "case_count": 4
+  },
+  {
+   "seat": 0,
+   "seed": 104,
+   "case_count": 4
+  },
+  {
+   "seat": 1,
+   "seed": 101,
+   "case_count": 4
+  },
+  {
+   "seat": 1,
+   "seed": 103,
+   "case_count": 4
+  }
+ ],
+ "rejected": [
+  {
+   "seat": 0,
+   "seed": 101,
+   "error": "Reject(('cannot legally spend to budget', 2))",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_water.py\", line 44, in build\n    body = setup_hydro(g, 2)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_water.py\", line 31, in setup_hydro\n    g.spend_to(remaining, [c for c in SPEND if c not in keep], zone='garden')\n    ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/tb_setup.py\", line 216, in spend_to\n    raise Reject(('cannot legally spend to budget', amount))\ntb_setup.Reject: ('cannot legally spend to budget', 2)\n"
+  },
+  {
+   "seat": 0,
+   "seed": 103,
+   "error": "Reject('token adds a second resource')",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_water.py\", line 57, in build\n    raise Reject('token adds a second resource')\ntb_setup.Reject: token adds a second resource\n"
+  },
+  {
+   "seat": 1,
+   "seed": 102,
+   "error": "Reject('token adds a second resource')",
+   "where": "Traceback (most recent call last):\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/generate.py\", line 30, in main\n    batch = fam.build(runner, seed, seat)\n  File \"/home/skylark/git/azuki-tcg-specialist-runtime/train-specialist/analysis/tactical/family_water.py\", line 57, in build\n    raise Reject('token adds a second resource')\ntb_setup.Reject: token adds a second resource\n"
+  }
+ ],
+ "selection_rule": "first 2 seeds per seat (from 101) where every case type constructs legally and verifies against its oracle; no policy outputs consulted"
+}

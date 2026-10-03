@@ -3,6 +3,7 @@
 #include "abilities/passive/passive_runtime.h"
 #include "generated/card_defs.h"
 #include "utils/ability_util.h"
+#include "utils/status_util.h"
 
 #include <stdio.h>
 
@@ -60,6 +61,7 @@ ECS_COMPONENT_DECLARE(CombatDamageModifier);
 ECS_COMPONENT_DECLARE(EquippedCombatModifier);
 ECS_COMPONENT_DECLARE(PassiveObserverContext);
 ECS_COMPONENT_DECLARE(DamageTracker);
+ECS_COMPONENT_DECLARE(CopiedCardText);
 
 static void clear_ability_tags(ecs_world_t *world, ecs_entity_t ability_entity) {
   ecs_remove(world, ability_entity, AOnPlay);
@@ -180,6 +182,7 @@ void azk_register_ability_components(ecs_world_t *world) {
   ECS_COMPONENT_DEFINE(world, EquippedCombatModifier);
   ECS_COMPONENT_DEFINE(world, PassiveObserverContext);
   ECS_COMPONENT_DEFINE(world, DamageTracker);
+  ECS_COMPONENT_DEFINE(world, CopiedCardText);
   ecs_set_hooks(world, AbilityInstance,
                 {.on_remove = on_remove_ability_instance});
 
@@ -222,7 +225,9 @@ uint8_t azk_sync_card_abilities(ecs_world_t *world, ecs_entity_t card,
     ecs_remove(world, card, AResponse);
   }
 
-  const uint8_t ability_count = azk_get_ability_count(card_id->id);
+  const AzkCardAbilityLayout layout =
+      azk_get_card_ability_layout(world, card, card_id->id);
+  const uint8_t ability_count = layout.own_count + layout.copied_count;
   ecs_entity_t ability_entities[AZK_MAX_CARD_ABILITIES] = {0};
   ecs_entity_t stale_entities[AZK_MAX_CARD_ABILITIES] = {0};
   uint8_t stale_count = 0;
@@ -232,33 +237,15 @@ uint8_t azk_sync_card_abilities(ecs_world_t *world, ecs_entity_t card,
       ecs_entity_t ability_entity = ability_it.entities[i];
       const AbilityInstance *instance =
           ecs_get(world, ability_entity, AbilityInstance);
-      if (instance == NULL || instance->registry_order >= ability_count) {
+      const int slot = azk_card_ability_slot(&layout, instance);
+      if (slot < 0 || ability_entities[slot] != 0) {
         if (stale_count < AZK_MAX_CARD_ABILITIES) {
           stale_entities[stale_count++] = ability_entity;
         }
         continue;
       }
 
-      ecs_entity_t existing_entity = ability_entities[instance->registry_order];
-      if (existing_entity == 0) {
-        ability_entities[instance->registry_order] = ability_entity;
-        continue;
-      }
-
-      const AbilityInstance *existing_instance =
-          ecs_get(world, existing_entity, AbilityInstance);
-      const bool existing_matches_card =
-          existing_instance != NULL && existing_instance->card_def_id == card_id->id;
-      const bool current_matches_card = instance->card_def_id == card_id->id;
-
-      if (!existing_matches_card && current_matches_card) {
-        if (stale_count < AZK_MAX_CARD_ABILITIES) {
-          stale_entities[stale_count++] = existing_entity;
-        }
-        ability_entities[instance->registry_order] = ability_entity;
-      } else if (stale_count < AZK_MAX_CARD_ABILITIES) {
-        stale_entities[stale_count++] = ability_entity;
-      }
+      ability_entities[slot] = ability_entity;
     }
   }
 
@@ -274,25 +261,30 @@ uint8_t azk_sync_card_abilities(ecs_world_t *world, ecs_entity_t card,
   }
 
   uint8_t synced_count = 0;
-  for (uint8_t registry_order = 0; registry_order < ability_count;
-       ++registry_order) {
+  int8_t next_action_index = 0;
+  for (uint8_t slot = 0; slot < ability_count; ++slot) {
+    const bool is_copied = slot >= layout.own_count;
+    const CardDefId def_id =
+        is_copied ? layout.copied_def_id : layout.own_def_id;
+    const uint8_t registry_order =
+        is_copied ? (uint8_t)(slot - layout.own_count) : slot;
     const AbilityDef *ability_def =
-        azk_get_ability_def_at(card_id->id, registry_order);
+        azk_get_ability_def_at(def_id, registry_order);
     if (ability_def == NULL || !ability_def->has_ability) {
       continue;
     }
 
-    ecs_entity_t ability_entity = ability_entities[registry_order];
+    ecs_entity_t ability_entity = ability_entities[slot];
     if (ability_entity == 0) {
       ability_entity = ecs_new(world);
       char ability_name[128];
       const char *card_name = ecs_get_name(world, card);
       snprintf(ability_name, sizeof(ability_name), "%s__ability_%u_%llu",
-               card_name != NULL ? card_name : "card",
-               (unsigned)registry_order, (unsigned long long)ability_entity);
+               card_name != NULL ? card_name : "card", (unsigned)slot,
+               (unsigned long long)ability_entity);
       ecs_set_name(world, ability_entity, ability_name);
       ecs_add_pair(world, ability_entity, Rel_AbilityOf, card);
-      ability_entities[registry_order] = ability_entity;
+      ability_entities[slot] = ability_entity;
     }
 
     clear_ability_tags(world, ability_entity);
@@ -301,7 +293,7 @@ uint8_t azk_sync_card_abilities(ecs_world_t *world, ecs_entity_t card,
         ecs_get(world, ability_entity, AbilityInstance);
     const bool same_ability_identity =
         existing_instance != NULL &&
-        existing_instance->card_def_id == card_id->id &&
+        existing_instance->card_def_id == def_id &&
         existing_instance->registry_order == registry_order;
     if (existing_instance != NULL && !same_ability_identity) {
       cleanup_attached_ability_entity(world, ability_entity, existing_instance);
@@ -314,16 +306,26 @@ uint8_t azk_sync_card_abilities(ecs_world_t *world, ecs_entity_t card,
             ? existing_repeat->was_applied
             : false;
 
+    const AbilityInvocationMode invocation_mode =
+        azk_determine_invocation_mode_for_card_ability(world, card,
+                                                       ability_def);
+    int8_t action_index = AZK_NO_ACTION_INDEX;
+    if (!is_copied) {
+      action_index = azk_determine_action_index_for_card_ability(
+          world, card, registry_order, ability_def);
+      if (action_index != AZK_NO_ACTION_INDEX) {
+        next_action_index = (int8_t)(action_index + 1);
+      }
+    } else if (invocation_mode == ABILITY_INVOCATION_PLAYER) {
+      action_index = next_action_index++;
+    }
+
     ecs_set(world, ability_entity, AbilityInstance,
             {
-                .card_def_id = card_id->id,
+                .card_def_id = def_id,
                 .registry_order = registry_order,
-                .action_index =
-                    azk_determine_action_index_for_card_ability(
-                        world, card, registry_order, ability_def),
-                .invocation_mode =
-                    (uint8_t)azk_determine_invocation_mode_for_card_ability(
-                        world, card, ability_def),
+                .action_index = action_index,
+                .invocation_mode = (uint8_t)invocation_mode,
             });
 
     if (ability_def->timing_tag != 0) {
@@ -360,4 +362,68 @@ uint8_t azk_sync_card_abilities(ecs_world_t *world, ecs_entity_t card,
 
 void attach_ability_components(ecs_world_t* world, ecs_entity_t card) {
   (void)azk_sync_card_abilities(world, card, NULL, 0);
+}
+
+bool azk_grant_copied_card_text(ecs_world_t *world, ecs_entity_t card,
+                                CardDefId source_def_id) {
+  const CardId *card_id = ecs_get(world, card, CardId);
+  ecs_entity_t source_prefab = azk_prefab_from_id(source_def_id);
+  if (card_id == NULL || source_prefab == 0 ||
+      source_def_id == card_id->id) {
+    return false;
+  }
+
+  const bool was_deferred =
+      ecs_is_deferred(world) && !ecs_stage_is_readonly(world);
+  if (was_deferred) {
+    ecs_defer_suspend(world);
+  }
+
+  ecs_set(world, card, CopiedCardText, {.card_def_id = source_def_id});
+  (void)azk_sync_card_abilities(world, card, NULL, 0);
+
+  const ecs_id_t keyword_tags[] = {
+      ecs_id(Charge),
+      ecs_id(Defender),
+      ecs_id(Infiltrate),
+      ecs_id(Godmode),
+      ecs_id(AttrCanTargetLeaderOnly),
+      ecs_id(AttrCanTargetTappedAndUntappedAlley),
+      ecs_id(EffectImmune),
+  };
+  for (size_t i = 0; i < sizeof(keyword_tags) / sizeof(keyword_tags[0]); ++i) {
+    if (!ecs_has_id(world, source_prefab, keyword_tags[i])) {
+      continue;
+    }
+    if (keyword_tags[i] == ecs_id(Charge)) {
+      (void)apply_charge_grant(world, card, TAG_GRANT_TICK_END_OF_TURN, 1);
+    } else {
+      (void)apply_timed_tag_grant(world, card, keyword_tags[i],
+                                  TAG_GRANT_TICK_END_OF_TURN, 1);
+    }
+  }
+
+  if (was_deferred) {
+    ecs_defer_resume(world);
+  }
+  return true;
+}
+
+void azk_clear_copied_card_text(ecs_world_t *world, ecs_entity_t card) {
+  if (card == 0 || !ecs_has(world, card, CopiedCardText)) {
+    return;
+  }
+
+  const bool was_deferred =
+      ecs_is_deferred(world) && !ecs_stage_is_readonly(world);
+  if (was_deferred) {
+    ecs_defer_suspend(world);
+  }
+
+  ecs_remove(world, card, CopiedCardText);
+  (void)azk_sync_card_abilities(world, card, NULL, 0);
+
+  if (was_deferred) {
+    ecs_defer_resume(world);
+  }
 }

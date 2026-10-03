@@ -166,6 +166,11 @@
 #include "abilities/cards/stt04_015.h"
 #include "abilities/cards/stt04_016.h"
 #include "abilities/cards/stt04_017.h"
+#include "abilities/cards/azk01_013.h"
+#include "abilities/cards/azk01_076.h"
+#include "abilities/cards/azk01_079.h"
+#include "abilities/cards/azk01_083.h"
+#include "abilities/cards/azk01_099.h"
 #include "components/abilities.h"
 
 #define AZK_MAX_ADDITIONAL_CARD_ABILITIES 7
@@ -2674,6 +2679,137 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .apply_costs = stt04_017_apply_costs,
       .apply_effects = stt04_017_apply_effects,
   };
+
+  // Fatedealer cards: [On Play] Your opponent chooses 1. The opponent picks
+  // the mode (ACT_CONFIRM_ABILITY = first mode, ACT_NOOP = second mode) and
+  // makes that mode's selections; see AbilityDef.modal_chosen_by_opponent.
+  const AbilityDef fatedealer_primary = {
+      .has_ability = true,
+      .is_binary_modal = true,
+      .modal_chosen_by_opponent = true,
+      .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .effect_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .timing_tag = ecs_id(AOnPlay),
+  };
+
+  // AZK01-013 "Gou the Iron Judge": [On Play] Your opponent chooses 1:
+  // Sacrifice an entity in their Garden or discard 2.
+  kAbilityRegistry[CARD_DEF_AZK01_013] = fatedealer_primary;
+  const AbilityDef azk01_013_modes[] = {
+      {
+          .has_ability = true,
+          .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+          .effect_req = {.type = ABILITY_TARGET_FRIENDLY_GARDEN_ENTITY,
+                         .min = 1,
+                         .max = 1},
+          .validate = azk01_013_validate_sacrifice,
+          .validate_effect_target = azk01_013_validate_sacrifice_target,
+          .apply_effects = azk01_013_apply_sacrifice,
+      },
+      {
+          .has_ability = true,
+          .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+          .effect_req = {.type = ABILITY_TARGET_FRIENDLY_HAND,
+                         .min = 0,
+                         .max = 2},
+          .validate = azk01_013_validate_discard,
+          .validate_effect_target = azk01_013_validate_discard_target,
+          .on_cost_paid = azk01_013_begin_discard,
+          .apply_effects = azk01_013_apply_discard,
+      },
+  };
+  (void)azk_set_additional_card_abilities(
+      CARD_DEF_AZK01_013, azk01_013_modes,
+      (uint8_t)(sizeof(azk01_013_modes) / sizeof(azk01_013_modes[0])));
+
+  // AZK01-076 "Hōren of Two Paths": [On Play] Your opponent chooses 1: This
+  // entity gains Charge until the end of the turn; or heal 2 to your leader.
+  kAbilityRegistry[CARD_DEF_AZK01_076] = fatedealer_primary;
+  const AbilityDef azk01_076_modes[] = {
+      {
+          .has_ability = true,
+          .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+          .effect_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+          .apply_effects = azk01_076_apply_charge,
+      },
+      {
+          .has_ability = true,
+          .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+          .effect_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+          .apply_effects = azk01_076_apply_heal,
+      },
+  };
+  (void)azk_set_additional_card_abilities(
+      CARD_DEF_AZK01_076, azk01_076_modes,
+      (uint8_t)(sizeof(azk01_076_modes) / sizeof(azk01_076_modes[0])));
+
+  // AZK01-079 "Gin and Tonika": [On Play] Your opponent chooses 1: You draw 2
+  // or deal 3 damage to their leader.
+  kAbilityRegistry[CARD_DEF_AZK01_079] = fatedealer_primary;
+  const AbilityDef azk01_079_modes[] = {
+      {
+          .has_ability = true,
+          .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+          .effect_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+          .apply_effects = azk01_079_apply_draw,
+      },
+      {
+          .has_ability = true,
+          .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+          .effect_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+          .apply_effects = azk01_079_apply_damage,
+      },
+  };
+  (void)azk_set_additional_card_abilities(
+      CARD_DEF_AZK01_079, azk01_079_modes,
+      (uint8_t)(sizeof(azk01_079_modes) / sizeof(azk01_079_modes[0])));
+
+  // AZK01-083 "Gurugumi Imitator": [Once/Turn][Main] This card gets the card
+  // text of another (Neutral) card in your Garden until the end of your turn.
+  kAbilityRegistry[CARD_DEF_AZK01_083] = (AbilityDef){
+      .has_ability = true,
+      .is_once_per_turn = true,
+      .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .effect_req = {.type = ABILITY_TARGET_FRIENDLY_GARDEN_ENTITY,
+                     .min = 1,
+                     .max = 1},
+      .timing_tag = ecs_id(AMain),
+      .validate = azk01_083_validate,
+      .validate_effect_target = azk01_083_validate_effect_target,
+      .apply_effects = azk01_083_apply_effects,
+  };
+
+  // AZK01-099 "Raiko's Wrath, Shin": [On Play] Choose one: an entity with a
+  // cost of 5 or less in your opponent's Garden becomes Shocked; or this
+  // entity gains Charge until the end of the turn.
+  kAbilityRegistry[CARD_DEF_AZK01_099] = (AbilityDef){
+      .has_ability = true,
+      .is_binary_modal = true,
+      .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .effect_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .timing_tag = ecs_id(AOnPlay),
+  };
+  const AbilityDef azk01_099_modes[] = {
+      {
+          .has_ability = true,
+          .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+          .effect_req = {.type = ABILITY_TARGET_ENEMY_GARDEN_ENTITY,
+                         .min = 1,
+                         .max = 1},
+          .validate = azk01_099_validate_shock,
+          .validate_effect_target = azk01_099_validate_shock_target,
+          .apply_effects = azk01_099_apply_shock,
+      },
+      {
+          .has_ability = true,
+          .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+          .effect_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+          .apply_effects = azk01_099_apply_charge,
+      },
+  };
+  (void)azk_set_additional_card_abilities(
+      CARD_DEF_AZK01_099, azk01_099_modes,
+      (uint8_t)(sizeof(azk01_099_modes) / sizeof(azk01_099_modes[0])));
 
   kRegistryInitialized = true;
 }

@@ -13,6 +13,7 @@
     "AWhenReturnedToHand": 10,
     "NONE": 0
   },
+  "appended_at_utc": "2026-10-01T03:47:14.350794+00:00",
   "artifact_version": "policy_card_metadata_v1",
   "card_type_to_id": {
     "ENTITY": 2,
@@ -43,7 +44,7 @@
     "godmode",
     "is_ikz_card"
   ],
-  "real_card_count": 194,
+  "real_card_count": 199,
   "real_card_index_offset": 1,
   "records": [
     {
@@ -4082,6 +4083,109 @@
         "Verdant"
       ],
       "table_index": 194
+    },
+    {
+      "ability_is_optional": false,
+      "ability_timing_id": 1,
+      "attack": 3,
+      "card_code": "AZK01-013",
+      "card_def_id": 194,
+      "card_type": "ENTITY",
+      "effect_text": "[On Play] Your opponent chooses 1: Sacrifice an entity in their Garden or discard 2.",
+      "element": "NORMAL",
+      "gate_points": 1,
+      "has_ability": true,
+      "health": 3,
+      "ikz_cost": 5,
+      "keywords": [],
+      "name": "Gou the Iron Judge",
+      "subtypes": [
+        "Fatedealer"
+      ],
+      "table_index": 195
+    },
+    {
+      "ability_is_optional": false,
+      "ability_timing_id": 1,
+      "attack": 1,
+      "card_code": "AZK01-076",
+      "card_def_id": 195,
+      "card_type": "ENTITY",
+      "effect_text": "[On Play] Your opponent chooses 1: - This entity gains Charge (Can attack the same turn it enters the Garden) until the end of the turn. - Heal 2 to your leader.",
+      "element": "NORMAL",
+      "gate_points": 1,
+      "has_ability": true,
+      "health": 2,
+      "ikz_cost": 3,
+      "keywords": [],
+      "name": "H\u014dren of Two Paths",
+      "subtypes": [
+        "Fatedealer",
+        "Monk"
+      ],
+      "table_index": 196
+    },
+    {
+      "ability_is_optional": false,
+      "ability_timing_id": 1,
+      "attack": 3,
+      "card_code": "AZK01-079",
+      "card_def_id": 196,
+      "card_type": "ENTITY",
+      "effect_text": "[On Play] Your opponent chooses 1: You draw 2 or deal 3 damage to their leader.",
+      "element": "NORMAL",
+      "gate_points": 3,
+      "has_ability": true,
+      "health": 4,
+      "ikz_cost": 6,
+      "keywords": [],
+      "name": "Gin and Tonika",
+      "subtypes": [
+        "Fatedealer"
+      ],
+      "table_index": 197
+    },
+    {
+      "ability_is_optional": false,
+      "ability_timing_id": 6,
+      "attack": 2,
+      "card_code": "AZK01-083",
+      "card_def_id": 197,
+      "card_type": "ENTITY",
+      "effect_text": "[Once/Turn][Main] This card gets the card text of another (Neutral) card in your Garden until the end of your turn.",
+      "element": "NORMAL",
+      "gate_points": 1,
+      "has_ability": true,
+      "health": 2,
+      "ikz_cost": 4,
+      "keywords": [],
+      "name": "Gurugumi Imitator",
+      "subtypes": [
+        "Gurijutsu"
+      ],
+      "table_index": 198
+    },
+    {
+      "ability_is_optional": false,
+      "ability_timing_id": 1,
+      "attack": 4,
+      "card_code": "AZK01-099",
+      "card_def_id": 198,
+      "card_type": "ENTITY",
+      "effect_text": "[On Play] Choose one: - An entity with a cost of 5 or less in your opponent's Garden becomes \"Shocked\" (Does not untap during its next untap phase). - This entity gains Charge (Can attack the same turn it enters the Garden) until the end of the turn.",
+      "element": "LIGHTNING",
+      "gate_points": 3,
+      "has_ability": true,
+      "health": 4,
+      "ikz_cost": 7,
+      "keywords": [],
+      "name": "Raiko's Wrath, Shin",
+      "subtypes": [
+        "Shockcoil",
+        "Stormcaller",
+        "Tiger"
+      ],
+      "table_index": 199
     }
   ],
   "subtype_vocab": [
@@ -4166,7 +4270,8 @@
     "Watercrafting",
     "Wavecaller",
     "Wildfire",
-    "Wolf"
+    "Wolf",
+    "Fatedealer"
   ],
-  "table_len": 195
+  "table_len": 200
 }
