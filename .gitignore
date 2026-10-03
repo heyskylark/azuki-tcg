@@ -1,5 +1,6 @@
 .codexignore
 .cache
+.env
 .env.local
 .DS_Store
 python/.DS_Store
