@@ -39,9 +39,9 @@ export function EvaluationRoomLobby({
                 <Badge variant="secondary">Blind</Badge>
               </div>
               <CardDescription className="mt-2">
-                Your deck is already locked in for this session. The opponent drafts its own 50
-                cards before the game starts — you will not be told which checkpoint it is until the
-                whole session is annotated and revealed.
+                Your deck is already locked in for this session. The opponent prepares its own deck
+                before the game starts — you will not be told which checkpoint it is until the whole
+                session is annotated and revealed.
               </CardDescription>
             </div>
             <Button variant="outline" size="sm" asChild>

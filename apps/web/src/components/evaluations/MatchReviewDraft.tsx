@@ -2,7 +2,10 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { buildImageUrl } from "@/types/game";
 import type { DeckBuilderCard } from "@tcg/backend-core/types/deck";
-import type { HumanEvaluationReview } from "@tcg/backend-core/types/humanEvaluations";
+import {
+  HumanEvaluationDeckSource,
+  type HumanEvaluationReview,
+} from "@tcg/backend-core/types/humanEvaluations";
 
 interface MatchReviewDraftProps {
   draft: HumanEvaluationReview["draft"];
@@ -136,15 +139,16 @@ function DistributionBars({
 export function MatchReviewDraft({ draft, assignment, cardsByCode }: MatchReviewDraftProps) {
   const gateCard = cardsByCode[assignment.gateCardCode];
   const leaderCard = cardsByCode[assignment.leaderCardCode];
+  const isPremade = assignment.deckSource === HumanEvaluationDeckSource.PREMADE;
 
   if (draft === null) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Drafted deck</CardTitle>
+          <CardTitle>{isPremade ? "Premade deck" : "Drafted deck"}</CardTitle>
           <CardDescription>
-            No deck artifact was stored for this match — the draft never completed, which is why the
-            match is recorded as a technical abort.
+            No deck artifact was stored for this match — deck preparation never completed, which is
+            why the match is recorded as a technical abort.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
@@ -164,10 +168,16 @@ export function MatchReviewDraft({ draft, assignment, cardsByCode }: MatchReview
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Drafted deck</CardTitle>
+        <CardTitle>{isPremade ? "Premade deck" : "Drafted deck"}</CardTitle>
         <CardDescription>
-          Built by the model before the match from the assigned gate and leader, one card at a time
-          out of server-offered candidates.
+          {isPremade ? (
+            <>
+              Fixed tournament deck <span className="font-mono">{assignment.premadeDeckSlug}</span>{" "}
+              from the model&apos;s curated deck pool; no draft took place.
+            </>
+          ) : (
+            "Built by the model before the match from the assigned gate and leader, one card at a time out of server-offered candidates."
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-8">
@@ -225,7 +235,9 @@ export function MatchReviewDraft({ draft, assignment, cardsByCode }: MatchReview
         ) : null}
 
         <div>
-          <p className="text-muted-foreground text-xs font-medium">Most-drafted cards</p>
+          <p className="text-muted-foreground text-xs font-medium">
+            {isPremade ? "Most-included cards" : "Most-drafted cards"}
+          </p>
           <ul className="mt-3 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {metrics.topCards.map((entry) => (
               <li key={entry.code}>
@@ -254,47 +266,50 @@ export function MatchReviewDraft({ draft, assignment, cardsByCode }: MatchReview
           </div>
         </dl>
 
-        <details className="border-t pt-6">
-          <summary className="cursor-pointer text-sm font-medium">
-            Draft order and offered candidates ({draft.picks.length} picks)
-          </summary>
-          <ol className="mt-4 space-y-2">
-            {draft.picks.map((pick) => (
-              <li
-                key={pick.ordinal}
-                className="flex flex-wrap items-baseline gap-x-3 gap-y-2 rounded-md border px-3 py-2"
-              >
-                <span className="text-muted-foreground w-10 shrink-0 text-xs tabular-nums">
-                  #{pick.ordinal}
-                </span>
-                <span className="flex flex-wrap gap-1.5">
-                  {pick.candidateCardCodes.map((candidateCode, candidateIndex) => {
-                    const isSelected = candidateIndex === pick.selectedIndex;
+        {isPremade ? null : (
+          <details className="border-t pt-6">
+            <summary className="cursor-pointer text-sm font-medium">
+              Draft order and offered candidates ({draft.picks.length} picks)
+            </summary>
+            <ol className="mt-4 space-y-2">
+              {draft.picks.map((pick) => (
+                <li
+                  key={pick.ordinal}
+                  className="flex flex-wrap items-baseline gap-x-3 gap-y-2 rounded-md border px-3 py-2"
+                >
+                  <span className="text-muted-foreground w-10 shrink-0 text-xs tabular-nums">
+                    #{pick.ordinal}
+                  </span>
+                  <span className="flex flex-wrap gap-1.5">
+                    {pick.candidateCardCodes.map((candidateCode, candidateIndex) => {
+                      const isSelected = candidateIndex === pick.selectedIndex;
 
-                    return (
-                      <Badge
-                        key={`${pick.ordinal}-${candidateIndex}-${candidateCode}`}
-                        variant={isSelected ? "default" : "outline"}
-                        className="font-mono text-[11px]"
-                        title={cardsByCode[candidateCode]?.name ?? candidateCode}
-                      >
-                        {cardsByCode[candidateCode]?.name ?? candidateCode}
-                      </Badge>
-                    );
-                  })}
-                </span>
-                <span className="text-muted-foreground ml-auto text-xs">
-                  picked index {pick.selectedIndex} ·{" "}
-                  <span className="font-mono">{pick.selectedCardCode}</span>
-                </span>
-              </li>
-            ))}
-          </ol>
-        </details>
+                      return (
+                        <Badge
+                          key={`${pick.ordinal}-${candidateIndex}-${candidateCode}`}
+                          variant={isSelected ? "default" : "outline"}
+                          className="font-mono text-[11px]"
+                          title={cardsByCode[candidateCode]?.name ?? candidateCode}
+                        >
+                          {cardsByCode[candidateCode]?.name ?? candidateCode}
+                        </Badge>
+                      );
+                    })}
+                  </span>
+                  <span className="text-muted-foreground ml-auto text-xs">
+                    picked index {pick.selectedIndex} ·{" "}
+                    <span className="font-mono">{pick.selectedCardCode}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </details>
+        )}
 
         <details>
           <summary className="cursor-pointer text-sm font-medium">
-            Final deck in draft order ({draft.orderedMainCardCodes.length} cards)
+            Final deck in {isPremade ? "deck list" : "draft"} order (
+            {draft.orderedMainCardCodes.length} cards)
           </summary>
           <ol className="mt-3 flex flex-wrap gap-1.5">
             {draft.orderedMainCardCodes.map((code, index) => (

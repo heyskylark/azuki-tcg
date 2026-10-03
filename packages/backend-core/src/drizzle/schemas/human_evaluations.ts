@@ -21,6 +21,7 @@ import {
 } from "@core/drizzle/helpers";
 import {
   HumanEvaluationActorSource,
+  HumanEvaluationDeckSource,
   HumanEvaluationMatchStatus,
   HumanEvaluationSessionStatus,
 } from "@core/types/humanEvaluations";
@@ -42,6 +43,10 @@ export const humanEvaluationMatchStatusEnum = pgEnum(
 export const humanEvaluationActorSourceEnum = pgEnum(
   "human_evaluation_actor_source",
   enumToPgEnum(HumanEvaluationActorSource)
+);
+export const humanEvaluationDeckSourceEnum = pgEnum(
+  "human_evaluation_deck_source",
+  enumToPgEnum(HumanEvaluationDeckSource)
 );
 export const humanEvaluationObservationKindEnum = pgEnum("human_evaluation_observation_kind", [
   "ISSUE",
@@ -122,6 +127,10 @@ export const HumanEvaluationMatches = pgTable(
     startingPlayer: integer("starting_player").notNull().$type<0 | 1>(),
     gateCardCode: text("gate_card_code").notNull(),
     leaderCardCode: text("leader_card_code").notNull(),
+    deckSource: humanEvaluationDeckSourceEnum("deck_source")
+      .notNull()
+      .default(HumanEvaluationDeckSource.DRAFT),
+    premadeDeckSlug: text("premade_deck_slug"),
     status: humanEvaluationMatchStatusEnum("status")
       .notNull()
       .default(HumanEvaluationMatchStatus.SCHEDULED),
@@ -140,6 +149,10 @@ export const HumanEvaluationMatches = pgTable(
     check("human_evaluation_matches_ai_slot_check", sql`${table.aiSlot} IN (0, 1)`),
     check("human_evaluation_matches_starting_player_check", sql`${table.startingPlayer} IN (0, 1)`),
     check("human_evaluation_matches_ordinal_check", sql`${table.ordinal} > 0`),
+    check(
+      "human_evaluation_matches_premade_deck_check",
+      sql`(${table.deckSource} = 'PREMADE') = (${table.premadeDeckSlug} IS NOT NULL)`
+    ),
   ]
 );
 

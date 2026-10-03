@@ -9,7 +9,10 @@
 
 import { z } from "zod";
 import { authenticatedFetch } from "@/lib/api/authenticatedFetch";
-import { HumanEvaluationMatchStatus } from "@tcg/backend-core/types/humanEvaluations";
+import {
+  HumanEvaluationDeckSource,
+  HumanEvaluationMatchStatus,
+} from "@tcg/backend-core/types/humanEvaluations";
 import type {
   HumanEvaluationAnnotation,
   HumanEvaluationAnnotationInput,
@@ -83,6 +86,10 @@ const sessionMatchSchema = z.object({
     .object({
       modelDisplayName: z.string(),
       checkpointSha256: z.string(),
+      deckSource: z.enum(HumanEvaluationDeckSource),
+      premadeDeckSlug: z.string().nullable(),
+      gateCardCode: z.string(),
+      leaderCardCode: z.string(),
     })
     .nullable(),
 });

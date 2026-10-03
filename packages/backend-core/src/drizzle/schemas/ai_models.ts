@@ -1,4 +1,4 @@
-import { pgTable, text, pgEnum, index, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, pgEnum, index, boolean, jsonb } from "drizzle-orm/pg-core";
 import {
   uuidv7PrimaryKeyField,
   createdAtTimestampField,
@@ -6,6 +6,7 @@ import {
   enumToPgEnum,
 } from "@core/drizzle/helpers";
 import { AiModelStatus } from "@core/types";
+import type { HumanEvaluationPlan } from "@core/types/humanEvaluations";
 
 export const aiModelStatusEnum = pgEnum("ai_model_status", enumToPgEnum(AiModelStatus));
 
@@ -18,6 +19,7 @@ export const AiModels = pgTable(
     status: aiModelStatusEnum("status").notNull().default(AiModelStatus.ENABLED),
     checkpointSha256: text("checkpoint_sha256").notNull().default(""),
     humanEvaluationEnabled: boolean("human_evaluation_enabled").notNull().default(false),
+    humanEvaluationPlan: jsonb("human_evaluation_plan").$type<HumanEvaluationPlan>(),
     createdAt: createdAtTimestampField(),
     updatedAt: updatedAtTimestampField(),
   },

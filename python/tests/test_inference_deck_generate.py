@@ -19,6 +19,7 @@ def _valid_payload() -> dict[str, Any]:
         "aiSlot": 1,
         "gateCardCode": "GATE-001",
         "leaderCardCode": "LEADER-001",
+        "premadeDeckSlug": None,
     }
 
 
@@ -48,6 +49,15 @@ def test_deck_generate_payload_is_strict_and_normalized() -> None:
         invalid = _valid_payload()
         invalid["aiSlot"] = slot
         with pytest.raises(sidecar.InferenceError, match="aiSlot"):
+            sidecar._validate_deck_generate_payload(invalid)
+
+    premade = _valid_payload()
+    premade["premadeDeckSlug"] = " pasadena_cat "
+    assert sidecar._validate_deck_generate_payload(premade)["premadeDeckSlug"] == "pasadena_cat"
+    for slug in ("", "  ", 7, False):
+        invalid = _valid_payload()
+        invalid["premadeDeckSlug"] = slug
+        with pytest.raises(sidecar.InferenceError, match="premadeDeckSlug"):
             sidecar._validate_deck_generate_payload(invalid)
 
 

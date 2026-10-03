@@ -169,6 +169,20 @@
       "when": 1790125873546,
       "tag": "0023_sprout-of-fortune",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1791059505150,
+      "tag": "0024_specialist-earth-cards",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1791059769870,
+      "tag": "0025_human-eval-deck-source",
+      "breakpoints": true
     }
   ]
 }

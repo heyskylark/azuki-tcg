@@ -1,0 +1,20 @@
+{
+  "models": [
+    {
+      "displayName": "Earth specialist u019500",
+      "modelKey": "earth_specialist_u019500.pt",
+      "checkpointSha256": "5e5c06c1d8b5114455a3ce9fbc6aca7057dc59adceac0aceb4cb575cee3bf81e",
+      "evaluationPlan": {
+        "premadeFraction": 0.5,
+        "premadeDeckPool": "train-specialist/decks/curated_deck_pool.json",
+        "premadeDeckSlugs": ["pasadena_cat", "case1_bobu_3rd", "pasadena_dkb_goro_36th"],
+        "draftGates": [
+          {
+            "gateCardCode": "STT03-002",
+            "leaderCardCodes": ["STT03-001", "AZK01-123"]
+          }
+        ]
+      }
+    }
+  ]
+}

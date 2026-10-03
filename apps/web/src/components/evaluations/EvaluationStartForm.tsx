@@ -25,8 +25,8 @@ import type { DeckSummary } from "@tcg/backend-core/types/deck";
 const PLAYABLE_DECK_CARD_COUNT = 62;
 
 const MODE_DESCRIPTIONS: Record<EvaluationGamesPerModel, string> = {
-  8: "Eight games per model — every gate context exactly once.",
-  16: "Sixteen games per model — every gate and leader context exactly once.",
+  8: "Eight games per model.",
+  16: "Sixteen games per model.",
 };
 
 interface EvaluationStartFormProps {
@@ -89,7 +89,7 @@ export function EvaluationStartForm({ decks }: EvaluationStartFormProps) {
       <CardHeader>
         <CardTitle>Start a session</CardTitle>
         <CardDescription>
-          You pick your deck once. Each opponent drafts its own 50 cards before its match, and which
+          You pick your deck once. Each opponent prepares its own deck before its match, and which
           opponent you face is assigned by the server.
         </CardDescription>
       </CardHeader>
@@ -137,8 +137,8 @@ export function EvaluationStartForm({ decks }: EvaluationStartFormProps) {
           <fieldset disabled={isStarting} className="border-t pt-5">
             <legend className="text-sm font-medium">Games per model</legend>
             <p className="text-muted-foreground mt-1 text-xs">
-              Every enabled model gets the same quota, the same gate and leader contexts, and a
-              balanced share of the starting-player advantage.
+              Every enabled model gets the same quota, the same deck-assignment plan, and a balanced
+              share of the starting-player advantage.
             </p>
             <div className="mt-3 flex gap-2">
               {GAMES_PER_MODEL_OPTIONS.map((option) => (

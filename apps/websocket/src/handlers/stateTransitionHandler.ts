@@ -57,6 +57,7 @@ async function prepareEvaluationDeck(
     aiSlot: evaluationMatch.aiSlot,
     gateCardCode: evaluationMatch.gateCardCode,
     leaderCardCode: evaluationMatch.leaderCardCode,
+    premadeDeckSlug: evaluationMatch.premadeDeckSlug,
   });
   const materialized = await materializeHumanEvaluationDeck(evaluationMatch.matchId, artifact);
   if (evaluationMatch.aiSlot === 0) {

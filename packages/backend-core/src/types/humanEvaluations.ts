@@ -16,6 +16,35 @@ export enum HumanEvaluationActorSource {
   AI = "AI",
 }
 
+export enum HumanEvaluationDeckSource {
+  DRAFT = "DRAFT",
+  PREMADE = "PREMADE",
+}
+
+export interface HumanEvaluationPremadeDeck {
+  slug: string;
+  name: string;
+  gateCardCode: string;
+  leaderCardCode: string;
+}
+
+export interface HumanEvaluationDraftGate {
+  gateCardCode: string;
+  leaderCardCodes: string[];
+}
+
+/**
+ * Per-model opponent deck plan. Each scheduled match is PREMADE (a fixed pool
+ * deck resolved by slug in the inference sidecar's deck pool) or DRAFT (the
+ * model drafts under a uniformly random gate, then a uniformly random leader
+ * valid for it). Models without a plan use the legacy all-element contexts.
+ */
+export interface HumanEvaluationPlan {
+  premadeFraction: number;
+  premadeDecks: HumanEvaluationPremadeDeck[];
+  draftGates: HumanEvaluationDraftGate[];
+}
+
 export type HumanEvaluationRating = 1 | 2 | 3 | 4 | 5 | 6 | 7;
 export type HumanEvaluationObservationKind = "ISSUE" | "OPPORTUNITY";
 export type HumanEvaluationObservationSeverity = "MINOR" | "MODERATE" | "MAJOR" | "CRITICAL";
@@ -66,6 +95,7 @@ export interface HumanEvaluationDraftPick {
 export interface HumanEvaluationDeckArtifactInput {
   gateCardCode: string;
   leaderCardCode: string;
+  premadeDeckSlug: string | null;
   orderedMainCardCodes: string[];
   cardCounts: Record<string, number>;
   picks: HumanEvaluationDraftPick[];
@@ -90,6 +120,8 @@ export interface HumanEvaluationRuntimeMatch {
   startingPlayer: 0 | 1;
   gateCardCode: string;
   leaderCardCode: string;
+  deckSource: HumanEvaluationDeckSource;
+  premadeDeckSlug: string | null;
   generatedDeckId: string | null;
   status: HumanEvaluationMatchStatus;
 }
@@ -102,7 +134,14 @@ export interface HumanEvaluationSessionSummaryMatch {
   roomId: string | null;
   outcome: "WIN" | "LOSS" | "DRAW" | "ABORTED" | null;
   hasAnnotation: boolean;
-  revealed: { modelDisplayName: string; checkpointSha256: string } | null;
+  revealed: {
+    modelDisplayName: string;
+    checkpointSha256: string;
+    deckSource: HumanEvaluationDeckSource;
+    premadeDeckSlug: string | null;
+    gateCardCode: string;
+    leaderCardCode: string;
+  } | null;
 }
 
 export interface HumanEvaluationSessionSummary {
@@ -172,6 +211,8 @@ export interface HumanEvaluationReview {
     startingPlayer: 0 | 1;
     gateCardCode: string;
     leaderCardCode: string;
+    deckSource: HumanEvaluationDeckSource;
+    premadeDeckSlug: string | null;
     battleSeed: number;
   };
   draft: {

@@ -28,6 +28,7 @@ const generateDeckRequestSchema = z
     aiSlot: z.union([z.literal(0), z.literal(1)]),
     gateCardCode: z.string().min(1),
     leaderCardCode: z.string().min(1),
+    premadeDeckSlug: z.string().min(1).nullable(),
   })
   .strict();
 
@@ -44,9 +45,11 @@ const generatedDeckSchema = z
   .object({
     gateCardCode: z.string().min(1),
     leaderCardCode: z.string().min(1),
+    premadeDeckSlug: z.string().min(1).nullable(),
     orderedMainCardCodes: z.array(z.string().min(1)).length(50),
     cardCounts: z.record(z.string(), z.number().int().positive()),
-    picks: z.array(deckPickSchema).length(50),
+    // Drafted decks carry all 50 picks; premade decks carry none.
+    picks: z.array(deckPickSchema),
     deckHash: z.string().regex(/^[0-9a-f]{64}$/),
     catalogHash: z.string().regex(/^[0-9a-f]{64}$/),
     checkpointSha256: z.string().regex(/^[0-9a-f]{64}$/),
@@ -78,7 +81,13 @@ const generatedDeckSchema = z
         path: ["cardCounts"],
       });
     }
-
+    if (artifact.picks.length !== (artifact.premadeDeckSlug === null ? 50 : 0)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "drafted decks need 50 picks and premade decks none",
+        path: ["picks"],
+      });
+    }
     for (const [index, pick] of artifact.picks.entries()) {
       if (pick.ordinal !== index + 1) {
         context.addIssue({
@@ -114,6 +123,7 @@ export interface GenerateDeckParams {
   aiSlot: 0 | 1;
   gateCardCode: string;
   leaderCardCode: string;
+  premadeDeckSlug: string | null;
 }
 
 export type GeneratedDeckArtifact = z.infer<typeof generatedDeckSchema>;

@@ -36,11 +36,13 @@ import {
 import { CardElement, CardRarity, CardType, RarityOrdering } from "@core/types/cards";
 import {
   HumanEvaluationActorSource,
+  HumanEvaluationDeckSource,
   HumanEvaluationMatchStatus,
   HumanEvaluationSessionStatus,
   type HumanEvaluationAnnotationInput,
   type HumanEvaluationAnnotation,
   type HumanEvaluationDeckArtifactInput,
+  type HumanEvaluationPlan,
   type HumanEvaluationRuntimeMatch,
   type HumanEvaluationReview,
   type HumanEvaluationSessionSummary,
@@ -99,6 +101,106 @@ function deterministicOrder<T>(values: T[], seed: string, label: string): T[] {
 function asSlot(value: number): 0 | 1 {
   if (value === 0 || value === 1) return value;
   throw new Error("Invalid evaluation player slot");
+}
+
+function pickUniform<T>(values: readonly T[], seed: string, label: string): T {
+  const value = values[deterministicInt(seed, label) % values.length];
+  if (value === undefined) throw new Error(`Cannot pick ${label} from an empty list`);
+  return value;
+}
+
+export interface HumanEvaluationMatchAssignment {
+  matchId: string;
+  draftSeed: number;
+  battleSeed: number;
+  aiSlot: 0 | 1;
+  startingPlayer: 0 | 1;
+  gateCardCode: string;
+  leaderCardCode: string;
+  deckSource: HumanEvaluationDeckSource;
+  premadeDeckSlug: string | null;
+}
+
+/**
+ * Frozen per-model match assignments. Every random choice is a pure function
+ * of the stored session schedule seed and the stored model/match ids, so a
+ * session's schedule can be recomputed exactly from its database rows.
+ */
+export function buildHumanEvaluationModelAssignments(input: {
+  seed: string;
+  modelId: string;
+  gamesPerModel: 8 | 16;
+  plan: HumanEvaluationPlan | null;
+  matchIds: readonly string[];
+}): HumanEvaluationMatchAssignment[] {
+  const { seed, modelId, gamesPerModel, plan, matchIds } = input;
+  if (matchIds.length !== gamesPerModel) {
+    throw new Error("Evaluation schedule needs one match id per game");
+  }
+  const cells = deterministicOrder(
+    Array.from({ length: gamesPerModel }, (_, index) => ({
+      aiSlot: asSlot((index % 4) >> 1),
+      startingPlayer: asSlot(index % 2),
+    })),
+    seed,
+    `cells:${modelId}`
+  );
+  const premadeCount = plan ? Math.round(gamesPerModel * plan.premadeFraction) : 0;
+  const deckSources = deterministicOrder(
+    Array.from({ length: gamesPerModel }, (_, index) =>
+      index < premadeCount ? HumanEvaluationDeckSource.PREMADE : HumanEvaluationDeckSource.DRAFT
+    ),
+    seed,
+    `deck-sources:${modelId}`
+  );
+  const allContexts = deterministicOrder([...EVALUATION_CONTEXTS], seed, `contexts:${modelId}`);
+  const legacyContexts =
+    gamesPerModel === 16
+      ? allContexts
+      : deterministicOrder(
+          allContexts.filter(
+            (context, index, array) =>
+              array.findIndex((candidate) => candidate.gateCardCode === context.gateCardCode) ===
+              index
+          ),
+          seed,
+          `eight-contexts:${modelId}`
+        );
+  return matchIds.map((matchId, gameIndex) => {
+    const cell = cells[gameIndex];
+    const deckSource = deckSources[gameIndex];
+    if (!cell || !deckSource) throw new Error("Failed to build evaluation schedule");
+    const seeds = {
+      matchId,
+      draftSeed: deterministicInt(seed, `draft:${matchId}`),
+      battleSeed: deterministicInt(seed, `battle:${matchId}`),
+      aiSlot: cell.aiSlot,
+      startingPlayer: cell.startingPlayer,
+    };
+    if (!plan) {
+      const context = legacyContexts[gameIndex];
+      if (!context) throw new Error("Failed to build evaluation schedule");
+      return { ...seeds, ...context, deckSource, premadeDeckSlug: null };
+    }
+    if (deckSource === HumanEvaluationDeckSource.PREMADE) {
+      const deck = pickUniform(plan.premadeDecks, seed, `premade-deck:${matchId}`);
+      return {
+        ...seeds,
+        gateCardCode: deck.gateCardCode,
+        leaderCardCode: deck.leaderCardCode,
+        deckSource,
+        premadeDeckSlug: deck.slug,
+      };
+    }
+    const gate = pickUniform(plan.draftGates, seed, `draft-gate:${matchId}`);
+    return {
+      ...seeds,
+      gateCardCode: gate.gateCardCode,
+      leaderCardCode: pickUniform(gate.leaderCardCodes, seed, `draft-leader:${matchId}`),
+      deckSource,
+      premadeDeckSlug: null,
+    };
+  });
 }
 
 async function requireOwnedSession(sessionId: string, reviewerId: string, database: Database) {
@@ -324,38 +426,16 @@ export async function createHumanEvaluationSession(
     });
     const scheduled: Array<typeof HumanEvaluationMatches.$inferInsert> = [];
     for (const [modelIndex, model] of models.entries()) {
-      const allContexts = deterministicOrder(
-        [...EVALUATION_CONTEXTS],
+      const assignments = buildHumanEvaluationModelAssignments({
         seed,
-        `contexts:${model.id}`
-      );
-      const contexts =
-        input.gamesPerModel === 16
-          ? allContexts
-          : deterministicOrder(
-              allContexts.filter(
-                (context, index, array) =>
-                  array.findIndex(
-                    (candidate) => candidate.gateCardCode === context.gateCardCode
-                  ) === index
-              ),
-              seed,
-              `eight-contexts:${model.id}`
-            );
-      const cells = deterministicOrder(
-        Array.from({ length: input.gamesPerModel }, (_, index) => ({
-          aiSlot: asSlot((index % 4) >> 1),
-          startingPlayer: asSlot(index % 2),
-        })),
-        seed,
-        `cells:${model.id}`
-      );
-      for (let gameIndex = 0; gameIndex < input.gamesPerModel; gameIndex += 1) {
-        const context = contexts[gameIndex];
-        const cell = cells[gameIndex];
-        if (!context || !cell) throw new Error("Failed to build evaluation schedule");
-        const matchId = uuidv7();
+        modelId: model.id,
+        gamesPerModel: input.gamesPerModel,
+        plan: model.humanEvaluationPlan,
+        matchIds: Array.from({ length: input.gamesPerModel }, () => uuidv7()),
+      });
+      for (const [gameIndex, { matchId, ...assignment }] of assignments.entries()) {
         scheduled.push({
+          ...assignment,
           id: matchId,
           sessionId,
           ordinal: modelIndex * input.gamesPerModel + gameIndex + 1,
@@ -364,12 +444,6 @@ export async function createHumanEvaluationSession(
           modelDisplayNameSnapshot: model.displayName,
           checkpointSha256Snapshot: model.checkpointSha256,
           sessionKey: createHumanEvaluationRuntimeSessionKey(),
-          draftSeed: deterministicInt(seed, `draft:${matchId}`),
-          battleSeed: deterministicInt(seed, `battle:${matchId}`),
-          aiSlot: cell.aiSlot,
-          startingPlayer: cell.startingPlayer,
-          gateCardCode: context.gateCardCode,
-          leaderCardCode: context.leaderCardCode,
         });
       }
     }
@@ -440,6 +514,10 @@ export async function getHumanEvaluationSession(
         ? {
             modelDisplayName: match.modelDisplayNameSnapshot,
             checkpointSha256: match.checkpointSha256Snapshot,
+            deckSource: match.deckSource,
+            premadeDeckSlug: match.premadeDeckSlug,
+            gateCardCode: match.gateCardCode,
+            leaderCardCode: match.leaderCardCode,
           }
         : null,
     })),
@@ -692,48 +770,57 @@ export async function getHumanEvaluationMatchByRoomId(
     startingPlayer: asSlot(row.match.startingPlayer),
     gateCardCode: row.match.gateCardCode,
     leaderCardCode: row.match.leaderCardCode,
+    deckSource: row.match.deckSource,
+    premadeDeckSlug: row.match.premadeDeckSlug,
     generatedDeckId: row.deckId ?? null,
     status: row.match.status,
   };
 }
 
+type HumanEvaluationDeckEvidence = Omit<HumanEvaluationDeckArtifactInput, "premadeDeckSlug">;
+
 function validateArtifact(
   match: typeof HumanEvaluationMatches.$inferSelect,
   artifact: HumanEvaluationDeckArtifactInput
-): void {
+): HumanEvaluationDeckEvidence {
+  const { premadeDeckSlug, ...evidence } = artifact;
   if (
-    artifact.checkpointSha256 !== match.checkpointSha256Snapshot ||
-    artifact.gateCardCode !== match.gateCardCode ||
-    artifact.leaderCardCode !== match.leaderCardCode
+    evidence.checkpointSha256 !== match.checkpointSha256Snapshot ||
+    evidence.gateCardCode !== match.gateCardCode ||
+    evidence.leaderCardCode !== match.leaderCardCode ||
+    premadeDeckSlug !== match.premadeDeckSlug
   ) {
     throw new HumanEvaluationUnavailableError(
       "Generated deck does not match its frozen assignment"
     );
   }
-  if (artifact.orderedMainCardCodes.length !== 50)
+  if (evidence.orderedMainCardCodes.length !== 50)
     throw new ValidationError("Generated deck must contain exactly 50 ordered main cards");
   const counts = new Map<string, number>();
-  for (const code of artifact.orderedMainCardCodes) counts.set(code, (counts.get(code) ?? 0) + 1);
+  for (const code of evidence.orderedMainCardCodes) counts.set(code, (counts.get(code) ?? 0) + 1);
   if (
-    Object.keys(artifact.cardCounts).length !== counts.size ||
-    [...counts].some(([code, quantity]) => artifact.cardCounts[code] !== quantity)
+    Object.keys(evidence.cardCounts).length !== counts.size ||
+    [...counts].some(([code, quantity]) => evidence.cardCounts[code] !== quantity)
   ) {
     throw new ValidationError("Generated deck counts do not match its ordered cards");
   }
+  // Premade decks carry no draft evidence; drafted decks carry all 50 picks.
+  const expectedPicks = match.deckSource === HumanEvaluationDeckSource.PREMADE ? 0 : 50;
   if (
-    artifact.picks.length !== 50 ||
-    artifact.picks.some(
+    evidence.picks.length !== expectedPicks ||
+    evidence.picks.some(
       (pick, index) =>
         pick.ordinal !== index + 1 ||
         pick.candidateCardCodes[pick.selectedIndex] !== pick.selectedCardCode ||
-        pick.selectedCardCode !== artifact.orderedMainCardCodes[index]
+        pick.selectedCardCode !== evidence.orderedMainCardCodes[index]
     )
   ) {
     throw new ValidationError("Generated deck draft evidence is inconsistent");
   }
+  return evidence;
 }
 
-function serializeArtifactEvidence(artifact: HumanEvaluationDeckArtifactInput): string {
+function serializeArtifactEvidence(artifact: HumanEvaluationDeckEvidence): string {
   return JSON.stringify([
     artifact.gateCardCode,
     artifact.leaderCardCode,
@@ -772,7 +859,7 @@ export async function materializeHumanEvaluationDeck(
         "Evaluation match cannot materialize a deck after finalization"
       );
     }
-    validateArtifact(match, artifact);
+    const evidence = validateArtifact(match, artifact);
     const existing = await tx
       .select()
       .from(HumanEvaluationDeckArtifacts)
@@ -868,7 +955,7 @@ export async function materializeHumanEvaluationDeck(
         return { deckId: deck.id, cardId: card.id, quantity };
       })
     );
-    await tx.insert(HumanEvaluationDeckArtifacts).values({ matchId, deckId: deck.id, ...artifact });
+    await tx.insert(HumanEvaluationDeckArtifacts).values({ matchId, deckId: deck.id, ...evidence });
     const roomDeckUpdate =
       match.aiSlot === 0
         ? { player0DeckId: deck.id, player0Ready: true }
@@ -1245,6 +1332,8 @@ export async function getHumanEvaluationReview(
       startingPlayer: match.startingPlayer,
       gateCardCode: match.gateCardCode,
       leaderCardCode: match.leaderCardCode,
+      deckSource: match.deckSource,
+      premadeDeckSlug: match.premadeDeckSlug,
       battleSeed: match.battleSeed,
     },
     draft: artifact

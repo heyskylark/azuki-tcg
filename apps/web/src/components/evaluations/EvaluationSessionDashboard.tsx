@@ -19,7 +19,10 @@ import {
   type EvaluationSessionMatch,
   type EvaluationSessionSummary,
 } from "@/lib/evaluations/client";
-import { HumanEvaluationMatchStatus } from "@tcg/backend-core/types/humanEvaluations";
+import {
+  HumanEvaluationDeckSource,
+  HumanEvaluationMatchStatus,
+} from "@tcg/backend-core/types/humanEvaluations";
 
 interface EvaluationSessionDashboardProps {
   initialSession: EvaluationSessionSummary;
@@ -338,6 +341,12 @@ export function EvaluationSessionDashboard({
                             >
                               {match.revealed.checkpointSha256.slice(0, 12)}
                             </span>
+                            <span className="text-muted-foreground block text-[11px]">
+                              {match.revealed.deckSource === HumanEvaluationDeckSource.PREMADE
+                                ? `Premade · ${match.revealed.premadeDeckSlug ?? ""}`
+                                : "Draft"}{" "}
+                              · {match.revealed.gateCardCode} / {match.revealed.leaderCardCode}
+                            </span>
                           </span>
                         )}
                       </td>
@@ -467,7 +476,7 @@ export function EvaluationSessionDashboard({
           <ul className="text-muted-foreground space-y-3 text-sm">
             <li>
               <span className="text-foreground font-medium">The schedule is fixed.</span> Every
-              model gets the same number of games, the same gate and leader contexts, and a balanced
+              model gets the same number of games, the same deck-assignment plan, and a balanced
               share of going first. You cannot pick or re-roll an opponent.
             </li>
             <li>

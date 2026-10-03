@@ -102,6 +102,7 @@ def _validate_deck_generate_payload(payload: dict[str, Any]) -> dict[str, Any]:
         "aiSlot",
         "gateCardCode",
         "leaderCardCode",
+        "premadeDeckSlug",
     }
     unknown = set(payload) - expected
     missing = expected - set(payload)
@@ -127,6 +128,11 @@ def _validate_deck_generate_payload(payload: dict[str, Any]) -> dict[str, Any]:
     ai_slot = payload["aiSlot"]
     if not isinstance(ai_slot, int) or isinstance(ai_slot, bool) or ai_slot not in (0, 1):
         raise InferenceError("aiSlot must be 0 or 1")
+    premade_deck_slug = payload["premadeDeckSlug"]
+    if premade_deck_slug is not None and (
+        not isinstance(premade_deck_slug, str) or not premade_deck_slug.strip()
+    ):
+        raise InferenceError("premadeDeckSlug must be null or a non-empty string")
     return {
         "modelKey": payload["modelKey"].strip(),
         "sessionKey": payload["sessionKey"].strip(),
@@ -134,6 +140,9 @@ def _validate_deck_generate_payload(payload: dict[str, Any]) -> dict[str, Any]:
         "aiSlot": ai_slot,
         "gateCardCode": payload["gateCardCode"].strip(),
         "leaderCardCode": payload["leaderCardCode"].strip(),
+        "premadeDeckSlug": (
+            premade_deck_slug.strip() if premade_deck_slug is not None else None
+        ),
     }
 
 
@@ -580,6 +589,7 @@ class InferenceEngine:
             from deck_building import (  # noqa: WPS433
                 GATE_CARD_TYPE,
                 LEADER_CARD_TYPE,
+                MAIN_CARD_TYPES,
                 MAX_MAIN_COPIES,
                 build_deck_build_catalog,
             )
@@ -588,7 +598,10 @@ class InferenceEngine:
                 DECK_CONTEXT_MODE_PICK_LEADER,
                 DECK_CONTEXT_MODE_PICK_MAIN,
             )
-            from training_deck_pool import load_training_deck_pool  # noqa: WPS433
+            from training_deck_pool import (  # noqa: WPS433
+                load_training_deck_labels,
+                load_training_deck_pool,
+            )
 
             deck_pool_path = env_config.get("deck_pool_path")
             if deck_pool_path is not None and not isinstance(deck_pool_path, str):
@@ -632,6 +645,81 @@ class InferenceEngine:
                 evaluation_mode=True,
             )
             forced_leader = leader_record.card_def_id if uniform_assignment else -1
+            premade_deck_slug = request["premadeDeckSlug"]
+            if premade_deck_slug is not None:
+                # Constructed opponent: open the same native evaluation game the
+                # specialist trained on (a supplied pool deck that starts directly
+                # in battle) and serve with that game's battle deck context.
+                deck_labels = load_training_deck_labels(deck_pool_path)
+                if premade_deck_slug not in deck_labels:
+                    raise InferenceError(
+                        "premadeDeckSlug is not in the configured deck pool: "
+                        f"{premade_deck_slug}"
+                    )
+                deck_index = deck_labels.index(premade_deck_slug)
+                premade_gate_codes: list[str] = []
+                premade_leader_codes: list[str] = []
+                premade_main_codes: list[str] = []
+                for card_code, quantity in deck_pool[deck_index]:
+                    record = catalog.records_by_code.get(card_code)
+                    if record is None:
+                        raise InferenceError(
+                            f"Premade deck {premade_deck_slug} references unknown card {card_code}"
+                        )
+                    if record.card_type == GATE_CARD_TYPE:
+                        premade_gate_codes.extend([card_code] * quantity)
+                    elif record.card_type == LEADER_CARD_TYPE:
+                        premade_leader_codes.extend([card_code] * quantity)
+                    elif record.card_type in MAIN_CARD_TYPES:
+                        premade_main_codes.extend([card_code] * quantity)
+                if (
+                    premade_gate_codes != [request["gateCardCode"]]
+                    or premade_leader_codes != [request["leaderCardCode"]]
+                    or len(premade_main_codes) != 50
+                ):
+                    raise InferenceError(
+                        "premadeDeckSlug does not match gateCardCode/leaderCardCode"
+                    )
+                generation_env.reset_evaluation_games(
+                    [
+                        {
+                            "env_index": 0,
+                            "seed": request["draftSeed"],
+                            "gate0": gate_record.card_def_id,
+                            "gate1": gate_record.card_def_id,
+                            "leader0": forced_leader,
+                            "leader1": forced_leader,
+                            "reference_seat": ai_slot,
+                            "reference_deck_index": deck_index,
+                            "other_deck_index": deck_index,
+                        }
+                    ]
+                )
+                decoded = _decode_observation_bytes(
+                    generation_env.observations[ai_slot].tobytes()
+                )
+                premade_context = decoded.get("deck_context")
+                if (
+                    not isinstance(premade_context, dict)
+                    or premade_context["mode"] != DECK_CONTEXT_MODE_BATTLE
+                    or premade_context["gate_card_def_id"] != gate_record.card_def_id
+                    or premade_context["leader_card_def_id"] != leader_record.card_def_id
+                    or premade_context["main_count"] != 50
+                    or [
+                        catalog.records_by_def_id[int(card_id)].card_code
+                        if int(card_id) in catalog.records_by_def_id
+                        else None
+                        for card_id in premade_context["main_card_def_ids"][:50]
+                    ]
+                    != premade_main_codes
+                ):
+                    raise InferenceError(
+                        "Native premade battle context does not match the premade deck"
+                    )
+                self._store_battle_deck_context(session_key, premade_context, model=model)
+                return self._deck_generation_result(
+                    request, catalog, runtime, premade_main_codes, []
+                )
             generation_env.reset_evaluation_games(
                 [
                     {
@@ -756,45 +844,10 @@ class InferenceEngine:
                 ),
                 "candidate_count": 0,
             }
-            with self._lock:
-                preserved_session = self._sessions.get(session_key)
-                if preserved_session is None:
-                    raise InferenceError(
-                        "Draft recurrent session disappeared before completion"
-                    )
-                preserved_session.deck_context = battle_deck_context
-                preserved_session.last_used_at = time.time()
-
-            catalog_payload = [
-                {
-                    "cardCode": record.card_code,
-                    "cardDefId": record.card_def_id,
-                    "cardType": record.card_type,
-                    "element": record.element,
-                    "ikzCost": record.ikz_cost,
-                }
-                for record in sorted(
-                    catalog.records_by_def_id.values(),
-                    key=lambda item: item.card_def_id,
-                )
-            ]
-            deck_payload = {
-                "gateCardCode": request["gateCardCode"],
-                "leaderCardCode": request["leaderCardCode"],
-                "orderedMainCardCodes": ordered_main_codes,
-            }
-            return {
-                **deck_payload,
-                "cardCounts": dict(sorted(card_counts.items())),
-                "picks": picks,
-                "deckHash": _canonical_deck_hash(
-                    request["gateCardCode"],
-                    request["leaderCardCode"],
-                    ordered_main_codes,
-                ),
-                "catalogHash": _canonical_sha256(catalog_payload),
-                "checkpointSha256": self._sha256_file(runtime.model_path),
-            }
+            self._store_battle_deck_context(session_key, battle_deck_context, model=None)
+            return self._deck_generation_result(
+                request, catalog, runtime, ordered_main_codes, picks
+            )
         except Exception:
             self.end_session(session_key)
             raise
@@ -804,6 +857,68 @@ class InferenceEngine:
             if inference_slot_acquired:
                 self._leave_inference_slot()
             self._leave_request_slot()
+
+    def _store_battle_deck_context(
+        self, session_key: str, deck_context: dict[str, Any], *, model: Any
+    ) -> None:
+        """Attach the battle deck context to the recurrent session.
+
+        Drafts already own a session (model=None requires it); premade decks
+        start a fresh zero-state session like any first battle decision.
+        """
+        with self._lock:
+            session = self._sessions.get(session_key)
+            if session is None:
+                if model is None:
+                    raise InferenceError(
+                        "Draft recurrent session disappeared before completion"
+                    )
+                hidden_size = int(model.hidden_size)
+                session = SessionState(
+                    lstm_h=torch.zeros(1, hidden_size, device=self._device),
+                    lstm_c=torch.zeros(1, hidden_size, device=self._device),
+                    last_used_at=time.time(),
+                )
+                self._sessions[session_key] = session
+            session.deck_context = deck_context
+            session.last_used_at = time.time()
+
+    def _deck_generation_result(
+        self,
+        request: dict[str, Any],
+        catalog: Any,
+        runtime: ModelRuntime,
+        ordered_main_codes: list[str],
+        picks: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        catalog_payload = [
+            {
+                "cardCode": record.card_code,
+                "cardDefId": record.card_def_id,
+                "cardType": record.card_type,
+                "element": record.element,
+                "ikzCost": record.ikz_cost,
+            }
+            for record in sorted(
+                catalog.records_by_def_id.values(),
+                key=lambda item: item.card_def_id,
+            )
+        ]
+        return {
+            "gateCardCode": request["gateCardCode"],
+            "leaderCardCode": request["leaderCardCode"],
+            "premadeDeckSlug": request["premadeDeckSlug"],
+            "orderedMainCardCodes": ordered_main_codes,
+            "cardCounts": dict(sorted(Counter(ordered_main_codes).items())),
+            "picks": picks,
+            "deckHash": _canonical_deck_hash(
+                request["gateCardCode"],
+                request["leaderCardCode"],
+                ordered_main_codes,
+            ),
+            "catalogHash": _canonical_sha256(catalog_payload),
+            "checkpointSha256": self._sha256_file(runtime.model_path),
+        }
 
     @staticmethod
     def _sha256_file(path: Path) -> str:
