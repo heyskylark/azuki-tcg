@@ -1,0 +1,77 @@
+%% Rough v2 model architecture diagram based on python/src/policy/v2/tcg_policy.py.
+%% Render with:
+%%   bunx @mermaid-js/mermaid-cli -i .docs/diagrams/neural-network-architecture-rough.mmd -o .docs/diagrams/neural-network-architecture-rough.svg
+
+flowchart TB
+  classDef input fill:#fff0bf,stroke:#f0b000,stroke-width:2px,color:#111
+  classDef lookup fill:#d8e7ff,stroke:#456a9b,stroke-width:2px,color:#111
+  classDef processor fill:#d9ead3,stroke:#2f7d32,stroke-width:2px,color:#111
+  classDef matrix fill:#eef4ff,stroke:#3b73b9,stroke-width:2px,color:#111
+  classDef recurrent fill:#eadff7,stroke:#7e57c2,stroke-width:2px,color:#111
+  classDef output fill:#ffe9a6,stroke:#f0b000,stroke-width:2px,color:#111
+  classDef optional fill:#ffffff,stroke:#777,stroke-dasharray:4 3,color:#111
+
+  Obs["Native semantic observation<br/>player, opponent, phase, ability context,<br/>combat context, recent actions, action mask"]:::input
+  CardIds["card_def_id fields"]:::input
+  MetadataTable["policy_card_metadata_v1 lookup<br/>type, element, stats, keywords,<br/>name/effect/subtype text embeddings"]:::lookup
+  MetadataEncoder["Card metadata encoder<br/>text linear projections + categorical embeddings + scalars<br/>SingleUnitProjection -> 48"]:::processor
+
+  Obs --> CardIds --> MetadataTable --> MetadataEncoder
+  Obs --> ZoneRaw["zone/card scalars<br/>slot index, tap/cooldown, stats,<br/>counts, ability flags"]:::input
+
+  subgraph Encoders["Shared v2 encoders"]
+    direction TB
+    Weapons["Weapon set encoder<br/>metadata 48 + 5 scalars<br/>ProcessSet -> pooled 64"]:::processor
+    HandDiscard["Hand/discard encoders<br/>metadata 48 + zone index 8 + 8 scalars<br/>ProcessSet -> token matrix + pooled 64"]:::processor
+    BoardSelection["Board/selection encoders<br/>metadata 48 + zone index 8 + weapon 64 + 17 scalars<br/>ProcessSet -> slot matrix + pooled 64"]:::processor
+    Ikz["IKZ area encoder<br/>metadata 48 + zone index 8 + tapped/cooldown<br/>ProcessSet -> token matrix + pooled 64"]:::processor
+    LeaderGate["Leader/gate projectors<br/>leader: metadata + weapons + 12 scalars<br/>gate: metadata + 4 scalars<br/>SingleUnitProjection -> 64"]:::processor
+    Global["Global fusion<br/>counts, ability context, combat context,<br/>self/opponent recent action history<br/>4 x 64 -> 64"]:::processor
+  end
+
+  MetadataEncoder --> Weapons
+  MetadataEncoder --> HandDiscard
+  MetadataEncoder --> BoardSelection
+  MetadataEncoder --> Ikz
+  MetadataEncoder --> LeaderGate
+  MetadataEncoder --> Global
+  ZoneRaw --> Weapons
+  ZoneRaw --> HandDiscard
+  ZoneRaw --> BoardSelection
+  ZoneRaw --> Ikz
+  ZoneRaw --> LeaderGate
+  ZoneRaw --> Global
+  Weapons --> BoardSelection
+  Weapons --> LeaderGate
+
+  ActorVector["Actor vector<br/>15 pooled 64-dim groups = 960<br/>hand, discards, board zones, IKZ,<br/>leaders/gates, global"]:::matrix
+  RefMatrix["Action reference matrix<br/>224 x 64<br/>hand 30 + discards 100 + selection 50 +<br/>board 20 + IKZ 20 + leaders/gates 4"]:::matrix
+
+  HandDiscard --> ActorVector
+  BoardSelection --> ActorVector
+  Ikz --> ActorVector
+  LeaderGate --> ActorVector
+  Global --> ActorVector
+
+  HandDiscard --> RefMatrix
+  BoardSelection --> RefMatrix
+  Ikz --> RefMatrix
+  LeaderGate --> RefMatrix
+
+  LstmInput["TCGLSTM input<br/>960"]:::recurrent
+  Lstm["Recurrent core<br/>LSTM hidden size 4096<br/>BPTT horizon from training config"]:::recurrent
+  ActionHead["Default actor head<br/>legal-action scorer"]:::output
+  CriticHead["Critic head<br/>full_lstm_mlp: 4096 -> 512 -> 128 -> value"]:::output
+  WinAux["Optional win-prob auxiliary head<br/>enabled in current configs"]:::output
+
+  ActorVector --> LstmInput --> Lstm
+  Lstm --> ActionHead
+  RefMatrix --> ActionHead
+  Obs --> LegalActions["action_mask<br/>primary mask + up to 1,024 legal action rows"]:::input
+  LegalActions --> ActionHead
+  Lstm --> CriticHead
+  Lstm --> WinAux
+
+  Privileged["Optional privileged critic input<br/>opponent hand + self deck + opponent deck"]:::optional
+  PrivilegedEnc["privileged hand ProcessSet + deck Transformer encoders<br/>3 x 64"]:::optional
+  Privileged -. when enabled .-> PrivilegedEnc -. concatenate with critic features .-> CriticHead

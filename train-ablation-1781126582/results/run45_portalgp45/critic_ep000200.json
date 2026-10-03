@@ -1,0 +1,162 @@
+{
+  "LIGHTNING": {
+    "gate_a": "STT01-002",
+    "gate_b": "AZK01-120",
+    "episodes": 6,
+    "pick_mean_abs_dv": 0.0004152374195994115,
+    "pick_p90_abs_dv": 0.0007090326398611069,
+    "pick_ctrl_mean_abs_dv": 0.0,
+    "pick_dv_tertiles": {
+      "early": 0.0005648591208691691,
+      "mid": 0.00023287056269598942,
+      "late": 0.00044798257523307616
+    },
+    "battle_mean_abs_dv": 0.002092967120309671,
+    "battle_mean_signed_dv": 0.002092967120309671,
+    "battle_sign_pos": 6,
+    "battle_ctrl_mean_abs_dv": 0.0,
+    "battle_v_scale_std": 0.005012182111007137,
+    "battle_v_mean": -0.035199194525678955,
+    "battle_v_values": [
+      -0.037245,
+      -0.044328,
+      -0.028429,
+      -0.031463,
+      -0.036127,
+      -0.033603
+    ],
+    "battle_dv_signed_values": [
+      0.002286,
+      0.002184,
+      0.002141,
+      0.001386,
+      0.002266,
+      0.002295
+    ],
+    "pick_v_within_ep_std": 0.004763561780286993,
+    "battle_sens_ratio": 0.41757603254545644,
+    "battle_mean_abs_dwp": 0.00020673871040344238,
+    "battle_mean_signed_dwp": 0.00020673871040344238,
+    "battle_wp_scale_std": 0.0009397021689459865
+  },
+  "WATER": {
+    "gate_a": "STT02-002",
+    "gate_b": "AZK01-126",
+    "episodes": 6,
+    "pick_mean_abs_dv": 0.0011909918652640448,
+    "pick_p90_abs_dv": 0.0019721686840057373,
+    "pick_ctrl_mean_abs_dv": 0.0,
+    "pick_dv_tertiles": {
+      "early": 0.001790170977805175,
+      "mid": 0.0011339594482206831,
+      "late": 0.0006488451697662764
+    },
+    "battle_mean_abs_dv": 0.0033719148486852646,
+    "battle_mean_signed_dv": 0.0033719148486852646,
+    "battle_sign_pos": 6,
+    "battle_ctrl_mean_abs_dv": 0.0,
+    "battle_v_scale_std": 0.0027702182689839155,
+    "battle_v_mean": -0.036972604071100555,
+    "battle_v_values": [
+      -0.03796,
+      -0.042212,
+      -0.033339,
+      -0.036078,
+      -0.035082,
+      -0.037164
+    ],
+    "battle_dv_signed_values": [
+      0.004185,
+      0.003201,
+      0.003475,
+      0.002875,
+      0.00293,
+      0.003567
+    ],
+    "pick_v_within_ep_std": 0.004918088115004242,
+    "battle_sens_ratio": 1.2172018668846785,
+    "battle_mean_abs_dwp": 0.0002658317486445109,
+    "battle_mean_signed_dwp": 0.0002658317486445109,
+    "battle_wp_scale_std": 0.0006910981182171781
+  },
+  "FIRE": {
+    "gate_a": "AZK01-122",
+    "gate_b": "STT04-002",
+    "episodes": 6,
+    "pick_mean_abs_dv": 0.004403982360183803,
+    "pick_p90_abs_dv": 0.0049043502658605576,
+    "pick_ctrl_mean_abs_dv": 0.0,
+    "pick_dv_tertiles": {
+      "early": 0.0038340498930683324,
+      "mid": 0.004629474790657268,
+      "late": 0.004748422396825809
+    },
+    "battle_mean_abs_dv": 0.010751968870560328,
+    "battle_mean_signed_dv": 0.010751968870560328,
+    "battle_sign_pos": 6,
+    "battle_ctrl_mean_abs_dv": 0.0,
+    "battle_v_scale_std": 0.0015567265254015847,
+    "battle_v_mean": -0.030821973457932472,
+    "battle_v_values": [
+      -0.029318,
+      -0.03059,
+      -0.033889,
+      -0.029801,
+      -0.029737,
+      -0.031596
+    ],
+    "battle_dv_signed_values": [
+      0.010672,
+      0.011566,
+      0.010395,
+      0.010456,
+      0.010916,
+      0.010507
+    ],
+    "pick_v_within_ep_std": 0.005352335543573616,
+    "battle_sens_ratio": 6.906780796188123,
+    "battle_mean_abs_dwp": 6.468594074249268e-05,
+    "battle_mean_signed_dwp": -4.6893954277038574e-05,
+    "battle_wp_scale_std": 0.0006615393929675998
+  },
+  "EARTH": {
+    "gate_a": "AZK01-124",
+    "gate_b": "STT03-002",
+    "episodes": 6,
+    "pick_mean_abs_dv": 0.0035764666980290724,
+    "pick_p90_abs_dv": 0.004610534757375717,
+    "pick_ctrl_mean_abs_dv": 0.0,
+    "pick_dv_tertiles": {
+      "early": 0.0026037699597723342,
+      "mid": 0.0038253282215081007,
+      "late": 0.004300301912806782
+    },
+    "battle_mean_abs_dv": 0.006369289631644885,
+    "battle_mean_signed_dv": -0.006369289631644885,
+    "battle_sign_pos": 0,
+    "battle_ctrl_mean_abs_dv": 0.0,
+    "battle_v_scale_std": 0.0015901002090546493,
+    "battle_v_mean": -0.041847088684638344,
+    "battle_v_values": [
+      -0.043526,
+      -0.041143,
+      -0.043667,
+      -0.039624,
+      -0.042873,
+      -0.04025
+    ],
+    "battle_dv_signed_values": [
+      -0.00584,
+      -0.006259,
+      -0.005849,
+      -0.006884,
+      -0.007182,
+      -0.006201
+    ],
+    "pick_v_within_ep_std": 0.005880144489876037,
+    "battle_sens_ratio": 4.005590085062357,
+    "battle_mean_abs_dwp": 0.0008192757765452067,
+    "battle_mean_signed_dwp": 0.0008192757765452067,
+    "battle_wp_scale_std": 0.0005947287008630204
+  }
+}

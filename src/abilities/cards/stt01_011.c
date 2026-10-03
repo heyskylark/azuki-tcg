@@ -136,6 +136,9 @@ static void update_stt01_016_buffs_for_player(ecs_world_t *world,
 
 // Observer callback for cards entering/leaving owner's garden or alley
 static void stt01_011_zone_observer(ecs_iter_t *it) {
+  if (ecs_is_fini(it->world) || ecs_should_quit(it->world)) {
+    return; // World teardown: zones/singletons may already be deleted.
+  }
   ecs_world_t *world = it->world;
   Stt01011ObserverCtx *ctx = it->ctx;
 
@@ -170,6 +173,9 @@ static void stt01_011_zone_observer(ecs_iter_t *it) {
 
 // Observer callback for weapons being attached (ChildOf relationship added)
 static void stt01_011_weapon_attach_observer(ecs_iter_t *it) {
+  if (ecs_is_fini(it->world) || ecs_should_quit(it->world)) {
+    return; // World teardown: zones/singletons may already be deleted.
+  }
   ecs_world_t *world = it->world;
   Stt01011ObserverCtx *ctx = it->ctx;
 

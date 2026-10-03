@@ -5,15 +5,15 @@ from functools import lru_cache
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_TRAINING_DECK_POOL_PATH = REPO_ROOT / ".codex" / "docs" / "azuki_tcg_decks_final.json"
+DEFAULT_TRAINING_DECK_POOL_PATH = REPO_ROOT / ".codex" / "docs" / "azuki_garden_arena_2026-08-15_decks.json"
 EXPECTED_DECK_SIZE = 62
 
 NativeDeckCard = tuple[str, int]
 NativeDeck = tuple[NativeDeckCard, ...]
 NativeDeckPool = tuple[NativeDeck, ...]
 DeckLabelPool = tuple[str, ...]
-
-_STARTER_DECKS: tuple[NativeDeck, ...] = (
+_LEGACY_TRAINING_DECK_POOL_PATH = REPO_ROOT / ".codex" / "docs" / "azuki_tcg_decks_final.json"
+_LEGACY_STARTER_DECKS: tuple[NativeDeck, ...] = (
   (
     ("STT01-001", 1),
     ("STT01-002", 1),
@@ -55,11 +55,7 @@ _STARTER_DECKS: tuple[NativeDeck, ...] = (
     ("IKZ-001", 10),
   ),
 )
-
-_STARTER_DECK_LABELS: DeckLabelPool = (
-  "starter_raizan",
-  "starter_shao",
-)
+_LEGACY_STARTER_DECK_LABELS: DeckLabelPool = ("starter_raizan", "starter_shao")
 
 
 def resolve_training_deck_pool_path(path: str | Path | None = None) -> Path:
@@ -83,7 +79,11 @@ def load_training_deck_pool(path: str | Path | None = None) -> NativeDeckPool:
   if not isinstance(decks, list) or not decks:
     raise ValueError(f"Training deck pool file must contain a non-empty 'decks' list: {resolved_path}")
 
-  native_decks = [_normalize_starter_deck(deck) for deck in _STARTER_DECKS]
+  native_decks = (
+    list(_LEGACY_STARTER_DECKS)
+    if resolved_path == _LEGACY_TRAINING_DECK_POOL_PATH.resolve()
+    else []
+  )
   for index, deck in enumerate(decks):
     native_decks.append(_normalize_payload_deck(deck, index=index, source_path=resolved_path))
   return tuple(native_decks)
@@ -100,7 +100,12 @@ def load_training_deck_labels(path: str | Path | None = None) -> DeckLabelPool:
   if not isinstance(decks, list) or not decks:
     raise ValueError(f"Training deck pool file must contain a non-empty 'decks' list: {resolved_path}")
 
-  labels = list(_STARTER_DECK_LABELS)
+  labels = (
+    list(_LEGACY_STARTER_DECK_LABELS)
+    if resolved_path == _LEGACY_TRAINING_DECK_POOL_PATH.resolve()
+    else []
+  )
+  label_offset = len(labels)
   for index, deck in enumerate(decks):
     if not isinstance(deck, dict):
       raise ValueError(f"Deck entry {index} in {resolved_path} must be a JSON object")
@@ -112,7 +117,7 @@ def load_training_deck_labels(path: str | Path | None = None) -> DeckLabelPool:
       normalized = deck_name.strip().lower().replace(" ", "_")
       labels.append(normalized)
     else:
-      labels.append(f"deck_{index + len(_STARTER_DECK_LABELS):02d}")
+      labels.append(f"deck_{index + label_offset:02d}")
   return tuple(labels)
 
 
@@ -145,10 +150,3 @@ def _normalize_payload_deck(deck: object, *, index: int, source_path: Path) -> N
       f"{deck_label} in {source_path} has {total_cards} cards; expected {EXPECTED_DECK_SIZE}"
     )
   return tuple(native_cards)
-
-
-def _normalize_starter_deck(deck: NativeDeck) -> NativeDeck:
-  total_cards = sum(quantity for _, quantity in deck)
-  if total_cards != EXPECTED_DECK_SIZE:
-    raise ValueError(f"Starter deck has {total_cards} cards; expected {EXPECTED_DECK_SIZE}")
-  return deck

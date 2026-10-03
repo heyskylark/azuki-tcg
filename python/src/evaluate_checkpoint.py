@@ -58,6 +58,9 @@ def _apply_checkpoint_resume_policy_config(trainer_args: dict, checkpoint: Path 
   deck_pool_path = resume_cfg.get("deck_pool_path")
   if isinstance(deck_pool_path, str) and deck_pool_path:
     env_cfg["deck_pool_path"] = deck_pool_path
+  deck_building_enabled = resume_cfg.get("deck_building_enabled")
+  if isinstance(deck_building_enabled, bool):
+    env_cfg["deck_building_enabled"] = deck_building_enabled
 
   for source_key, target_key, caster in (
     ("policy_model_version", "model_version", str),
@@ -88,6 +91,7 @@ def _apply_checkpoint_resume_policy_config(trainer_args: dict, checkpoint: Path 
     ("policy_win_prob_aux_coef", "win_prob_aux_coef", float),
     ("policy_split_value_heads_enabled", "split_value_heads_enabled", bool),
     ("policy_split_value_component_coef", "split_value_component_coef", float),
+    ("policy_gate_id_embedding_enabled", "gate_id_embedding_enabled", bool),
   ):
     value = resume_cfg.get(source_key)
     if isinstance(value, (bool, int, float, str)):
@@ -98,6 +102,12 @@ def _unwrap_base_env(env):
   current = getattr(env, "env", env)
   seen = set()
   while hasattr(current, "env"):
+    # Check the CLASS attribute: wrapper __getattr__ forwarding (e.g.
+    # MultiagentEpisodeStats) satisfies the marker one level early, but blocks
+    # underscore attrs like _active_player_index, so we must reach the actual
+    # wrapper instance.
+    if getattr(type(current), "is_deck_building_wrapper", False):
+      break
     nxt = getattr(current, "env")
     if nxt is current or nxt in seen:
       break
@@ -110,6 +120,9 @@ def _unwrap_base_env(env):
 
 
 def _random_legal_action(base_env, rng: np.random.Generator):
+  random_legal_action = getattr(base_env, "random_legal_action", None)
+  if callable(random_legal_action):
+    return random_legal_action(rng)
   active_index = int(getattr(base_env, "_active_player_index", 0))
   raw_obs = base_env._raw_observation(active_index)
   mask = raw_obs.action_mask
@@ -158,6 +171,12 @@ def evaluate(
     f"subaction_temperature={temp_now:.6f}, smoothing_eps={smoothing_now:.6f}"
   )
 
+  # Checkpoint evaluation drives seats through the legacy wrapper chain;
+  # force the legacy env path even when the config trains native.
+  eval_env_cfg = dict(trainer_args.get("env", {}) or {})
+  eval_env_cfg["native"] = False
+  eval_env_cfg.pop("native_envs_per_instance", None)
+  trainer_args["env"] = eval_env_cfg
   vecenv = build_vecenv(
     trainer_args,
     backend=azk_vector.Serial,

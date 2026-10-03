@@ -1,0 +1,23 @@
+/home/skylark/git/azuki-tcg/.venv/lib/python3.14/site-packages/torch/cuda/__init__.py:61: FutureWarning: The pynvml package is deprecated. Please install nvidia-ml-py instead. If you did not install pynvml directly, please report this to the maintainers of the package that installed pynvml for you.
+  import pynvml  # type: ignore[import]
+Gym has been unmaintained since 2022 and does not support NumPy 2.0 amongst other critical functionality.
+Please upgrade to Gymnasium, the maintained drop-in replacement of Gym, or contact the authors of your software and request that they upgrade.
+See the migration guide at https://gymnasium.farama.org/introduction/migration_guide/ for additional information.
+/home/skylark/git/azuki-tcg/.venv/lib/python3.14/site-packages/gymnasium/spaces/box.py:240: UserWarning: [33mWARN: Casting input x to numpy array.[0m
+  gym.logger.warn("Casting input x to numpy array.")
+/home/skylark/git/azuki-tcg/python/src/azk_puffer/pytorch.py:131: FutureWarning: _check_is_size will be removed in a future PyTorch release along with guard_size_oblivious.     Use _check(i >= 0) instead.
+  torch._check_is_size(offset)
+/home/skylark/git/azuki-tcg/python/src/azk_puffer/pytorch.py:132: FutureWarning: _check_is_size will be removed in a future PyTorch release along with guard_size_oblivious.     Use _check(i >= 0) instead.
+  torch._check_is_size(delta)
+/home/skylark/git/azuki-tcg/python/src/azk_puffer/pytorch.py:131: FutureWarning: _check_is_size will be removed in a future PyTorch release along with guard_size_oblivious.     Use _check(i >= 0) instead.
+  torch._check_is_size(offset)
+[resume] loaded model checkpoint: path=experiments/azuki_local_ctrl2_178333975102/model_azuki_local_000977.pt, strict=False, missing_keys=0, unexpected_keys=0, materialized_scalar_norm_features=23, scalar_norm_state_keys=69, filtered_static_card_keys=0
+[ policy] weapon_heavy  n=24  win=0.33 weapon=0.1599 spell=0.0000 attack=0.1898 portal=0.0037
+[ policy] spell_heavy   n=24  win=0.21 weapon=0.0000 spell=0.1243 attack=0.2324 portal=0.0022
+[ policy] entity_only   n=24  win=0.04 weapon=0.0000 spell=0.0000 attack=0.2835 portal=0.0065
+[uniform] weapon_heavy  n=24  win=0.12 weapon=0.1269 spell=0.0000 attack=0.1840 portal=0.0807
+[uniform] spell_heavy   n=24  win=0.00 weapon=0.0000 spell=0.1111 attack=0.1534 portal=0.0893
+[uniform] entity_only   n=24  win=0.04 weapon=0.0000 spell=0.0000 attack=0.1808 portal=0.1148
+conditioning[weapon]: policy_gap=+0.1599 uniform_gap=+0.1269 ratio=1.26
+conditioning[spell]: policy_gap=+0.1243 uniform_gap=+0.1111 ratio=1.12
+wrote train-ablation-1781126582/results/round2_ctrl2/deck_behavior.json

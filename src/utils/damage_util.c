@@ -12,6 +12,17 @@
 #include "utils/player_util.h"
 #include "utils/status_util.h"
 
+#include <stdlib.h>
+
+static bool reward_entity_damage_tracking_enabled(void) {
+  static int enabled = -1;
+  if (enabled < 0) {
+    const char *raw = getenv("AZK_ENTITY_DAMAGE_EXCHANGE_PER_HP");
+    enabled = raw != NULL && raw[0] != '\0' && strtof(raw, NULL) > 0.0f;
+  }
+  return enabled != 0;
+}
+
 static DamageTracker *ensure_damage_tracker(ecs_world_t *world,
                                             ecs_entity_t entity) {
   ecs_assert(world != NULL, ECS_INVALID_PARAMETER, "World is null");
@@ -93,6 +104,32 @@ void azk_record_damage_event(ecs_world_t *world, ecs_entity_t source,
   }
 
   const GameState *gs = ecs_singleton_get(world, GameState);
+
+  if (reward_entity_damage_tracking_enabled() &&
+      ecs_has(world, target, TEntity) && !ecs_has(world, target, TLeader)) {
+    const CurStats *target_stats = ecs_get(world, target, CurStats);
+    const ecs_entity_t owner = ecs_get_target(world, target, Rel_OwnedBy, 0);
+    const PlayerNumber *player_number =
+        owner != 0 ? ecs_get(world, owner, PlayerNumber) : NULL;
+    if (target_stats != NULL && player_number != NULL &&
+        player_number->player_number < MAX_PLAYERS_PER_MATCH) {
+      int effective_damage = (int)actual_damage;
+      const int hp_before = (int)target_stats->cur_hp + effective_damage;
+      if (effective_damage > hp_before) {
+        effective_damage = hp_before;
+      }
+      if (effective_damage > 0) {
+        GameState *reward_gs = ecs_singleton_get_mut(world, GameState);
+        if (reward_gs != NULL) {
+          reward_gs->entity_damage_taken[player_number->player_number] +=
+              (uint32_t)effective_damage;
+          ecs_singleton_modified(world, GameState);
+          gs = reward_gs;
+        }
+      }
+    }
+  }
+
   DamageTracker *target_tracker = ensure_damage_tracker(world, target);
   ecs_assert(target_tracker != NULL, ECS_INVALID_OPERATION,
              "DamageTracker missing for target %llu",

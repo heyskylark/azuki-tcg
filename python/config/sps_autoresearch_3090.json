@@ -9,6 +9,7 @@
     "train.max_minibatch_size": 960,
     "train.minibatch_size": 960,
     "train.precision": "bfloat16",
+    "train.seed_process_rngs": true,
     "vec.batch_size": 120,
     "vec.num_envs": 120,
     "vec.num_workers": 4,

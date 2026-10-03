@@ -149,6 +149,14 @@ class AzukiTCGParallel(ParallelEnv):
         "win": float(log.get("p0_winrate", 0.0)),
         "azk_started_first_rate": float(log.get("p0_start_rate", 0.0)),
         "leader_health": float(log.get("p0_avg_leader_health", 0.0)),
+        "azk_entity_damage_dealt": float(log.get("p0_entity_damage_dealt", 0.0)),
+        "azk_entity_damage_taken": float(log.get("p0_entity_damage_taken", 0.0)),
+        "azk_generated_ikz_created": float(log.get("p0_generated_ikz_created", 0.0)),
+        "azk_generated_ikz_converted": float(log.get("p0_generated_ikz_converted", 0.0)),
+        "azk_generated_ikz_conversion_rate": float(log.get("p0_generated_ikz_conversion_rate", 0.0)),
+        "azk_temporary_charge_realized": float(log.get("p0_temporary_charge_realized", 0.0)),
+        "azk_temporary_attack_damage_realized": float(log.get("p0_temporary_attack_damage_realized", 0.0)),
+        "azk_contextual_response_reserve_opportunities": float(log.get("p0_contextual_response_reserve_opportunities", 0.0)),
         "azk_episode_return": float(log.get("p0_episode_return", 0.0)),
         "azk_episode_length": float(log.get("episode_length", 0.0)),
         "azk_timeout_truncation": float(log.get("timeout_truncation_rate", 0.0)),
@@ -176,6 +184,14 @@ class AzukiTCGParallel(ParallelEnv):
         "win": float(log.get("p1_winrate", 0.0)),
         "azk_started_first_rate": float(log.get("p1_start_rate", 0.0)),
         "leader_health": float(log.get("p1_avg_leader_health", 0.0)),
+        "azk_entity_damage_dealt": float(log.get("p1_entity_damage_dealt", 0.0)),
+        "azk_entity_damage_taken": float(log.get("p1_entity_damage_taken", 0.0)),
+        "azk_generated_ikz_created": float(log.get("p1_generated_ikz_created", 0.0)),
+        "azk_generated_ikz_converted": float(log.get("p1_generated_ikz_converted", 0.0)),
+        "azk_generated_ikz_conversion_rate": float(log.get("p1_generated_ikz_conversion_rate", 0.0)),
+        "azk_temporary_charge_realized": float(log.get("p1_temporary_charge_realized", 0.0)),
+        "azk_temporary_attack_damage_realized": float(log.get("p1_temporary_attack_damage_realized", 0.0)),
+        "azk_contextual_response_reserve_opportunities": float(log.get("p1_contextual_response_reserve_opportunities", 0.0)),
         "azk_episode_return": float(log.get("p1_episode_return", 0.0)),
         "azk_episode_length": float(log.get("episode_length", 0.0)),
         "azk_timeout_truncation": float(log.get("timeout_truncation_rate", 0.0)),
@@ -214,6 +230,21 @@ class AzukiTCGParallel(ParallelEnv):
       seed = int(seed)
 
     binding.env_reset(self.c_envs, seed)
+    return self._reset_local_state_after_native_reset()
+
+  def reset_with_decks(self, *, seed: int, player_decks):
+    seed = int(seed)
+    if len(player_decks) != self._agent_count:
+      raise ValueError(f"Expected {self._agent_count} explicit decks, got {len(player_decks)}")
+    binding.env_reset_with_decks(
+      self.c_envs,
+      seed,
+      tuple(player_decks[0]),
+      tuple(player_decks[1]),
+    )
+    return self._reset_local_state_after_native_reset()
+
+  def _reset_local_state_after_native_reset(self):
     self._actions.fill(0)
     self._rewards.fill(0.0)
     self._terminal_rewards.fill(0.0)
@@ -232,6 +263,24 @@ class AzukiTCGParallel(ParallelEnv):
     observations = self._collect_observations()
     self._obs_debug.observe_step(observations)
     return observations, self.infos
+
+  def random_legal_action(self, rng: np.random.Generator):
+    active_index = int(self._active_player_index)
+    raw_obs = self._raw_observation(active_index)
+    mask = raw_obs.action_mask
+    legal_count = int(mask.legal_action_count)
+    if legal_count <= 0:
+      return np.asarray([0, 0, 0, 0], dtype=np.int32)
+    choice = int(rng.integers(0, legal_count))
+    return np.asarray(
+      [
+        int(mask.legal_primary[choice]),
+        int(mask.legal_sub1[choice]),
+        int(mask.legal_sub2[choice]),
+        int(mask.legal_sub3[choice]),
+      ],
+      dtype=np.int32,
+    )
 
   def step(self, actions):
     if not self.agents:

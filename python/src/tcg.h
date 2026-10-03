@@ -11,6 +11,7 @@
 #include <unistd.h>
 
 #include "azuki/engine.h"
+#include "generated/card_defs.h"
 #include "abilities/ability_system.h"
 #include "utils/deck_utils.h"
 #include "utils/status_util.h"
@@ -89,6 +90,22 @@ typedef struct Log {
     float p1_target_selected_rate;
     float p0_avg_leader_health;
     float p1_avg_leader_health;
+    float p0_entity_damage_dealt;
+    float p1_entity_damage_dealt;
+    float p0_entity_damage_taken;
+    float p1_entity_damage_taken;
+    float p0_generated_ikz_created;
+    float p1_generated_ikz_created;
+    float p0_generated_ikz_converted;
+    float p1_generated_ikz_converted;
+    float p0_generated_ikz_conversion_rate;
+    float p1_generated_ikz_conversion_rate;
+    float p0_temporary_charge_realized;
+    float p1_temporary_charge_realized;
+    float p0_temporary_attack_damage_realized;
+    float p1_temporary_attack_damage_realized;
+    float p0_contextual_response_reserve_opportunities;
+    float p1_contextual_response_reserve_opportunities;
     float n;
 } Log;
 
@@ -146,6 +163,63 @@ typedef struct {
   size_t card_count;
 } TrainingDeckSpec;
 
+// ---- Native deck-building draft support -------------------------------------
+// Packed deck-context block appended to the battle observation for
+// deck-building training. Field order/types/alignment MUST mirror
+// observation.py's _TrainingDeckContextObservationData exactly.
+#define AZK_DECKBUILD_OBS_MAX_CANDIDATES AZK_MAX_LEGAL_ACTIONS
+// Real per-element candidate pools are ~80 cards; catalog storage bound.
+#define AZK_DRAFT_MAX_CANDIDATES 192
+#define AZK_DRAFT_MAX_GATES 16
+#define AZK_DRAFT_MAX_POPULATION 512
+#define AZK_DRAFT_MAX_LEADERS 8
+#define AZK_DECKBUILD_BEHAVIOR_COUNT 18
+
+typedef struct {
+  int32_t mode;
+  int16_t gate_card_def_id;
+  int16_t leader_card_def_id;
+  int16_t main_card_def_ids[REQUIRED_DECK_SIZE];
+  uint8_t main_count;
+  int32_t candidate_count;
+  int16_t candidate_card_def_ids[AZK_DECKBUILD_OBS_MAX_CANDIDATES];
+  uint8_t candidate_copy_counts[AZK_DECKBUILD_OBS_MAX_CANDIDATES];
+} AzkTrainingDeckContextData;
+
+typedef struct {
+  TrainingObservationData base;
+  AzkTrainingDeckContextData deck_context;
+} TrainingObservationDataDeckBuild;
+
+// base is 4-aligned and its size is a multiple of 4, so no padding may appear
+// between base and deck_context (the Python ctypes mirror relies on this).
+_Static_assert(sizeof(TrainingObservationDataDeckBuild) ==
+                   sizeof(TrainingObservationData) +
+                       sizeof(AzkTrainingDeckContextData),
+               "deck-build observation struct must not introduce padding");
+
+// Draft candidate catalog, provided by Python at vec_init from the same
+// build_deck_build_catalog() the legacy wrapper uses, so candidate ordering
+// is identical by construction. Process-global: one vec per worker process.
+typedef struct {
+  int16_t gate_def_ids[AZK_DRAFT_MAX_GATES];
+  int gate_count;
+  int16_t gate_population[AZK_DRAFT_MAX_POPULATION];
+  int population_count;
+  int16_t leader_flat[AZK_DRAFT_MAX_GATES * AZK_DRAFT_MAX_LEADERS];
+  int leader_offsets[AZK_DRAFT_MAX_GATES + 1];
+  int16_t main_flat[AZK_DRAFT_MAX_GATES * AZK_DRAFT_MAX_CANDIDATES];
+  int main_offsets[AZK_DRAFT_MAX_GATES + 1];
+  int16_t ikz_def_id;
+  // Same-element partner per gate slot (-1 if none), used by the per-env
+  // draft_same_element_matchup_prob knob to oversample sibling-gate matchups
+  // (e.g. Surge vs Stormchain).
+  int16_t gate_sibling_def_ids[AZK_DRAFT_MAX_GATES];
+  bool loaded;
+} AzkDraftCatalog;
+
+static AzkDraftCatalog g_draft_catalog = {0};
+
 typedef struct Client Client;
 typedef enum EpisodeEndReason {
   EP_END_REASON_GAMEOVER = 0,
@@ -199,7 +273,100 @@ typedef struct {
   uint32_t episode_action_gate_portal[MAX_PLAYERS_PER_MATCH];
   uint32_t episode_action_play_entity_to_alley[MAX_PLAYERS_PER_MATCH];
   uint32_t episode_action_play_entity_to_garden[MAX_PLAYERS_PER_MATCH];
+  // S12 early-tempo per-turn accounting (per player).
+  uint16_t tempo_last_turn[MAX_PLAYERS_PER_MATCH];
+  uint8_t tempo_turn_count[MAX_PLAYERS_PER_MATCH];
+  // S13-DMG: player declared a defender in the open response window; the
+  // next combat resolution is an interception credited to them.
+  bool pending_interception[MAX_PLAYERS_PER_MATCH];
+  AzkAttackRewardContext pending_attack_reward;
+  bool has_pending_attack_reward;
+  uint16_t response_reserve_last_rewarded_turn[MAX_PLAYERS_PER_MATCH];
+  uint32_t episode_temporary_charge_realized[MAX_PLAYERS_PER_MATCH];
+  uint32_t episode_temporary_attack_damage_realized[MAX_PLAYERS_PER_MATCH];
+  uint32_t episode_contextual_response_reserve_opportunities[MAX_PLAYERS_PER_MATCH];
+
+  // Deck-building draft state (native path). observations rows are
+  // TrainingObservationDataDeckBuild when deck_building is set.
+  bool deck_building;
+  // When enabled, gates are sampled from the unique catalog and compatible
+  // leaders are assigned before the first observation. The actor drafts only
+  // the 50 main-deck cards.
+  bool draft_uniform_assignment;
+  // With this probability an episode replaces P1's sampled gate with the
+  // same-element sibling of P0's. 0 leaves the RNG stream bit-identical to
+  // builds without the knob.
+  float draft_same_element_matchup_prob;
+  // S3: with this probability one random seat battles under its sibling gate
+  // (deck unchanged) — critic contrast data. See draft_start_battle.
+  float draft_cross_gate_replay_prob;
+  // Privileged-critic support (A-PRIVCRITIC): when set, critic_privileged
+  // self/opponent deck lists carry the DRAFTED pick-order compositions during
+  // draft and battle instead of being sanitized. Default off (sanitized).
+  bool deck_building_privileged_decks;
+  bool draft_active;
+  int8_t draft_active_player;
+  uint32_t draft_rng_state;
+  uint32_t episode_world_seed;
+  // Promotion evaluator controls. These are inert in training: the binding
+  // only sets them for explicitly scheduled native evaluation games.
+  bool evaluation_pause_on_done;
+  bool evaluation_forced_gates;
+  int16_t evaluation_forced_gate[MAX_PLAYERS_PER_MATCH];
+  bool evaluation_forced_leaders;
+  int16_t evaluation_forced_leader[MAX_PLAYERS_PER_MATCH];
+  int8_t evaluation_reference_seat;
+  int16_t evaluation_reference_deck_index;
+  int16_t draft_gate[MAX_PLAYERS_PER_MATCH];
+  int draft_gate_slot[MAX_PLAYERS_PER_MATCH];
+  int16_t draft_leader[MAX_PLAYERS_PER_MATCH];
+  int16_t draft_main[MAX_PLAYERS_PER_MATCH][REQUIRED_DECK_SIZE];
+  uint8_t draft_main_count[MAX_PLAYERS_PER_MATCH];
+  uint8_t draft_copies[MAX_PLAYERS_PER_MATCH][AZK_DRAFT_MAX_CANDIDATES];
+  // S4 reference seat: with prob AZK_DRAFT_REF_SEAT_PROB one seat skips the
+  // draft and plays env->deck_pool[draft_ref_deck_index] (restricted to
+  // AZK_DRAFT_REF_DECK_INDICES when set) — external meta anchor + promotion
+  // yardstick. -1 = no reference seat this episode.
+  int8_t draft_ref_seat;
+  int16_t draft_ref_deck_index;
+
+  // Per-episode export record for Python-side deckbuild metrics/snapshots
+  // (drained via binding.vec_drain_deck_records right on the terminal step).
+  bool deck_record_valid;
+  uint32_t deck_record_seed;
+  int16_t deck_record_gate[MAX_PLAYERS_PER_MATCH];
+  int16_t deck_record_leader[MAX_PLAYERS_PER_MATCH];
+  int16_t deck_record_main[MAX_PLAYERS_PER_MATCH][REQUIRED_DECK_SIZE];
+  float deck_record_win[MAX_PLAYERS_PER_MATCH];
+  float deck_record_behavior[MAX_PLAYERS_PER_MATCH][AZK_DECKBUILD_BEHAVIOR_COUNT];
+  float deck_record_leader_health[MAX_PLAYERS_PER_MATCH];
+  float deck_record_episode_length;
+  int8_t deck_record_ref_seat;
+  int16_t deck_record_ref_deck_index;
+  int8_t deck_record_end_reason;
+  int8_t deck_record_starting_player;
 } CAzukiTCG;
+
+static void draft_begin_episode(CAzukiTCG* env);
+
+// Observation rows are TrainingObservationData for battle-only training and
+// TrainingObservationDataDeckBuild (larger stride) for deck-building; every
+// per-player access must go through these accessors.
+static inline TrainingObservationData* obs_base(CAzukiTCG* env, int player_index) {
+  if (env->deck_building) {
+    TrainingObservationDataDeckBuild* rows =
+        (TrainingObservationDataDeckBuild*)env->observations;
+    return &rows[player_index].base;
+  }
+  return &env->observations[player_index];
+}
+
+static inline AzkTrainingDeckContextData* obs_deck_context(CAzukiTCG* env,
+                                                           int player_index) {
+  TrainingObservationDataDeckBuild* rows =
+      (TrainingObservationDataDeckBuild*)env->observations;
+  return &rows[player_index].deck_context;
+}
 
 static inline void debug_log_zero_mask_state(CAzukiTCG* env,
                                              const char* context) {
@@ -224,9 +391,9 @@ static inline void debug_log_zero_mask_state(CAzukiTCG* env,
   }
 
   const TrainingActionMaskObs* obs_mask =
-      &env->observations[active_player_index].action_mask;
+      &obs_base(env, active_player_index)->action_mask;
   const TrainingAbilityContextObservationData* ability_ctx =
-      &env->observations[active_player_index].ability_context;
+      &obs_base(env, active_player_index)->ability_context;
   const bool requires_action = azk_engine_requires_action(env->engine);
   const AbilityPhase ability_phase = azk_engine_get_ability_phase(env->engine);
   const bool has_deck_reorders = azk_has_pending_deck_reorders(env->engine);
@@ -509,7 +676,105 @@ typedef struct RewardTuningConfig {
   float board_delta_weight;
   float noop_penalty;
   float truncation_board_edge_weight;
+  float untapped_ikz_weight;
+  // Annealed portal exposure bonus: on GATE_PORTAL, weight * min(GP,4)/4 of
+  // the portaled entity joins base_shaped_reward (rides shaping scale +
+  // zero-sum symmetry). 0-GP portals earn nothing. Default off.
+  float portal_gp_bonus;
+  // S2: outcome-graded variant — same GP scaling but paid ONLY if the gate
+  // ability observably resolved (weapon attached / IKZ untapped / card
+  // returned / damage dealt / buff-defender-charge landed). Whiffs pay 0.
+  // When set (>0) it supersedes portal_gp_bonus.
+  float portal_outcome_bonus;
+  // S12 early-tempo bonus: flat reward per qualifying DEVELOPMENT action
+  // (plays, portal, ability activations, affirmative confirms, attacks)
+  // during each player's first N turns, capped per turn (0 = unbounded).
+  // Rides the shaping anneal + zero-sum channel. Default off.
+  float early_tempo_bonus;
+  int early_tempo_cap;
+  int early_tempo_turns;
+  // Remove generic tempo credit from portal and ability/confirmation actions
+  // whose closer outcome signals already receive reward. Default off.
+  int early_tempo_dedup_portal_abilities;
+  // S13-DMG damage-mitigation bonus: on an intercepted combat, the
+  // intercepting player earns w * min(soak, cap)/cap where soak is the
+  // realized damage_to_defender (ATK debuffs flow through automatically).
+  // Opponent-gated (cannot be farmed unilaterally); rides anneal, zero-sum.
+  float dmg_mitigation_bonus;
+  int dmg_mitigation_cap;
+  // Effective non-leader damage differential. Default off.
+  float entity_damage_exchange_per_hp;
+  int entity_damage_exchange_step_cap;
+  // Credit an effect-recovered/created IKZ only when it is later tapped.
+  float generated_ikz_conversion_bonus;
+  int generated_ikz_conversion_step_cap;
+  // Credit temporary Charge and only the incremental realized EOT ATK damage.
+  float temporary_charge_realization_bonus;
+  float temporary_attack_realization_per_damage;
+  int temporary_attack_realization_damage_cap;
+  // Once per opposing turn, credit an actually affordable paid response.
+  float contextual_response_reserve_bonus;
 } RewardTuningConfig;
+
+// Pre-action summary for grading a portal's realized effect (S2).
+typedef struct {
+  int weapon_total;
+  int untapped_ikz;
+  int hand_count;
+  int opp_leader_hp;
+  int garden_atk_sum;
+  int defender_count;
+  int charge_count;
+  int portaled_atk;
+} PortalOutcomeSnapshot;
+
+static void portal_outcome_capture(const TrainingObservationData* base,
+                                   int portaled_atk,
+                                   PortalOutcomeSnapshot* out) {
+  const TrainingMyObservationData* my = &base->my_observation_data;
+  int weapon_total = my->leader.weapon_count;
+  int atk_sum = 0;
+  int defenders = 0;
+  int charges = 0;
+  for (int i = 0; i < GARDEN_SIZE; ++i) {
+    const TrainingBoardCardObservationData* c = &my->garden[i];
+    if (c->card_def_id < 0) {
+      continue;
+    }
+    weapon_total += c->weapon_count;
+    atk_sum += c->cur_stats.cur_atk;
+    defenders += c->has_defender ? 1 : 0;
+    charges += c->has_charge ? 1 : 0;
+  }
+  int untapped_ikz = 0;
+  for (int i = 0; i < IKZ_AREA_SIZE; ++i) {
+    if (my->ikz_area[i].card_def_id >= 0 && !my->ikz_area[i].tap_state.tapped) {
+      untapped_ikz++;
+    }
+  }
+  out->weapon_total = weapon_total;
+  out->untapped_ikz = untapped_ikz;
+  out->hand_count = my->hand_count;
+  out->opp_leader_hp = base->opponent_observation_data.leader.cur_stats.cur_hp;
+  out->garden_atk_sum = atk_sum;
+  out->defender_count = defenders;
+  out->charge_count = charges;
+  out->portaled_atk = portaled_atk;
+}
+
+static bool portal_outcome_resolved(const PortalOutcomeSnapshot* pre,
+                                    const PortalOutcomeSnapshot* post) {
+  if (post->weapon_total > pre->weapon_total) return true;      // Surge/Stormchain
+  if (post->untapped_ikz > pre->untapped_ikz) return true;      // Hydromancy
+  if (post->hand_count > pre->hand_count) return true;          // EchoedWaves
+  if (post->opp_leader_hp < pre->opp_leader_hp) return true;    // Devotion/dmg
+  if (post->defender_count > pre->defender_count) return true;  // Stonehaven
+  if (post->charge_count > pre->charge_count) return true;      // Rushfire
+  // Ragefire ATK buff / Rushfire extra body: garden ATK grew beyond the
+  // portaled entity's own contribution.
+  if (post->garden_atk_sum - pre->garden_atk_sum > pre->portaled_atk) return true;
+  return false;
+}
 
 static RewardTuningConfig g_reward_tuning = {0};
 
@@ -553,6 +818,73 @@ static void init_reward_tuning_if_needed(void) {
       parse_nonnegative_env_float("AZK_REWARD_NOOP_PENALTY", SHAPED_NOOP_PENALTY);
   g_reward_tuning.truncation_board_edge_weight =
       parse_nonnegative_env_float("AZK_TRUNCATION_BOARD_EDGE_WEIGHT", TRUNCATION_BOARD_EDGE_WEIGHT);
+  g_reward_tuning.untapped_ikz_weight =
+      parse_nonnegative_env_float("AZK_REWARD_UNTAPPED_IKZ_WEIGHT", PBRS_UNTAPPED_IKZ_WEIGHT);
+  g_reward_tuning.portal_gp_bonus =
+      parse_nonnegative_env_float("AZK_PORTAL_GP_BONUS", 0.0f);
+  g_reward_tuning.portal_outcome_bonus =
+      parse_nonnegative_env_float("AZK_PORTAL_OUTCOME_BONUS", 0.0f);
+  g_reward_tuning.early_tempo_bonus =
+      parse_nonnegative_env_float("AZK_EARLY_TEMPO_BONUS", 0.0f);
+  g_reward_tuning.early_tempo_cap =
+      (int)parse_nonnegative_env_float("AZK_EARLY_TEMPO_CAP", 4.0f);
+  g_reward_tuning.early_tempo_turns =
+      (int)parse_nonnegative_env_float("AZK_EARLY_TEMPO_TURNS", 2.0f);
+  g_reward_tuning.early_tempo_dedup_portal_abilities =
+      env_flag_enabled("AZK_EARLY_TEMPO_DEDUP_PORTAL_ABILITIES") ? 1 : 0;
+  g_reward_tuning.dmg_mitigation_bonus =
+      parse_nonnegative_env_float("AZK_DMG_MITIGATION_BONUS", 0.0f);
+  g_reward_tuning.dmg_mitigation_cap =
+      (int)parse_nonnegative_env_float("AZK_DMG_MITIGATION_CAP", 10.0f);
+  g_reward_tuning.entity_damage_exchange_per_hp =
+      parse_nonnegative_env_float("AZK_ENTITY_DAMAGE_EXCHANGE_PER_HP", 0.0f);
+  g_reward_tuning.entity_damage_exchange_step_cap =
+      (int)parse_nonnegative_env_float("AZK_ENTITY_DAMAGE_EXCHANGE_STEP_CAP", 6.0f);
+  g_reward_tuning.generated_ikz_conversion_bonus =
+      parse_nonnegative_env_float("AZK_GENERATED_IKZ_CONVERSION_BONUS", 0.0f);
+  g_reward_tuning.generated_ikz_conversion_step_cap =
+      (int)parse_nonnegative_env_float("AZK_GENERATED_IKZ_CONVERSION_STEP_CAP", 4.0f);
+  g_reward_tuning.temporary_charge_realization_bonus =
+      parse_nonnegative_env_float("AZK_TEMP_CHARGE_REALIZATION_BONUS", 0.0f);
+  g_reward_tuning.temporary_attack_realization_per_damage =
+      parse_nonnegative_env_float("AZK_TEMP_ATTACK_REALIZATION_PER_DAMAGE", 0.0f);
+  g_reward_tuning.temporary_attack_realization_damage_cap =
+      (int)parse_nonnegative_env_float("AZK_TEMP_ATTACK_REALIZATION_DAMAGE_CAP", 4.0f);
+  g_reward_tuning.contextual_response_reserve_bonus =
+      parse_nonnegative_env_float("AZK_CONTEXTUAL_RESPONSE_RESERVE_BONUS", 0.0f);
+}
+
+// S12: development actions that count toward the early-tempo bonus. Declining
+// an optional ability is ACT_NOOP in the confirmation phase, so
+// ACT_CONFIRM_ABILITY is always an affirmative use. Target/cost/selection
+// sub-actions and mulligans never count.
+static bool early_tempo_qualifying_action(ActionType type) {
+  switch (type) {
+    case ACT_PLAY_ENTITY_TO_GARDEN:
+    case ACT_PLAY_ENTITY_TO_ALLEY:
+    case ACT_PLAY_SPELL_FROM_HAND:
+    case ACT_ATTACH_WEAPON_FROM_HAND:
+    case ACT_GATE_PORTAL:
+    case ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY:
+    case ACT_ACTIVATE_ALLEY_ABILITY:
+    case ACT_CONFIRM_ABILITY:
+    case ACT_ATTACK:
+      return true;
+    default:
+      return false;
+  }
+}
+
+static bool early_tempo_dedup_excluded_action(ActionType type) {
+  switch (type) {
+    case ACT_GATE_PORTAL:
+    case ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY:
+    case ACT_ACTIVATE_ALLEY_ABILITY:
+    case ACT_CONFIRM_ABILITY:
+      return true;
+    default:
+      return false;
+  }
 }
 
 static float parse_unit_env_float(const char *name, float default_value) {
@@ -660,7 +992,7 @@ static float compute_phi_for_player(const AzkRewardSnapshot* snapshot, int8_t pl
     snapshot->untapped_garden_count[player_index] - snapshot->untapped_garden_count[opponent_index],
     PBRS_UNTAPPED_GARDEN_CAP
   );
-  const float untapped_ikz_term = PBRS_UNTAPPED_IKZ_WEIGHT * safe_delta(
+  const float untapped_ikz_term = g_reward_tuning.untapped_ikz_weight * safe_delta(
     snapshot->untapped_ikz_count[player_index] - snapshot->untapped_ikz_count[opponent_index],
     PBRS_UNTAPPED_IKZ_CAP
   );
@@ -703,7 +1035,16 @@ static void reset_reward_tracking(CAzukiTCG* env) {
     env->episode_action_gate_portal[player_index] = 0;
     env->episode_action_play_entity_to_alley[player_index] = 0;
     env->episode_action_play_entity_to_garden[player_index] = 0;
+    env->tempo_last_turn[player_index] = 0;
+    env->tempo_turn_count[player_index] = 0;
+    env->pending_interception[player_index] = false;
+    env->response_reserve_last_rewarded_turn[player_index] = UINT16_MAX;
+    env->episode_temporary_charge_realized[player_index] = 0;
+    env->episode_temporary_attack_damage_realized[player_index] = 0;
+    env->episode_contextual_response_reserve_opportunities[player_index] = 0;
   }
+  env->pending_attack_reward = (AzkAttackRewardContext){0};
+  env->has_pending_attack_reward = false;
   AzkRewardSnapshot snapshot = {0};
   env->has_last_snapshot = false;
   if (azk_engine_reward_snapshot(env->engine, &snapshot)) {
@@ -802,6 +1143,8 @@ static void accumulate_step_rewards(CAzukiTCG* env) {
   }
 }
 
+static void deckbuild_fill_export_record(CAzukiTCG* env);
+
 static void record_episode_stats(CAzukiTCG* env, EpisodeEndReason reason) {
   const float shaping_scale = current_reward_shaping_scale(env);
   AzkRewardSnapshot snapshot = {0};
@@ -850,6 +1193,32 @@ static void record_episode_stats(CAzukiTCG* env, EpisodeEndReason reason) {
 
   env->log.p0_avg_leader_health += snapshot.leader_health_ratio[0];
   env->log.p1_avg_leader_health += snapshot.leader_health_ratio[1];
+  env->log.p0_entity_damage_dealt += snapshot.entity_damage_taken[1];
+  env->log.p1_entity_damage_dealt += snapshot.entity_damage_taken[0];
+  env->log.p0_entity_damage_taken += snapshot.entity_damage_taken[0];
+  env->log.p1_entity_damage_taken += snapshot.entity_damage_taken[1];
+  env->log.p0_generated_ikz_created += snapshot.generated_ikz_created[0];
+  env->log.p1_generated_ikz_created += snapshot.generated_ikz_created[1];
+  env->log.p0_generated_ikz_converted += snapshot.generated_ikz_converted[0];
+  env->log.p1_generated_ikz_converted += snapshot.generated_ikz_converted[1];
+  env->log.p0_generated_ikz_conversion_rate +=
+      safe_delta(snapshot.generated_ikz_converted[0],
+                 snapshot.generated_ikz_created[0]);
+  env->log.p1_generated_ikz_conversion_rate +=
+      safe_delta(snapshot.generated_ikz_converted[1],
+                 snapshot.generated_ikz_created[1]);
+  env->log.p0_temporary_charge_realized +=
+      (float)env->episode_temporary_charge_realized[0];
+  env->log.p1_temporary_charge_realized +=
+      (float)env->episode_temporary_charge_realized[1];
+  env->log.p0_temporary_attack_damage_realized +=
+      (float)env->episode_temporary_attack_damage_realized[0];
+  env->log.p1_temporary_attack_damage_realized +=
+      (float)env->episode_temporary_attack_damage_realized[1];
+  env->log.p0_contextual_response_reserve_opportunities +=
+      (float)env->episode_contextual_response_reserve_opportunities[0];
+  env->log.p1_contextual_response_reserve_opportunities +=
+      (float)env->episode_contextual_response_reserve_opportunities[1];
 
   for (int8_t player_index = 0; player_index < MAX_PLAYERS_PER_MATCH; ++player_index) {
     const float total = (float)env->episode_action_total[player_index];
@@ -903,6 +1272,12 @@ static void record_episode_stats(CAzukiTCG* env, EpisodeEndReason reason) {
       env->log.p1_target_selected_rate += target_rate;
     }
   }
+
+  if (env->deck_building) {
+    env->deck_record_end_reason = (int8_t)reason;
+    env->deck_record_starting_player = game_state->starting_player_index;
+    deckbuild_fill_export_record(env);
+  }
 }
 
 static void record_action_choice(CAzukiTCG* env, int8_t player_index, ActionType type) {
@@ -946,9 +1321,45 @@ static void record_action_choice(CAzukiTCG* env, int8_t player_index, ActionType
   }
 }
 
+static bool refreshed_mask_has_ikz_response(CAzukiTCG* env,
+                                            int8_t player_index) {
+  if (player_index < 0 || player_index >= MAX_PLAYERS_PER_MATCH) {
+    return false;
+  }
+  const TrainingActionMaskObs *mask =
+      &obs_base(env, player_index)->action_mask;
+  const GameState *gs = azk_engine_game_state(env->engine);
+  if (gs == NULL) {
+    return false;
+  }
+
+  for (uint16_t i = 0; i < mask->legal_action_count; ++i) {
+    const ActionType type = (ActionType)mask->legal_primary[i];
+    if (type != ACT_PLAY_ENTITY_TO_GARDEN &&
+        type != ACT_PLAY_ENTITY_TO_ALLEY &&
+        type != ACT_ATTACH_WEAPON_FROM_HAND &&
+        type != ACT_PLAY_SPELL_FROM_HAND &&
+        type != ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY) {
+      continue;
+    }
+    const UserAction action = {
+        .player = gs->players[player_index],
+        .type = type,
+        .subaction_1 = (int)mask->legal_sub1[i],
+        .subaction_2 = (int)mask->legal_sub2[i],
+        .subaction_3 = (int)mask->legal_sub3[i],
+    };
+    if (azk_engine_legal_action_spends_ikz(env->engine, player_index,
+                                           &action)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 static void apply_shaped_rewards(
     CAzukiTCG* env, int8_t acting_player_index, ActionType selected_type,
-    bool noop_had_alternatives) {
+    bool noop_had_alternatives, float action_bonus) {
   if (acting_player_index < 0 || acting_player_index >= MAX_PLAYERS_PER_MATCH) {
     fprintf(stderr, "Invalid acting player index %d when applying shaped rewards\n", acting_player_index);
     abort();
@@ -964,6 +1375,8 @@ static void apply_shaped_rewards(
   const float phi_delta = phi_values[acting_player_index] - env->last_phi[acting_player_index];
   float leader_delta_term = 0.0f;
   float board_delta_term = 0.0f;
+  float entity_damage_exchange_term = 0.0f;
+  float generated_ikz_conversion_term = 0.0f;
   AzkRewardSnapshot snapshot = {0};
   if (azk_engine_reward_snapshot(env->engine, &snapshot)) {
     if (env->has_last_snapshot) {
@@ -984,6 +1397,38 @@ static void apply_shaped_rewards(
           PBRS_GARDEN_ATTACK_CAP);
       board_delta_term = g_reward_tuning.board_delta_weight *
                          (curr_board_edge - prev_board_edge);
+
+      const float own_entity_damage_delta =
+          snapshot.entity_damage_taken[acting_player_index] -
+          env->last_snapshot.entity_damage_taken[acting_player_index];
+      const float opponent_entity_damage_delta =
+          snapshot.entity_damage_taken[opponent_index] -
+          env->last_snapshot.entity_damage_taken[opponent_index];
+      const int entity_cap = g_reward_tuning.entity_damage_exchange_step_cap;
+      const float entity_exchange =
+          opponent_entity_damage_delta - own_entity_damage_delta;
+      entity_damage_exchange_term =
+          g_reward_tuning.entity_damage_exchange_per_hp *
+          (entity_cap > 0
+               ? clampf(entity_exchange, -(float)entity_cap, (float)entity_cap)
+               : entity_exchange);
+
+      const float own_conversion_delta =
+          snapshot.generated_ikz_converted[acting_player_index] -
+          env->last_snapshot.generated_ikz_converted[acting_player_index];
+      const float opponent_conversion_delta =
+          snapshot.generated_ikz_converted[opponent_index] -
+          env->last_snapshot.generated_ikz_converted[opponent_index];
+      const int conversion_cap =
+          g_reward_tuning.generated_ikz_conversion_step_cap;
+      const float conversion_edge =
+          own_conversion_delta - opponent_conversion_delta;
+      generated_ikz_conversion_term =
+          g_reward_tuning.generated_ikz_conversion_bonus *
+          (conversion_cap > 0
+               ? clampf(conversion_edge, -(float)conversion_cap,
+                        (float)conversion_cap)
+               : conversion_edge);
     }
     env->last_snapshot = snapshot;
     env->has_last_snapshot = true;
@@ -995,7 +1440,9 @@ static void apply_shaped_rewards(
   }
 
   const float base_shaped_reward = env->time_weight * phi_delta + leader_delta_term +
-                                   board_delta_term - noop_penalty;
+                                   board_delta_term + entity_damage_exchange_term +
+                                   generated_ikz_conversion_term - noop_penalty +
+                                   action_bonus;
   const float shaping_scale = current_reward_shaping_scale(env);
   const float shaped_reward = shaping_scale * base_shaped_reward;
   env->rewards[acting_player_index] = shaped_reward;
@@ -1239,11 +1686,22 @@ void init(CAzukiTCG* env) {
   env->starter_rng_state = starter_seed_from_env_seed(env->seed);
   env->deck_rng_state = deck_seed_from_env_seed(env->seed);
   reset_current_deck_indices(env);
-  const int8_t starting_player = next_starting_player(env);
-  env->engine = create_env_engine(env, starting_player);
   env->tick = 0;
   env->completed_episodes = initial_completed_episodes_offset();
   env->current_episode_cap = current_episode_ticks_limit(env);
+  if (env->deck_building) {
+    if (!g_draft_catalog.loaded) {
+      fprintf(stderr, "deck_building env requires a draft catalog\n");
+      abort();
+    }
+    env->draft_rng_state = env->seed ^ 0x9E3779B9u;
+    env->engine = NULL;
+    env->deck_record_valid = false;
+    draft_begin_episode(env);
+    return;
+  }
+  const int8_t starting_player = next_starting_player(env);
+  env->engine = create_env_engine(env, starting_player);
 }
 
 static inline int8_t tcg_active_player_index(CAzukiTCG* env) {
@@ -1268,6 +1726,745 @@ static inline int8_t tcg_active_player_index(CAzukiTCG* env) {
   return active_player_index;
 }
 
+// ---- Draft-phase implementation (deck-building native path) ----------------
+static void refresh_observations(CAzukiTCG* env);
+static void reset_reward_tracking(CAzukiTCG* env);
+
+static void azk_fill_empty_weapons(TrainingWeaponObservationData* weapons) {
+  for (int w = 0; w < MAX_ATTACHED_WEAPONS; ++w) {
+    weapons[w].card_def_id = -1;
+  }
+}
+
+static void azk_fill_empty_board_cards(TrainingBoardCardObservationData* cards,
+                                       int count) {
+  for (int i = 0; i < count; ++i) {
+    cards[i].card_def_id = -1;
+    cards[i].zone_index = (uint8_t)i;
+    azk_fill_empty_weapons(cards[i].weapons);
+  }
+}
+
+// Mirrors deck_building.empty_training_observation(): all card ids -1 with
+// per-slot zone indices, ability/combat sentinel ids -1, everything else 0.
+static void azk_fill_empty_battle_observation(TrainingObservationData* obs) {
+  memset(obs, 0, sizeof(*obs));
+
+  obs->my_observation_data.leader.card_def_id = -1;
+  azk_fill_empty_weapons(obs->my_observation_data.leader.weapons);
+  obs->my_observation_data.gate.card_def_id = -1;
+  obs->opponent_observation_data.leader.card_def_id = -1;
+  azk_fill_empty_weapons(obs->opponent_observation_data.leader.weapons);
+  obs->opponent_observation_data.gate.card_def_id = -1;
+
+  for (int i = 0; i < MAX_HAND_SIZE; ++i) {
+    obs->my_observation_data.hand[i].card_def_id = -1;
+    obs->my_observation_data.hand[i].zone_index = (uint8_t)i;
+    obs->critic_privileged.opponent_hand[i].card_def_id = -1;
+    obs->critic_privileged.opponent_hand[i].zone_index = (uint8_t)i;
+  }
+  azk_fill_empty_board_cards(obs->my_observation_data.alley, ALLEY_SIZE);
+  azk_fill_empty_board_cards(obs->my_observation_data.garden, GARDEN_SIZE);
+  azk_fill_empty_board_cards(obs->my_observation_data.selection,
+                             MAX_SELECTION_ZONE_SIZE);
+  azk_fill_empty_board_cards(obs->opponent_observation_data.alley, ALLEY_SIZE);
+  azk_fill_empty_board_cards(obs->opponent_observation_data.garden, GARDEN_SIZE);
+  for (int i = 0; i < MAX_DECK_SIZE; ++i) {
+    obs->my_observation_data.discard[i].card_def_id = -1;
+    obs->my_observation_data.discard[i].zone_index = (uint8_t)i;
+    obs->opponent_observation_data.discard[i].card_def_id = -1;
+    obs->opponent_observation_data.discard[i].zone_index = (uint8_t)i;
+    obs->critic_privileged.self_deck[i].card_def_id = -1;
+    obs->critic_privileged.self_deck[i].zone_index = (uint8_t)i;
+    obs->critic_privileged.opponent_deck[i].card_def_id = -1;
+    obs->critic_privileged.opponent_deck[i].zone_index = (uint8_t)i;
+  }
+  for (int i = 0; i < IKZ_AREA_SIZE; ++i) {
+    obs->my_observation_data.ikz_area[i].card_def_id = -1;
+    obs->my_observation_data.ikz_area[i].zone_index = (uint8_t)i;
+    obs->opponent_observation_data.ikz_area[i].card_def_id = -1;
+    obs->opponent_observation_data.ikz_area[i].zone_index = (uint8_t)i;
+  }
+
+  obs->ability_context.source_card_def_id = -1;
+  obs->ability_context.active_player_index = -1;
+  obs->combat_context.attacker_card_def_id = -1;
+  obs->combat_context.target_card_def_id = -1;
+}
+
+static int draft_gate_slot_for(int16_t gate_def_id) {
+  for (int i = 0; i < g_draft_catalog.gate_count; ++i) {
+    if (g_draft_catalog.gate_def_ids[i] == gate_def_id) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+static bool draft_player_complete(const CAzukiTCG* env, int player_index) {
+  return env->draft_leader[player_index] >= 0 &&
+         env->draft_main_count[player_index] >= REQUIRED_DECK_SIZE;
+}
+
+// deck_context.mode reflects the PLAYER'S OWN progress: 0 battle/complete,
+// 1 picking leader, 2 picking mains (a player who finishes early shows 0
+// while the episode is still drafting — legacy wrapper semantics).
+static int32_t draft_player_mode(const CAzukiTCG* env, int player_index) {
+  if (draft_player_complete(env, player_index)) {
+    return 0;
+  }
+  return env->draft_leader[player_index] < 0 ? 1 : 2;
+}
+
+// Test hook: AZK_DEBUG_FORCE_GATE_DEF_IDS="p0_def_id,p1_def_id" pins gates
+// for parity tests against the Python wrapper.
+static bool draft_forced_gates(const CAzukiTCG* env,
+                               int16_t out[MAX_PLAYERS_PER_MATCH]) {
+  if (env->evaluation_forced_gates) {
+    out[0] = env->evaluation_forced_gate[0];
+    out[1] = env->evaluation_forced_gate[1];
+    return true;
+  }
+  // Re-read every call (once per episode): tests toggle this within a process.
+  const char* raw = getenv("AZK_DEBUG_FORCE_GATE_DEF_IDS");
+  if (raw != NULL && raw[0] != '\0') {
+    int a = -1, b = -1;
+    if (sscanf(raw, "%d,%d", &a, &b) == 2) {
+      out[0] = (int16_t)a;
+      out[1] = (int16_t)b;
+      return true;
+    }
+  }
+  return false;
+}
+
+// Evaluation/debug hook for the no-leader-row lifecycle. Assigned leaders are
+// still validated against each final gate before use.
+static bool draft_forced_leaders(const CAzukiTCG* env,
+                                 int16_t out[MAX_PLAYERS_PER_MATCH]) {
+  if (env->evaluation_forced_leaders) {
+    out[0] = env->evaluation_forced_leader[0];
+    out[1] = env->evaluation_forced_leader[1];
+    return true;
+  }
+  const char* raw = getenv("AZK_DEBUG_FORCE_LEADER_DEF_IDS");
+  if (raw != NULL && raw[0] != '\0') {
+    int a = -1, b = -1;
+    if (sscanf(raw, "%d,%d", &a, &b) == 2) {
+      out[0] = (int16_t)a;
+      out[1] = (int16_t)b;
+      return true;
+    }
+  }
+  return false;
+}
+
+static bool draft_leader_valid_for_slot(int slot, int16_t leader_def_id) {
+  if (slot < 0 || slot >= g_draft_catalog.gate_count) {
+    return false;
+  }
+  const int begin = g_draft_catalog.leader_offsets[slot];
+  const int end = g_draft_catalog.leader_offsets[slot + 1];
+  for (int i = begin; i < end; ++i) {
+    if (g_draft_catalog.leader_flat[i] == leader_def_id) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static int16_t draft_sample_assigned_leader(CAzukiTCG* env, int slot) {
+  const int begin = g_draft_catalog.leader_offsets[slot];
+  const int end = g_draft_catalog.leader_offsets[slot + 1];
+  const int count = end - begin;
+  if (count <= 0) {
+    fprintf(stderr, "Draft gate slot %d has no compatible leaders\n", slot);
+    abort();
+  }
+  env->draft_rng_state = advance_episode_seed(env->draft_rng_state);
+  return g_draft_catalog
+      .leader_flat[begin + env->draft_rng_state % (uint32_t)count];
+}
+
+static int draft_active_candidates(const CAzukiTCG* env, int player_index,
+                                   int16_t* out_ids, uint8_t* out_copies,
+                                   int max_out) {
+  const int slot = env->draft_gate_slot[player_index];
+  if (env->draft_leader[player_index] < 0) {
+    const int begin = g_draft_catalog.leader_offsets[slot];
+    const int end = g_draft_catalog.leader_offsets[slot + 1];
+    int n = 0;
+    for (int i = begin; i < end && n < max_out; ++i) {
+      out_ids[n] = g_draft_catalog.leader_flat[i];
+      out_copies[n] = 0;
+      n++;
+    }
+    return n;
+  }
+  const int begin = g_draft_catalog.main_offsets[slot];
+  const int end = g_draft_catalog.main_offsets[slot + 1];
+  int n = 0;
+  for (int i = begin; i < end && n < max_out; ++i) {
+    const int local = i - begin;
+    const uint8_t copies = env->draft_copies[player_index][local];
+    if (copies >= 4) {
+      continue;  // maxed-out cards drop out and the list re-indexes
+    }
+    out_ids[n] = g_draft_catalog.main_flat[i];
+    out_copies[n] = copies;
+    n++;
+  }
+  return n;
+}
+
+// Sanitized by default (composition hidden); with deck_building_privileged_decks
+// the DRAFTED pick-order lists are exposed to the critic-only block: own picks
+// in self_deck, opponent picks-so-far in opponent_deck (during draft this is
+// exactly the information a matchup-aware pick baseline needs).
+static void fill_privileged_deck_lists(CAzukiTCG* env, int player_index,
+                                       TrainingObservationData* base) {
+  const int opponent_index = 1 - player_index;
+  for (int i = 0; i < MAX_DECK_SIZE; ++i) {
+    int16_t self_id = -1;
+    int16_t opp_id = -1;
+    if (env->deck_building_privileged_decks) {
+      if (i < (int)env->draft_main_count[player_index]) {
+        self_id = env->draft_main[player_index][i];
+      }
+      if (i < (int)env->draft_main_count[opponent_index]) {
+        opp_id = env->draft_main[opponent_index][i];
+      }
+    }
+    base->critic_privileged.self_deck[i].card_def_id = self_id;
+    base->critic_privileged.self_deck[i].zone_index = (uint8_t)i;
+    base->critic_privileged.opponent_deck[i].card_def_id = opp_id;
+    base->critic_privileged.opponent_deck[i].zone_index = (uint8_t)i;
+  }
+}
+
+static void fill_draft_observations(CAzukiTCG* env) {
+  for (int player_index = 0; player_index < MAX_PLAYERS_PER_MATCH;
+       ++player_index) {
+    TrainingObservationData* base = obs_base(env, player_index);
+    azk_fill_empty_battle_observation(base);
+    fill_privileged_deck_lists(env, player_index, base);
+
+    AzkTrainingDeckContextData* dc = obs_deck_context(env, player_index);
+    memset(dc, 0, sizeof(*dc));
+    dc->mode = draft_player_mode(env, player_index);
+    dc->gate_card_def_id = env->draft_gate[player_index];
+    dc->leader_card_def_id = env->draft_leader[player_index];
+    for (int i = 0; i < REQUIRED_DECK_SIZE; ++i) {
+      dc->main_card_def_ids[i] = env->draft_main[player_index][i];
+    }
+    dc->main_count = env->draft_main_count[player_index];
+    for (int i = 0; i < AZK_DECKBUILD_OBS_MAX_CANDIDATES; ++i) {
+      dc->candidate_card_def_ids[i] = -1;
+    }
+
+    const bool is_active = player_index == env->draft_active_player &&
+                           !draft_player_complete(env, player_index);
+    if (!is_active) {
+      continue;
+    }
+
+    int16_t cand_ids[AZK_DRAFT_MAX_CANDIDATES];
+    uint8_t cand_copies[AZK_DRAFT_MAX_CANDIDATES];
+    const int n = draft_active_candidates(env, player_index, cand_ids,
+                                          cand_copies, AZK_DRAFT_MAX_CANDIDATES);
+    if (n <= 0 || n > 255) {
+      fprintf(stderr,
+              "Draft candidate count %d out of range for player %d\n", n,
+              player_index);
+      abort();
+    }
+    for (int i = 0; i < n; ++i) {
+      dc->candidate_card_def_ids[i] = cand_ids[i];
+      dc->candidate_copy_counts[i] = cand_copies[i];
+    }
+    dc->candidate_count = n;
+
+    TrainingActionMaskObs* mask = &base->action_mask;
+    mask->primary_action_mask[3] = true;  // ActionType.DECK_PICK_CARD
+    mask->legal_action_count = (uint16_t)n;
+    for (int i = 0; i < n; ++i) {
+      mask->legal_primary[i] = 3;
+      mask->legal_sub1[i] = (uint8_t)i;
+    }
+  }
+}
+
+// Battle steps in deck-building mode keep a deck_context (mode 0, full
+// pick-order log, no candidates) and hide the privileged deck lists exactly
+// like the legacy wrapper's _copy_with_sanitized_privileged_decks.
+static void deckbuild_postprocess_battle_observations(CAzukiTCG* env) {
+  for (int player_index = 0; player_index < MAX_PLAYERS_PER_MATCH;
+       ++player_index) {
+    TrainingObservationData* base = obs_base(env, player_index);
+    AzkTrainingDeckContextData* dc = obs_deck_context(env, player_index);
+    memset(dc, 0, sizeof(*dc));
+    dc->mode = 0;
+    dc->gate_card_def_id = env->draft_gate[player_index];
+    dc->leader_card_def_id = env->draft_leader[player_index];
+    for (int i = 0; i < REQUIRED_DECK_SIZE; ++i) {
+      dc->main_card_def_ids[i] = env->draft_main[player_index][i];
+    }
+    dc->main_count = env->draft_main_count[player_index];
+    for (int i = 0; i < AZK_DECKBUILD_OBS_MAX_CANDIDATES; ++i) {
+      dc->candidate_card_def_ids[i] = -1;
+    }
+
+    fill_privileged_deck_lists(env, player_index, base);
+
+    if (base->action_mask.primary_action_mask[3]) {
+      fprintf(stderr,
+              "Battle action mask unexpectedly exposes DECK_PICK_CARD\n");
+      abort();
+    }
+  }
+}
+
+// S4: roll the reference-seat lottery. Returns a deck_pool index or -1.
+// Env vars are re-read per episode (mirrors draft_forced_gates); prob 0 /
+// unset leaves the RNG stream bit-identical to builds without the knob.
+static int draft_sample_ref_deck(CAzukiTCG* env) {
+  const char* prob_text = getenv("AZK_DRAFT_REF_SEAT_PROB");
+  if (prob_text == NULL || prob_text[0] == '\0') {
+    return -1;
+  }
+  const float prob = strtof(prob_text, NULL);
+  if (prob <= 0.0f || env->deck_pool == NULL || env->deck_pool_count == 0) {
+    return -1;
+  }
+  env->draft_rng_state = advance_episode_seed(env->draft_rng_state);
+  if (prob < 1.0f &&
+      (double)env->draft_rng_state >= (double)prob * 4294967296.0) {
+    return -1;
+  }
+  int16_t allowed[64];
+  int allowed_count = 0;
+  const char* idx_text = getenv("AZK_DRAFT_REF_DECK_INDICES");
+  if (idx_text != NULL && idx_text[0] != '\0') {
+    const char* cursor = idx_text;
+    while (*cursor != '\0' && allowed_count < 64) {
+      char* end = NULL;
+      const long value = strtol(cursor, &end, 10);
+      if (end == cursor) {
+        break;
+      }
+      if (value >= 0 && (size_t)value < env->deck_pool_count) {
+        allowed[allowed_count++] = (int16_t)value;
+      }
+      cursor = (*end == ',') ? end + 1 : end;
+    }
+  }
+  env->draft_rng_state = advance_episode_seed(env->draft_rng_state);
+  if (allowed_count > 0) {
+    return allowed[env->draft_rng_state % (uint32_t)allowed_count];
+  }
+  return (int)(env->draft_rng_state % (uint32_t)env->deck_pool_count);
+}
+
+static int16_t draft_spec_gate(const TrainingDeckSpec* spec) {
+  for (size_t i = 0; i < spec->card_count; ++i) {
+    const CardDef* def = azk_card_def_from_id((CardDefId)spec->cards[i].card_id);
+    if (def != NULL && def->type == CARD_TYPE_GATE) {
+      return (int16_t)spec->cards[i].card_id;
+    }
+  }
+  return -1;
+}
+
+// Maps a pool deck onto a COMPLETED draft state for `seat` (validates before
+// mutating: one leader, one catalog gate, exactly REQUIRED_DECK_SIZE mains;
+// IKZ entries ignored). draft_copies is filled best-effort for the draft
+// observations only — reference decks may contain cards outside the gate's
+// draftable pool, so draft_start_battle uses the spec directly for this seat.
+static bool draft_prefill_from_spec(CAzukiTCG* env, int seat,
+                                    const TrainingDeckSpec* spec) {
+  int16_t leader = -1;
+  int16_t gate = -1;
+  int gate_slot = -1;
+  int mains = 0;
+  for (size_t i = 0; i < spec->card_count; ++i) {
+    const CardDef* def = azk_card_def_from_id((CardDefId)spec->cards[i].card_id);
+    if (def == NULL) {
+      return false;
+    }
+    switch (def->type) {
+      case CARD_TYPE_LEADER:
+        leader = (int16_t)spec->cards[i].card_id;
+        break;
+      case CARD_TYPE_GATE:
+        gate = (int16_t)spec->cards[i].card_id;
+        gate_slot = draft_gate_slot_for(gate);
+        break;
+      case CARD_TYPE_IKZ:
+        break;
+      default:
+        mains += spec->cards[i].card_count;
+        break;
+    }
+  }
+  if (leader < 0 || gate < 0 || gate_slot < 0 || mains != REQUIRED_DECK_SIZE) {
+    return false;
+  }
+  env->draft_gate[seat] = gate;
+  env->draft_gate_slot[seat] = gate_slot;
+  env->draft_leader[seat] = leader;
+  env->draft_main_count[seat] = 0;
+  memset(env->draft_copies[seat], 0, sizeof(env->draft_copies[seat]));
+  const int begin = g_draft_catalog.main_offsets[gate_slot];
+  const int end = g_draft_catalog.main_offsets[gate_slot + 1];
+  for (size_t i = 0; i < spec->card_count; ++i) {
+    const CardDef* def = azk_card_def_from_id((CardDefId)spec->cards[i].card_id);
+    const int type = def->type;
+    if (type == CARD_TYPE_LEADER || type == CARD_TYPE_GATE ||
+        type == CARD_TYPE_IKZ) {
+      continue;
+    }
+    for (int c = 0; c < spec->cards[i].card_count &&
+                    env->draft_main_count[seat] < REQUIRED_DECK_SIZE;
+         ++c) {
+      env->draft_main[seat][env->draft_main_count[seat]] =
+          (int16_t)spec->cards[i].card_id;
+      env->draft_main_count[seat] += 1;
+    }
+    for (int j = begin; j < end; ++j) {
+      if (g_draft_catalog.main_flat[j] == (int16_t)spec->cards[i].card_id) {
+        env->draft_copies[seat][j - begin] = (uint8_t)spec->cards[i].card_count;
+        break;
+      }
+    }
+  }
+  return true;
+}
+
+static void draft_begin_episode(CAzukiTCG* env) {
+  env->draft_active = true;
+  env->draft_active_player = 0;
+  env->draft_ref_seat = -1;
+  env->draft_ref_deck_index = -1;
+  env->draft_rng_state = advance_episode_seed(env->draft_rng_state);
+  env->episode_world_seed = env->draft_rng_state;
+
+  int16_t forced[MAX_PLAYERS_PER_MATCH];
+  const bool use_forced = draft_forced_gates(env, forced);
+  int16_t forced_leaders[MAX_PLAYERS_PER_MATCH];
+  const bool use_forced_leaders =
+      env->draft_uniform_assignment &&
+      draft_forced_leaders(env, forced_leaders);
+  int16_t gates[MAX_PLAYERS_PER_MATCH];
+  for (int player_index = 0; player_index < MAX_PLAYERS_PER_MATCH;
+       ++player_index) {
+    if (use_forced) {
+      gates[player_index] = forced[player_index];
+    } else {
+      env->draft_rng_state = advance_episode_seed(env->draft_rng_state);
+      if (env->draft_uniform_assignment) {
+        gates[player_index] =
+            g_draft_catalog.gate_def_ids[env->draft_rng_state %
+                                         (uint32_t)g_draft_catalog.gate_count];
+      } else {
+        gates[player_index] =
+            g_draft_catalog.gate_population[env->draft_rng_state %
+                                            (uint32_t)g_draft_catalog
+                                                .population_count];
+      }
+    }
+  }
+  // S4 reference seat: replace one seat's sampled gate with the reference
+  // deck's own gate before the sibling roll (so a ref seat at slot 0 can
+  // still be sibling-paired against the drafter).
+  int ref_deck = -1;
+  int ref_seat = -1;
+  if (env->evaluation_reference_deck_index >= 0) {
+    ref_deck = (int)env->evaluation_reference_deck_index;
+    ref_seat = (int)env->evaluation_reference_seat;
+  } else if (!use_forced) {
+    ref_deck = draft_sample_ref_deck(env);
+    if (ref_deck >= 0) {
+      env->draft_rng_state = advance_episode_seed(env->draft_rng_state);
+      ref_seat = (int)(env->draft_rng_state & 1u);
+    }
+  }
+  if (ref_deck >= 0) {
+    const int16_t ref_gate = draft_spec_gate(&env->deck_pool[ref_deck]);
+    if (ref_gate >= 0 && draft_gate_slot_for(ref_gate) >= 0) {
+      gates[ref_seat] = ref_gate;
+    } else {
+      ref_deck = -1;
+      ref_seat = -1;
+    }
+  }
+  const float sibling_prob = env->draft_same_element_matchup_prob;
+  if (!use_forced && sibling_prob > 0.0f && ref_seat != 1) {
+    env->draft_rng_state = advance_episode_seed(env->draft_rng_state);
+    const bool hit = sibling_prob >= 1.0f ||
+                     (double)env->draft_rng_state <
+                         (double)sibling_prob * 4294967296.0;
+    if (hit) {
+      const int slot0 = draft_gate_slot_for(gates[0]);
+      const int16_t sibling =
+          slot0 >= 0 ? g_draft_catalog.gate_sibling_def_ids[slot0] : -1;
+      if (sibling >= 0) {
+        gates[1] = sibling;
+      }
+    }
+  }
+  for (int player_index = 0; player_index < MAX_PLAYERS_PER_MATCH;
+       ++player_index) {
+    const int16_t gate = gates[player_index];
+    const int slot = draft_gate_slot_for(gate);
+    if (slot < 0) {
+      fprintf(stderr, "Sampled gate def id %d missing from draft catalog\n",
+              (int)gate);
+      abort();
+    }
+    env->draft_gate[player_index] = gate;
+    env->draft_gate_slot[player_index] = slot;
+    env->draft_leader[player_index] = -1;
+    if (env->draft_uniform_assignment && player_index != ref_seat) {
+      if (use_forced_leaders) {
+        const int16_t leader = forced_leaders[player_index];
+        if (!draft_leader_valid_for_slot(slot, leader)) {
+          fprintf(stderr,
+                  "Forced leader def id %d is incompatible with gate def id %d\n",
+                  (int)leader, (int)gate);
+          abort();
+        }
+        env->draft_leader[player_index] = leader;
+      } else {
+        env->draft_leader[player_index] =
+            draft_sample_assigned_leader(env, slot);
+      }
+    }
+    env->draft_main_count[player_index] = 0;
+    for (int i = 0; i < REQUIRED_DECK_SIZE; ++i) {
+      env->draft_main[player_index][i] = -1;
+    }
+    memset(env->draft_copies[player_index], 0,
+           sizeof(env->draft_copies[player_index]));
+  }
+  if (ref_deck >= 0 &&
+      draft_prefill_from_spec(env, ref_seat, &env->deck_pool[ref_deck])) {
+    env->draft_ref_seat = (int8_t)ref_seat;
+    env->draft_ref_deck_index = (int16_t)ref_deck;
+    env->draft_active_player = (int8_t)(1 - ref_seat);
+  }
+  fill_draft_observations(env);
+}
+
+static void draft_apply_pick(CAzukiTCG* env, int player_index, int32_t sub1) {
+  int16_t cand_ids[AZK_DRAFT_MAX_CANDIDATES];
+  uint8_t cand_copies[AZK_DRAFT_MAX_CANDIDATES];
+  const int n = draft_active_candidates(env, player_index, cand_ids,
+                                        cand_copies, AZK_DRAFT_MAX_CANDIDATES);
+  if (sub1 < 0 || sub1 >= n) {
+    fprintf(stderr, "Draft pick index %d out of range (0..%d)\n", (int)sub1,
+            n - 1);
+    abort();
+  }
+  const int16_t picked = cand_ids[sub1];
+  if (env->draft_leader[player_index] < 0) {
+    env->draft_leader[player_index] = picked;
+    return;
+  }
+  // Map the picked def id back to its position in the full per-gate list to
+  // bump its copy counter.
+  const int slot = env->draft_gate_slot[player_index];
+  const int begin = g_draft_catalog.main_offsets[slot];
+  const int end = g_draft_catalog.main_offsets[slot + 1];
+  int local = -1;
+  for (int i = begin; i < end; ++i) {
+    if (g_draft_catalog.main_flat[i] == picked) {
+      local = i - begin;
+      break;
+    }
+  }
+  if (local < 0) {
+    fprintf(stderr, "Picked card %d missing from catalog list\n", (int)picked);
+    abort();
+  }
+  env->draft_main[player_index][env->draft_main_count[player_index]] = picked;
+  env->draft_main_count[player_index] += 1;
+  env->draft_copies[player_index][local] += 1;
+}
+
+// Deck spec order matches the wrapper: leader, gate, unique mains ascending
+// by card_def_id (catalog order IS ascending), IKZ x10. Returns entry count.
+static size_t draft_assemble_deck(const CAzukiTCG* env, int player_index,
+                                  CardInfo* out, size_t out_capacity) {
+  size_t n = 0;
+  out[n].card_id = (CardDefId)env->draft_leader[player_index];
+  out[n].card_count = 1;
+  n++;
+  out[n].card_id = (CardDefId)env->draft_gate[player_index];
+  out[n].card_count = 1;
+  n++;
+  const int slot = env->draft_gate_slot[player_index];
+  const int begin = g_draft_catalog.main_offsets[slot];
+  const int end = g_draft_catalog.main_offsets[slot + 1];
+  for (int i = begin; i < end; ++i) {
+    const uint8_t copies = env->draft_copies[player_index][i - begin];
+    if (copies == 0) {
+      continue;
+    }
+    if (n >= out_capacity) {
+      fprintf(stderr, "Draft deck spec overflow\n");
+      abort();
+    }
+    out[n].card_id = (CardDefId)g_draft_catalog.main_flat[i];
+    out[n].card_count = (int)copies;
+    n++;
+  }
+  if (n + 1 > out_capacity) {
+    fprintf(stderr, "Draft deck spec overflow (ikz)\n");
+    abort();
+  }
+  out[n].card_id = (CardDefId)g_draft_catalog.ikz_def_id;
+  out[n].card_count = REQUIRED_IKZ_PILE_SIZE;
+  n++;
+  return n;
+}
+
+static void draft_start_battle(CAzukiTCG* env) {
+  // S3 cross-gate replay: with prob p, ONE random seat battles with its
+  // drafted deck under the SIBLING gate — same-deck-both-gates outcome
+  // labels for the critic (the gate x composition contrast on-policy data
+  // never contains). Trainer masks that seat's boundary-segment pick steps
+  // (it detects the deck_context gate change itself). prob 0 leaves RNG
+  // streams untouched. NOTE: deck snapshots/metrics report the SWAPPED gate
+  // for those episodes (~p of records).
+  if (env->draft_cross_gate_replay_prob > 0.0f) {
+    env->draft_rng_state = advance_episode_seed(env->draft_rng_state);
+    const bool hit = env->draft_cross_gate_replay_prob >= 1.0f ||
+                     (double)env->draft_rng_state <
+                         (double)env->draft_cross_gate_replay_prob * 4294967296.0;
+    if (hit) {
+      env->draft_rng_state = advance_episode_seed(env->draft_rng_state);
+      const int seat = (int)(env->draft_rng_state & 1u);
+      // Never swap the reference seat's gate — its deck is fixed to it.
+      if (seat != (int)env->draft_ref_seat) {
+        const int slot = env->draft_gate_slot[seat];
+        const int16_t sibling =
+            slot >= 0 ? g_draft_catalog.gate_sibling_def_ids[slot] : -1;
+        if (sibling >= 0) {
+          const int sib_slot = draft_gate_slot_for(sibling);
+          if (sib_slot >= 0) {
+            env->draft_gate[seat] = sibling;
+            env->draft_gate_slot[seat] = sib_slot;
+          }
+        }
+      }
+    }
+  }
+
+  CardInfo deck0[2 + REQUIRED_DECK_SIZE + 1];
+  CardInfo deck1[2 + REQUIRED_DECK_SIZE + 1];
+  const size_t n0 = draft_assemble_deck(env, 0, deck0, sizeof(deck0) / sizeof(deck0[0]));
+  const size_t n1 = draft_assemble_deck(env, 1, deck1, sizeof(deck1) / sizeof(deck1[0]));
+
+  // S4: the reference seat battles with its pool spec verbatim (its cards may
+  // lie outside the gate's draftable pool, so the copies-based assembly above
+  // cannot represent it).
+  const CardInfo* spec0 = deck0;
+  const CardInfo* spec1 = deck1;
+  size_t count0 = n0;
+  size_t count1 = n1;
+  if (env->draft_ref_seat == 0) {
+    spec0 = env->deck_pool[env->draft_ref_deck_index].cards;
+    count0 = env->deck_pool[env->draft_ref_deck_index].card_count;
+  } else if (env->draft_ref_seat == 1) {
+    spec1 = env->deck_pool[env->draft_ref_deck_index].cards;
+    count1 = env->deck_pool[env->draft_ref_deck_index].card_count;
+  }
+
+  const int8_t starting_player = next_starting_player(env);
+  azk_engine_destroy(env->engine);
+  env->engine = azk_engine_create_with_decks_and_starting_player(
+      env->episode_world_seed, starting_player, spec0, count0, spec1, count1);
+  if (env->engine == NULL) {
+    const char* error_message = azk_engine_get_last_error();
+    fprintf(stderr, "Failed to create engine from drafted decks: %s\n",
+            error_message != NULL ? error_message : "unknown error");
+    abort();
+  }
+  env->draft_active = false;
+  env->tick = 0;
+  env->current_episode_cap = current_episode_ticks_limit(env);
+  refresh_observations(env);
+  reset_reward_tracking(env);
+}
+
+// Fills the per-episode export record consumed by Python for deckbuild
+// metrics + snapshots. Behavior order: attack, spell, weapon, portal,
+// play_entity, noop, ability_garden_or_leader, ability_alley,
+// play_entity_to_garden, play_entity_to_alley, target, response opportunities,
+// temporary Charge realized, temporary-ATK damage realized, generated IKZ
+// created/converted, entity damage dealt/taken.
+static void deckbuild_fill_export_record(CAzukiTCG* env) {
+  const GameState* game_state = azk_engine_game_state(env->engine);
+  AzkRewardSnapshot snapshot = {0};
+  const bool have_snapshot = azk_engine_reward_snapshot(env->engine, &snapshot);
+
+  env->deck_record_seed = env->episode_world_seed;
+  env->deck_record_episode_length = (float)env->tick;
+  for (int p = 0; p < MAX_PLAYERS_PER_MATCH; ++p) {
+    env->deck_record_gate[p] = env->draft_gate[p];
+    env->deck_record_leader[p] = env->draft_leader[p];
+    for (int i = 0; i < REQUIRED_DECK_SIZE; ++i) {
+      env->deck_record_main[p][i] = env->draft_main[p][i];
+    }
+    env->deck_record_win[p] =
+        (game_state != NULL && game_state->winner == p) ? 1.0f : 0.0f;
+    const float total = (float)env->episode_action_total[p];
+    const float inv_total = total > 0.0f ? 1.0f / total : 0.0f;
+    env->deck_record_behavior[p][0] =
+        (float)env->episode_action_attack[p] * inv_total;
+    env->deck_record_behavior[p][1] =
+        (float)env->episode_action_play_spell_from_hand[p] * inv_total;
+    env->deck_record_behavior[p][2] =
+        (float)env->episode_action_attach_weapon_from_hand[p] * inv_total;
+    env->deck_record_behavior[p][3] =
+        (float)env->episode_action_gate_portal[p] * inv_total;
+    env->deck_record_behavior[p][4] =
+        (float)env->episode_action_play[p] * inv_total;
+    env->deck_record_behavior[p][5] =
+        (float)env->episode_action_noop[p] * inv_total;
+    env->deck_record_behavior[p][6] =
+        (float)env->episode_action_activate_garden_or_leader_ability[p] *
+        inv_total;
+    env->deck_record_behavior[p][7] =
+        (float)env->episode_action_activate_alley_ability[p] * inv_total;
+    env->deck_record_behavior[p][8] =
+        (float)env->episode_action_play_entity_to_garden[p] * inv_total;
+    env->deck_record_behavior[p][9] =
+        (float)env->episode_action_play_entity_to_alley[p] * inv_total;
+    env->deck_record_behavior[p][10] =
+        (float)env->episode_action_target[p] * inv_total;
+    env->deck_record_behavior[p][11] =
+        (float)env->episode_contextual_response_reserve_opportunities[p];
+    env->deck_record_behavior[p][12] =
+        (float)env->episode_temporary_charge_realized[p];
+    env->deck_record_behavior[p][13] =
+        (float)env->episode_temporary_attack_damage_realized[p];
+    env->deck_record_behavior[p][14] =
+        have_snapshot ? snapshot.generated_ikz_created[p] : 0.0f;
+    env->deck_record_behavior[p][15] =
+        have_snapshot ? snapshot.generated_ikz_converted[p] : 0.0f;
+    env->deck_record_behavior[p][16] =
+        have_snapshot ? snapshot.entity_damage_taken[1 - p] : 0.0f;
+    env->deck_record_behavior[p][17] =
+        have_snapshot ? snapshot.entity_damage_taken[p] : 0.0f;
+    env->deck_record_leader_health[p] =
+        have_snapshot ? snapshot.leader_health_ratio[p] : 0.0f;
+  }
+  env->deck_record_ref_seat = env->draft_ref_seat;
+  env->deck_record_ref_deck_index = env->draft_ref_deck_index;
+  env->deck_record_valid = true;
+}
+
 static void refresh_observations(CAzukiTCG* env) {
   static int refresh_mode = -1;
   if (refresh_mode < 0) {
@@ -1277,6 +2474,35 @@ static void refresh_observations(CAzukiTCG* env) {
     } else {
       refresh_mode = 1;
     }
+  }
+
+  if (env->deck_building) {
+    // Deck-building rows have a larger stride; the engine fill functions
+    // assume a contiguous TrainingObservationData pair, so fill a local pair
+    // and copy into each row's base struct.
+    TrainingObservationData pair[MAX_PLAYERS_PER_MATCH];
+    if (refresh_mode == 0) {
+      for (int8_t player_index = 0; player_index < MAX_PLAYERS_PER_MATCH;
+           ++player_index) {
+        if (!azk_engine_observe_training(env->engine, player_index,
+                                         &pair[player_index])) {
+          fprintf(stderr,
+                  "Failed to refresh training observation for player %d\n",
+                  player_index);
+          abort();
+        }
+      }
+    } else if (!azk_engine_observe_training_all(env->engine, pair)) {
+      fprintf(stderr,
+              "Failed to refresh training observations for all players\n");
+      abort();
+    }
+    for (int player_index = 0; player_index < MAX_PLAYERS_PER_MATCH;
+         ++player_index) {
+      *obs_base(env, player_index) = pair[player_index];
+    }
+    deckbuild_postprocess_battle_observations(env);
+    return;
   }
 
   if (refresh_mode == 0) {
@@ -1303,7 +2529,6 @@ static void refresh_observations(CAzukiTCG* env) {
 }
 
 void c_reset(CAzukiTCG* env) {
-  const int8_t starting_player = next_starting_player(env);
   env->tick = 0;
   env->terminals[0] = NOT_DONE;
   env->terminals[1] = NOT_DONE;
@@ -1312,13 +2537,23 @@ void c_reset(CAzukiTCG* env) {
   zero_step_reward_components(env);
   env->current_episode_cap = current_episode_ticks_limit(env);
 
+  if (env->deck_building) {
+    // New episode = new draft; the battle engine is created once both
+    // players finish drafting (draft_start_battle).
+    azk_engine_destroy(env->engine);
+    env->engine = NULL;
+    draft_begin_episode(env);
+    return;
+  }
+
+  const int8_t starting_player = next_starting_player(env);
   azk_engine_destroy(env->engine);
   env->engine = create_env_engine(env, starting_player);
   refresh_observations(env);
   {
     const int8_t active_player_index = tcg_active_player_index(env);
     if (active_player_index >= 0 &&
-        env->observations[active_player_index].action_mask.legal_action_count ==
+        obs_base(env, active_player_index)->action_mask.legal_action_count ==
             0) {
       debug_log_zero_mask_state(env, "reset");
     }
@@ -1326,7 +2561,81 @@ void c_reset(CAzukiTCG* env) {
   reset_reward_tracking(env);
 }
 
+void c_reset_with_decks(CAzukiTCG* env,
+                        const CardInfo *player0_deck,
+                        size_t player0_deck_count,
+                        const CardInfo *player1_deck,
+                        size_t player1_deck_count) {
+  const int8_t starting_player = next_starting_player(env);
+  env->tick = 0;
+  env->terminals[0] = NOT_DONE;
+  env->terminals[1] = NOT_DONE;
+  env->truncations[0] = NOT_DONE;
+  env->truncations[1] = NOT_DONE;
+  zero_step_reward_components(env);
+  env->current_episode_cap = current_episode_ticks_limit(env);
+  reset_current_deck_indices(env);
+
+  azk_engine_destroy(env->engine);
+  env->engine = azk_engine_create_with_decks_and_starting_player(
+      env->seed, starting_player, player0_deck, player0_deck_count,
+      player1_deck, player1_deck_count);
+  if (env->engine == NULL) {
+    const char *error_message = azk_engine_get_last_error();
+    fprintf(stderr,
+            "Failed to reset Azuki engine with explicit decks: %s\n",
+            error_message != NULL ? error_message : "unknown error");
+    abort();
+  }
+  refresh_observations(env);
+  {
+    const int8_t active_player_index = tcg_active_player_index(env);
+    if (active_player_index >= 0 &&
+        obs_base(env, active_player_index)->action_mask.legal_action_count ==
+            0) {
+      debug_log_zero_mask_state(env, "reset_with_decks");
+    }
+  }
+  reset_reward_tracking(env);
+}
+
+// One draft step: the active drafter's pick is validated against the fresh
+// candidate list and applied; turn order strictly alternates to the other
+// player while they are incomplete. Draft steps carry zero reward and do not
+// consume the battle tick budget. The final pick creates the engine and
+// returns the first battle observation in the same step.
+static void c_step_draft(CAzukiTCG* env) {
+  zero_step_reward_components(env);
+  const int player_index = env->draft_active_player;
+  const ActionVector action = env->actions[player_index];
+  if (action.type != 3 || action.subaction_2 != 0 || action.subaction_3 != 0) {
+    fprintf(stderr,
+            "Invalid draft action [%d,%d,%d,%d] for player %d "
+            "(expected DECK_PICK_CARD with sub2=sub3=0)\n",
+            action.type, action.subaction_1, action.subaction_2,
+            action.subaction_3, player_index);
+    abort();
+  }
+  draft_apply_pick(env, player_index, action.subaction_1);
+
+  const int other = 1 - player_index;
+  if (!draft_player_complete(env, other)) {
+    env->draft_active_player = (int8_t)other;
+  } else if (!draft_player_complete(env, player_index)) {
+    env->draft_active_player = (int8_t)player_index;
+  } else {
+    draft_start_battle(env);
+    return;
+  }
+  fill_draft_observations(env);
+}
+
 void c_step(CAzukiTCG* env) {
+  if (env->deck_building && env->draft_active) {
+    c_step_draft(env);
+    return;
+  }
+
   init_env_profile_if_needed();
   const uint64_t step_start_ns =
       g_env_profile.enabled ? env_now_ns() : 0;
@@ -1344,7 +2653,7 @@ void c_step(CAzukiTCG* env) {
   }
 
   const TrainingActionMaskObs *current_action_mask =
-      &env->observations[active_player_index].action_mask;
+      &obs_base(env, active_player_index)->action_mask;
   if (current_action_mask->legal_action_count == 0) {
     debug_log_zero_mask_state(env, "step");
     fprintf(
@@ -1390,6 +2699,16 @@ void c_step(CAzukiTCG* env) {
     abort();
   }
 
+  if (parsed_action.type == ACT_ATTACK &&
+      (g_reward_tuning.temporary_charge_realization_bonus > 0.0f ||
+       g_reward_tuning.temporary_attack_realization_per_damage > 0.0f)) {
+    AzkAttackRewardContext attack_context = {0};
+    const bool captured = azk_engine_attack_reward_context(
+        env->engine, &parsed_action, &attack_context);
+    env->pending_attack_reward = attack_context;
+    env->has_pending_attack_reward = captured && attack_context.valid;
+  }
+
   const bool is_valid = azk_engine_submit_action(env->engine, &parsed_action);
   if (!is_valid) {
     fprintf(
@@ -1403,9 +2722,86 @@ void c_step(CAzukiTCG* env) {
     abort();
   }
   record_action_choice(env, active_player_index, parsed_action.type);
+  if (parsed_action.type == ACT_DECLARE_DEFENDER) {
+    env->pending_interception[active_player_index] = true;
+  }
   const bool noop_had_alternatives =
       (parsed_action.type == ACT_NOOP) &&
       (current_action_mask->legal_action_count > 1);
+
+  // S12 early-tempo bonus: flat credit per qualifying development action in
+  // the actor's first N turns (global turn_number <= 2N), capped per turn.
+  float early_tempo_bonus = 0.0f;
+  if (g_reward_tuning.early_tempo_bonus > 0.0f &&
+      early_tempo_qualifying_action(parsed_action.type) &&
+      (!g_reward_tuning.early_tempo_dedup_portal_abilities ||
+       !early_tempo_dedup_excluded_action(parsed_action.type))) {
+    const GameState* tempo_gs = azk_engine_game_state(env->engine);
+    if (tempo_gs != NULL &&
+        (int)tempo_gs->turn_number <= 2 * g_reward_tuning.early_tempo_turns) {
+      if (env->tempo_last_turn[active_player_index] != tempo_gs->turn_number) {
+        env->tempo_last_turn[active_player_index] = tempo_gs->turn_number;
+        env->tempo_turn_count[active_player_index] = 0;
+      }
+      const int cap = g_reward_tuning.early_tempo_cap;
+      if (cap <= 0 || env->tempo_turn_count[active_player_index] < cap) {
+        env->tempo_turn_count[active_player_index]++;
+        early_tempo_bonus = g_reward_tuning.early_tempo_bonus;
+      }
+    }
+  }
+
+  // S13-DMG: snapshot pre-action combat result; a post-tick change with
+  // defender_intercepted set means an intercepted combat resolved during
+  // this (the responder's) step.
+  LastCombatResult pre_combat = {0};
+  bool have_pre_combat = false;
+  if (g_reward_tuning.dmg_mitigation_bonus > 0.0f ||
+      g_reward_tuning.temporary_charge_realization_bonus > 0.0f ||
+      g_reward_tuning.temporary_attack_realization_per_damage > 0.0f) {
+    const GameState* pre_gs = azk_engine_game_state(env->engine);
+    if (pre_gs != NULL) {
+      pre_combat = pre_gs->last_combat;
+      have_pre_combat = true;
+    }
+  }
+
+  // Portal-GP bonus: read the portaled entity from the pre-action alley obs
+  // (sub1 = alley slot); the tick below moves it. Outcome-graded mode (S2)
+  // additionally snapshots pre-action state and only pays if the gate
+  // ability resolves (graded after the tick loop, post refresh).
+  float portal_gp_bonus = 0.0f;
+  bool portal_outcome_pending = false;
+  PortalOutcomeSnapshot portal_pre = {0};
+  const bool outcome_mode = g_reward_tuning.portal_outcome_bonus > 0.0f;
+  if (parsed_action.type == ACT_GATE_PORTAL &&
+      (outcome_mode || g_reward_tuning.portal_gp_bonus > 0.0f)) {
+    const int alley_slot = (int)parsed_action.subaction_1;
+    if (alley_slot >= 0 && alley_slot < ALLEY_SIZE) {
+      const TrainingObservationData* pre_base = obs_base(env, active_player_index);
+      const TrainingBoardCardObservationData* portaled =
+          &pre_base->my_observation_data.alley[alley_slot];
+      if (portaled->card_def_id >= 0) {
+        const CardDef* def =
+            azk_card_def_from_id((CardDefId)portaled->card_def_id);
+        if (def != NULL && def->has_gate_points) {
+          uint8_t gp = def->gate_points.gate_points;
+          if (gp > 4) {
+            gp = 4;
+          }
+          const float weight = outcome_mode
+                                   ? g_reward_tuning.portal_outcome_bonus
+                                   : g_reward_tuning.portal_gp_bonus;
+          portal_gp_bonus = weight * (float)gp / 4.0f;
+          if (outcome_mode && portal_gp_bonus > 0.0f) {
+            portal_outcome_capture(pre_base, (int)portaled->cur_stats.cur_atk,
+                                   &portal_pre);
+            portal_outcome_pending = true;
+          }
+        }
+      }
+    }
+  }
 
   // Some sub-actions do not require a user action
   // We should progress those until a user action is required (or the game ends)
@@ -1434,7 +2830,7 @@ void c_step(CAzukiTCG* env) {
 
     if (azk_engine_was_prev_action_invalid(env->engine)) {
         const TrainingActionMaskObs *active_action_mask =
-            &env->observations[active_player_index].action_mask;
+            &obs_base(env, active_player_index)->action_mask;
         bool action_in_mask = false;
         for (uint16_t i = 0; i < active_action_mask->legal_action_count; ++i) {
           if (active_action_mask->legal_primary[i] == (uint8_t)action.type &&
@@ -1452,7 +2848,7 @@ void c_step(CAzukiTCG* env) {
         const GameState *debug_gs = azk_engine_game_state(env->engine);
         AbilityPhase debug_ability_phase = azk_engine_get_ability_phase(env->engine);
         const TrainingAbilityContextObservationData *ability_context =
-            &env->observations[active_player_index].ability_context;
+            &obs_base(env, active_player_index)->ability_context;
         const int ability_ctx_source_card_def_id =
             ability_context->has_source_card_def_id
                 ? (int)ability_context->source_card_def_id
@@ -1488,7 +2884,7 @@ void c_step(CAzukiTCG* env) {
           "ability_ctx_source_card_def_id=%d, ability_ctx_effect_target_type=%u, "
           "ability_ctx_cost_target_type=%u\n",
           env->tick,
-          (int)env->observations[active_player_index].phase,
+          (int)obs_base(env, active_player_index)->phase,
           active_player_index,
           env->current_deck_indices[0],
           env->current_deck_indices[1],
@@ -1525,7 +2921,7 @@ void c_step(CAzukiTCG* env) {
         }
 
         const TrainingMyObservationData* my_observation_data =
-            &env->observations[active_player_index].my_observation_data;
+            &obs_base(env, active_player_index)->my_observation_data;
         int hand_card_count = 0;
         for (int i = 0; i < MAX_HAND_SIZE; ++i) {
           if (my_observation_data->hand[i].card_def_id >= 0) {
@@ -1560,8 +2956,33 @@ void c_step(CAzukiTCG* env) {
             occupied_garden_zones[2], occupied_garden_zones[3],
             occupied_garden_zones[4], untapped_ikz_card_count);
 
+        // Repro handle for the underlying engine/mask desync bug.
+        fprintf(stderr,
+                "Invalid-action truncation: episode_seed=%u gates=[%d,%d] "
+                "tick=%d\n",
+                env->episode_world_seed, (int)env->draft_gate[0],
+                (int)env->draft_gate[1], env->tick);
         fflush(stderr);
-        abort();
+        // An abort() here turns one bad episode into a dead worker and a
+        // deadlocked vecenv (combo45 hung 2h at 8.8M steps on one hit).
+        // Default: truncate the episode like the zero-legal-action guard and
+        // keep training; opt back into aborting for parity/debug work.
+        const char* abort_raw = getenv("AZK_INVALID_ACTION_ABORT");
+        if (abort_raw != NULL && abort_raw[0] == '1') {
+          abort();
+        }
+        apply_truncation_rewards(env, EP_END_REASON_ZERO_LEGAL_ACTION_TRUNCATION);
+        accumulate_step_rewards(env);
+        env->truncations[0] = DONE;
+        env->truncations[1] = DONE;
+        record_episode_stats(env, EP_END_REASON_ZERO_LEGAL_ACTION_TRUNCATION);
+        if (g_env_profile.enabled) {
+          const uint64_t step_elapsed_ns = env_now_ns() - step_start_ns;
+          g_env_profile.step_calls++;
+          g_env_profile.total_step_ns += step_elapsed_ns;
+          maybe_report_env_profile();
+        }
+        return;
     }
   } while (!azk_engine_requires_action(env->engine) && !azk_engine_is_game_over(env->engine));
 
@@ -1595,6 +3016,26 @@ void c_step(CAzukiTCG* env) {
     return;
   }
 
+  float contextual_response_reserve_adjustment = 0.0f;
+  const GameState* reward_post_gs = azk_engine_game_state(env->engine);
+  if (g_reward_tuning.contextual_response_reserve_bonus > 0.0f &&
+      parsed_action.type == ACT_ATTACK && reward_post_gs != NULL &&
+      reward_post_gs->phase == PHASE_RESPONSE_WINDOW) {
+    const int8_t defender_index = reward_post_gs->active_player_index;
+    if (defender_index >= 0 && defender_index < MAX_PLAYERS_PER_MATCH &&
+        env->response_reserve_last_rewarded_turn[defender_index] !=
+            reward_post_gs->turn_number &&
+        refreshed_mask_has_ikz_response(env, defender_index)) {
+      env->response_reserve_last_rewarded_turn[defender_index] =
+          reward_post_gs->turn_number;
+      env->episode_contextual_response_reserve_opportunities[defender_index]++;
+      contextual_response_reserve_adjustment =
+          defender_index == active_player_index
+              ? g_reward_tuning.contextual_response_reserve_bonus
+              : -g_reward_tuning.contextual_response_reserve_bonus;
+    }
+  }
+
   if (azk_engine_is_game_over(env->engine)) {
     apply_terminal_rewards(env);
     accumulate_step_rewards(env);
@@ -1609,6 +3050,110 @@ void c_step(CAzukiTCG* env) {
       maybe_report_env_profile();
     }
     return;
+  }
+
+  // S2: grade the pending portal bonus against the realized post-tick state
+  // (observations were refreshed above); whiffed abilities pay nothing.
+  if (portal_outcome_pending) {
+    PortalOutcomeSnapshot portal_post;
+    portal_outcome_capture(obs_base(env, active_player_index),
+                           portal_pre.portaled_atk, &portal_post);
+    if (!portal_outcome_resolved(&portal_pre, &portal_post)) {
+      portal_gp_bonus = 0.0f;
+    }
+  }
+
+  // S13-DMG: an intercepted combat resolved during this step — credit the
+  // responder (the acting player) with the realized soak.
+  float dmg_mitigation_bonus = 0.0f;
+  float temporary_effect_adjustment = 0.0f;
+  if (have_pre_combat) {
+    const GameState* post_gs = azk_engine_game_state(env->engine);
+    if (post_gs != NULL &&
+        memcmp(&post_gs->last_combat, &pre_combat, sizeof(LastCombatResult)) != 0) {
+      if (env->pending_interception[active_player_index]) {
+        int soak = (int)post_gs->last_combat.damage_to_defender;
+        if (soak > 0) {
+          const int cap = g_reward_tuning.dmg_mitigation_cap > 0
+                              ? g_reward_tuning.dmg_mitigation_cap
+                              : 10;
+          if (soak > cap) {
+            soak = cap;
+          }
+          dmg_mitigation_bonus =
+              g_reward_tuning.dmg_mitigation_bonus * (float)soak / (float)cap;
+        }
+      }
+      env->pending_interception[0] = false;
+      env->pending_interception[1] = false;
+
+      if (env->has_pending_attack_reward &&
+          post_gs->last_combat.attacker ==
+              env->pending_attack_reward.attacker) {
+        const int owner_index = env->pending_attack_reward.player_index;
+        int effective_damage = (int)post_gs->last_combat.damage_to_defender;
+        const int defender_hp_before =
+            (int)post_gs->last_combat.defender_hp_before;
+        if (effective_damage < 0) {
+          effective_damage = 0;
+        }
+        if (effective_damage > defender_hp_before) {
+          effective_damage = defender_hp_before;
+        }
+
+        float owner_bonus = 0.0f;
+        if (effective_damage > 0 &&
+            env->pending_attack_reward.temporary_charge) {
+          owner_bonus += g_reward_tuning.temporary_charge_realization_bonus;
+          if (owner_index >= 0 && owner_index < MAX_PLAYERS_PER_MATCH) {
+            env->episode_temporary_charge_realized[owner_index]++;
+          }
+        }
+
+        int incremental_damage = 0;
+        const int temporary_attack_bonus =
+            (int)env->pending_attack_reward.positive_eot_attack_bonus;
+        if (effective_damage > 0 && temporary_attack_bonus > 0) {
+          int damage_without_bonus =
+              (int)post_gs->last_combat.damage_to_defender -
+              temporary_attack_bonus;
+          if (damage_without_bonus < 0) {
+            damage_without_bonus = 0;
+          }
+          if (damage_without_bonus > defender_hp_before) {
+            damage_without_bonus = defender_hp_before;
+          }
+          incremental_damage = effective_damage - damage_without_bonus;
+          if (incremental_damage < 0) {
+            incremental_damage = 0;
+          }
+          const int damage_cap =
+              g_reward_tuning.temporary_attack_realization_damage_cap;
+          if (damage_cap > 0 && incremental_damage > damage_cap) {
+            incremental_damage = damage_cap;
+          }
+          owner_bonus +=
+              g_reward_tuning.temporary_attack_realization_per_damage *
+              (float)incremental_damage;
+          if (owner_index >= 0 && owner_index < MAX_PLAYERS_PER_MATCH) {
+            env->episode_temporary_attack_damage_realized[owner_index] +=
+                (uint32_t)incremental_damage;
+          }
+        }
+
+        temporary_effect_adjustment =
+            owner_index == active_player_index ? owner_bonus : -owner_bonus;
+        env->pending_attack_reward = (AzkAttackRewardContext){0};
+        env->has_pending_attack_reward = false;
+      }
+    }
+    if (post_gs != NULL && env->has_pending_attack_reward &&
+        post_gs->combat_state.attacking_card == 0 &&
+        post_gs->phase != PHASE_RESPONSE_WINDOW &&
+        post_gs->phase != PHASE_COMBAT_RESOLVE) {
+      env->pending_attack_reward = (AzkAttackRewardContext){0};
+      env->has_pending_attack_reward = false;
+    }
   }
 
   const int max_ticks = current_episode_ticks_limit(env);
@@ -1631,7 +3176,10 @@ void c_step(CAzukiTCG* env) {
     return;
   }
 
-  apply_shaped_rewards(env, active_player_index, parsed_action.type, noop_had_alternatives);
+  apply_shaped_rewards(env, active_player_index, parsed_action.type, noop_had_alternatives,
+                       portal_gp_bonus + early_tempo_bonus + dmg_mitigation_bonus +
+                           temporary_effect_adjustment +
+                           contextual_response_reserve_adjustment);
   accumulate_step_rewards(env);
   if (g_env_profile.enabled) {
     const uint64_t step_elapsed_ns = env_now_ns() - step_start_ns;
@@ -1976,7 +3524,11 @@ static bool column_render_pushf_with_indent(ColumnRender *col, size_t indent, co
   char line[320];
   size_t prefix = indent < sizeof line ? indent : sizeof line - 1;
   memset(line, ' ', prefix);
-  size_t copy_len = strnlen(buffer, sizeof line - prefix - 1);
+  size_t available = sizeof line - prefix - 1;
+  size_t copy_len = strnlen(buffer, sizeof buffer);
+  if (copy_len > available) {
+    copy_len = available;
+  }
   memcpy(line + prefix, buffer, copy_len);
   line[prefix + copy_len] = '\0';
   return column_render_push_line(col, line);

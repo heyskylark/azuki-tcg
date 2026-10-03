@@ -1,0 +1,435 @@
+1712 episodes (3424 decks) from experiments/abl_snapshots/gateid1
+
+=== bucket 1/4 (428 episodes) ===
+
+[Stormchain(L)] games=87 win=0.655 avg_cost=2.93 elem_share=0.37 jaccard=0.236
+  types: ENTITY=0.73 SPELL=0.14 WEAPON=0.13
+  leaders: {'STT01-001': 46, 'AZK01-119': 41}
+  behavior: attack_rate=0.341 spell_rate=0.020 weapon_rate=0.046 portal_rate=0.048 play_entity_rate=0.283 noop_rate=0.184 episode_length=70.345
+    STT01-004 x1.24  ENTITY c1 Black Jade Recruit
+    AZK01-041 x1.21  ENTITY c8 Wu Cha
+    STT01-007 x1.08  ENTITY c2 Alley Guy
+    STT01-013 x0.99  WEAPON c1 Black Jade Dagger
+    AZK01-014 x0.97  ENTITY c5 Trade Guild Cavalry
+    AZK01-078 x0.84  ENTITY c4 Fermented Beanz
+    AZK01-015 x0.83  ENTITY c6 Mo
+    AZK01-035 x0.83  ENTITY c3 Raimaru the Stolen
+
+[Rushfire(F)] games=89 win=0.416 avg_cost=3.08 elem_share=0.43 jaccard=0.237
+  types: ENTITY=0.81 SPELL=0.14 WEAPON=0.05
+  leaders: {'STT04-001': 51, 'AZK01-121': 38}
+  behavior: attack_rate=0.279 spell_rate=0.018 weapon_rate=0.019 portal_rate=0.042 play_entity_rate=0.249 noop_rate=0.174 episode_length=67.888
+    AZK01-064 x1.04  ENTITY c8 Zero
+    STT04-014 x0.97  ENTITY c6 Scorchveil Shinobi, Suzu
+    STT01-007 x0.97  ENTITY c2 Alley Guy
+    AZK01-014 x0.94  ENTITY c5 Trade Guild Cavalry
+    STT04-011 x0.88  ENTITY c4 Scorchland Raven
+    AZK01-081 x0.87  ENTITY c5 Gurugumi Mentor
+    AZK01-063 x0.85  ENTITY c6 Enzo
+    STT01-004 x0.84  ENTITY c1 Black Jade Recruit
+
+[Devotion(E)] games=89 win=0.393 avg_cost=3.60 elem_share=0.46 jaccard=0.221
+  types: ENTITY=0.77 SPELL=0.17 WEAPON=0.05
+  leaders: {'AZK01-123': 52, 'STT03-001': 37}
+  behavior: attack_rate=0.282 spell_rate=0.020 weapon_rate=0.018 portal_rate=0.048 play_entity_rate=0.252 noop_rate=0.179 episode_length=75.944
+    AZK01-106 x1.46  ENTITY c10 Lord of Sands, Osunanami
+    AZK01-054 x1.24  ENTITY c8 Teb Fea
+    STT01-007 x1.2   ENTITY c2 Alley Guy
+    STT03-014 x1.19  ENTITY c8 Sandcoil Python
+    STT01-004 x1.17  ENTITY c1 Black Jade Recruit
+    STT01-013 x1.04  WEAPON c1 Black Jade Dagger
+    AZK01-104 x0.92  ENTITY c6 Sanzu's Envoy
+    STT03-013 x0.92  ENTITY c7 Stone Masked Ancient
+
+[EchoedWaves(W)] games=93 win=0.409 avg_cost=3.08 elem_share=0.43 jaccard=0.238
+  types: ENTITY=0.74 SPELL=0.21 WEAPON=0.05
+  leaders: {'AZK01-125': 51, 'STT02-001': 42}
+  behavior: attack_rate=0.274 spell_rate=0.035 weapon_rate=0.014 portal_rate=0.047 play_entity_rate=0.259 noop_rate=0.168 episode_length=80.022
+    STT02-009 x1.1   ENTITY c3 Aya
+    AZK01-028 x1.09  ENTITY c8 Soryu no Rin
+    STT02-010 x1.09  ENTITY c3 Selis of the Shore
+    STT01-007 x1.01  ENTITY c2 Alley Guy
+    STT01-004 x0.98  ENTITY c1 Black Jade Recruit
+    AZK01-089 x0.97  ENTITY c7 Mizuryuu Fist Master
+    AZK01-093 x0.96  ENTITY c7 Naiyara the Tideweaver
+    AZK01-081 x0.95  ENTITY c5 Gurugumi Mentor
+
+[Surge(L)] games=142 win=0.648 avg_cost=2.95 elem_share=0.37 jaccard=0.240
+  types: ENTITY=0.72 SPELL=0.15 WEAPON=0.13
+  leaders: {'STT01-001': 71, 'AZK01-119': 71}
+  behavior: attack_rate=0.346 spell_rate=0.020 weapon_rate=0.044 portal_rate=0.039 play_entity_rate=0.267 noop_rate=0.179 episode_length=72.176
+    STT01-007 x1.3   ENTITY c2 Alley Guy
+    AZK01-041 x1.27  ENTITY c8 Wu Cha
+    STT01-004 x1.24  ENTITY c1 Black Jade Recruit
+    STT01-013 x1.06  WEAPON c1 Black Jade Dagger
+    AZK01-081 x0.91  ENTITY c5 Gurugumi Mentor
+    STT01-011 x0.84  ENTITY c6 Raizan
+    AZK01-014 x0.83  ENTITY c5 Trade Guild Cavalry
+    AZK01-015 x0.82  ENTITY c6 Mo
+
+[Hydromancy(W)] games=141 win=0.504 avg_cost=3.16 elem_share=0.44 jaccard=0.235
+  types: ENTITY=0.74 SPELL=0.21 WEAPON=0.06
+  leaders: {'STT02-001': 77, 'AZK01-125': 64}
+  behavior: attack_rate=0.289 spell_rate=0.030 weapon_rate=0.020 portal_rate=0.046 play_entity_rate=0.265 noop_rate=0.161 episode_length=77.858
+    AZK01-028 x1.3   ENTITY c8 Soryu no Rin
+    STT02-010 x1.12  ENTITY c3 Selis of the Shore
+    STT02-009 x1.06  ENTITY c3 Aya
+    STT02-017 x1.04  SPELL  c6 Shao's Perseverance
+    STT01-013 x1.03  WEAPON c1 Black Jade Dagger
+    STT01-007 x1.03  ENTITY c2 Alley Guy
+    AZK01-089 x1.02  ENTITY c7 Mizuryuu Fist Master
+    AZK01-093 x0.95  ENTITY c7 Naiyara the Tideweaver
+
+[Stonehaven(E)] games=119 win=0.479 avg_cost=3.63 elem_share=0.45 jaccard=0.227
+  types: ENTITY=0.78 SPELL=0.16 WEAPON=0.06
+  leaders: {'AZK01-123': 60, 'STT03-001': 59}
+  behavior: attack_rate=0.282 spell_rate=0.021 weapon_rate=0.020 portal_rate=0.046 play_entity_rate=0.253 noop_rate=0.180 episode_length=79.807
+    AZK01-106 x1.43  ENTITY c10 Lord of Sands, Osunanami
+    AZK01-054 x1.24  ENTITY c8 Teb Fea
+    STT01-007 x1.23  ENTITY c2 Alley Guy
+    STT03-014 x1.07  ENTITY c8 Sandcoil Python
+    STT01-004 x1.01  ENTITY c1 Black Jade Recruit
+    STT03-013 x1.0   ENTITY c7 Stone Masked Ancient
+    AZK01-053 x0.99  ENTITY c7 Geodust Smuggler
+    STT01-013 x0.98  WEAPON c1 Black Jade Dagger
+
+[Ragefire(F)] games=96 win=0.427 avg_cost=3.03 elem_share=0.42 jaccard=0.226
+  types: ENTITY=0.79 SPELL=0.15 WEAPON=0.06
+  leaders: {'STT04-001': 54, 'AZK01-121': 42}
+  behavior: attack_rate=0.267 spell_rate=0.022 weapon_rate=0.022 portal_rate=0.041 play_entity_rate=0.257 noop_rate=0.179 episode_length=70.010
+    STT01-004 x1.38  ENTITY c1 Black Jade Recruit
+    STT01-007 x1.26  ENTITY c2 Alley Guy
+    AZK01-064 x1.24  ENTITY c8 Zero
+    STT01-013 x1.16  WEAPON c1 Black Jade Dagger
+    AZK01-063 x0.91  ENTITY c6 Enzo
+    AZK01-081 x0.83  ENTITY c5 Gurugumi Mentor
+    STT01-015 x0.81  WEAPON c3 Tenraku
+    STT04-012 x0.8   ENTITY c4 Spiteful Raider
+
+  cross-gate L1 divergence: mean=0.409 min=0.055 max=0.493 | same-element pairs mean=0.066
+
+=== bucket 2/4 (428 episodes) ===
+
+[Stormchain(L)] games=88 win=0.580 avg_cost=2.74 elem_share=0.40 jaccard=0.193
+  types: ENTITY=0.68 SPELL=0.18 WEAPON=0.14
+  leaders: {'STT01-001': 47, 'AZK01-119': 41}
+  behavior: attack_rate=0.362 spell_rate=0.020 weapon_rate=0.039 portal_rate=0.011 play_entity_rate=0.251 noop_rate=0.181 episode_length=65.750
+    STT01-010 x1.14  ENTITY c5 Indra
+    AZK01-011 x1.05  ENTITY c3 Rooftop Hunter
+    AZK01-082 x1.03  ENTITY c5 Black Jade Brawler
+    AZK01-001 x0.92  ENTITY c1 Penny
+    STT01-012 x0.91  WEAPON c1 Lightning Shuriken
+    STT01-013 x0.89  WEAPON c1 Black Jade Dagger
+    AZK01-041 x0.88  ENTITY c8 Wu Cha
+    AZK01-070 x0.85  ENTITY c1 Mocking Dummy
+
+[Rushfire(F)] games=91 win=0.484 avg_cost=2.86 elem_share=0.42 jaccard=0.193
+  types: ENTITY=0.76 SPELL=0.19 WEAPON=0.05
+  leaders: {'AZK01-121': 47, 'STT04-001': 44}
+  behavior: attack_rate=0.282 spell_rate=0.023 weapon_rate=0.014 portal_rate=0.014 play_entity_rate=0.231 noop_rate=0.164 episode_length=64.308
+    STT04-010 x0.95  ENTITY c3 Reckless Tinkerer
+    AZK01-017 x0.93  SPELL  c2 Hook Sword Strike
+    AZK01-009 x0.91  SPELL  c1 The Red Bean
+    AZK01-001 x0.87  ENTITY c1 Penny
+    AZK01-064 x0.87  ENTITY c8 Zero
+    AZK01-116 x0.86  ENTITY c4 Tenmoku Daiki
+    AZK01-082 x0.85  ENTITY c5 Black Jade Brawler
+    AZK01-060 x0.81  ENTITY c5 Scarlett
+
+[Devotion(E)] games=75 win=0.467 avg_cost=3.43 elem_share=0.47 jaccard=0.182
+  types: ENTITY=0.78 SPELL=0.18 WEAPON=0.04
+  leaders: {'STT03-001': 40, 'AZK01-123': 35}
+  behavior: attack_rate=0.291 spell_rate=0.028 weapon_rate=0.011 portal_rate=0.011 play_entity_rate=0.230 noop_rate=0.175 episode_length=75.053
+    STT03-014 x1.28  ENTITY c8 Sandcoil Python
+    AZK01-082 x1.09  ENTITY c5 Black Jade Brawler
+    AZK01-011 x1.08  ENTITY c3 Rooftop Hunter
+    AZK01-106 x0.92  ENTITY c10 Lord of Sands, Osunanami
+    AZK01-054 x0.91  ENTITY c8 Teb Fea
+    STT03-013 x0.89  ENTITY c7 Stone Masked Ancient
+    AZK01-104 x0.89  ENTITY c6 Sanzu's Envoy
+    AZK01-103 x0.87  ENTITY c5 Dropline Station
+
+[EchoedWaves(W)] games=99 win=0.525 avg_cost=2.96 elem_share=0.44 jaccard=0.187
+  types: ENTITY=0.71 SPELL=0.24 WEAPON=0.04
+  leaders: {'STT02-001': 50, 'AZK01-125': 49}
+  behavior: attack_rate=0.284 spell_rate=0.036 weapon_rate=0.011 portal_rate=0.013 play_entity_rate=0.225 noop_rate=0.156 episode_length=82.152
+    STT02-006 x1.23  ENTITY c2 Foamback Crab
+    STT02-017 x1.12  SPELL  c6 Shao's Perseverance
+    AZK01-028 x1.06  ENTITY c8 Soryu no Rin
+    STT02-008 x0.95  ENTITY c2 Serene Fist, Misaki
+    AZK01-093 x0.93  ENTITY c7 Naiyara the Tideweaver
+    AZK01-011 x0.92  ENTITY c3 Rooftop Hunter
+    STT01-007 x0.91  ENTITY c2 Alley Guy
+    AZK01-089 x0.91  ENTITY c7 Mizuryuu Fist Master
+
+[Surge(L)] games=162 win=0.586 avg_cost=2.75 elem_share=0.41 jaccard=0.191
+  types: ENTITY=0.68 SPELL=0.19 WEAPON=0.13
+  leaders: {'STT01-001': 89, 'AZK01-119': 73}
+  behavior: attack_rate=0.353 spell_rate=0.023 weapon_rate=0.040 portal_rate=0.010 play_entity_rate=0.253 noop_rate=0.177 episode_length=67.691
+    AZK01-011 x1.17  ENTITY c3 Rooftop Hunter
+    STT01-010 x1.16  ENTITY c5 Indra
+    STT01-007 x1.04  ENTITY c2 Alley Guy
+    AZK01-035 x0.98  ENTITY c3 Raimaru the Stolen
+    AZK01-096 x0.92  SPELL  c2 Ninpo: Thunderstep
+    STT01-004 x0.9   ENTITY c1 Black Jade Recruit
+    AZK01-041 x0.88  ENTITY c8 Wu Cha
+    STT01-016 x0.85  WEAPON c4 Raizan's Zanbato
+
+[Hydromancy(W)] games=131 win=0.397 avg_cost=2.95 elem_share=0.44 jaccard=0.177
+  types: ENTITY=0.72 SPELL=0.23 WEAPON=0.05
+  leaders: {'AZK01-125': 68, 'STT02-001': 63}
+  behavior: attack_rate=0.281 spell_rate=0.035 weapon_rate=0.015 portal_rate=0.012 play_entity_rate=0.240 noop_rate=0.168 episode_length=77.611
+    STT02-017 x1.15  SPELL  c6 Shao's Perseverance
+    AZK01-028 x1.04  ENTITY c8 Soryu no Rin
+    STT02-009 x0.99  ENTITY c3 Aya
+    STT01-007 x0.95  ENTITY c2 Alley Guy
+    STT02-010 x0.95  ENTITY c3 Selis of the Shore
+    AZK01-093 x0.93  ENTITY c7 Naiyara the Tideweaver
+    STT02-006 x0.9   ENTITY c2 Foamback Crab
+    AZK01-011 x0.9   ENTITY c3 Rooftop Hunter
+
+[Stonehaven(E)] games=103 win=0.505 avg_cost=3.26 elem_share=0.46 jaccard=0.177
+  types: ENTITY=0.76 SPELL=0.19 WEAPON=0.05
+  leaders: {'AZK01-123': 53, 'STT03-001': 50}
+  behavior: attack_rate=0.289 spell_rate=0.028 weapon_rate=0.016 portal_rate=0.010 play_entity_rate=0.227 noop_rate=0.167 episode_length=73.709
+    STT03-009 x1.25  ENTITY c4 Warding Totem
+    STT03-014 x1.09  ENTITY c8 Sandcoil Python
+    AZK01-103 x1.05  ENTITY c5 Dropline Station
+    AZK01-106 x1.0   ENTITY c10 Lord of Sands, Osunanami
+    STT01-014 x0.92  WEAPON c2 Tenshin
+    AZK01-105 x0.91  ENTITY c4 Prickly Tumbleweed
+    STT03-003 x0.83  ENTITY c1 Koyama Farm Potter
+    AZK01-082 x0.82  ENTITY c5 Black Jade Brawler
+
+[Ragefire(F)] games=107 win=0.439 avg_cost=2.82 elem_share=0.41 jaccard=0.191
+  types: ENTITY=0.77 SPELL=0.17 WEAPON=0.06
+  leaders: {'AZK01-121': 57, 'STT04-001': 50}
+  behavior: attack_rate=0.283 spell_rate=0.026 weapon_rate=0.016 portal_rate=0.010 play_entity_rate=0.232 noop_rate=0.163 episode_length=64.757
+    AZK01-116 x1.02  ENTITY c4 Tenmoku Daiki
+    STT01-007 x0.9   ENTITY c2 Alley Guy
+    AZK01-001 x0.86  ENTITY c1 Penny
+    STT04-003 x0.82  ENTITY c1 Cinderwake Seer
+    AZK01-011 x0.81  ENTITY c3 Rooftop Hunter
+    AZK01-056 x0.8   ENTITY c1 Glass Blower, Hokuto
+    AZK01-072 x0.79  ENTITY c2 Beanz Mentor
+    AZK01-082 x0.77  ENTITY c5 Black Jade Brawler
+
+  cross-gate L1 divergence: mean=0.421 min=0.071 max=0.504 | same-element pairs mean=0.080
+
+=== bucket 3/4 (428 episodes) ===
+
+[Stormchain(L)] games=93 win=0.624 avg_cost=2.70 elem_share=0.35 jaccard=0.254
+  types: ENTITY=0.71 SPELL=0.16 WEAPON=0.13
+  leaders: {'AZK01-119': 60, 'STT01-001': 33}
+  behavior: attack_rate=0.333 spell_rate=0.030 weapon_rate=0.032 portal_rate=0.018 play_entity_rate=0.266 noop_rate=0.201 episode_length=73.495
+    AZK01-069 x1.03  ENTITY c1 Link
+    STT04-011 x1.0   ENTITY c4 Scorchland Raven
+    STT01-004 x0.95  ENTITY c1 Black Jade Recruit
+    STT03-008 x0.92  ENTITY c3 Midnight Courier
+    STT04-006 x0.92  ENTITY c2 Wolf Cub
+    AZK01-068 x0.91  ENTITY c1 Pip
+    STT01-007 x0.91  ENTITY c2 Alley Guy
+    AZK01-012 x0.89  ENTITY c4 Ed
+
+[Rushfire(F)] games=89 win=0.427 avg_cost=2.79 elem_share=0.40 jaccard=0.247
+  types: ENTITY=0.77 SPELL=0.18 WEAPON=0.05
+  leaders: {'STT04-001': 46, 'AZK01-121': 43}
+  behavior: attack_rate=0.264 spell_rate=0.030 weapon_rate=0.010 portal_rate=0.021 play_entity_rate=0.242 noop_rate=0.168 episode_length=70.629
+    AZK01-020 x0.94  SPELL  c3 Power of Friendship
+    AZK01-069 x0.85  ENTITY c1 Link
+    AZK01-086 x0.84  SPELL  c4 Forging Tricks
+    AZK01-115 x0.83  ENTITY c2 Crazed Arsonist
+    STT04-011 x0.83  ENTITY c4 Scorchland Raven
+    STT03-008 x0.82  ENTITY c3 Midnight Courier
+    STT04-006 x0.82  ENTITY c2 Wolf Cub
+    AZK01-003 x0.81  ENTITY c1 Black Jade Courier
+
+[Devotion(E)] games=102 win=0.520 avg_cost=3.08 elem_share=0.39 jaccard=0.246
+  types: ENTITY=0.75 SPELL=0.21 WEAPON=0.05
+  leaders: {'AZK01-123': 56, 'STT03-001': 46}
+  behavior: attack_rate=0.288 spell_rate=0.040 weapon_rate=0.008 portal_rate=0.016 play_entity_rate=0.243 noop_rate=0.179 episode_length=75.098
+    STT01-007 x0.96  ENTITY c2 Alley Guy
+    STT03-008 x0.94  ENTITY c3 Midnight Courier
+    AZK01-003 x0.9   ENTITY c1 Black Jade Courier
+    AZK01-085 x0.84  SPELL  c3 Invigorating Concoction
+    STT04-006 x0.84  ENTITY c2 Wolf Cub
+    AZK01-073 x0.84  ENTITY c3 Top Beanz
+    STT01-004 x0.83  ENTITY c1 Black Jade Recruit
+    AZK01-086 x0.82  SPELL  c4 Forging Tricks
+
+[EchoedWaves(W)] games=111 win=0.495 avg_cost=2.77 elem_share=0.38 jaccard=0.233
+  types: ENTITY=0.71 SPELL=0.23 WEAPON=0.06
+  leaders: {'AZK01-125': 67, 'STT02-001': 44}
+  behavior: attack_rate=0.285 spell_rate=0.036 weapon_rate=0.014 portal_rate=0.026 play_entity_rate=0.249 noop_rate=0.181 episode_length=81.045
+    STT02-009 x0.97  ENTITY c3 Aya
+    STT01-004 x0.94  ENTITY c1 Black Jade Recruit
+    STT02-010 x0.91  ENTITY c3 Selis of the Shore
+    STT01-007 x0.89  ENTITY c2 Alley Guy
+    STT03-008 x0.88  ENTITY c3 Midnight Courier
+    STT04-011 x0.86  ENTITY c4 Scorchland Raven
+    AZK01-069 x0.83  ENTITY c1 Link
+    STT01-013 x0.83  WEAPON c1 Black Jade Dagger
+
+[Surge(L)] games=137 win=0.569 avg_cost=2.73 elem_share=0.37 jaccard=0.253
+  types: ENTITY=0.70 SPELL=0.18 WEAPON=0.12
+  leaders: {'AZK01-119': 82, 'STT01-001': 55}
+  behavior: attack_rate=0.333 spell_rate=0.029 weapon_rate=0.029 portal_rate=0.027 play_entity_rate=0.277 noop_rate=0.200 episode_length=70.204
+    STT04-011 x1.04  ENTITY c4 Scorchland Raven
+    AZK01-073 x0.93  ENTITY c3 Top Beanz
+    AZK01-042 x0.92  SPELL  c5 Thunderclap
+    STT04-006 x0.9   ENTITY c2 Wolf Cub
+    STT01-004 x0.89  ENTITY c1 Black Jade Recruit
+    AZK01-020 x0.88  SPELL  c3 Power of Friendship
+    AZK01-003 x0.88  ENTITY c1 Black Jade Courier
+    AZK01-100 x0.82  SPELL  c2 Raizan's Riposte
+
+[Hydromancy(W)] games=127 win=0.441 avg_cost=2.82 elem_share=0.38 jaccard=0.243
+  types: ENTITY=0.71 SPELL=0.23 WEAPON=0.05
+  leaders: {'AZK01-125': 65, 'STT02-001': 62}
+  behavior: attack_rate=0.279 spell_rate=0.035 weapon_rate=0.013 portal_rate=0.021 play_entity_rate=0.251 noop_rate=0.186 episode_length=80.811
+    STT04-011 x1.02  ENTITY c4 Scorchland Raven
+    STT02-009 x0.97  ENTITY c3 Aya
+    STT01-004 x0.91  ENTITY c1 Black Jade Recruit
+    STT01-007 x0.89  ENTITY c2 Alley Guy
+    AZK01-073 x0.88  ENTITY c3 Top Beanz
+    AZK01-086 x0.87  SPELL  c4 Forging Tricks
+    AZK01-003 x0.86  ENTITY c1 Black Jade Courier
+    STT04-006 x0.84  ENTITY c2 Wolf Cub
+
+[Stonehaven(E)] games=103 win=0.485 avg_cost=3.11 elem_share=0.40 jaccard=0.239
+  types: ENTITY=0.74 SPELL=0.21 WEAPON=0.05
+  leaders: {'AZK01-123': 63, 'STT03-001': 40}
+  behavior: attack_rate=0.294 spell_rate=0.030 weapon_rate=0.013 portal_rate=0.015 play_entity_rate=0.242 noop_rate=0.186 episode_length=77.534
+    AZK01-101 x0.91  SPELL  c3 Sand Stands Still
+    STT04-011 x0.89  ENTITY c4 Scorchland Raven
+    AZK01-102 x0.85  SPELL  c2 Oathstone
+    AZK01-085 x0.84  SPELL  c3 Invigorating Concoction
+    STT01-004 x0.83  ENTITY c1 Black Jade Recruit
+    STT04-006 x0.83  ENTITY c2 Wolf Cub
+    AZK01-045 x0.82  ENTITY c1 Treetop Scout
+    STT03-013 x0.82  ENTITY c7 Stone Masked Ancient
+
+[Ragefire(F)] games=94 win=0.426 avg_cost=2.83 elem_share=0.39 jaccard=0.244
+  types: ENTITY=0.78 SPELL=0.18 WEAPON=0.05
+  leaders: {'AZK01-121': 58, 'STT04-001': 36}
+  behavior: attack_rate=0.274 spell_rate=0.033 weapon_rate=0.009 portal_rate=0.018 play_entity_rate=0.250 noop_rate=0.176 episode_length=69.702
+    STT04-011 x0.99  ENTITY c4 Scorchland Raven
+    AZK01-065 x0.84  SPELL  c4 Fire Orb
+    AZK01-071 x0.82  ENTITY c2 Alley Fetchduck
+    STT01-007 x0.81  ENTITY c2 Alley Guy
+    AZK01-082 x0.81  ENTITY c5 Black Jade Brawler
+    AZK01-059 x0.8   ENTITY c2 Spice
+    AZK01-069 x0.8   ENTITY c1 Link
+    STT03-008 x0.8   ENTITY c3 Midnight Courier
+
+  cross-gate L1 divergence: mean=0.372 min=0.060 max=0.440 | same-element pairs mean=0.068
+
+=== bucket 4/4 (428 episodes) ===
+
+[Stormchain(L)] games=98 win=0.612 avg_cost=2.49 elem_share=0.41 jaccard=0.220
+  types: ENTITY=0.66 SPELL=0.20 WEAPON=0.13
+  leaders: {'STT01-001': 54, 'AZK01-119': 44}
+  behavior: attack_rate=0.347 spell_rate=0.031 weapon_rate=0.028 portal_rate=0.007 play_entity_rate=0.270 noop_rate=0.177 episode_length=68.602
+    STT01-004 x1.54  ENTITY c1 Black Jade Recruit
+    STT01-007 x1.4   ENTITY c2 Alley Guy
+    STT01-003 x1.28  ENTITY c1 Crate Rat Kurobo
+    STT01-017 x1.28  SPELL  c1 Lightning Orb
+    STT01-005 x1.26  ENTITY c2 Alpine Prowler
+    STT01-012 x1.23  WEAPON c1 Lightning Shuriken
+    AZK01-042 x1.09  SPELL  c5 Thunderclap
+    AZK01-069 x1.05  ENTITY c1 Link
+
+[Rushfire(F)] games=103 win=0.495 avg_cost=2.56 elem_share=0.41 jaccard=0.214
+  types: ENTITY=0.72 SPELL=0.22 WEAPON=0.06
+  leaders: {'AZK01-121': 65, 'STT04-001': 38}
+  behavior: attack_rate=0.294 spell_rate=0.026 weapon_rate=0.010 portal_rate=0.002 play_entity_rate=0.245 noop_rate=0.171 episode_length=68.602
+    STT01-004 x1.59  ENTITY c1 Black Jade Recruit
+    STT01-007 x1.36  ENTITY c2 Alley Guy
+    AZK01-066 x1.27  SPELL  c5 Firestorm
+    AZK01-069 x1.18  ENTITY c1 Link
+    AZK01-065 x1.07  SPELL  c4 Fire Orb
+    STT01-014 x1.06  WEAPON c2 Tenshin
+    STT04-017 x0.98  SPELL  c3 Wrath of Sinder
+    STT01-013 x0.97  WEAPON c1 Black Jade Dagger
+
+[Devotion(E)] games=93 win=0.505 avg_cost=2.84 elem_share=0.41 jaccard=0.211
+  types: ENTITY=0.70 SPELL=0.24 WEAPON=0.06
+  leaders: {'AZK01-123': 48, 'STT03-001': 45}
+  behavior: attack_rate=0.310 spell_rate=0.035 weapon_rate=0.010 portal_rate=0.003 play_entity_rate=0.244 noop_rate=0.174 episode_length=73.419
+    STT01-004 x1.52  ENTITY c1 Black Jade Recruit
+    STT01-007 x1.35  ENTITY c2 Alley Guy
+    AZK01-069 x1.25  ENTITY c1 Link
+    AZK01-045 x1.2   ENTITY c1 Treetop Scout
+    AZK01-102 x1.08  SPELL  c2 Oathstone
+    STT01-013 x1.05  WEAPON c1 Black Jade Dagger
+    STT03-003 x0.97  ENTITY c1 Koyama Farm Potter
+    STT03-015 x0.96  SPELL  c4 Jar of Beans
+
+[EchoedWaves(W)] games=88 win=0.511 avg_cost=2.53 elem_share=0.49 jaccard=0.216
+  types: ENTITY=0.67 SPELL=0.29 WEAPON=0.05
+  leaders: {'STT02-001': 47, 'AZK01-125': 41}
+  behavior: attack_rate=0.301 spell_rate=0.041 weapon_rate=0.012 portal_rate=0.004 play_entity_rate=0.250 noop_rate=0.161 episode_length=81.477
+    STT02-009 x2.01  ENTITY c3 Aya
+    STT02-010 x1.7   ENTITY c3 Selis of the Shore
+    STT01-004 x1.4   ENTITY c1 Black Jade Recruit
+    STT02-014 x1.32  SPELL  c1 Chilling Water
+    STT02-005 x1.31  ENTITY c1 Hayabusa Saburo
+    STT02-016 x1.2   SPELL  c1 Water Orb
+    STT01-007 x1.17  ENTITY c2 Alley Guy
+    STT02-015 x1.17  SPELL  c2 Commune with Water
+
+[Surge(L)] games=125 win=0.648 avg_cost=2.48 elem_share=0.38 jaccard=0.218
+  types: ENTITY=0.68 SPELL=0.19 WEAPON=0.13
+  leaders: {'AZK01-119': 73, 'STT01-001': 52}
+  behavior: attack_rate=0.349 spell_rate=0.028 weapon_rate=0.022 portal_rate=0.009 play_entity_rate=0.271 noop_rate=0.171 episode_length=72.184
+    STT01-004 x1.7   ENTITY c1 Black Jade Recruit
+    STT01-007 x1.38  ENTITY c2 Alley Guy
+    STT01-012 x1.25  WEAPON c1 Lightning Shuriken
+    STT01-003 x1.18  ENTITY c1 Crate Rat Kurobo
+    STT01-017 x1.11  SPELL  c1 Lightning Orb
+    AZK01-069 x1.11  ENTITY c1 Link
+    AZK01-042 x1.1   SPELL  c5 Thunderclap
+    STT01-005 x1.02  ENTITY c2 Alpine Prowler
+
+[Hydromancy(W)] games=149 win=0.349 avg_cost=2.57 elem_share=0.50 jaccard=0.213
+  types: ENTITY=0.66 SPELL=0.30 WEAPON=0.04
+  leaders: {'AZK01-125': 84, 'STT02-001': 65}
+  behavior: attack_rate=0.280 spell_rate=0.041 weapon_rate=0.012 portal_rate=0.006 play_entity_rate=0.248 noop_rate=0.175 episode_length=78.946
+    STT02-009 x1.8   ENTITY c3 Aya
+    STT02-010 x1.68  ENTITY c3 Selis of the Shore
+    STT02-015 x1.42  SPELL  c2 Commune with Water
+    STT01-004 x1.36  ENTITY c1 Black Jade Recruit
+    STT02-014 x1.32  SPELL  c1 Chilling Water
+    STT01-007 x1.15  ENTITY c2 Alley Guy
+    STT02-016 x1.15  SPELL  c1 Water Orb
+    AZK01-032 x1.05  SPELL  c3 Rippling Recall
+
+[Stonehaven(E)] games=106 win=0.538 avg_cost=2.89 elem_share=0.41 jaccard=0.208
+  types: ENTITY=0.71 SPELL=0.23 WEAPON=0.05
+  leaders: {'AZK01-123': 53, 'STT03-001': 53}
+  behavior: attack_rate=0.312 spell_rate=0.040 weapon_rate=0.009 portal_rate=0.006 play_entity_rate=0.249 noop_rate=0.177 episode_length=73.368
+    STT01-004 x1.51  ENTITY c1 Black Jade Recruit
+    STT01-007 x1.26  ENTITY c2 Alley Guy
+    AZK01-069 x1.2   ENTITY c1 Link
+    AZK01-045 x1.08  ENTITY c1 Treetop Scout
+    AZK01-086 x0.95  SPELL  c4 Forging Tricks
+    AZK01-003 x0.92  ENTITY c1 Black Jade Courier
+    AZK01-102 x0.92  SPELL  c2 Oathstone
+    STT03-015 x0.9   SPELL  c4 Jar of Beans
+
+[Ragefire(F)] games=94 win=0.362 avg_cost=2.59 elem_share=0.42 jaccard=0.209
+  types: ENTITY=0.74 SPELL=0.21 WEAPON=0.05
+  leaders: {'AZK01-121': 50, 'STT04-001': 44}
+  behavior: attack_rate=0.286 spell_rate=0.021 weapon_rate=0.009 portal_rate=0.003 play_entity_rate=0.242 noop_rate=0.173 episode_length=65.979
+    STT01-004 x1.72  ENTITY c1 Black Jade Recruit
+    STT01-007 x1.4   ENTITY c2 Alley Guy
+    AZK01-065 x1.36  SPELL  c4 Fire Orb
+    AZK01-066 x1.13  SPELL  c5 Firestorm
+    AZK01-069 x1.05  ENTITY c1 Link
+    AZK01-056 x1.0   ENTITY c1 Glass Blower, Hokuto
+    STT04-017 x0.99  SPELL  c3 Wrath of Sinder
+    AZK01-068 x0.95  ENTITY c1 Pip
+
+  cross-gate L1 divergence: mean=0.420 min=0.065 max=0.508 | same-element pairs mean=0.070
+
+wrote 32 rows to train-ablation-1781126582/results/round2_gateid1/snapshot_buckets.csv

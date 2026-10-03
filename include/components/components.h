@@ -93,6 +93,7 @@ typedef struct {
   bool attacker_destroyed;
   int8_t damage_to_defender;
   int8_t damage_to_attacker;
+  int8_t defender_hp_before;
 } LastCombatResult;
 
 typedef struct {
@@ -193,6 +194,9 @@ typedef struct {
   uint8_t discarded_cards_this_turn[MAX_PLAYERS_PER_MATCH];
   uint8_t entities_returned_to_hand_this_turn[MAX_PLAYERS_PER_MATCH];
   int8_t next_card_play_cost_reduction[MAX_PLAYERS_PER_MATCH];
+  uint32_t entity_damage_taken[MAX_PLAYERS_PER_MATCH];
+  uint32_t generated_ikz_created[MAX_PLAYERS_PER_MATCH];
+  uint32_t generated_ikz_converted[MAX_PLAYERS_PER_MATCH];
 } GameState;
 typedef struct {
   uint8_t player_number;
@@ -335,6 +339,9 @@ extern ECS_TAG_DECLARE(ZIKZPileTag);
 extern ECS_TAG_DECLARE(ZIKZAreaTag);
 extern ECS_TAG_DECLARE(ZDiscard);
 extern ECS_TAG_DECLARE(ZSelection);
+
+/* Internal reward attribution marker for effect-created/recovered IKZ. */
+extern ECS_TAG_DECLARE(RewardGeneratedIKZCredit);
 
 /* System Phase Tags */
 extern ECS_TAG_DECLARE(TMulligan);

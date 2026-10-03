@@ -8,14 +8,25 @@ import hashlib
 import json
 import math
 import os
+import random
 import time
 from pathlib import Path
 
+import numpy as np
 import azk_puffer.pytorch as azk_pytorch
 import azk_puffer.trainer as pufferl
 import azk_puffer.vector as azk_vector
 import torch
 
+from production_runtime import (
+    CheckpointPolicy,
+    active_league_updates,
+    apply_process_environment,
+    filter_numeric_metrics,
+    finalize_checkpoint_state,
+    parse_patterns,
+    prune_checkpoints,
+)
 from policy.v2 import tcg_sampler
 from league_manager import LeagueManager, parse_league_manager_config
 from league_training import (
@@ -36,11 +47,13 @@ from training_utils import (
 
 
 RESUME_COMPLETED_EPISODES_ENV = "AZK_RESUME_COMPLETED_EPISODES"
+RESUME_ALLOW_SCHEDULE_REWIND_ENV = "AZK_RESUME_ALLOW_SCHEDULE_REWIND"
 RESUME_COMPLETED_EPISODE_KEYS = (
     "0/azk_completed_episodes",
     "1/azk_completed_episodes",
     "environment/0/azk_completed_episodes",
     "environment/1/azk_completed_episodes",
+    "environment/completed_episodes",
 )
 RESUME_SCHEDULE_ENV_VARS = (
     "AZK_MAX_AUTO_TICKS_PER_STEP",
@@ -57,19 +70,201 @@ RESUME_SCHEDULE_ENV_VARS = (
     "AZK_REWARD_SHAPING_ANNEAL_FINAL",
     "AZK_REWARD_SHAPING_ANNEAL_WARMUP_EPISODES",
     "AZK_REWARD_SHAPING_ANNEAL_RAMP_EPISODES",
+    "AZK_TRAINER_SHAPED_REWARD_ANNEAL",
+    "AZK_TRAINER_SHAPED_REWARD_ANNEAL_START_EPOCH",
+    "AZK_TRAINER_SHAPED_REWARD_ANNEAL_END_EPOCH",
+)
+RESUME_REWARD_ENV_VARS = (
+    "AZK_REWARD_LEADER_DELTA_WEIGHT",
+    "AZK_REWARD_BOARD_DELTA_WEIGHT",
+    "AZK_REWARD_NOOP_PENALTY",
+    "AZK_TRUNCATION_BOARD_EDGE_WEIGHT",
+    "AZK_REWARD_UNTAPPED_IKZ_WEIGHT",
+    "AZK_PORTAL_GP_BONUS",
+    "AZK_PORTAL_OUTCOME_BONUS",
+    "AZK_EARLY_TEMPO_BONUS",
+    "AZK_EARLY_TEMPO_CAP",
+    "AZK_EARLY_TEMPO_TURNS",
+    "AZK_EARLY_TEMPO_DEDUP_PORTAL_ABILITIES",
+    "AZK_DMG_MITIGATION_BONUS",
+    "AZK_DMG_MITIGATION_CAP",
+    "AZK_ENTITY_DAMAGE_EXCHANGE_PER_HP",
+    "AZK_ENTITY_DAMAGE_EXCHANGE_STEP_CAP",
+    "AZK_GENERATED_IKZ_CONVERSION_BONUS",
+    "AZK_GENERATED_IKZ_CONVERSION_STEP_CAP",
+    "AZK_TEMP_CHARGE_REALIZATION_BONUS",
+    "AZK_TEMP_ATTACK_REALIZATION_PER_DAMAGE",
+    "AZK_TEMP_ATTACK_REALIZATION_DAMAGE_CAP",
+    "AZK_CONTEXTUAL_RESPONSE_RESERVE_BONUS",
+    "AZK_DRAFT_VBOOT_COEF",
+    "AZK_DRAFT_SIBDIFF_COEF",
+    "AZK_DRAFT_SIBDIFF_CAP",
+    "AZK_DRAFT_AUX_ANNEAL",
+    "AZK_LEADER_TERMINAL_CREDIT_COEF",
+    "AZK_LEADER_TERMINAL_CREDIT_CLIP",
+    "AZK_LEADER_TERMINAL_CREDIT_GATE_CODES",
+    "AZK_LEADER_TERMINAL_CREDIT_UPDATE_INTERVAL",
+    "AZK_LEADER_TERMINAL_CREDIT_LABEL_WARMUP_EPOCHS",
+    "AZK_DRAFT_TERMINAL_CREDIT_COEF",
+    "AZK_DRAFT_TERMINAL_CREDIT_CLIP",
+    "AZK_DRAFT_TERMINAL_CREDIT_UPDATE_INTERVAL",
+    "AZK_DRAFT_TERMINAL_CREDIT_BATCH_SIZE",
+    "AZK_DRAFT_TERMINAL_CREDIT_SEED",
+    "AZK_DRAFT_TERMINAL_CREDIT_LABEL_WARMUP_EPOCHS",
+    "AZK_DRAFT_TERMINAL_CREDIT_GRAD_PROBE",
+    "AZK_DRAFT_EPISODE_CREDIT_COEF",
+    "AZK_DRAFT_EPISODE_CREDIT_CLIP",
+    "AZK_DRAFT_EPISODE_CREDIT_BATCH_DRAFTS",
+    "AZK_DRAFT_EPISODE_CREDIT_UPDATE_INTERVAL",
+    "AZK_DRAFT_EPISODE_CREDIT_BASELINE_COEF",
+    "AZK_DRAFT_EPISODE_CREDIT_SEED",
+    "AZK_DRAFT_EPISODE_CREDIT_LABEL_WARMUP_EPOCHS",
+    "AZK_DRAFT_PREFIX_OUTCOME_MODEL",
+    "AZK_DRAFT_PREFIX_OUTCOME_SHA256",
+    "AZK_DRAFT_PREFIX_OUTCOME_COEF",
+    "AZK_DRAFT_PREFIX_LENGTHS",
+    "AZK_DRAFT_PREFIX_PROBS",
+    "AZK_DRAFT_PREFIX_SEED",
 )
 RESUME_SOURCE_HASH_TARGETS = (
+    "python/src/azk_puffer/trainer.py",
+    "python/src/league_training.py",
+    "python/src/draft_prefix_outcome.py",
     "python/src/policy/v2/tcg_policy.py",
     "python/src/policy/v2/tcg_sampler.py",
     "python/src/v2/tcg.py",
     "python/src/v2/tcg_parallel.py",
     "python/src/v2/observation.py",
+    "python/src/deck_building.py",
     "python/src/tcg.h",
+    "python/src/production_runtime.py",
     "python/src/train.py",
     "python/src/training_deck_pool.py",
     "python/src/training_utils.py",
-    ".codex/docs/azuki_tcg_decks_final.json",
+    ".codex/docs/azuki_garden_arena_2026-08-15_decks.json",
 )
+
+
+def _seed_training_process(train_config: dict) -> int | None:
+    """Optionally seed process RNGs before environments and policies are built."""
+    if not bool(train_config.get("seed_process_rngs", False)):
+        return None
+
+    seed = int(train_config.get("seed", 0))
+    if not 0 <= seed <= (1 << 32) - 1:
+        raise ValueError("train.seed must be in [0, 2**32 - 1] when process seeding is enabled")
+
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    return seed
+
+
+class _JsonlLogger:
+    """Windowed local metrics logger with a production-safe allowlist."""
+
+    def __init__(self, trainer_args: dict, path: Path):
+        tag = trainer_args.get("tag")
+        suffix = str(int(100 * time.time()))
+        self.run_id = f"{tag}_{suffix}" if tag else suffix
+        path = path if path.suffix == ".jsonl" else path / f"{self.run_id}.jsonl"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        self._handle = path.open("a", buffering=1, encoding="utf-8")
+        logging_cfg = trainer_args.get("logging")
+        if not isinstance(logging_cfg, dict):
+            logging_cfg = {}
+        self._interval = max(1, int(logging_cfg.get("interval_updates", 1)))
+        self._patterns = parse_patterns(logging_cfg.get("metric_patterns"))
+        self._sum_patterns = parse_patterns(logging_cfg.get("sum_patterns"), default=())
+        self._max_patterns = parse_patterns(logging_cfg.get("max_patterns"), default=())
+        self._pending: dict[str, list[float]] = {}
+        self._pending_updates = 0
+        self._last_step = 0
+
+        config_snapshot: dict[str, object] = {}
+        for section in (
+            "train",
+            "vec",
+            "env",
+            "policy",
+            "league",
+            "resume",
+            "logging",
+            "artifacts",
+            "launch_gates",
+            "process_env",
+        ):
+            section_cfg = trainer_args.get(section)
+            if isinstance(section_cfg, dict):
+                for key, value in section_cfg.items():
+                    if isinstance(value, (str, int, float, bool)) or value is None:
+                        config_snapshot[f"{section}.{key}"] = value
+        self._handle.write(
+            json.dumps(
+                {"_event": "start", "run_id": self.run_id, "ts": round(time.time(), 2), "config": config_snapshot}
+            )
+            + "\n"
+        )
+        print(
+            f"[jsonl-logger] writing compact metrics to {path} "
+            f"every {self._interval} updates"
+        )
+
+    @staticmethod
+    def _matches(key: str, patterns: tuple[str, ...]) -> bool:
+        from fnmatch import fnmatchcase
+
+        return any(fnmatchcase(key, pattern) for pattern in patterns)
+
+    def _flush(self) -> None:
+        if self._pending_updates == 0:
+            return
+        row: dict[str, object] = {
+            "_step": self._last_step,
+            "_window_updates": self._pending_updates,
+            "ts": round(time.time(), 2),
+        }
+        for key, values in self._pending.items():
+            total, minimum, maximum, last, count = values
+            if key in {"agent_steps", "uptime", "epoch", "learning_rate"}:
+                row[key] = last
+            elif self._matches(key, self._sum_patterns):
+                row[key] = total
+            elif self._matches(key, self._max_patterns):
+                row[key] = maximum
+            else:
+                row[key] = total / count
+        self._handle.write(json.dumps(row, separators=(",", ":")) + "\n")
+        self._pending.clear()
+        self._pending_updates = 0
+
+    def log(self, logs, step):
+        selected = filter_numeric_metrics(logs, self._patterns)
+        for key, value in selected.items():
+            values = self._pending.get(key)
+            if values is None:
+                self._pending[key] = [value, value, value, value, 1.0]
+            else:
+                values[0] += value
+                values[1] = min(values[1], value)
+                values[2] = max(values[2], value)
+                values[3] = value
+                values[4] += 1.0
+        self._last_step = int(step)
+        self._pending_updates += 1
+        if self._pending_updates >= self._interval:
+            self._flush()
+
+    def close(self, model_path=None):
+        try:
+            self._flush()
+            self._handle.write(
+                json.dumps({"_event": "close", "model_path": str(model_path or ""), "ts": round(time.time(), 2)})
+                + "\n"
+            )
+            self._handle.close()
+        except Exception:
+            pass
 
 
 @dataclass(frozen=True)
@@ -186,9 +381,25 @@ def parse_script_args() -> tuple[argparse.Namespace, list[str]]:
         help="When resuming, also restore optimizer/global_step/epoch from trainer_state.pt if available.",
     )
     parser.add_argument(
+        "--resume-restart-lr-schedule",
+        action="store_true",
+        help=(
+            "After an optimizer restore, start a new cosine schedule over only the "
+            "remaining updates, using train.learning_rate as its peak."
+        ),
+    )
+    parser.add_argument(
         "--resume-strict",
         action="store_true",
         help="Require an exact key match when loading model weights from a checkpoint.",
+    )
+    parser.add_argument(
+        "--resume-allow-deck-pool-migration",
+        action="store_true",
+        help=(
+            "Allow only the deck_pool_path resume fingerprint to change. "
+            "Use for an explicit corpus-migration experiment; all other config fields remain strict."
+        ),
     )
     parser.add_argument(
         "--resume-reset-critic",
@@ -224,7 +435,7 @@ def parse_script_args() -> tuple[argparse.Namespace, list[str]]:
         default=None,
         help=(
             "Fraction of rollout rows that should be frozen league weights. "
-            "With 2-player games, 0.20 means roughly 20% frozen rows / 80% trainable rows."
+            "With 2-player games, 0.20 means roughly 20%% frozen rows / 80%% trainable rows."
         ),
     )
     parser.add_argument(
@@ -321,6 +532,10 @@ def _materialize_scalar_norm_buffers_from_state_dict(
     ensure_buffers = getattr(scalar_norm, "_ensure_buffers", None)
     if scalar_norm is None or ensure_buffers is None:
         return 0
+    try:
+        policy_device = next(base_policy.parameters()).device
+    except StopIteration:
+        policy_device = torch.device("cpu")
 
     created = 0
     for key, value in state_dict.items():
@@ -337,7 +552,7 @@ def _materialize_scalar_norm_buffers_from_state_dict(
             continue
 
         feature_shape = tuple(int(dim) for dim in value.shape)
-        ensure_buffers(norm_key, feature_shape)
+        ensure_buffers(norm_key, feature_shape, policy_device)
         created += 1
 
     return created
@@ -588,7 +803,10 @@ def _extract_completed_episodes_from_mapping(mapping: object) -> int | None:
 
     if not candidates:
         return None
-    return int(max(candidates))
+    # Native vector metrics report the mean counter across environments. Round
+    # upward so a resume never makes curriculum or reward shaping denser again;
+    # this advances an aggregate by less than one episode at most.
+    return int(math.ceil(max(candidates)))
 
 
 def _update_completed_episode_tracker(current_value: int | None, source: object) -> int | None:
@@ -600,8 +818,8 @@ def _update_completed_episode_tracker(current_value: int | None, source: object)
     return max(current_value, candidate)
 
 
-def _resume_env_var_fingerprint() -> dict[str, str]:
-    return {name: os.getenv(name, "") for name in RESUME_SCHEDULE_ENV_VARS}
+def _resume_env_var_fingerprint(names: tuple[str, ...]) -> dict[str, str]:
+    return {name: os.getenv(name, "") for name in names}
 
 
 def _source_hash_fingerprint() -> dict[str, str]:
@@ -685,6 +903,48 @@ def _infer_completed_episodes_from_global_step(
     return inferred
 
 
+def _enabled_episode_schedule_completion() -> int | None:
+    """Return the first episode where every enabled monotonic schedule is final."""
+    completions: list[int] = []
+
+    if _env_flag("AZK_MAX_TICKS_CURRICULUM"):
+        warmup = _env_nonnegative_int(
+            "AZK_MAX_TICKS_CURRICULUM_WARMUP_EPISODES", default=0
+        )
+        ramp = _env_nonnegative_int(
+            "AZK_MAX_TICKS_CURRICULUM_RAMP_EPISODES", default=3000
+        )
+        completions.append(int(warmup or 0) + int(ramp or 0))
+
+    if _env_flag("AZK_REWARD_SHAPING_ANNEAL"):
+        warmup = _env_nonnegative_int(
+            "AZK_REWARD_SHAPING_ANNEAL_WARMUP_EPISODES", default=2000
+        )
+        ramp = _env_nonnegative_int(
+            "AZK_REWARD_SHAPING_ANNEAL_RAMP_EPISODES", default=30000
+        )
+        completions.append(int(warmup or 0) + int(ramp or 0))
+
+    if not completions:
+        return None
+    return max(completions)
+
+
+def _select_resume_completed_episodes(
+    *,
+    saved_completed_episodes: int | None,
+    manual_completed_episodes: int | None,
+    allow_schedule_rewind: bool,
+) -> int | None:
+    if saved_completed_episodes is None:
+        return manual_completed_episodes
+    if manual_completed_episodes is None:
+        return saved_completed_episodes
+    if allow_schedule_rewind or manual_completed_episodes >= saved_completed_episodes:
+        return manual_completed_episodes
+    return saved_completed_episodes
+
+
 def _flatten_config_fingerprint(payload: dict[str, object]) -> dict[str, object]:
     flattened: dict[str, object] = {}
     for key, value in payload.items():
@@ -714,7 +974,8 @@ def _peek_resume_env_completed_episodes(
     *,
     num_envs_hint: int,
 ) -> int | None:
-    global_step_candidate: int | None = None
+    exact_candidates: list[tuple[str, int]] = []
+    global_step_candidates: list[int] = []
 
     if trainer_state_path is not None and trainer_state_path.exists():
         try:
@@ -722,10 +983,12 @@ def _peek_resume_env_completed_episodes(
             if isinstance(trainer_state, dict):
                 candidate = _coerce_nonnegative_int(trainer_state.get("env_completed_episodes"))
                 if candidate is not None:
-                    return candidate
+                    exact_candidates.append(("trainer_state", candidate))
                 global_step_candidate = _coerce_nonnegative_int(
                     trainer_state.get("global_step", trainer_state.get("agent_step"))
                 )
+                if global_step_candidate is not None:
+                    global_step_candidates.append(global_step_candidate)
         except Exception as exc:
             print(f"[resume] warning: failed reading trainer state for env progression restore: {exc}")
 
@@ -737,13 +1000,40 @@ def _peek_resume_env_completed_episodes(
                 if isinstance(payload, dict):
                     candidate = _coerce_nonnegative_int(payload.get("env_completed_episodes"))
                     if candidate is not None:
-                        return candidate
-                    if global_step_candidate is None:
-                        global_step_candidate = _coerce_nonnegative_int(payload.get("global_step"))
+                        exact_candidates.append(("checkpoint_metadata", candidate))
+                    global_step_candidate = _coerce_nonnegative_int(payload.get("global_step"))
+                    if global_step_candidate is not None:
+                        global_step_candidates.append(global_step_candidate)
             except Exception as exc:
                 print(f"[resume] warning: failed reading checkpoint metadata for env progression restore: {exc}")
 
-    if global_step_candidate is not None:
+    if exact_candidates:
+        selected_source, selected_value = max(exact_candidates, key=lambda item: item[1])
+        distinct_values = sorted({value for _, value in exact_candidates})
+        if len(distinct_values) > 1:
+            details = ", ".join(f"{source}={value}" for source, value in exact_candidates)
+            print(
+                "[resume] warning: env progression sidecars disagree; "
+                f"using monotonic maximum {selected_source}={selected_value} ({details})"
+            )
+        return selected_value
+
+    schedule_completion = _enabled_episode_schedule_completion()
+    if model_path is not None and schedule_completion is not None:
+        global_step_detail = (
+            f", checkpoint_global_step={max(global_step_candidates)}"
+            if global_step_candidates
+            else ""
+        )
+        print(
+            "[resume] legacy checkpoint has no exact env progression; "
+            "pinning enabled episode schedules at their final phase to prevent replay: "
+            f"completed_episodes={schedule_completion}{global_step_detail}"
+        )
+        return schedule_completion
+
+    if global_step_candidates:
+        global_step_candidate = max(global_step_candidates)
         inferred = _infer_completed_episodes_from_global_step(
             global_step_candidate, num_envs_hint=num_envs_hint
         )
@@ -817,20 +1107,31 @@ def _load_saved_resume_config_fingerprint(
     return None
 
 
-def _apply_saved_schedule_env(
+def _apply_saved_env_group(
     saved_resume_config: dict[str, object] | None,
+    *,
+    fingerprint_key: str,
+    names: tuple[str, ...],
+    keep_current_env: str,
+    label: str,
 ) -> None:
     if not isinstance(saved_resume_config, dict):
         return
-    schedule_env = saved_resume_config.get("schedule_env")
-    if not isinstance(schedule_env, dict):
+    if _env_flag(keep_current_env):
+        print(
+            f"[resume] keeping current {label} env vars per "
+            f"{keep_current_env}=1 (saved values not applied)"
+        )
+        return
+    saved_env = saved_resume_config.get(fingerprint_key)
+    if not isinstance(saved_env, dict):
         return
 
     changes: list[tuple[str, str, str]] = []
-    for name in RESUME_SCHEDULE_ENV_VARS:
-        if name not in schedule_env:
+    for name in names:
+        if name not in saved_env:
             continue
-        saved_value_raw = schedule_env.get(name)
+        saved_value_raw = saved_env.get(name)
         saved_value = saved_value_raw if isinstance(saved_value_raw, str) else str(saved_value_raw)
         current_value = os.getenv(name, "")
         if current_value == saved_value:
@@ -843,7 +1144,27 @@ def _apply_saved_schedule_env(
 
     if changes:
         details = ", ".join(f"{name}: current={curr!r} -> saved={saved!r}" for name, curr, saved in changes)
-        print("[resume] applied saved schedule env vars from checkpoint metadata: " + details)
+        print(f"[resume] applied saved {label} env vars from checkpoint metadata: " + details)
+
+
+def _apply_saved_schedule_env(saved_resume_config: dict[str, object] | None) -> None:
+    _apply_saved_env_group(
+        saved_resume_config,
+        fingerprint_key="schedule_env",
+        names=RESUME_SCHEDULE_ENV_VARS,
+        keep_current_env="AZK_RESUME_KEEP_CURRENT_SCHEDULE_ENV",
+        label="schedule",
+    )
+
+
+def _apply_saved_reward_env(saved_resume_config: dict[str, object] | None) -> None:
+    _apply_saved_env_group(
+        saved_resume_config,
+        fingerprint_key="reward_env",
+        names=RESUME_REWARD_ENV_VARS,
+        keep_current_env="AZK_RESUME_KEEP_CURRENT_REWARD_ENV",
+        label="reward",
+    )
 
 
 def _compute_runtime_fingerprint(vecenv) -> dict[str, object]:
@@ -884,6 +1205,8 @@ def _resume_config_fingerprint(trainer_args: dict) -> dict[str, object]:
     return {
         "use_rnn": bool(train_cfg.get("use_rnn", False)),
         "direct_parallel": bool(env_cfg.get("direct_parallel", False)),
+        "deck_building_enabled": bool(env_cfg.get("deck_building_enabled", False)),
+        "draft_uniform_assignment": bool(env_cfg.get("draft_uniform_assignment", False)),
         "deck_pool_path": str(resolve_training_deck_pool_path(env_cfg.get("deck_pool_path"))),
         "policy_model_version": str(policy_cfg.get("model_version", "metadata_v1")),
         "policy_actor_head_type": str(policy_cfg.get("actor_head_type", "legal_action_scorer")),
@@ -909,7 +1232,9 @@ def _resume_config_fingerprint(trainer_args: dict) -> dict[str, object]:
         "policy_win_prob_aux_coef": float(policy_cfg.get("win_prob_aux_coef", 0.1)),
         "policy_split_value_heads_enabled": bool(policy_cfg.get("split_value_heads_enabled", False)),
         "policy_split_value_component_coef": float(policy_cfg.get("split_value_component_coef", 0.5)),
-        "schedule_env": _resume_env_var_fingerprint(),
+        "policy_gate_id_embedding_enabled": bool(policy_cfg.get("gate_id_embedding_enabled", False)),
+        "schedule_env": _resume_env_var_fingerprint(RESUME_SCHEDULE_ENV_VARS),
+        "reward_env": _resume_env_var_fingerprint(RESUME_REWARD_ENV_VARS),
         "source_hashes": _source_hash_fingerprint(),
     }
 
@@ -1033,6 +1358,14 @@ def _save_checkpoint_metadata(model_path: Path, payload: dict) -> None:
     _write_json_atomic(_checkpoint_metadata_path(model_path), payload)
 
 
+def _trainer_shaped_reward_schedule_state(trainer) -> dict[str, object] | None:
+    getter = getattr(trainer, "trainer_shaped_reward_schedule_state", None)
+    if not callable(getter):
+        return None
+    state = getter()
+    return state if isinstance(state, dict) else None
+
+
 def _save_per_checkpoint_trainer_state(
     trainer,
     checkpoint_path: Path,
@@ -1054,6 +1387,9 @@ def _save_per_checkpoint_trainer_state(
         "runtime_fingerprint": runtime_fingerprint,
         "resume_config_fingerprint": resume_config_fingerprint,
     }
+    shaped_reward_schedule = _trainer_shaped_reward_schedule_state(trainer)
+    if shaped_reward_schedule is not None:
+        state["trainer_shaped_reward_schedule"] = shaped_reward_schedule
     if env_completed_episodes is not None:
         state["env_completed_episodes"] = int(env_completed_episodes)
     tmp = state_path.with_suffix(state_path.suffix + ".tmp")
@@ -1160,10 +1496,88 @@ def _checkpoint_parity_guard(trainer, checkpoint_path: Path) -> dict[str, object
     }
 
 
+def _file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _trusted_parent_source_drift(
+    trainer_args: dict,
+    model_path: Path,
+    trainer_state_path: Path | None,
+) -> bool:
+    raw_manifest = trainer_args.get("parent_manifest")
+    if not isinstance(raw_manifest, str) or not raw_manifest.strip():
+        return False
+    manifest_path = Path(raw_manifest).expanduser()
+    if not manifest_path.is_absolute():
+        manifest_path = Path(__file__).resolve().parents[2] / manifest_path
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if payload.get("schema_version") != 2:
+        raise ValueError(f"Unsupported production parent manifest: {manifest_path}")
+    model_entry = payload.get("model")
+    if not isinstance(model_entry, dict):
+        raise ValueError("Production parent manifest has no model entry")
+    recorded_model_path = Path(str(model_entry.get("path", ""))).expanduser()
+    if not recorded_model_path.is_absolute():
+        recorded_model_path = Path(__file__).resolve().parents[2] / recorded_model_path
+    if recorded_model_path.resolve() != model_path.resolve():
+        return False
+
+    expected = {
+        "model": model_path,
+        "metadata": _checkpoint_metadata_path(model_path),
+    }
+    if trainer_state_path is not None:
+        expected["trainer"] = trainer_state_path
+    for key, actual_path in expected.items():
+        entry = payload.get(key)
+        if not isinstance(entry, dict):
+            raise ValueError(f"Production parent manifest has no {key} entry")
+        recorded_path = Path(str(entry.get("path", ""))).expanduser()
+        if not recorded_path.is_absolute():
+            recorded_path = Path(__file__).resolve().parents[2] / recorded_path
+        if recorded_path.resolve() != actual_path.resolve():
+            raise ValueError(
+                f"Production parent manifest {key} path mismatch: "
+                f"recorded={recorded_path} requested={actual_path}"
+            )
+        recorded_hash = entry.get("sha256")
+        if not isinstance(recorded_hash, str) or _file_sha256(actual_path) != recorded_hash:
+            raise ValueError(f"Production parent manifest {key} hash mismatch: {actual_path}")
+    print(
+        "[resume] trusted atomic parent verified; source-only drift is allowed for "
+        f"the initial migration: {manifest_path}"
+    )
+    return True
+
+def _approved_resume_cfg_mismatch_prefixes(
+    *,
+    allow_trusted_source_drift: bool,
+    allow_deck_pool_migration: bool,
+) -> tuple[str, ...]:
+    prefixes: list[str] = []
+    if allow_trusted_source_drift or os.environ.get("AZK_RESUME_ALLOW_SOURCE_DRIFT") == "1":
+        prefixes.append("source_hashes.")
+    if _env_flag("AZK_RESUME_KEEP_CURRENT_SCHEDULE_ENV"):
+        prefixes.append("schedule_env.")
+    if _env_flag("AZK_RESUME_KEEP_CURRENT_REWARD_ENV"):
+        prefixes.append("reward_env.")
+    if allow_deck_pool_migration:
+        prefixes.append("deck_pool_path")
+    return tuple(prefixes)
+
+
+
 def _validate_resume_metadata(
     model_path: Path,
     runtime_fingerprint: dict[str, object],
     resume_config_fingerprint: dict[str, object],
+    allow_trusted_source_drift: bool = False,
+    allow_deck_pool_migration: bool = False,
 ) -> None:
     metadata_path = _checkpoint_metadata_path(model_path)
     if not metadata_path.exists():
@@ -1195,14 +1609,33 @@ def _validate_resume_metadata(
 
     if mismatches:
         details = ", ".join(f"{k}: saved={a!r} current={b!r}" for k, a, b in mismatches)
-        raise RuntimeError(
-            "[resume] runtime/checkpoint incompatibility detected. "
-            f"Checkpoint={model_path}. Mismatched fields: {details}"
-        )
+        binding_only = all(key == "binding_size" for key, _, _ in mismatches)
+        if binding_only and os.environ.get("AZK_RESUME_ALLOW_BINDING_MISMATCH") == "1":
+            # binding_size fires on ANY rebuild of the .so, semantic or not;
+            # the obs dtype fields above remain strict.
+            print(
+                "[resume] warning: binding changed since checkpoint "
+                f"({details}); continuing per AZK_RESUME_ALLOW_BINDING_MISMATCH=1"
+            )
+        else:
+            raise RuntimeError(
+                "[resume] runtime/checkpoint incompatibility detected. "
+                f"Checkpoint={model_path}. Mismatched fields: {details}"
+            )
 
     saved_resume_cfg = payload.get("resume_config_fingerprint")
     if isinstance(saved_resume_cfg, dict):
         cfg_mismatches = _resume_cfg_mismatches(saved_resume_cfg, resume_config_fingerprint)
+        excusable_prefixes = _approved_resume_cfg_mismatch_prefixes(
+            allow_trusted_source_drift=allow_trusted_source_drift,
+            allow_deck_pool_migration=allow_deck_pool_migration,
+        )
+        if cfg_mismatches and excusable_prefixes:
+            excused = [m for m in cfg_mismatches if m[0].startswith(tuple(excusable_prefixes))]
+            cfg_mismatches = [m for m in cfg_mismatches if not m[0].startswith(tuple(excusable_prefixes))]
+            if excused:
+                details = ", ".join(f"{k}" for k, _, _ in excused)
+                print(f"[resume] warning: approved mismatches excused: {details}")
         if cfg_mismatches:
             details = ", ".join(f"{k}: saved={a!r} current={b!r}" for k, a, b in cfg_mismatches)
             raise RuntimeError(
@@ -1218,14 +1651,29 @@ def _load_model_weights(policy: torch.nn.Module, model_path: Path, *, device: st
   if not isinstance(state_dict, dict):
     raise ValueError(f"Unsupported checkpoint format (expected state_dict dict): {model_path}")
   cleaned = _strip_module_prefix(state_dict)
+  static_card_prefixes = (
+    "policy.static_",
+    "static_",
+  )
+  stale_static_keys = [
+    key for key in cleaned.keys()
+    if key.startswith(static_card_prefixes)
+  ]
+  for key in stale_static_keys:
+    cleaned.pop(key, None)
   materialized = _materialize_scalar_norm_buffers_from_state_dict(policy, cleaned)
   scalar_norm_keys = sum(1 for key in cleaned.keys() if "scalar_normalizer._rms_" in key)
   missing, unexpected = policy.load_state_dict(cleaned, strict=strict)
+  base_policy = getattr(policy, "policy", policy)
+  invalidate_text_cache = getattr(base_policy, "_invalidate_text_feature_table", None)
+  if callable(invalidate_text_cache):
+    invalidate_text_cache()
   print(
     "[resume] loaded model checkpoint: "
     f"path={model_path}, strict={strict}, missing_keys={len(missing)}, "
     f"unexpected_keys={len(unexpected)}, "
-    f"materialized_scalar_norm_features={materialized}, scalar_norm_state_keys={scalar_norm_keys}"
+    f"materialized_scalar_norm_features={materialized}, scalar_norm_state_keys={scalar_norm_keys}, "
+    f"filtered_static_card_keys={len(stale_static_keys)}"
   )
 
 
@@ -1260,12 +1708,37 @@ def _optimizer_group_lrs(trainer) -> list[float]:
     return [float(group.get("lr", 0.0)) for group in trainer.optimizer.param_groups]
 
 
+def _restart_lr_schedule_for_remaining_epochs(trainer) -> tuple[int, list[float]]:
+    remaining_epochs = int(trainer.total_epochs) - int(trainer.epoch)
+    if remaining_epochs < 1:
+        raise ValueError("Cannot restart the LR schedule without remaining training epochs")
+    peak_lr = float(trainer.config.get("learning_rate", 0.0))
+    if peak_lr <= 0.0:
+        raise ValueError("train.learning_rate must be > 0 for a resumed LR schedule")
+
+    for group in trainer.optimizer.param_groups:
+        group["lr"] = peak_lr
+        group["initial_lr"] = peak_lr
+    trainer.scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+        trainer.optimizer,
+        T_max=remaining_epochs,
+    )
+    lrs = _optimizer_group_lrs(trainer)
+    print(
+        "[resume] restarted LR schedule: "
+        f"remaining_epochs={remaining_epochs}, peak_lrs={lrs}, final_lr=0.0"
+    )
+    return remaining_epochs, lrs
+
+
 def _maybe_restore_trainer_state(
     trainer,
     trainer_state_path: Path | None,
     *,
     expected_model_path: Path | None = None,
     expected_resume_config_fingerprint: dict[str, object] | None = None,
+    allow_trusted_source_drift: bool = False,
+    allow_deck_pool_migration: bool = False,
 ) -> bool:
     if trainer_state_path is None or not trainer_state_path.exists():
         return False
@@ -1295,6 +1768,19 @@ def _maybe_restore_trainer_state(
         saved_resume_cfg = trainer_state.get("resume_config_fingerprint")
         if isinstance(saved_resume_cfg, dict):
             cfg_mismatches = _resume_cfg_mismatches(saved_resume_cfg, expected_resume_config_fingerprint)
+            # Same excusals as _validate_resume_metadata: intentional source
+            # patches / caller-pinned schedule env vars must not silently
+            # downgrade to model-only resume (loses optimizer + global_step).
+            excusable_prefixes = _approved_resume_cfg_mismatch_prefixes(
+                allow_trusted_source_drift=allow_trusted_source_drift,
+                allow_deck_pool_migration=allow_deck_pool_migration,
+            )
+            if cfg_mismatches and excusable_prefixes:
+                excused = [m for m in cfg_mismatches if m[0].startswith(tuple(excusable_prefixes))]
+                cfg_mismatches = [m for m in cfg_mismatches if not m[0].startswith(tuple(excusable_prefixes))]
+                if excused:
+                    details = ", ".join(k for k, _, _ in excused)
+                    print(f"[resume] trainer_state approved mismatches excused: {details}")
             if cfg_mismatches:
                 details = ", ".join(f"{k}: saved={a!r} current={b!r}" for k, a, b in cfg_mismatches)
                 print(
@@ -1365,17 +1851,31 @@ def _rollout_health_snapshot(trainer) -> dict[str, float]:
     if not bool(trainer.config.get("use_rnn", False)):
         mb_obs = mb_obs.reshape(-1, *trainer.vecenv.single_observation_space.shape)
 
-    state = dict(action=mb_actions, lstm_h=None, lstm_c=None)
     amp_context = getattr(trainer, "amp_context", None)
     if amp_context is None:
         amp_context = contextlib.nullcontext()
 
+    # Forward in slices: a full-batch pass materializes [batch, 1024, 64]
+    # deck-candidate tensors (>5GB at batch 23040) and OOMs on resume.
+    # Dim 0 is segments under use_rnn (xTT rows each), flat rows otherwise.
+    bptt = max(1, int(trainer.config.get("bptt_horizon", 1)))
+    chunk = 2048 if not bool(trainer.config.get("use_rnn", False)) else max(1, 2048 // bptt)
+    entropy_sum = 0.0
+    entropy_count = 0
     with torch.no_grad(), amp_context:
-        logits, _ = trainer.policy(mb_obs, state)
-        _, _, entropy = azk_pytorch.sample_logits(logits, action=mb_actions)
+        for start in range(0, mb_obs.shape[0], chunk):
+            obs_chunk = mb_obs[start : start + chunk]
+            action_chunk = mb_actions[start : start + chunk]
+            state = dict(action=action_chunk, lstm_h=None, lstm_c=None)
+            logits, _ = trainer.policy(obs_chunk, state)
+            _, _, entropy = azk_pytorch.sample_logits(
+                logits, action=action_chunk.reshape(-1, action_chunk.shape[-1])
+            )
+            entropy_sum += float(entropy.sum().item())
+            entropy_count += int(entropy.numel())
 
     return {
-        "entropy": float(entropy.mean().item()),
+        "entropy": entropy_sum / max(entropy_count, 1),
         "noop_selected_rate": noop_selected_rate,
     }
 
@@ -1546,6 +2046,8 @@ def _league_cfg(script_args: argparse.Namespace, trainer_args: dict) -> LeagueCo
         randomize_learner_seat=bool(randomize_learner_seat),
         seed=seed,
         activate_after_steps=activate_after_steps,
+        frozen_window_epochs=int(league_cfg.get("frozen_window_epochs", 0) or 0),
+        max_distinct_frozen=int(league_cfg.get("max_distinct_frozen", 1) or 1),
     )
 
 
@@ -1556,23 +2058,101 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
 
     torch_profile_cfg = _build_torch_profiler_config(script_args)
     trainer_args = load_training_config(config_path, forwarded_cli)
+    process_seed = _seed_training_process(trainer_args["train"])
+    if process_seed is not None:
+        print(f"[reproducibility] seeded Python, NumPy, and Torch RNGs with {process_seed}")
+    applied_process_env = apply_process_environment(trainer_args)
+    if applied_process_env:
+        print(
+            "[config] applied process environment: "
+            + ", ".join(sorted(applied_process_env))
+        )
+    resume_cfg = trainer_args.get("resume")
+    if not isinstance(resume_cfg, dict):
+        resume_cfg = {}
+    if not script_args.resume_load_optimizer:
+        script_args.resume_load_optimizer = bool(resume_cfg.get("load_optimizer", False))
+    if not script_args.resume_restart_lr_schedule:
+        script_args.resume_restart_lr_schedule = bool(
+            resume_cfg.get("restart_lr_schedule", False)
+        )
+    if not script_args.resume_strict:
+        script_args.resume_strict = bool(resume_cfg.get("strict", False))
+    if "auto_reset_critic" in resume_cfg:
+        script_args.resume_auto_reset_critic = bool(resume_cfg["auto_reset_critic"])
+
+    checkpoint_policy = CheckpointPolicy.from_config(trainer_args)
+    if checkpoint_policy is not None:
+        trainer_args["train"]["checkpoint_interval"] = checkpoint_policy.scheduler_interval
+        print(
+            "[artifacts] tiered checkpoints: "
+            f"scheduler={checkpoint_policy.scheduler_interval}, "
+            f"recovery={checkpoint_policy.recovery_interval}, "
+            f"evaluation={checkpoint_policy.evaluation_interval}, "
+            f"milestone={checkpoint_policy.milestone_interval}"
+        )
+    logging_cfg = trainer_args.get("logging")
+    if not isinstance(logging_cfg, dict):
+        logging_cfg = {}
+    stdout_interval = max(1, int(logging_cfg.get("stdout_interval_updates", 1)))
+    stdout_patterns = parse_patterns(logging_cfg.get("stdout_metric_patterns"))
+    dashboard_enabled = bool(logging_cfg.get("dashboard", True))
     trainer_args["train"]["env"] = trainer_args.get("env_name", "azuki_local")
     logger = None
 
+    env_contract = trainer_args.get("env", {})
+    if isinstance(env_contract, dict) and bool(
+        env_contract.get("deck_building_enabled", False)
+    ):
+        uniform_assignment = bool(
+            env_contract.get("draft_uniform_assignment", False)
+        )
+        print(
+            "[draft] lifecycle: "
+            f"uniform_assignment={uniform_assignment} "
+            f"policy_picks_per_seat={50 if uniform_assignment else 51}"
+        )
+
     install_tcg_sampler()
+
+    static_policy_cfg = trainer_args.get("policy")
+    if isinstance(static_policy_cfg, dict):
+        static_pick_eps = _coerce_float(static_policy_cfg.get("deck_pick_smoothing_eps"))
+        static_row_temp = _coerce_float(static_policy_cfg.get("legal_row_temperature"))
+        if static_pick_eps is not None or static_row_temp is not None:
+            tcg_sampler.set_sampling_params(
+                deck_pick_smoothing_eps=static_pick_eps,
+                legal_row_temperature=static_row_temp,
+            )
+            print(
+                "[sampler] legal-row overrides: "
+                f"deck_pick_smoothing_eps={static_pick_eps}, legal_row_temperature={static_row_temp}"
+            )
 
     resume_checkpoint = script_args.resume_checkpoint
     if resume_checkpoint is None:
-        fallback_resume = trainer_args.get("load_model_path")
-        if isinstance(fallback_resume, str) and fallback_resume and fallback_resume != "latest":
-            resume_checkpoint = Path(fallback_resume)
+        configured_resume = resume_cfg.get("checkpoint")
+        if isinstance(configured_resume, str) and configured_resume:
+            resume_checkpoint = Path(configured_resume)
+        else:
+            fallback_resume = trainer_args.get("load_model_path")
+            if isinstance(fallback_resume, str) and fallback_resume and fallback_resume != "latest":
+                resume_checkpoint = Path(fallback_resume)
 
     model_resume_path: Path | None = None
     trainer_state_path: Path | None = None
+    allow_trusted_source_drift = False
     if resume_checkpoint is not None:
         model_resume_path, trainer_state_path = _resolve_resume_artifacts(resume_checkpoint)
-        _apply_saved_schedule_env(
-            _load_saved_resume_config_fingerprint(model_resume_path, trainer_state_path)
+        saved_resume_config = _load_saved_resume_config_fingerprint(
+            model_resume_path, trainer_state_path
+        )
+        _apply_saved_schedule_env(saved_resume_config)
+        _apply_saved_reward_env(saved_resume_config)
+        allow_trusted_source_drift = _trusted_parent_source_drift(
+            trainer_args,
+            model_resume_path,
+            trainer_state_path if script_args.resume_load_optimizer else None,
         )
 
     vec_cfg = trainer_args.get("vec")
@@ -1582,19 +2162,44 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
         if parsed_num_envs is not None and parsed_num_envs > 0:
             num_envs_hint = parsed_num_envs
 
-    manual_resume_completed = _coerce_nonnegative_int(os.getenv(RESUME_COMPLETED_EPISODES_ENV))
-    if manual_resume_completed is not None:
-        resume_env_completed_episodes = manual_resume_completed
-        print(
-            "[resume] using caller-provided env progression override: "
-            f"{RESUME_COMPLETED_EPISODES_ENV}={manual_resume_completed}"
-        )
-    else:
-        resume_env_completed_episodes = _peek_resume_env_completed_episodes(
+    resume_env_completed_episodes: int | None = None
+    if model_resume_path is not None:
+        saved_resume_completed = _peek_resume_env_completed_episodes(
             model_resume_path,
             trainer_state_path,
             num_envs_hint=num_envs_hint,
         )
+        manual_resume_completed = _coerce_nonnegative_int(
+            os.getenv(RESUME_COMPLETED_EPISODES_ENV)
+        )
+        allow_schedule_rewind = _env_flag(RESUME_ALLOW_SCHEDULE_REWIND_ENV)
+        resume_env_completed_episodes = _select_resume_completed_episodes(
+            saved_completed_episodes=saved_resume_completed,
+            manual_completed_episodes=manual_resume_completed,
+            allow_schedule_rewind=allow_schedule_rewind,
+        )
+        if manual_resume_completed is not None:
+            if (
+                saved_resume_completed is not None
+                and manual_resume_completed < saved_resume_completed
+            ):
+                if allow_schedule_rewind:
+                    print(
+                        "[resume] warning: caller explicitly rewound env progression per "
+                        f"{RESUME_ALLOW_SCHEDULE_REWIND_ENV}=1: "
+                        f"saved={saved_resume_completed}, requested={manual_resume_completed}"
+                    )
+                else:
+                    print(
+                        "[resume] warning: ignoring caller env progression below saved state: "
+                        f"saved={saved_resume_completed}, requested={manual_resume_completed}. "
+                        f"Set {RESUME_ALLOW_SCHEDULE_REWIND_ENV}=1 only for an intentional rewind."
+                    )
+            else:
+                print(
+                    "[resume] using caller-provided env progression override: "
+                    f"{RESUME_COMPLETED_EPISODES_ENV}={manual_resume_completed}"
+                )
     if resume_env_completed_episodes is not None:
         os.environ[RESUME_COMPLETED_EPISODES_ENV] = str(resume_env_completed_episodes)
         print(
@@ -1606,7 +2211,7 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
         if model_resume_path is not None:
             print(
                 "[resume] warning: no saved env progression found in trainer state/metadata. "
-                "Curriculum- and reward-anneal episode counters will restart from zero."
+                "No episode-driven schedule is enabled; the diagnostic episode counter will restart from zero."
             )
 
     vecenv = build_vecenv(trainer_args)
@@ -1674,10 +2279,20 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
         logger = pufferl.WandbLogger(trainer_args)
     elif trainer_args.get("neptune"):
         logger = pufferl.NeptuneLogger(trainer_args)
+    elif trainer_args.get("jsonl_log"):
+        logger = _JsonlLogger(trainer_args, Path(str(trainer_args["jsonl_log"])))
 
     policy = build_policy(vecenv, trainer_args)
     if model_resume_path is not None:
-        _validate_resume_metadata(model_resume_path, runtime_fingerprint, resume_config_fingerprint)
+        _validate_resume_metadata(
+            model_resume_path,
+            runtime_fingerprint,
+            resume_config_fingerprint,
+            allow_trusted_source_drift=allow_trusted_source_drift,
+            allow_deck_pool_migration=bool(
+                script_args.resume_allow_deck_pool_migration
+            ),
+        )
         _load_model_weights(
             policy,
             model_resume_path,
@@ -1694,19 +2309,26 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
             else:
                 print("[resume] critic head reset requested but no value head was found")
 
-        reset_probe = _resume_reset_start_probe(trainer_args, policy)
-        print(
-            "[resume] reset-start probe: "
-            f"entropy={reset_probe['entropy']:.6f}, "
-            f"noop_selected_rate={reset_probe['noop_selected_rate']:.6f}, "
-            f"actions={int(reset_probe['actions'])}, steps={int(reset_probe['steps'])}"
-        )
-        if reset_probe["entropy"] < 0.3 and reset_probe["noop_selected_rate"] > 0.9:
+        env_cfg_probe = trainer_args.get("env", {})
+        if bool(env_cfg_probe.get("native")) and bool(env_cfg_probe.get("deck_building_enabled")):
+            # The probe's mask wiring doesn't cover the native draft phase; a
+            # sampled NOOP on a draft step hits the C-side abort and kills the
+            # resume (2026-07-07). Skip until the probe feeds draft masks.
+            print("[resume] reset-start probe skipped (native deck-building env)")
+        else:
+            reset_probe = _resume_reset_start_probe(trainer_args, policy)
             print(
-                "[resume] warning: checkpoint policy is collapse-like from fresh reset starts. "
-                "Model weight load parity passed; this usually indicates checkpoint behavior degradation "
-                "on opening states rather than a missing-weights resume bug."
+                "[resume] reset-start probe: "
+                f"entropy={reset_probe['entropy']:.6f}, "
+                f"noop_selected_rate={reset_probe['noop_selected_rate']:.6f}, "
+                f"actions={int(reset_probe['actions'])}, steps={int(reset_probe['steps'])}"
             )
+            if reset_probe["entropy"] < 0.3 and reset_probe["noop_selected_rate"] > 0.9:
+                print(
+                    "[resume] warning: checkpoint policy is collapse-like from fresh reset starts. "
+                    "Model weight load parity passed; this usually indicates checkpoint behavior degradation "
+                    "on opening states rather than a missing-weights resume bug."
+                )
 
     league_enabled = _is_league_enabled(script_args, trainer_args)
     league_cfg = _league_cfg(script_args, trainer_args)
@@ -1734,13 +2356,20 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
             )
             opponent_policy.eval()
             opponent_policies.append(opponent_policy)
+        agents_per_match = int(
+            getattr(
+                vecenv.driver_env,
+                "agents_per_match",
+                vecenv.driver_env.num_agents,
+            )
+        )
         print(
             "[league] enabled: "
             f"opponents={len(opponent_policies)}, "
             f"frozen_ratio_target="
             f"{(0.0 if league_cfg.frozen_ratio is None else league_cfg.frozen_ratio):.3f}, "
             f"frozen_matchup_ratio="
-            f"{(compute_frozen_matchup_ratio(frozen_row_ratio=league_cfg.frozen_ratio, agents_per_env=int(vecenv.driver_env.num_agents)) if league_cfg.frozen_ratio is not None else max(0.0, min(1.0, 1.0 - float(league_cfg.latest_ratio)))):.3f}, "
+            f"{(compute_frozen_matchup_ratio(frozen_row_ratio=league_cfg.frozen_ratio, agents_per_env=agents_per_match) if league_cfg.frozen_ratio is not None else max(0.0, min(1.0, 1.0 - float(league_cfg.latest_ratio)))):.3f}, "
             f"activate_after_steps={league_cfg.activate_after_steps}"
         )
 
@@ -1750,11 +2379,15 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
             vecenv,
             policy,
             opponent_policies=opponent_policies,
+            opponent_keys=[str(path.resolve()) for path in opponent_paths],
             league_cfg=league_cfg,
             logger=logger,
         )
     else:
         trainer = pufferl.PuffeRL(trainer_args["train"], vecenv, policy, logger=logger)
+    if not dashboard_enabled:
+        trainer.print_dashboard = lambda *args, **kwargs: None
+
 
     if torch_profile_cfg is not None and trainer.total_epochs < torch_profile_cfg.total_profile_epochs:
         raise ValueError(
@@ -1765,9 +2398,26 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
 
     resume_completed_episode_tracker = _coerce_nonnegative_int(resume_env_completed_episodes)
     original_save_checkpoint = trainer.save_checkpoint
+    checkpoint_cache: dict[int, Path] = {}
+    force_checkpoint = False
+    finalized_checkpoints: set[int] = set()
 
     def _save_checkpoint_with_metadata():
-        nonlocal resume_completed_episode_tracker
+        nonlocal force_checkpoint, resume_completed_episode_tracker
+        update = int(trainer.epoch)
+        done_training = bool(
+            force_checkpoint
+            or trainer.global_step >= trainer.config["total_timesteps"]
+            or trainer.epoch >= trainer.total_epochs
+        )
+        if checkpoint_policy is not None and not checkpoint_policy.due(
+            update, done=done_training
+        ):
+            return None
+        cached = checkpoint_cache.get(update)
+        if cached is not None:
+            return str(cached)
+
         resume_completed_episode_tracker = _update_completed_episode_tracker(
             resume_completed_episode_tracker, getattr(trainer, "last_stats", None)
         )
@@ -1789,32 +2439,78 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
         metadata_payload = {
             "model_name": checkpoint_path.name,
             "global_step": int(trainer.global_step),
-            "update": int(trainer.epoch),
+            "update": update,
             "trainer_state_path": str(state_path.name),
             "runtime_fingerprint": runtime_fingerprint,
             "resume_config_fingerprint": resume_config_fingerprint,
             "checkpoint_parity": parity_summary,
         }
+        shaped_reward_schedule = _trainer_shaped_reward_schedule_state(trainer)
+        if shaped_reward_schedule is not None:
+            metadata_payload["trainer_shaped_reward_schedule"] = shaped_reward_schedule
         if resume_completed_episode_tracker is not None:
             metadata_payload["env_completed_episodes"] = int(resume_completed_episode_tracker)
-        _save_checkpoint_metadata(
-            checkpoint_path,
-            metadata_payload,
+        _save_checkpoint_metadata(checkpoint_path, metadata_payload)
+        checkpoint_cache[update] = checkpoint_path
+        return str(checkpoint_path)
+
+    def _finalize_checkpoint(checkpoint_path: Path) -> None:
+        update = int(trainer.epoch)
+        if update in finalized_checkpoints:
+            return
+        league_state_path = league_manager.state_path if league_manager is not None else None
+        promotion_state_path = (
+            league_manager.archive_state_path if league_manager is not None else None
         )
-        return checkpoint_raw
+        roles = checkpoint_policy.roles(update) if checkpoint_policy is not None else ()
+        finalize_checkpoint_state(
+            checkpoint_path,
+            league_state_path=league_state_path,
+            promotion_state_path=promotion_state_path,
+            config_path=config_path,
+            roles=roles,
+        )
+        finalized_checkpoints.add(update)
+        if checkpoint_policy is not None:
+            protected = (
+                active_league_updates(
+                    league_manager.state_path,
+                    checkpoint_dir=checkpoint_path.parent,
+                )
+                if league_manager is not None
+                else set()
+            )
+            removed = prune_checkpoints(
+                checkpoint_path.parent,
+                checkpoint_policy,
+                protected_updates=protected,
+            )
+            if removed:
+                print(f"[artifacts] pruned {len(removed)} obsolete checkpoint files")
 
     trainer.save_checkpoint = _save_checkpoint_with_metadata
 
+    trainer_state_restored = False
     if script_args.resume_load_optimizer:
         if trainer_state_path is not None:
-            _maybe_restore_trainer_state(
+            trainer_state_restored = _maybe_restore_trainer_state(
                 trainer,
                 trainer_state_path,
                 expected_model_path=model_resume_path,
                 expected_resume_config_fingerprint=resume_config_fingerprint,
+                allow_trusted_source_drift=allow_trusted_source_drift,
+                allow_deck_pool_migration=bool(
+                    script_args.resume_allow_deck_pool_migration
+                ),
             )
         else:
             print("[resume] --resume-load-optimizer requested but trainer_state.pt was not found")
+    if script_args.resume_restart_lr_schedule:
+        if not script_args.resume_load_optimizer or not trainer_state_restored:
+            raise RuntimeError(
+                "--resume-restart-lr-schedule requires a successful optimizer/trainer-state restore"
+            )
+        _restart_lr_schedule_for_remaining_epochs(trainer)
 
     anneal_step_offset = 0
     if resume_global_step_hint is not None:
@@ -1988,7 +2684,13 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
                     resume_completed_episode_tracker = _update_completed_episode_tracker(
                         resume_completed_episode_tracker, logs
                     )
-                    print(f"[epoch {trainer.epoch}] {logs}")
+                    done_training = trainer.epoch >= trainer.total_epochs
+                    if trainer.epoch % stdout_interval == 0 or done_training:
+                        console = filter_numeric_metrics(logs, stdout_patterns)
+                        print(
+                            f"[epoch {trainer.epoch}] "
+                            + json.dumps(console, sort_keys=True, separators=(",", ":"))
+                        )
                 league_active = compute_league_active(
                     global_step=int(trainer.global_step),
                     activate_after_steps=int(league_cfg.activate_after_steps),
@@ -2029,22 +2731,40 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
                                     Path(entry.checkpoint_path)
                                     for entry in league_manager.opponent_entries_for_training()
                                 ]
+                                resident_by_key = {
+                                    key: resident_policy
+                                    for key, resident_policy in zip(
+                                        getattr(trainer, "opponent_keys", []),
+                                        trainer.opponent_policies,
+                                    )
+                                }
                                 refreshed_policies = []
                                 for opp_path in refreshed_paths:
-                                    opp = build_policy(vecenv, trainer_args)
-                                    _load_model_weights(
-                                        opp,
-                                        opp_path,
-                                        device=str(train_cfg.get("device", "cpu")),
-                                        strict=False,
-                                    )
-                                    opp.eval()
+                                    opponent_key = str(opp_path.resolve())
+                                    opp = resident_by_key.get(opponent_key)
+                                    if opp is None:
+                                        opp = build_policy(vecenv, trainer_args)
+                                        _load_model_weights(
+                                            opp,
+                                            opp_path,
+                                            device=str(train_cfg.get("device", "cpu")),
+                                            strict=False,
+                                        )
+                                        opp.eval()
                                     refreshed_policies.append(opp)
-                                trainer.set_opponent_policies(refreshed_policies)
+                                trainer.set_opponent_policies(
+                                    refreshed_policies,
+                                    opponent_keys=[str(path.resolve()) for path in refreshed_paths],
+                                )
                                 print(
                                     "[league] pool refreshed: "
-                                    f"opponents={len(refreshed_policies)}, champion={league_manager.state.champion_policy_id}"
+                                    f"sampling_opponents={len(refreshed_policies)}, "
+                                    f"resident_opponents={len(trainer.opponent_policies)}, "
+                                    f"champion={league_manager.state.champion_policy_id}"
                                 )
+                current_checkpoint = checkpoint_cache.get(int(trainer.epoch))
+                if current_checkpoint is not None:
+                    _finalize_checkpoint(current_checkpoint)
                 if (
                     script_args.render_playback_interval > 0
                     and trainer.epoch % script_args.render_playback_interval == 0
@@ -2069,7 +2789,11 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
                         break
         finally:
             trainer.print_dashboard()
+            force_checkpoint = True
             model_path_raw = trainer.close()
+            current_checkpoint = checkpoint_cache.get(int(trainer.epoch))
+            if current_checkpoint is not None:
+                _finalize_checkpoint(current_checkpoint)
             model_path = Path(model_path_raw) if model_path_raw else None
             if logger is not None:
                 logger.close(str(model_path) if model_path else None)
@@ -2087,6 +2811,10 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
 
 
 def main():
+    # Expandable segments avoid fragmentation OOMs from the mixed large/small
+    # transients (bucket-1024 decode vs everything else). The allocator reads
+    # this at the first CUDA allocation, so a set-if-unset here is effective.
+    os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
     script_args, forwarded_cli = parse_script_args()
     run_training(script_args, forwarded_cli)
 

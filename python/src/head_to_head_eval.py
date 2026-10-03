@@ -142,6 +142,15 @@ def _resolve_device_staging(device_staging: str, device: str) -> str:
   raise ValueError(f"Unsupported device_staging '{device_staging}'")
 
 
+def _checkpoint_deck_building_enabled(config_path: Path, checkpoint: Path) -> bool:
+  trainer_args = load_training_config(config_path, [])
+  _apply_checkpoint_resume_policy_config(trainer_args, checkpoint)
+  env_cfg = trainer_args.get("env")
+  if not isinstance(env_cfg, dict):
+    return False
+  return bool(env_cfg.get("deck_building_enabled", False))
+
+
 def _reset_env_policy_state(state: dict[str, torch.Tensor], env_index: int) -> None:
   state["lstm_h"][env_index].zero_()
   state["lstm_c"][env_index].zero_()
@@ -254,6 +263,15 @@ def evaluate_head_to_head(
   device_staging = _resolve_device_staging(device_staging, device)
   base_args = load_training_config(config_path, [])
   base_args["train"]["device"] = device
+  _apply_checkpoint_resume_policy_config(base_args, checkpoint_a)
+  if checkpoint_b is not None:
+    deck_building_a = bool(base_args.get("env", {}).get("deck_building_enabled", False))
+    deck_building_b = _checkpoint_deck_building_enabled(config_path, checkpoint_b)
+    if deck_building_a != deck_building_b:
+      raise ValueError(
+        "head_to_head_eval requires checkpoints with matching deck_building_enabled values; "
+        f"checkpoint_a={deck_building_a}, checkpoint_b={deck_building_b}"
+      )
   if str(device).startswith("cuda"):
     torch.set_float32_matmul_precision("high")
     torch.backends.cudnn.benchmark = True

@@ -1,0 +1,91 @@
+812 decks in window (experiments/abl_snapshots/combo1, last 25%)
+
+== GLOBAL top-lift pairs ==
+  lift= 5.52 sup=0.071 dwin=+0.052  AZK01-058(Black Jade Warlord,ENT,c2) + STT04-004(Fanatic Kindler,ENT,c1)
+  lift= 5.45 sup=0.067 dwin=+0.019  AZK01-058(Black Jade Warlord,ENT,c2) + AZK01-062(Pekiro,ENT,c3)
+  lift= 5.43 sup=0.063 dwin=-0.029  AZK01-063(Enzo,ENT,c6) + AZK01-111(Black Jade Decoy,ENT,c3)
+  lift= 5.28 sup=0.060 dwin=+0.010  AZK01-047(Shiko the Priestes,ENT,c2) + AZK01-053(Geodust Smuggler,ENT,c7)
+  lift= 5.24 sup=0.063 dwin=+0.010  AZK01-047(Shiko the Priestes,ENT,c2) + STT03-003(Koyama Farm Potter,ENT,c1)
+  lift= 5.23 sup=0.060 dwin=+0.051  AZK01-053(Geodust Smuggler,ENT,c7) + AZK01-054(Teb Fea,ENT,c8)
+  lift= 5.22 sup=0.060 dwin=+0.051  AZK01-111(Black Jade Decoy,ENT,c3) + STT04-016(Collateral Burst,SPE,c2)
+  lift= 5.13 sup=0.062 dwin=+0.040  AZK01-050(Shroom Tender,ENT,c4) + STT03-012(Miharu of the Whit,ENT,c6)
+
+== Hydromancy(W) n=154 win=0.429 vs sibling EchoedWaves(W) n=75 — sibling-differential lift ==
+  dlift=+0.68 (g=1.26 sib=0.58) sup=0.227 dwin=+0.057 p=0.003  AZK01-016(Sleight of Hand,SPE,c1) + AZK01-077(Stalking Assassin,ENT,c3)
+  dlift=+0.57 (g=1.33 sib=0.76) sup=0.208 dwin=+0.009 p=0.010  AZK01-080(Bladebound Ally,ENT,c5) + STT02-005(Hayabusa Saburo,ENT,c1)
+  dlift=+0.57 (g=1.13 sib=0.56) sup=0.201 dwin=+0.152 p=0.017  AZK01-070(Mocking Dummy,ENT,c1) + STT02-012(Young Shao,ENT,c4)
+  dlift=+0.53 (g=1.18 sib=0.65) sup=0.188 dwin=+0.054 p=0.037  AZK01-029(Aquatic Veil,SPE,c0) + STT02-014(Chilling Water,SPE,c1)
+  dlift=+0.52 (g=1.00 sib=0.48) sup=0.175 dwin=-0.021 p=0.027  AZK01-020(Power of Friendshi,SPE,c3) + AZK01-029(Aquatic Veil,SPE,c0)
+  dlift=+0.52 (g=1.30 sib=0.77) sup=0.182 dwin=+0.071 p=0.030  AZK01-077(Stalking Assassin,ENT,c3) + AZK01-087(Mizuryuu's Torrent,SPE,c4)
+  dlift=+0.52 (g=1.14 sib=0.62) sup=0.253 dwin=-0.018 p=0.003  AZK01-016(Sleight of Hand,SPE,c1) + STT02-016(Water Orb,SPE,c1)
+  dlift=+0.51 (g=1.07 sib=0.56) sup=0.182 dwin=+0.000 p=0.007  AZK01-006(Gus,ENT,c2) + STT02-003(Hayabusa Itto,ENT,c1)
+
+== Surge(L) n=132 win=0.583 vs sibling Stormchain(L) n=91 — sibling-differential lift ==
+  dlift=+0.73 (g=1.24 sib=0.51) sup=0.205 dwin=+0.009 p=0.003  AZK01-127(Sundering Strike,SPE,c1) + STT01-003(Crate Rat Kurobo,ENT,c1)
+  dlift=+0.63 (g=1.30 sib=0.67) sup=0.136 dwin=-0.083 p=0.017  AZK01-100(Raizan's Riposte,SPE,c2) + STT01-006(Silver Current, Ha,ENT,c2)
+  dlift=+0.57 (g=1.18 sib=0.61) sup=0.182 dwin=-0.042 p=0.003  AZK01-040(Black Jade Vault M,ENT,c5) + STT04-011(Scorchland Raven,ENT,c4)
+  dlift=+0.53 (g=1.27 sib=0.74) sup=0.227 dwin=-0.017 p=0.003  AZK01-070(Mocking Dummy,ENT,c1) + AZK01-081(Gurugumi Mentor,ENT,c5)
+  dlift=+0.50 (g=1.27 sib=0.77) sup=0.121 dwin=+0.104 p=0.096  AZK01-070(Mocking Dummy,ENT,c1) + STT01-011(Raizan,ENT,c6)
+  dlift=+0.49 (g=1.19 sib=0.70) sup=0.098 dwin=+0.186 p=0.156  STT01-005(Alpine Prowler,ENT,c2) + STT01-011(Raizan,ENT,c6)
+  dlift=+0.49 (g=1.30 sib=0.81) sup=0.174 dwin=+0.156 p=0.030  AZK01-075(Drunken Brewmaster,ENT,c4) + STT01-011(Raizan,ENT,c6)
+  dlift=+0.47 (g=1.35 sib=0.88) sup=0.258 dwin=+0.005 p=0.010  AZK01-020(Power of Friendshi,SPE,c3) + STT01-013(Black Jade Dagger,WEA,c1)
+
+== Stonehaven(E) n=104 win=0.481 vs sibling Devotion(E) n=79 — sibling-differential lift ==
+  dlift=+0.75 (g=1.48 sib=0.74) sup=0.183 dwin=+0.046 p=0.007  AZK01-104(Sanzu's Envoy,ENT,c6) + AZK01-107(Offering to Stills,SPE,c0)
+  dlift=+0.71 (g=1.22 sib=0.51) sup=0.231 dwin=+0.061 p=0.003  STT03-004(Sloth Scarecrow,ENT,c1) + STT03-009(Warding Totem,ENT,c4)
+  dlift=+0.70 (g=1.17 sib=0.46) sup=0.308 dwin=-0.075 p=0.003  AZK01-109(Rock Sloth,ENT,c6) + STT01-013(Black Jade Dagger,WEA,c1)
+  dlift=+0.69 (g=1.52 sib=0.84) sup=0.192 dwin=+0.069 p=0.017  AZK01-020(Power of Friendshi,SPE,c3) + STT03-005(Wobbly Cabbage Car,ENT,c2)
+  dlift=+0.68 (g=1.03 sib=0.36) sup=0.288 dwin=-0.081 p=0.003  AZK01-053(Geodust Smuggler,ENT,c7) + AZK01-072(Beanz Mentor,ENT,c2)
+  dlift=+0.65 (g=1.41 sib=0.76) sup=0.221 dwin=-0.046 p=0.007  AZK01-086(Forging Tricks,SPE,c4) + STT03-014(Sandcoil Python,ENT,c8)
+  dlift=+0.62 (g=1.06 sib=0.44) sup=0.231 dwin=-0.022 p=0.007  AZK01-051(Chillax,ENT,c4) + STT03-010(Shroommancer,ENT,c4)
+  dlift=+0.60 (g=1.50 sib=0.91) sup=0.212 dwin=-0.026 p=0.020  AZK01-048(Kale,ENT,c3) + AZK01-074(Gurugumi Vanguard,ENT,c2)
+
+== Ragefire(F) n=93 win=0.505 vs sibling Rushfire(F) n=84 — sibling-differential lift ==
+  dlift=+0.65 (g=1.48 sib=0.83) sup=0.215 dwin=+0.095 p=0.030  AZK01-073(Top Beanz,ENT,c3) + AZK01-077(Stalking Assassin,ENT,c3)
+  dlift=+0.65 (g=1.20 sib=0.55) sup=0.247 dwin=-0.027 p=0.003  AZK01-072(Beanz Mentor,ENT,c2) + AZK01-082(Black Jade Brawler,ENT,c5)
+  dlift=+0.64 (g=1.34 sib=0.70) sup=0.290 dwin=-0.061 p=0.003  AZK01-018(Monk Staff of Ward,WEA,c4) + AZK01-115(Crazed Arsonist,ENT,c2)
+  dlift=+0.61 (g=1.34 sib=0.72) sup=0.237 dwin=-0.096 p=0.003  STT04-007(Enraged Howler,ENT,c2) + STT04-011(Scorchland Raven,ENT,c4)
+  dlift=+0.60 (g=1.08 sib=0.48) sup=0.204 dwin=-0.032 p=0.010  AZK01-057(Lounge Siren, Saek,ENT,c1) + AZK01-078(Fermented Beanz,ENT,c4)
+  dlift=+0.59 (g=1.13 sib=0.55) sup=0.183 dwin=+0.024 p=0.027  AZK01-056(Glass Blower, Hoku,ENT,c1) + STT04-009(Cinderwake Rituali,ENT,c3)
+  dlift=+0.57 (g=1.16 sib=0.59) sup=0.140 dwin=+0.187 p=0.037  AZK01-064(Zero,ENT,c8) + AZK01-085(Invigorating Conco,SPE,c3)
+  dlift=+0.56 (g=1.31 sib=0.75) sup=0.151 dwin=+0.137 p=0.017  AZK01-010(JD,ENT,c3) + AZK01-065(Fire Orb,SPE,c4)
+
+== Stormchain(L) n=91 win=0.516 vs sibling Surge(L) n=132 — sibling-differential lift ==
+  dlift=+0.74 (g=1.58 sib=0.84) sup=0.220 dwin=-0.066 p=0.007  AZK01-042(Thunderclap,SPE,c5) + STT01-012(Lightning Shuriken,WEA,c1)
+  dlift=+0.63 (g=1.38 sib=0.76) sup=0.176 dwin=+0.046 p=0.017  AZK01-010(JD,ENT,c3) + STT01-011(Raizan,ENT,c6)
+  dlift=+0.62 (g=1.59 sib=0.97) sup=0.154 dwin=-0.016 p=0.073  AZK01-040(Black Jade Vault M,ENT,c5) + STT01-006(Silver Current, Ha,ENT,c2)
+  dlift=+0.60 (g=1.29 sib=0.68) sup=0.231 dwin=+0.055 p=0.007  AZK01-085(Invigorating Conco,SPE,c3) + AZK01-100(Raizan's Riposte,SPE,c2)
+  dlift=+0.57 (g=1.32 sib=0.75) sup=0.242 dwin=-0.062 p=0.003  AZK01-007(Johnny,ENT,c2) + STT04-011(Scorchland Raven,ENT,c4)
+  dlift=+0.56 (g=1.42 sib=0.86) sup=0.220 dwin=+0.034 p=0.003  AZK01-040(Black Jade Vault M,ENT,c5) + STT01-008(Black Jade Crewlea,ENT,c3)
+  dlift=+0.54 (g=1.23 sib=0.68) sup=0.176 dwin=-0.079 p=0.020  STT01-009(Weapon Master Yama,ENT,c4) + STT01-012(Lightning Shuriken,WEA,c1)
+  dlift=+0.54 (g=1.31 sib=0.77) sup=0.198 dwin=+0.095 p=0.010  STT01-005(Alpine Prowler,ENT,c2) + STT02-012(Young Shao,ENT,c4)
+
+== Rushfire(F) n=84 win=0.500 vs sibling Ragefire(F) n=93 — sibling-differential lift ==
+  dlift=+0.64 (g=1.44 sib=0.80) sup=0.214 dwin=+0.000 p=0.043  AZK01-070(Mocking Dummy,ENT,c1) + AZK01-085(Invigorating Conco,SPE,c3)
+  dlift=+0.63 (g=1.20 sib=0.57) sup=0.202 dwin=+0.029 p=0.010  AZK01-070(Mocking Dummy,ENT,c1) + STT04-017(Wrath of Sinder,SPE,c3)
+  dlift=+0.60 (g=1.37 sib=0.77) sup=0.214 dwin=+0.111 p=0.027  AZK01-115(Crazed Arsonist,ENT,c2) + STT04-011(Scorchland Raven,ENT,c4)
+  dlift=+0.59 (g=1.31 sib=0.72) sup=0.179 dwin=-0.033 p=0.027  AZK01-072(Beanz Mentor,ENT,c2) + AZK01-080(Bladebound Ally,ENT,c5)
+  dlift=+0.57 (g=1.17 sib=0.60) sup=0.202 dwin=+0.088 p=0.027  AZK01-001(Penny,ENT,c1) + AZK01-070(Mocking Dummy,ENT,c1)
+  dlift=+0.57 (g=1.34 sib=0.78) sup=0.250 dwin=-0.119 p=0.013  AZK01-072(Beanz Mentor,ENT,c2) + AZK01-084(Good Enough Replic,SPE,c2)
+  dlift=+0.56 (g=1.31 sib=0.75) sup=0.190 dwin=+0.062 p=0.023  AZK01-114(Omen Peddler,ENT,c3) + STT04-009(Cinderwake Rituali,ENT,c3)
+  dlift=+0.52 (g=1.16 sib=0.64) sup=0.250 dwin=+0.071 p=0.003  AZK01-007(Johnny,ENT,c2) + AZK01-073(Top Beanz,ENT,c3)
+
+== Devotion(E) n=79 win=0.532 vs sibling Stonehaven(E) n=104 — sibling-differential lift ==
+  dlift=+0.71 (g=1.27 sib=0.56) sup=0.278 dwin=+0.059 p=0.003  AZK01-107(Offering to Stills,SPE,c0) + AZK01-108(Crushing Weight,SPE,c5)
+  dlift=+0.71 (g=1.72 sib=1.01) sup=0.228 dwin=-0.032 p=0.003  AZK01-004(Alley Thug,ENT,c1) + AZK01-051(Chillax,ENT,c4)
+  dlift=+0.68 (g=1.54 sib=0.86) sup=0.177 dwin=+0.040 p=0.003  AZK01-069(Link,ENT,c1) + STT03-009(Warding Totem,ENT,c4)
+  dlift=+0.67 (g=1.36 sib=0.69) sup=0.266 dwin=-0.008 p=0.003  AZK01-008(Rainy Day Assassin,ENT,c3) + AZK01-104(Sanzu's Envoy,ENT,c6)
+  dlift=+0.65 (g=1.44 sib=0.78) sup=0.266 dwin=-0.008 p=0.013  AZK01-105(Prickly Tumbleweed,ENT,c4) + STT03-005(Wobbly Cabbage Car,ENT,c2)
+  dlift=+0.60 (g=1.43 sib=0.83) sup=0.190 dwin=+0.002 p=0.007  AZK01-072(Beanz Mentor,ENT,c2) + AZK01-101(Sand Stands Still,SPE,c3)
+  dlift=+0.57 (g=1.14 sib=0.57) sup=0.291 dwin=+0.121 p=0.007  AZK01-001(Penny,ENT,c1) + AZK01-109(Rock Sloth,ENT,c6)
+  dlift=+0.55 (g=1.42 sib=0.87) sup=0.152 dwin=-0.032 p=0.040  AZK01-048(Kale,ENT,c3) + AZK01-051(Chillax,ENT,c4)
+
+== EchoedWaves(W) n=75 win=0.467 vs sibling Hydromancy(W) n=154 — sibling-differential lift ==
+  dlift=+0.73 (g=1.58 sib=0.85) sup=0.213 dwin=-0.092 p=0.003  AZK01-004(Alley Thug,ENT,c1) + AZK01-070(Mocking Dummy,ENT,c1)
+  dlift=+0.58 (g=1.59 sib=1.01) sup=0.160 dwin=-0.050 p=0.003  AZK01-005(Caravan Guard,ENT,c4) + AZK01-074(Gurugumi Vanguard,ENT,c2)
+  dlift=+0.57 (g=1.49 sib=0.92) sup=0.200 dwin=-0.133 p=0.013  AZK01-020(Power of Friendshi,SPE,c3) + STT02-012(Young Shao,ENT,c4)
+  dlift=+0.57 (g=1.35 sib=0.78) sup=0.293 dwin=-0.012 p=0.003  AZK01-016(Sleight of Hand,SPE,c1) + AZK01-090(Priestess of the M,ENT,c5)
+  dlift=+0.54 (g=1.36 sib=0.81) sup=0.213 dwin=-0.029 p=0.003  AZK01-020(Power of Friendshi,SPE,c3) + STT02-006(Foamback Crab,ENT,c2)
+  dlift=+0.54 (g=1.32 sib=0.78) sup=0.240 dwin=-0.133 p=0.010  AZK01-026(Moonlit Crane,ENT,c5) + AZK01-077(Stalking Assassin,ENT,c3)
+  dlift=+0.52 (g=1.51 sib=0.99) sup=0.267 dwin=+0.083 p=0.003  AZK01-001(Penny,ENT,c1) + AZK01-073(Top Beanz,ENT,c3)
+  dlift=+0.51 (g=1.47 sib=0.96) sup=0.240 dwin=+0.144 p=0.007  AZK01-090(Priestess of the M,ENT,c5) + STT02-014(Chilling Water,SPE,c1)

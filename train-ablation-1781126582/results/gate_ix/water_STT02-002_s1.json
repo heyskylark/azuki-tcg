@@ -1,0 +1,10 @@
+{
+  "element": "WATER",
+  "gate": "STT02-002",
+  "archetype": "spell_heavy",
+  "contrast": "entity_only",
+  "winrate_archetype": 0.368,
+  "se": 0.030500885233055122,
+  "n": 250,
+  "truncated": 0
+}

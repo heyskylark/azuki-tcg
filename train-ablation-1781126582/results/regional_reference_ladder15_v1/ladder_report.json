@@ -1,0 +1,485 @@
+{
+  "schema_version": 1,
+  "parent_update": 11030,
+  "target_update": 12000,
+  "sampled_rows_per_arm": 14899200,
+  "sps_is_rejection_criterion": false,
+  "arms": {
+    "control": {
+      "probability": 0.0,
+      "training": {
+        "metric_rows": 97,
+        "steady_rows": 77,
+        "sps_median": 1329.6830935999521,
+        "sps_p10": 1245.1995601262497,
+        "sps_last100_median": 1329.6830935999521,
+        "frozen_matchup_fraction_mean": 0.8028268736471862,
+        "reference_configured_probability": 0.0,
+        "reference_completed_episodes": 0.0,
+        "reference_completed_episode_fraction_mean": 0.0,
+        "reference_learner_drafter_fraction_weighted": 1.0,
+        "reference_matchup_step_fraction_mean": 0.0,
+        "reference_trainable_row_fraction_mean": 0.0,
+        "reference_trainable_battle_row_fraction_mean": 0.0
+      },
+      "train_reference": {
+        "episodes": 7104,
+        "score": 0.5902308558558559,
+        "timeout_rate": 0.0,
+        "deck_metrics": {
+          "main_unique_mean": 34.5,
+          "avg_copies_per_unique_mean": 1.456963090839052,
+          "singleton_slot_share_mean": 0.58,
+          "quad_slot_share_mean": 0.39999999999999997,
+          "distinct_main_decks": 4,
+          "dominant_main_deck_share": 0.25,
+          "nearest_train_reference_jaccard_mean": 0.17671781517314128,
+          "nearest_train_reference_jaccard_p90": 0.20481927710843373,
+          "nearest_holdout_reference_jaccard_mean": 0.11153214601490463,
+          "nearest_holdout_reference_jaccard_p90": 0.14942528735632185,
+          "train_holdout_similarity_gap": 0.06518566915823665,
+          "largest_nearest_train_label_share": 0.25,
+          "largest_nearest_train_label": "garden-arena-2026-08-15-submission-120",
+          "largest_nearest_holdout_label_share": 1.0,
+          "largest_nearest_holdout_label": "garden-arena-2026-08-15-submission-012",
+          "by_candidate_gate": {
+            "AZK01-120": {
+              "games": 888,
+              "main_unique_mean": 34.0,
+              "nearest_train_reference_jaccard_mean": 0.20481927710843373,
+              "nearest_holdout_reference_jaccard_mean": 0.0989010989010989,
+              "distinct_main_decks": 1
+            },
+            "AZK01-122": {
+              "games": 888,
+              "main_unique_mean": 31.0,
+              "nearest_train_reference_jaccard_mean": 0.16279069767441862,
+              "nearest_holdout_reference_jaccard_mean": 0.14942528735632185,
+              "distinct_main_decks": 1
+            },
+            "AZK01-124": {
+              "games": 888,
+              "main_unique_mean": 35.0,
+              "nearest_train_reference_jaccard_mean": 0.17647058823529413,
+              "nearest_holdout_reference_jaccard_mean": 0.0989010989010989,
+              "distinct_main_decks": 1
+            },
+            "AZK01-126": {
+              "games": 888,
+              "main_unique_mean": 38.0,
+              "nearest_train_reference_jaccard_mean": 0.16279069767441862,
+              "nearest_holdout_reference_jaccard_mean": 0.0989010989010989,
+              "distinct_main_decks": 1
+            },
+            "STT01-002": {
+              "games": 888,
+              "main_unique_mean": 34.0,
+              "nearest_train_reference_jaccard_mean": 0.20481927710843373,
+              "nearest_holdout_reference_jaccard_mean": 0.0989010989010989,
+              "distinct_main_decks": 1
+            },
+            "STT02-002": {
+              "games": 888,
+              "main_unique_mean": 38.0,
+              "nearest_train_reference_jaccard_mean": 0.16279069767441862,
+              "nearest_holdout_reference_jaccard_mean": 0.0989010989010989,
+              "distinct_main_decks": 1
+            },
+            "STT03-002": {
+              "games": 888,
+              "main_unique_mean": 35.0,
+              "nearest_train_reference_jaccard_mean": 0.17647058823529413,
+              "nearest_holdout_reference_jaccard_mean": 0.0989010989010989,
+              "distinct_main_decks": 1
+            },
+            "STT04-002": {
+              "games": 888,
+              "main_unique_mean": 31.0,
+              "nearest_train_reference_jaccard_mean": 0.16279069767441862,
+              "nearest_holdout_reference_jaccard_mean": 0.14942528735632185,
+              "distinct_main_decks": 1
+            }
+          }
+        },
+        "battle_metrics": {
+          "attack_rate_mean": 0.2385618078322066,
+          "spell_rate_mean": 0.006320429390463097,
+          "weapon_rate_mean": 0.027891195570470068,
+          "portal_rate_mean": 0.12960024715295304,
+          "play_entity_rate_mean": 0.3343272587150201,
+          "noop_rate_mean": 0.15654557079353645,
+          "ability_rate_mean": 0.03480092124441358,
+          "leader_health_mean": 0.20845298515318111,
+          "episode_length_mean": 82.54701576576576
+        }
+      },
+      "holdout_reference": {
+        "episodes": 480,
+        "score": 0.6104166666666667,
+        "timeout_rate": 0.0,
+        "deck_metrics": {
+          "main_unique_mean": 34.5,
+          "avg_copies_per_unique_mean": 1.4569630908390523,
+          "singleton_slot_share_mean": 0.5800000000000001,
+          "quad_slot_share_mean": 0.4,
+          "distinct_main_decks": 4,
+          "dominant_main_deck_share": 0.25,
+          "nearest_train_reference_jaccard_mean": 0.17671781517314128,
+          "nearest_train_reference_jaccard_p90": 0.20481927710843373,
+          "nearest_holdout_reference_jaccard_mean": 0.11153214601490463,
+          "nearest_holdout_reference_jaccard_p90": 0.14942528735632185,
+          "train_holdout_similarity_gap": 0.06518566915823665,
+          "largest_nearest_train_label_share": 0.25,
+          "largest_nearest_train_label": "garden-arena-2026-08-15-submission-120",
+          "largest_nearest_holdout_label_share": 1.0,
+          "largest_nearest_holdout_label": "garden-arena-2026-08-15-submission-012",
+          "by_candidate_gate": {
+            "AZK01-120": {
+              "games": 60,
+              "main_unique_mean": 34.0,
+              "nearest_train_reference_jaccard_mean": 0.20481927710843373,
+              "nearest_holdout_reference_jaccard_mean": 0.0989010989010989,
+              "distinct_main_decks": 1
+            },
+            "AZK01-122": {
+              "games": 60,
+              "main_unique_mean": 31.0,
+              "nearest_train_reference_jaccard_mean": 0.16279069767441862,
+              "nearest_holdout_reference_jaccard_mean": 0.14942528735632185,
+              "distinct_main_decks": 1
+            },
+            "AZK01-124": {
+              "games": 60,
+              "main_unique_mean": 35.0,
+              "nearest_train_reference_jaccard_mean": 0.17647058823529413,
+              "nearest_holdout_reference_jaccard_mean": 0.0989010989010989,
+              "distinct_main_decks": 1
+            },
+            "AZK01-126": {
+              "games": 60,
+              "main_unique_mean": 38.0,
+              "nearest_train_reference_jaccard_mean": 0.16279069767441862,
+              "nearest_holdout_reference_jaccard_mean": 0.0989010989010989,
+              "distinct_main_decks": 1
+            },
+            "STT01-002": {
+              "games": 60,
+              "main_unique_mean": 34.0,
+              "nearest_train_reference_jaccard_mean": 0.20481927710843373,
+              "nearest_holdout_reference_jaccard_mean": 0.0989010989010989,
+              "distinct_main_decks": 1
+            },
+            "STT02-002": {
+              "games": 60,
+              "main_unique_mean": 38.0,
+              "nearest_train_reference_jaccard_mean": 0.16279069767441862,
+              "nearest_holdout_reference_jaccard_mean": 0.0989010989010989,
+              "distinct_main_decks": 1
+            },
+            "STT03-002": {
+              "games": 60,
+              "main_unique_mean": 35.0,
+              "nearest_train_reference_jaccard_mean": 0.17647058823529413,
+              "nearest_holdout_reference_jaccard_mean": 0.0989010989010989,
+              "distinct_main_decks": 1
+            },
+            "STT04-002": {
+              "games": 60,
+              "main_unique_mean": 31.0,
+              "nearest_train_reference_jaccard_mean": 0.16279069767441862,
+              "nearest_holdout_reference_jaccard_mean": 0.14942528735632185,
+              "distinct_main_decks": 1
+            }
+          }
+        },
+        "battle_metrics": {
+          "attack_rate_mean": 0.2405029520392418,
+          "spell_rate_mean": 0.005817643655852104,
+          "weapon_rate_mean": 0.026315298550374185,
+          "portal_rate_mean": 0.13012646586479,
+          "play_entity_rate_mean": 0.33365565417334436,
+          "noop_rate_mean": 0.15459047423986097,
+          "ability_rate_mean": 0.035558400010146825,
+          "leader_health_mean": 0.2205208348420759,
+          "episode_length_mean": 88.11666666666666
+        }
+      },
+      "h2h_vs_parent": {
+        "episodes": 192,
+        "score": 0.5104166666666666,
+        "paired_lcb_80": 0.4895833333333333,
+        "timeout_rate": 0.0,
+        "battle_metrics": {
+          "attack_rate_mean": 0.25859570402341586,
+          "spell_rate_mean": 0.0056404818800122785,
+          "weapon_rate_mean": 0.028569813701324165,
+          "portal_rate_mean": 0.1262673472131913,
+          "play_entity_rate_mean": 0.3194842085552712,
+          "noop_rate_mean": 0.155235484514075,
+          "ability_rate_mean": 0.03413073755412673,
+          "leader_health_mean": 0.17213541760186976,
+          "episode_length_mean": 65.67708333333333
+        }
+      },
+      "sampled_rows": 14899200
+    },
+    "ref05": {
+      "probability": 0.05,
+      "training": {
+        "metric_rows": 97,
+        "steady_rows": 77,
+        "sps_median": 1324.920923060541,
+        "sps_p10": 1239.1284503458794,
+        "sps_last100_median": 1324.920923060541,
+        "frozen_matchup_fraction_mean": 0.797628686417749,
+        "reference_configured_probability": 0.04999999999999998,
+        "reference_completed_episodes": 214.2,
+        "reference_completed_episode_fraction_mean": 0.04922512863024649,
+        "reference_learner_drafter_fraction_weighted": 1.0,
+        "reference_matchup_step_fraction_mean": 0.03914620535714285,
+        "reference_trainable_row_fraction_mean": 0.03258267971518497,
+        "reference_trainable_battle_row_fraction_mean": 0.04849654038755887
+      },
+      "train_reference": {
+        "episodes": 7104,
+        "score": 0.5846002252252253,
+        "timeout_rate": 0.0,
+        "deck_metrics": {
+          "main_unique_mean": 35.5,
+          "avg_copies_per_unique_mean": 1.4308932265198033,
+          "singleton_slot_share_mean": 0.61,
+          "quad_slot_share_mean": 0.38,
+          "distinct_main_decks": 5,
+          "dominant_main_deck_share": 0.25,
+          "nearest_train_reference_jaccard_mean": 0.1799719887955182,
+          "nearest_train_reference_jaccard_p90": 0.19047619047619047,
+          "nearest_holdout_reference_jaccard_mean": 0.10826673326673326,
+          "nearest_holdout_reference_jaccard_p90": 0.13636363636363635,
+          "train_holdout_similarity_gap": 0.07170525552878494,
+          "largest_nearest_train_label_share": 0.25,
+          "largest_nearest_train_label": "garden-arena-2026-08-15-submission-120",
+          "largest_nearest_holdout_label_share": 1.0,
+          "largest_nearest_holdout_label": "garden-arena-2026-08-15-submission-012",
+          "by_candidate_gate": {
+            "AZK01-120": {
+              "games": 888,
+              "main_unique_mean": 35.0,
+              "nearest_train_reference_jaccard_mean": 0.19047619047619047,
+              "nearest_holdout_reference_jaccard_mean": 0.0989010989010989,
+              "distinct_main_decks": 1
+            },
+            "AZK01-122": {
+              "games": 888,
+              "main_unique_mean": 29.0,
+              "nearest_train_reference_jaccard_mean": 0.17647058823529413,
+              "nearest_holdout_reference_jaccard_mean": 0.13636363636363635,
+              "distinct_main_decks": 1
+            },
+            "AZK01-124": {
+              "games": 888,
+              "main_unique_mean": 37.0,
+              "nearest_train_reference_jaccard_mean": 0.17647058823529413,
+              "nearest_holdout_reference_jaccard_mean": 0.0989010989010989,
+              "distinct_main_decks": 1
+            },
+            "AZK01-126": {
+              "games": 888,
+              "main_unique_mean": 41.0,
+              "nearest_train_reference_jaccard_mean": 0.17647058823529413,
+              "nearest_holdout_reference_jaccard_mean": 0.0989010989010989,
+              "distinct_main_decks": 1
+            },
+            "STT01-002": {
+              "games": 888,
+              "main_unique_mean": 35.0,
+              "nearest_train_reference_jaccard_mean": 0.19047619047619047,
+              "nearest_holdout_reference_jaccard_mean": 0.0989010989010989,
+              "distinct_main_decks": 1
+            },
+            "STT02-002": {
+              "games": 888,
+              "main_unique_mean": 41.0,
+              "nearest_train_reference_jaccard_mean": 0.17647058823529413,
+              "nearest_holdout_reference_jaccard_mean": 0.0989010989010989,
+              "distinct_main_decks": 1
+            },
+            "STT03-002": {
+              "games": 888,
+              "main_unique_mean": 37.0,
+              "nearest_train_reference_jaccard_mean": 0.17647058823529413,
+              "nearest_holdout_reference_jaccard_mean": 0.0989010989010989,
+              "distinct_main_decks": 1
+            },
+            "STT04-002": {
+              "games": 888,
+              "main_unique_mean": 29.0,
+              "nearest_train_reference_jaccard_mean": 0.17647058823529413,
+              "nearest_holdout_reference_jaccard_mean": 0.13636363636363635,
+              "distinct_main_decks": 1
+            }
+          }
+        },
+        "battle_metrics": {
+          "attack_rate_mean": 0.24108376076994548,
+          "spell_rate_mean": 0.006051167066346409,
+          "weapon_rate_mean": 0.03198260590704137,
+          "portal_rate_mean": 0.12974416075362447,
+          "play_entity_rate_mean": 0.33906320577722276,
+          "noop_rate_mean": 0.15474779344465886,
+          "ability_rate_mean": 0.033380895578653785,
+          "leader_health_mean": 0.19976773744329457,
+          "episode_length_mean": 82.36852477477477
+        }
+      },
+      "holdout_reference": {
+        "episodes": 480,
+        "score": 0.5958333333333333,
+        "timeout_rate": 0.0,
+        "deck_metrics": {
+          "main_unique_mean": 35.5,
+          "avg_copies_per_unique_mean": 1.4308932265198033,
+          "singleton_slot_share_mean": 0.61,
+          "quad_slot_share_mean": 0.38,
+          "distinct_main_decks": 5,
+          "dominant_main_deck_share": 0.25,
+          "nearest_train_reference_jaccard_mean": 0.1799719887955182,
+          "nearest_train_reference_jaccard_p90": 0.19047619047619047,
+          "nearest_holdout_reference_jaccard_mean": 0.10826673326673326,
+          "nearest_holdout_reference_jaccard_p90": 0.13636363636363635,
+          "train_holdout_similarity_gap": 0.07170525552878494,
+          "largest_nearest_train_label_share": 0.25,
+          "largest_nearest_train_label": "garden-arena-2026-08-15-submission-120",
+          "largest_nearest_holdout_label_share": 1.0,
+          "largest_nearest_holdout_label": "garden-arena-2026-08-15-submission-012",
+          "by_candidate_gate": {
+            "AZK01-120": {
+              "games": 60,
+              "main_unique_mean": 35.0,
+              "nearest_train_reference_jaccard_mean": 0.19047619047619044,
+              "nearest_holdout_reference_jaccard_mean": 0.0989010989010989,
+              "distinct_main_decks": 1
+            },
+            "AZK01-122": {
+              "games": 60,
+              "main_unique_mean": 29.0,
+              "nearest_train_reference_jaccard_mean": 0.17647058823529413,
+              "nearest_holdout_reference_jaccard_mean": 0.13636363636363635,
+              "distinct_main_decks": 1
+            },
+            "AZK01-124": {
+              "games": 60,
+              "main_unique_mean": 37.0,
+              "nearest_train_reference_jaccard_mean": 0.17647058823529413,
+              "nearest_holdout_reference_jaccard_mean": 0.0989010989010989,
+              "distinct_main_decks": 1
+            },
+            "AZK01-126": {
+              "games": 60,
+              "main_unique_mean": 41.0,
+              "nearest_train_reference_jaccard_mean": 0.17647058823529413,
+              "nearest_holdout_reference_jaccard_mean": 0.0989010989010989,
+              "distinct_main_decks": 1
+            },
+            "STT01-002": {
+              "games": 60,
+              "main_unique_mean": 35.0,
+              "nearest_train_reference_jaccard_mean": 0.19047619047619044,
+              "nearest_holdout_reference_jaccard_mean": 0.0989010989010989,
+              "distinct_main_decks": 1
+            },
+            "STT02-002": {
+              "games": 60,
+              "main_unique_mean": 41.0,
+              "nearest_train_reference_jaccard_mean": 0.17647058823529413,
+              "nearest_holdout_reference_jaccard_mean": 0.0989010989010989,
+              "distinct_main_decks": 1
+            },
+            "STT03-002": {
+              "games": 60,
+              "main_unique_mean": 37.0,
+              "nearest_train_reference_jaccard_mean": 0.17647058823529413,
+              "nearest_holdout_reference_jaccard_mean": 0.0989010989010989,
+              "distinct_main_decks": 1
+            },
+            "STT04-002": {
+              "games": 60,
+              "main_unique_mean": 29.0,
+              "nearest_train_reference_jaccard_mean": 0.17647058823529413,
+              "nearest_holdout_reference_jaccard_mean": 0.13636363636363635,
+              "distinct_main_decks": 1
+            }
+          }
+        },
+        "battle_metrics": {
+          "attack_rate_mean": 0.2437316777262216,
+          "spell_rate_mean": 0.00573698112857528,
+          "weapon_rate_mean": 0.03176589353824966,
+          "portal_rate_mean": 0.12866259940977517,
+          "play_entity_rate_mean": 0.3386828384362161,
+          "noop_rate_mean": 0.15611384751585622,
+          "ability_rate_mean": 0.03372185788854646,
+          "leader_health_mean": 0.2014583346201107,
+          "episode_length_mean": 87.56875
+        }
+      },
+      "h2h_vs_parent": {
+        "episodes": 192,
+        "score": 0.5052083333333334,
+        "paired_lcb_80": 0.4791666666666667,
+        "timeout_rate": 0.0,
+        "battle_metrics": {
+          "attack_rate_mean": 0.25859612789160263,
+          "spell_rate_mean": 0.006365040191061174,
+          "weapon_rate_mean": 0.032924711243443504,
+          "portal_rate_mean": 0.1267575082796005,
+          "play_entity_rate_mean": 0.32650297942260903,
+          "noop_rate_mean": 0.15099267137702554,
+          "ability_rate_mean": 0.03450806859958296,
+          "leader_health_mean": 0.15468750114087015,
+          "episode_length_mean": 66.109375
+        }
+      },
+      "sampled_rows": 14899200,
+      "paired_deltas_vs_control": {
+        "train_reference": {
+          "games": 7104,
+          "mean": -0.00563063063063063,
+          "lcb80": -0.01266891891891892,
+          "ucb80": 0.0015484234234234234,
+          "lcb95": -0.016469594594594593,
+          "ucb95": 0.005208333333333333
+        },
+        "holdout_reference": {
+          "games": 480,
+          "mean": -0.014583333333333334,
+          "lcb80": -0.04375,
+          "ucb80": 0.014583333333333334,
+          "lcb95": -0.058333333333333334,
+          "ucb95": 0.03125
+        },
+        "h2h_vs_parent": {
+          "games": 192,
+          "mean": -0.005208333333333333,
+          "lcb80": -0.046875,
+          "ucb80": 0.036458333333333336,
+          "lcb95": -0.07291666666666667,
+          "ucb95": 0.0625
+        }
+      },
+      "screen": {
+        "status": "stop_after_15m",
+        "integrity_pass": true,
+        "timeout_pass": true,
+        "no_mode_collapse": true,
+        "evidence_count": 0,
+        "dominant_main_deck_share_delta": 0.0,
+        "sps_observational_only": {
+          "control_median": 1329.6830935999521,
+          "ref05_median": 1324.920923060541,
+          "ratio": 0.9964185672794275
+        }
+      }
+    }
+  },
+  "decision": "stop_after_15m"
+}

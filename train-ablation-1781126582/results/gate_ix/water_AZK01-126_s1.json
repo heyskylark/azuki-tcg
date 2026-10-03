@@ -1,0 +1,10 @@
+{
+  "element": "WATER",
+  "gate": "AZK01-126",
+  "archetype": "spell_heavy",
+  "contrast": "entity_only",
+  "winrate_archetype": 0.36,
+  "se": 0.030357865537616442,
+  "n": 250,
+  "truncated": 0
+}

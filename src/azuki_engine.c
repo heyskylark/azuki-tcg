@@ -7,14 +7,19 @@
 #include <time.h>
 
 #include "abilities/ability_system.h"
+#include "abilities/ability_registry.h"
 #include "systems/phase_gate.h"
 #include "utils/game_log_util.h"
+#include "utils/ability_util.h"
 #include "utils/phase_utils.h"
 #include "utils/deck_utils.h"
+#include "utils/card_utils.h"
 #include "utils/status_util.h"
 #include "utils/player_util.h"
+#include "utils/zone_util.h"
 #include "world.h"
 #include "validation/action_enumerator.h"
+#include "validation/action_validation.h"
 
 typedef struct {
   bool initialized;
@@ -594,9 +599,166 @@ bool azk_engine_reward_snapshot(AzkEngine *engine, AzkRewardSnapshot *out_snapsh
     out_snapshot->untapped_garden_count[player_index] = untapped_garden;
     out_snapshot->untapped_ikz_count[player_index] =
       count_untapped_cards_in_zone(engine, zones->ikz_area);
+    out_snapshot->entity_damage_taken[player_index] =
+      (float)gs->entity_damage_taken[player_index];
+    out_snapshot->generated_ikz_created[player_index] =
+      (float)gs->generated_ikz_created[player_index];
+    out_snapshot->generated_ikz_converted[player_index] =
+      (float)gs->generated_ikz_converted[player_index];
   }
 
   return true;
+}
+
+static bool attacker_has_intrinsic_charge(AzkEngine *engine,
+                                          ecs_entity_t attacker) {
+  const ecs_entity_t prefab = ecs_get_target(engine, attacker, EcsIsA, 0);
+  if (prefab != 0 && ecs_has(engine, prefab, Charge)) {
+    return true;
+  }
+
+  const CardConditionCountdown *countdown =
+      ecs_get(engine, attacker, CardConditionCountdown);
+  if (countdown == NULL) {
+    return false;
+  }
+  for (uint8_t i = 0; i < countdown->timed_tag_grant_count; ++i) {
+    const TimedTagGrant *grant = &countdown->timed_tag_grants[i];
+    if (grant->tag == ecs_id(Charge) && grant->remaining_ticks == -1) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static bool attacker_has_temporary_charge(AzkEngine *engine,
+                                          ecs_entity_t attacker) {
+  if (attacker_has_intrinsic_charge(engine, attacker)) {
+    return false;
+  }
+
+  const CardConditionCountdown *countdown =
+      ecs_get(engine, attacker, CardConditionCountdown);
+  if (countdown == NULL) {
+    return false;
+  }
+  for (uint8_t i = 0; i < countdown->timed_tag_grant_count; ++i) {
+    const TimedTagGrant *grant = &countdown->timed_tag_grants[i];
+    if (grant->tag == ecs_id(Charge) && grant->remaining_ticks > 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+static int8_t positive_eot_attack_bonus(AzkEngine *engine,
+                                        ecs_entity_t attacker) {
+  int bonus = 0;
+  const ecs_type_t *type = ecs_get_type(engine, attacker);
+  if (type == NULL) {
+    return 0;
+  }
+
+  for (int32_t i = 0; i < type->count; ++i) {
+    const ecs_id_t id = type->array[i];
+    if (!ECS_IS_PAIR(id) ||
+        ecs_pair_first(engine, id) != ecs_id(AttackBuff)) {
+      continue;
+    }
+    const AttackBuff *buff =
+        (const AttackBuff *)ecs_get_id(engine, attacker, id);
+    if (buff != NULL && buff->expires_eot && buff->modifier > 0) {
+      bonus += buff->modifier;
+    }
+  }
+
+  return (int8_t)(bonus > INT8_MAX ? INT8_MAX : bonus);
+}
+
+bool azk_engine_attack_reward_context(AzkEngine *engine,
+                                      const UserAction *action,
+                                      AzkAttackRewardContext *out_context) {
+  if (engine == NULL || action == NULL || out_context == NULL ||
+      action->type != ACT_ATTACK) {
+    return false;
+  }
+  *out_context = (AzkAttackRewardContext){0};
+
+  const GameState *gs = ecs_singleton_get(engine, GameState);
+  if (gs == NULL || gs->active_player_index < 0 ||
+      gs->active_player_index >= MAX_PLAYERS_PER_MATCH) {
+    return false;
+  }
+
+  const int8_t player_index = gs->active_player_index;
+  AttackIntent intent = {0};
+  const bool valid = azk_validate_attack_action(
+      engine, gs, gs->players[player_index], action, false, &intent);
+  if (!valid) {
+    return false;
+  }
+
+  *out_context = (AzkAttackRewardContext){
+      .valid = true,
+      .player_index = player_index,
+      .attacker = intent.attacking_card,
+      .temporary_charge =
+          attacker_has_temporary_charge(engine, intent.attacking_card),
+      .positive_eot_attack_bonus =
+          positive_eot_attack_bonus(engine, intent.attacking_card),
+  };
+  return true;
+}
+
+bool azk_engine_legal_action_spends_ikz(AzkEngine *engine,
+                                        int8_t player_index,
+                                        const UserAction *action) {
+  if (engine == NULL || action == NULL || player_index < 0 ||
+      player_index >= MAX_PLAYERS_PER_MATCH) {
+    return false;
+  }
+
+  const GameState *gs = ecs_singleton_get(engine, GameState);
+  if (gs == NULL) {
+    return false;
+  }
+  const ecs_entity_t player = gs->players[player_index];
+
+  switch (action->type) {
+  case ACT_PLAY_ENTITY_TO_GARDEN:
+  case ACT_PLAY_ENTITY_TO_ALLEY:
+  case ACT_ATTACH_WEAPON_FROM_HAND:
+  case ACT_PLAY_SPELL_FROM_HAND: {
+    const int hand_index = action->subaction_1;
+    const ecs_entities_t hand =
+        ecs_get_ordered_children(engine, gs->zones[player_index].hand);
+    if (hand_index < 0 || hand_index >= hand.count) {
+      return false;
+    }
+    return azk_get_effective_card_play_cost(engine, player,
+                                            hand.ids[hand_index]) > 0;
+  }
+  case ACT_ACTIVATE_GARDEN_OR_LEADER_ABILITY: {
+    const int slot_index = action->subaction_1;
+    ecs_entity_t card = 0;
+    if (slot_index >= 0 && slot_index < GARDEN_SIZE) {
+      card = find_card_in_zone_index(engine, gs->zones[player_index].garden,
+                                     slot_index);
+    } else if (slot_index == GARDEN_SIZE) {
+      card = find_leader_card_in_zone(engine, gs->zones[player_index].leader);
+    }
+    if (card == 0) {
+      return false;
+    }
+    const ecs_entity_t ability = azk_find_card_action_ability(
+        engine, card, (int8_t)action->subaction_2);
+    const AbilityDef *def =
+        ability != 0 ? azk_get_ability_def_for_entity(engine, ability) : NULL;
+    return def != NULL && def->ikz_cost > 0;
+  }
+  default:
+    return false;
+  }
 }
 
 AbilityPhase azk_engine_get_ability_phase(const AzkEngine *engine) {

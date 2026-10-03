@@ -1,0 +1,10 @@
+{
+  "element": "LIGHTNING",
+  "gate": "STT01-002",
+  "archetype": "weapon_heavy",
+  "contrast": "entity_only",
+  "winrate_archetype": 0.236,
+  "se": 0.026855464993181557,
+  "n": 250,
+  "truncated": 0
+}

@@ -51,6 +51,65 @@ from torch.utils.cpp_extension import (
 # and can find CUDA or HIP in the system
 ADVANTAGE_CUDA = bool(CUDA_HOME or ROCM_HOME)
 
+
+def terminal_win_labels_from_rewards(
+        env_id: np.ndarray,
+        label_mask: np.ndarray,
+        terminal_rewards: np.ndarray,
+        agents_per_env: int) -> dict[int, dict[int, float]]:
+    """Build per-seat binary win labels from true terminal rows."""
+    env_ids = np.asarray(env_id, dtype=np.int64).reshape(-1)
+    labels = np.asarray(label_mask, dtype=np.bool_).reshape(-1)
+    rewards = np.asarray(terminal_rewards, dtype=np.float32).reshape(-1)
+    if env_ids.shape != labels.shape or env_ids.shape != rewards.shape:
+        raise ValueError('env_id, label_mask, and terminal_rewards must have matching shapes')
+    if agents_per_env < 1:
+        raise ValueError('agents_per_env must be positive')
+
+    out: dict[int, dict[int, float]] = {}
+    for agent_id, is_terminal, reward in zip(env_ids, labels, rewards):
+        if not bool(is_terminal) or float(reward) == 0.0:
+            continue
+        env_index = int(agent_id // agents_per_env)
+        seat = int(agent_id % agents_per_env)
+        out.setdefault(env_index, {})[seat] = 1.0 if float(reward) > 0.0 else 0.0
+    return out
+
+
+def trainer_shaped_reward_multiplier(
+        update: int,
+        *,
+        enabled: bool,
+        start_epoch: int,
+        end_epoch: int) -> float:
+    """Return the absolute-update multiplier for trainer-side shaped reward."""
+    if not enabled:
+        return 1.0
+    if start_epoch < 0 or end_epoch <= start_epoch:
+        raise ValueError('trainer shaped-reward anneal requires 0 <= start_epoch < end_epoch')
+    absolute_update = int(update)
+    if absolute_update <= start_epoch:
+        return 1.0
+    if absolute_update >= end_epoch:
+        return 0.0
+    return float(end_epoch - absolute_update) / float(end_epoch - start_epoch)
+
+
+def recombine_reward_components(
+        raw_total: torch.Tensor,
+        terminal: torch.Tensor,
+        shaped: torch.Tensor,
+        multiplier: float) -> tuple[torch.Tensor, torch.Tensor]:
+    """Scale only shaped reward while preserving exact pre-anneal totals."""
+    scale = float(multiplier)
+    if not 0.0 <= scale <= 1.0:
+        raise ValueError('shaped reward multiplier must be in [0, 1]')
+    if scale == 1.0:
+        return raw_total, shaped
+    scaled_shaped = shaped * scale
+    return torch.clamp(terminal + scaled_shaped, -1, 1), scaled_shaped
+
+
 class PuffeRL:
     def __init__(self, config, vecenv, policy, logger=None):
         # Backend perf optimization
@@ -61,11 +120,9 @@ class PuffeRL:
         torch.backends.cudnn.deterministic = config['torch_deterministic']
         torch.backends.cudnn.benchmark = True
 
-        # Reproducibility
+        # The project entrypoint optionally seeds process RNGs before policy
+        # construction. This seed controls the vector-environment reset.
         seed = config['seed']
-        #random.seed(seed)
-        #np.random.seed(seed)
-        #torch.manual_seed(seed)
 
         # Vecenv info
         vecenv.async_reset(seed)
@@ -112,19 +169,43 @@ class PuffeRL:
         self.ep_lengths = torch.zeros(total_agents, device=device, dtype=torch.int32)
         self.ep_indices = torch.arange(total_agents, device=device, dtype=torch.int32)
         self.free_idx = total_agents
-        self._agents_per_env = max(1, int(getattr(vecenv.driver_env, 'num_agents', 1)))
-        if hasattr(vecenv, 'num_environments'):
-            self._num_envs_total = int(vecenv.num_environments)
-        elif hasattr(vecenv, 'envs'):
-            self._num_envs_total = int(len(vecenv.envs))
-        else:
-            self._num_envs_total = max(1, int(total_agents // self._agents_per_env))
+        # Group rows by GAME, not by worker instance: a native driver_env packs
+        # many independent games (num_agents = 2 * envs_per_instance), but the
+        # global row layout is [g0_p0, g0_p1, g1_p0, ...] on every path, so
+        # game index = row // agents_per_match. Envs expose agents_per_match;
+        # falling back to num_agents preserves legacy 2-agent wrappers.
+        driver = vecenv.driver_env
+        self._agents_per_env = max(
+            1, int(getattr(driver, 'agents_per_match', getattr(driver, 'num_agents', 1)))
+        )
+        self._num_envs_total = max(1, int(total_agents // self._agents_per_env))
         self._env_episode_ids = np.arange(self._num_envs_total, dtype=np.int64)
         self._next_env_episode_id = int(self._num_envs_total)
         self.win_prob_targets = torch.zeros(segments, horizon, device=device)
         self.win_prob_target_mask = torch.zeros(segments, horizon, device=device, dtype=torch.bool)
         self.win_prob_episode_ids = torch.full((segments, horizon), -1, device=device, dtype=torch.int64)
         self.win_prob_agent_ids = torch.full((segments, horizon), -1, device=device, dtype=torch.int32)
+        self._win_prob_zero_label_epochs = 0
+
+        anneal_flag = os.environ.get('AZK_TRAINER_SHAPED_REWARD_ANNEAL', '')
+        self._trainer_shaped_reward_anneal_enabled = (
+            anneal_flag.strip().lower() not in {'', '0', 'false', 'no', 'off'}
+        )
+        self._trainer_shaped_reward_start_epoch = int(
+            os.environ.get('AZK_TRAINER_SHAPED_REWARD_ANNEAL_START_EPOCH', '0') or 0
+        )
+        self._trainer_shaped_reward_end_epoch = int(
+            os.environ.get('AZK_TRAINER_SHAPED_REWARD_ANNEAL_END_EPOCH', '1') or 1
+        )
+        if self._trainer_shaped_reward_anneal_enabled:
+            trainer_shaped_reward_multiplier(
+                0,
+                enabled=True,
+                start_epoch=self._trainer_shaped_reward_start_epoch,
+                end_epoch=self._trainer_shaped_reward_end_epoch,
+            )
+        self._trainer_shaped_reward_multiplier = 1.0
+        self._trainer_shaped_reward_update = 0
 
         # LSTM
         if config['use_rnn']:
@@ -132,6 +213,23 @@ class PuffeRL:
             h = policy.hidden_size
             self.lstm_h = {i*n: torch.zeros(n, h, device=device) for i in range(total_agents//n)}
             self.lstm_c = {i*n: torch.zeros(n, h, device=device) for i in range(total_agents//n)}
+
+        # A-DRAFTAUX: draft->battle boundary auxiliary pick credit (design in
+        # train-ablation-1781126582/draft-aux-design.md). Off unless env knobs set.
+        self._draftaux_vboot = float(os.environ.get('AZK_DRAFT_VBOOT_COEF', '0') or 0.0)
+        self._draftaux_sibdiff = float(os.environ.get('AZK_DRAFT_SIBDIFF_COEF', '0') or 0.0)
+        self._draftaux_cap = float(os.environ.get('AZK_DRAFT_SIBDIFF_CAP', '0.05') or 0.05)
+        self._draftaux_enabled = (
+            self._draftaux_vboot > 0.0 or self._draftaux_sibdiff > 0.0
+        ) and bool(config['use_rnn'])
+        self._draftaux_layout = None
+        self._draftaux_prev = {}
+        self._draftaux_injected = 0.0
+        self._draftaux_events = 0
+        # S1: scale the aux by the env's live reward_shaping_scale so the
+        # seeding force fades with the anneal instead of Goodharting at length.
+        self._draftaux_anneal = os.environ.get('AZK_DRAFT_AUX_ANNEAL') == '1'
+        self._draftaux_last_scale = 1.0
 
         # Minibatching & gradient accumulation
         minibatch_size = config['minibatch_size']
@@ -158,9 +256,33 @@ class PuffeRL:
         self.uncompiled_policy = policy
         self.policy = policy
         if config['compile']:
-            self.policy = torch.compile(policy, mode=config['compile_mode'])
-            self.policy.forward_eval = torch.compile(policy, mode=config['compile_mode'])
-            pufferlib.pytorch.sample_logits = torch.compile(pufferlib.pytorch.sample_logits, mode=config['compile_mode'])
+            base = getattr(policy, 'policy', None)
+            if base is not None and hasattr(base, 'encode_observations') and hasattr(base, 'decode_actions'):
+                # Azuki TCG policy: compile the encode/decode hot paths and keep
+                # the LSTM cell + glue eager. The default recompile_limit (8) is
+                # load-bearing: the _PackedField.extract frames specialize per
+                # field spec and must cap to eager quickly, while the hot
+                # encoder/decoder graphs compile once per shape family. Raising
+                # the limit (or dynamo-disabling the canonicalizer) was measured
+                # 10-70% slower end to end.
+                # Keep the eager originals reachable: CUDA-graph capture must
+                # record the eager kernels (dynamo guards read the CUDA RNG
+                # seed, which is illegal inside stream capture).
+                base._eager_encode_observations = base.encode_observations
+                base._eager_decode_actions = base.decode_actions
+                base.encode_observations = torch.compile(base.encode_observations, mode=config['compile_mode'])
+                base.decode_actions = torch.compile(base.decode_actions, mode=config['compile_mode'])
+            else:
+                self.policy = torch.compile(policy, mode=config['compile_mode'])
+                self.policy.forward_eval = torch.compile(policy, mode=config['compile_mode'])
+                pufferlib.pytorch.sample_logits = torch.compile(pufferlib.pytorch.sample_logits, mode=config['compile_mode'])
+
+        # Manual CUDA graphs for the launch-bound rollout forward (Azuki
+        # policy only; captures one graph per legal-action trim bucket).
+        if config.get('cuda_graphs', False) and 'cuda' in str(config['device']):
+            enable_graphs = getattr(policy, 'enable_rollout_cuda_graphs', None)
+            if enable_graphs is not None:
+                enable_graphs()
 
         # Optimizer
         if config['optimizer'] == 'adam':
@@ -169,6 +291,7 @@ class PuffeRL:
                 lr=config['learning_rate'],
                 betas=(config['adam_beta1'], config['adam_beta2']),
                 eps=config['adam_eps'],
+                fused='cuda' in str(config['device']),
             )
         elif config['optimizer'] == 'muon':
             import heavyball
@@ -226,6 +349,13 @@ class PuffeRL:
         self.last_stats = defaultdict(list)
         self.losses = {}
 
+        if self._trainer_shaped_reward_anneal_enabled:
+            print(
+                '[trainer-shaped-reward] enabled: '
+                f'start_epoch={self._trainer_shaped_reward_start_epoch}, '
+                f'end_epoch={self._trainer_shaped_reward_end_epoch}'
+            )
+
         # Dashboard
         self.model_size = sum(p.numel() for p in policy.parameters() if p.requires_grad)
         self.print_dashboard(clear=True)
@@ -271,6 +401,40 @@ class PuffeRL:
         self.shaped_values.zero_()
         self.terminal_reward_components.zero_()
         self.shaped_reward_components.zero_()
+
+    def _prepare_trainer_shaped_reward_anneal(self) -> float:
+        absolute_update = int(self.epoch) + 1
+        multiplier = trainer_shaped_reward_multiplier(
+            absolute_update,
+            enabled=self._trainer_shaped_reward_anneal_enabled,
+            start_epoch=self._trainer_shaped_reward_start_epoch,
+            end_epoch=self._trainer_shaped_reward_end_epoch,
+        )
+        self._trainer_shaped_reward_update = absolute_update
+        self._trainer_shaped_reward_multiplier = multiplier
+        self.stats['trainer_shaped_reward_multiplier'].append(multiplier)
+        self.stats['trainer_shaped_reward_update'].append(float(absolute_update))
+        return multiplier
+
+    def _record_effective_reward_shaping_scale(self):
+        native_scales = self.stats.get('reward_shaping_scale')
+        if not native_scales:
+            return
+        numeric = [float(value) for value in native_scales if np.isfinite(float(value))]
+        if not numeric:
+            return
+        self.stats['effective_reward_shaping_scale'].append(
+            float(np.mean(numeric)) * self._trainer_shaped_reward_multiplier
+        )
+
+    def trainer_shaped_reward_schedule_state(self) -> dict[str, object]:
+        return {
+            'enabled': bool(self._trainer_shaped_reward_anneal_enabled),
+            'start_epoch': int(self._trainer_shaped_reward_start_epoch),
+            'end_epoch': int(self._trainer_shaped_reward_end_epoch),
+            'absolute_update': int(self._trainer_shaped_reward_update),
+            'multiplier': float(self._trainer_shaped_reward_multiplier),
+        }
 
     def _build_info_by_env(self, info, env_indices: np.ndarray) -> dict[int, object]:
         ordered_envs = np.unique(env_indices)
@@ -387,20 +551,41 @@ class PuffeRL:
             labels[int(seat)] = float(win_value)
         return labels
 
-    def _assign_terminal_win_prob_targets(self, info, env_id: np.ndarray, done_mask: np.ndarray):
+    def _assign_terminal_win_prob_targets(
+        self,
+        info,
+        env_id: np.ndarray,
+        done_mask: np.ndarray,
+        *,
+        terminal_rewards: np.ndarray | None = None,
+        label_mask: np.ndarray | None = None,
+    ):
         finished_envs = self._episode_envs_from_done_mask(env_id, done_mask)
         if finished_envs.size == 0:
             return finished_envs
 
         env_indices = (env_id // self._agents_per_env).astype(np.int32)
         info_by_env = self._build_info_by_env(info, env_indices)
+        direct_labels: dict[int, dict[int, float]] = {}
+        if terminal_rewards is not None:
+            direct_labels = terminal_win_labels_from_rewards(
+                env_id,
+                done_mask if label_mask is None else label_mask,
+                terminal_rewards,
+                self._agents_per_env,
+            )
 
         seat_ids = torch.remainder(self.win_prob_agent_ids.long(), self._agents_per_env)
         for env_idx in finished_envs:
             episode_id = int(self._env_episode_ids[int(env_idx)])
             episode_mask = self.win_prob_episode_ids == episode_id
             if bool(episode_mask.any().item()):
-                seat_labels = self._extract_terminal_win_labels(info_by_env.get(int(env_idx)))
+                if terminal_rewards is not None:
+                    seat_labels = direct_labels.get(int(env_idx), {})
+                else:
+                    seat_labels = self._extract_terminal_win_labels(
+                        info_by_env.get(int(env_idx))
+                    )
                 for seat, win_value in seat_labels.items():
                     seat_mask = episode_mask & (seat_ids == int(seat))
                     if not bool(seat_mask.any().item()):
@@ -414,50 +599,169 @@ class PuffeRL:
         return finished_envs
 
     def _compute_win_prob_aux(self, state: dict, idx: torch.Tensor):
+        """Masked win-prob BCE with metrics kept as device tensors (no syncs)."""
         device = self.config['device']
-        zero_loss = torch.zeros((), device=device)
+        zero = torch.zeros((), device=device)
         metrics = {
             'enabled': False,
-            'raw_loss': 0.0,
-            'labeled_frac': 0.0,
-            'example_count': 0,
-            'correct_sum': 0.0,
-            'brier_sum': 0.0,
-            'pred_sum': 0.0,
-            'target_sum': 0.0,
+            'raw_loss': zero,
+            'labeled_frac': zero,
+            'example_count': zero,
+            'correct_sum': zero,
+            'brier_sum': zero,
+            'pred_sum': zero,
+            'target_sum': zero,
         }
         if not self._win_prob_aux_enabled():
-            return zero_loss, metrics
+            return zero, metrics
 
         metrics['enabled'] = True
         win_prob_logits = state.get('_azk_win_prob_logits')
         if not torch.is_tensor(win_prob_logits):
-            return zero_loss, metrics
+            return zero, metrics
 
         targets = self.win_prob_targets[idx].to(device=win_prob_logits.device, dtype=win_prob_logits.dtype)
-        labeled_mask = self.win_prob_target_mask[idx].to(device=win_prob_logits.device)
+        labeled = self.win_prob_target_mask[idx].to(device=win_prob_logits.device, dtype=win_prob_logits.dtype)
         if win_prob_logits.shape != targets.shape:
             win_prob_logits = win_prob_logits.view_as(targets)
 
-        metrics['labeled_frac'] = float(labeled_mask.float().mean().item())
-        labeled_count = int(labeled_mask.sum().item())
-        metrics['example_count'] = labeled_count
-        if labeled_count == 0:
-            return zero_loss, metrics
+        count = labeled.sum()
+        denom = count.clamp(min=1.0)
+        per_element = F.binary_cross_entropy_with_logits(win_prob_logits, targets, reduction='none')
+        raw_loss = (per_element * labeled).sum() / denom
 
-        logits = win_prob_logits[labeled_mask]
-        target_values = targets[labeled_mask]
-        raw_loss = F.binary_cross_entropy_with_logits(logits, target_values)
-        probs = torch.sigmoid(logits)
-        predictions = (probs >= 0.5).to(dtype=target_values.dtype)
+        with torch.no_grad():
+            probs = torch.sigmoid(win_prob_logits)
+            predictions = (probs >= 0.5).to(dtype=targets.dtype)
+            metrics['labeled_frac'] = labeled.mean()
+            metrics['example_count'] = count
+            metrics['raw_loss'] = raw_loss.detach()
+            metrics['correct_sum'] = ((predictions == targets).to(dtype=labeled.dtype) * labeled).sum()
+            metrics['brier_sum'] = (torch.square(probs - targets) * labeled).sum()
+            metrics['pred_sum'] = (probs * labeled).sum()
+            metrics['target_sum'] = (targets * labeled).sum()
 
-        metrics['raw_loss'] = float(raw_loss.detach().item())
-        metrics['correct_sum'] = float((predictions == target_values).float().sum().item())
-        metrics['brier_sum'] = float(torch.square(probs - target_values).sum().item())
-        metrics['pred_sum'] = float(probs.sum().item())
-        metrics['target_sum'] = float(target_values.sum().item())
         weighted_loss = raw_loss * self._win_prob_aux_coef()
         return weighted_loss, metrics
+
+    def _draftaux_aux_scale(self):
+        """Scale draft auxiliary credit with both active shaping schedules."""
+        native_scale = 1.0
+        if self._draftaux_anneal:
+            vals = self.stats.get('reward_shaping_scale')
+            if vals:
+                self._draftaux_last_scale = float(vals[-1])
+            native_scale = self._draftaux_last_scale
+        return native_scale * self._trainer_shaped_reward_multiplier
+
+    def _draftaux_init_layout(self, obs_row_bytes, device):
+        """Byte offsets into the packed deckbuild obs + sibling-gate lookup.
+
+        Disables the aux (with a message) if the obs layout is not the native
+        deck-building struct."""
+        import numpy as np
+
+        try:
+            from observation import DECKBUILD_OBSERVATION_CTYPE
+            dt = np.dtype(DECKBUILD_OBSERVATION_CTYPE)
+            if int(obs_row_bytes) != dt.itemsize:
+                raise ValueError(
+                    f"obs row {obs_row_bytes}B != deckbuild struct {dt.itemsize}B"
+                )
+
+            def field_offset(dtype, path):
+                off = 0
+                for name in path:
+                    sub, sub_off = dtype.fields[name][0], dtype.fields[name][1]
+                    off += sub_off
+                    dtype = sub
+                return off
+
+            layout = {
+                "mode_off": field_offset(dt, ("deck_context", "mode")),
+                "gate_ctx_off": field_offset(dt, ("deck_context", "gate_card_def_id")),
+                "gate_zone_off": field_offset(dt, ("my_observation_data", "gate", "card_def_id")),
+            }
+            from deck_building import build_deck_build_catalog
+            from training_deck_pool import load_training_deck_pool
+
+            catalog = build_deck_build_catalog(load_training_deck_pool())
+            records = catalog.records_by_def_id
+            gate_ids = sorted({int(g) for g in catalog.gate_def_id_population})
+            by_element = {}
+            for g in gate_ids:
+                by_element.setdefault(records[g].element, []).append(g)
+            vocab = max(records) + 1
+            sibling = torch.full((vocab,), -1, dtype=torch.int64, device=device)
+            for element_gates in by_element.values():
+                if len(element_gates) < 2:
+                    continue
+                for i, g in enumerate(element_gates):
+                    sibling[g] = element_gates[(i + 1) % len(element_gates)]
+            layout["sibling"] = sibling
+            self._draftaux_layout = layout
+            print(
+                f"[draftaux] enabled: vboot={self._draftaux_vboot} "
+                f"sibdiff={self._draftaux_sibdiff} cap={self._draftaux_cap}"
+            )
+        except Exception as exc:
+            print(f"[draftaux] disabled (layout init failed: {exc})")
+            self._draftaux_enabled = False
+        return self._draftaux_layout
+
+    def _draftaux_step(self, o_device, value, batch_rows, l, env_id, mask, h_prev, c_prev):
+        """Detect draft->battle boundaries and inject aux credit at the last pick."""
+        lay = self._draftaux_layout
+        if lay is None:
+            lay = self._draftaux_init_layout(o_device.shape[-1], o_device.device)
+            if lay is None:
+                return
+        group = env_id.start
+        mo = lay["mode_off"]
+        mode = o_device[:, mo:mo + 4].contiguous().view(torch.int32).flatten()
+        prev = self._draftaux_prev.get(group)
+        self._draftaux_prev[group] = {"mode": mode.clone(), "rows": batch_rows, "l": l}
+        if prev is None:
+            return
+        boundary = (mode == 0) & (prev["mode"] != 0)
+        if not bool(boundary.any()):
+            return
+        b = boundary.nonzero(as_tuple=False).flatten()
+        v_own = value.flatten()[b].detach().float()
+        aux = self._draftaux_vboot * v_own
+        if self._draftaux_sibdiff > 0.0:
+            g_off = lay["gate_ctx_off"]
+            z_off = lay["gate_zone_off"]
+            rows = o_device[b].clone()
+            gid = rows[:, g_off:g_off + 2].contiguous().view(torch.int16).flatten().long()
+            sib = lay["sibling"][gid.clamp(min=0, max=lay["sibling"].numel() - 1)]
+            ok = (gid >= 0) & (sib >= 0)
+            if bool(ok.any()):
+                sb_bytes = sib.to(torch.int16).view(torch.uint8).reshape(-1, 2)
+                rows[:, g_off:g_off + 2] = sb_bytes
+                rows[:, z_off:z_off + 2] = sb_bytes
+                mask_t = mask if torch.is_tensor(mask) else torch.as_tensor(mask)
+                cf_state = {
+                    "mask": mask_t.to(o_device.device)[b],
+                    "lstm_h": h_prev[b].clone(),
+                    "lstm_c": c_prev[b].clone(),
+                }
+                with torch.no_grad(), self.amp_context:
+                    _, v_sib = self.policy.forward_eval(rows, cf_state)
+                diff = (v_own - v_sib.flatten().detach().float()).clamp(
+                    min=0.0, max=self._draftaux_cap
+                )
+                aux = aux + self._draftaux_sibdiff * diff * ok.float()
+        # Inject at the previous step's stored slot (the last pick) — cached
+        # coords survive segment rollover because they are the written coords.
+        prev_rows, prev_l = prev["rows"], prev["l"]
+        idx = torch.arange(prev_rows.start, prev_rows.stop, device=value.device)[b]
+        aux = aux * self._draftaux_aux_scale()
+        aux_cast = aux.to(self.rewards.dtype)
+        self.rewards[idx, prev_l] += aux_cast
+        self.shaped_reward_components[idx, prev_l] += aux_cast
+        self._draftaux_injected += float(aux.sum().item())
+        self._draftaux_events += int(b.numel())
 
     def evaluate(self):
         profile = self.profile
@@ -467,37 +771,62 @@ class PuffeRL:
 
         config = self.config
         device = config['device']
+        reward_multiplier = self._prepare_trainer_shaped_reward_anneal()
 
         if config['use_rnn']:
             for k in self.lstm_h:
                 self.lstm_h[k].zero_()
                 self.lstm_c[k].zero_()
 
+        if self._draftaux_enabled:
+            # Prev-step buffer coords from the last epoch are recycled slots;
+            # never inject across the epoch boundary.
+            self._draftaux_prev.clear()
+            if self._draftaux_events:
+                self.stats['draftaux_events'].append(float(self._draftaux_events))
+                self.stats['draftaux_injected_mean'].append(
+                    self._draftaux_injected / max(self._draftaux_events, 1)
+                )
+            self._draftaux_events = 0
+            self._draftaux_injected = 0.0
+
         self.full_rows = 0
+        # Python mirrors of ep_lengths/ep_indices for the slice reads below:
+        # reading the device tensors would sync the CPU against the whole
+        # enqueued forward on every step.
+        self._ep_len_py = {}
+        self._ep_row_py = {}
         self._reset_win_prob_rollout_buffers()
         self._reset_split_value_rollout_buffers()
+        win_prob_enabled = self._win_prob_aux_enabled()
+        if win_prob_enabled:
+            # Per-agent episode bookkeeping, all device-resident and rebased
+            # each epoch: ids advance by total_agents on episode end so they
+            # stay unique per agent-episode; the win table is keyed by them.
+            self.agent_episode_ids = torch.arange(
+                self.total_agents, device=device, dtype=torch.int64)
+            # Each agent's id advances by total_agents per episode end; an
+            # agent sees at most ceil(batch/agents_per_batch) recv rounds.
+            agents_per_batch = max(1, int(getattr(self.vecenv, 'agents_per_batch', self.total_agents)))
+            max_rounds = -(-int(config['batch_size']) // agents_per_batch)
+            win_table_size = self.total_agents * (max_rounds + 2)
+            self.episode_win_table = torch.full((win_table_size,), -1.0, device=device)
+
         while self.full_rows < self.segments:
             profile('env', epoch)
             o, r, d, t, info, env_id, mask = self.vecenv.recv()
 
             profile('eval_misc', epoch)
             env_id_np = np.asarray(env_id, dtype=np.int64)
-            env_id = slice(env_id_np[0], env_id_np[-1] + 1)
-            done_mask = np.asarray(d + t, dtype=np.bool_) # TODO: Handle truncations separately
+            env_id = slice(int(env_id_np[0]), int(env_id_np[-1]) + 1)
             self.global_step += int(mask.sum())
 
             profile('eval_copy', epoch)
             o = torch.as_tensor(o)
-            o_device = o.to(device)#, non_blocking=True)
-            r = torch.as_tensor(r).to(device)#, non_blocking=True)
-            d = torch.as_tensor(d).to(device)#, non_blocking=True)
-            reward_components_terminal_np, reward_components_shaped_np = self._extract_step_reward_components(
-                info,
-                env_id_np,
-                np.clip(np.asarray(r.cpu().numpy(), dtype=np.float32), -1.0, 1.0),
-            )
-            reward_components_terminal = torch.as_tensor(reward_components_terminal_np, device=device)
-            reward_components_shaped = torch.as_tensor(reward_components_shaped_np, device=device)
+            o_device = o.to(device, non_blocking=True)
+            r = torch.as_tensor(r).to(device, non_blocking=True)
+            d = torch.as_tensor(d).to(device, non_blocking=True)
+            t_dev = torch.as_tensor(t).to(device, non_blocking=True)
 
             profile('eval_forward', epoch)
             with torch.no_grad(), self.amp_context:
@@ -511,10 +840,11 @@ class PuffeRL:
                 if config['use_rnn']:
                     state['lstm_h'] = self.lstm_h[env_id.start]
                     state['lstm_c'] = self.lstm_c[env_id.start]
+                draftaux_h_prev = self.lstm_h[env_id.start] if self._draftaux_enabled else None
+                draftaux_c_prev = self.lstm_c[env_id.start] if self._draftaux_enabled else None
 
                 logits, value = self.policy.forward_eval(o_device, state)
                 action, logprob, _ = pufferlib.pytorch.sample_logits(logits)
-                r = torch.clamp(r, -1, 1)
 
             profile('eval_copy', epoch)
             with torch.no_grad():
@@ -522,9 +852,20 @@ class PuffeRL:
                     self.lstm_h[env_id.start] = state['lstm_h']
                     self.lstm_c[env_id.start] = state['lstm_c']
 
+                # Reward components derive from (reward, done): the env
+                # guarantees rewards carry only the terminal component on
+                # episode-end steps and only the shaped component otherwise.
+                done_dev = d | t_dev
+                r_clipped = torch.clamp(r, -1, 1)
+                zeros = torch.zeros((), device=device, dtype=r_clipped.dtype)
+                reward_components_terminal = torch.where(done_dev, r_clipped, zeros)
+                reward_components_shaped = torch.where(done_dev, zeros, r_clipped)
+
                 # Fast path for fully vectorized envs
-                l = self.ep_lengths[env_id.start].item()
-                batch_rows = slice(self.ep_indices[env_id.start].item(), 1+self.ep_indices[env_id.stop - 1].item())
+                group = env_id.start
+                l = self._ep_len_py.get(group, 0)
+                row_start = self._ep_row_py.get(group, group)
+                batch_rows = slice(row_start, row_start + (env_id.stop - env_id.start))
 
                 if config['cpu_offload']:
                     self.observations[batch_rows, l] = o
@@ -533,11 +874,22 @@ class PuffeRL:
 
                 self.actions[batch_rows, l] = action
                 self.logprobs[batch_rows, l] = logprob
-                self.rewards[batch_rows, l] = r
+                scaled_total, scaled_shaped = recombine_reward_components(
+                    r_clipped,
+                    reward_components_terminal,
+                    reward_components_shaped,
+                    reward_multiplier,
+                )
+                self.rewards[batch_rows, l] = scaled_total
                 self.terminal_reward_components[batch_rows, l] = reward_components_terminal
-                self.shaped_reward_components[batch_rows, l] = reward_components_shaped
+                self.shaped_reward_components[batch_rows, l] = scaled_shaped
                 self.terminals[batch_rows, l] = d.float()
                 self.values[batch_rows, l] = value.flatten()
+                if self._draftaux_enabled:
+                    self._draftaux_step(
+                        o_device, value, batch_rows, l, env_id, mask,
+                        draftaux_h_prev, draftaux_c_prev,
+                    )
                 if self._split_value_heads_enabled():
                     terminal_value, shaped_value = self._component_values_from_state(
                         state,
@@ -545,14 +897,28 @@ class PuffeRL:
                     )
                     self.terminal_values[batch_rows, l] = terminal_value.detach().float()
                     self.shaped_values[batch_rows, l] = shaped_value.detach().float()
-                self._stamp_win_prob_rollout_metadata(batch_rows, l, env_id_np)
+
+                if win_prob_enabled:
+                    # Stamp episode ids for these rows and record win labels on
+                    # episode end (win := terminal end with positive terminal
+                    # reward; truncations label 0 — matching the env's
+                    # winner-based per-episode stats).
+                    ids = self.agent_episode_ids[env_id]
+                    self.win_prob_episode_ids[batch_rows, l] = ids
+                    win_now = (d & (r > 0)).float()
+                    prev = self.episode_win_table[ids]
+                    self.episode_win_table[ids] = torch.where(done_dev, win_now, prev)
+                    self.agent_episode_ids[env_id] = ids + done_dev.long() * self.total_agents
 
                 # Note: We are not yet handling masks in this version
                 self.ep_lengths[env_id] += 1
+                self._ep_len_py[group] = l + 1
                 if l+1 >= config['bptt_horizon']:
                     num_full = env_id.stop - env_id.start
                     self.ep_indices[env_id] = self.free_idx + torch.arange(num_full, device=config['device']).int()
                     self.ep_lengths[env_id] = 0
+                    self._ep_row_py[group] = self.free_idx
+                    self._ep_len_py[group] = 0
                     self.free_idx += num_full
                     self.full_rows += num_full
 
@@ -569,15 +935,23 @@ class PuffeRL:
                         self.stats[k].extend(v)
                     else:
                         self.stats[k].append(v)
-            self._assign_terminal_win_prob_targets(info, env_id_np, done_mask)
 
             profile('env', epoch)
             self.vecenv.send(action)
 
         profile('eval_misc', epoch)
+        if win_prob_enabled:
+            # Resolve per-row win targets from the episode table in one gather.
+            row_ids = self.win_prob_episode_ids.clamp(min=0)
+            wins = self.episode_win_table[row_ids]
+            labeled = (self.win_prob_episode_ids >= 0) & (wins >= 0)
+            self.win_prob_targets = torch.where(labeled, wins, torch.zeros_like(wins))
+            self.win_prob_target_mask = labeled
+
         self.free_idx = self.total_agents
         self.ep_indices = torch.arange(self.total_agents, device=device, dtype=torch.int32)
         self.ep_lengths.zero_()
+        self._record_effective_reward_shaping_scale()
         profile.end()
         return self.stats
 
@@ -607,7 +981,6 @@ class PuffeRL:
 
         for mb in range(self.total_minibatches):
             profile('train_misc', epoch)
-            self.amp_context.__enter__()
 
             shape = self.values.shape
             advantages = torch.zeros(shape, device=device)
@@ -676,8 +1049,9 @@ class PuffeRL:
                 lstm_c=None,
             )
 
-            logits, newvalue = self.policy(mb_obs, state)
-            actions, newlogprob, entropy = pufferlib.pytorch.sample_logits(logits, action=mb_actions)
+            with self.amp_context:
+                logits, newvalue = self.policy(mb_obs, state)
+                actions, newlogprob, entropy = pufferlib.pytorch.sample_logits(logits, action=mb_actions)
 
             profile('train_misc', epoch)
             newlogprob = newlogprob.reshape(mb_logprobs.shape)
@@ -734,7 +1108,6 @@ class PuffeRL:
 
             value_loss_for_optim = total_v_loss + self._split_value_component_coef() * component_v_loss
             loss = pg_loss + config['vf_coef']*value_loss_for_optim - config['ent_coef']*entropy_loss + win_prob_aux_loss
-            self.amp_context.__enter__() # TODO: AMP needs some debugging
 
             # This breaks vloss clipping?
             self.values[idx] = newvalue.detach().float()
@@ -742,19 +1115,20 @@ class PuffeRL:
                 self.terminal_values[idx] = new_terminal_value.detach().float()
                 self.shaped_values[idx] = new_shaped_value.detach().float()
 
-            # Logging
+            # Logging: accumulate as device tensors; a single sync happens at
+            # the end of the epoch when the dashboard converts to floats.
             profile('train_misc', epoch)
-            losses['policy_loss'] += pg_loss.item() / self.total_minibatches
-            losses['value_loss'] += value_loss_for_optim.item() / self.total_minibatches
-            losses['value_loss_total'] += total_v_loss.item() / self.total_minibatches
+            losses['policy_loss'] += pg_loss.detach() / self.total_minibatches
+            losses['value_loss'] += value_loss_for_optim.detach() / self.total_minibatches
+            losses['value_loss_total'] += total_v_loss.detach() / self.total_minibatches
             if split_value_enabled:
-                losses['value_loss_terminal'] += terminal_v_loss.item() / self.total_minibatches
-                losses['value_loss_shaped'] += shaped_v_loss.item() / self.total_minibatches
-            losses['entropy'] += entropy_loss.item() / self.total_minibatches
-            losses['old_approx_kl'] += old_approx_kl.item() / self.total_minibatches
-            losses['approx_kl'] += approx_kl.item() / self.total_minibatches
-            losses['clipfrac'] += clipfrac.item() / self.total_minibatches
-            losses['importance'] += ratio.mean().item() / self.total_minibatches
+                losses['value_loss_terminal'] += terminal_v_loss.detach() / self.total_minibatches
+                losses['value_loss_shaped'] += shaped_v_loss.detach() / self.total_minibatches
+            losses['entropy'] += entropy_loss.detach() / self.total_minibatches
+            losses['old_approx_kl'] += old_approx_kl / self.total_minibatches
+            losses['approx_kl'] += approx_kl / self.total_minibatches
+            losses['clipfrac'] += clipfrac / self.total_minibatches
+            losses['importance'] += ratio.detach().mean() / self.total_minibatches
             if win_prob_enabled:
                 losses['win_prob_aux_loss'] += win_prob_aux_metrics['raw_loss'] / self.total_minibatches
                 losses['win_prob_aux_labeled_frac'] += win_prob_aux_metrics['labeled_frac'] / self.total_minibatches
@@ -765,9 +1139,10 @@ class PuffeRL:
                 win_prob_example_count += win_prob_aux_metrics['example_count']
 
             # Learn on accumulated minibatches
-            profile('learn', epoch)
+            profile('learn_backward', epoch)
             loss.backward()
             if (mb + 1) % self.accumulate_minibatches == 0:
+                profile('learn_opt', epoch)
                 torch.nn.utils.clip_grad_norm_(self.policy.parameters(), config['max_grad_norm'])
                 self.optimizer.step()
                 self.optimizer.zero_grad()
@@ -800,16 +1175,18 @@ class PuffeRL:
                 else (1 - (shaped_y_true - shaped_y_pred).var() / shaped_var_y).item()
             )
         if win_prob_enabled:
-            if win_prob_example_count > 0:
-                losses['win_prob_aux_accuracy'] = win_prob_correct_sum / win_prob_example_count
-                losses['win_prob_aux_brier'] = win_prob_brier_sum / win_prob_example_count
-                losses['win_prob_aux_pred_mean'] = win_prob_pred_sum / win_prob_example_count
-                losses['win_prob_aux_target_mean'] = win_prob_target_sum / win_prob_example_count
+            denom = win_prob_example_count
+            if torch.is_tensor(denom):
+                denom = denom.clamp(min=1.0)
             else:
-                losses['win_prob_aux_accuracy'] = 0.0
-                losses['win_prob_aux_brier'] = 0.0
-                losses['win_prob_aux_pred_mean'] = 0.0
-                losses['win_prob_aux_target_mean'] = 0.0
+                denom = max(denom, 1.0)
+            losses['win_prob_aux_accuracy'] = win_prob_correct_sum / denom
+            losses['win_prob_aux_brier'] = win_prob_brier_sum / denom
+            losses['win_prob_aux_pred_mean'] = win_prob_pred_sum / denom
+            losses['win_prob_aux_target_mean'] = win_prob_target_sum / denom
+
+        # Single host sync for all logged scalars.
+        losses = {k: (float(v.item()) if torch.is_tensor(v) else v) for k, v in losses.items()}
 
         profile.end()
         logs = None
@@ -965,7 +1342,8 @@ class PuffeRL:
         p.add_row(*fmt_perf('  Misc', b2, delta, profile.eval_misc, b2, c2))
         p.add_row(*fmt_perf('Train', b1, delta, profile.train, b2, c2))
         p.add_row(*fmt_perf('  Forward', b2, delta, profile.train_forward, b2, c2))
-        p.add_row(*fmt_perf('  Learn', b2, delta, profile.learn, b2, c2))
+        p.add_row(*fmt_perf('  Backward', b2, delta, profile.learn_backward, b2, c2))
+        p.add_row(*fmt_perf('  Optimizer', b2, delta, profile.learn_opt, b2, c2))
         p.add_row(*fmt_perf('  Copy', b2, delta, profile.train_copy, b2, c2))
         p.add_row(*fmt_perf('  Misc', b2, delta, profile.train_misc, b2, c2))
 
@@ -1013,14 +1391,15 @@ class PuffeRL:
 
         print('\033[0;0H' + capture.get())
 
+try:
+    from pufferlib.torch_pufferl import compute_puff_advantage as upstream_compute_puff_advantage
+except Exception:
+    upstream_compute_puff_advantage = None
+
+
 def compute_puff_advantage(values, rewards, terminals,
         ratio, advantages, gamma, gae_lambda, vtrace_rho_clip, vtrace_c_clip):
     '''Use the upstream 4.0 kernel when available and fall back to a Python implementation.'''
-
-    try:
-        from pufferlib.torch_pufferl import compute_puff_advantage as upstream_compute_puff_advantage
-    except Exception:
-        upstream_compute_puff_advantage = None
 
     if upstream_compute_puff_advantage is not None:
         return upstream_compute_puff_advantage(

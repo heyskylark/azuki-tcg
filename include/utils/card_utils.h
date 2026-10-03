@@ -25,6 +25,12 @@ bool can_tap_card(ecs_world_t *world, ecs_entity_t card, bool ignore_cooldown);
  */
 void tap_card(ecs_world_t *world, ecs_entity_t card);
 
+/** Mark an IKZ source recovered or created by an effect for reward attribution. */
+void azk_mark_generated_ikz_credit(ecs_world_t *world, ecs_entity_t card);
+
+/** Clear unused generated-IKZ attribution before the natural turn refresh. */
+void azk_clear_generated_ikz_credit(ecs_world_t *world, ecs_entity_t card);
+
 void set_card_to_cooldown(ecs_world_t *world, ecs_entity_t card);
 bool is_card_tapped(ecs_world_t *world, ecs_entity_t card);
 bool is_card_cooldown(ecs_world_t *world, ecs_entity_t card);

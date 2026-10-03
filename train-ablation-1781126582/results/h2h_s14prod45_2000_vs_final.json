@@ -1,0 +1,50 @@
+{
+  "episodes": 192,
+  "num_envs": 12,
+  "backend": "Serial",
+  "num_workers": null,
+  "batch_size": 12,
+  "max_steps": 400,
+  "device": "cuda:0",
+  "device_staging": "full_batch",
+  "amp": false,
+  "precision": "float16",
+  "compile": false,
+  "compile_mode": null,
+  "elapsed_seconds": 726.4204150410369,
+  "step_iterations": 3717,
+  "timing": {
+    "decode_seconds": 102.0355425986927,
+    "device_stage_seconds": 0.8742488431744277,
+    "forward_seconds": 325.5610678184312,
+    "env_seconds": 295.20207876642235
+  },
+  "checkpoint_a": "/home/skylark/git/azuki-tcg/experiments/azuki_local_s14prod45_178404911119/model_azuki_local_002000.pt",
+  "checkpoint_b": "/home/skylark/git/azuki-tcg/experiments/azuki_local_s14prod45_178404911119/model_azuki_local_002930.pt",
+  "results": {
+    "ep2000": {
+      "wins": 107,
+      "losses": 85,
+      "draws": 0,
+      "timeouts": 0,
+      "win_rate": 0.5572916666666666,
+      "non_draw_win_rate": 0.5572916666666666,
+      "mean_episode_length": 217.078125,
+      "mean_episode_reward": 0.63893616482942,
+      "seat0_wins": 54,
+      "seat1_wins": 53
+    },
+    "final": {
+      "wins": 85,
+      "losses": 107,
+      "draws": 0,
+      "timeouts": 0,
+      "win_rate": 0.4427083333333333,
+      "non_draw_win_rate": 0.4427083333333333,
+      "mean_episode_length": 217.078125,
+      "mean_episode_reward": -0.63893616482942,
+      "seat0_wins": 43,
+      "seat1_wins": 42
+    }
+  }
+}

@@ -1,0 +1,366 @@
+[sampler] legal-row overrides: deck_pick_smoothing_eps=0.02, legal_row_temperature=None
+[sampler] schedule configured: subaction_temperature=1.200000->1.200000 (steps 0->153600), smoothing_eps=0.050000->0.050000 (steps 0->153600), applied_step=0, subaction_temperature_now=1.200000, smoothing_eps_now=0.050000
+/home/skylark/git/azuki-tcg/python/.venv-codex/lib/python3.13/site-packages/torch/__init__.py:1617: UserWarning: Please use the new API settings to control TF32 behavior, such as torch.backends.cudnn.conv.fp32_precision = 'tf32' or torch.backends.cuda.matmul.fp32_precision = 'ieee'. Old settings, e.g, torch.backends.cuda.matmul.allow_tf32 = True, torch.backends.cudnn.allow_tf32 = True, allowTF32CuDNN() and allowTF32CuBLAS() will be deprecated after Pytorch 2.9. Please see https://pytorch.org/docs/main/notes/cuda.html#tensorfloat-32-tf32-on-ampere-and-later-devices (Triggered internally at /pytorch/aten/src/ATen/Context.cpp:80.)
+  _C._set_float32_matmul_precision(precision)
+[0;0H╭──────────────────────────────────────────────────────────────────────────────╮
+│  PufferLib 4.0 🐡             CPU: 0.0%  GPU: 0.0%  DRAM: 0.0%   VRAM: 0.0%  │
+│                                                                              │
+│  Summary          Value    Evaluate      0s   0%    Losses            Value  │
+│  Env        azuki_local      Forwa…      0s   0%                             │
+│  Params           90.2M      Env         0s   0%                             │
+│  Steps                0      Copy        0s   0%                             │
+│  SPS                  0      Misc        0s   0%                             │
+│  Epoch                0    Train         0s   0%                             │
+│  Uptime              0s      Forwa…      0s   0%                             │
+│  Remaini…   A hair past      Backw…      0s   0%                             │
+│               a freckle      Optim…      0s   0%                             │
+│                              Copy        0s   0%                             │
+│                              Misc        0s   0%                             │
+│                                                                              │
+│  User Stats                    Value    User Stats                    Value  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+[train] epoch plan: batch_size=15360, total_epochs=10, effective_total_timesteps=153600, sampler_temp=1.200000, sampler_smoothing=0.050000, ent_coef=0.010000
+[anneal] ent_coef schedule: 0.010000->0.002000 (steps 92160->138240), applied_step=0
+/home/skylark/git/azuki-tcg/python/.venv-codex/lib/python3.13/site-packages/torch/_dynamo/variables/functions.py:1598: UserWarning: Dynamo does not know how to trace the builtin `<unknown module>.Tensor.as_strided.` This function is either a Python builtin (e.g. _warnings.warn) or a third-party C/C++ Python extension (perhaps created with pybind).
+If it is a Python builtin, please file an issue on GitHub so the PyTorch team can add support for it and see the next case for a workaround.
+If it is a third-party C/C++ Python extension, please either wrap it into a PyTorch-understood custom operator (see https://pytorch.org/tutorials/advanced/custom_ops_landing_page.html for more details) or, if it is traceable, use `torch.compiler.allow_in_graph`.
+  torch._dynamo.utils.warn_once(explanation + "\n" + "\n".join(hints))
+W0715 18:26:58.984000 3418079 torch/_dynamo/convert_frame.py:1358] [5/8] torch._dynamo hit config.recompile_limit (8)
+W0715 18:26:58.984000 3418079 torch/_dynamo/convert_frame.py:1358] [5/8]    function: 'torch_dynamo_resume_in_extract_at_272' (/home/skylark/git/azuki-tcg/python/src/policy/v2/tcg_policy.py:272)
+W0715 18:26:58.984000 3418079 torch/_dynamo/convert_frame.py:1358] [5/8]    last reason: 5/0: Cache line invalidated because L['___stack0'] got deallocated
+W0715 18:26:58.984000 3418079 torch/_dynamo/convert_frame.py:1358] [5/8] To log all recompilation reasons, use TORCH_LOGS="recompiles".
+W0715 18:26:58.984000 3418079 torch/_dynamo/convert_frame.py:1358] [5/8] To diagnose recompilation issues, see https://pytorch.org/docs/main/torch.compiler_troubleshooting.html
+W0715 18:26:59.288000 3418079 torch/_dynamo/convert_frame.py:1358] [4/8] torch._dynamo hit config.recompile_limit (8)
+W0715 18:26:59.288000 3418079 torch/_dynamo/convert_frame.py:1358] [4/8]    function: 'extract' (/home/skylark/git/azuki-tcg/python/src/policy/v2/tcg_policy.py:263)
+W0715 18:26:59.288000 3418079 torch/_dynamo/convert_frame.py:1358] [4/8]    last reason: 4/7: self.view_dtype == torch.int16                           # if self.view_dtype is torch.uint8:  # src/policy/v2/tcg_policy.py:266 in extract
+W0715 18:26:59.288000 3418079 torch/_dynamo/convert_frame.py:1358] [4/8] To log all recompilation reasons, use TORCH_LOGS="recompiles".
+W0715 18:26:59.288000 3418079 torch/_dynamo/convert_frame.py:1358] [4/8] To diagnose recompilation issues, see https://pytorch.org/docs/main/torch.compiler_troubleshooting.html
+W0715 18:27:01.728000 3418079 torch/_dynamo/variables/tensor.py:1048] [31/0] Graph break from `Tensor.item()`, consider setting:
+W0715 18:27:01.728000 3418079 torch/_dynamo/variables/tensor.py:1048] [31/0]     torch._dynamo.config.capture_scalar_outputs = True
+W0715 18:27:01.728000 3418079 torch/_dynamo/variables/tensor.py:1048] [31/0] or:
+W0715 18:27:01.728000 3418079 torch/_dynamo/variables/tensor.py:1048] [31/0]     env TORCHDYNAMO_CAPTURE_SCALAR_OUTPUTS=1
+W0715 18:27:01.728000 3418079 torch/_dynamo/variables/tensor.py:1048] [31/0] to include these operations in the captured graph.
+W0715 18:27:01.728000 3418079 torch/_dynamo/variables/tensor.py:1048] [31/0] 
+W0715 18:27:01.728000 3418079 torch/_dynamo/variables/tensor.py:1048] [31/0] Graph break: from user code at:
+W0715 18:27:01.728000 3418079 torch/_dynamo/variables/tensor.py:1048] [31/0]   File "/home/skylark/git/azuki-tcg/python/src/policy/v2/tcg_policy.py", line 2367, in torch_dynamo_resume_in_encode_observations_at_2354
+W0715 18:27:01.728000 3418079 torch/_dynamo/variables/tensor.py:1048] [31/0]     self._cached_trim_bucket = self._compute_legal_action_trim_bucket(
+W0715 18:27:01.728000 3418079 torch/_dynamo/variables/tensor.py:1048] [31/0]   File "/home/skylark/git/azuki-tcg/python/src/policy/v2/tcg_policy.py", line 2730, in _compute_legal_action_trim_bucket
+W0715 18:27:01.728000 3418079 torch/_dynamo/variables/tensor.py:1048] [31/0]     max_active_rows = int(legal_action_count.long().max().item()) if legal_action_count.numel() > 0 else 0
+W0715 18:27:01.728000 3418079 torch/_dynamo/variables/tensor.py:1048] [31/0] 
+W0715 18:27:01.728000 3418079 torch/_dynamo/variables/tensor.py:1048] [31/0] 
+W0715 18:27:31.800000 3418079 torch/_dynamo/convert_frame.py:1358] [0/8] torch._dynamo hit config.recompile_limit (8)
+W0715 18:27:31.800000 3418079 torch/_dynamo/convert_frame.py:1358] [0/8]    function: 'encode_observations' (/home/skylark/git/azuki-tcg/python/src/policy/v2/tcg_policy.py:2351)
+W0715 18:27:31.800000 3418079 torch/_dynamo/convert_frame.py:1358] [0/8]    last reason: 0/7: self._text_table_version == 7                            # self._text_table_version += 1  # src/policy/v2/tcg_policy.py:1656 in _invalidate_text_feature_table (HINT: torch.compile considers integer attributes of the nn.Module to be static. If you are observing recompilation, you might want to make this integer dynamic using torch._dynamo.config.allow_unspec_int_on_nn_module = True, or convert this integer into a tensor.)
+W0715 18:27:31.800000 3418079 torch/_dynamo/convert_frame.py:1358] [0/8] To log all recompilation reasons, use TORCH_LOGS="recompiles".
+W0715 18:27:31.800000 3418079 torch/_dynamo/convert_frame.py:1358] [0/8] To diagnose recompilation issues, see https://pytorch.org/docs/main/torch.compiler_troubleshooting.html
+[0;0H╭──────────────────────────────────────────────────────────────────────────────╮
+│  PufferLib 4.0          🐡      CPU:     GPU: 0.0%  DRAM: 80.6%  VRAM: 0.0%  │
+│                                 45.3%                                        │
+│                                                                              │
+│  Summary          Value    Evaluate      0s   0%    Losses            Value  │
+│  Env        azuki_local      Forwa…      0s   0%    policy_loss      -0.015  │
+│  Params           90.2M      Env         0s   0%    value_loss        0.000  │
+│  Steps            15.4K      Copy        0s   0%    value_loss_to…    0.000  │
+│  SPS       332.3491464…      Misc        0s   0%    entropy           1.950  │
+│  Epoch                1    Train         0s   0%    old_approx_kl    -0.000  │
+│  Uptime             46s      Forwa…      0s   0%    approx_kl         0.000  │
+│  Remaini…        6m 55s      Backw…      0s   0%    clipfrac          0.000  │
+│                              Optim…      0s   0%    importance        1.000  │
+│                              Copy        0s   0%    win_prob_aux_…    0.000  │
+│                              Misc        0s   0%    win_prob_aux_…    0.000  │
+│                                                     explained_var…   -0.728  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                                              │
+│  User Stats                    Value    User Stats                    Value  │
+│  sampler/subaction_tem…        1.200    sampler/smoothing_eps         0.050  │
+│  anneal/ent_coef               0.010                                         │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+[epoch 1] {'SPS': 332.34932134293484, 'agent_steps': 15360, 'uptime': 46.21643352508545, 'epoch': 1, 'learning_rate': 0.0029265847744427307, 'environment/sampler/subaction_temperature': np.float64(1.2), 'environment/sampler/smoothing_eps': np.float64(0.05), 'environment/anneal/ent_coef': np.float64(0.01), 'performance/eval': 0.0, 'performance/train': 0.0, 'performance/eval_forward': 0.0, 'performance/env': 0.0, 'performance/eval_copy': 0.0, 'performance/eval_misc': 0.0, 'performance/train_forward': 0.0, 'performance/learn_backward': 0.0, 'performance/learn_opt': 0.0, 'performance/train_copy': 0.0, 'performance/train_misc': 0.0}
+[0;0H╭──────────────────────────────────────────────────────────────────────────────╮
+│  PufferLib 4.0         🐡       CPU:     GPU: 0.0%  DRAM: 80.7%  VRAM: 0.0%  │
+│                                 62.5%                                        │
+│                                                                              │
+│  Summary          Value    Evaluate      0s   0%    Losses            Value  │
+│  Env        azuki_local      Forwa…      0s   0%    policy_loss       0.049  │
+│  Params           90.2M      Env         0s   0%    value_loss        0.000  │
+│  Steps            30.7K      Copy        0s   0%    value_loss_to…    0.000  │
+│  SPS               5.2K      Misc        0s   0%    entropy           2.179  │
+│  Epoch                2    Train         0s   0%    old_approx_kl     0.000  │
+│  Uptime             49s      Forwa…      0s   0%    approx_kl         0.000  │
+│  Remaini…           23s      Backw…      0s   0%    clipfrac          0.000  │
+│                              Optim…      0s   0%    importance        1.000  │
+│                              Copy        0s   0%    win_prob_aux_…    0.000  │
+│                              Misc        0s   0%    win_prob_aux_…    0.000  │
+│                                                     explained_var…   -2.618  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                                              │
+│  User Stats                    Value    User Stats                    Value  │
+│  league/active                 1.000    sampler/subaction_tem…        1.200  │
+│  sampler/smoothing_eps         0.050    anneal/ent_coef               0.010  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+[epoch 2] {'SPS': 5177.527618311928, 'agent_steps': 30720, 'uptime': 49.19209432601929, 'epoch': 2, 'learning_rate': 0.002713525491562421, 'environment/league/active': np.float64(1.0), 'environment/sampler/subaction_temperature': np.float64(1.2), 'environment/sampler/smoothing_eps': np.float64(0.05), 'environment/anneal/ent_coef': np.float64(0.01), 'losses/policy_loss': -0.014597541652619839, 'losses/value_loss': 1.5016203178674914e-06, 'losses/value_loss_total': 1.5016203178674914e-06, 'losses/entropy': 1.9504477977752686, 'losses/old_approx_kl': -7.361663847404998e-06, 'losses/approx_kl': 6.435245154534641e-07, 'losses/clipfrac': 0.0, 'losses/importance': 1.0000079870224, 'losses/win_prob_aux_loss': 0.0, 'losses/win_prob_aux_labeled_frac': 0.0, 'losses/explained_variance': -0.7280550003051758, 'losses/win_prob_aux_accuracy': 0.0, 'losses/win_prob_aux_brier': 0.0, 'losses/win_prob_aux_pred_mean': 0.0, 'losses/win_prob_aux_target_mean': 0.0, 'performance/eval': 0.0, 'performance/train': 0.0, 'performance/eval_forward': 0.0, 'performance/env': 0.0, 'performance/eval_copy': 0.0, 'performance/eval_misc': 0.0, 'performance/train_forward': 0.0, 'performance/learn_backward': 0.0, 'performance/learn_opt': 0.0, 'performance/train_copy': 0.0, 'performance/train_misc': 0.0}
+[0;0H╭──────────────────────────────────────────────────────────────────────────────╮
+│  PufferLib 4.0        🐡        CPU:     GPU: 0.0%  DRAM: 80.8%  VRAM: 0.0%  │
+│                                 78.3%                                        │
+│                                                                              │
+│  Summary          Value    Evaluate      0s   0%    Losses            Value  │
+│  Env        azuki_local      Forwa…      0s   0%    policy_loss      -0.023  │
+│  Params           90.2M      Env         0s   0%    value_loss        0.000  │
+│  Steps            46.1K      Copy        0s   0%    value_loss_to…    0.000  │
+│  SPS               5.2K      Misc        0s   0%    entropy           2.178  │
+│  Epoch                3    Train         0s   0%    old_approx_kl    -0.000  │
+│  Uptime             52s      Forwa…      0s   0%    approx_kl         0.000  │
+│  Remaini…           20s      Backw…      0s   0%    clipfrac          0.000  │
+│                              Optim…      0s   0%    importance        1.000  │
+│                              Copy        0s   0%    win_prob_aux_…    0.000  │
+│                              Misc        0s   0%    win_prob_aux_…    0.000  │
+│                                                     explained_var…   -0.478  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                                              │
+│  User Stats                    Value    User Stats                    Value  │
+│  league/active                 1.000    sampler/subaction_tem…        1.200  │
+│  sampler/smoothing_eps         0.050    anneal/ent_coef               0.010  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+[epoch 3] {'SPS': 5208.604432647077, 'agent_steps': 46080, 'uptime': 52.150046586990356, 'epoch': 3, 'learning_rate': 0.00238167787843871, 'environment/league/active': np.float64(1.0), 'environment/sampler/subaction_temperature': np.float64(1.2), 'environment/sampler/smoothing_eps': np.float64(0.05), 'environment/anneal/ent_coef': np.float64(0.01), 'losses/policy_loss': 0.04875516891479492, 'losses/value_loss': 5.530146154342219e-07, 'losses/value_loss_total': 5.530146154342219e-07, 'losses/entropy': 2.1791393756866455, 'losses/old_approx_kl': 2.7891182980965823e-06, 'losses/approx_kl': 1.7930869944393635e-06, 'losses/clipfrac': 0.0, 'losses/importance': 0.9999989867210388, 'losses/win_prob_aux_loss': 0.0, 'losses/win_prob_aux_labeled_frac': 0.0, 'losses/explained_variance': -2.6180903911590576, 'losses/win_prob_aux_accuracy': 0.0, 'losses/win_prob_aux_brier': 0.0, 'losses/win_prob_aux_pred_mean': 0.0, 'losses/win_prob_aux_target_mean': 0.0, 'performance/eval': 0.0, 'performance/train': 0.0, 'performance/eval_forward': 0.0, 'performance/env': 0.0, 'performance/eval_copy': 0.0, 'performance/eval_misc': 0.0, 'performance/train_forward': 0.0, 'performance/learn_backward': 0.0, 'performance/learn_opt': 0.0, 'performance/train_copy': 0.0, 'performance/train_misc': 0.0}
+[0;0H╭──────────────────────────────────────────────────────────────────────────────╮
+│  PufferLib 4.0       🐡         CPU:     GPU: 0.0%  DRAM: 80.9%  VRAM: 0.0%  │
+│                                 92.0%                                        │
+│                                                                              │
+│  Summary          Value    Evaluate      0s   0%    Losses            Value  │
+│  Env        azuki_local      Forwa…      0s   0%    policy_loss       0.054  │
+│  Params           90.2M      Env         0s   0%    value_loss        0.000  │
+│  Steps            61.4K      Copy        0s   0%    value_loss_to…    0.000  │
+│  SPS               5.1K      Misc        0s   0%    entropy           2.179  │
+│  Epoch                4    Train         0s   0%    old_approx_kl    -0.000  │
+│  Uptime             55s      Forwa…      0s   0%    approx_kl         0.000  │
+│  Remaini…           17s      Backw…      0s   0%    clipfrac          0.000  │
+│                              Optim…      0s   0%    importance        1.000  │
+│                              Copy        0s   0%    win_prob_aux_…    0.000  │
+│                              Misc        0s   0%    win_prob_aux_…    0.000  │
+│                                                     explained_var…   -1.377  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                                              │
+│  User Stats                    Value    User Stats                    Value  │
+│  league/active                 1.000    sampler/subaction_tem…        1.200  │
+│  sampler/smoothing_eps         0.050    anneal/ent_coef               0.010  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+[epoch 4] {'SPS': 5141.528949522371, 'agent_steps': 61440, 'uptime': 55.146313190460205, 'epoch': 4, 'learning_rate': 0.0019635254915624212, 'environment/league/active': np.float64(1.0), 'environment/sampler/subaction_temperature': np.float64(1.2), 'environment/sampler/smoothing_eps': np.float64(0.05), 'environment/anneal/ent_coef': np.float64(0.01), 'losses/policy_loss': -0.02261863648891449, 'losses/value_loss': 1.297660503496445e-07, 'losses/value_loss_total': 1.297660503496445e-07, 'losses/entropy': 2.177794933319092, 'losses/old_approx_kl': -1.0375710189691745e-05, 'losses/approx_kl': 3.0413357308134437e-06, 'losses/clipfrac': 0.0, 'losses/importance': 1.0000134706497192, 'losses/win_prob_aux_loss': 0.0, 'losses/win_prob_aux_labeled_frac': 0.0, 'losses/explained_variance': -0.47836947441101074, 'losses/win_prob_aux_accuracy': 0.0, 'losses/win_prob_aux_brier': 0.0, 'losses/win_prob_aux_pred_mean': 0.0, 'losses/win_prob_aux_target_mean': 0.0, 'performance/eval': 0.0, 'performance/train': 0.0, 'performance/eval_forward': 0.0, 'performance/env': 0.0, 'performance/eval_copy': 0.0, 'performance/eval_misc': 0.0, 'performance/train_forward': 0.0, 'performance/learn_backward': 0.0, 'performance/learn_opt': 0.0, 'performance/train_copy': 0.0, 'performance/train_misc': 0.0}
+[0;0H╭──────────────────────────────────────────────────────────────────────────────╮
+│  PufferLib 4.0      🐡          CPU:     GPU: 0.0%  DRAM: 81.0%  VRAM: 0.0%  │
+│                                 98.5%                                        │
+│                                                                              │
+│  Summary          Value    Evaluate      7s   0%    Losses            Value  │
+│  Env        azuki_local      Forwa…      6s   0%    policy_loss      -0.041  │
+│  Params           90.2M      Env         0s   0%    value_loss        0.000  │
+│  Steps            76.8K      Copy        0s   0%    value_loss_to…    0.000  │
+│  SPS               5.1K      Misc        0s   0%    entropy           2.179  │
+│  Epoch                5    Train         7s   0%    old_approx_kl     0.000  │
+│  Uptime             58s      Forwa…      1s   0%    approx_kl         0.000  │
+│  Remaini…           14s      Backw…      3s   0%    clipfrac          0.000  │
+│                              Optim…      3s   0%    importance        1.000  │
+│                              Copy        0s   0%    win_prob_aux_…    0.000  │
+│                              Misc        0s   0%    win_prob_aux_…    0.000  │
+│                                                     explained_var…   -0.337  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                                              │
+│  User Stats                    Value    User Stats                    Value  │
+│  league/active                 1.000    sampler/subaction_tem…        1.200  │
+│  sampler/smoothing_eps         0.050    anneal/ent_coef               0.010  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+[epoch 5] {'SPS': 5133.987490267862, 'agent_steps': 76800, 'uptime': 58.14705419540405, 'epoch': 5, 'learning_rate': 0.0015, 'environment/league/active': np.float64(1.0), 'environment/sampler/subaction_temperature': np.float64(1.2), 'environment/sampler/smoothing_eps': np.float64(0.05), 'environment/anneal/ent_coef': np.float64(0.01), 'losses/policy_loss': 0.05422034114599228, 'losses/value_loss': 2.3783321978498861e-07, 'losses/value_loss_total': 2.3783321978498861e-07, 'losses/entropy': 2.179234027862549, 'losses/old_approx_kl': -2.8704525902867317e-05, 'losses/approx_kl': 2.8749200282618403e-06, 'losses/clipfrac': 0.0, 'losses/importance': 1.0000317096710205, 'losses/win_prob_aux_loss': 0.0, 'losses/win_prob_aux_labeled_frac': 0.0, 'losses/explained_variance': -1.3766860961914062, 'losses/win_prob_aux_accuracy': 0.0, 'losses/win_prob_aux_brier': 0.0, 'losses/win_prob_aux_pred_mean': 0.0, 'losses/win_prob_aux_target_mean': 0.0, 'performance/eval': 7.090592384338379, 'performance/train': 7.8647780418396, 'performance/eval_forward': 6.9408392906188965, 'performance/env': 0.012593269348144531, 'performance/eval_copy': 0.1312851905822754, 'performance/eval_misc': 0.005816221237182617, 'performance/train_forward': 1.6288352012634277, 'performance/learn_backward': 3.047194480895996, 'performance/learn_opt': 3.1388020515441895, 'performance/train_copy': 0.002480745315551758, 'performance/train_misc': 0.04743337631225586}
+[0;0H╭──────────────────────────────────────────────────────────────────────────────╮
+│  PufferLib 4.0     🐡           CPU:     GPU: 0.0%  DRAM: 81.0%  VRAM: 0.0%  │
+│                                116.7%                                        │
+│                                                                              │
+│  Summary          Value    Evaluate      7s  47%    Losses            Value  │
+│  Env        azuki_local      Forwa…      6s  46%    policy_loss       0.099  │
+│  Params           90.2M      Env         0s   0%    value_loss        0.000  │
+│  Steps            92.2K      Copy        0s   0%    value_loss_to…    0.000  │
+│  SPS               5.3K      Misc        0s   0%    entropy           2.175  │
+│  Epoch                6    Train         7s  52%    old_approx_kl    -0.000  │
+│  Uptime           1m 1s      Forwa…      1s  10%    approx_kl         0.000  │
+│  Remaini…           11s      Backw…      3s  20%    clipfrac          0.000  │
+│                              Optim…      3s  20%    importance        1.000  │
+│                              Copy        0s   0%    win_prob_aux_…    0.000  │
+│                              Misc        0s   0%    win_prob_aux_…    0.000  │
+│                                                     explained_var…   -2.070  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                                              │
+│  User Stats                    Value    User Stats                    Value  │
+│  league/active                 1.000    sampler/subaction_tem…        1.200  │
+│  sampler/smoothing_eps         0.050    anneal/ent_coef               0.010  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+[epoch 6] {'SPS': 5253.19101188278, 'agent_steps': 92160, 'uptime': 61.07998704910278, 'epoch': 6, 'learning_rate': 0.001036474508437579, 'environment/league/active': np.float64(1.0), 'environment/sampler/subaction_temperature': np.float64(1.2), 'environment/sampler/smoothing_eps': np.float64(0.05), 'environment/anneal/ent_coef': np.float64(0.01), 'losses/policy_loss': -0.04136012867093086, 'losses/value_loss': 2.4868873538252956e-07, 'losses/value_loss_total': 2.4868873538252956e-07, 'losses/entropy': 2.178725481033325, 'losses/old_approx_kl': 3.290517270215787e-06, 'losses/approx_kl': 2.978651082230499e-06, 'losses/clipfrac': 0.0, 'losses/importance': 0.9999997019767761, 'losses/win_prob_aux_loss': 0.0, 'losses/win_prob_aux_labeled_frac': 0.0, 'losses/explained_variance': -0.33700990676879883, 'losses/win_prob_aux_accuracy': 0.0, 'losses/win_prob_aux_brier': 0.0, 'losses/win_prob_aux_pred_mean': 0.0, 'losses/win_prob_aux_target_mean': 0.0, 'performance/eval': 7.090592384338379, 'performance/train': 7.8647780418396, 'performance/eval_forward': 6.9408392906188965, 'performance/env': 0.012593269348144531, 'performance/eval_copy': 0.1312851905822754, 'performance/eval_misc': 0.005816221237182617, 'performance/train_forward': 1.6288352012634277, 'performance/learn_backward': 3.047194480895996, 'performance/learn_opt': 3.1388020515441895, 'performance/train_copy': 0.002480745315551758, 'performance/train_misc': 0.04743337631225586}
+[0;0H╭──────────────────────────────────────────────────────────────────────────────╮
+│  PufferLib 4.0    🐡            CPU:     GPU: 0.0%  DRAM: 81.8%  VRAM: 0.0%  │
+│                                144.8%                                        │
+│                                                                              │
+│  Summary          Value    Evaluate      7s  47%    Losses            Value  │
+│  Env        azuki_local      Forwa…      6s  46%    policy_loss      -0.010  │
+│  Params           90.2M      Env         0s   0%    value_loss        0.018  │
+│  Steps           107.5K      Copy        0s   0%    value_loss_to…    0.018  │
+│  SPS               3.4K      Misc        0s   0%    entropy           1.274  │
+│  Epoch                7    Train         7s  52%    old_approx_kl    -0.000  │
+│  Uptime           1m 5s      Forwa…      1s  10%    approx_kl         0.000  │
+│  Remaini…           13s      Backw…      3s  20%    clipfrac          0.000  │
+│                              Optim…      3s  20%    importance        1.000  │
+│                              Copy        0s   0%    win_prob_aux_…    0.000  │
+│                              Misc        0s   0%    win_prob_aux_…    0.000  │
+│                                                     explained_var…    0.002  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                                              │
+│  User Stats                    Value    User Stats                    Value  │
+│  league/active                 1.000    sampler/subaction_tem…        1.200  │
+│  sampler/smoothing_eps         0.050    anneal/ent_coef               0.010  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+[epoch 7] {'SPS': 3415.1927079236043, 'agent_steps': 107520, 'uptime': 65.58562111854553, 'epoch': 7, 'learning_rate': 0.0006183221215612905, 'environment/league/active': np.float64(1.0), 'environment/sampler/subaction_temperature': np.float64(1.2), 'environment/sampler/smoothing_eps': np.float64(0.05), 'environment/anneal/ent_coef': np.float64(0.01), 'losses/policy_loss': 0.09863624721765518, 'losses/value_loss': 1.7533628238197707e-07, 'losses/value_loss_total': 1.7533628238197707e-07, 'losses/entropy': 2.1750617027282715, 'losses/old_approx_kl': -1.924341449921485e-05, 'losses/approx_kl': 2.583333753136685e-06, 'losses/clipfrac': 0.0, 'losses/importance': 1.0000219345092773, 'losses/win_prob_aux_loss': 0.0, 'losses/win_prob_aux_labeled_frac': 0.0, 'losses/explained_variance': -2.069683313369751, 'losses/win_prob_aux_accuracy': 0.0, 'losses/win_prob_aux_brier': 0.0, 'losses/win_prob_aux_pred_mean': 0.0, 'losses/win_prob_aux_target_mean': 0.0, 'performance/eval': 7.090592384338379, 'performance/train': 7.8647780418396, 'performance/eval_forward': 6.9408392906188965, 'performance/env': 0.012593269348144531, 'performance/eval_copy': 0.1312851905822754, 'performance/eval_misc': 0.005816221237182617, 'performance/train_forward': 1.6288352012634277, 'performance/learn_backward': 3.047194480895996, 'performance/learn_opt': 3.1388020515441895, 'performance/train_copy': 0.002480745315551758, 'performance/train_misc': 0.04743337631225586}
+[0;0H╭──────────────────────────────────────────────────────────────────────────────╮
+│  PufferLib 4.0   🐡             CPU:     GPU: 0.0%  DRAM: 82.4%  VRAM: 0.0%  │
+│                                146.7%                                        │
+│                                                                              │
+│  Summary          Value    Evaluate      7s  47%    Losses            Value  │
+│  Env        azuki_local      Forwa…      6s  46%    policy_loss       0.011  │
+│  Params           90.2M      Env         0s   0%    value_loss        0.027  │
+│  Steps           122.9K      Copy        0s   0%    value_loss_to…    0.027  │
+│  SPS               5.1K      Misc        0s   0%    entropy           0.822  │
+│  Epoch                8    Train         7s  52%    old_approx_kl    -0.000  │
+│  Uptime           1m 8s      Forwa…      1s  10%    approx_kl         0.000  │
+│  Remaini…            5s      Backw…      3s  20%    clipfrac          0.000  │
+│                              Optim…      3s  20%    importance        1.000  │
+│                              Copy        0s   0%    win_prob_aux_…    0.000  │
+│                              Misc        0s   0%    win_prob_aux_…    0.000  │
+│                                                     explained_var…    0.010  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                                              │
+│  User Stats                    Value    User Stats                    Value  │
+│  league/active                 1.000    sampler/subaction_tem…        1.200  │
+│  sampler/smoothing_eps         0.050    anneal/ent_coef               0.007  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+[epoch 8] {'SPS': 5144.780819887458, 'agent_steps': 122880, 'uptime': 68.5801842212677, 'epoch': 8, 'learning_rate': 0.00028647450843757903, 'environment/league/active': np.float64(1.0), 'environment/sampler/subaction_temperature': np.float64(1.2), 'environment/sampler/smoothing_eps': np.float64(0.05), 'environment/anneal/ent_coef': np.float64(0.007333333333333334), 'losses/policy_loss': -0.009741267189383507, 'losses/value_loss': 0.01836642436683178, 'losses/value_loss_total': 0.01836642436683178, 'losses/entropy': 1.2739453315734863, 'losses/old_approx_kl': -1.3568446775025222e-06, 'losses/approx_kl': 5.882422556169331e-06, 'losses/clipfrac': 0.0, 'losses/importance': 1.0000072717666626, 'losses/win_prob_aux_loss': 0.0, 'losses/win_prob_aux_labeled_frac': 0.0, 'losses/explained_variance': 0.0021994709968566895, 'losses/win_prob_aux_accuracy': 0.0, 'losses/win_prob_aux_brier': 0.0, 'losses/win_prob_aux_pred_mean': 0.0, 'losses/win_prob_aux_target_mean': 0.0, 'performance/eval': 7.090592384338379, 'performance/train': 7.8647780418396, 'performance/eval_forward': 6.9408392906188965, 'performance/env': 0.012593269348144531, 'performance/eval_copy': 0.1312851905822754, 'performance/eval_misc': 0.005816221237182617, 'performance/train_forward': 1.6288352012634277, 'performance/learn_backward': 3.047194480895996, 'performance/learn_opt': 3.1388020515441895, 'performance/train_copy': 0.002480745315551758, 'performance/train_misc': 0.04743337631225586}
+[0;0H╭──────────────────────────────────────────────────────────────────────────────╮
+│  PufferLib 4.0  🐡              CPU:     GPU: 0.0%  DRAM: 83.0%  VRAM: 0.0%  │
+│                                146.7%                                        │
+│                                                                              │
+│  Summary          Value    Evaluate      7s  47%    Losses            Value  │
+│  Env        azuki_local      Forwa…      6s  46%    policy_loss       0.000  │
+│  Params           90.2M      Env         0s   0%    value_loss        0.020  │
+│  Steps           138.2K      Copy        0s   0%    value_loss_to…    0.020  │
+│  SPS               5.1K      Misc        0s   0%    entropy           0.905  │
+│  Epoch                9    Train         7s  52%    old_approx_kl    -0.000  │
+│  Uptime          1m 11s      Forwa…      1s  10%    approx_kl         0.000  │
+│  Remaini…            2s      Backw…      3s  20%    clipfrac          0.000  │
+│                              Optim…      3s  20%    importance        1.000  │
+│                              Copy        0s   0%    win_prob_aux_…    0.000  │
+│                              Misc        0s   0%    win_prob_aux_…    0.000  │
+│                                                     explained_var…    0.013  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                     win_prob_aux_…    0.000  │
+│                                                                              │
+│  User Stats                    Value    User Stats                    Value  │
+│  league/active                 1.000    sampler/subaction_tem…        1.200  │
+│  sampler/smoothing_eps         0.050    anneal/ent_coef               0.005  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+[epoch 9] {'SPS': 5125.077050959286, 'agent_steps': 138240, 'uptime': 71.58555912971497, 'epoch': 9, 'learning_rate': 7.341522555726971e-05, 'environment/league/active': np.float64(1.0), 'environment/sampler/subaction_temperature': np.float64(1.2), 'environment/sampler/smoothing_eps': np.float64(0.05), 'environment/anneal/ent_coef': np.float64(0.004666666666666667), 'losses/policy_loss': 0.011121675372123718, 'losses/value_loss': 0.02730957791209221, 'losses/value_loss_total': 0.02730957791209221, 'losses/entropy': 0.8217068314552307, 'losses/old_approx_kl': -3.7394156606751494e-06, 'losses/approx_kl': 5.506929937837413e-06, 'losses/clipfrac': 0.0, 'losses/importance': 1.000009298324585, 'losses/win_prob_aux_loss': 0.0, 'losses/win_prob_aux_labeled_frac': 0.0, 'losses/explained_variance': 0.010489940643310547, 'losses/win_prob_aux_accuracy': 0.0, 'losses/win_prob_aux_brier': 0.0, 'losses/win_prob_aux_pred_mean': 0.0, 'losses/win_prob_aux_target_mean': 0.0, 'performance/eval': 7.090592384338379, 'performance/train': 7.8647780418396, 'performance/eval_forward': 6.9408392906188965, 'performance/env': 0.012593269348144531, 'performance/eval_copy': 0.1312851905822754, 'performance/eval_misc': 0.005816221237182617, 'performance/train_forward': 1.6288352012634277, 'performance/learn_backward': 3.047194480895996, 'performance/learn_opt': 3.1388020515441895, 'performance/train_copy': 0.002480745315551758, 'performance/train_misc': 0.04743337631225586}
+[0;0H╭──────────────────────────────────────────────────────────────────────────────╮
+│  PufferLib 4.0 🐡               CPU:     GPU: 0.0%  DRAM: 83.6%  VRAM: 0.0%  │
+│                                146.6%                                        │
+│                                                                              │
+│  Summary          Value    Evaluate     14s  47%    Losses            Value  │
+│  Env        azuki_local      Forwa…     14s  46%    policy_loss      -0.003  │
+│  Params           90.2M      Env         0s   0%    value_loss        0.021  │
+│  Steps           153.6K      Copy        0s   0%    value_loss_to…    0.021  │
+│  SPS               5.0K      Misc        0s   0%    entropy           0.958  │
+│  Epoch               10    Train        15s  52%    old_approx_kl    -0.000  │
+│  Uptime          1m 14s      Forwa…      3s  10%    approx_kl         0.000  │
+│  Remaini…            0s      Backw…      6s  20%    clipfrac          0.000  │
+│                              Optim…      6s  20%    importance        1.000  │
+│                              Copy        0s   0%    win_prob_aux_…    0.699  │
+│                              Misc        0s   0%    win_prob_aux_…    0.001  │
+│                                                     explained_var…    0.015  │
+│                                                     win_prob_aux_…    0.334  │
+│                                                     win_prob_aux_…    0.252  │
+│                                                     win_prob_aux_…    0.500  │
+│                                                     win_prob_aux_…    0.334  │
+│                                                                              │
+│  User Stats                    Value    User Stats                    Value  │
+│  league/active                 1.000    sampler/subaction_tem…        1.200  │
+│  sampler/smoothing_eps         0.050    anneal/ent_coef               0.002  │
+│  perf                          0.000    score                         0.000  │
+│  episode_return               -6.290    episode_length               47.000  │
+│  p0_episode_return            -6.290    p1_episode_return             6.290  │
+│  p0_winrate                    0.000    p1_winrate                    1.000  │
+│  p0_start_rate                 0.000    p1_start_rate                 1.000  │
+│  draw_rate                     0.000    timeout_truncation_ra…        0.000  │
+│  auto_tick_truncation_…        0.000    zero_legal_action_tru…        0.000  │
+│  gameover_terminal_rate        1.000    winner_terminal_rate          1.000  │
+│  curriculum_episode_cap        0.000    reward_shaping_scale          1.000  │
+│  completed_episodes            1.000    p0_noop_selected_rate         0.238  │
+│  p1_noop_selected_rate         0.269    p0_attack_selected_ra…        0.143  │
+│  p1_attack_selected_ra…        0.231    p0_attach_weapon_from…        0.000  │
+│  p1_attach_weapon_from…        0.000    p0_play_spell_from_ha…        0.048  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+[checkpoint] parity verified: path=experiments/azuki_local_178416521752/model_azuki_local_000010.pt, rewritten=False, max_abs_diff=0, max_abs_diff_key=<none>
+[epoch 10] {'SPS': 4996.9769273256015, 'agent_steps': 153600, 'uptime': 74.66838669776917, 'epoch': 10, 'learning_rate': 0.0, 'environment/league/active': np.float64(1.0), 'environment/sampler/subaction_temperature': np.float64(1.2), 'environment/sampler/smoothing_eps': np.float64(0.05), 'environment/anneal/ent_coef': np.float64(0.002), 'environment/perf': np.float64(0.0), 'environment/score': np.float64(0.0), 'environment/episode_return': np.float64(-6.289703369140625), 'environment/episode_length': np.float64(47.0), 'environment/p0_episode_return': np.float64(-6.289703369140625), 'environment/p1_episode_return': np.float64(6.289703369140625), 'environment/p0_winrate': np.float64(0.0), 'environment/p1_winrate': np.float64(1.0), 'environment/p0_start_rate': np.float64(0.0), 'environment/p1_start_rate': np.float64(1.0), 'environment/draw_rate': np.float64(0.0), 'environment/timeout_truncation_rate': np.float64(0.0), 'environment/auto_tick_truncation_rate': np.float64(0.0), 'environment/zero_legal_action_truncation_rate': np.float64(0.0), 'environment/gameover_terminal_rate': np.float64(1.0), 'environment/winner_terminal_rate': np.float64(1.0), 'environment/curriculum_episode_cap': np.float64(0.0), 'environment/reward_shaping_scale': np.float64(1.0), 'environment/completed_episodes': np.float64(1.0), 'environment/p0_noop_selected_rate': np.float64(0.2380952388048172), 'environment/p1_noop_selected_rate': np.float64(0.26923078298568726), 'environment/p0_attack_selected_rate': np.float64(0.1428571492433548), 'environment/p1_attack_selected_rate': np.float64(0.23076924681663513), 'environment/p0_attach_weapon_from_hand_selected_rate': np.float64(0.0), 'environment/p1_attach_weapon_from_hand_selected_rate': np.float64(0.0), 'environment/p0_play_spell_from_hand_selected_rate': np.float64(0.0476190485060215), 'environment/p1_play_spell_from_hand_selected_rate': np.float64(0.03846153989434242), 'environment/p0_activate_garden_or_leader_ability_selected_rate': np.float64(0.095238097012043), 'environment/p1_activate_garden_or_leader_ability_selected_rate': np.float64(0.03846153989434242), 'environment/p0_activate_alley_ability_selected_rate': np.float64(0.0), 'environment/p1_activate_alley_ability_selected_rate': np.float64(0.0), 'environment/p0_gate_portal_selected_rate': np.float64(0.095238097012043), 'environment/p1_gate_portal_selected_rate': np.float64(0.03846153989434242), 'environment/p0_play_entity_to_alley_selected_rate': np.float64(0.095238097012043), 'environment/p1_play_entity_to_alley_selected_rate': np.float64(0.11538462340831757), 'environment/p0_play_entity_to_garden_selected_rate': np.float64(0.095238097012043), 'environment/p1_play_entity_to_garden_selected_rate': np.float64(0.1538461595773697), 'environment/p0_play_selected_rate': np.float64(0.3333333432674408), 'environment/p1_play_selected_rate': np.float64(0.3461538553237915), 'environment/p0_ability_selected_rate': np.float64(0.095238097012043), 'environment/p1_ability_selected_rate': np.float64(0.07692307978868484), 'environment/p0_target_selected_rate': np.float64(0.190476194024086), 'environment/p1_target_selected_rate': np.float64(0.07692307978868484), 'environment/p0_avg_leader_health': np.float64(0.0), 'environment/p1_avg_leader_health': np.float64(0.8500000238418579), 'environment/p0_entity_damage_dealt': np.float64(3.0), 'environment/p1_entity_damage_dealt': np.float64(5.0), 'environment/p0_entity_damage_taken': np.float64(5.0), 'environment/p1_entity_damage_taken': np.float64(3.0), 'environment/p0_generated_ikz_created': np.float64(0.0), 'environment/p1_generated_ikz_created': np.float64(0.0), 'environment/p0_generated_ikz_converted': np.float64(0.0), 'environment/p1_generated_ikz_converted': np.float64(0.0), 'environment/p0_generated_ikz_conversion_rate': np.float64(0.0), 'environment/p1_generated_ikz_conversion_rate': np.float64(0.0), 'environment/p0_temporary_charge_realized': np.float64(0.0), 'environment/p1_temporary_charge_realized': np.float64(0.0), 'environment/p0_temporary_attack_damage_realized': np.float64(0.0), 'environment/p1_temporary_attack_damage_realized': np.float64(0.0), 'environment/p0_contextual_response_reserve_opportunities': np.float64(0.0), 'environment/p1_contextual_response_reserve_opportunities': np.float64(0.0), 'environment/n': np.float64(1.0), 'environment/deckbuild/completed': np.float64(1.0), 'environment/azk_step_deckbuild/completed': np.float64(1.0), 'environment/deckbuild/picks': np.float64(51.0), 'environment/azk_step_deckbuild/picks': np.float64(51.0), 'environment/deckbuild/main_count': np.float64(50.0), 'environment/azk_step_deckbuild/main_count': np.float64(50.0), 'environment/deckbuild/main_unique': np.float64(39.5), 'environment/azk_step_deckbuild/main_unique': np.float64(39.5), 'environment/deckbuild/main_unique_share': np.float64(0.79), 'environment/azk_step_deckbuild/main_unique_share': np.float64(0.79), 'environment/deckbuild/main_avg_copies_per_unique': np.float64(1.266025641025641), 'environment/azk_step_deckbuild/main_avg_copies_per_unique': np.float64(1.266025641025641), 'environment/deckbuild/main_max_copy_count': np.float64(2.5), 'environment/azk_step_deckbuild/main_max_copy_count': np.float64(2.5), 'environment/deckbuild/main_copy_entropy': np.float64(3.610436226717678), 'environment/azk_step_deckbuild/main_copy_entropy': np.float64(3.610436226717678), 'environment/deckbuild/main_copy_entropy_norm': np.float64(0.9820943045390609), 'environment/azk_step_deckbuild/main_copy_entropy_norm': np.float64(0.9820943045390609), 'environment/deckbuild/main_singleton_count': np.float64(30.0), 'environment/azk_step_deckbuild/main_singleton_count': np.float64(30.0), 'environment/deckbuild/main_pair_count': np.float64(8.5), 'environment/azk_step_deckbuild/main_pair_count': np.float64(8.5), 'environment/deckbuild/main_triplet_count': np.float64(1.0), 'environment/azk_step_deckbuild/main_triplet_count': np.float64(1.0), 'environment/deckbuild/main_quad_count': np.float64(0.0), 'environment/azk_step_deckbuild/main_quad_count': np.float64(0.0), 'environment/deckbuild/main_singleton_slot_share': np.float64(0.6), 'environment/azk_step_deckbuild/main_singleton_slot_share': np.float64(0.6), 'environment/deckbuild/main_pair_slot_share': np.float64(0.34), 'environment/azk_step_deckbuild/main_pair_slot_share': np.float64(0.34), 'environment/deckbuild/main_triplet_slot_share': np.float64(0.06), 'environment/azk_step_deckbuild/main_triplet_slot_share': np.float64(0.06), 'environment/deckbuild/main_quad_slot_share': np.float64(0.0), 'environment/azk_step_deckbuild/main_quad_slot_share': np.float64(0.0), 'environment/deckbuild/main_normal_share': np.float64(0.6), 'environment/azk_step_deckbuild/main_normal_share': np.float64(0.6), 'environment/deckbuild/main_gate_element_share': np.float64(0.4), 'environment/azk_step_deckbuild/main_gate_element_share': np.float64(0.4), 'environment/deckbuild/gate_match': np.float64(0.0), 'environment/azk_step_deckbuild/gate_match': np.float64(0.0), 'environment/deckbuild/gate/EARTH': np.float64(0.5), 'environment/azk_step_deckbuild/gate/EARTH': np.float64(0.5), 'environment/deckbuild/opponent_gate/EARTH': np.float64(0.5), 'environment/azk_step_deckbuild/opponent_gate/EARTH': np.float64(0.5), 'environment/deckbuild/leader/EARTH': np.float64(0.5), 'environment/azk_step_deckbuild/leader/EARTH': np.float64(0.5), 'environment/deckbuild/gate/FIRE': np.float64(0.5), 'environment/azk_step_deckbuild/gate/FIRE': np.float64(0.5), 'environment/deckbuild/opponent_gate/FIRE': np.float64(0.5), 'environment/azk_step_deckbuild/opponent_gate/FIRE': np.float64(0.5), 'environment/deckbuild/leader/FIRE': np.float64(0.5), 'environment/azk_step_deckbuild/leader/FIRE': np.float64(0.5), 'environment/deckbuild/gate/LIGHTNING': np.float64(0.0), 'environment/azk_step_deckbuild/gate/LIGHTNING': np.float64(0.0), 'environment/deckbuild/opponent_gate/LIGHTNING': np.float64(0.0), 'environment/azk_step_deckbuild/opponent_gate/LIGHTNING': np.float64(0.0), 'environment/deckbuild/leader/LIGHTNING': np.float64(0.0), 'environment/azk_step_deckbuild/leader/LIGHTNING': np.float64(0.0), 'environment/deckbuild/gate/WATER': np.float64(0.0), 'environment/azk_step_deckbuild/gate/WATER': np.float64(0.0), 'environment/deckbuild/opponent_gate/WATER': np.float64(0.0), 'environment/azk_step_deckbuild/opponent_gate/WATER': np.float64(0.0), 'environment/deckbuild/leader/WATER': np.float64(0.0), 'environment/azk_step_deckbuild/leader/WATER': np.float64(0.0), 'environment/deckbuild/main_type_count/ENTITY': np.float64(40.0), 'environment/azk_step_deckbuild/main_type_count/ENTITY': np.float64(40.0), 'environment/deckbuild/main_type_share/ENTITY': np.float64(0.8), 'environment/azk_step_deckbuild/main_type_share/ENTITY': np.float64(0.8), 'environment/deckbuild/main_type_count/SPELL': np.float64(8.0), 'environment/azk_step_deckbuild/main_type_count/SPELL': np.float64(8.0), 'environment/deckbuild/main_type_share/SPELL': np.float64(0.16), 'environment/azk_step_deckbuild/main_type_share/SPELL': np.float64(0.16), 'environment/deckbuild/main_type_count/WEAPON': np.float64(2.0), 'environment/azk_step_deckbuild/main_type_count/WEAPON': np.float64(2.0), 'environment/deckbuild/main_type_share/WEAPON': np.float64(0.04), 'environment/azk_step_deckbuild/main_type_share/WEAPON': np.float64(0.04), 'environment/deckbuild/main_element_count/EARTH': np.float64(10.0), 'environment/azk_step_deckbuild/main_element_count/EARTH': np.float64(10.0), 'environment/deckbuild/main_element_share/EARTH': np.float64(0.2), 'environment/azk_step_deckbuild/main_element_share/EARTH': np.float64(0.2), 'environment/deckbuild/main_element_count/FIRE': np.float64(10.0), 'environment/azk_step_deckbuild/main_element_count/FIRE': np.float64(10.0), 'environment/deckbuild/main_element_share/FIRE': np.float64(0.2), 'environment/azk_step_deckbuild/main_element_share/FIRE': np.float64(0.2), 'environment/deckbuild/main_element_count/LIGHTNING': np.float64(0.0), 'environment/azk_step_deckbuild/main_element_count/LIGHTNING': np.float64(0.0), 'environment/deckbuild/main_element_share/LIGHTNING': np.float64(0.0), 'environment/azk_step_deckbuild/main_element_share/LIGHTNING': np.float64(0.0), 'environment/deckbuild/main_element_count/NORMAL': np.float64(30.0), 'environment/azk_step_deckbuild/main_element_count/NORMAL': np.float64(30.0), 'environment/deckbuild/main_element_share/NORMAL': np.float64(0.6), 'environment/azk_step_deckbuild/main_element_share/NORMAL': np.float64(0.6), 'environment/deckbuild/main_element_count/WATER': np.float64(0.0), 'environment/azk_step_deckbuild/main_element_count/WATER': np.float64(0.0), 'environment/deckbuild/main_element_share/WATER': np.float64(0.0), 'environment/azk_step_deckbuild/main_element_share/WATER': np.float64(0.0), 'environment/deckbuild/main_avg_cost': np.float64(3.09), 'environment/azk_step_deckbuild/main_avg_cost': np.float64(3.09), 'environment/deckbuild/main_cost_share/0_1': np.float64(0.26), 'environment/azk_step_deckbuild/main_cost_share/0_1': np.float64(0.26), 'environment/deckbuild/main_cost_share/2_3': np.float64(0.38), 'environment/azk_step_deckbuild/main_cost_share/2_3': np.float64(0.38), 'environment/deckbuild/main_cost_share/4_5': np.float64(0.25), 'environment/azk_step_deckbuild/main_cost_share/4_5': np.float64(0.25), 'environment/deckbuild/main_cost_share/6_plus': np.float64(0.11000000000000001), 'environment/azk_step_deckbuild/main_cost_share/6_plus': np.float64(0.11000000000000001), 'environment/deckbuild/leader_card/STT04-001': np.float64(1.0), 'environment/azk_step_deckbuild/leader_card/STT04-001': np.float64(1.0), 'environment/deckbuild_gatecard/AZK01-122/game': np.float64(1.0), 'environment/azk_step_deckbuild_gatecard/AZK01-122/game': np.float64(1.0), 'environment/deckbuild_gatecard/AZK01-122/avg_cost': np.float64(2.74), 'environment/azk_step_deckbuild_gatecard/AZK01-122/avg_cost': np.float64(2.74), 'environment/deckbuild_gatecard/AZK01-122/main_unique': np.float64(39.0), 'environment/azk_step_deckbuild_gatecard/AZK01-122/main_unique': np.float64(39.0), 'environment/deckbuild_gatecard/AZK01-122/copy_entropy_norm': np.float64(0.9788584625073026), 'environment/azk_step_deckbuild_gatecard/AZK01-122/copy_entropy_norm': np.float64(0.9788584625073026), 'environment/deckbuild_gatecard/AZK01-122/gate_element_share': np.float64(0.4), 'environment/azk_step_deckbuild_gatecard/AZK01-122/gate_element_share': np.float64(0.4), 'environment/deckbuild_gatecard/AZK01-122/type_share/ENTITY': np.float64(0.84), 'environment/azk_step_deckbuild_gatecard/AZK01-122/type_share/ENTITY': np.float64(0.84), 'environment/deckbuild_gatecard/AZK01-122/type_share/SPELL': np.float64(0.12), 'environment/azk_step_deckbuild_gatecard/AZK01-122/type_share/SPELL': np.float64(0.12), 'environment/deckbuild_gatecard/AZK01-122/type_share/WEAPON': np.float64(0.04), 'environment/azk_step_deckbuild_gatecard/AZK01-122/type_share/WEAPON': np.float64(0.04), 'environment/deckbuild_gatecard/AZK01-122/cost_share/0_1': np.float64(0.34), 'environment/azk_step_deckbuild_gatecard/AZK01-122/cost_share/0_1': np.float64(0.34), 'environment/deckbuild_gatecard/AZK01-122/cost_share/2_3': np.float64(0.36), 'environment/azk_step_deckbuild_gatecard/AZK01-122/cost_share/2_3': np.float64(0.36), 'environment/deckbuild_gatecard/AZK01-122/cost_share/4_5': np.float64(0.22), 'environment/azk_step_deckbuild_gatecard/AZK01-122/cost_share/4_5': np.float64(0.22), 'environment/deckbuild_gatecard/AZK01-122/cost_share/6_plus': np.float64(0.08), 'environment/azk_step_deckbuild_gatecard/AZK01-122/cost_share/6_plus': np.float64(0.08), 'environment/deckbuild_gatecard/AZK01-122/leader/STT04-001': np.float64(1.0), 'environment/azk_step_deckbuild_gatecard/AZK01-122/leader/STT04-001': np.float64(1.0), 'environment/deckbuild_result/game': np.float64(1.0), 'environment/deckbuild_result/win': np.float64(0.5), 'environment/deckbuild_result/gate_match': np.float64(0.0), 'environment/deckbuild_result/gate_match_win_joint': np.float64(0.0), 'environment/deckbuild_result/gate_mismatch': np.float64(1.0), 'environment/deckbuild_result/gate_mismatch_win_joint': np.float64(0.5), 'environment/deckbuild_result/gate/FIRE/game': np.float64(1.0), 'environment/deckbuild_result/gate/FIRE/win': np.float64(0.0), 'environment/deckbuild_result/gate_pair/FIRE_vs_EARTH/game': np.float64(1.0), 'environment/deckbuild_result/gate_pair/FIRE_vs_EARTH/win': np.float64(0.0), 'environment/deckbuild_result/gate_pair_unordered/EARTH_vs_FIRE/game': np.float64(1.0), 'environment/deckbuild_result/gate_pair_unordered/EARTH_vs_FIRE/win': np.float64(0.5), 'environment/deckbuild_result/gate_mismatch/game': np.float64(1.0), 'environment/deckbuild_result/gate_mismatch/win': np.float64(0.5), 'environment/deckbuild_result/gate_freq/EARTH': np.float64(0.5), 'environment/deckbuild_result/gate_win_joint/EARTH': np.float64(0.5), 'environment/deckbuild_result/gate_freq/FIRE': np.float64(0.5), 'environment/deckbuild_result/gate_win_joint/FIRE': np.float64(0.0), 'environment/deckbuild_result/gate_freq/LIGHTNING': np.float64(0.0), 'environment/deckbuild_result/gate_win_joint/LIGHTNING': np.float64(0.0), 'environment/deckbuild_result/gate_freq/WATER': np.float64(0.0), 'environment/deckbuild_result/gate_win_joint/WATER': np.float64(0.0), 'environment/deckbuild_result/gate_pair_freq/EARTH_vs_EARTH': np.float64(0.0), 'environment/deckbuild_result/gate_pair_win_joint/EARTH_vs_EARTH': np.float64(0.0), 'environment/deckbuild_result/gate_pair_freq/EARTH_vs_FIRE': np.float64(0.5), 'environment/deckbuild_result/gate_pair_win_joint/EARTH_vs_FIRE': np.float64(0.5), 'environment/deckbuild_result/gate_pair_freq/EARTH_vs_LIGHTNING': np.float64(0.0), 'environment/deckbuild_result/gate_pair_win_joint/EARTH_vs_LIGHTNING': np.float64(0.0), 'environment/deckbuild_result/gate_pair_freq/EARTH_vs_WATER': np.float64(0.0), 'environment/deckbuild_result/gate_pair_win_joint/EARTH_vs_WATER': np.float64(0.0), 'environment/deckbuild_result/gate_pair_freq/FIRE_vs_EARTH': np.float64(0.5), 'environment/deckbuild_result/gate_pair_win_joint/FIRE_vs_EARTH': np.float64(0.0), 'environment/deckbuild_result/gate_pair_freq/FIRE_vs_FIRE': np.float64(0.0), 'environment/deckbuild_result/gate_pair_win_joint/FIRE_vs_FIRE': np.float64(0.0), 'environment/deckbuild_result/gate_pair_freq/FIRE_vs_LIGHTNING': np.float64(0.0), 'environment/deckbuild_result/gate_pair_win_joint/FIRE_vs_LIGHTNING': np.float64(0.0), 'environment/deckbuild_result/gate_pair_freq/FIRE_vs_WATER': np.float64(0.0), 'environment/deckbuild_result/gate_pair_win_joint/FIRE_vs_WATER': np.float64(0.0), 'environment/deckbuild_result/gate_pair_freq/LIGHTNING_vs_EARTH': np.float64(0.0), 'environment/deckbuild_result/gate_pair_win_joint/LIGHTNING_vs_EARTH': np.float64(0.0), 'environment/deckbuild_result/gate_pair_freq/LIGHTNING_vs_FIRE': np.float64(0.0), 'environment/deckbuild_result/gate_pair_win_joint/LIGHTNING_vs_FIRE': np.float64(0.0), 'environment/deckbuild_result/gate_pair_freq/LIGHTNING_vs_LIGHTNING': np.float64(0.0), 'environment/deckbuild_result/gate_pair_win_joint/LIGHTNING_vs_LIGHTNING': np.float64(0.0), 'environment/deckbuild_result/gate_pair_freq/LIGHTNING_vs_WATER': np.float64(0.0), 'environment/deckbuild_result/gate_pair_win_joint/LIGHTNING_vs_WATER': np.float64(0.0), 'environment/deckbuild_result/gate_pair_freq/WATER_vs_EARTH': np.float64(0.0), 'environment/deckbuild_result/gate_pair_win_joint/WATER_vs_EARTH': np.float64(0.0), 'environment/deckbuild_result/gate_pair_freq/WATER_vs_FIRE': np.float64(0.0), 'environment/deckbuild_result/gate_pair_win_joint/WATER_vs_FIRE': np.float64(0.0), 'environment/deckbuild_result/gate_pair_freq/WATER_vs_LIGHTNING': np.float64(0.0), 'environment/deckbuild_result/gate_pair_win_joint/WATER_vs_LIGHTNING': np.float64(0.0), 'environment/deckbuild_result/gate_pair_freq/WATER_vs_WATER': np.float64(0.0), 'environment/deckbuild_result/gate_pair_win_joint/WATER_vs_WATER': np.float64(0.0), 'environment/deckbuild_result/gate_pair_unordered_freq/EARTH_vs_EARTH': np.float64(0.0), 'environment/deckbuild_result/gate_pair_unordered_win_joint/EARTH_vs_EARTH': np.float64(0.0), 'environment/deckbuild_result/gate_pair_unordered_freq/EARTH_vs_FIRE': np.float64(1.0), 'environment/deckbuild_result/gate_pair_unordered_win_joint/EARTH_vs_FIRE': np.float64(0.5), 'environment/deckbuild_result/gate_pair_unordered_freq/EARTH_vs_LIGHTNING': np.float64(0.0), 'environment/deckbuild_result/gate_pair_unordered_win_joint/EARTH_vs_LIGHTNING': np.float64(0.0), 'environment/deckbuild_result/gate_pair_unordered_freq/EARTH_vs_WATER': np.float64(0.0), 'environment/deckbuild_result/gate_pair_unordered_win_joint/EARTH_vs_WATER': np.float64(0.0), 'environment/deckbuild_result/gate_pair_unordered_freq/FIRE_vs_FIRE': np.float64(0.0), 'environment/deckbuild_result/gate_pair_unordered_win_joint/FIRE_vs_FIRE': np.float64(0.0), 'environment/deckbuild_result/gate_pair_unordered_freq/FIRE_vs_LIGHTNING': np.float64(0.0), 'environment/deckbuild_result/gate_pair_unordered_win_joint/FIRE_vs_LIGHTNING': np.float64(0.0), 'environment/deckbuild_result/gate_pair_unordered_freq/FIRE_vs_WATER': np.float64(0.0), 'environment/deckbuild_result/gate_pair_unordered_win_joint/FIRE_vs_WATER': np.float64(0.0), 'environment/deckbuild_result/gate_pair_unordered_freq/LIGHTNING_vs_LIGHTNING': np.float64(0.0), 'environment/deckbuild_result/gate_pair_unordered_win_joint/LIGHTNING_vs_LIGHTNING': np.float64(0.0), 'environment/deckbuild_result/gate_pair_unordered_freq/LIGHTNING_vs_WATER': np.float64(0.0), 'environment/deckbuild_result/gate_pair_unordered_win_joint/LIGHTNING_vs_WATER': np.float64(0.0), 'environment/deckbuild_result/gate_pair_unordered_freq/WATER_vs_WATER': np.float64(0.0), 'environment/deckbuild_result/gate_pair_unordered_win_joint/WATER_vs_WATER': np.float64(0.0), 'environment/deckbuild_result/gatecard/AZK01-122/game': np.float64(1.0), 'environment/deckbuild_result/gatecard/AZK01-122/win': np.float64(0.0), 'environment/deckbuild_result/gatecard/AZK01-122/attack_rate': np.float64(0.1428571492433548), 'environment/deckbuild_result/gatecard/AZK01-122/spell_rate': np.float64(0.0476190485060215), 'environment/deckbuild_result/gatecard/AZK01-122/weapon_rate': np.float64(0.0), 'environment/deckbuild_result/gatecard/AZK01-122/portal_rate': np.float64(0.095238097012043), 'environment/deckbuild_result/gatecard/AZK01-122/play_entity_rate': np.float64(0.3333333432674408), 'environment/deckbuild_result/gatecard/AZK01-122/noop_rate': np.float64(0.2380952388048172), 'environment/deckbuild_result/gatecard/AZK01-122/episode_length': np.float64(47.0), 'environment/deckbuild_result/gatecard/AZK01-122/leader_health': np.float64(0.0), 'environment/deckbuild_result/gatecard/AZK01-122/ability_rate': np.float64(0.095238097012043), 'environment/deckbuild/leader_card/STT03-001': np.float64(1.0), 'environment/azk_step_deckbuild/leader_card/STT03-001': np.float64(1.0), 'environment/deckbuild_gatecard/STT03-002/game': np.float64(1.0), 'environment/azk_step_deckbuild_gatecard/STT03-002/game': np.float64(1.0), 'environment/deckbuild_gatecard/STT03-002/avg_cost': np.float64(3.44), 'environment/azk_step_deckbuild_gatecard/STT03-002/avg_cost': np.float64(3.44), 'environment/deckbuild_gatecard/STT03-002/main_unique': np.float64(40.0), 'environment/azk_step_deckbuild_gatecard/STT03-002/main_unique': np.float64(40.0), 'environment/deckbuild_gatecard/STT03-002/copy_entropy_norm': np.float64(0.9853301465708191), 'environment/azk_step_deckbuild_gatecard/STT03-002/copy_entropy_norm': np.float64(0.9853301465708191), 'environment/deckbuild_gatecard/STT03-002/gate_element_share': np.float64(0.4), 'environment/azk_step_deckbuild_gatecard/STT03-002/gate_element_share': np.float64(0.4), 'environment/deckbuild_gatecard/STT03-002/type_share/ENTITY': np.float64(0.76), 'environment/azk_step_deckbuild_gatecard/STT03-002/type_share/ENTITY': np.float64(0.76), 'environment/deckbuild_gatecard/STT03-002/type_share/SPELL': np.float64(0.2), 'environment/azk_step_deckbuild_gatecard/STT03-002/type_share/SPELL': np.float64(0.2), 'environment/deckbuild_gatecard/STT03-002/type_share/WEAPON': np.float64(0.04), 'environment/azk_step_deckbuild_gatecard/STT03-002/type_share/WEAPON': np.float64(0.04), 'environment/deckbuild_gatecard/STT03-002/cost_share/0_1': np.float64(0.18), 'environment/azk_step_deckbuild_gatecard/STT03-002/cost_share/0_1': np.float64(0.18), 'environment/deckbuild_gatecard/STT03-002/cost_share/2_3': np.float64(0.4), 'environment/azk_step_deckbuild_gatecard/STT03-002/cost_share/2_3': np.float64(0.4), 'environment/deckbuild_gatecard/STT03-002/cost_share/4_5': np.float64(0.28), 'environment/azk_step_deckbuild_gatecard/STT03-002/cost_share/4_5': np.float64(0.28), 'environment/deckbuild_gatecard/STT03-002/cost_share/6_plus': np.float64(0.14), 'environment/azk_step_deckbuild_gatecard/STT03-002/cost_share/6_plus': np.float64(0.14), 'environment/deckbuild_gatecard/STT03-002/leader/STT03-001': np.float64(1.0), 'environment/azk_step_deckbuild_gatecard/STT03-002/leader/STT03-001': np.float64(1.0), 'environment/deckbuild_result/gate/EARTH/game': np.float64(1.0), 'environment/deckbuild_result/gate/EARTH/win': np.float64(1.0), 'environment/deckbuild_result/gate_pair/EARTH_vs_FIRE/game': np.float64(1.0), 'environment/deckbuild_result/gate_pair/EARTH_vs_FIRE/win': np.float64(1.0), 'environment/deckbuild_result/gatecard/STT03-002/game': np.float64(1.0), 'environment/deckbuild_result/gatecard/STT03-002/win': np.float64(1.0), 'environment/deckbuild_result/gatecard/STT03-002/attack_rate': np.float64(0.23076924681663513), 'environment/deckbuild_result/gatecard/STT03-002/spell_rate': np.float64(0.03846153989434242), 'environment/deckbuild_result/gatecard/STT03-002/weapon_rate': np.float64(0.0), 'environment/deckbuild_result/gatecard/STT03-002/portal_rate': np.float64(0.03846153989434242), 'environment/deckbuild_result/gatecard/STT03-002/play_entity_rate': np.float64(0.3461538553237915), 'environment/deckbuild_result/gatecard/STT03-002/noop_rate': np.float64(0.26923078298568726), 'environment/deckbuild_result/gatecard/STT03-002/episode_length': np.float64(47.0), 'environment/deckbuild_result/gatecard/STT03-002/leader_health': np.float64(0.8500000238418579), 'environment/deckbuild_result/gatecard/STT03-002/ability_rate': np.float64(0.03846153989434242), 'environment/ref_seat_rate': np.float64(0.0), 'losses/policy_loss': 0.00020878513169009238, 'losses/value_loss': 0.01957060396671295, 'losses/value_loss_total': 0.01957060396671295, 'losses/entropy': 0.9051984548568726, 'losses/old_approx_kl': -3.202728112228215e-05, 'losses/approx_kl': 2.77281424132525e-06, 'losses/clipfrac': 0.0, 'losses/importance': 1.0000348091125488, 'losses/win_prob_aux_loss': 0.0, 'losses/win_prob_aux_labeled_frac': 0.0, 'losses/explained_variance': 0.012663424015045166, 'losses/win_prob_aux_accuracy': 0.0, 'losses/win_prob_aux_brier': 0.0, 'losses/win_prob_aux_pred_mean': 0.0, 'losses/win_prob_aux_target_mean': 0.0, 'performance/eval': 14.419087171554565, 'performance/train': 15.895771980285645, 'performance/eval_forward': 14.099327325820923, 'performance/env': 0.027788877487182617, 'performance/eval_copy': 0.27915358543395996, 'performance/eval_misc': 0.012716054916381836, 'performance/train_forward': 3.258415460586548, 'performance/learn_backward': 6.139640808105469, 'performance/learn_opt': 6.398446559906006, 'performance/train_copy': 0.004975795745849609, 'performance/train_misc': 0.0942230224609375}
+[0;0H╭──────────────────────────────────────────────────────────────────────────────╮
+│  PufferLib 4.0          🐡      CPU:     GPU: 0.0%  DRAM: 83.9%  VRAM: 0.0%  │
+│                                145.1%                                        │
+│                                                                              │
+│  Summary          Value    Evaluate     14s  47%    Losses            Value  │
+│  Env        azuki_local      Forwa…     14s  46%    policy_loss      -0.003  │
+│  Params           90.2M      Env         0s   0%    value_loss        0.021  │
+│  Steps           153.6K      Copy        0s   0%    value_loss_to…    0.021  │
+│  SPS                  0      Misc        0s   0%    entropy           0.958  │
+│  Epoch               10    Train        15s  52%    old_approx_kl    -0.000  │
+│  Uptime          1m 15s      Forwa…      3s  10%    approx_kl         0.000  │
+│  Remaini…   A hair past      Backw…      6s  20%    clipfrac          0.000  │
+│               a freckle      Optim…      6s  21%    importance        1.000  │
+│                              Copy        0s   0%    win_prob_aux_…    0.699  │
+│                              Misc        0s   0%    win_prob_aux_…    0.001  │
+│                                                     explained_var…    0.015  │
+│                                                     win_prob_aux_…    0.334  │
+│                                                     win_prob_aux_…    0.252  │
+│                                                     win_prob_aux_…    0.500  │
+│                                                     win_prob_aux_…    0.334  │
+│                                                                              │
+│  User Stats                    Value    User Stats                    Value  │
+╰──────────────────────────────────────────────────────────────────────────────╯
+
+[checkpoint] parity verified: path=experiments/azuki_local_178416521752/model_azuki_local_000010.pt, rewritten=False, max_abs_diff=0, max_abs_diff_key=<none>
+[W715 18:28:16.150199448 AllocatorConfig.cpp:28] Warning: PYTORCH_CUDA_ALLOC_CONF is deprecated, use PYTORCH_ALLOC_CONF instead (function operator())

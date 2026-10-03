@@ -329,9 +329,13 @@ int summon_card_into_zone_index(ecs_world_t *world,
 }
 
 void untap_all_cards_in_zone(ecs_world_t *world, ecs_entity_t zone) {
+  const bool clears_generated_ikz_credit = ecs_has(world, zone, ZIKZAreaTag);
   ecs_entities_t cards = ecs_get_ordered_children(world, zone);
   for (int32_t i = 0; i < cards.count; i++) {
     ecs_entity_t card = cards.ids[i];
+    if (clears_generated_ikz_credit) {
+      azk_clear_generated_ikz_credit(world, card);
+    }
     if (ecs_has(world, card, Shocked)) {
       CardConditionCountdown *countdown =
           ecs_get_mut(world, card, CardConditionCountdown);
@@ -375,6 +379,7 @@ uint8_t untap_n_ikz_cards(ecs_world_t *world, ecs_entity_t ikz_area,
       ecs_set(world, card, TapState,
               {.tapped = false, .cooldown = ts->cooldown});
       azk_log_card_tap_state_changed(world, card, GLOG_TAP_UNTAPPED);
+      azk_mark_generated_ikz_credit(world, card);
       untapped++;
     }
   }

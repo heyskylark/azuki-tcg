@@ -1,0 +1,10 @@
+{
+  "element": "EARTH",
+  "gate": "AZK01-124",
+  "archetype": "spell_heavy",
+  "contrast": "entity_only",
+  "winrate_archetype": 0.596,
+  "se": 0.031034432490380744,
+  "n": 250,
+  "truncated": 0
+}

@@ -28,6 +28,9 @@ static void stt01_009_check_and_update_buff(ecs_world_t *world,
 
 // Observer callback for weapons entering/leaving the discard zone
 static void stt01_009_discard_observer(ecs_iter_t *it) {
+  if (ecs_is_fini(it->world) || ecs_should_quit(it->world)) {
+    return; // World teardown: zones/singletons may already be deleted.
+  }
   ecs_world_t *world = it->world;
   Stt01009ObserverCtx *ctx = it->ctx;
 
@@ -58,6 +61,9 @@ static void stt01_009_discard_observer(ecs_iter_t *it) {
 
 // Observer callback for when this card changes zones
 static void stt01_009_zone_change_observer(ecs_iter_t *it) {
+  if (ecs_is_fini(it->world) || ecs_should_quit(it->world)) {
+    return; // World teardown: zones/singletons may already be deleted.
+  }
   ecs_world_t *world = it->world;
   Stt01009ObserverCtx *ctx = it->ctx;
 

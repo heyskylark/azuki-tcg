@@ -1,0 +1,30 @@
+{
+  "element": "STT03-002_vs_STT02-002",
+  "gate_a": "STT03-002",
+  "gate_b": "STT02-002",
+  "mode": "blocked",
+  "n": 320,
+  "truncated": 0,
+  "winrate_a": 0.5375,
+  "se": 0.02787212709410604,
+  "portal_steps_a": 0,
+  "portal_steps_b": 0,
+  "per_deck": {
+    "0": {
+      "winrate_a": 0.5375,
+      "n": 80
+    },
+    "1": {
+      "winrate_a": 0.5375,
+      "n": 80
+    },
+    "2": {
+      "winrate_a": 0.525,
+      "n": 80
+    },
+    "3": {
+      "winrate_a": 0.55,
+      "n": 80
+    }
+  }
+}

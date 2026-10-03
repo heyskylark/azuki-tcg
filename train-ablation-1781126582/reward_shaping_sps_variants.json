@@ -1,0 +1,117 @@
+{
+  "description": "Matched trainer SPS probes for competitive reward shaping on the adopted S14 stack.",
+  "control_overrides": {
+    "env.deck_snapshot_every": 0,
+    "env.draft_cross_gate_replay_prob": 0.15,
+    "env.draft_same_element_matchup_prob": 0.35,
+    "league.enable": false,
+    "neptune": false,
+    "policy.deck_pick_smoothing_eps": 0.02,
+    "policy.gate_id_embedding_enabled": false,
+    "train.checkpoint_interval": 1000,
+    "train.seed": 42,
+    "wandb": false
+  },
+  "variants": [
+    {
+      "description": "S14 rewards with all candidate reward knobs disabled.",
+      "env": {
+        "AZK_DMG_MITIGATION_BONUS": "0.15",
+        "AZK_DMG_MITIGATION_CAP": "10",
+        "AZK_EARLY_TEMPO_BONUS": "0.1",
+        "AZK_EARLY_TEMPO_CAP": "4",
+        "AZK_PFSP": "1",
+        "AZK_PORTAL_GP_BONUS": "0.3",
+        "AZK_REWARD_SHAPING_ANNEAL": "1",
+        "AZK_REWARD_SHAPING_ANNEAL_FINAL": "0.15",
+        "AZK_REWARD_SHAPING_ANNEAL_INITIAL": "1.0",
+        "AZK_REWARD_SHAPING_ANNEAL_RAMP_EPISODES": "40",
+        "AZK_REWARD_SHAPING_ANNEAL_WARMUP_EPISODES": "12",
+        "AZK_XGATE_MASK": "1"
+      },
+      "label": "s14_control"
+    },
+    {
+      "description": "S14 plus effective entity-damage exchange shaping.",
+      "env": {
+        "AZK_DMG_MITIGATION_BONUS": "0.15",
+        "AZK_DMG_MITIGATION_CAP": "10",
+        "AZK_EARLY_TEMPO_BONUS": "0.1",
+        "AZK_EARLY_TEMPO_CAP": "4",
+        "AZK_ENTITY_DAMAGE_EXCHANGE_PER_HP": "0.025",
+        "AZK_ENTITY_DAMAGE_EXCHANGE_STEP_CAP": "6",
+        "AZK_PFSP": "1",
+        "AZK_PORTAL_GP_BONUS": "0.3",
+        "AZK_REWARD_SHAPING_ANNEAL": "1",
+        "AZK_REWARD_SHAPING_ANNEAL_FINAL": "0.15",
+        "AZK_REWARD_SHAPING_ANNEAL_INITIAL": "1.0",
+        "AZK_REWARD_SHAPING_ANNEAL_RAMP_EPISODES": "40",
+        "AZK_REWARD_SHAPING_ANNEAL_WARMUP_EPISODES": "12",
+        "AZK_XGATE_MASK": "1"
+      },
+      "label": "rs1_entity"
+    },
+    {
+      "description": "S14 plus generated-IKZ conversion, replacing raw untapped IKZ potential.",
+      "env": {
+        "AZK_DMG_MITIGATION_BONUS": "0.15",
+        "AZK_DMG_MITIGATION_CAP": "10",
+        "AZK_EARLY_TEMPO_BONUS": "0.1",
+        "AZK_EARLY_TEMPO_CAP": "4",
+        "AZK_GENERATED_IKZ_CONVERSION_BONUS": "0.05",
+        "AZK_GENERATED_IKZ_CONVERSION_STEP_CAP": "4",
+        "AZK_PFSP": "1",
+        "AZK_PORTAL_GP_BONUS": "0.3",
+        "AZK_REWARD_SHAPING_ANNEAL": "1",
+        "AZK_REWARD_SHAPING_ANNEAL_FINAL": "0.15",
+        "AZK_REWARD_SHAPING_ANNEAL_INITIAL": "1.0",
+        "AZK_REWARD_SHAPING_ANNEAL_RAMP_EPISODES": "40",
+        "AZK_REWARD_SHAPING_ANNEAL_WARMUP_EPISODES": "12",
+        "AZK_REWARD_UNTAPPED_IKZ_WEIGHT": "0",
+        "AZK_XGATE_MASK": "1"
+      },
+      "label": "rs2_ikz_conversion"
+    },
+    {
+      "description": "S14 plus realized temporary Charge and incremental EOT attack damage.",
+      "env": {
+        "AZK_DMG_MITIGATION_BONUS": "0.15",
+        "AZK_DMG_MITIGATION_CAP": "10",
+        "AZK_EARLY_TEMPO_BONUS": "0.1",
+        "AZK_EARLY_TEMPO_CAP": "4",
+        "AZK_PFSP": "1",
+        "AZK_PORTAL_GP_BONUS": "0.3",
+        "AZK_REWARD_SHAPING_ANNEAL": "1",
+        "AZK_REWARD_SHAPING_ANNEAL_FINAL": "0.15",
+        "AZK_REWARD_SHAPING_ANNEAL_INITIAL": "1.0",
+        "AZK_REWARD_SHAPING_ANNEAL_RAMP_EPISODES": "40",
+        "AZK_REWARD_SHAPING_ANNEAL_WARMUP_EPISODES": "12",
+        "AZK_TEMP_ATTACK_REALIZATION_DAMAGE_CAP": "4",
+        "AZK_TEMP_ATTACK_REALIZATION_PER_DAMAGE": "0.025",
+        "AZK_TEMP_CHARGE_REALIZATION_BONUS": "0.08",
+        "AZK_XGATE_MASK": "1"
+      },
+      "label": "rs3_temporary_realization"
+    },
+    {
+      "description": "S14 plus contextual paid-response reserve, replacing raw untapped IKZ potential.",
+      "env": {
+        "AZK_CONTEXTUAL_RESPONSE_RESERVE_BONUS": "0.08",
+        "AZK_DMG_MITIGATION_BONUS": "0.15",
+        "AZK_DMG_MITIGATION_CAP": "10",
+        "AZK_EARLY_TEMPO_BONUS": "0.1",
+        "AZK_EARLY_TEMPO_CAP": "4",
+        "AZK_PFSP": "1",
+        "AZK_PORTAL_GP_BONUS": "0.3",
+        "AZK_REWARD_SHAPING_ANNEAL": "1",
+        "AZK_REWARD_SHAPING_ANNEAL_FINAL": "0.15",
+        "AZK_REWARD_SHAPING_ANNEAL_INITIAL": "1.0",
+        "AZK_REWARD_SHAPING_ANNEAL_RAMP_EPISODES": "40",
+        "AZK_REWARD_SHAPING_ANNEAL_WARMUP_EPISODES": "12",
+        "AZK_REWARD_UNTAPPED_IKZ_WEIGHT": "0",
+        "AZK_XGATE_MASK": "1"
+      },
+      "label": "rs4_contextual_reserve"
+    }
+  ]
+}

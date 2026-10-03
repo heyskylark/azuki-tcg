@@ -58,6 +58,9 @@ static void sync_leader_alley_targeting(ecs_world_t *world, ecs_entity_t host,
 }
 
 static void alley_targeting_weapon_observer(ecs_iter_t *it) {
+  if (ecs_is_fini(it->world) || ecs_should_quit(it->world)) {
+    return; // World teardown: zones/singletons may already be deleted.
+  }
   Azk01043ObserverCtx *ctx = it->ctx;
   if (ctx == NULL || !ecs_is_valid(it->world, ctx->weapon) ||
       !is_alley_targeting_weapon(it->world, ctx->weapon)) {

@@ -22,10 +22,88 @@ from training_utils import (
 )
 
 
+def _checkpoint_metadata_path(model_path: Path) -> Path:
+  return model_path.with_suffix(model_path.suffix + ".meta.json")
+
+
+def _read_checkpoint_metadata(model_path: Path) -> dict:
+  metadata_path = _checkpoint_metadata_path(model_path)
+  if not metadata_path.exists():
+    return {}
+  try:
+    payload = json.loads(metadata_path.read_text())
+  except Exception:
+    return {}
+  return payload if isinstance(payload, dict) else {}
+
+
+def _apply_checkpoint_resume_policy_config(trainer_args: dict, checkpoint: Path) -> None:
+  payload = _read_checkpoint_metadata(checkpoint)
+  resume_cfg = payload.get("resume_config_fingerprint")
+  if not isinstance(resume_cfg, dict):
+    return
+  env_cfg = trainer_args.setdefault("env", {})
+  policy_cfg = trainer_args.setdefault("policy", {})
+  deck_pool_path = resume_cfg.get("deck_pool_path")
+  if isinstance(deck_pool_path, str) and deck_pool_path:
+    env_cfg["deck_pool_path"] = deck_pool_path
+  deck_building_enabled = resume_cfg.get("deck_building_enabled")
+  if isinstance(deck_building_enabled, bool):
+    env_cfg["deck_building_enabled"] = deck_building_enabled
+  for source_key, target_key, caster in (
+    ("policy_model_version", "model_version", str),
+    ("policy_actor_head_type", "actor_head_type", str),
+    ("policy_legal_action_scorer_use_references", "legal_action_scorer_use_references", bool),
+    ("policy_critic_head_type", "critic_head_type", str),
+    ("policy_privileged_critic_enabled", "privileged_critic_enabled", bool),
+    ("policy_privileged_critic_embed_dim", "privileged_critic_embed_dim", int),
+    ("policy_privileged_critic_deck_heads", "privileged_critic_deck_heads", int),
+    ("policy_privileged_critic_deck_layers", "privileged_critic_deck_layers", int),
+    ("policy_privileged_critic_deck_ff_size", "privileged_critic_deck_ff_size", int),
+    (
+      "policy_privileged_critic_fusion_hidden_size",
+      "privileged_critic_fusion_hidden_size",
+      int,
+    ),
+    (
+      "policy_privileged_critic_fusion_projection_size",
+      "privileged_critic_fusion_projection_size",
+      int,
+    ),
+    ("policy_privileged_critic_feature_scale", "privileged_critic_feature_scale", float),
+    ("policy_win_prob_aux_enabled", "win_prob_aux_enabled", bool),
+    ("policy_win_prob_aux_coef", "win_prob_aux_coef", float),
+    ("policy_split_value_heads_enabled", "split_value_heads_enabled", bool),
+    ("policy_split_value_component_coef", "split_value_component_coef", float),
+  ):
+    value = resume_cfg.get(source_key)
+    if isinstance(value, (bool, int, float, str)):
+      policy_cfg[target_key] = caster(value)
+
+
+def _strip_module_prefix(state_dict: dict) -> dict:
+  return {
+    key[len("module."):] if isinstance(key, str) and key.startswith("module.") else key: value
+    for key, value in state_dict.items()
+  }
+
+
+def _load_model_weights(policy: torch.nn.Module, model_path: Path, *, device: str) -> None:
+  raw = torch.load(model_path, map_location=device)
+  state_dict = raw.get("state_dict") if isinstance(raw, dict) and "state_dict" in raw else raw
+  cleaned = _strip_module_prefix(state_dict)
+  for key in list(cleaned.keys()):
+    if isinstance(key, str) and key.startswith(("policy.static_", "static_")):
+      cleaned.pop(key, None)
+  policy.load_state_dict(cleaned, strict=False)
+
+
 def _unwrap_base_env(env: Any):
   current = getattr(env, "env", env)
   seen = set()
   while hasattr(current, "env"):
+    if getattr(current, "is_deck_building_wrapper", False):
+      break
     nxt = getattr(current, "env")
     if nxt is current or nxt in seen:
       break
@@ -67,6 +145,7 @@ def run_playback(
 
   trainer_args = load_training_config(config_path, [])
   trainer_args["train"]["device"] = device
+  _apply_checkpoint_resume_policy_config(trainer_args, checkpoint)
   install_tcg_sampler()
 
   vecenv = build_vecenv(
@@ -88,11 +167,7 @@ def run_playback(
   with torch.no_grad():
     policy.forward_eval(torch.as_tensor(warm_obs, device=device), warm_state)
 
-  state_dict = torch.load(checkpoint, map_location=device)
-  try:
-    policy.load_state_dict(state_dict)
-  except RuntimeError:
-    policy.load_state_dict(state_dict, strict=False)
+  _load_model_weights(policy, checkpoint, device=device)
   policy.eval()
 
   base_env = _unwrap_base_env(vecenv.envs[0])

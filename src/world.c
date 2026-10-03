@@ -232,7 +232,10 @@ static void grant_player_ikz_token(ecs_world_t *world, ecs_entity_t player) {
              "Prefab not found for IKZ token card");
   const ecs_entity_t ikz_token =
       ecs_new_w_pair(world, EcsIsA, ikz_token_prefab);
-  ecs_set_name(world, ikz_token, "IKZTokenCard");
+  char token_name[32];
+  snprintf(token_name, sizeof(token_name), "IKZTokenCard_%u",
+           (uint32_t)ikz_token);
+  ecs_set_name(world, ikz_token, token_name);
   initialize_card_runtime_components(world, ikz_token);
   ecs_set(world, player, IKZToken, {.ikz_token = ikz_token, .expires_eot = false});
 }

@@ -1,0 +1,38 @@
+{
+  "element": "FIRE",
+  "gate_a": "AZK01-122",
+  "gate_b": "STT04-002",
+  "mode": "policy",
+  "n": 516,
+  "truncated": 0,
+  "winrate_a": 0.5077519379844961,
+  "se": 0.022008627072475015,
+  "portal_steps_a": 121,
+  "portal_steps_b": 116,
+  "per_deck": {
+    "0": {
+      "winrate_a": 0.5116279069767442,
+      "n": 86
+    },
+    "1": {
+      "winrate_a": 0.5348837209302325,
+      "n": 86
+    },
+    "2": {
+      "winrate_a": 0.5,
+      "n": 86
+    },
+    "3": {
+      "winrate_a": 0.5,
+      "n": 86
+    },
+    "4": {
+      "winrate_a": 0.5,
+      "n": 86
+    },
+    "5": {
+      "winrate_a": 0.5,
+      "n": 86
+    }
+  }
+}

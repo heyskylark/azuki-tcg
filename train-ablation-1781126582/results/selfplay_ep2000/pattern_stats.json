@@ -1,0 +1,223 @@
+{
+  "portals_per_gate": {
+    "AZK01-120": {
+      "portals": 338,
+      "mean_turn": 9.32
+    },
+    "AZK01-122": {
+      "portals": 286,
+      "mean_turn": 8.15
+    },
+    "AZK01-124": {
+      "portals": 408,
+      "mean_turn": 10.09
+    },
+    "AZK01-126": {
+      "portals": 391,
+      "mean_turn": 9.48
+    },
+    "STT01-002": {
+      "portals": 508,
+      "mean_turn": 8.48
+    },
+    "STT02-002": {
+      "portals": 603,
+      "mean_turn": 9.15
+    },
+    "STT03-002": {
+      "portals": 477,
+      "mean_turn": 11.04
+    },
+    "STT04-002": {
+      "portals": 233,
+      "mean_turn": 8.2
+    }
+  },
+  "gate_followups": {
+    "STT03-002": {
+      "SELECT_EFFECT_TARGET": 334,
+      "(no ability window)": 143
+    },
+    "AZK01-126": {
+      "(no ability window)": 167,
+      "SELECT_FROM_SELECTION:STT02-014": 61,
+      "SELECT_FROM_SELECTION:AZK01-002": 36,
+      "SELECT_FROM_SELECTION:AZK01-009": 31,
+      "SELECT_FROM_SELECTION:AZK01-031": 24,
+      "SELECT_FROM_SELECTION:STT02-016": 18,
+      "SELECT_FROM_SELECTION:AZK01-029": 17,
+      "SELECT_FROM_SELECTION:AZK01-016": 16,
+      "SELECT_FROM_SELECTION:AZK01-030": 13,
+      "SELECT_FROM_SELECTION:AZK01-084": 3,
+      "SELECT_FROM_SELECTION:AZK01-017": 2,
+      "SELECT_FROM_SELECTION:AZK01-092": 1
+    },
+    "AZK01-124": {
+      "(no ability window)": 282,
+      "CONFIRM | SELECT_COST_TARGET | SELECT_EFFECT_TARGET": 119,
+      "CONFIRM | SELECT_COST_TARGET": 5,
+      "DECLINE": 2
+    },
+    "AZK01-122": {
+      "(no ability window)": 187,
+      "SELECT_TO_GARDEN:STT01-004": 16,
+      "SELECT_TO_GARDEN:STT04-004": 10,
+      "SELECT_TO_GARDEN:AZK01-001": 8,
+      "SELECT_TO_GARDEN:STT02-004": 8,
+      "SELECT_TO_GARDEN:STT04-003": 7,
+      "SELECT_TO_GARDEN:AZK01-115": 5,
+      "SELECT_TO_GARDEN:AZK01-004": 5,
+      "SELECT_TO_GARDEN:AZK01-003": 5,
+      "SELECT_TO_GARDEN:AZK01-071": 4,
+      "SELECT_TO_GARDEN:AZK01-068": 4,
+      "SELECT_TO_GARDEN:STT01-007": 4
+    },
+    "AZK01-120": {
+      "(no ability window)": 327,
+      "SELECT_TO_EQUIP:AZK01-094": 6,
+      "SELECT_TO_EQUIP:STT01-012": 3,
+      "SELECT_TO_EQUIP:STT01-014": 1,
+      "SELECT_TO_EQUIP:AZK01-043": 1
+    },
+    "STT02-002": {
+      "(no ability window)": 603
+    },
+    "STT01-002": {
+      "(no ability window)": 326,
+      "SELECT_TO_EQUIP:STT01-013": 59,
+      "SELECT_TO_EQUIP:STT01-012": 49,
+      "SELECT_TO_EQUIP:AZK01-094": 47,
+      "SELECT_TO_EQUIP:STT01-014": 15,
+      "SELECT_TO_EQUIP:AZK01-043": 8,
+      "SELECT_TO_EQUIP:AZK01-044": 3,
+      "SELECT_TO_EQUIP:STT01-015": 1
+    },
+    "STT04-002": {
+      "(no ability window)": 204,
+      "SELECT_EFFECT_TARGET": 29
+    }
+  },
+  "same_turn_entry_attacks_played": {
+    "AZK01-011": 18,
+    "AZK01-037": 5,
+    "AZK01-082": 4,
+    "STT04-010": 2,
+    "AZK01-116": 2,
+    "STT01-004": 1,
+    "AZK01-003": 1,
+    "STT04-011": 1,
+    "AZK01-068": 1,
+    "AZK01-070": 1
+  },
+  "same_turn_entry_attacks_portaled": {
+    "AZK01-011": 80,
+    "AZK01-082": 21,
+    "AZK01-116": 4,
+    "STT04-010": 4,
+    "AZK01-067": 3,
+    "STT01-010": 3,
+    "AZK01-069": 3,
+    "AZK01-068": 2,
+    "AZK01-022": 2,
+    "STT01-006": 2,
+    "AZK01-072": 2,
+    "AZK01-077": 2,
+    "AZK01-034": 1,
+    "AZK01-091": 1,
+    "STT01-004": 1,
+    "AZK01-113": 1,
+    "AZK01-006": 1,
+    "STT03-008": 1,
+    "STT01-008": 1,
+    "AZK01-037": 1
+  },
+  "spells_cast_in_those_turns": {
+    "AZK01-009": 26,
+    "AZK01-084": 5,
+    "AZK01-016": 3,
+    "AZK01-031": 2,
+    "AZK01-020": 2,
+    "STT02-014": 2,
+    "AZK01-002": 2,
+    "AZK01-065": 1,
+    "AZK01-017": 1,
+    "AZK01-117": 1,
+    "AZK01-101": 1,
+    "AZK01-107": 1,
+    "STT04-017": 1,
+    "STT04-016": 1
+  },
+  "response_action_mix": {
+    "SELECT_EFFECT_TARGET": 572,
+    "DECLARE_DEFENDER": 387,
+    "ACTIVATE_GARDEN_OR_LEADER_ABILITY": 342,
+    "PLAY_SPELL_FROM_HAND": 310,
+    "NOOP": 146,
+    "SELECT_COST_TARGET": 134,
+    "SELECT_TO_EQUIP": 11,
+    "CONFIRM_ABILITY": 3,
+    "ATTACH_WEAPON_FROM_HAND": 2
+  },
+  "response_cards": {
+    "ACTIVATE_GARDEN_OR_LEADER_ABILITY:MY_LEADER": 298,
+    "DECLARE_DEFENDER:AZK01-001": 114,
+    "PLAY_SPELL_FROM_HAND:STT02-016": 47,
+    "PLAY_SPELL_FROM_HAND:AZK01-029": 43,
+    "PLAY_SPELL_FROM_HAND:AZK01-030": 37,
+    "PLAY_SPELL_FROM_HAND:AZK01-128": 33,
+    "PLAY_SPELL_FROM_HAND:AZK01-127": 31,
+    "PLAY_SPELL_FROM_HAND:STT02-015": 30,
+    "ACTIVATE_GARDEN_OR_LEADER_ABILITY:AZK01-091": 27,
+    "PLAY_SPELL_FROM_HAND:STT01-017": 27,
+    "DECLARE_DEFENDER:STT02-006": 26,
+    "DECLARE_DEFENDER:AZK01-006": 25,
+    "PLAY_SPELL_FROM_HAND:AZK01-102": 25,
+    "PLAY_SPELL_FROM_HAND:AZK01-055": 18,
+    "DECLARE_DEFENDER:AZK01-035": 17,
+    "DECLARE_DEFENDER:AZK01-072": 15,
+    "DECLARE_DEFENDER:STT03-009": 15,
+    "DECLARE_DEFENDER:STT03-003": 15,
+    "DECLARE_DEFENDER:AZK01-069": 14,
+    "DECLARE_DEFENDER:AZK01-025": 14,
+    "DECLARE_DEFENDER:STT01-004": 14,
+    "DECLARE_DEFENDER:AZK01-049": 14,
+    "ACTIVATE_GARDEN_OR_LEADER_ABILITY:AZK01-070": 12,
+    "PLAY_SPELL_FROM_HAND:AZK01-100": 11,
+    "DECLARE_DEFENDER:AZK01-019": 11,
+    "DECLARE_DEFENDER:AZK01-068": 11,
+    "DECLARE_DEFENDER:AZK01-067": 10,
+    "DECLARE_DEFENDER:AZK01-073": 8,
+    "DECLARE_DEFENDER:AZK01-045": 8,
+    "DECLARE_DEFENDER:STT03-005": 7
+  },
+  "floating_ikz_at_turn_pass": {
+    "t1-4": {
+      "mean": 0.09,
+      "zero_rate": 0.919,
+      "n": 1182
+    },
+    "t11+": {
+      "mean": 1.92,
+      "zero_rate": 0.374,
+      "n": 1318
+    },
+    "t5-10": {
+      "mean": 0.32,
+      "zero_rate": 0.742,
+      "n": 1712
+    }
+  },
+  "winning_final_actions": {
+    "face_attack": 265,
+    "SELECT_EFFECT_TARGET": 26,
+    "GATE_PORTAL": 5,
+    "PLAY_ENTITY_TO_ALLEY": 2,
+    "CONFIRM_ABILITY": 1,
+    "PLAY_ENTITY_TO_GARDEN": 1
+  },
+  "attacks_total": 7051,
+  "attacks_intercepted_rate": 0.054,
+  "mulligan": {
+    "MULLIGAN_SHUFFLE": 600
+  }
+}

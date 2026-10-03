@@ -1,0 +1,10 @@
+{
+  "element": "EARTH",
+  "gate": "STT03-002",
+  "archetype": "spell_heavy",
+  "contrast": "entity_only",
+  "winrate_archetype": 0.56,
+  "se": 0.031394266992557734,
+  "n": 250,
+  "truncated": 0
+}

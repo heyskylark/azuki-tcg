@@ -1,0 +1,10 @@
+== league state (experiments/league/s14prod45/league_state.json) ==
+champion_policy_id: p000001
+pool entries: 0
+
+== jsonl runlog league stats (last-20% means) ==
+experiments/runlogs/s14prod45_178404911119.jsonl: 2932 rows
+  environment/league/candidate_wilson_vs_champion: first=0.5053667440103318 last=0.2656696548898657
+  environment/league/candidate_winrate_vs_champion: first=0.59375 last=0.34375
+  environment/league/champion_elo: first=997.75 last=1008.7901237047462
+  environment/league/promotion_accepted: first=0.0 last=0.0

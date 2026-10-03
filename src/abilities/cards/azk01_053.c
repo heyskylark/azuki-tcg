@@ -56,6 +56,9 @@ static void clear_geodust_smuggler_buffs(ecs_world_t *world, ecs_entity_t card,
 }
 
 static void azk01_053_garden_observer(ecs_iter_t *it) {
+  if (ecs_is_fini(it->world) || ecs_should_quit(it->world)) {
+    return; // World teardown: zones/singletons may already be deleted.
+  }
   Azk01053ObserverCtx *ctx = it->ctx;
   if (ctx == NULL) {
     return;

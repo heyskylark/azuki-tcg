@@ -26,6 +26,9 @@ static int count_attached_weapons(ecs_world_t *world, ecs_entity_t entity) {
 
 // Observer callback for weapon attachment/detachment
 static void stt01_008_weapon_observer(ecs_iter_t *it) {
+  if (ecs_is_fini(it->world) || ecs_should_quit(it->world)) {
+    return; // World teardown: zones/singletons may already be deleted.
+  }
   ecs_world_t *world = it->world;
 
   for (int i = 0; i < it->count; i++) {

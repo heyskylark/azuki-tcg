@@ -1,5 +1,8 @@
 #include "utils/status_util.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "components/abilities.h"
 #include "components/components.h"
 #include "generated/card_defs.h"
@@ -1260,6 +1263,10 @@ void azk_process_passive_buff_queue(ecs_world_t *world) {
       cli_render_logf("[Status] Skipping buff - entity no longer valid");
       continue;
     }
+    if (getenv("DBG_PASSIVE"))
+      fprintf(stderr, "[Cqueue] flush ent%llu is_removal=%d atk=%+d hp=%+d\n",
+              (unsigned long long)buff->entity, (int)buff->is_removal,
+              (int)buff->atk_modifier, (int)buff->hp_modifier);
 
     // Track if we actually changed the attack buff (for weapon propagation)
     bool atk_buff_changed = false;

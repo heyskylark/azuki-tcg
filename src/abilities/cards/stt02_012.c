@@ -1,5 +1,8 @@
 #include "abilities/cards/stt02_012.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+
 #include "abilities/passive/passive_runtime.h"
 #include "components/abilities.h"
 #include "components/components.h"
@@ -44,6 +47,9 @@ static int count_entities_in_zone(ecs_world_t *world, ecs_entity_t zone) {
 
 // Observer callback for entities entering/leaving the player's garden
 static void stt02_012_player_garden_observer(ecs_iter_t *it) {
+  if (ecs_is_fini(it->world) || ecs_should_quit(it->world)) {
+    return; // World teardown: zones/singletons may already be deleted.
+  }
   ecs_world_t *world = it->world;
   Stt02012ObserverCtx *ctx = it->ctx;
 
@@ -75,6 +81,9 @@ static void stt02_012_player_garden_observer(ecs_iter_t *it) {
 
 // Observer callback for entities entering/leaving the opponent's garden
 static void stt02_012_opponent_garden_observer(ecs_iter_t *it) {
+  if (ecs_is_fini(it->world) || ecs_should_quit(it->world)) {
+    return; // World teardown: zones/singletons may already be deleted.
+  }
   ecs_world_t *world = it->world;
   Stt02012ObserverCtx *ctx = it->ctx;
 
@@ -149,6 +158,12 @@ static void stt02_012_check_and_update_buff(ecs_world_t *world,
   }
 
   int difference = player_count - opponent_count;
+
+  if (getenv("DBG_PASSIVE"))
+    fprintf(stderr, "[C012] ent%llu p%u removal=%d(player_side=%d) counts P=%d O=%d diff=%d -> %s\n",
+            (unsigned long long)card, owner_player_num, (int)is_removal_event,
+            (int)is_player_garden, player_count, opponent_count, difference,
+            difference >= STT02_012_GARDEN_THRESHOLD ? "APPLY+1/+1" : "remove");
 
   cli_render_logf("[STT02-012] Garden counts: player=%d, opponent=%d, diff=%d (threshold=%d)",
                   player_count, opponent_count, difference, STT02_012_GARDEN_THRESHOLD);

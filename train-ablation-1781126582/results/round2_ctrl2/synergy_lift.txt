@@ -1,0 +1,91 @@
+826 decks in window (experiments/abl_snapshots/ctrl2, last 25%)
+
+== GLOBAL top-lift pairs ==
+  lift= 5.48 sup=0.079 dwin=+0.023  AZK01-046(Mina the Geomancer,ENT,c1) + AZK01-050(Shroom Tender,ENT,c4)
+  lift= 5.46 sup=0.064 dwin=+0.028  AZK01-047(Shiko the Priestes,ENT,c2) + AZK01-051(Chillax,ENT,c4)
+  lift= 5.38 sup=0.062 dwin=+0.049  AZK01-105(Prickly Tumbleweed,ENT,c4) + STT03-009(Warding Totem,ENT,c4)
+  lift= 5.33 sup=0.063 dwin=-0.038  AZK01-103(Dropline Station,ENT,c5) + STT03-013(Stone Masked Ancie,ENT,c7)
+  lift= 5.28 sup=0.069 dwin=+0.079  AZK01-050(Shroom Tender,ENT,c4) + STT03-009(Warding Totem,ENT,c4)
+  lift= 5.24 sup=0.064 dwin=+0.085  AZK01-105(Prickly Tumbleweed,ENT,c4) + STT03-012(Miharu of the Whit,ENT,c6)
+  lift= 5.23 sup=0.075 dwin=+0.065  AZK01-048(Kale,ENT,c3) + AZK01-050(Shroom Tender,ENT,c4)
+  lift= 5.21 sup=0.073 dwin=+0.050  AZK01-046(Mina the Geomancer,ENT,c1) + STT03-012(Miharu of the Whit,ENT,c6)
+
+== Hydromancy(W) n=145 win=0.503 vs sibling EchoedWaves(W) n=71 — sibling-differential lift ==
+  dlift=+0.75 (g=1.34 sib=0.58) sup=0.117 dwin=+0.026 p=0.043  AZK01-011(Rooftop Hunter,ENT,c3) + AZK01-030(Lotus of Paradise,SPE,c1)
+  dlift=+0.70 (g=1.20 sib=0.49) sup=0.159 dwin=+0.018 p=0.010  AZK01-011(Rooftop Hunter,ENT,c3) + STT02-004(Rei,ENT,c1)
+  dlift=+0.68 (g=1.18 sib=0.50) sup=0.131 dwin=+0.128 p=0.047  AZK01-012(Ed,ENT,c4) + AZK01-028(Soryu no Rin,ENT,c8)
+  dlift=+0.61 (g=1.09 sib=0.48) sup=0.138 dwin=-0.003 p=0.020  AZK01-077(Stalking Assassin,ENT,c3) + AZK01-082(Black Jade Brawler,ENT,c5)
+  dlift=+0.60 (g=1.22 sib=0.62) sup=0.193 dwin=-0.075 p=0.013  AZK01-011(Rooftop Hunter,ENT,c3) + STT01-014(Tenshin,WEA,c2)
+  dlift=+0.59 (g=1.23 sib=0.64) sup=0.138 dwin=+0.097 p=0.023  AZK01-029(Aquatic Veil,SPE,c0) + AZK01-071(Alley Fetchduck,ENT,c2)
+  dlift=+0.59 (g=1.12 sib=0.53) sup=0.228 dwin=+0.012 p=0.003  AZK01-031(Tidal Insight,SPE,c1) + STT01-013(Black Jade Dagger,WEA,c1)
+  dlift=+0.59 (g=1.20 sib=0.61) sup=0.131 dwin=+0.233 p=0.043  AZK01-014(Trade Guild Cavalr,ENT,c5) + STT02-009(Aya,ENT,c3)
+
+== Surge(L) n=130 win=0.646 vs sibling Stormchain(L) n=97 — sibling-differential lift ==
+  dlift=+0.65 (g=1.27 sib=0.62) sup=0.108 dwin=+0.282 p=0.086  AZK01-004(Alley Thug,ENT,c1) + AZK01-038(Riven Flashborne,ENT,c3)
+  dlift=+0.63 (g=1.08 sib=0.45) sup=0.069 dwin=+0.243 p=0.093  AZK01-004(Alley Thug,ENT,c1) + AZK01-015(Mo,ENT,c6)
+  dlift=+0.62 (g=1.32 sib=0.71) sup=0.085 dwin=+0.172 p=0.123  AZK01-004(Alley Thug,ENT,c1) + STT01-004(Black Jade Recruit,ENT,c1)
+  dlift=+0.61 (g=1.02 sib=0.41) sup=0.108 dwin=+0.211 p=0.033  AZK01-004(Alley Thug,ENT,c1) + AZK01-036(Denmu,ENT,c3)
+  dlift=+0.61 (g=1.17 sib=0.56) sup=0.092 dwin=+0.021 p=0.080  AZK01-002(Healing Flutter,SPE,c1) + AZK01-037(Stormcaller Tenkic,ENT,c4)
+  dlift=+0.58 (g=1.31 sib=0.73) sup=0.177 dwin=+0.006 p=0.030  AZK01-002(Healing Flutter,SPE,c1) + AZK01-038(Riven Flashborne,ENT,c3)
+  dlift=+0.57 (g=1.13 sib=0.57) sup=0.062 dwin=+0.104 p=0.153  AZK01-004(Alley Thug,ENT,c1) + AZK01-082(Black Jade Brawler,ENT,c5)
+  dlift=+0.54 (g=1.07 sib=0.53) sup=0.146 dwin=+0.038 p=0.023  AZK01-005(Caravan Guard,ENT,c4) + AZK01-011(Rooftop Hunter,ENT,c3)
+
+== Ragefire(F) n=109 win=0.404 vs sibling Rushfire(F) n=97 — sibling-differential lift ==
+  dlift=+0.85 (g=1.29 sib=0.43) sup=0.156 dwin=+0.008 p=0.003  AZK01-117(Ignition Pact,SPE,c1) + STT04-010(Reckless Tinkerer,ENT,c3)
+  dlift=+0.84 (g=1.70 sib=0.87) sup=0.165 dwin=+0.319 p=0.013  AZK01-117(Ignition Pact,SPE,c1) + STT04-014(Scorchveil Shinobi,ENT,c6)
+  dlift=+0.78 (g=1.46 sib=0.68) sup=0.202 dwin=-0.040 p=0.003  AZK01-015(Mo,ENT,c6) + AZK01-118(Bandit Ringleader,ENT,c4)
+  dlift=+0.73 (g=1.18 sib=0.45) sup=0.119 dwin=+0.212 p=0.007  AZK01-060(Scarlett,ENT,c5) + STT02-012(Young Shao,ENT,c4)
+  dlift=+0.72 (g=1.43 sib=0.72) sup=0.165 dwin=+0.263 p=0.003  AZK01-060(Scarlett,ENT,c5) + AZK01-072(Beanz Mentor,ENT,c2)
+  dlift=+0.70 (g=1.31 sib=0.62) sup=0.147 dwin=-0.154 p=0.020  AZK01-065(Fire Orb,SPE,c4) + AZK01-110(Gluttonous Devoure,ENT,c4)
+  dlift=+0.66 (g=1.40 sib=0.73) sup=0.193 dwin=+0.025 p=0.007  AZK01-012(Ed,ENT,c4) + AZK01-062(Pekiro,ENT,c3)
+  dlift=+0.66 (g=1.35 sib=0.69) sup=0.073 dwin=+0.471 p=0.153  AZK01-011(Rooftop Hunter,ENT,c3) + AZK01-060(Scarlett,ENT,c5)
+
+== Devotion(E) n=99 win=0.485 vs sibling Stonehaven(E) n=78 — sibling-differential lift ==
+  dlift=+0.88 (g=1.31 sib=0.43) sup=0.071 dwin=+0.087 p=0.027  AZK01-002(Healing Flutter,SPE,c1) + AZK01-004(Alley Thug,ENT,c1)
+  dlift=+0.80 (g=1.32 sib=0.52) sup=0.131 dwin=+0.054 p=0.017  AZK01-011(Rooftop Hunter,ENT,c3) + AZK01-054(Teb Fea,ENT,c8)
+  dlift=+0.78 (g=1.15 sib=0.38) sup=0.202 dwin=+0.165 p=0.007  AZK01-017(Hook Sword Strike,SPE,c2) + STT01-004(Black Jade Recruit,ENT,c1)
+  dlift=+0.70 (g=1.43 sib=0.73) sup=0.162 dwin=+0.328 p=0.037  AZK01-055(Earth Orb,SPE,c2) + AZK01-082(Black Jade Brawler,ENT,c5)
+  dlift=+0.70 (g=1.77 sib=1.08) sup=0.152 dwin=-0.218 p=0.076  AZK01-014(Trade Guild Cavalr,ENT,c5) + AZK01-054(Teb Fea,ENT,c8)
+  dlift=+0.69 (g=1.43 sib=0.73) sup=0.091 dwin=+0.182 p=0.093  AZK01-004(Alley Thug,ENT,c1) + STT01-004(Black Jade Recruit,ENT,c1)
+  dlift=+0.67 (g=1.47 sib=0.80) sup=0.202 dwin=-0.035 p=0.020  AZK01-075(Drunken Brewmaster,ENT,c4) + STT02-012(Young Shao,ENT,c4)
+  dlift=+0.66 (g=1.17 sib=0.51) sup=0.192 dwin=-0.169 p=0.013  AZK01-005(Caravan Guard,ENT,c4) + AZK01-014(Trade Guild Cavalr,ENT,c5)
+
+== Rushfire(F) n=97 win=0.237 vs sibling Ragefire(F) n=109 — sibling-differential lift ==
+  dlift=+0.84 (g=1.51 sib=0.68) sup=0.144 dwin=+0.049 p=0.007  AZK01-064(Zero,ENT,c8) + AZK01-075(Drunken Brewmaster,ENT,c4)
+  dlift=+0.72 (g=1.58 sib=0.87) sup=0.124 dwin=+0.096 p=0.056  AZK01-011(Rooftop Hunter,ENT,c3) + AZK01-064(Zero,ENT,c8)
+  dlift=+0.71 (g=1.18 sib=0.47) sup=0.082 dwin=+0.263 p=0.043  AZK01-002(Healing Flutter,SPE,c1) + AZK01-060(Scarlett,ENT,c5)
+  dlift=+0.68 (g=1.24 sib=0.56) sup=0.175 dwin=-0.061 p=0.010  AZK01-012(Ed,ENT,c4) + STT01-004(Black Jade Recruit,ENT,c1)
+  dlift=+0.65 (g=1.41 sib=0.76) sup=0.093 dwin=+0.096 p=0.090  AZK01-015(Mo,ENT,c6) + AZK01-064(Zero,ENT,c8)
+  dlift=+0.64 (g=1.26 sib=0.61) sup=0.113 dwin=-0.146 p=0.056  AZK01-004(Alley Thug,ENT,c1) + AZK01-085(Invigorating Conco,SPE,c3)
+  dlift=+0.61 (g=1.38 sib=0.77) sup=0.165 dwin=+0.138 p=0.013  AZK01-060(Scarlett,ENT,c5) + STT04-003(Cinderwake Seer,ENT,c1)
+  dlift=+0.61 (g=1.24 sib=0.64) sup=0.175 dwin=-0.061 p=0.017  AZK01-012(Ed,ENT,c4) + AZK01-075(Drunken Brewmaster,ENT,c4)
+
+== Stormchain(L) n=97 win=0.608 vs sibling Surge(L) n=130 — sibling-differential lift ==
+  dlift=+1.06 (g=1.52 sib=0.46) sup=0.113 dwin=+0.028 p=0.003  AZK01-011(Rooftop Hunter,ENT,c3) + AZK01-082(Black Jade Brawler,ENT,c5)
+  dlift=+0.98 (g=1.59 sib=0.61) sup=0.134 dwin=+0.007 p=0.007  AZK01-037(Stormcaller Tenkic,ENT,c4) + AZK01-081(Gurugumi Mentor,ENT,c5)
+  dlift=+0.80 (g=1.35 sib=0.55) sup=0.227 dwin=-0.063 p=0.003  AZK01-127(Sundering Strike,SPE,c1) + STT01-010(Indra,ENT,c5)
+  dlift=+0.63 (g=1.27 sib=0.63) sup=0.165 dwin=+0.204 p=0.013  AZK01-014(Trade Guild Cavalr,ENT,c5) + STT01-010(Indra,ENT,c5)
+  dlift=+0.60 (g=1.20 sib=0.60) sup=0.206 dwin=-0.058 p=0.003  AZK01-001(Penny,ENT,c1) + STT01-004(Black Jade Recruit,ENT,c1)
+  dlift=+0.57 (g=1.23 sib=0.66) sup=0.165 dwin=-0.046 p=0.030  AZK01-100(Raizan's Riposte,SPE,c2) + STT01-010(Indra,ENT,c5)
+  dlift=+0.56 (g=1.23 sib=0.67) sup=0.072 dwin=-0.323 p=0.146  AZK01-002(Healing Flutter,SPE,c1) + AZK01-004(Alley Thug,ENT,c1)
+  dlift=+0.55 (g=1.27 sib=0.72) sup=0.113 dwin=+0.028 p=0.103  AZK01-037(Stormcaller Tenkic,ENT,c4) + AZK01-041(Wu Cha,ENT,c8)
+
+== Stonehaven(E) n=78 win=0.526 vs sibling Devotion(E) n=99 — sibling-differential lift ==
+  dlift=+0.98 (g=1.64 sib=0.66) sup=0.128 dwin=+0.174 p=0.007  AZK01-082(Black Jade Brawler,ENT,c5) + STT01-004(Black Jade Recruit,ENT,c1)
+  dlift=+0.79 (g=1.40 sib=0.61) sup=0.154 dwin=+0.058 p=0.010  AZK01-054(Teb Fea,ENT,c8) + STT03-014(Sandcoil Python,ENT,c8)
+  dlift=+0.77 (g=1.37 sib=0.59) sup=0.154 dwin=-0.026 p=0.020  AZK01-082(Black Jade Brawler,ENT,c5) + STT04-011(Scorchland Raven,ENT,c4)
+  dlift=+0.77 (g=1.33 sib=0.55) sup=0.128 dwin=-0.226 p=0.017  AZK01-020(Power of Friendshi,SPE,c3) + AZK01-107(Offering to Stills,SPE,c0)
+  dlift=+0.77 (g=1.27 sib=0.50) sup=0.128 dwin=-0.126 p=0.053  AZK01-004(Alley Thug,ENT,c1) + AZK01-080(Bladebound Ally,ENT,c5)
+  dlift=+0.72 (g=1.62 sib=0.90) sup=0.167 dwin=+0.013 p=0.010  AZK01-082(Black Jade Brawler,ENT,c5) + AZK01-104(Sanzu's Envoy,ENT,c6)
+  dlift=+0.66 (g=1.24 sib=0.58) sup=0.205 dwin=-0.088 p=0.007  AZK01-020(Power of Friendshi,SPE,c3) + STT04-011(Scorchland Raven,ENT,c4)
+  dlift=+0.66 (g=1.23 sib=0.57) sup=0.141 dwin=-0.071 p=0.020  AZK01-004(Alley Thug,ENT,c1) + AZK01-052(Yojin,ENT,c5)
+
+== EchoedWaves(W) n=71 win=0.577 vs sibling Hydromancy(W) n=145 — sibling-differential lift ==
+  dlift=+0.93 (g=1.59 sib=0.66) sup=0.197 dwin=+0.208 p=0.007  AZK01-014(Trade Guild Cavalr,ENT,c5) + AZK01-029(Aquatic Veil,SPE,c0)
+  dlift=+0.87 (g=1.37 sib=0.50) sup=0.169 dwin=+0.173 p=0.013  AZK01-029(Aquatic Veil,SPE,c0) + STT01-004(Black Jade Recruit,ENT,c1)
+  dlift=+0.80 (g=1.69 sib=0.89) sup=0.127 dwin=+0.089 p=0.010  AZK01-081(Gurugumi Mentor,ENT,c5) + AZK01-082(Black Jade Brawler,ENT,c5)
+  dlift=+0.70 (g=1.25 sib=0.55) sup=0.169 dwin=+0.006 p=0.027  AZK01-004(Alley Thug,ENT,c1) + STT02-009(Aya,ENT,c3)
+  dlift=+0.68 (g=1.58 sib=0.90) sup=0.113 dwin=+0.048 p=0.063  AZK01-011(Rooftop Hunter,ENT,c3) + STT02-010(Selis of the Shore,ENT,c3)
+  dlift=+0.66 (g=1.76 sib=1.10) sup=0.127 dwin=+0.200 p=0.113  AZK01-015(Mo,ENT,c6) + AZK01-082(Black Jade Brawler,ENT,c5)
+  dlift=+0.65 (g=1.33 sib=0.68) sup=0.127 dwin=-0.022 p=0.050  AZK01-014(Trade Guild Cavalr,ENT,c5) + STT02-010(Selis of the Shore,ENT,c3)
+  dlift=+0.65 (g=1.54 sib=0.89) sup=0.183 dwin=-0.039 p=0.007  AZK01-085(Invigorating Conco,SPE,c3) + AZK01-088(Pulled Under,SPE,c6)

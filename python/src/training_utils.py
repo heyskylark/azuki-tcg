@@ -16,6 +16,7 @@ import torch
 from pettingzoo.utils.conversions import turn_based_aec_to_parallel
 from azk_puffer import MultiagentEpisodeStats
 
+from deck_building import DeckBuildingParallelEnv
 from policy.v2.tcg_policy import TCGLSTM, build_policy_model
 from policy.v2 import tcg_sampler
 from training_deck_pool import load_training_deck_pool
@@ -198,21 +199,78 @@ def make_azuki_env(*, seed: int | None = None, buf=None, **env_kwargs):
   """Instantiate the wrapped Azuki env in the same order as training."""
   seed = seed if seed is not None else env_kwargs.pop("seed", None)
   native = bool(env_kwargs.pop("native", False))
-  env_kwargs.pop("native_envs_per_instance", None)
+  native_envs_per_instance = env_kwargs.pop("native_envs_per_instance", None)
   env_kwargs.pop("native_log_interval", None)
   direct_parallel = bool(env_kwargs.pop("direct_parallel", False))
+  deck_building_enabled = bool(env_kwargs.pop("deck_building_enabled", False))
+  draft_same_element_matchup_prob = float(
+    env_kwargs.pop("draft_same_element_matchup_prob", 0.0) or 0.0
+  )
+  deck_building_privileged_decks = bool(
+    env_kwargs.pop("deck_building_privileged_decks", False)
+  )
+  draft_uniform_assignment = bool(
+    env_kwargs.pop("draft_uniform_assignment", False)
+  )
+  evaluation_mode = bool(env_kwargs.pop("evaluation_mode", False))
+  draft_cross_gate_replay_prob = float(
+    env_kwargs.pop("draft_cross_gate_replay_prob", 0.0) or 0.0
+  )
+  fixed_seats_raw = env_kwargs.pop("deck_building_fixed_seats", None)
+  if fixed_seats_raw is None or fixed_seats_raw == "":
+    fixed_deck_seats: tuple[int, ...] = ()
+  elif isinstance(fixed_seats_raw, int):
+    fixed_deck_seats = (int(fixed_seats_raw),)
+  elif isinstance(fixed_seats_raw, (list, tuple)):
+    fixed_deck_seats = tuple(int(seat) for seat in fixed_seats_raw)
+  else:
+    fixed_deck_seats = tuple(int(part) for part in str(fixed_seats_raw).split(",") if part.strip())
   deck_pool = env_kwargs.pop("deck_pool", None)
   deck_pool_path = env_kwargs.pop("deck_pool_path", None)
-  if native:
-    raise RuntimeError(
-      "env.native is currently disabled: raw native packed observations use "
-      "interleaved struct arrays that PufferLib tensor nativization cannot "
-      "decode correctly yet."
-    )
   if deck_pool is not None and deck_pool_path is not None:
     raise ValueError("Pass either env.deck_pool or env.deck_pool_path, not both")
   if deck_pool is None:
     deck_pool = load_training_deck_pool(deck_pool_path)
+  if native:
+    if direct_parallel:
+      raise ValueError("env.native is incompatible with direct_parallel")
+    if deck_building_enabled and fixed_deck_seats:
+      raise ValueError(
+        "deck_building_fixed_seats is not supported on the native path; "
+        "use the legacy path for fixed-seat evals"
+      )
+    from azk_native import AzukiNativeEnv
+
+    return AzukiNativeEnv(
+      num_envs=int(native_envs_per_instance or 1),
+      deck_pool=deck_pool,
+      buf=buf,
+      seed=seed if seed is not None else 0,
+      deck_building=deck_building_enabled,
+      deck_snapshot_dir=env_kwargs.pop("deck_snapshot_dir", None),
+      deck_snapshot_every=env_kwargs.pop("deck_snapshot_every", None),
+      draft_same_element_matchup_prob=draft_same_element_matchup_prob,
+      draft_cross_gate_replay_prob=draft_cross_gate_replay_prob,
+      deck_building_privileged_decks=deck_building_privileged_decks,
+      draft_uniform_assignment=draft_uniform_assignment,
+      evaluation_mode=evaluation_mode,
+    )
+  if deck_building_enabled:
+    env = AzukiTCGParallel(seed=seed, deck_pool=deck_pool)
+    env = DeckBuildingParallelEnv(
+      env,
+      deck_pool=deck_pool,
+      seed=seed,
+      fixed_deck_seats=fixed_deck_seats,
+      snapshot_dir=env_kwargs.pop("deck_snapshot_dir", None),
+      snapshot_every=env_kwargs.pop("deck_snapshot_every", None),
+      same_element_matchup_prob=draft_same_element_matchup_prob,
+      privileged_decks=deck_building_privileged_decks,
+      uniform_assignment=draft_uniform_assignment,
+    )
+    env = MultiagentEpisodeStats(env)
+    env = emulation.PettingZooPufferEnv(env, buf=buf, seed=seed)
+    return env
   if direct_parallel:
     env = AzukiTCGParallel(seed=seed, deck_pool=deck_pool)
     env = MultiagentEpisodeStats(env)
@@ -235,6 +293,20 @@ def build_vecenv(trainer_args: dict, *, backend=None, num_envs: int | None = Non
   if seed is not None:
     vec_kwargs["seed"] = seed
   chosen_backend = vec_kwargs.get("backend")
+  if isinstance(chosen_backend, str) and chosen_backend.lower() == "jax":
+    from azk_puffer.jax_vector import JaxVecEnv
+
+    if bool(env_kwargs.get("deck_building_enabled", False)):
+      raise ValueError("vec.backend=Jax supports battle-only training; set env.deck_building_enabled=false")
+    if env_kwargs.get("deck_pool") is not None:
+      deck_pool = env_kwargs["deck_pool"]
+    else:
+      deck_pool = load_training_deck_pool(env_kwargs.get("deck_pool_path"))
+    return JaxVecEnv(
+      num_envs=int(vec_kwargs.get("num_envs", 1)),
+      deck_pool=deck_pool,
+      seed=int(vec_kwargs.get("seed", 0) or 0),
+    )
   if isinstance(chosen_backend, str):
     backend_attr = getattr(azk_vector, chosen_backend, None)
     if backend_attr is not None:

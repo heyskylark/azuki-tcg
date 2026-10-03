@@ -66,6 +66,9 @@ static void update_jd_buff(ecs_world_t *world, ecs_entity_t card,
 }
 
 static void azk01_010_zone_observer(ecs_iter_t *it) {
+  if (ecs_is_fini(it->world) || ecs_should_quit(it->world)) {
+    return; // World teardown: zones/singletons may already be deleted.
+  }
   Azk01010ObserverCtx *ctx = it->ctx;
   if (!ctx) {
     return;

@@ -186,7 +186,14 @@ def parse_epoch_log_line(line: str) -> dict[str, Any] | None:
   if match is None:
     return None
 
-  payload = ast.literal_eval(match.group("payload"))
+  # NumPy 2.x reprs scalar metrics as np.float64(...), which is not a Python
+  # literal. Training logs contain only scalar wrappers here, so unwrap them
+  # before using the deliberately strict literal parser.
+  raw_payload = re.sub(
+    r"np\.(?:float16|float32|float64)\(([^()]*)\)", r"\1",
+    match.group("payload"),
+  )
+  payload = ast.literal_eval(raw_payload)
   if not isinstance(payload, dict):
     return None
 
