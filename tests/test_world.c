@@ -4092,7 +4092,7 @@ test_azk01_122_gate_portal_selects_hand_entity_and_grants_charge(void) {
   assert(garden_index != NULL);
   assert(garden_index->index == 0);
   assert(ecs_has(world, affordable, Charge));
-  assert(!ecs_has(world, affordable, SacrificeAtEndOfTurn));
+  assert(ecs_has(world, affordable, SacrificeAtEndOfTurn));
 
   const TapState *tap = ecs_get(world, affordable, TapState);
   assert(tap != NULL);
@@ -4173,7 +4173,7 @@ static void test_azk01_122_gate_portal_can_play_to_alley(void) {
   assert(alley_index != NULL);
   assert(alley_index->index == 0);
   assert(ecs_has(world, affordable, Charge));
-  assert(!ecs_has(world, affordable, SacrificeAtEndOfTurn));
+  assert(ecs_has(world, affordable, SacrificeAtEndOfTurn));
 
   const TapState *tap = ecs_get(world, affordable, TapState);
   assert(tap != NULL);
@@ -4181,6 +4181,217 @@ static void test_azk01_122_gate_portal_can_play_to_alley(void) {
   assert(!tap->cooldown);
 
   ecs_fini(world);
+}
+
+typedef struct {
+  ecs_world_t *world;
+  ecs_entity_t portaled;
+  ecs_entity_t payload;
+  ecs_entity_t leaders[MAX_PLAYERS_PER_MATCH];
+  int8_t leader_hp_before[MAX_PLAYERS_PER_MATCH];
+} RushfireScenario;
+
+static void submit_test_user_action(ecs_world_t *world, UserAction action) {
+  ActionContext *ac = ecs_singleton_get_mut(world, ActionContext);
+  assert(ac != NULL);
+  ac->user_action = action;
+  ecs_singleton_modified(world, ActionContext);
+
+  run_phase_gate_system(world);
+  ecs_progress(world, 0);
+}
+
+// Portals an Alley entity with Rushfire Gate and plays Crazed Arsonist
+// (AZK01-115, [When Sacrificed] 1 damage to all leaders) into Garden slot 1.
+static RushfireScenario setup_rushfire_payload_in_garden(uint32_t seed) {
+  RushfireScenario scenario = {0};
+  ecs_world_t *world = azk_world_init_with_starting_player(seed, 0);
+  scenario.world = world;
+
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  assert(gs != NULL);
+  gs->phase = PHASE_MAIN;
+  gs->active_player_index = 0;
+  ecs_singleton_modified(world, GameState);
+
+  ecs_entity_t player0 = gs->players[0];
+  ecs_entity_t gate_card = find_gate_card_in_zone(world, gs->zones[0].gate);
+  ecs_set(world, gate_card, CardId,
+          {.id = CARD_DEF_AZK01_122, .code = "AZK01-122"});
+  ecs_set(world, gate_card, TapState, {.tapped = false, .cooldown = false});
+
+  scenario.portaled = create_basic_entity_card(
+      world, player0, gs->zones[0].alley, CARD_DEF_STT03_004,
+      CARD_ELEMENT_EARTH, "rushfire_portaled", 0);
+  ecs_set(world, scenario.portaled, GatePoints, {.gate_points = 2});
+
+  const int32_t hand_count =
+      ecs_get_ordered_children(world, gs->zones[0].hand).count;
+  scenario.payload = create_basic_entity_card(
+      world, player0, gs->zones[0].hand, CARD_DEF_AZK01_115, CARD_ELEMENT_FIRE,
+      "rushfire_payload", (uint8_t)hand_count);
+  ecs_set(world, scenario.payload, IKZCost, {.ikz_cost = 2});
+
+  for (uint8_t i = 0; i < MAX_PLAYERS_PER_MATCH; ++i) {
+    scenario.leaders[i] = find_leader_card_in_zone(world, gs->zones[i].leader);
+    const CurStats *stats = ecs_get(world, scenario.leaders[i], CurStats);
+    assert(stats != NULL);
+    scenario.leader_hp_before[i] = stats->cur_hp;
+  }
+
+  submit_test_user_action(world, (UserAction){.player = player0,
+                                              .type = ACT_GATE_PORTAL,
+                                              .subaction_1 = 0,
+                                              .subaction_2 = 0});
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_SELECTION_PICK);
+
+  const AbilityContext *ctx = ecs_singleton_get(world, AbilityContext);
+  assert(ctx != NULL);
+  int payload_selection_index = -1;
+  for (uint8_t i = 0; i < ctx->selection.count; ++i) {
+    if (ctx->selection.cards[i] == scenario.payload) {
+      payload_selection_index = i;
+    }
+  }
+  assert(payload_selection_index >= 0);
+
+  submit_test_user_action(
+      world, (UserAction){.player = player0,
+                          .type = ACT_SELECT_TO_GARDEN,
+                          .subaction_1 = payload_selection_index,
+                          .subaction_2 = 1});
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_NONE);
+
+  assert(ecs_get_target(world, scenario.portaled, EcsChildOf, 0) ==
+         gs->zones[0].garden);
+  assert(ecs_get_target(world, scenario.payload, EcsChildOf, 0) ==
+         gs->zones[0].garden);
+  assert(ecs_has(world, scenario.payload, Charge));
+  assert(ecs_has(world, scenario.payload, SacrificeAtEndOfTurn));
+  assert(!ecs_has(world, scenario.portaled, SacrificeAtEndOfTurn));
+  return scenario;
+}
+
+// Ends player 0's turn and resolves any queued end-of-turn triggers.
+static void end_rushfire_controller_turn(ecs_world_t *world) {
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  assert(gs != NULL);
+  assert(gs->active_player_index == 0);
+  gs->phase = PHASE_END_TURN;
+  ecs_singleton_modified(world, GameState);
+
+  run_phase_gate_system(world);
+  ecs_progress(world, 0);
+
+  // Mirror the engine tick: auto-process triggers queued by the end phase.
+  while (azk_has_queued_triggered_effects(world) &&
+         !azk_is_in_ability_phase(world)) {
+    azk_process_triggered_effect_queue(world);
+  }
+
+  const GameState *after = ecs_singleton_get(world, GameState);
+  assert(after != NULL);
+  assert(after->active_player_index == 1);
+  assert(azk_get_ability_phase(world) == ABILITY_PHASE_NONE);
+}
+
+static int8_t rushfire_leader_hp(const RushfireScenario *scenario,
+                                 uint8_t player_index) {
+  const CurStats *stats =
+      ecs_get(scenario->world, scenario->leaders[player_index], CurStats);
+  assert(stats != NULL);
+  return stats->cur_hp;
+}
+
+static void test_azk01_122_payload_sacrificed_at_end_of_controller_turn(void) {
+  RushfireScenario scenario = setup_rushfire_payload_in_garden(42);
+  ecs_world_t *world = scenario.world;
+  const GameState *gs = ecs_singleton_get(world, GameState);
+
+  end_rushfire_controller_turn(world);
+
+  assert(ecs_get_target(world, scenario.payload, EcsChildOf, 0) ==
+         gs->zones[0].discard);
+  assert(!ecs_has(world, scenario.payload, SacrificeAtEndOfTurn));
+  assert(!ecs_has(world, scenario.payload, Charge));
+  assert(ecs_get_target(world, scenario.portaled, EcsChildOf, 0) ==
+         gs->zones[0].garden);
+
+  // Crazed Arsonist's [When Sacrificed] trigger resolves: 1 damage to all
+  // leaders.
+  for (uint8_t i = 0; i < MAX_PLAYERS_PER_MATCH; ++i) {
+    assert(rushfire_leader_hp(&scenario, i) ==
+           scenario.leader_hp_before[i] - 1);
+  }
+
+  azk_world_fini(world);
+}
+
+static void test_azk01_122_payload_that_left_play_is_not_sacrificed(void) {
+  RushfireScenario scenario = setup_rushfire_payload_in_garden(42);
+  ecs_world_t *world = scenario.world;
+  const GameState *gs = ecs_singleton_get(world, GameState);
+
+  return_card_to_hand(world, scenario.payload);
+  assert(ecs_get_target(world, scenario.payload, EcsChildOf, 0) ==
+         gs->zones[0].hand);
+  assert(!ecs_has(world, scenario.payload, SacrificeAtEndOfTurn));
+
+  end_rushfire_controller_turn(world);
+
+  assert(ecs_get_target(world, scenario.payload, EcsChildOf, 0) ==
+         gs->zones[0].hand);
+  for (uint8_t i = 0; i < MAX_PLAYERS_PER_MATCH; ++i) {
+    assert(rushfire_leader_hp(&scenario, i) == scenario.leader_hp_before[i]);
+  }
+
+  azk_world_fini(world);
+}
+
+static void test_azk01_122_godmode_payload_survives_end_of_turn_sacrifice(void) {
+  RushfireScenario scenario = setup_rushfire_payload_in_garden(42);
+  ecs_world_t *world = scenario.world;
+  const GameState *gs = ecs_singleton_get(world, GameState);
+
+  ecs_add(world, scenario.payload, Godmode);
+  end_rushfire_controller_turn(world);
+
+  assert(ecs_get_target(world, scenario.payload, EcsChildOf, 0) ==
+         gs->zones[0].garden);
+  // The sacrifice obligation expires with the turn instead of lingering.
+  assert(!ecs_has(world, scenario.payload, SacrificeAtEndOfTurn));
+  for (uint8_t i = 0; i < MAX_PLAYERS_PER_MATCH; ++i) {
+    assert(rushfire_leader_hp(&scenario, i) == scenario.leader_hp_before[i]);
+  }
+
+  azk_world_fini(world);
+}
+
+static void test_azk01_122_end_of_turn_sacrifice_is_deterministic(void) {
+  uint32_t rng_after[2] = {0};
+  int8_t leader_hp_after[2][MAX_PLAYERS_PER_MATCH] = {{0}};
+  int32_t discard_count_after[2] = {0};
+
+  for (uint8_t run = 0; run < 2; ++run) {
+    RushfireScenario scenario = setup_rushfire_payload_in_garden(1234);
+    ecs_world_t *world = scenario.world;
+    end_rushfire_controller_turn(world);
+
+    const GameState *gs = ecs_singleton_get(world, GameState);
+    rng_after[run] = gs->rng_state;
+    discard_count_after[run] =
+        ecs_get_ordered_children(world, gs->zones[0].discard).count;
+    for (uint8_t i = 0; i < MAX_PLAYERS_PER_MATCH; ++i) {
+      leader_hp_after[run][i] = rushfire_leader_hp(&scenario, i);
+    }
+    azk_world_fini(world);
+  }
+
+  assert(rng_after[0] == rng_after[1]);
+  assert(discard_count_after[0] == discard_count_after[1]);
+  for (uint8_t i = 0; i < MAX_PLAYERS_PER_MATCH; ++i) {
+    assert(leader_hp_after[0][i] == leader_hp_after[1][i]);
+  }
 }
 
 static void test_gate_portal_effect_selection_stt03_002(void) {
@@ -8403,6 +8614,10 @@ int main(int argc, char **argv) {
   test_gate_portal_enters_selection_flow_stt01_002();
   test_azk01_122_gate_portal_selects_hand_entity_and_grants_charge();
   test_azk01_122_gate_portal_can_play_to_alley();
+  test_azk01_122_payload_sacrificed_at_end_of_controller_turn();
+  test_azk01_122_payload_that_left_play_is_not_sacrificed();
+  test_azk01_122_godmode_payload_survives_end_of_turn_sacrifice();
+  test_azk01_122_end_of_turn_sacrifice_is_deterministic();
   test_gate_portal_effect_selection_stt03_002();
   test_gate_portal_no_valid_targets_auto_resolves_stt03_002();
   test_azk01_064_gate_portal_triggers_when_enters_garden();
