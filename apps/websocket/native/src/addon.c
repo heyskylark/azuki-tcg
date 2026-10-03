@@ -18,6 +18,7 @@
 #include "utils/game_log_util.h"
 #include "utils/debug_log.h"
 #include "abilities/ability_registry.h"
+#include "utils/ability_util.h"
 
 // Maximum number of concurrent game worlds
 #define MAX_WORLDS 256
@@ -160,7 +161,13 @@ static void append_ability_context_metadata(napi_env env,
     return;
   }
 
-  const AbilityDef *def = azk_get_ability_def(card_id->id);
+  // Prefer the ability actually running (modal modes, copied card text) over
+  // the card's primary registry entry so target types match the live context.
+  const AbilityDef *def =
+      azk_get_ability_def_for_entity(engine, ctx->runtime.source_ability);
+  if (!def) {
+    def = azk_get_ability_def(card_id->id);
+  }
   if (!def) {
     return;
   }

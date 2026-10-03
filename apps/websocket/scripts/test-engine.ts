@@ -53,6 +53,11 @@ const CardDefId = {
   AZK01_001: 36,
   AZK01_002: 37,
   AZK01_003: 38,
+  AZK01_013: 194, // Gou the Iron Judge
+  AZK01_076: 195, // Hōren of Two Paths
+  AZK01_079: 196, // Gin and Tonika
+  AZK01_083: 197, // Gurugumi Imitator
+  AZK01_099: 198, // Raiko's Wrath, Shin
 } as const;
 
 // DeckCardEntry format matching the native binding
@@ -102,6 +107,26 @@ const shaoDeck: DeckCardEntry[] = [
   { cardId: CardDefId.STT02_015, count: 4 },
   { cardId: CardDefId.STT02_016, count: 2 },
   { cardId: CardDefId.STT02_017, count: 2 },
+  { cardId: CardDefId.IKZ_001, count: 10 }, // IKZ pile
+];
+
+// Raizen shell running every card from the specialist-earth batch
+const newCardsDeck: DeckCardEntry[] = [
+  { cardId: CardDefId.STT01_001, count: 1 }, // Leader
+  { cardId: CardDefId.STT01_002, count: 1 }, // Gate
+  { cardId: CardDefId.AZK01_013, count: 4 },
+  { cardId: CardDefId.AZK01_076, count: 4 },
+  { cardId: CardDefId.AZK01_079, count: 4 },
+  { cardId: CardDefId.AZK01_083, count: 4 },
+  { cardId: CardDefId.AZK01_099, count: 4 },
+  { cardId: CardDefId.STT01_003, count: 4 },
+  { cardId: CardDefId.STT01_004, count: 4 },
+  { cardId: CardDefId.STT01_005, count: 4 },
+  { cardId: CardDefId.STT01_006, count: 2 },
+  { cardId: CardDefId.STT01_007, count: 4 },
+  { cardId: CardDefId.STT01_008, count: 4 },
+  { cardId: CardDefId.STT01_009, count: 4 },
+  { cardId: CardDefId.STT01_012, count: 4 },
   { cardId: CardDefId.IKZ_001, count: 10 }, // IKZ pile
 ];
 
@@ -204,8 +229,21 @@ function main() {
     console.log(`  Player ${startingPlayer} starts as required.`);
   }
 
-  // Test 3: Create world with minimal/invalid deck (to test error handling)
-  console.log("\n\nTest 3: Creating world with empty decks (should fail)...");
+  // Test 3: Decks containing the specialist-earth card batch load in the engine.
+  console.log("\n\nTest 3: Creating world with the new card batch...");
+  const newCardsResult = binding.createWorldWithDecks(12345, newCardsDeck, shaoDeck);
+  if (!newCardsResult.success) {
+    throw new Error(
+      `New card deck world creation failed: ${newCardsResult.error ?? "unknown error"}`
+    );
+  }
+  binding.destroyWorld(newCardsResult.worldId);
+  console.log(
+    `  World created with ${calculateDeckStats(newCardsDeck).total} cards incl. AZK01-013/076/079/083/099.`
+  );
+
+  // Test 4: Create world with minimal/invalid deck (to test error handling)
+  console.log("\n\nTest 4: Creating world with empty decks (should fail)...");
   try {
     const result = binding.createWorldWithDecks(12345, [], []);
     console.log("  Result:", JSON.stringify(result, null, 2));

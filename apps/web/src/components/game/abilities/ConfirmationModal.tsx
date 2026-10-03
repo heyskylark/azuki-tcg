@@ -9,19 +9,25 @@ import {
   buildConfirmAbilityAction,
   buildNoopAction,
 } from "@/lib/game/actionValidation";
+import { getBinaryModalPrompt } from "@/lib/game/binaryModalPrompts";
 
 /**
  * Modal dialog for confirming or declining an ability.
  * Shown during the CONFIRMATION ability phase.
+ * Binary modal abilities (two printed modes) show both modes instead: the first
+ * printed mode confirms, the second printed mode is sent as NOOP.
  */
 export function ConfirmationModal() {
-  const { gameState } = useGameState();
+  const { gameState, cardDefIdMap } = useGameState();
   const { send } = useRoom();
 
   const actionMask = gameState?.actionMask ?? null;
   const pendingConfirmationCount = gameState?.pendingConfirmationCount ?? null;
   const canConfirm = hasConfirmAbilityAction(actionMask);
   const canDecline = hasNoopAction(actionMask);
+  const sourceDefId = gameState?.abilitySourceCardDefId;
+  const sourceCard = sourceDefId === undefined ? undefined : cardDefIdMap.get(sourceDefId);
+  const modalPrompt = getBinaryModalPrompt(sourceCard?.cardCode);
   const progressTotalRef = useRef<number | null>(null);
   const [queueProgress, setQueueProgress] = useState<{
     current: number;
@@ -79,35 +85,67 @@ export function ConfirmationModal() {
       {/* Modal */}
       <div className="relative bg-slate-800 border border-slate-600 rounded-lg shadow-xl p-6 max-w-sm w-full mx-4">
         <div className="mb-2 flex items-start justify-between gap-3">
-          <h2 className="text-xl font-bold text-white">Activate Ability?</h2>
+          <h2 className="text-xl font-bold text-white">
+            {modalPrompt && sourceCard ? sourceCard.name : "Activate Ability?"}
+          </h2>
           {queueProgress && (
             <span className="rounded-md bg-slate-700 px-2 py-1 text-xs font-semibold text-slate-200">
               {queueProgress.current}/{queueProgress.total} actions
             </span>
           )}
         </div>
-        <p className="text-slate-300 mb-6">
-          This card has an ability that can be activated. Do you want to use it?
-        </p>
+        {modalPrompt ? (
+          <>
+            <p className="text-slate-300 mb-4">
+              {modalPrompt.chooser === "OPPONENT"
+                ? "Your opponent played this card. You choose 1:"
+                : "Choose one:"}
+            </p>
+            <div className="flex flex-col gap-3">
+              {canConfirm && (
+                <button
+                  onClick={handleConfirm}
+                  className="px-4 py-2 text-left bg-green-600 hover:bg-green-500 text-white rounded-md transition-colors"
+                >
+                  {modalPrompt.confirmMode}
+                </button>
+              )}
+              {canDecline && (
+                <button
+                  onClick={handleDecline}
+                  className="px-4 py-2 text-left bg-sky-700 hover:bg-sky-600 text-white rounded-md transition-colors"
+                >
+                  {modalPrompt.declineMode}
+                </button>
+              )}
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="text-slate-300 mb-6">
+              This card has an ability that can be activated. Do you want to use it?
+            </p>
 
-        <div className="flex gap-3 justify-end">
-          {canDecline && (
-            <button
-              onClick={handleDecline}
-              className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-md transition-colors"
-            >
-              Decline
-            </button>
-          )}
-          {canConfirm && (
-            <button
-              onClick={handleConfirm}
-              className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-md transition-colors"
-            >
-              Activate
-            </button>
-          )}
-        </div>
+            <div className="flex gap-3 justify-end">
+              {canDecline && (
+                <button
+                  onClick={handleDecline}
+                  className="px-4 py-2 bg-slate-600 hover:bg-slate-500 text-white rounded-md transition-colors"
+                >
+                  Decline
+                </button>
+              )}
+              {canConfirm && (
+                <button
+                  onClick={handleConfirm}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-500 text-white rounded-md transition-colors"
+                >
+                  Activate
+                </button>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
