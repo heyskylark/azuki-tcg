@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import contextlib
 import hashlib
 import hmac
 import json
@@ -342,10 +343,17 @@ class InferenceEngine:
         max_queue_size: int,
         queue_wait_timeout_ms: int,
     ) -> None:
-        # Draft serving is always greedy; battle serving defaults to sampling.
+        # Battle and draft serving both default to sampling. Draft sampling is
+        # reproducible: every pick is drawn under an RNG seeded from draftSeed.
         self._battle_action_mode = os.getenv("AZK_INFER_BATTLE_ACTION_MODE", "sample")
         if self._battle_action_mode not in ("sample", "argmax"):
             raise ValueError("AZK_INFER_BATTLE_ACTION_MODE must be sample or argmax")
+        self._draft_action_mode = os.getenv("AZK_INFER_DRAFT_ACTION_MODE", "sample")
+        if self._draft_action_mode not in ("sample", "argmax"):
+            raise ValueError("AZK_INFER_DRAFT_ACTION_MODE must be sample or argmax")
+        # Serializes stochastic sampling so a seeded draft pick cannot share the
+        # global torch RNG with a concurrent battle sample.
+        self._rng_lock = threading.RLock()
         self.config_path = config_path
         self.requested_device = requested_device
         self.session_ttl_seconds = session_ttl_seconds
@@ -456,7 +464,8 @@ class InferenceEngine:
             if deterministic:
                 sampled_actions = self._tcg_argmax_logits(logits)
             else:
-                sampled_actions, _, _ = self._puffer_sample_logits(logits)
+                with self._rng_lock:
+                    sampled_actions, _, _ = self._puffer_sample_logits(logits)
         action_values = (
             sampled_actions.detach().cpu().numpy().astype(np.int32, copy=True).reshape(-1)
         )
@@ -473,6 +482,20 @@ class InferenceEngine:
                 deck_context=session.deck_context if session is not None else None,
             )
         return [int(value) for value in action_values.tolist()]
+
+    @contextlib.contextmanager
+    def _seeded_rng(self, seed: int):
+        """Run sampling under a torch RNG seeded with `seed`, restoring global RNG state after."""
+        device = torch.device(self._device)
+        if device.type == "cuda":
+            devices, device_type = [device.index if device.index is not None else torch.cuda.current_device()], "cuda"
+        elif device.type == "mps":
+            devices, device_type = [0], "mps"
+        else:
+            devices, device_type = [], "cuda"
+        with self._rng_lock, torch.random.fork_rng(devices=devices, device_type=device_type):
+            torch.manual_seed(seed)
+            yield
 
     def infer(
         self,
@@ -769,12 +792,25 @@ class InferenceEngine:
                         )
                     candidate_codes.append(record.card_code)
 
-                action = self._model_action(
-                    model=model,
-                    session_key=session_key,
-                    observation_bytes=observation_bytes,
-                    deterministic=True,
-                )
+                draft_deterministic = self._draft_action_mode == "argmax"
+                with contextlib.ExitStack() as pick_rng:
+                    if not draft_deterministic:
+                        # Per-pick seed from (draftSeed, gate, leader, pick): reproducible,
+                        # independent across picks and across forced draft contexts.
+                        pick_seed = int.from_bytes(
+                            hashlib.sha256(
+                                f"{request['draftSeed']}:{gate_record.card_def_id}:"
+                                f"{leader_record.card_def_id}:{len(picks)}:{int(leader_pick_seen)}".encode()
+                            ).digest()[:8],
+                            "big",
+                        ) >> 1
+                        pick_rng.enter_context(self._seeded_rng(pick_seed))
+                    action = self._model_action(
+                        model=model,
+                        session_key=session_key,
+                        observation_bytes=observation_bytes,
+                        deterministic=draft_deterministic,
+                    )
                 if (
                     action[0] != 3
                     or action[2] != 0

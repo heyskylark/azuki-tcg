@@ -20,8 +20,10 @@ the order is shuffled from the stored seed.
   `AZK01-123`). **Only Stonehaven `STT03-002` is enabled.** The sidecar's draft catalog only
   includes gates that appear in its deck pool, and the curated pool's Earth decks all use
   Stonehaven. The sidecar rejects Gate of Devotion `AZK01-124` with "not a production draft gate",
-  and the model never drafted with it in training. Drafts are greedy (argmax), and each pick sees
-  the whole Earth+Normal pool, so each gate/leader pair always yields the same deck.
+  and the model never drafted with it in training. Drafts are **sampled** from the model's pick
+  distribution: every pick uses an RNG seeded from (`draft_seed`, gate, leader, pick), so a match's
+  deck is reproducible from its stored `draft_seed` while different matches get different decks.
+  Set `AZK_INFER_DRAFT_ACTION_MODE=argmax` to restore greedy drafting (one fixed deck per gate/leader).
 
 Every match row stores `deck_source`, `premade_deck_slug`, `gate_card_code`, `leader_card_code`,
 `draft_seed`, `battle_seed`, `ai_slot` and `starting_player`. All of them can be recomputed from
@@ -64,6 +66,7 @@ review shows "Premade deck" or "Drafted deck".
    AZK_INFER_CONFIG=python/config/azuki_human_eval_earth_specialist.ini \
      bun run dev:ai:eval
    # optional: AZK_INFER_BATTLE_ACTION_MODE=argmax (default: sample)
+   # optional: AZK_INFER_DRAFT_ACTION_MODE=argmax (default: sample, seeded by draft_seed)
    curl -s localhost:8002/health        # "status": "ok"
    ```
 7. **Start the websocket server.** It rebuilds the native addon with the new cards:
