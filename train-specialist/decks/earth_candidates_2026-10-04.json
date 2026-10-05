@@ -1,0 +1,1042 @@
+{
+ "generated": "2026-10-04",
+ "purpose": "Earth deck research for specialist pool expansion; NOT yet in curated_decks.json",
+ "sim_method": "Each deck plays a 9-deck panel (curated orion, dylhu/jackie, jerry, banchan, aez v1, aez v2, cat, case1 Bobu, dkb Goro) in both seats over 10 seeds (180 games); candidate seat = named policy, opponent seat = u8223; deterministic legal argmax; engine with Rushfire fix (skylark/specialist-earth c384d6a). Delta vs cat is paired on identical seeds/opponents with a block bootstrap. Policy-relative only.",
+ "gate_swap_controls_pp": {
+  "Case 3rd list Devotion minus Stonehaven": {
+   "specialist": -17.8,
+   "u8223": -0.6
+  },
+  "cat list": {
+   "specialist": -22.8,
+   "u8223": -7.8
+  },
+  "yq Earth list": {
+   "specialist": -4.4,
+   "u8223": 0.6
+  },
+  "GA #242 list": {
+   "specialist": -10.6,
+   "u8223": -2.8
+  }
+ },
+ "gate_swap_note": "The Earth specialist never trained on Gate of Devotion, so it loses value on identical lists; u8223 plays both gates about equally. Sim cannot validate Devotion decks; it only screens out clearly weak lists.",
+ "baselines": {
+  "pasadena_cat": {
+   "earth_specialist_u019500": {
+    "score_vs_panel": 0.756,
+    "score_vs_non_earth": 0.717,
+    "delta_vs_cat_pp": 0.0,
+    "delta_ci95_pp": [
+     0.0,
+     0.0
+    ],
+    "games": 180
+   },
+   "u8223": {
+    "score_vs_panel": 0.533,
+    "score_vs_non_earth": 0.492,
+    "delta_vs_cat_pp": 0.0,
+    "delta_ci95_pp": [
+     0.0,
+     0.0
+    ],
+    "games": 180
+   }
+  },
+  "case1_bobu_3rd": {
+   "earth_specialist_u019500": {
+    "score_vs_panel": 0.744,
+    "score_vs_non_earth": 0.767,
+    "delta_vs_cat_pp": -1.1,
+    "delta_ci95_pp": [
+     -8.9,
+     6.1
+    ],
+    "games": 180
+   },
+   "u8223": {
+    "score_vs_panel": 0.544,
+    "score_vs_non_earth": 0.55,
+    "delta_vs_cat_pp": 1.1,
+    "delta_ci95_pp": [
+     -7.2,
+     9.4
+    ],
+    "games": 180
+   }
+  },
+  "pasadena_dkb_goro_36th": {
+   "earth_specialist_u019500": {
+    "score_vs_panel": 0.672,
+    "score_vs_non_earth": 0.733,
+    "delta_vs_cat_pp": -8.3,
+    "delta_ci95_pp": [
+     -17.2,
+     0.6
+    ],
+    "games": 180
+   },
+   "u8223": {
+    "score_vs_panel": 0.522,
+    "score_vs_non_earth": 0.608,
+    "delta_vs_cat_pp": -1.1,
+    "delta_ci95_pp": [
+     -10.6,
+     8.3
+    ],
+    "games": 180
+   }
+  }
+ },
+ "candidates": [
+  {
+   "id": "pasadena_yqqq_goro_regional",
+   "source": "https://thegateikz.com/articles/postregional-goro-deck-notes (decklist image 1786899532496-rbep1.jpg)",
+   "evidence": "yqbird (YQ) \"Regional deck\" image; exactly matches Garden Arena submission #60 (registered at Pasadena 2026-08-15). Pasadena placement not published; author says a loss to Fire \"probably cost my tournament run\". YQ also won RWT Collective 2026-07-26 with Goro (list unknown).",
+   "verdict": "recommend (tier B candidate): differs from dkb by Shiko x4 + Mo x2 over Mocking Dummy/Alley Thug; strongest Goro list in sim",
+   "leader_card_id": "AZK01-123",
+   "gate_card_id": "STT03-002",
+   "cards": [
+    {
+     "card_id": "AZK01-123",
+     "quantity": 1,
+     "name": "Goro Graveloth"
+    },
+    {
+     "card_id": "STT03-002",
+     "quantity": 1,
+     "name": "Stonehaven Gate"
+    },
+    {
+     "card_id": "AZK01-002",
+     "quantity": 4,
+     "name": "Healing Flutter"
+    },
+    {
+     "card_id": "AZK01-012",
+     "quantity": 4,
+     "name": "Ed"
+    },
+    {
+     "card_id": "AZK01-015",
+     "quantity": 2,
+     "name": "Mo"
+    },
+    {
+     "card_id": "AZK01-019",
+     "quantity": 4,
+     "name": "Jay"
+    },
+    {
+     "card_id": "AZK01-047",
+     "quantity": 4,
+     "name": "Shiko the Priestess"
+    },
+    {
+     "card_id": "AZK01-050",
+     "quantity": 3,
+     "name": "Shroom Tender"
+    },
+    {
+     "card_id": "AZK01-069",
+     "quantity": 4,
+     "name": "Link"
+    },
+    {
+     "card_id": "AZK01-079",
+     "quantity": 2,
+     "name": "Gin and Tonika"
+    },
+    {
+     "card_id": "AZK01-105",
+     "quantity": 4,
+     "name": "Prickly Tumbleweed"
+    },
+    {
+     "card_id": "AZK01-107",
+     "quantity": 3,
+     "name": "Offering to Stillstone"
+    },
+    {
+     "card_id": "AZK01-127",
+     "quantity": 4,
+     "name": "Sundering Strike"
+    },
+    {
+     "card_id": "STT01-014",
+     "quantity": 4,
+     "name": "Tenshin"
+    },
+    {
+     "card_id": "STT02-004",
+     "quantity": 4,
+     "name": "Rei"
+    },
+    {
+     "card_id": "STT03-016",
+     "quantity": 4,
+     "name": "Quicksand"
+    },
+    {
+     "card_id": "IKZ-001",
+     "quantity": 10,
+     "name": "IKZ"
+    }
+   ],
+   "sim": {
+    "earth_specialist_u019500": {
+     "score_vs_panel": 0.706,
+     "score_vs_non_earth": 0.775,
+     "delta_vs_cat_pp": -5.0,
+     "delta_ci95_pp": [
+      -13.9,
+      3.9
+     ],
+     "games": 180
+    },
+    "u8223": {
+     "score_vs_panel": 0.578,
+     "score_vs_non_earth": 0.625,
+     "delta_vs_cat_pp": 4.4,
+     "delta_ci95_pp": [
+      -3.9,
+      12.8
+     ],
+     "games": 180
+    }
+   }
+  },
+  {
+   "id": "online_yqbird_goro_devotion",
+   "source": "https://thegateikz.com/decks/yq-earth-030326-mmcmq87j",
+   "evidence": "Only Gate of Devotion list with a recorded placement: yqbird 2nd (3-1) at Azuki Online Pre-Season (Full Set 1), 2026-03-03, 9 players (The Gate tournament_placements). Same shell posted 2026-06-30 by bui (\"EARTH 20260630\").",
+   "verdict": "recommend as the Goro/Devotion context deck (weak evidence; pre-AZK01 full release era)",
+   "leader_card_id": "AZK01-123",
+   "gate_card_id": "AZK01-124",
+   "cards": [
+    {
+     "card_id": "AZK01-123",
+     "quantity": 1,
+     "name": "Goro Graveloth"
+    },
+    {
+     "card_id": "AZK01-124",
+     "quantity": 1,
+     "name": "Gate of Devotion"
+    },
+    {
+     "card_id": "AZK01-045",
+     "quantity": 4,
+     "name": "Treetop Scout"
+    },
+    {
+     "card_id": "AZK01-047",
+     "quantity": 4,
+     "name": "Shiko the Priestess"
+    },
+    {
+     "card_id": "AZK01-054",
+     "quantity": 2,
+     "name": "Teb Fea"
+    },
+    {
+     "card_id": "AZK01-070",
+     "quantity": 4,
+     "name": "Mocking Dummy"
+    },
+    {
+     "card_id": "AZK01-105",
+     "quantity": 4,
+     "name": "Prickly Tumbleweed"
+    },
+    {
+     "card_id": "AZK01-127",
+     "quantity": 4,
+     "name": "Sundering Strike"
+    },
+    {
+     "card_id": "AZK01-128",
+     "quantity": 3,
+     "name": "Wrong Step"
+    },
+    {
+     "card_id": "STT02-004",
+     "quantity": 4,
+     "name": "Rei"
+    },
+    {
+     "card_id": "STT03-004",
+     "quantity": 3,
+     "name": "Sloth Scarecrow"
+    },
+    {
+     "card_id": "STT03-006",
+     "quantity": 4,
+     "name": "Cactus Farmer"
+    },
+    {
+     "card_id": "STT03-009",
+     "quantity": 4,
+     "name": "Warding Totem"
+    },
+    {
+     "card_id": "STT03-011",
+     "quantity": 2,
+     "name": "Koyama Farm Plowman"
+    },
+    {
+     "card_id": "STT03-013",
+     "quantity": 4,
+     "name": "Stone Masked Ancient"
+    },
+    {
+     "card_id": "STT03-016",
+     "quantity": 4,
+     "name": "Quicksand"
+    },
+    {
+     "card_id": "IKZ-001",
+     "quantity": 10,
+     "name": "IKZ"
+    }
+   ],
+   "sim": {
+    "earth_specialist_u019500": {
+     "score_vs_panel": 0.633,
+     "score_vs_non_earth": 0.683,
+     "delta_vs_cat_pp": -12.2,
+     "delta_ci95_pp": [
+      -21.7,
+      -3.9
+     ],
+     "games": 180
+    },
+    "u8223": {
+     "score_vs_panel": 0.494,
+     "score_vs_non_earth": 0.558,
+     "delta_vs_cat_pp": -3.9,
+     "delta_ci95_pp": [
+      -12.8,
+      5.0
+     ],
+     "games": 180
+    }
+   }
+  },
+  {
+   "id": "pasadena_sub242_goro_devotion",
+   "source": ".codex/docs/azuki_garden_arena_2026-08-15_deck_submissions.json #242",
+   "evidence": "Anonymous Pasadena registration, Goro/Devotion + Beanz (Link/Frida/Rei/Tenshin/Flutter). Same archetype Doc_Camel used to go 4-0 (1st) at Azuki Sunday Online Fun 2026-08-23 and shozen-adjacent Devotion results, but no placement can be tied to this list.",
+   "verdict": "optional second Goro/Devotion deck",
+   "leader_card_id": "AZK01-123",
+   "gate_card_id": "AZK01-124",
+   "cards": [
+    {
+     "card_id": "AZK01-123",
+     "quantity": 1,
+     "name": "Goro Graveloth"
+    },
+    {
+     "card_id": "AZK01-124",
+     "quantity": 1,
+     "name": "Gate of Devotion"
+    },
+    {
+     "card_id": "AZK01-002",
+     "quantity": 4,
+     "name": "Healing Flutter"
+    },
+    {
+     "card_id": "AZK01-045",
+     "quantity": 4,
+     "name": "Treetop Scout"
+    },
+    {
+     "card_id": "AZK01-050",
+     "quantity": 3,
+     "name": "Shroom Tender"
+    },
+    {
+     "card_id": "AZK01-054",
+     "quantity": 3,
+     "name": "Teb Fea"
+    },
+    {
+     "card_id": "AZK01-067",
+     "quantity": 4,
+     "name": "Frida"
+    },
+    {
+     "card_id": "AZK01-069",
+     "quantity": 4,
+     "name": "Link"
+    },
+    {
+     "card_id": "AZK01-070",
+     "quantity": 3,
+     "name": "Mocking Dummy"
+    },
+    {
+     "card_id": "AZK01-105",
+     "quantity": 3,
+     "name": "Prickly Tumbleweed"
+    },
+    {
+     "card_id": "AZK01-127",
+     "quantity": 3,
+     "name": "Sundering Strike"
+    },
+    {
+     "card_id": "AZK01-128",
+     "quantity": 3,
+     "name": "Wrong Step"
+    },
+    {
+     "card_id": "STT01-014",
+     "quantity": 3,
+     "name": "Tenshin"
+    },
+    {
+     "card_id": "STT02-004",
+     "quantity": 4,
+     "name": "Rei"
+    },
+    {
+     "card_id": "STT03-009",
+     "quantity": 4,
+     "name": "Warding Totem"
+    },
+    {
+     "card_id": "STT03-013",
+     "quantity": 2,
+     "name": "Stone Masked Ancient"
+    },
+    {
+     "card_id": "STT03-016",
+     "quantity": 3,
+     "name": "Quicksand"
+    },
+    {
+     "card_id": "IKZ-001",
+     "quantity": 10,
+     "name": "IKZ"
+    }
+   ],
+   "sim": {
+    "earth_specialist_u019500": {
+     "score_vs_panel": 0.522,
+     "score_vs_non_earth": 0.567,
+     "delta_vs_cat_pp": -23.3,
+     "delta_ci95_pp": [
+      -32.2,
+      -15.0
+     ],
+     "games": 180
+    },
+    "u8223": {
+     "score_vs_panel": 0.478,
+     "score_vs_non_earth": 0.542,
+     "delta_vs_cat_pp": -5.6,
+     "delta_ci95_pp": [
+      -14.4,
+      3.3
+     ],
+     "games": 180
+    }
+   }
+  },
+  {
+   "id": "pasadena_sub270_bobu_sakegod",
+   "source": "https://thegateikz.com/decks/my-deck-msdye6ph",
+   "evidence": "\"SakeGod\" by Alch; exactly matches Pasadena submission #270; no placement.",
+   "verdict": "optional Bobu/Stonehaven variant (sim on par with cat/Case 3rd)",
+   "leader_card_id": "STT03-001",
+   "gate_card_id": "STT03-002",
+   "cards": [
+    {
+     "card_id": "STT03-001",
+     "quantity": 1,
+     "name": "Bobu"
+    },
+    {
+     "card_id": "STT03-002",
+     "quantity": 1,
+     "name": "Stonehaven Gate"
+    },
+    {
+     "card_id": "AZK01-002",
+     "quantity": 2,
+     "name": "Healing Flutter"
+    },
+    {
+     "card_id": "AZK01-045",
+     "quantity": 4,
+     "name": "Treetop Scout"
+    },
+    {
+     "card_id": "AZK01-047",
+     "quantity": 3,
+     "name": "Shiko the Priestess"
+    },
+    {
+     "card_id": "AZK01-048",
+     "quantity": 4,
+     "name": "Kale"
+    },
+    {
+     "card_id": "AZK01-050",
+     "quantity": 3,
+     "name": "Shroom Tender"
+    },
+    {
+     "card_id": "AZK01-054",
+     "quantity": 3,
+     "name": "Teb Fea"
+    },
+    {
+     "card_id": "AZK01-070",
+     "quantity": 3,
+     "name": "Mocking Dummy"
+    },
+    {
+     "card_id": "AZK01-108",
+     "quantity": 1,
+     "name": "Crushing Weight"
+    },
+    {
+     "card_id": "AZK01-127",
+     "quantity": 3,
+     "name": "Sundering Strike"
+    },
+    {
+     "card_id": "AZK01-128",
+     "quantity": 3,
+     "name": "Wrong Step"
+    },
+    {
+     "card_id": "STT03-003",
+     "quantity": 3,
+     "name": "Koyama Farm Potter"
+    },
+    {
+     "card_id": "STT03-004",
+     "quantity": 2,
+     "name": "Sloth Scarecrow"
+    },
+    {
+     "card_id": "STT03-009",
+     "quantity": 3,
+     "name": "Warding Totem"
+    },
+    {
+     "card_id": "STT03-012",
+     "quantity": 2,
+     "name": "Miharu of the White Bloom"
+    },
+    {
+     "card_id": "STT03-013",
+     "quantity": 3,
+     "name": "Stone Masked Ancient"
+    },
+    {
+     "card_id": "STT03-014",
+     "quantity": 2,
+     "name": "Sandcoil Python"
+    },
+    {
+     "card_id": "STT03-015",
+     "quantity": 3,
+     "name": "Jar of Beans"
+    },
+    {
+     "card_id": "STT03-016",
+     "quantity": 3,
+     "name": "Quicksand"
+    },
+    {
+     "card_id": "IKZ-001",
+     "quantity": 10,
+     "name": "IKZ"
+    }
+   ],
+   "sim": {
+    "earth_specialist_u019500": {
+     "score_vs_panel": 0.744,
+     "score_vs_non_earth": 0.775,
+     "delta_vs_cat_pp": -1.1,
+     "delta_ci95_pp": [
+      -8.3,
+      6.1
+     ],
+     "games": 180
+    },
+    "u8223": {
+     "score_vs_panel": 0.572,
+     "score_vs_non_earth": 0.617,
+     "delta_vs_cat_pp": 3.9,
+     "delta_ci95_pp": [
+      -4.4,
+      11.7
+     ],
+     "games": 180
+    }
+   }
+  },
+  {
+   "id": "pasadena_sub262_bobu_jcm",
+   "source": "https://thegateikz.com/decks/my-deck-mpx10tna",
+   "evidence": "By The Gate user jcm; exactly matches Pasadena submission #262; no placement.",
+   "verdict": "optional Bobu/Stonehaven variant",
+   "leader_card_id": "STT03-001",
+   "gate_card_id": "STT03-002",
+   "cards": [
+    {
+     "card_id": "STT03-001",
+     "quantity": 1,
+     "name": "Bobu"
+    },
+    {
+     "card_id": "STT03-002",
+     "quantity": 1,
+     "name": "Stonehaven Gate"
+    },
+    {
+     "card_id": "AZK01-047",
+     "quantity": 4,
+     "name": "Shiko the Priestess"
+    },
+    {
+     "card_id": "AZK01-048",
+     "quantity": 4,
+     "name": "Kale"
+    },
+    {
+     "card_id": "AZK01-050",
+     "quantity": 4,
+     "name": "Shroom Tender"
+    },
+    {
+     "card_id": "AZK01-054",
+     "quantity": 3,
+     "name": "Teb Fea"
+    },
+    {
+     "card_id": "AZK01-070",
+     "quantity": 3,
+     "name": "Mocking Dummy"
+    },
+    {
+     "card_id": "AZK01-127",
+     "quantity": 3,
+     "name": "Sundering Strike"
+    },
+    {
+     "card_id": "AZK01-128",
+     "quantity": 3,
+     "name": "Wrong Step"
+    },
+    {
+     "card_id": "STT02-004",
+     "quantity": 4,
+     "name": "Rei"
+    },
+    {
+     "card_id": "STT03-005",
+     "quantity": 4,
+     "name": "Wobbly Cabbage Cart"
+    },
+    {
+     "card_id": "STT03-009",
+     "quantity": 4,
+     "name": "Warding Totem"
+    },
+    {
+     "card_id": "STT03-012",
+     "quantity": 4,
+     "name": "Miharu of the White Bloom"
+    },
+    {
+     "card_id": "STT03-013",
+     "quantity": 3,
+     "name": "Stone Masked Ancient"
+    },
+    {
+     "card_id": "STT03-014",
+     "quantity": 2,
+     "name": "Sandcoil Python"
+    },
+    {
+     "card_id": "STT03-015",
+     "quantity": 3,
+     "name": "Jar of Beans"
+    },
+    {
+     "card_id": "STT03-016",
+     "quantity": 2,
+     "name": "Quicksand"
+    },
+    {
+     "card_id": "IKZ-001",
+     "quantity": 10,
+     "name": "IKZ"
+    }
+   ],
+   "sim": {
+    "earth_specialist_u019500": {
+     "score_vs_panel": 0.711,
+     "score_vs_non_earth": 0.725,
+     "delta_vs_cat_pp": -4.4,
+     "delta_ci95_pp": [
+      -13.3,
+      3.9
+     ],
+     "games": 180
+    },
+    "u8223": {
+     "score_vs_panel": 0.522,
+     "score_vs_non_earth": 0.567,
+     "delta_vs_cat_pp": -1.1,
+     "delta_ci95_pp": [
+      -9.4,
+      7.2
+     ],
+     "games": 180
+    }
+   }
+  },
+  {
+   "id": "gate_bobu_tha_god",
+   "source": "https://thegateikz.com/decks/bobu-tha-god-murdh5dy",
+   "evidence": "Posted 2026-10-02 by Proof; no event evidence.",
+   "verdict": "not recommended without a result (sim on par)",
+   "leader_card_id": "STT03-001",
+   "gate_card_id": "STT03-002",
+   "cards": [
+    {
+     "card_id": "STT03-001",
+     "quantity": 1,
+     "name": "Bobu"
+    },
+    {
+     "card_id": "STT03-002",
+     "quantity": 1,
+     "name": "Stonehaven Gate"
+    },
+    {
+     "card_id": "AZK01-045",
+     "quantity": 4,
+     "name": "Treetop Scout"
+    },
+    {
+     "card_id": "AZK01-047",
+     "quantity": 4,
+     "name": "Shiko the Priestess"
+    },
+    {
+     "card_id": "AZK01-048",
+     "quantity": 4,
+     "name": "Kale"
+    },
+    {
+     "card_id": "AZK01-054",
+     "quantity": 2,
+     "name": "Teb Fea"
+    },
+    {
+     "card_id": "AZK01-101",
+     "quantity": 2,
+     "name": "Sand Stands Still"
+    },
+    {
+     "card_id": "AZK01-107",
+     "quantity": 2,
+     "name": "Offering to Stillstone"
+    },
+    {
+     "card_id": "AZK01-108",
+     "quantity": 2,
+     "name": "Crushing Weight"
+    },
+    {
+     "card_id": "AZK01-127",
+     "quantity": 4,
+     "name": "Sundering Strike"
+    },
+    {
+     "card_id": "AZK01-128",
+     "quantity": 4,
+     "name": "Wrong Step"
+    },
+    {
+     "card_id": "STT03-003",
+     "quantity": 4,
+     "name": "Koyama Farm Potter"
+    },
+    {
+     "card_id": "STT03-009",
+     "quantity": 4,
+     "name": "Warding Totem"
+    },
+    {
+     "card_id": "STT03-013",
+     "quantity": 4,
+     "name": "Stone Masked Ancient"
+    },
+    {
+     "card_id": "STT03-014",
+     "quantity": 2,
+     "name": "Sandcoil Python"
+    },
+    {
+     "card_id": "STT03-015",
+     "quantity": 3,
+     "name": "Jar of Beans"
+    },
+    {
+     "card_id": "STT03-016",
+     "quantity": 3,
+     "name": "Quicksand"
+    },
+    {
+     "card_id": "STT03-017",
+     "quantity": 2,
+     "name": "Sprout of Fortune"
+    },
+    {
+     "card_id": "IKZ-001",
+     "quantity": 10,
+     "name": "IKZ"
+    }
+   ],
+   "sim": {
+    "earth_specialist_u019500": {
+     "score_vs_panel": 0.75,
+     "score_vs_non_earth": 0.75,
+     "delta_vs_cat_pp": -0.6,
+     "delta_ci95_pp": [
+      -8.9,
+      8.3
+     ],
+     "games": 180
+    },
+    "u8223": {
+     "score_vs_panel": 0.55,
+     "score_vs_non_earth": 0.55,
+     "delta_vs_cat_pp": 1.7,
+     "delta_ci95_pp": [
+      -6.7,
+      10.0
+     ],
+     "games": 180
+    }
+   }
+  }
+ ],
+ "rejected_in_sim": {
+  "earth-20260630-mr0et87e": {
+   "earth_specialist_u019500": {
+    "score_vs_panel": 0.578,
+    "score_vs_non_earth": 0.608,
+    "delta_vs_cat_pp": -17.8,
+    "delta_ci95_pp": [
+     -26.7,
+     -9.4
+    ],
+    "games": 180
+   },
+   "u8223": {
+    "score_vs_panel": 0.461,
+    "score_vs_non_earth": 0.558,
+    "delta_vs_cat_pp": -7.2,
+    "delta_ci95_pp": [
+     -17.2,
+     2.2
+    ],
+    "games": 180
+   }
+  },
+  "the-magic-fruit-mtmlt28b": {
+   "earth_specialist_u019500": {
+    "score_vs_panel": 0.483,
+    "score_vs_non_earth": 0.492,
+    "delta_vs_cat_pp": -27.2,
+    "delta_ci95_pp": [
+     -36.1,
+     -18.3
+    ],
+    "games": 180
+   },
+   "u8223": {
+    "score_vs_panel": 0.461,
+    "score_vs_non_earth": 0.508,
+    "delta_vs_cat_pp": -7.2,
+    "delta_ci95_pp": [
+     -17.2,
+     2.2
+    ],
+    "games": 180
+   }
+  },
+  "goro-slow-burn-mr8l80lo": {
+   "earth_specialist_u019500": {
+    "score_vs_panel": 0.439,
+    "score_vs_non_earth": 0.483,
+    "delta_vs_cat_pp": -31.7,
+    "delta_ci95_pp": [
+     -42.2,
+     -21.7
+    ],
+    "games": 180
+   },
+   "u8223": {
+    "score_vs_panel": 0.372,
+    "score_vs_non_earth": 0.383,
+    "delta_vs_cat_pp": -16.1,
+    "delta_ci95_pp": [
+     -25.0,
+     -7.2
+    ],
+    "games": 180
+   }
+  },
+  "goro-mribq5pm": {
+   "earth_specialist_u019500": {
+    "score_vs_panel": 0.411,
+    "score_vs_non_earth": 0.408,
+    "delta_vs_cat_pp": -34.4,
+    "delta_ci95_pp": [
+     -43.9,
+     -25.6
+    ],
+    "games": 180
+   },
+   "u8223": {
+    "score_vs_panel": 0.333,
+    "score_vs_non_earth": 0.317,
+    "delta_vs_cat_pp": -20.0,
+    "delta_ci95_pp": [
+     -27.8,
+     -12.2
+    ],
+    "games": 180
+   }
+  },
+  "my-deck-mu4ojoe4": {
+   "earth_specialist_u019500": {
+    "score_vs_panel": 0.156,
+    "score_vs_non_earth": 0.133,
+    "delta_vs_cat_pp": -60.0,
+    "delta_ci95_pp": [
+     -67.8,
+     -51.7
+    ],
+    "games": 180
+   },
+   "u8223": {
+    "score_vs_panel": 0.172,
+    "score_vs_non_earth": 0.167,
+    "delta_vs_cat_pp": -36.1,
+    "delta_ci95_pp": [
+     -43.3,
+     -28.9
+    ],
+    "games": 180
+   }
+  },
+  "tank-papabear-mskbent7": {
+   "earth_specialist_u019500": {
+    "score_vs_panel": 0.294,
+    "score_vs_non_earth": 0.25,
+    "delta_vs_cat_pp": -46.1,
+    "delta_ci95_pp": [
+     -53.9,
+     -38.3
+    ],
+    "games": 180
+   },
+   "u8223": {
+    "score_vs_panel": 0.189,
+    "score_vs_non_earth": 0.142,
+    "delta_vs_cat_pp": -34.4,
+    "delta_ci95_pp": [
+     -42.8,
+     -27.2
+    ],
+    "games": 180
+   }
+  },
+  "bobu-control-heal-mthntyac": {
+   "earth_specialist_u019500": {
+    "score_vs_panel": 0.117,
+    "score_vs_non_earth": 0.133,
+    "delta_vs_cat_pp": -63.9,
+    "delta_ci95_pp": [
+     -71.1,
+     -56.1
+    ],
+    "games": 180
+   },
+   "u8223": {
+    "score_vs_panel": 0.117,
+    "score_vs_non_earth": 0.133,
+    "delta_vs_cat_pp": -41.7,
+    "delta_ci95_pp": [
+     -50.0,
+     -33.9
+    ],
+    "games": 180
+   }
+  },
+  "goros-magic-beans-mu9bomyd": {
+   "earth_specialist_u019500": {
+    "score_vs_panel": 0.622,
+    "score_vs_non_earth": 0.683,
+    "delta_vs_cat_pp": -13.3,
+    "delta_ci95_pp": [
+     -22.2,
+     -4.4
+    ],
+    "games": 180
+   },
+   "u8223": {
+    "score_vs_panel": 0.556,
+    "score_vs_non_earth": 0.608,
+    "delta_vs_cat_pp": 2.2,
+    "delta_ci95_pp": [
+     -7.2,
+     11.7
+    ],
+    "games": 180
+   }
+  },
+  "miharu-control-ms8dehlq": {
+   "earth_specialist_u019500": {
+    "score_vs_panel": 0.689,
+    "score_vs_non_earth": 0.717,
+    "delta_vs_cat_pp": -6.7,
+    "delta_ci95_pp": [
+     -15.0,
+     1.1
+    ],
+    "games": 180
+   },
+   "u8223": {
+    "score_vs_panel": 0.522,
+    "score_vs_non_earth": 0.517,
+    "delta_vs_cat_pp": -1.1,
+    "delta_ci95_pp": [
+     -8.9,
+     7.2
+    ],
+    "games": 180
+   }
+  }
+ },
+ "devotion_results_without_lists": [
+  "shozen Goro/Devotion 3rd (4-2), Kaleido Three Case, Jersey City 2026-08-30, <=32 players: https://x.com/dgtlemissions/status/2094228703744274479",
+  "Doc_Camel Goro/Devotion+Beanz 1st 4-0, Azuki Sunday Online Fun 2026-08-23: https://x.com/Doc_Camel/status/2091778500961452393",
+  "Doc_Camel Goro/Devotion 3rd, Genki Sunday online 2026-08-02 (17): https://x.com/Orpheus1562/status/2084102373765738725",
+  "jathinganesh Bobu/Devotion 3rd, NYC (10 players): https://thegateikz.com/articles/azuki-tcg-tournament-recap-nyc"
+ ]
+}
