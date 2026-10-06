@@ -2384,6 +2384,364 @@
           "name": "IKZ"
         }
       ]
+    },
+    {
+      "id": "pasadena_yqqq_goro_regional",
+      "deck_name": "Goro Stonehaven Beanz/Shiko - yqqq (Garden Arena regional list)",
+      "element": "EARTH",
+      "leader_card_id": "AZK01-123",
+      "leader_name": "Goro Graveloth",
+      "gate_card_id": "STT03-002",
+      "gate_name": "Stonehaven Gate",
+      "archetype": "Goro Stonehaven Jay/Link Beanz defenders with Shiko x4, Healing Flutter/Shroom Tender healing, Tumbleweed/Tenshin reach",
+      "tier": "B",
+      "heldout_eval_only": false,
+      "event": "Azuki TCG Garden Arena Regional (CoreTCG), Pasadena CA - 315 players",
+      "date": "2026-08-15",
+      "rushfire_ban_status": "pre-ban (Rushfire Gate legal at event; ban effective 2026-08-18)",
+      "placements": [
+        {
+          "player": "yqbird (yqqq / YQ)",
+          "placement": null,
+          "record": "Pasadena participant; final placement not published (author: a loss to Fire \"probably cost my tournament run\")"
+        }
+      ],
+      "evidence": "Decklist image \"Regional deck - By @yqqq\" in yqbird's The Gate article \"Post Regional Goro Deck Notes\" (2026-08-17); the transcribed list exactly equals Garden Arena submission #60 (L1 distance 0). Included on user judgement of the player (YQ also won RWT Collective 2026-07-26 with Goro and co-developed the dkb Goro list); no published placement for this list.",
+      "source_urls": [
+        "https://thegateikz.com/articles/postregional-goro-deck-notes",
+        "https://pwywekvounseunypnskt.supabase.co/storage/v1/object/public/article-images/article-images/1786899532496-rbep1.jpg",
+        "https://x.com/Yq1119apzzQun/status/2081607421945074050"
+      ],
+      "garden_arena_submission_numbers": [
+        60
+      ],
+      "pending_engine_cards": [
+        "AZK01-079"
+      ],
+      "cards": [
+        {
+          "card_id": "AZK01-123",
+          "quantity": 1,
+          "name": "Goro Graveloth"
+        },
+        {
+          "card_id": "STT03-002",
+          "quantity": 1,
+          "name": "Stonehaven Gate"
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4,
+          "name": "Healing Flutter"
+        },
+        {
+          "card_id": "AZK01-012",
+          "quantity": 4,
+          "name": "Ed"
+        },
+        {
+          "card_id": "AZK01-015",
+          "quantity": 2,
+          "name": "Mo"
+        },
+        {
+          "card_id": "AZK01-019",
+          "quantity": 4,
+          "name": "Jay"
+        },
+        {
+          "card_id": "AZK01-047",
+          "quantity": 4,
+          "name": "Shiko the Priestess"
+        },
+        {
+          "card_id": "AZK01-050",
+          "quantity": 3,
+          "name": "Shroom Tender"
+        },
+        {
+          "card_id": "AZK01-069",
+          "quantity": 4,
+          "name": "Link"
+        },
+        {
+          "card_id": "AZK01-079",
+          "quantity": 2,
+          "name": "Gin and Tonika"
+        },
+        {
+          "card_id": "AZK01-105",
+          "quantity": 4,
+          "name": "Prickly Tumbleweed"
+        },
+        {
+          "card_id": "AZK01-107",
+          "quantity": 3,
+          "name": "Offering to Stillstone"
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 4,
+          "name": "Sundering Strike"
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4,
+          "name": "Tenshin"
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4,
+          "name": "Rei"
+        },
+        {
+          "card_id": "STT03-016",
+          "quantity": 4,
+          "name": "Quicksand"
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10,
+          "name": "IKZ"
+        }
+      ]
+    },
+    {
+      "id": "online_yqbird_goro_devotion",
+      "deck_name": "Goro Gate of Devotion control - yqbird (Online Pre-Season 2nd)",
+      "element": "EARTH",
+      "leader_card_id": "AZK01-123",
+      "leader_name": "Goro Graveloth",
+      "gate_card_id": "AZK01-124",
+      "gate_name": "Gate of Devotion",
+      "archetype": "Goro Devotion removal-control: Rei/Mocking Dummy/Shiko/Cactus Farmer sacrifice fodder, Warding Totem/Sloth Scarecrow/Stone Masked Ancient defence, Quicksand/Wrong Step/Tumbleweed removal, Teb Fea finish",
+      "tier": "B",
+      "heldout_eval_only": false,
+      "event": "Azuki Online Pre-Season (Full Set 1), organizer Genki - 9 players",
+      "date": "2026-03-03",
+      "rushfire_ban_status": "pre-Rushfire (Mar)",
+      "placements": [
+        {
+          "player": "yqbird",
+          "placement": 2,
+          "record": "3-1"
+        }
+      ],
+      "evidence": "The Gate tournament_placements: yqbird 2nd (3-1) with the official-account deck \"yq Earth 03/03/26\". Small field; included on user judgement of the player and because it is the only Gate of Devotion list with any recorded placement. Same shell re-posted 2026-06-30 by bui (\"EARTH 20260630\").",
+      "source_urls": [
+        "https://thegateikz.com/decks/yq-earth-030326-mmcmq87j",
+        "https://thegateikz.com/decks/earth-20260630-mr0et87e"
+      ],
+      "garden_arena_submission_numbers": [],
+      "pending_engine_cards": [],
+      "cards": [
+        {
+          "card_id": "AZK01-123",
+          "quantity": 1,
+          "name": "Goro Graveloth"
+        },
+        {
+          "card_id": "AZK01-124",
+          "quantity": 1,
+          "name": "Gate of Devotion"
+        },
+        {
+          "card_id": "AZK01-045",
+          "quantity": 4,
+          "name": "Treetop Scout"
+        },
+        {
+          "card_id": "AZK01-047",
+          "quantity": 4,
+          "name": "Shiko the Priestess"
+        },
+        {
+          "card_id": "AZK01-054",
+          "quantity": 2,
+          "name": "Teb Fea"
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4,
+          "name": "Mocking Dummy"
+        },
+        {
+          "card_id": "AZK01-105",
+          "quantity": 4,
+          "name": "Prickly Tumbleweed"
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 4,
+          "name": "Sundering Strike"
+        },
+        {
+          "card_id": "AZK01-128",
+          "quantity": 3,
+          "name": "Wrong Step"
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4,
+          "name": "Rei"
+        },
+        {
+          "card_id": "STT03-004",
+          "quantity": 3,
+          "name": "Sloth Scarecrow"
+        },
+        {
+          "card_id": "STT03-006",
+          "quantity": 4,
+          "name": "Cactus Farmer"
+        },
+        {
+          "card_id": "STT03-009",
+          "quantity": 4,
+          "name": "Warding Totem"
+        },
+        {
+          "card_id": "STT03-011",
+          "quantity": 2,
+          "name": "Koyama Farm Plowman"
+        },
+        {
+          "card_id": "STT03-013",
+          "quantity": 4,
+          "name": "Stone Masked Ancient"
+        },
+        {
+          "card_id": "STT03-016",
+          "quantity": 4,
+          "name": "Quicksand"
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10,
+          "name": "IKZ"
+        }
+      ]
+    },
+    {
+      "id": "constructed_bobu_devotion_case1",
+      "deck_name": "Bobu Gate of Devotion - constructed stand-in (Case 3rd list on Devotion)",
+      "element": "EARTH",
+      "leader_card_id": "STT03-001",
+      "leader_name": "Bobu",
+      "gate_card_id": "AZK01-124",
+      "gate_name": "Gate of Devotion",
+      "archetype": "CONSTRUCTED: case1_bobu_3rd main 50 unchanged with Gate of Devotion instead of Stonehaven (Shiko/Kale fodder, Bobu sacrifice heal)",
+      "tier": "B",
+      "heldout_eval_only": false,
+      "event": "none - constructed stand-in; main deck from CoreTCG Case Tournament 2026-06-30 3rd place",
+      "date": "2026-10-05",
+      "rushfire_ban_status": "n/a (constructed)",
+      "placements": [
+        {
+          "player": "(main deck) unattributed The Gate user",
+          "placement": 3,
+          "record": "CoreTCG Case 2026-06-30 with Stonehaven Gate; never played on Devotion"
+        }
+      ],
+      "evidence": "No published Bobu/Devotion list exists (NYC 3rd jathinganesh unpublished). Both public Gate lists scored 12-29% in panel sims; a sacrifice-tuned rebuild scored below this gate swap. User approved using the Case 3rd list on Devotion until a real list appears. Sim (u8223 policy, 9-deck panel, 180 games): 53.9% vs 54.4% on Stonehaven.",
+      "source_urls": [
+        "https://x.com/AzukiTCG/status/2072107915411132798",
+        "https://thegateikz.com/decks/3rd-place-coretcg-mr2krmjk"
+      ],
+      "garden_arena_submission_numbers": [],
+      "pending_engine_cards": [],
+      "cards": [
+        {
+          "card_id": "STT03-001",
+          "quantity": 1,
+          "name": "Bobu"
+        },
+        {
+          "card_id": "AZK01-124",
+          "quantity": 1,
+          "name": "Gate of Devotion"
+        },
+        {
+          "card_id": "AZK01-015",
+          "quantity": 3,
+          "name": "Mo"
+        },
+        {
+          "card_id": "AZK01-045",
+          "quantity": 4,
+          "name": "Treetop Scout"
+        },
+        {
+          "card_id": "AZK01-047",
+          "quantity": 4,
+          "name": "Shiko the Priestess"
+        },
+        {
+          "card_id": "AZK01-048",
+          "quantity": 4,
+          "name": "Kale"
+        },
+        {
+          "card_id": "AZK01-050",
+          "quantity": 4,
+          "name": "Shroom Tender"
+        },
+        {
+          "card_id": "AZK01-054",
+          "quantity": 3,
+          "name": "Teb Fea"
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 2,
+          "name": "Mocking Dummy"
+        },
+        {
+          "card_id": "AZK01-107",
+          "quantity": 4,
+          "name": "Offering to Stillstone"
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 3,
+          "name": "Sundering Strike"
+        },
+        {
+          "card_id": "AZK01-128",
+          "quantity": 4,
+          "name": "Wrong Step"
+        },
+        {
+          "card_id": "STT03-009",
+          "quantity": 4,
+          "name": "Warding Totem"
+        },
+        {
+          "card_id": "STT03-013",
+          "quantity": 3,
+          "name": "Stone Masked Ancient"
+        },
+        {
+          "card_id": "STT03-014",
+          "quantity": 2,
+          "name": "Sandcoil Python"
+        },
+        {
+          "card_id": "STT03-015",
+          "quantity": 3,
+          "name": "Jar of Beans"
+        },
+        {
+          "card_id": "STT03-016",
+          "quantity": 3,
+          "name": "Quicksand"
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10,
+          "name": "IKZ"
+        }
+      ]
     }
   ]
 }

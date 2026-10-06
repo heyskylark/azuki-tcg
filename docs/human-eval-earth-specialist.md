@@ -17,10 +17,9 @@ the order is shuffled from the stored seed.
   trained with. There is no draft.
 - **DRAFT**: the model drafts 50 cards itself. The gate is picked uniformly from the plan's draft
   gates, then the leader uniformly from the leaders valid for that gate (Bobu `STT03-001` or Goro
-  `AZK01-123`). **Only Stonehaven `STT03-002` is enabled.** The sidecar's draft catalog only
-  includes gates that appear in its deck pool, and the curated pool's Earth decks all use
-  Stonehaven. The sidecar rejects Gate of Devotion `AZK01-124` with "not a production draft gate",
-  and the model never drafted with it in training. Drafts are **sampled** from the model's pick
+  `AZK01-123`). **Only Stonehaven `STT03-002` is enabled.** The curated pool now also contains Gate
+  of Devotion `AZK01-124` decks (added 2026-10-05 for training), so the sidecar would accept it, but
+  u019500 never trained on Devotion and the roster plan keeps draft gates to Stonehaven. Drafts are **sampled** from the model's pick
   distribution: every pick uses an RNG seeded from (`draft_seed`, gate, leader, pick), so a match's
   deck is reproducible from its stored `draft_seed` while different matches get different decks.
   Set `AZK_INFER_DRAFT_ACTION_MODE=argmax` to restore greedy drafting (one fixed deck per gate/leader).

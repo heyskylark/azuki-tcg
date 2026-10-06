@@ -5,8 +5,8 @@
     "inputs": [
       {
         "path": "train-specialist/decks/curated_decks.json",
-        "sha256": "137d8f7c8d8a97cdc1c37c169b5ccded94a92976c1668e463ffb21cf2ac07082",
-        "deck_count": 19,
+        "sha256": "fd1828d6a5b078c0880406c289af08e7ca6a2aea20655112a5e53ca7b8b21065",
+        "deck_count": 22,
         "role": "curated_tournament_decks"
       },
       {
@@ -47,9 +47,12 @@
       15,
       16,
       17,
-      18
+      18,
+      19,
+      20,
+      21
     ],
-    "prebuilt_training_deck_count": 15,
+    "prebuilt_training_deck_count": 18,
     "prebuilt_deck_groups": [
       {
         "gate_card_id": "AZK01-120",
@@ -73,13 +76,31 @@
         ]
       },
       {
+        "gate_card_id": "AZK01-124",
+        "leader_card_id": "AZK01-123",
+        "element": "EARTH",
+        "deck_count": 1,
+        "deck_indices": [
+          9
+        ]
+      },
+      {
+        "gate_card_id": "AZK01-124",
+        "leader_card_id": "STT03-001",
+        "element": "EARTH",
+        "deck_count": 1,
+        "deck_indices": [
+          10
+        ]
+      },
+      {
         "gate_card_id": "STT01-002",
         "leader_card_id": "STT01-001",
         "element": "LIGHTNING",
         "deck_count": 2,
         "deck_indices": [
-          9,
-          10
+          11,
+          12
         ]
       },
       {
@@ -88,17 +109,18 @@
         "element": "WATER",
         "deck_count": 2,
         "deck_indices": [
-          11,
-          12
+          13,
+          14
         ]
       },
       {
         "gate_card_id": "STT03-002",
         "leader_card_id": "AZK01-123",
         "element": "EARTH",
-        "deck_count": 1,
+        "deck_count": 2,
         "deck_indices": [
-          13
+          15,
+          16
         ]
       },
       {
@@ -107,8 +129,8 @@
         "element": "EARTH",
         "deck_count": 2,
         "deck_indices": [
-          14,
-          15
+          17,
+          18
         ]
       },
       {
@@ -117,9 +139,9 @@
         "element": "FIRE",
         "deck_count": 3,
         "deck_indices": [
-          16,
-          17,
-          18
+          19,
+          20,
+          21
         ]
       }
     ],
@@ -131,9 +153,9 @@
           6,
           7,
           8,
-          16,
-          17,
-          18
+          19,
+          20,
+          21
         ],
         "heldout_deck_indices": [
           0,
@@ -163,8 +185,8 @@
       {
         "element": "WATER",
         "training_deck_indices": [
-          11,
-          12
+          13,
+          14
         ],
         "heldout_deck_indices": [],
         "contexts": [
@@ -182,16 +204,29 @@
       {
         "element": "EARTH",
         "training_deck_indices": [
-          13,
-          14,
-          15
+          9,
+          10,
+          15,
+          16,
+          17,
+          18
         ],
         "heldout_deck_indices": [],
         "contexts": [
           {
-            "gate_card_id": "STT03-002",
+            "gate_card_id": "AZK01-124",
             "leader_card_id": "AZK01-123",
             "deck_count": 1
+          },
+          {
+            "gate_card_id": "AZK01-124",
+            "leader_card_id": "STT03-001",
+            "deck_count": 1
+          },
+          {
+            "gate_card_id": "STT03-002",
+            "leader_card_id": "AZK01-123",
+            "deck_count": 2
           },
           {
             "gate_card_id": "STT03-002",
@@ -200,7 +235,7 @@
           }
         ],
         "training_tier_counts": {
-          "B": 2,
+          "B": 5,
           "A": 1
         },
         "heldout_tier_counts": {}
@@ -209,8 +244,8 @@
         "element": "LIGHTNING",
         "training_deck_indices": [
           4,
-          9,
-          10
+          11,
+          12
         ],
         "heldout_deck_indices": [
           3
@@ -1035,6 +1070,182 @@
       ]
     },
     {
+      "deck_name": "Goro Gate of Devotion control - yqbird (Online Pre-Season 2nd)",
+      "deck_slug": "online_yqbird_goro_devotion",
+      "element": "EARTH",
+      "leader_card_id": "AZK01-123",
+      "gate_card_id": "AZK01-124",
+      "tier": "B",
+      "sampling_weight": 1,
+      "heldout_eval_only": false,
+      "event": "Azuki Online Pre-Season (Full Set 1), organizer Genki - 9 players",
+      "date": "2026-03-03",
+      "source_urls": [
+        "https://thegateikz.com/decks/yq-earth-030326-mmcmq87j",
+        "https://thegateikz.com/decks/earth-20260630-mr0et87e"
+      ],
+      "cards": [
+        {
+          "card_id": "AZK01-123",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-124",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-045",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-047",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-054",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-105",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-128",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-004",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT03-006",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-011",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT03-013",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-016",
+          "quantity": 4
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "Bobu Gate of Devotion - constructed stand-in (Case 3rd list on Devotion)",
+      "deck_slug": "constructed_bobu_devotion_case1",
+      "element": "EARTH",
+      "leader_card_id": "STT03-001",
+      "gate_card_id": "AZK01-124",
+      "tier": "B",
+      "sampling_weight": 1,
+      "heldout_eval_only": false,
+      "event": "none - constructed stand-in; main deck from CoreTCG Case Tournament 2026-06-30 3rd place",
+      "date": "2026-10-05",
+      "source_urls": [
+        "https://x.com/AzukiTCG/status/2072107915411132798",
+        "https://thegateikz.com/decks/3rd-place-coretcg-mr2krmjk"
+      ],
+      "cards": [
+        {
+          "card_id": "STT03-001",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-124",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-015",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-045",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-047",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-048",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-050",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-054",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-070",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-107",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-128",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-009",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-013",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT03-014",
+          "quantity": 2
+        },
+        {
+          "card_id": "STT03-015",
+          "quantity": 3
+        },
+        {
+          "card_id": "STT03-016",
+          "quantity": 3
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
       "deck_name": "Raizan Surge weapons - BaconMan (Garden Arena Top 8, 8-0 swiss)",
       "deck_slug": "pasadena_baconman",
       "element": "LIGHTNING",
@@ -1483,6 +1694,93 @@
         {
           "card_id": "STT03-016",
           "quantity": 3
+        },
+        {
+          "card_id": "IKZ-001",
+          "quantity": 10
+        }
+      ]
+    },
+    {
+      "deck_name": "Goro Stonehaven Beanz/Shiko - yqqq (Garden Arena regional list)",
+      "deck_slug": "pasadena_yqqq_goro_regional",
+      "element": "EARTH",
+      "leader_card_id": "AZK01-123",
+      "gate_card_id": "STT03-002",
+      "tier": "B",
+      "sampling_weight": 1,
+      "heldout_eval_only": false,
+      "event": "Azuki TCG Garden Arena Regional (CoreTCG), Pasadena CA - 315 players",
+      "date": "2026-08-15",
+      "source_urls": [
+        "https://thegateikz.com/articles/postregional-goro-deck-notes",
+        "https://pwywekvounseunypnskt.supabase.co/storage/v1/object/public/article-images/article-images/1786899532496-rbep1.jpg",
+        "https://x.com/Yq1119apzzQun/status/2081607421945074050"
+      ],
+      "cards": [
+        {
+          "card_id": "AZK01-123",
+          "quantity": 1
+        },
+        {
+          "card_id": "STT03-002",
+          "quantity": 1
+        },
+        {
+          "card_id": "AZK01-002",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-012",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-015",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-019",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-047",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-050",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-069",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-079",
+          "quantity": 2
+        },
+        {
+          "card_id": "AZK01-105",
+          "quantity": 4
+        },
+        {
+          "card_id": "AZK01-107",
+          "quantity": 3
+        },
+        {
+          "card_id": "AZK01-127",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT01-014",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT02-004",
+          "quantity": 4
+        },
+        {
+          "card_id": "STT03-016",
+          "quantity": 4
         },
         {
           "card_id": "IKZ-001",
