@@ -171,6 +171,7 @@ class LSTMWrapper(nn.Module):
         else:
             raise ValueError('Invalid input tensor shape', x.shape)
 
+        lstm_reset = state.get('lstm_reset')
         if lstm_h is not None:
             assert lstm_h.shape[1] == lstm_c.shape[1] == B, 'LSTM state must be (h, c)'
             lstm_state = (lstm_h, lstm_c)
@@ -182,19 +183,37 @@ class LSTMWrapper(nn.Module):
         assert hidden.shape == (B*TT, self.input_size)
 
         hidden = hidden.reshape(B, TT, self.input_size)
-
         hidden = hidden.transpose(0, 1)
-        #hidden = self.pre_layernorm(hidden)
-        hidden, (lstm_h, lstm_c) = self.lstm.forward(hidden, lstm_state)
+        if lstm_reset is None:
+            hidden, (lstm_h, lstm_c) = self.lstm.forward(hidden, lstm_state)
+        else:
+            if lstm_reset.shape != (B, TT):
+                raise ValueError(
+                    f'LSTM reset mask must have shape {(B, TT)}, got {tuple(lstm_reset.shape)}'
+                )
+            if lstm_state is None:
+                h = torch.zeros(B, self.hidden_size, device=hidden.device, dtype=hidden.dtype)
+                c = torch.zeros_like(h)
+            else:
+                h = lstm_h.squeeze(0)
+                c = lstm_c.squeeze(0)
+            outputs = []
+            for step in range(TT):
+                if step > 0:
+                    keep = (~lstm_reset[:, step - 1].bool()).to(hidden.dtype).unsqueeze(-1)
+                    h = h * keep
+                    c = c * keep
+                h, c = self.cell(hidden[step], (h, c))
+                outputs.append(h)
+            hidden = torch.stack(outputs, dim=0)
+            lstm_h = h.unsqueeze(0)
+            lstm_c = c.unsqueeze(0)
         hidden = hidden.float()
- 
-        #hidden = self.post_layernorm(hidden)
         hidden = hidden.transpose(0, 1)
 
         flat_hidden = hidden.reshape(B*TT, self.hidden_size)
         logits, values = self.policy.decode_actions(flat_hidden)
         values = values.reshape(B, TT)
-        #state.batch_logits = logits.reshape(B, TT, -1)
         state['hidden'] = hidden
         state['lstm_h'] = lstm_h.detach()
         state['lstm_c'] = lstm_c.detach()

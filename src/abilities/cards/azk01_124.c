@@ -113,6 +113,7 @@ void azk01_124_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
     return;
   }
 
-  deal_effect_damage(world, ctx->effect.entities[0],
-                     ctx->scratch.data.sacrifice_value.damage);
+  deal_effect_damage_from_source(world, ctx->runtime.source_card,
+                                 ctx->effect.entities[0],
+                                 ctx->scratch.data.sacrifice_value.damage);
 }

@@ -2190,7 +2190,7 @@ INSERT INTO "cards" (
   'Sundering Strike',
   'UC',
   NULL,
-  'LIGHTNING',
+  'NORMAL',
   'SPELL',
   NULL,
   NULL,

@@ -125,6 +125,10 @@ bool stt01_002_validate_selection_target(ecs_world_t *world, ecs_entity_t card,
 }
 
 void stt01_002_on_selection_complete(ecs_world_t *world, AbilityContext *ctx) {
+  if (ctx->selection.picked_count > 0 &&
+      ctx->selection.picked_cards[0] != 0) {
+    azk_record_gate_ability_outcome(world, ctx->runtime.owner);
+  }
   azk_return_remaining_selection_cards_to_discard(world, ctx);
   cli_render_logf("[STT01-002] Ability complete");
 }

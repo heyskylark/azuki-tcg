@@ -86,6 +86,8 @@ target_link_libraries(world_tests PRIVATE ${CURSES_LIBRARIES})
 add_test(NAME world_tests COMMAND world_tests)
 add_test(NAME stt04_017_regression
   COMMAND world_tests --run-stt04-017-regression)
+add_test(NAME stt03_017_regression
+  COMMAND world_tests --run-stt03-017-regression)
 
 if(BUILD_PYTHON_BINDINGS)
   add_subdirectory(python/src)

@@ -18,17 +18,17 @@ import { transitionToAborted } from "@/handlers/stateTransitionHandler";
 import logger from "@/logger";
 import type { ConnectionInfo } from "@/state/types";
 import type { ActionTuple } from "@/engine/types";
+import {
+  captureEvaluationDecisionContext,
+  persistEvaluationDecision,
+} from "@/engine/evaluationTelemetryService";
 
 export interface GameActionMessage {
   type: "GAME_ACTION";
   action: [number, number, number, number];
 }
 
-function sendError(
-  ws: WebSocket<UserData>,
-  code: string,
-  message: string
-): void {
+function sendError(ws: WebSocket<UserData>, code: string, message: string): void {
   ws.send(
     JSON.stringify({
       type: "ERROR",
@@ -68,7 +68,8 @@ function parseActionTuple(action: unknown): ActionTuple | null {
 export async function handleGameAction(
   ws: WebSocket<UserData>,
   message: GameActionMessage,
-  connectionInfo: ConnectionInfo
+  connectionInfo: ConnectionInfo,
+  receivedAt: Date
 ): Promise<void> {
   const { roomId, userId, playerSlot } = connectionInfo;
 
@@ -100,6 +101,7 @@ export async function handleGameAction(
     playerSlot,
     action,
   });
+  const decisionContext = captureEvaluationDecisionContext(roomId, playerSlot, receivedAt);
   const result = submitPlayerAction(roomId, userId, action);
 
   logger.info("Action result", {
@@ -107,16 +109,35 @@ export async function handleGameAction(
     playerSlot,
     action,
     isActionResult: isActionResult(result),
-    result: isActionResult(result) ? {
-      success: result.success,
-      gameOver: result.gameOver,
-      phase: result.stateContext?.phase,
-      activePlayer: result.stateContext?.activePlayer,
-    } : result,
+    result: isActionResult(result)
+      ? {
+          success: result.success,
+          gameOver: result.gameOver,
+          phase: result.stateContext?.phase,
+          activePlayer: result.stateContext?.activePlayer,
+        }
+      : result,
   });
 
   // Handle error responses
   if (!isActionResult(result)) {
+    try {
+      await persistEvaluationDecision({
+        roomId,
+        actorSlot: playerSlot,
+        actorSource: "HUMAN",
+        action,
+        accepted: false,
+        error: result.error,
+        context: decisionContext,
+        resolvedAt: new Date(),
+      });
+    } catch (error) {
+      logger.error("Failed to persist rejected evaluation action", { roomId, error });
+      await transitionToAborted(roomId, "Evaluation battle could not continue");
+      return;
+    }
+
     switch (result.code) {
       case "NOT_FOUND":
         sendError(ws, "NO_WORLD", result.error);
@@ -133,6 +154,23 @@ export async function handleGameAction(
     }
   }
 
+  try {
+    await persistEvaluationDecision({
+      roomId,
+      actorSlot: playerSlot,
+      actorSource: "HUMAN",
+      action,
+      accepted: true,
+      error: null,
+      context: decisionContext,
+      resolvedAt: new Date(),
+    });
+  } catch (error) {
+    logger.error("Failed to persist accepted evaluation action", { roomId, error });
+    await transitionToAborted(roomId, "Evaluation battle could not continue");
+    return;
+  }
+
   // Action was accepted
   logger.info("Action submitted successfully", {
     roomId,
@@ -143,7 +181,13 @@ export async function handleGameAction(
     abilityPhase: result.stateContext.abilityPhase,
     logsCount: result.logs.length,
   });
-  await resolveAcceptedActionResult(roomId, result);
+  try {
+    await resolveAcceptedActionResult(roomId, result);
+  } catch (error) {
+    logger.error("Failed to persist evaluation action resolution", { roomId, error });
+    await transitionToAborted(roomId, "Evaluation battle could not continue");
+    return;
+  }
   if (result.gameOver) {
     return;
   }
@@ -156,6 +200,11 @@ export async function handleGameAction(
       roomId,
       error: message,
     });
-    await transitionToAborted(roomId, `AI inference failed: ${message}`);
+    await transitionToAborted(
+      roomId,
+      channel.evaluation
+        ? "Evaluation opponent failed during battle"
+        : `AI inference failed: ${message}`
+    );
   }
 }

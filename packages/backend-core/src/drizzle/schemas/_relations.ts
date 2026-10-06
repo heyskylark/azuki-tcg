@@ -8,6 +8,14 @@ import { Rooms } from "@core/drizzle/schemas/rooms";
 import { MatchResults } from "@core/drizzle/schemas/match_results";
 import { GameLogs } from "@core/drizzle/schemas/game_logs";
 import { JwtTokens } from "@core/drizzle/schemas/jwt_tokens";
+import {
+  HumanEvaluationActions,
+  HumanEvaluationAnnotationObservations,
+  HumanEvaluationAnnotations,
+  HumanEvaluationDeckArtifacts,
+  HumanEvaluationMatches,
+  HumanEvaluationSessions,
+} from "@core/drizzle/schemas/human_evaluations";
 
 // User relations
 export const UsersRelations = relations(Users, ({ many }) => ({
@@ -127,3 +135,99 @@ export const jwtTokensRelations = relations(JwtTokens, ({ one }) => ({
     references: [Users.id],
   }),
 }));
+
+export const humanEvaluationSessionsRelations = relations(
+  HumanEvaluationSessions,
+  ({ one, many }) => ({
+    reviewer: one(Users, {
+      fields: [HumanEvaluationSessions.reviewerId],
+      references: [Users.id],
+    }),
+    humanDeck: one(Decks, {
+      fields: [HumanEvaluationSessions.humanDeckId],
+      references: [Decks.id],
+      relationName: "evaluationHumanDeckSnapshot",
+    }),
+    sourceHumanDeck: one(Decks, {
+      fields: [HumanEvaluationSessions.sourceHumanDeckId],
+      references: [Decks.id],
+      relationName: "evaluationHumanDeckSource",
+    }),
+    matches: many(HumanEvaluationMatches),
+  })
+);
+
+export const humanEvaluationMatchesRelations = relations(
+  HumanEvaluationMatches,
+  ({ one, many }) => ({
+    session: one(HumanEvaluationSessions, {
+      fields: [HumanEvaluationMatches.sessionId],
+      references: [HumanEvaluationSessions.id],
+    }),
+    model: one(AiModels, {
+      fields: [HumanEvaluationMatches.modelId],
+      references: [AiModels.id],
+    }),
+    room: one(Rooms, {
+      fields: [HumanEvaluationMatches.roomId],
+      references: [Rooms.id],
+    }),
+    matchResult: one(MatchResults, {
+      fields: [HumanEvaluationMatches.matchResultId],
+      references: [MatchResults.id],
+    }),
+    deckArtifact: one(HumanEvaluationDeckArtifacts),
+    actions: many(HumanEvaluationActions),
+    annotation: one(HumanEvaluationAnnotations),
+  })
+);
+
+export const humanEvaluationDeckArtifactsRelations = relations(
+  HumanEvaluationDeckArtifacts,
+  ({ one }) => ({
+    match: one(HumanEvaluationMatches, {
+      fields: [HumanEvaluationDeckArtifacts.matchId],
+      references: [HumanEvaluationMatches.id],
+    }),
+    deck: one(Decks, {
+      fields: [HumanEvaluationDeckArtifacts.deckId],
+      references: [Decks.id],
+    }),
+  })
+);
+
+export const humanEvaluationActionsRelations = relations(HumanEvaluationActions, ({ one }) => ({
+  match: one(HumanEvaluationMatches, {
+    fields: [HumanEvaluationActions.matchId],
+    references: [HumanEvaluationMatches.id],
+  }),
+  room: one(Rooms, {
+    fields: [HumanEvaluationActions.roomId],
+    references: [Rooms.id],
+  }),
+}));
+
+export const humanEvaluationAnnotationsRelations = relations(
+  HumanEvaluationAnnotations,
+  ({ one, many }) => ({
+    match: one(HumanEvaluationMatches, {
+      fields: [HumanEvaluationAnnotations.matchId],
+      references: [HumanEvaluationMatches.id],
+    }),
+    reviewer: one(Users, {
+      fields: [HumanEvaluationAnnotations.reviewerId],
+      references: [Users.id],
+    }),
+    observations: many(HumanEvaluationAnnotationObservations),
+  })
+);
+
+export const humanEvaluationAnnotationObservationsRelations = relations(
+  HumanEvaluationAnnotationObservations,
+  ({ one }) => ({
+    annotation: one(HumanEvaluationAnnotations, {
+      fields: [HumanEvaluationAnnotationObservations.annotationId],
+      references: [HumanEvaluationAnnotations.id],
+    }),
+  })
+);

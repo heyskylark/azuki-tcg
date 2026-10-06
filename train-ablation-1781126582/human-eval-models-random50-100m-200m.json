@@ -1,0 +1,24 @@
+{
+  "models": [
+    {
+      "displayName": "RANDOM50 seed 43 100M rows (p6511)",
+      "modelKey": "train-ablation-1781126582/results/random50_continuation_v1/runs/random50_s43/artifacts/azuki_local_random50_continuation_random50_s43_178943518342/model_azuki_local_006511.pt",
+      "checkpointSha256": "95805ba6004e32f1caf01152ce91c9a9870433d86ab675091150540acf70b67f"
+    },
+    {
+      "displayName": "RANDOM50 seed 43 200M rows (p13021)",
+      "modelKey": "train-ablation-1781126582/results/random50_continuation_v1/runs/random50_s43/artifacts/azuki_local_random50_continuation_random50_s43_178943518342/model_azuki_local_013021.pt",
+      "checkpointSha256": "14c1c3085bd286b5e204bf6e79bab8f0bd6122a937776e1d616d77965a39a72d"
+    },
+    {
+      "displayName": "RANDOM50 seed 44 100M rows (p6511)",
+      "modelKey": "train-ablation-1781126582/results/random50_continuation_v1/runs/random50_s44/artifacts/azuki_local_random50_continuation_random50_s44_178952268225/model_azuki_local_006511.pt",
+      "checkpointSha256": "6fc1d786d4d4f90368c29c6cc078c16520ac642064e18b803511b3c860d45e33"
+    },
+    {
+      "displayName": "RANDOM50 seed 44 200M rows (p13021)",
+      "modelKey": "train-ablation-1781126582/results/random50_continuation_v1/runs/random50_s44/artifacts/azuki_local_random50_continuation_random50_s44_178952268225/model_azuki_local_013021.pt",
+      "checkpointSha256": "8748fae6e56030d84507dcf9f2ab76d1779b3ed9d9043c3e7a7d174c7042d261"
+    }
+  ]
+}

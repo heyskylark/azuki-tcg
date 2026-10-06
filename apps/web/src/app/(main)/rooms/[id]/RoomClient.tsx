@@ -18,15 +18,23 @@ import { WaitingForPlayers } from "@/app/(main)/rooms/[id]/components/WaitingFor
 import { DeckSelection } from "@/app/(main)/rooms/[id]/components/DeckSelection";
 import { ReadyCheck } from "@/app/(main)/rooms/[id]/components/ReadyCheck";
 import { InMatchView } from "@/app/(main)/rooms/[id]/components/InMatchView";
+import { EvaluationRoomLobby } from "@/components/evaluations/EvaluationRoomLobby";
 import type { AuthenticatedUser } from "@tcg/backend-core/types/auth";
+import type { RoomEvaluationMetadata } from "@tcg/backend-core/types/ws";
+import type { DeckCard } from "@/types/game";
 
+/**
+ * Server-rendered room facts. Player ids are deliberately absent: the client only
+ * needs membership booleans, and in an evaluation room the AI's user id would be a
+ * stable cross-match identifier that breaks blindness.
+ */
 export interface RoomData {
   id: string;
   status: string;
   type: string;
   hasPassword: boolean;
-  player0Id: string;
-  player1Id: string | null;
+  isInRoom: boolean;
+  isOwner: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -34,6 +42,8 @@ export interface RoomData {
 interface RoomClientProps {
   initialRoom: RoomData;
   user: AuthenticatedUser;
+  evaluation: RoomEvaluationMetadata | null;
+  evaluationCardCatalog: DeckCard[] | null;
 }
 
 const INACTIVE_ROOM_STATUSES = ["COMPLETED", "CLOSED", "ABORTED"];
@@ -42,9 +52,19 @@ interface MatchSessionViewProps {
   onReturnHome: () => void;
   playerSlot: 0 | 1;
   userId: string;
+  evaluation: RoomEvaluationMetadata | null;
+  evaluationCardCatalog: DeckCard[] | null;
+  onReturnToSession: () => void;
 }
 
-function MatchSessionView({ onReturnHome, playerSlot, userId }: MatchSessionViewProps) {
+function MatchSessionView({
+  onReturnHome,
+  playerSlot,
+  userId,
+  evaluation,
+  evaluationCardCatalog,
+  onReturnToSession,
+}: MatchSessionViewProps) {
   const { gameOver } = useRoom();
   const { isLogPlaybackActive } = useGameState();
 
@@ -70,14 +90,20 @@ function MatchSessionView({ onReturnHome, playerSlot, userId }: MatchSessionView
         outcome={gameOverOutcome}
         reason={gameOver?.reason}
         onReturnHome={onReturnHome}
+        evaluation={evaluation === null ? null : { ...evaluation, onContinue: onReturnToSession }}
       />
     );
   }
 
-  return <InMatchView />;
+  return <InMatchView evaluation={evaluation} evaluationCardCatalog={evaluationCardCatalog} />;
 }
 
-export function RoomClient({ initialRoom, user }: RoomClientProps) {
+export function RoomClient({
+  initialRoom,
+  user,
+  evaluation,
+  evaluationCardCatalog,
+}: RoomClientProps) {
   const {
     activeRoom,
     roomState,
@@ -91,9 +117,7 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
   } = useRoom();
   const router = useRouter();
 
-  const isInRoom =
-    initialRoom.player0Id === user.id || initialRoom.player1Id === user.id;
-  const isOwner = initialRoom.player0Id === user.id;
+  const { isInRoom, isOwner } = initialRoom;
   const isRoomInactive = INACTIVE_ROOM_STATUSES.includes(initialRoom.status);
   const playerSlot = activeRoom?.playerSlot ?? null;
 
@@ -106,6 +130,11 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
     clearActiveRoom();
     router.push("/");
   }, [clearActiveRoom, router]);
+
+  const handleReturnToSession = useCallback(() => {
+    clearActiveRoom();
+    router.push(evaluation === null ? "/" : `/evaluations/${evaluation.sessionId}`);
+  }, [clearActiveRoom, evaluation, router]);
 
   // Auto-join on mount if conditions are right
   useEffect(() => {
@@ -153,7 +182,17 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
     };
 
     doJoin();
-  }, [isInRoom, initialRoom.hasPassword, initialRoom.id, join, connectionStatus, activeRoom?.id, isRoomInactive, isJoining, needsPassword]);
+  }, [
+    isInRoom,
+    initialRoom.hasPassword,
+    initialRoom.id,
+    join,
+    connectionStatus,
+    activeRoom?.id,
+    isRoomInactive,
+    isJoining,
+    needsPassword,
+  ]);
 
   useEffect(() => {
     if (roomState?.status === "IN_MATCH" && playerSlot !== null) {
@@ -207,12 +246,10 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
 
   // Determine current display status
   const displayStatus = roomState?.status ?? initialRoom.status;
-  const isClosedOrAborted =
-    displayStatus === "ABORTED" || displayStatus === "CLOSED";
+  const isClosedOrAborted = displayStatus === "ABORTED" || displayStatus === "CLOSED";
   const activeMatchPlayerSlot = matchPlayerSlot ?? playerSlot;
   const shouldRenderMatchSession =
-    activeMatchPlayerSlot !== null &&
-    (displayStatus === "IN_MATCH" || gameOver !== null);
+    activeMatchPlayerSlot !== null && (displayStatus === "IN_MATCH" || gameOver !== null);
 
   // Render password prompt if needed
   if (needsPassword) {
@@ -251,6 +288,9 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
               onReturnHome={handleReturnHome}
               playerSlot={activeMatchPlayerSlot}
               userId={user.id}
+              evaluation={evaluation}
+              evaluationCardCatalog={evaluationCardCatalog}
+              onReturnToSession={handleReturnToSession}
             />
           </GameBridge>
         </GameStateProvider>
@@ -291,9 +331,7 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
               <CardTitle>Room</CardTitle>
               <CardDescription>Room ID: {initialRoom.id}</CardDescription>
             </div>
-            <Badge variant="outline">
-              {initialRoom.status.replace(/_/g, " ")}
-            </Badge>
+            <Badge variant="outline">{initialRoom.status.replace(/_/g, " ")}</Badge>
           </div>
         </CardHeader>
         <CardContent>
@@ -302,7 +340,7 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
             <p className="text-muted-foreground">
               This room is no longer active ({initialRoom.status.toLowerCase()}).
             </p>
-            <Button className="mt-4" onClick={() => window.location.href = "/dashboard"}>
+            <Button className="mt-4" onClick={() => (window.location.href = "/dashboard")}>
               Back to Dashboard
             </Button>
           </div>
@@ -353,6 +391,18 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
         if (playerSlot === null) {
           return <div>Loading player info...</div>;
         }
+        if (evaluation !== null) {
+          return (
+            <>
+              {errorAlert}
+              <EvaluationRoomLobby
+                evaluation={evaluation}
+                roomState={roomState}
+                playerSlot={playerSlot}
+              />
+            </>
+          );
+        }
         return (
           <>
             {errorAlert}
@@ -371,6 +421,18 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
         if (playerSlot === null) {
           return <div>Loading player info...</div>;
         }
+        if (evaluation !== null) {
+          return (
+            <>
+              {errorAlert}
+              <EvaluationRoomLobby
+                evaluation={evaluation}
+                roomState={roomState}
+                playerSlot={playerSlot}
+              />
+            </>
+          );
+        }
         return (
           <>
             {errorAlert}
@@ -387,7 +449,11 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
         return (
           <div className="text-center py-8">
             <div className="text-4xl font-bold text-primary mb-4">Game Starting!</div>
-            <p className="text-muted-foreground">Initializing game world...</p>
+            <p className="text-muted-foreground">
+              {evaluation === null
+                ? "Initializing game world..."
+                : `Initializing match ${evaluation.ordinal} of ${evaluation.totalMatches}...`}
+            </p>
           </div>
         );
 
@@ -404,7 +470,7 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
             <p className="text-muted-foreground">
               This room is no longer active ({displayStatus.toLowerCase()}).
             </p>
-            <Button className="mt-4" onClick={() => window.location.href = "/dashboard"}>
+            <Button className="mt-4" onClick={() => (window.location.href = "/dashboard")}>
               Back to Dashboard
             </Button>
           </div>
@@ -424,8 +490,16 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle>Room</CardTitle>
-            <CardDescription>Room ID: {initialRoom.id}</CardDescription>
+            <CardTitle>
+              {evaluation === null
+                ? "Room"
+                : `Blind evaluation · match ${evaluation.ordinal} of ${evaluation.totalMatches}`}
+            </CardTitle>
+            <CardDescription>
+              {evaluation === null
+                ? `Room ID: ${initialRoom.id}`
+                : "Assigned by the server. The opponent stays anonymous until the session is revealed."}
+            </CardDescription>
           </div>
           <div className="flex items-center gap-4">
             <ConnectionIndicator status={connectionStatus} />
@@ -435,8 +509,8 @@ export function RoomClient({ initialRoom, user }: RoomClientProps) {
                   displayStatus === "WAITING_FOR_PLAYERS"
                     ? "default"
                     : displayStatus === "DECK_SELECTION" || displayStatus === "READY_CHECK"
-                    ? "secondary"
-                    : "outline"
+                      ? "secondary"
+                      : "outline"
                 }
               >
                 {displayStatus.replace(/_/g, " ")}

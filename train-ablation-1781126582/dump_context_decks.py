@@ -28,15 +28,20 @@ def _card_metadata() -> dict[str, dict[str, object]]:
   }
 
 
-def _distribution_summary(decks: list[Counter[str]]) -> dict[str, float]:
+def _multiset_jaccard(left: Counter[str], right: Counter[str]) -> float:
+  cards = set(left) | set(right)
+  intersection = sum(min(left.get(card, 0), right.get(card, 0)) for card in cards)
+  union = sum(max(left.get(card, 0), right.get(card, 0)) for card in cards)
+  return intersection / union if union else 1.0
+
+
+def _distribution_summary(decks: list[Counter[str]]) -> dict[str, float | int]:
   if not decks:
     raise ValueError("At least one deck is required")
-  jaccards: list[float] = []
-  for left, right in combinations(decks, 2):
-    cards = set(left) | set(right)
-    intersection = sum(min(left.get(card, 0), right.get(card, 0)) for card in cards)
-    union = sum(max(left.get(card, 0), right.get(card, 0)) for card in cards)
-    jaccards.append(intersection / union if union else 1.0)
+  jaccards = [
+    _multiset_jaccard(left, right)
+    for left, right in combinations(decks, 2)
+  ]
   return {
     "main_unique_mean": sum(len(deck) for deck in decks) / len(decks),
     "singleton_slot_share_mean": sum(
@@ -54,6 +59,9 @@ def _distribution_summary(decks: list[Counter[str]]) -> dict[str, float]:
     "pairwise_multiset_jaccard_mean": (
       sum(jaccards) / len(jaccards) if jaccards else 1.0
     ),
+    "pairwise_multiset_jaccard_min": min(jaccards, default=1.0),
+    "pairwise_multiset_jaccard_max": max(jaccards, default=1.0),
+    "exact_collision_pairs": sum(value == 1.0 for value in jaccards),
   }
 
 
@@ -63,20 +71,40 @@ def _deck_summary(
 ) -> dict[str, object]:
   total = sum(deck.values())
   type_counts: Counter[str] = Counter()
+  element_counts: Counter[str] = Counter()
+  cost_counts: Counter[int] = Counter()
   cost_total = 0
   for code, count in deck.items():
     card = metadata[code]
     type_counts[str(card["type"])] += count
-    cost_total += int(card["cost"]) * count
+    element_counts[str(card["element"])] += count
+    cost = int(card["cost"])
+    cost_counts[cost] += count
+    cost_total += cost * count
+  denominator = max(total, 1)
   return {
     "main_total": total,
     "main_unique": len(deck),
-    "average_ikz_cost": cost_total / max(total, 1),
+    "average_ikz_cost": cost_total / denominator,
     "type_slots": dict(sorted(type_counts.items())),
+    "type_slot_share": {
+      key: value / denominator for key, value in sorted(type_counts.items())
+    },
+    "element_slots": dict(sorted(element_counts.items())),
+    "element_slot_share": {
+      key: value / denominator for key, value in sorted(element_counts.items())
+    },
+    "ikz_cost_histogram": {
+      str(key): value for key, value in sorted(cost_counts.items())
+    },
     "singleton_slot_share": sum(count for count in deck.values() if count == 1)
-    / max(total, 1),
+    / denominator,
+    "pair_slot_share": sum(count for count in deck.values() if count == 2)
+    / denominator,
+    "triplet_slot_share": sum(count for count in deck.values() if count == 3)
+    / denominator,
     "quad_slot_share": sum(count for count in deck.values() if count == 4)
-    / max(total, 1),
+    / denominator,
   }
 
 
@@ -95,6 +123,64 @@ def _card_entries(
     )
   ]
 
+def _context_relationships(contexts: list[dict[str, object]]) -> dict[str, object]:
+  decks: dict[str, Counter[str]] = {}
+  metadata: dict[str, tuple[str, str, str]] = {}
+  for context in contexts:
+    context_id = str(context["context_id"])
+    greedy = context["greedy"]
+    if not isinstance(greedy, dict) or not isinstance(greedy.get("cards"), list):
+      raise TypeError(f"Context {context_id} has invalid greedy deck")
+    decks[context_id] = Counter(
+      {
+        str(card["code"]): int(card["copies"])
+        for card in greedy["cards"]
+      }
+    )
+    metadata[context_id] = (
+      str(context["element"]),
+      str(context["gate_code"]),
+      str(context["leader_code"]),
+    )
+  pairs = []
+  for left_id, right_id in combinations(sorted(decks), 2):
+    left_element, left_gate, left_leader = metadata[left_id]
+    right_element, right_gate, right_leader = metadata[right_id]
+    similarity = _multiset_jaccard(decks[left_id], decks[right_id])
+    pairs.append(
+      {
+        "left_context_id": left_id,
+        "right_context_id": right_id,
+        "same_element": left_element == right_element,
+        "sibling_gate_pair": (
+          left_element == right_element
+          and left_gate != right_gate
+          and left_leader == right_leader
+        ),
+        "same_leader": left_leader == right_leader,
+        "multiset_jaccard": similarity,
+        "multiset_distance": 1.0 - similarity,
+        "exact_collision": similarity == 1.0,
+      }
+    )
+  sibling_pairs = [pair for pair in pairs if pair["sibling_gate_pair"]]
+  return {
+    "pairs": pairs,
+    "summary": {
+      "context_pairs": len(pairs),
+      "exact_collision_pairs": sum(bool(pair["exact_collision"]) for pair in pairs),
+      "sibling_pairs": len(sibling_pairs),
+      "sibling_exact_collision_pairs": sum(
+        bool(pair["exact_collision"]) for pair in sibling_pairs
+      ),
+      "sibling_multiset_distance_mean": (
+        sum(float(pair["multiset_distance"]) for pair in sibling_pairs)
+        / len(sibling_pairs)
+        if sibling_pairs
+        else None
+      ),
+    },
+  }
 
 def _markdown(payload: dict[str, object]) -> str:
   lines = [
@@ -277,7 +363,7 @@ def main() -> None:
     runner.vecenv.close()
 
   payload: dict[str, object] = {
-    "schema_version": 1,
+    "schema_version": 2,
     "checkpoint": str(args.checkpoint.resolve()),
     "lifecycle": "uniform_gate_uniform_compatible_leader_50_main_picks",
     "stochastic_drafts_per_context": args.drafts_per_context,
@@ -286,6 +372,7 @@ def main() -> None:
       "smoothing_eps": args.smoothing_eps,
     },
     "contexts": contexts,
+    "context_relationships": _context_relationships(contexts),
   }
   args.json.parent.mkdir(parents=True, exist_ok=True)
   args.json.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")

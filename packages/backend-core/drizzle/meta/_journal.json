@@ -141,6 +141,34 @@
       "when": 1774733143297,
       "tag": "0019_fix-azk01-107-ikz-cost",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1787596838059,
+      "tag": "0020_sharp_shaman",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1787598285153,
+      "tag": "0021_right_umar",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1790121356786,
+      "tag": "0022_fix-azk01-127-element",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1790125873546,
+      "tag": "0023_sprout-of-fortune",
+      "breakpoints": true
     }
   ]
 }

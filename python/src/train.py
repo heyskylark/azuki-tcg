@@ -37,6 +37,7 @@ from league_training import (
 )
 from playback import run_playback
 from training_deck_pool import resolve_training_deck_pool_path
+from draft_normal_penalty import penalty_config_sha256
 from training_utils import (
     DEFAULT_CONFIG_PATH,
     build_policy,
@@ -48,6 +49,7 @@ from training_utils import (
 
 RESUME_COMPLETED_EPISODES_ENV = "AZK_RESUME_COMPLETED_EPISODES"
 RESUME_ALLOW_SCHEDULE_REWIND_ENV = "AZK_RESUME_ALLOW_SCHEDULE_REWIND"
+COORDINATOR_RNG_STATE_SCHEMA_VERSION = 1
 RESUME_COMPLETED_EPISODE_KEYS = (
     "0/azk_completed_episodes",
     "1/azk_completed_episodes",
@@ -73,12 +75,28 @@ RESUME_SCHEDULE_ENV_VARS = (
     "AZK_TRAINER_SHAPED_REWARD_ANNEAL",
     "AZK_TRAINER_SHAPED_REWARD_ANNEAL_START_EPOCH",
     "AZK_TRAINER_SHAPED_REWARD_ANNEAL_END_EPOCH",
+    "AZK_REWARD_DECOMPOSED_SCHEDULE",
+    "AZK_POTENTIAL_SCALE_INITIAL",
+    "AZK_POTENTIAL_SCALE_FINAL",
+    "AZK_POTENTIAL_ANNEAL_START_ROWS",
+    "AZK_POTENTIAL_ANNEAL_END_ROWS",
+    "AZK_EXPLORATION_SCALE_INITIAL",
+    "AZK_EXPLORATION_SCALE_FINAL",
+    "AZK_EXPLORATION_ANNEAL_START_ROWS",
+    "AZK_EXPLORATION_ANNEAL_END_ROWS",
+    "AZK_DRAFT_REF_SEAT_PROB",
+    "AZK_DRAFT_REF_DECK_INDICES",
+    "AZK_DRAFT_REF_OPPONENT_ONLY",
+    "AZK_DRAFT_REF_LEARNER_FIXED",
 )
 RESUME_REWARD_ENV_VARS = (
     "AZK_REWARD_LEADER_DELTA_WEIGHT",
     "AZK_REWARD_BOARD_DELTA_WEIGHT",
     "AZK_REWARD_NOOP_PENALTY",
     "AZK_TRUNCATION_BOARD_EDGE_WEIGHT",
+    "AZK_REWARD_LEADER_HEALTH_WEIGHT",
+    "AZK_REWARD_GARDEN_ATTACK_WEIGHT",
+    "AZK_REWARD_UNTAPPED_GARDEN_WEIGHT",
     "AZK_REWARD_UNTAPPED_IKZ_WEIGHT",
     "AZK_PORTAL_GP_BONUS",
     "AZK_PORTAL_OUTCOME_BONUS",
@@ -96,6 +114,7 @@ RESUME_REWARD_ENV_VARS = (
     "AZK_TEMP_ATTACK_REALIZATION_PER_DAMAGE",
     "AZK_TEMP_ATTACK_REALIZATION_DAMAGE_CAP",
     "AZK_CONTEXTUAL_RESPONSE_RESERVE_BONUS",
+    "AZK_ABILITY_OUTCOME_BONUS",
     "AZK_DRAFT_VBOOT_COEF",
     "AZK_DRAFT_SIBDIFF_COEF",
     "AZK_DRAFT_SIBDIFF_CAP",
@@ -113,6 +132,10 @@ RESUME_REWARD_ENV_VARS = (
     "AZK_DRAFT_TERMINAL_CREDIT_LABEL_WARMUP_EPOCHS",
     "AZK_DRAFT_TERMINAL_CREDIT_GRAD_PROBE",
     "AZK_DRAFT_EPISODE_CREDIT_COEF",
+    "AZK_DRAFT_EPISODE_CREDIT_FINAL_COEF",
+    "AZK_DRAFT_EPISODE_CREDIT_ANNEAL_START_ROWS",
+    "AZK_DRAFT_EPISODE_CREDIT_ANNEAL_END_ROWS",
+    "AZK_DRAFT_EPISODE_CREDIT_EXCLUDE_XGATE",
     "AZK_DRAFT_EPISODE_CREDIT_CLIP",
     "AZK_DRAFT_EPISODE_CREDIT_BATCH_DRAFTS",
     "AZK_DRAFT_EPISODE_CREDIT_UPDATE_INTERVAL",
@@ -125,11 +148,23 @@ RESUME_REWARD_ENV_VARS = (
     "AZK_DRAFT_PREFIX_LENGTHS",
     "AZK_DRAFT_PREFIX_PROBS",
     "AZK_DRAFT_PREFIX_SEED",
+    "AZK_DRAFT_PREFIX_POOL_PATH",
+    "AZK_DRAFT_NORMAL_PENALTY_CONFIG",
+    "AZK_DRAFT_NORMAL_PENALTY_COEF_INITIAL",
+    "AZK_DRAFT_NORMAL_PENALTY_COEF_FINAL",
+    "AZK_DRAFT_NORMAL_PENALTY_ANNEAL_START_ROWS",
+    "AZK_DRAFT_NORMAL_PENALTY_ANNEAL_END_ROWS",
 )
 RESUME_SOURCE_HASH_TARGETS = (
     "python/src/azk_puffer/trainer.py",
     "python/src/league_training.py",
+    "python/src/azk_puffer/vector.py",
+    "python/src/azk_native.py",
+    "python/src/binding.c",
     "python/src/draft_prefix_outcome.py",
+    "python/src/draft_normal_penalty.py",
+    "python/src/observation.py",
+    "python/config/policy_card_metadata_v1.json",
     "python/src/policy/v2/tcg_policy.py",
     "python/src/policy/v2/tcg_sampler.py",
     "python/src/v2/tcg.py",
@@ -140,6 +175,7 @@ RESUME_SOURCE_HASH_TARGETS = (
     "python/src/production_runtime.py",
     "python/src/train.py",
     "python/src/training_deck_pool.py",
+    "python/src/prebuilt_deck_pool.py",
     "python/src/training_utils.py",
     ".codex/docs/azuki_garden_arena_2026-08-15_decks.json",
 )
@@ -158,6 +194,65 @@ def _seed_training_process(train_config: dict) -> int | None:
     np.random.seed(seed)
     torch.manual_seed(seed)
     return seed
+
+def _capture_coordinator_rng_state() -> dict[str, object]:
+    """Capture coordinator RNGs without claiming worker/environment continuity."""
+    cuda_states: list[torch.Tensor] = []
+    if torch.cuda.is_available() and torch.cuda.is_initialized():
+        cuda_states = [state.cpu() for state in torch.cuda.get_rng_state_all()]
+    return {
+        "schema_version": COORDINATOR_RNG_STATE_SCHEMA_VERSION,
+        "python": random.getstate(),
+        "numpy": np.random.get_state(),
+        "torch_cpu": torch.get_rng_state().cpu(),
+        "torch_cuda": cuda_states,
+    }
+
+
+def _restore_coordinator_rng_state(state: object) -> bool:
+    """Restore coordinator RNGs; vector workers and environments remain non-exact."""
+    if state is None:
+        return False
+    if not isinstance(state, dict):
+        raise ValueError("coordinator_rng_state must be a mapping")
+    schema_version = int(state.get("schema_version", -1))
+    if schema_version != COORDINATOR_RNG_STATE_SCHEMA_VERSION:
+        raise ValueError(
+            "Unsupported coordinator RNG state schema: "
+            f"{schema_version} != {COORDINATOR_RNG_STATE_SCHEMA_VERSION}"
+        )
+
+    python_state = state.get("python")
+    numpy_state = state.get("numpy")
+    torch_cpu_state = state.get("torch_cpu")
+    torch_cuda_states = state.get("torch_cuda")
+    if not isinstance(python_state, tuple):
+        raise ValueError("coordinator RNG state has invalid Python state")
+    if not isinstance(numpy_state, tuple):
+        raise ValueError("coordinator RNG state has invalid NumPy state")
+    if not isinstance(torch_cpu_state, torch.Tensor):
+        raise ValueError("coordinator RNG state has invalid Torch CPU state")
+    if not isinstance(torch_cuda_states, list) or not all(
+        isinstance(cuda_state, torch.Tensor) for cuda_state in torch_cuda_states
+    ):
+        raise ValueError("coordinator RNG state has invalid Torch CUDA states")
+
+    if torch_cuda_states:
+        if not torch.cuda.is_available():
+            raise ValueError("checkpoint has CUDA RNG state but CUDA is unavailable")
+        current_device_count = torch.cuda.device_count()
+        if len(torch_cuda_states) != current_device_count:
+            raise ValueError(
+                "CUDA RNG topology mismatch: "
+                f"checkpoint={len(torch_cuda_states)} current={current_device_count}"
+            )
+
+    random.setstate(python_state)
+    np.random.set_state(numpy_state)
+    torch.set_rng_state(torch_cpu_state.cpu())
+    if torch_cuda_states:
+        torch.cuda.set_rng_state_all([cuda_state.cpu() for cuda_state in torch_cuda_states])
+    return True
 
 
 class _JsonlLogger:
@@ -322,6 +417,14 @@ def parse_script_args() -> tuple[argparse.Namespace, list[str]]:
         type=Path,
         default=DEFAULT_CONFIG_PATH,
         help="Path to the PuffeRL-compatible .ini file to load.",
+    )
+    parser.add_argument(
+        "--stop-after-learner-steps",
+        type=int,
+        help=(
+            "Stop after this many additional learner steps, at a completed update. "
+            "Does not change the configured learning-rate horizon."
+        ),
     )
     parser.add_argument(
         "--render-playback-interval",
@@ -838,6 +941,16 @@ def _source_hash_fingerprint() -> dict[str, str]:
     return out
 
 
+def _draft_prefix_pool_sha256() -> str:
+    path_text = os.getenv("AZK_DRAFT_PREFIX_POOL_PATH", "").strip()
+    if not path_text:
+        return ""
+    path = Path(path_text).expanduser()
+    if not path.is_absolute():
+        path = Path(__file__).resolve().parents[2] / path
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
 def _env_flag(name: str) -> bool:
     raw = os.getenv(name)
     if raw is None:
@@ -965,6 +1078,12 @@ def _resume_cfg_mismatches(
     for key in sorted(set(saved_flat) & set(current_flat)):
         if saved_flat[key] != current_flat[key]:
             mismatches.append((key, saved_flat[key], current_flat[key]))
+    for key in (
+        "draft_prefix_pool_sha256", "draft_normal_penalty_config_sha256",
+        "prebuilt_curriculum", "prebuilt_pool_sha256",
+    ):
+        if key not in saved_flat and current_flat.get(key):
+            mismatches.append((key, "<missing>", current_flat[key]))
     return mismatches
 
 
@@ -1167,6 +1286,40 @@ def _apply_saved_reward_env(saved_resume_config: dict[str, object] | None) -> No
     )
 
 
+def _peek_prebuilt_battle_decisions(
+    model_path: Path | None, trainer_state_path: Path | None,
+) -> int:
+    """Restore the curriculum clock before the trainer starts vector resets."""
+    if model_path is None:
+        return 0
+    payloads = []
+    if trainer_state_path is not None and trainer_state_path.is_file():
+        state = torch.load(trainer_state_path, map_location="cpu", weights_only=False)
+        if isinstance(state, dict) and state.get("model_name") == model_path.name:
+            payloads.append(state)
+    metadata_path = _checkpoint_metadata_path(model_path)
+    if metadata_path.is_file():
+        metadata = json.loads(metadata_path.read_text())
+        if not isinstance(metadata, dict):
+            raise ValueError("checkpoint metadata must be a mapping")
+        payloads.append(metadata)
+    progress = []
+    for payload in payloads:
+        value = payload.get("prebuilt_battle_decisions")
+        saved_config = payload.get("resume_config_fingerprint", {})
+        enabled = isinstance(saved_config, dict) and bool(saved_config.get("prebuilt_curriculum"))
+        if value is None:
+            if enabled:
+                raise ValueError("prebuilt curriculum checkpoint is missing its battle-decision clock")
+            continue
+        if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+            raise ValueError("invalid prebuilt battle-decision clock in checkpoint")
+        progress.append(value)
+    if len(set(progress)) > 1:
+        raise ValueError("checkpoint metadata and trainer disagree on prebuilt battle progress")
+    return progress[0] if progress else 0
+
+
 def _compute_runtime_fingerprint(vecenv) -> dict[str, object]:
     out: dict[str, object] = {}
     try:
@@ -1208,6 +1361,21 @@ def _resume_config_fingerprint(trainer_args: dict) -> dict[str, object]:
         "deck_building_enabled": bool(env_cfg.get("deck_building_enabled", False)),
         "draft_uniform_assignment": bool(env_cfg.get("draft_uniform_assignment", False)),
         "deck_pool_path": str(resolve_training_deck_pool_path(env_cfg.get("deck_pool_path"))),
+        "prebuilt_curriculum": bool(env_cfg.get("prebuilt_curriculum", False)),
+        "prebuilt_pool_sha256": (
+            _file_sha256(resolve_training_deck_pool_path(env_cfg.get("deck_pool_path")))
+            if env_cfg.get("prebuilt_curriculum", False) else ""
+        ),
+        "prebuilt_schedule": {
+            "initial_probability": float(env_cfg.get("prebuilt_probability", 0.0)),
+            "final_probability": float(train_cfg.get("prebuilt_final_probability", 0.2)),
+            "anneal_start_battle_decisions": int(
+                train_cfg.get("prebuilt_anneal_start_battle_decisions", 5_000_000)
+            ),
+            "anneal_end_battle_decisions": int(
+                train_cfg.get("prebuilt_anneal_end_battle_decisions", 40_000_000)
+            ),
+        } if env_cfg.get("prebuilt_curriculum", False) else {},
         "policy_model_version": str(policy_cfg.get("model_version", "metadata_v1")),
         "policy_actor_head_type": str(policy_cfg.get("actor_head_type", "legal_action_scorer")),
         "policy_legal_action_scorer_use_references": bool(
@@ -1236,6 +1404,11 @@ def _resume_config_fingerprint(trainer_args: dict) -> dict[str, object]:
         "schedule_env": _resume_env_var_fingerprint(RESUME_SCHEDULE_ENV_VARS),
         "reward_env": _resume_env_var_fingerprint(RESUME_REWARD_ENV_VARS),
         "source_hashes": _source_hash_fingerprint(),
+        "draft_prefix_pool_sha256": _draft_prefix_pool_sha256(),
+        "draft_normal_penalty_config_sha256": (
+            penalty_config_sha256(os.environ["AZK_DRAFT_NORMAL_PENALTY_CONFIG"])
+            if os.environ.get("AZK_DRAFT_NORMAL_PENALTY_CONFIG", "").strip() else ""
+        ),
     }
 
 
@@ -1358,12 +1531,6 @@ def _save_checkpoint_metadata(model_path: Path, payload: dict) -> None:
     _write_json_atomic(_checkpoint_metadata_path(model_path), payload)
 
 
-def _trainer_shaped_reward_schedule_state(trainer) -> dict[str, object] | None:
-    getter = getattr(trainer, "trainer_shaped_reward_schedule_state", None)
-    if not callable(getter):
-        return None
-    state = getter()
-    return state if isinstance(state, dict) else None
 
 
 def _save_per_checkpoint_trainer_state(
@@ -1386,10 +1553,16 @@ def _save_per_checkpoint_trainer_state(
         "run_id": getattr(trainer.logger, "run_id", ""),
         "runtime_fingerprint": runtime_fingerprint,
         "resume_config_fingerprint": resume_config_fingerprint,
+        "coordinator_rng_state": _capture_coordinator_rng_state(),
+        "resume_capabilities": {
+            "schema_version": 1,
+            "coordinator_rng": True,
+            "worker_environment": False,
+            "exact": False,
+        },
     }
-    shaped_reward_schedule = _trainer_shaped_reward_schedule_state(trainer)
-    if shaped_reward_schedule is not None:
-        state["trainer_shaped_reward_schedule"] = shaped_reward_schedule
+    if getattr(trainer, "_prebuilt_enabled", False):
+        state["prebuilt_battle_decisions"] = int(trainer.prebuilt_battle_decisions)
     if env_completed_episodes is not None:
         state["env_completed_episodes"] = int(env_completed_episodes)
     tmp = state_path.with_suffix(state_path.suffix + ".tmp")
@@ -1566,8 +1739,10 @@ def _approved_resume_cfg_mismatch_prefixes(
         prefixes.append("schedule_env.")
     if _env_flag("AZK_RESUME_KEEP_CURRENT_REWARD_ENV"):
         prefixes.append("reward_env.")
+        prefixes.append("draft_normal_penalty_config_sha256")
     if allow_deck_pool_migration:
         prefixes.append("deck_pool_path")
+        prefixes.append("prebuilt_pool_sha256")
     return tuple(prefixes)
 
 
@@ -1789,6 +1964,11 @@ def _maybe_restore_trainer_state(
                 )
                 return False
 
+    if getattr(trainer, "_prebuilt_enabled", False):
+        if "prebuilt_battle_decisions" not in trainer_state:
+            raise ValueError("cannot restore prebuilt curriculum without its battle-decision clock")
+        trainer.restore_prebuilt_battle_decisions(trainer_state["prebuilt_battle_decisions"])
+
     optimizer_state = trainer_state.get("optimizer_state_dict")
     optimizer_restored = False
     if optimizer_state is not None:
@@ -1831,11 +2011,15 @@ def _maybe_restore_trainer_state(
             trainer.scheduler._last_lr = list(synced_lrs)
     else:
         synced_lrs = _sync_optimizer_lr_from_scheduler(trainer)
+    coordinator_rng_restored = _restore_coordinator_rng_state(
+        trainer_state.get("coordinator_rng_state")
+    )
     print(
         "[resume] restored trainer state: "
         f"path={trainer_state_path}, global_step={restored_global_step}, "
         f"epoch={restored_epoch}, optimizer_restored={optimizer_restored}, "
-        f"scheduler_restored={scheduler_restored}, optimizer_lrs={synced_lrs}"
+        f"scheduler_restored={scheduler_restored}, optimizer_lrs={synced_lrs}, "
+        f"coordinator_rng_restored={coordinator_rng_restored}, resume_exact=False"
     )
     return True
 
@@ -2008,6 +2192,21 @@ def _is_league_enabled(script_args: argparse.Namespace, trainer_args: dict) -> b
     return False
 
 
+def _parse_role_sampling_floors(value) -> tuple[tuple[str, float], ...]:
+    if value is None or value == "":
+        return ()
+    parts = value if isinstance(value, (list, tuple)) else str(value).split(",")
+    floors: list[tuple[str, float]] = []
+    for item in parts:
+        role, separator, raw_floor = str(item).partition(":")
+        if not separator or not role.strip():
+            raise ValueError(
+                "league.role_sampling_floors must use role:fraction entries"
+            )
+        floors.append((role.strip(), float(raw_floor.strip())))
+    return tuple(floors)
+
+
 def _league_cfg(script_args: argparse.Namespace, trainer_args: dict) -> LeagueConfig:
     league_cfg = trainer_args.get("league")
     if not isinstance(league_cfg, dict):
@@ -2048,10 +2247,16 @@ def _league_cfg(script_args: argparse.Namespace, trainer_args: dict) -> LeagueCo
         activate_after_steps=activate_after_steps,
         frozen_window_epochs=int(league_cfg.get("frozen_window_epochs", 0) or 0),
         max_distinct_frozen=int(league_cfg.get("max_distinct_frozen", 1) or 1),
+        role_sampling_floors=_parse_role_sampling_floors(
+            league_cfg.get("role_sampling_floors")
+        ),
     )
 
 
 def run_training(script_args: argparse.Namespace, forwarded_cli):
+    learner_step_budget = script_args.stop_after_learner_steps
+    if learner_step_budget is not None and learner_step_budget <= 0:
+        raise ValueError("--stop-after-learner-steps must be positive")
     config_path = script_args.config
     if not config_path.exists():
         raise FileNotFoundError(f"Config file not found: {config_path}")
@@ -2214,6 +2419,13 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
                 "No episode-driven schedule is enabled; the diagnostic episode counter will restart from zero."
             )
 
+    if trainer_args.get("env", {}).get("prebuilt_curriculum", False):
+        if not _is_league_enabled(script_args, trainer_args):
+            raise ValueError("prebuilt curriculum scheduling requires league training")
+        trainer_args["train"]["_prebuilt_resume_battle_decisions"] = _peek_prebuilt_battle_decisions(
+            model_resume_path, trainer_state_path
+        )
+
     vecenv = build_vecenv(trainer_args)
     runtime_fingerprint = _compute_runtime_fingerprint(vecenv)
     resume_config_fingerprint = _resume_config_fingerprint(trainer_args)
@@ -2335,13 +2547,23 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
     league_manager = LeagueManager(parse_league_manager_config(trainer_args)) if league_enabled else None
     opponent_policies = []
     opponent_paths: list[Path] = []
+    opponent_buckets: list[str] = []
+    opponent_roles: list[str] = []
     if league_enabled:
         opponent_paths = _collect_league_checkpoint_paths(script_args, trainer_args)
         if league_manager is not None:
             league_manager.ensure_seed_policies(opponent_paths, created_epoch=0)
+            opponent_entries = league_manager.opponent_entries_for_training()
             opponent_paths = [
-                Path(entry.checkpoint_path) for entry in league_manager.opponent_entries_for_training()
+                Path(entry.checkpoint_path) for entry in opponent_entries
             ]
+            opponent_buckets = [str(entry.bucket) for entry in opponent_entries]
+            opponent_roles = league_manager.opponent_roles_for_training(
+                opponent_entries
+            )
+        else:
+            opponent_buckets = ["frozen"] * len(opponent_paths)
+            opponent_roles = list(opponent_buckets)
         missing = [path for path in opponent_paths if not path.exists()]
         if missing:
             missing_str = ", ".join(str(path) for path in missing)
@@ -2380,6 +2602,8 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
             policy,
             opponent_policies=opponent_policies,
             opponent_keys=[str(path.resolve()) for path in opponent_paths],
+            opponent_buckets=opponent_buckets,
+            opponent_roles=opponent_roles,
             league_cfg=league_cfg,
             logger=logger,
         )
@@ -2445,9 +2669,8 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
             "resume_config_fingerprint": resume_config_fingerprint,
             "checkpoint_parity": parity_summary,
         }
-        shaped_reward_schedule = _trainer_shaped_reward_schedule_state(trainer)
-        if shaped_reward_schedule is not None:
-            metadata_payload["trainer_shaped_reward_schedule"] = shaped_reward_schedule
+        if getattr(trainer, "_prebuilt_enabled", False):
+            metadata_payload["prebuilt_battle_decisions"] = int(trainer.prebuilt_battle_decisions)
         if resume_completed_episode_tracker is not None:
             metadata_payload["env_completed_episodes"] = int(resume_completed_episode_tracker)
         _save_checkpoint_metadata(checkpoint_path, metadata_payload)
@@ -2642,10 +2865,24 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
             print(f"[render playback] Skipped ({reason}) due to error: {exc}")
 
     resume_health_pending = model_resume_path is not None
+    learner_step_target = None
+    if learner_step_budget is not None:
+        learner_step_start = int(trainer.global_step)
+        learner_step_target = learner_step_start + learner_step_budget
+        print(
+            "[learner-step-budget] "
+            f"start={learner_step_start}, additional={learner_step_budget}, "
+            f"target={learner_step_target}"
+        )
 
     with torch_profile_context as torch_profiler:
         try:
             while trainer.epoch < trainer.total_epochs:
+                if (
+                    learner_step_target is not None
+                    and trainer.global_step >= learner_step_target
+                ):
+                    break
                 anneal_step = int(trainer.global_step) + int(anneal_step_offset)
                 current_temp, current_smoothing = _apply_sampler_anneal(
                     sampler_anneal_config,
@@ -2712,6 +2949,7 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
                             checkpoint_path = Path(checkpoint_raw)
                             added = league_manager.maybe_add_checkpoint(checkpoint_path, epoch=trainer.epoch)
                             if added is not None:
+                                refresh_started = time.perf_counter()
                                 metrics = league_manager.maybe_evaluate_and_promote(
                                     epoch=trainer.epoch,
                                     trainer_args=trainer_args,
@@ -2727,10 +2965,21 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
                                         else:
                                             print(f"[league] {key}={value}")
 
+                                refreshed_entries = (
+                                    league_manager.opponent_entries_for_training()
+                                )
                                 refreshed_paths = [
                                     Path(entry.checkpoint_path)
-                                    for entry in league_manager.opponent_entries_for_training()
+                                    for entry in refreshed_entries
                                 ]
+                                refreshed_buckets = [
+                                    str(entry.bucket) for entry in refreshed_entries
+                                ]
+                                refreshed_roles = (
+                                    league_manager.opponent_roles_for_training(
+                                        refreshed_entries
+                                    )
+                                )
                                 resident_by_key = {
                                     key: resident_policy
                                     for key, resident_policy in zip(
@@ -2755,7 +3004,12 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
                                 trainer.set_opponent_policies(
                                     refreshed_policies,
                                     opponent_keys=[str(path.resolve()) for path in refreshed_paths],
+                                    opponent_buckets=refreshed_buckets,
+                                    opponent_roles=refreshed_roles,
                                 )
+                                trainer.stats[
+                                    "league/sampling/refresh_seconds"
+                                ].append(time.perf_counter() - refresh_started)
                                 print(
                                     "[league] pool refreshed: "
                                     f"sampling_opponents={len(refreshed_policies)}, "
@@ -2799,6 +3053,15 @@ def run_training(script_args: argparse.Namespace, forwarded_cli):
                 logger.close(str(model_path) if model_path else None)
             if script_args.render_playback_final and model_path is not None:
                 maybe_run_playback("final", model_path)
+
+    if learner_step_target is not None:
+        print(
+            "[learner-step-budget] stopped: "
+            f"start={learner_step_start}, target={learner_step_target}, "
+            f"final={trainer.global_step}, "
+            f"additional={int(trainer.global_step) - learner_step_start}, "
+            f"target_reached={trainer.global_step >= learner_step_target}"
+        )
 
     if torch_profiler is not None and torch_profile_cfg is not None:
         _write_torch_profiler_outputs(

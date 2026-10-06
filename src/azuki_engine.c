@@ -605,6 +605,10 @@ bool azk_engine_reward_snapshot(AzkEngine *engine, AzkRewardSnapshot *out_snapsh
       (float)gs->generated_ikz_created[player_index];
     out_snapshot->generated_ikz_converted[player_index] =
       (float)gs->generated_ikz_converted[player_index];
+    out_snapshot->gate_ability_outcomes[player_index] =
+      (float)gs->gate_ability_outcomes[player_index];
+    out_snapshot->leader_ability_outcomes[player_index] =
+      (float)gs->leader_ability_outcomes[player_index];
   }
 
   return true;

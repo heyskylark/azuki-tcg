@@ -84,6 +84,7 @@ static bool is_public_log_zone(GameLogZone zone) {
   case GLOG_ZONE_GATE:
   case GLOG_ZONE_GARDEN:
   case GLOG_ZONE_ALLEY:
+  case GLOG_ZONE_IKZ_AREA:
     return true;
   default:
     return false;
@@ -96,6 +97,7 @@ static bool zone_move_requires_post_commit_finalization(GameLogZone to_zone) {
   case GLOG_ZONE_SELECTION:
   case GLOG_ZONE_GARDEN:
   case GLOG_ZONE_ALLEY:
+  case GLOG_ZONE_IKZ_AREA:
     return true;
   default:
     return false;

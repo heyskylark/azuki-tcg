@@ -18,6 +18,7 @@ from analyze_decks import GATE_NAMES
 from dump_context_decks import (
   _card_entries,
   _card_metadata,
+  _context_relationships,
   _deck_summary,
   _distribution_summary,
   _markdown,
@@ -424,7 +425,7 @@ def main() -> None:
     )
 
   payload: dict[str, object] = {
-    "schema_version": 1,
+    "schema_version": 2,
     "checkpoint": str(args.checkpoint.resolve()),
     "lifecycle": "uniform_gate_uniform_compatible_leader_50_main_picks",
     "stochastic_drafts_per_context": args.drafts_per_context,
@@ -438,6 +439,7 @@ def main() -> None:
       "sampling_seed": 73_000_019,
     },
     "contexts": output_contexts,
+    "context_relationships": _context_relationships(output_contexts),
   }
   args.json.parent.mkdir(parents=True, exist_ok=True)
   args.json.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")

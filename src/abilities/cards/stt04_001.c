@@ -46,7 +46,15 @@ void stt04_001_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
 
   ecs_entity_t target = ctx->effect.entities[0];
   deal_effect_damage(world, target, 1);
-  if (is_friendly_garden_or_alley_entity(world, ctx->runtime.owner, target)) {
+  const CurStats *damaged = ecs_get(world, target, CurStats);
+  if (damaged != NULL && damaged->cur_hp > 0 &&
+      is_friendly_garden_or_alley_entity(world, ctx->runtime.owner, target)) {
+    const CurStats *before = ecs_get(world, target, CurStats);
+    const int8_t attack_before = before != NULL ? before->cur_atk : 0;
     apply_attack_modifier(world, target, ctx->runtime.source_card, 1, true);
+    const CurStats *after = ecs_get(world, target, CurStats);
+    if (after != NULL && after->cur_atk > attack_before) {
+      azk_record_leader_ability_outcome(world, ctx->runtime.owner);
+    }
   }
 }

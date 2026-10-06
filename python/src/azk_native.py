@@ -10,10 +10,10 @@ observations as (num_agents, STRUCT_SIZE) uint8 rows with num_agents =
 2 * num_envs. Viewed as (num_envs, 2 * STRUCT_SIZE), each row is exactly the
 contiguous pair of per-player structs that the C side writes for one env.
 
-Reward components are NOT shipped separately: c_step guarantees that on
-episode-end steps rewards hold only the terminal component (shaped zeroed)
-and on all other steps only the shaped component. The trainer reconstructs
-both components and win labels from (rewards, terminals, truncations).
+Terminal and shaped rewards are separate shared-memory channels. Combined
+rewards are their unclipped sum, including resolved ability outcomes and any
+potential closure on terminal steps. Win labels use only the terminal channel;
+truncations are bootstrap boundaries, not losses.
 """
 
 from __future__ import annotations
@@ -68,6 +68,13 @@ class AzukiNativeEnv(PufferEnv):
     deck_building_privileged_decks: bool = False,
     draft_uniform_assignment: bool = False,
     evaluation_mode: bool = False,
+    reward_telemetry: bool = False,
+    reward_decomposed_schedule: bool = False,
+    pbrs_mode: str = "legacy",
+    pbrs_gamma: float = 0.99,
+    pbrs_terminal_closure: bool | None = None,
+    prebuilt_deck_groups: tuple[tuple[int, ...], ...] | None = None,
+    prebuilt_probability: float = 0.0,
   ) -> None:
     num_envs = int(num_envs)
     if num_envs < 1:
@@ -90,6 +97,38 @@ class AzukiNativeEnv(PufferEnv):
         "native_layout": True,
       }
     super().__init__(buf)
+    self.reward_decomposed_schedule = bool(reward_decomposed_schedule)
+    if self.reward_decomposed_schedule and buf is not None:
+      reward_scales = buf.get("reward_scales")
+      if not isinstance(reward_scales, np.ndarray):
+        raise ValueError(
+          "reward_decomposed_schedule requires a reward_scales buffer"
+        )
+      if reward_scales.shape != (2,) or reward_scales.dtype != np.float32:
+        raise ValueError("reward_scales must be a float32 vector of length 2")
+      self._reward_scales = reward_scales
+    else:
+      self._reward_scales = np.ones(2, dtype=np.float32)
+    self.prebuilt_curriculum = prebuilt_deck_groups is not None
+    self.initial_prebuilt_probability = float(prebuilt_probability)
+    if not np.isfinite(self.initial_prebuilt_probability) or not 0.0 <= self.initial_prebuilt_probability <= 1.0:
+      raise ValueError("prebuilt_probability must be finite and in [0, 1]")
+    if self.prebuilt_curriculum and not self._deck_building:
+      raise ValueError("prebuilt decks require deck_building=True")
+    if not self.prebuilt_curriculum and self.initial_prebuilt_probability != 0.0:
+      raise ValueError("prebuilt_probability requires prebuilt_deck_groups")
+    self._prebuilt_deck_groups = prebuilt_deck_groups
+    probability_buffer = buf.get("prebuilt_probability") if buf is not None else None
+    if probability_buffer is None:
+      probability_buffer = np.full(1, self.initial_prebuilt_probability, dtype=np.float32)
+    if (
+      not isinstance(probability_buffer, np.ndarray)
+      or probability_buffer.shape != (1,)
+      or probability_buffer.dtype != np.float32
+      or not probability_buffer.flags["C_CONTIGUOUS"]
+    ):
+      raise ValueError("prebuilt_probability buffer must be a contiguous float32 vector of length 1")
+    self.prebuilt_probability = probability_buffer
 
     for name in ("observations", "actions", "rewards", "terminals", "truncations"):
       if not getattr(self, name).flags["C_CONTIGUOUS"]:
@@ -103,10 +142,22 @@ class AzukiNativeEnv(PufferEnv):
     self._c_rewards = self.rewards.reshape(num_envs, MAX_PLAYERS_PER_MATCH)
     self._c_terminals = self.terminals.reshape(num_envs, MAX_PLAYERS_PER_MATCH)
     self._c_truncations = self.truncations.reshape(num_envs, MAX_PLAYERS_PER_MATCH)
-    # The binding requires these channels; the trainer derives the components
-    # from (rewards, done) instead, so these stay worker-local.
-    self._terminal_rewards = np.zeros((num_envs, MAX_PLAYERS_PER_MATCH), np.float32)
-    self._shaped_rewards = np.zeros((num_envs, MAX_PLAYERS_PER_MATCH), np.float32)
+    # Preserve both channels across vector workers: terminal rows can contain
+    # an outcome and a potential settlement at the same time.
+    for name in ("terminal_rewards", "shaped_rewards"):
+      component = buf.get(name) if buf is not None else None
+      if component is None:
+        component = np.zeros(self.num_agents, dtype=np.float32)
+      if (
+        not isinstance(component, np.ndarray)
+        or component.shape != (self.num_agents,)
+        or component.dtype != np.float32
+        or not component.flags["C_CONTIGUOUS"]
+      ):
+        raise ValueError(f"Native {name} must be a contiguous per-agent float32 buffer")
+      setattr(self, name, component)
+    self._terminal_rewards = self.terminal_rewards.reshape(num_envs, MAX_PLAYERS_PER_MATCH)
+    self._shaped_rewards = self.shaped_rewards.reshape(num_envs, MAX_PLAYERS_PER_MATCH)
 
     self._deck_pool = deck_pool
     self._seed = int(seed or 0)
@@ -119,6 +170,24 @@ class AzukiNativeEnv(PufferEnv):
     self._deck_building_privileged_decks = bool(deck_building_privileged_decks)
     self._draft_uniform_assignment = bool(draft_uniform_assignment)
     self._evaluation_mode = bool(evaluation_mode)
+    self._reward_telemetry = bool(reward_telemetry)
+    if self._reward_telemetry and not self._deck_building:
+      raise ValueError("reward_telemetry requires deck_building=True")
+    self._pbrs_mode = str(pbrs_mode)
+    if self._pbrs_mode not in {"legacy", "discounted"}:
+      raise ValueError("pbrs_mode must be 'legacy' or 'discounted'")
+    self._pbrs_gamma = float(pbrs_gamma)
+    if not 0.0 <= self._pbrs_gamma <= 1.0:
+      raise ValueError("pbrs_gamma must be in [0, 1]")
+    self._pbrs_terminal_closure = (
+      self._pbrs_mode == "discounted"
+      if pbrs_terminal_closure is None
+      else bool(pbrs_terminal_closure)
+    )
+    if self._pbrs_mode == "discounted" and not self._pbrs_terminal_closure:
+      raise ValueError("discounted PBRS requires terminal closure")
+    if self._pbrs_terminal_closure and self._pbrs_mode != "discounted":
+      raise ValueError("pbrs_terminal_closure requires pbrs_mode='discounted'")
     if self._evaluation_mode and not self._deck_building:
       raise ValueError("evaluation_mode requires deck_building=True")
     self._pending_evaluation_records: list[dict] = []
@@ -166,6 +235,17 @@ class AzukiNativeEnv(PufferEnv):
         kwargs["draft_uniform_assignment"] = 1
       if self._evaluation_mode:
         kwargs["evaluation_pause_on_done"] = 1
+      if self._reward_telemetry:
+        kwargs["reward_telemetry"] = 1
+    kwargs["pbrs_mode"] = self._pbrs_mode
+    kwargs["pbrs_gamma"] = self._pbrs_gamma
+    if self._pbrs_terminal_closure:
+      kwargs["pbrs_terminal_closure"] = 1
+    if self.reward_decomposed_schedule:
+      kwargs["reward_scales"] = self._reward_scales
+    if self.prebuilt_curriculum:
+      kwargs["prebuilt_deck_groups"] = self._prebuilt_deck_groups
+      kwargs["prebuilt_probability"] = self.prebuilt_probability
     self._handle = binding.vec_init(
       self._c_obs,
       self._c_actions,
@@ -213,6 +293,51 @@ class AzukiNativeEnv(PufferEnv):
 
   def notify(self):
     pass
+
+  def draft_snapshot(self, player_index: int, env_index: int = 0) -> dict:
+    """Return an owned copy of a completed drafted deck."""
+    if not self._deck_building:
+      raise RuntimeError("draft_snapshot requires deck_building=True")
+    if not 0 <= int(env_index) < self._num_envs:
+      raise IndexError(f"env_index {env_index} is out of range")
+    if not 0 <= int(player_index) < MAX_PLAYERS_PER_MATCH:
+      raise IndexError(f"player_index {player_index} is out of range")
+    self._ensure_handle()
+    snapshot = binding.vec_draft_snapshot(
+      self._handle, int(env_index), int(player_index)
+    )
+    if not isinstance(snapshot, dict):
+      raise RuntimeError("Native draft snapshot returned a non-object result")
+    if set(snapshot) != {"gate", "leader", "main_count", "main"}:
+      raise RuntimeError("Native draft snapshot returned invalid fields")
+    gate = snapshot["gate"]
+    leader = snapshot["leader"]
+    main_count = snapshot["main_count"]
+    main = snapshot["main"]
+    if (
+      not isinstance(gate, int)
+      or isinstance(gate, bool)
+      or gate < 0
+      or not isinstance(leader, int)
+      or isinstance(leader, bool)
+      or leader < 0
+      or not isinstance(main_count, int)
+      or isinstance(main_count, bool)
+      or main_count != 50
+      or not isinstance(main, list)
+      or len(main) != 50
+      or any(
+        not isinstance(card_id, int) or isinstance(card_id, bool) or card_id < 0
+        for card_id in main
+      )
+    ):
+      raise RuntimeError("Native draft snapshot returned invalid deck data")
+    return {
+      "gate": gate,
+      "leader": leader,
+      "main_count": main_count,
+      "main": list(main),
+    }
 
   def reset_evaluation_games(self, games: list[dict]) -> None:
     if not self._evaluation_mode:

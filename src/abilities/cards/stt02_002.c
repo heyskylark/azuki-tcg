@@ -34,6 +34,9 @@ void stt02_002_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
 
   if (gp && gp->gate_points > 0) {
     uint8_t untapped = untap_n_ikz_cards(world, ikz_area, gp->gate_points);
+    if (untapped > 0) {
+      azk_record_gate_ability_outcome(world, ctx->runtime.owner);
+    }
     cli_render_logf("[GatePortal] Hydromancy untapped %u IKZ", untapped);
   }
 }

@@ -43,6 +43,14 @@ PHASE_NAMES = {
 GARDEN_SIZE = 5
 
 
+def terminal_winner(env, *, terminated: bool, truncated: bool) -> int:
+    """Use the engine outcome channel, never PBRS or truncation rewards."""
+    if not terminated or truncated:
+        return -1
+    r0, r1 = env._terminal_rewards
+    return 0 if r0 > r1 else 1 if r1 > r0 else -1
+
+
 class GameLogger:
     def __init__(
         self,
@@ -96,10 +104,12 @@ class GameLogger:
     def _slot_map(self, slots):
         return {int(e.zone_index): self.code(e.card_def_id) for e in self._valid(slots)}
 
-    def snapshot(self, actor: int) -> dict:
+    def snapshot(self, actor: int, *, include_legal: bool | None = None) -> dict:
         raw = self.inner._raw_observation(actor)
         me = raw.my_observation_data
         opp = raw.opponent_observation_data
+        if include_legal is None:
+            include_legal = self.log_legal_actions
         hand = [self.code(h.card_def_id) for h in self._valid(me.hand, int(me.hand_count))]
         ikz_untapped = sum(
             1 for e in self._valid(me.ikz_area) if not e.tap_state.tapped
@@ -114,6 +124,8 @@ class GameLogger:
             "opp_alley": self._board_list(opp.alley),
             "my_hp": int(me.leader.cur_stats.cur_hp),
             "opp_hp": int(opp.leader.cur_stats.cur_hp),
+            "my_leader_atk": int(me.leader.cur_stats.cur_atk),
+            "opp_leader_atk": int(opp.leader.cur_stats.cur_atk),
             "my_leader_weapons": [
                 self.code(w.card_def_id)
                 for w in me.leader.weapons[: int(me.leader.weapon_count)]
@@ -124,6 +136,12 @@ class GameLogger:
             ],
             "ikz": [ikz_untapped, ikz_total],
             "ikz_token": bool(me.has_ikz_token),
+            "my_discard": [
+                self.code(card.card_def_id) for card in self._valid(me.discard)
+            ],
+            "opp_discard": [
+                self.code(card.card_def_id) for card in self._valid(opp.discard)
+            ],
             "my_discard_n": len(self._valid(me.discard)),
             "opp_discard_n": len(self._valid(opp.discard)),
             "my_deck_n": int(me.deck_count),
@@ -152,7 +170,7 @@ class GameLogger:
                 "response_open": bool(cc.response_window_active),
                 "intercepted": bool(cc.defender_intercepted),
             }
-        if self.log_legal_actions:
+        if include_legal:
             mask = raw.action_mask
             snap["legal"] = [
                 [
@@ -164,6 +182,60 @@ class GameLogger:
                 for index in range(int(mask.legal_action_count))
             ]
         return snap
+
+    def draft_record(self, player: int, act, draft_index: int) -> dict:
+        context = self.runner.base_env._deck_context_for_player(
+            player, include_candidates=True
+        )
+        candidate_count = int(context["candidate_count"])
+        offered = [
+            self.code(context["candidate_card_def_ids"][index])
+            for index in range(candidate_count)
+        ]
+        selected_index = int(act[1])
+        if selected_index < 0 or selected_index >= candidate_count:
+            raise ValueError(
+                f"Draft selection {selected_index} outside {candidate_count} candidates"
+            )
+        return {
+            "i": draft_index,
+            "p": player,
+            "mode": int(context["mode"]),
+            "main_count": int(context["main_count"]),
+            "offered": offered,
+            "selected": offered[selected_index],
+            "a": [int(value) for value in act],
+        }
+
+    def post_snapshot(self, actor: int) -> dict:
+        post = self.snapshot(actor, include_legal=False)
+        result = {
+            key: post[key]
+            for key in (
+                "phase",
+                "hand",
+                "my_garden",
+                "my_alley",
+                "opp_garden",
+                "opp_alley",
+                "my_hp",
+                "opp_hp",
+                "my_leader_atk",
+                "opp_leader_atk",
+                "my_leader_weapons",
+                "opp_leader_weapons",
+                "ikz",
+                "ikz_token",
+                "my_discard",
+                "opp_discard",
+                "my_deck_n",
+                "gate_tapped",
+            )
+        }
+        for key in ("ability_src", "ability_phase", "selection", "combat"):
+            if key in post:
+                result[key] = post[key]
+        return result
 
     # ---- action decoding ---------------------------------------------------
 
@@ -226,6 +298,21 @@ class GameLogger:
             d["arg"] = s2
         elif t in (ActionType.SELECT_COST_TARGET, ActionType.SELECT_EFFECT_TARGET):
             d["raw"] = [s1, s2, s3]
+            source = snap.get("ability_src")
+            if source == "STT02-001":
+                d["target"] = (
+                    "LEADER"
+                    if s1 == GARDEN_SIZE
+                    else opp_g.get(s1, f"g{s1}?")
+                )
+            elif source == "STT04-001":
+                d["target"] = (
+                    my_g.get(s1, f"g{s1}?")
+                    if s1 < GARDEN_SIZE
+                    else my_a.get(
+                        s1 - GARDEN_SIZE, f"a{s1 - GARDEN_SIZE}?"
+                    )
+                )
         if "ability_src" in snap and t not in (ActionType.NOOP,):
             d["src"] = snap["ability_src"]
         return d
@@ -273,6 +360,7 @@ class GameLogger:
                 ),
             }
         steps = []
+        draft = []
         decks = None
         draft_steps = 0
         last_snap = None
@@ -306,6 +394,7 @@ class GameLogger:
                 acts, _, _ = azk_pytorch.sample_logits(logits)
             acts = acts.cpu().numpy().astype(np.int32, copy=True)
             if building:
+                draft.append(self.draft_record(active, acts[active], draft_steps))
                 draft_steps += 1
             else:
                 a = acts[active].tolist()
@@ -321,6 +410,9 @@ class GameLogger:
                     ],
                     "ikz": snap["ikz"],
                     "hand": snap["hand"],
+                    "my_deck_n": snap["my_deck_n"],
+                    "my_leader_atk": snap["my_leader_atk"],
+                    "opp_leader_atk": snap["opp_leader_atk"],
                     "my_garden": snap["my_garden"],
                     "my_alley": snap["my_alley"],
                     "opp_garden": snap["opp_garden"],
@@ -329,6 +421,8 @@ class GameLogger:
                         snap["my_discard_n"] if active == 0 else snap["opp_discard_n"],
                         snap["my_discard_n"] if active == 1 else snap["opp_discard_n"],
                     ],
+                    "my_discard": snap["my_discard"],
+                    "opp_discard": snap["opp_discard"],
                     "gate_tapped": snap["gate_tapped"],
                 }
                 if snap.get("ikz_token"):
@@ -341,6 +435,8 @@ class GameLogger:
                 steps.append(rec)
             runner.vecenv.send(acts)
             obs, rew, term, trunc, info, env_id, masks = runner.vecenv.recv()
+            if steps and not building and not runner.base_env._building:
+                steps[-1]["post"] = self.post_snapshot(int(steps[-1]["p"]))
             rew = np.asarray(rew, dtype=np.float64).reshape(-1)
             term = np.asarray(term).reshape(-1)
             trunc = np.asarray(trunc).reshape(-1)
@@ -349,17 +445,22 @@ class GameLogger:
                 if r0 != 0.0 or r1 != 0.0:
                     steps[-1]["r"] = [round(r0, 4), round(r1, 4)]
             if bool(term.any()) or bool(trunc.any()):
-                r0, r1 = float(rew[0]), float(rew[1])
-                winner = -1
-                if r0 > r1:
-                    winner = 0
-                elif r1 > r0:
-                    winner = 1
+                winner = terminal_winner(
+                    self.inner, terminated=bool(term.any()), truncated=bool(trunc.any())
+                )
                 outcome = {
                     "winner": winner,
-                    "terminal_rewards": [round(r0, 4), round(r1, 4)],
+                    "terminal_rewards": [float(value) for value in self.inner._terminal_rewards],
+                    "total_final_rewards": [float(value) for value in rew],
                     "terminated": bool(term.any()),
                     "truncated": bool(trunc.any()),
+                    "ability_outcomes": [
+                        {
+                            "gate": self.inner.infos[agent]["azk_gate_ability_outcomes"],
+                            "leader": self.inner.infos[agent]["azk_leader_ability_outcomes"],
+                        }
+                        for agent in self.inner.possible_agents
+                    ],
                 }
                 break
         if outcome is None:
@@ -373,10 +474,13 @@ class GameLogger:
                 snap["my_hp"] if active == 1 else snap["opp_hp"],
             ]
         return {
+            "trace_schema_version": 2,
             "game": game_index,
             "seed": seed,
+            "policy_action_mode": self.action_mode,
             "decks": decks,
             "draft_steps": draft_steps,
+            "draft": draft,
             "battle_steps": len(steps),
             "outcome": outcome,
             "final_hp_before_last_action": final_hp,
@@ -392,6 +496,12 @@ def main():
     ap.add_argument("--seed0", type=int, default=550_000)
     ap.add_argument("--device", type=str, default="cpu")
     ap.add_argument("--out", type=Path, required=True)
+    ap.add_argument(
+        "--action-mode",
+        choices=("sample", "argmax"),
+        default="sample",
+        help="Select legal actions by sampling or deterministic argmax.",
+    )
     ap.add_argument(
         "--log-legal-actions",
         action="store_true",
@@ -417,22 +527,30 @@ def main():
 
     tcg_sampler.set_sampling_params(subaction_temperature=1.0, smoothing_eps=0.0)
 
-    logger = GameLogger(runner, log_legal_actions=args.log_legal_actions)
+    logger = GameLogger(
+        runner,
+        log_legal_actions=args.log_legal_actions,
+        action_mode=args.action_mode,
+    )
     args.out.parent.mkdir(parents=True, exist_ok=True)
     t0 = time.time()
     wins = [0, 0, 0]
+    truncations = 0
     with args.out.open("w") as fh:
         for g in range(args.games):
             game = logger.play_game(g, args.seed0 + 7919 * g)
             fh.write(json.dumps(game, separators=(",", ":")) + "\n")
             fh.flush()
-            w = game["outcome"]["winner"]
-            wins[w if w >= 0 else 2] += 1
+            if game["outcome"]["truncated"] or not game["outcome"]["terminated"]:
+                truncations += 1
+            else:
+                w = game["outcome"]["winner"]
+                wins[w if w >= 0 else 2] += 1
             if (g + 1) % 10 == 0 or g == 0:
                 dt = time.time() - t0
                 print(
                     f"[{g + 1}/{args.games}] {dt:.1f}s ({dt / (g + 1):.1f}s/game) "
-                    f"p0={wins[0]} p1={wins[1]} draws={wins[2]} "
+                    f"p0={wins[0]} p1={wins[1]} draws={wins[2]} truncated={truncations} "
                     f"steps={game['battle_steps']} gates="
                     f"{game['decks'][0]['gate_name']}v{game['decks'][1]['gate_name']}",
                     flush=True,

@@ -103,6 +103,14 @@ void azk_record_damage_event(ecs_world_t *world, ecs_entity_t source,
     return;
   }
 
+  // Devotion has one damage result, including damage delayed by a redirect.
+  // Count before lethal damage resets the discarded target's current stats.
+  const CardId *source_id = source != 0 ? ecs_get(world, source, CardId) : NULL;
+  if (from_effect && source_id != NULL && source_id->id == CARD_DEF_AZK01_124) {
+    azk_record_gate_ability_outcome(
+        world, ecs_get_target(world, source, Rel_OwnedBy, 0));
+  }
+
   const GameState *gs = ecs_singleton_get(world, GameState);
 
   if (reward_entity_damage_tracking_enabled() &&

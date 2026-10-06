@@ -33,7 +33,7 @@ import {
   findValidGardenOrLeaderAbilityAction,
   findValidDeclareDefenderAction,
   findValidGateAction,
-  findValidSpellAction,
+  getValidSpellActions,
   findValidWeaponAttachAction,
   getActivatableAlleySlots,
   getActivatableGardenOrLeaderSlots,
@@ -46,6 +46,7 @@ import {
   buildCostTargetAction,
   buildEffectTargetAction,
 } from "@/lib/game/actionValidation";
+import { useSpellModeStore } from "@/stores/spellModeStore";
 import { buildAbilityTargetMaps } from "@/lib/game/abilityTargeting";
 import type {
   ResolvedPlayerBoard,
@@ -1500,7 +1501,7 @@ function PlayerArea({
  */
 export function Board() {
   const { gameState, activeBoardAnimation, hiddenBoardSlotKeys } = useGameState();
-  const { send } = useRoom();
+  const { send, activeRoom } = useRoom();
   const { camera, gl } = useThree();
 
   // Drag store actions
@@ -1511,6 +1512,7 @@ export function Board() {
   const hoveredZone = useDragStore((state) => state.hoveredZone);
   const drop = useDragStore((state) => state.drop);
   const setOnDropCallback = useDragStore((state) => state.setOnDropCallback);
+  const openSpellModeChooser = useSpellModeStore((state) => state.open);
 
   const isInAbilityPhase =
     gameState?.abilitySubphase !== undefined && gameState.abilitySubphase !== "NONE";
@@ -1810,28 +1812,51 @@ export function Board() {
   );
 
   const handleSpellDrop = useCallback(
-    (_zone: "garden" | "alley" | "leader" | "spell", _slotIndex: number | null) => {
-      if (_zone !== "spell") return;
+    (zone: "garden" | "alley" | "leader" | "spell", _slotIndex: number | null) => {
+      if (zone !== "spell") return;
 
       const currentDraggedCardIndex = useDragStore.getState().draggedCardIndex;
-      if (currentDraggedCardIndex === null || !gameState?.actionMask) {
+      const actionMask = gameState?.actionMask;
+      const card =
+        currentDraggedCardIndex === null
+          ? undefined
+          : gameState?.myHand[currentDraggedCardIndex];
+      if (
+        currentDraggedCardIndex === null ||
+        !actionMask ||
+        !card ||
+        !activeRoom ||
+        gameState.activePlayer !== activeRoom.playerSlot
+      ) {
         return;
       }
 
-      const action = findValidSpellAction(gameState.actionMask, currentDraggedCardIndex);
-
-      if (action) {
+      const actions = getValidSpellActions(actionMask, currentDraggedCardIndex);
+      if (actions.length === 1) {
         send({
           type: "GAME_ACTION",
-          action,
+          action: actions[0],
         });
-
         drop();
-      } else {
-        console.log("[Board] No valid spell action found");
+        return;
+      }
+
+      if (actions.length > 1) {
+        openSpellModeChooser({
+          cardCode: card.cardCode,
+          cardName: card.name,
+          handIndex: currentDraggedCardIndex,
+          actions,
+          actionMask,
+          phase: gameState.phase,
+          abilitySubphase: gameState.abilitySubphase,
+          activePlayer: gameState.activePlayer,
+          turnNumber: gameState.turnNumber,
+        });
+        drop();
       }
     },
-    [gameState?.actionMask, send, drop]
+    [activeRoom, gameState, send, drop, openSpellModeChooser]
   );
 
   const handleActivateGardenOrLeaderAbility = useCallback(

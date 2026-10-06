@@ -151,6 +151,7 @@
 #include "abilities/cards/stt03_014.h"
 #include "abilities/cards/stt03_015.h"
 #include "abilities/cards/stt03_016.h"
+#include "abilities/cards/stt03_017.h"
 #include "abilities/cards/stt04_001.h"
 #include "abilities/cards/stt04_002.h"
 #include "abilities/cards/stt04_003.h"
@@ -2449,6 +2450,32 @@ void azk_init_ability_registry(ecs_world_t *world) {
       .validate = stt03_016_validate,
       .apply_effects = stt03_016_apply_effects,
   };
+
+  // STT03-017 "Sprout of Fortune": [Main] Choose 1 - move 1 IKZ from your
+  // pile to your area tapped, then heal up to 1 to your leader; or draw 1.
+  kAbilityRegistry[CARD_DEF_STT03_017] = (AbilityDef){
+      .has_ability = true,
+      .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+      .effect_req = {.type = ABILITY_TARGET_ANY_LEADER, .min = 0, .max = 1},
+      .timing_tag = ecs_id(AMain),
+      .validate = stt03_017_validate_ramp,
+      .validate_effect_target = stt03_017_validate_heal_target,
+      .on_cost_paid = stt03_017_begin_ramp_effect,
+      .apply_effects = stt03_017_apply_heal,
+  };
+  const AbilityDef stt03_017_additional[] = {
+      {
+          .has_ability = true,
+          .cost_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+          .effect_req = {.type = ABILITY_TARGET_NONE, .min = 0, .max = 0},
+          .timing_tag = ecs_id(AMain),
+          .apply_effects = stt03_017_draw,
+      },
+  };
+  (void)azk_set_additional_card_abilities(
+      CARD_DEF_STT03_017, stt03_017_additional,
+      (uint8_t)(sizeof(stt03_017_additional) /
+                sizeof(stt03_017_additional[0])));
 
   // STT04-001 "Zero": [Once/Turn][Main] Deal 1 damage to this card: Deal 1
   // damage to a friendly Garden or Alley entity, then give it +1 attack until

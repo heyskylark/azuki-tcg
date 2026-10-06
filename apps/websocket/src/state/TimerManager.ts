@@ -1,8 +1,6 @@
 import logger from "@/logger";
-import {
-  READY_COUNTDOWN_MS,
-  DISCONNECT_GRACE_MS,
-} from "@/constants";
+import { READY_COUNTDOWN_MS, DISCONNECT_GRACE_MS } from "@/constants";
+import { enqueueRoomMutation } from "@/state/RoomMutationQueue";
 
 interface RoomTimers {
   readyCountdown: NodeJS.Timeout | null;
@@ -25,10 +23,7 @@ function getOrCreateTimers(roomId: string): RoomTimers {
   return timers;
 }
 
-export function startReadyCountdown(
-  roomId: string,
-  onComplete: () => Promise<void>
-): void {
+export function startReadyCountdown(roomId: string, onComplete: () => Promise<void>): void {
   const timers = getOrCreateTimers(roomId);
 
   if (timers.readyCountdown) {
@@ -37,14 +32,20 @@ export function startReadyCountdown(
 
   logger.info("Starting ready countdown", { roomId, durationMs: READY_COUNTDOWN_MS });
 
-  timers.readyCountdown = setTimeout(async () => {
-    timers.readyCountdown = null;
+  const timer = setTimeout(async () => {
     try {
-      await onComplete();
+      await enqueueRoomMutation(roomId, async () => {
+        if (timers.readyCountdown !== timer) {
+          return;
+        }
+        timers.readyCountdown = null;
+        await onComplete();
+      });
     } catch (error) {
       logger.error("Error in ready countdown callback", { roomId, error });
     }
   }, READY_COUNTDOWN_MS);
+  timers.readyCountdown = timer;
 }
 
 export function cancelReadyCountdown(roomId: string): boolean {
@@ -61,7 +62,7 @@ export function cancelReadyCountdown(roomId: string): boolean {
 
 export function isReadyCountdownActive(roomId: string): boolean {
   const timers = roomTimers.get(roomId);
-  return timers?.readyCountdown !== null;
+  return Boolean(timers?.readyCountdown);
 }
 
 export function startDeckSelectionTimeout(
@@ -78,7 +79,7 @@ export function startDeckSelectionTimeout(
   const msUntilDeadline = deadline.getTime() - Date.now();
   if (msUntilDeadline <= 0) {
     logger.warn("Deck selection deadline already passed", { roomId, deadline });
-    onTimeout().catch((error) => {
+    void enqueueRoomMutation(roomId, onTimeout).catch((error) => {
       logger.error("Error in deck selection timeout callback", { roomId, error });
     });
     return;
@@ -86,14 +87,20 @@ export function startDeckSelectionTimeout(
 
   logger.info("Starting deck selection timeout", { roomId, deadline, msUntilDeadline });
 
-  timers.deckSelectionDeadline = setTimeout(async () => {
-    timers.deckSelectionDeadline = null;
+  const timer = setTimeout(async () => {
     try {
-      await onTimeout();
+      await enqueueRoomMutation(roomId, async () => {
+        if (timers.deckSelectionDeadline !== timer) {
+          return;
+        }
+        timers.deckSelectionDeadline = null;
+        await onTimeout();
+      });
     } catch (error) {
       logger.error("Error in deck selection timeout callback", { roomId, error });
     }
   }, msUntilDeadline);
+  timers.deckSelectionDeadline = timer;
 }
 
 export function cancelDeckSelectionTimeout(roomId: string): boolean {
@@ -120,12 +127,21 @@ export function startDisconnectGrace(
     clearTimeout(existingTimer);
   }
 
-  logger.info("Starting disconnect grace period", { roomId, playerSlot, durationMs: DISCONNECT_GRACE_MS });
+  logger.info("Starting disconnect grace period", {
+    roomId,
+    playerSlot,
+    durationMs: DISCONNECT_GRACE_MS,
+  });
 
   const timer = setTimeout(async () => {
-    timers.disconnectGrace.delete(playerSlot);
     try {
-      await onTimeout();
+      await enqueueRoomMutation(roomId, async () => {
+        if (timers.disconnectGrace.get(playerSlot) !== timer) {
+          return;
+        }
+        timers.disconnectGrace.delete(playerSlot);
+        await onTimeout();
+      });
     } catch (error) {
       logger.error("Error in disconnect grace timeout callback", { roomId, playerSlot, error });
     }

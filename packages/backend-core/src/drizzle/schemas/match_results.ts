@@ -16,6 +16,7 @@ export const MatchResults = pgTable("match_results", {
   id: uuidv7PrimaryKeyField(),
   roomId: uuid("room_id")
     .notNull()
+    .unique()
     .references(() => Rooms.id),
   player0Id: uuid("player0_id")
     .notNull()

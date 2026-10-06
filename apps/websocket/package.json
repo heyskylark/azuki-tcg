@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "main": "dist/server.js",
+  "engines": {
+    "node": ">=18 <23"
+  },
   "scripts": {
     "dev": "bun --watch src/server.ts",
     "debug": "ROOT_DIR=$(git rev-parse --show-toplevel) && cd \"$ROOT_DIR\" && COMPOSE_PROJECT_NAME=${COMPOSE_PROJECT_NAME:-$(basename \"$ROOT_DIR\")} docker compose -f docker-compose.yml -f docker-compose.debug.yml run --no-deps --rm --service-ports ws gdb -ex \"set follow-fork-mode child\" -ex \"set detach-on-fork off\" -ex run --args node /app/apps/websocket/dist/server.js",
@@ -14,7 +17,7 @@
     "build": "tsc && tsc-alias --resolve-full-paths && bun scripts/copy-native.js",
     "build:native": "cd native && node-gyp rebuild",
     "build:all": "bun run build:native && bun run build",
-    "start": "bun dist/server.js",
+    "start": "node dist/server.js",
     "test:engine": "bun scripts/test-engine.ts"
   },
   "dependencies": {

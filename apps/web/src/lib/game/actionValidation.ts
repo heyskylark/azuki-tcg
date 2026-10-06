@@ -27,6 +27,39 @@ export const ACTION_SELECT_TO_ALLEY = 21;
 export const ACTION_SELECT_TO_EQUIP = 22;
 export const ACTION_SELECT_TO_GARDEN = 23;
 export const ACTION_TOP_DECK_CARD = 24;
+export const ACTION_MULLIGAN_SHUFFLE = 25;
+
+/**
+ * Action-type index (action space head 0) to engine action name.
+ * Used by debug and evaluation-review surfaces to label raw action tuples.
+ */
+export const ACTION_TYPE_NAMES: Record<number, string> = {
+  [ACTION_NOOP]: "NOOP",
+  [ACTION_PLAY_ENTITY_TO_GARDEN]: "PLAY_ENTITY_GARDEN",
+  [ACTION_PLAY_ENTITY_TO_ALLEY]: "PLAY_ENTITY_ALLEY",
+  [ACTION_ATTACK]: "ATTACK",
+  [ACTION_ATTACH_WEAPON_FROM_HAND]: "ATTACH_WEAPON_FROM_HAND",
+  [ACTION_PLAY_SPELL_FROM_HAND]: "PLAY_SPELL_FROM_HAND",
+  [ACTION_DECLARE_DEFENDER]: "DECLARE_DEFENDER",
+  [ACTION_GATE_PORTAL]: "GATE_PORTAL",
+  [ACTION_ACTIVATE_GARDEN_OR_LEADER_ABILITY]: "ACTIVATE_GARDEN_OR_LEADER_ABILITY",
+  [ACTION_ACTIVATE_ALLEY_ABILITY]: "ACTIVATE_ALLEY_ABILITY",
+  [ACTION_SELECT_COST_TARGET]: "SELECT_COST_TARGET",
+  [ACTION_SELECT_EFFECT_TARGET]: "SELECT_EFFECT_TARGET",
+  [ACTION_CONFIRM_ABILITY]: "CONFIRM_ABILITY",
+  [ACTION_SELECT_FROM_SELECTION]: "SELECT_FROM_SELECTION",
+  [ACTION_BOTTOM_DECK_CARD]: "BOTTOM_DECK_CARD",
+  [ACTION_BOTTOM_DECK_ALL]: "BOTTOM_DECK_ALL",
+  [ACTION_SELECT_TO_ALLEY]: "SELECT_TO_ALLEY",
+  [ACTION_SELECT_TO_EQUIP]: "SELECT_TO_EQUIP",
+  [ACTION_SELECT_TO_GARDEN]: "SELECT_TO_GARDEN",
+  [ACTION_TOP_DECK_CARD]: "TOP_DECK_CARD",
+  [ACTION_MULLIGAN_SHUFFLE]: "MULLIGAN_SHUFFLE",
+};
+
+export function getActionTypeName(index: number): string {
+  return ACTION_TYPE_NAMES[index] ?? `UNKNOWN_${index}`;
+}
 
 /**
  * Get valid garden and alley slots for playing a specific hand card.
@@ -70,10 +103,7 @@ export function getValidSlotsForHandCard(
 /**
  * Check if a hand card has any valid play actions (garden or alley).
  */
-export function canPlayCard(
-  actionMask: SnapshotActionMask | null,
-  handIndex: number
-): boolean {
+export function canPlayCard(actionMask: SnapshotActionMask | null, handIndex: number): boolean {
   const { gardenSlots, alleySlots } = getValidSlotsForHandCard(actionMask, handIndex);
   return gardenSlots.size > 0 || alleySlots.size > 0;
 }
@@ -85,56 +115,105 @@ export function canPlayCard(
 /**
  * Check if a hand card has a valid spell play action.
  */
-export function canPlaySpell(
-  actionMask: SnapshotActionMask | null,
-  handIndex: number
-): boolean {
+export function canPlaySpell(actionMask: SnapshotActionMask | null, handIndex: number): boolean {
   if (!actionMask) return false;
   const { legalPrimary, legalSub1 } = actionMask;
   for (let i = 0; i < legalPrimary.length; i++) {
-    if (
-      legalPrimary[i] === ACTION_PLAY_SPELL_FROM_HAND &&
-      legalSub1[i] === handIndex
-    ) {
+    if (legalPrimary[i] === ACTION_PLAY_SPELL_FROM_HAND && legalSub1[i] === handIndex) {
       return true;
     }
   }
   return false;
 }
 
+export type SpellAction = [number, number, number, number];
+
 /**
- * Find the valid spell play action tuple for a specific hand card.
- * Returns [ACTION_PLAY_SPELL_FROM_HAND, handIndex, 0, ikzTokenFlag] or null if invalid.
- * Prefers non-token actions (ikzTokenFlag = 0) when available.
+ * Get one legal spell action per ability index for a hand card.
+ *
+ * The engine can expose the same ability more than once when it can be paid with
+ * or without an IKZ token. Those payment alternatives are equivalent choices,
+ * so this helper keeps the no-token tuple when available while preserving every
+ * distinct ability index.
  */
-export function findValidSpellAction(
+export function getValidSpellActions(
   actionMask: SnapshotActionMask | null,
   handIndex: number
-): [number, number, number, number] | null {
-  if (!actionMask) return null;
+): SpellAction[] {
+  if (!actionMask) return [];
 
-  const { legalPrimary, legalSub1, legalSub3 } = actionMask;
-  let fallback: [number, number, number, number] | null = null;
+  const { legalPrimary, legalSub1, legalSub2, legalSub3 } = actionMask;
+  const actionsByAbility = new Map<number, SpellAction>();
+  const rowCount = Math.min(
+    legalPrimary.length,
+    legalSub1.length,
+    legalSub2.length,
+    legalSub3.length
+  );
 
-  for (let i = 0; i < legalPrimary.length; i++) {
+  for (let i = 0; i < rowCount; i++) {
     if (
-      legalPrimary[i] === ACTION_PLAY_SPELL_FROM_HAND &&
-      legalSub1[i] === handIndex
+      legalPrimary[i] !== ACTION_PLAY_SPELL_FROM_HAND ||
+      legalSub1[i] !== handIndex
     ) {
-      const action: [number, number, number, number] = [
+      continue;
+    }
+
+    const abilityIndex = legalSub2[i];
+    const tokenFlag = legalSub3[i];
+    if (
+      !Number.isInteger(abilityIndex) ||
+      abilityIndex < 0 ||
+      (tokenFlag !== 0 && tokenFlag !== 1)
+    ) {
+      continue;
+    }
+
+    const existing = actionsByAbility.get(abilityIndex);
+    if (!existing || (existing[3] !== 0 && tokenFlag === 0)) {
+      actionsByAbility.set(abilityIndex, [
         ACTION_PLAY_SPELL_FROM_HAND,
         handIndex,
-        0,
-        legalSub3[i],
-      ];
-      if (legalSub3[i] === 0) {
-        return action;
-      }
-      fallback = action;
+        abilityIndex,
+        tokenFlag,
+      ]);
     }
   }
 
-  return fallback;
+  return [...actionsByAbility.values()].sort(
+    (left, right) => left[2] - right[2]
+  );
+}
+
+/**
+ * Check that an exact spell tuple is still present in the current action mask.
+ */
+export function isSpellActionLegal(
+  actionMask: SnapshotActionMask | null,
+  action: SpellAction
+): boolean {
+  if (!actionMask || action[0] !== ACTION_PLAY_SPELL_FROM_HAND) return false;
+
+  const { legalPrimary, legalSub1, legalSub2, legalSub3 } = actionMask;
+  const rowCount = Math.min(
+    legalPrimary.length,
+    legalSub1.length,
+    legalSub2.length,
+    legalSub3.length
+  );
+
+  for (let i = 0; i < rowCount; i++) {
+    if (
+      legalPrimary[i] === action[0] &&
+      legalSub1[i] === action[1] &&
+      legalSub2[i] === action[2] &&
+      legalSub3[i] === action[3]
+    ) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**
@@ -202,10 +281,7 @@ export function getValidWeaponAttachTargets(
   const { legalPrimary, legalSub1, legalSub2 } = actionMask;
 
   for (let i = 0; i < legalPrimary.length; i++) {
-    if (
-      legalPrimary[i] === ACTION_ATTACH_WEAPON_FROM_HAND &&
-      legalSub1[i] === handIndex
-    ) {
+    if (legalPrimary[i] === ACTION_ATTACH_WEAPON_FROM_HAND && legalSub1[i] === handIndex) {
       targets.add(legalSub2[i]);
     }
   }
@@ -216,23 +292,16 @@ export function getValidWeaponAttachTargets(
 /**
  * Check if a hand card has any valid weapon attachment actions.
  */
-export function canAttachWeapon(
-  actionMask: SnapshotActionMask | null,
-  handIndex: number
-): boolean {
+export function canAttachWeapon(actionMask: SnapshotActionMask | null, handIndex: number): boolean {
   return getValidWeaponAttachTargets(actionMask, handIndex).size > 0;
 }
 
 /**
  * Check if any weapon attachment actions are available in the action mask.
  */
-export function hasWeaponAttachActions(
-  actionMask: SnapshotActionMask | null
-): boolean {
+export function hasWeaponAttachActions(actionMask: SnapshotActionMask | null): boolean {
   if (!actionMask) return false;
-  return actionMask.legalPrimary.some(
-    (action) => action === ACTION_ATTACH_WEAPON_FROM_HAND
-  );
+  return actionMask.legalPrimary.some((action) => action === ACTION_ATTACH_WEAPON_FROM_HAND);
 }
 
 /**
@@ -283,9 +352,7 @@ export function buildWeaponAttachAction(
 /**
  * Get valid attacker indices (0-4 = garden slots, 5 = leader).
  */
-export function getValidAttackers(
-  actionMask: SnapshotActionMask | null
-): Set<number> {
+export function getValidAttackers(actionMask: SnapshotActionMask | null): Set<number> {
   const attackers = new Set<number>();
 
   if (!actionMask) return attackers;
@@ -315,10 +382,7 @@ export function getValidAttackTargetsForAttacker(
   const { legalPrimary, legalSub1, legalSub2 } = actionMask;
 
   for (let i = 0; i < legalPrimary.length; i++) {
-    if (
-      legalPrimary[i] === ACTION_ATTACK &&
-      legalSub1[i] === attackerIndex
-    ) {
+    if (legalPrimary[i] === ACTION_ATTACK && legalSub1[i] === attackerIndex) {
       targets.add(legalSub2[i]);
     }
   }
@@ -369,9 +433,7 @@ export function buildAttackAction(
 /**
  * Get valid defender indices (0-4 = garden slots).
  */
-export function getValidDefenderSlots(
-  actionMask: SnapshotActionMask | null
-): Set<number> {
+export function getValidDefenderSlots(actionMask: SnapshotActionMask | null): Set<number> {
   const defenders = new Set<number>();
 
   if (!actionMask) return defenders;
@@ -400,10 +462,7 @@ export function findValidDeclareDefenderAction(
   const { legalPrimary, legalSub1, legalSub2, legalSub3 } = actionMask;
 
   for (let i = 0; i < legalPrimary.length; i++) {
-    if (
-      legalPrimary[i] === ACTION_DECLARE_DEFENDER &&
-      legalSub1[i] === gardenIndex
-    ) {
+    if (legalPrimary[i] === ACTION_DECLARE_DEFENDER && legalSub1[i] === gardenIndex) {
       return [ACTION_DECLARE_DEFENDER, gardenIndex, legalSub2[i], legalSub3[i]];
     }
   }
@@ -414,9 +473,7 @@ export function findValidDeclareDefenderAction(
 /**
  * Build a DECLARE_DEFENDER action tuple.
  */
-export function buildDeclareDefenderAction(
-  gardenIndex: number
-): [number, number, number, number] {
+export function buildDeclareDefenderAction(gardenIndex: number): [number, number, number, number] {
   return [ACTION_DECLARE_DEFENDER, gardenIndex, 0, 0];
 }
 
@@ -450,9 +507,7 @@ export function getActivatableGardenOrLeaderSlots(
  * Get valid alley slots for activating abilities.
  * Returns a Set of alley slot indices.
  */
-export function getActivatableAlleySlots(
-  actionMask: SnapshotActionMask | null
-): Set<number> {
+export function getActivatableAlleySlots(actionMask: SnapshotActionMask | null): Set<number> {
   const slots = new Set<number>();
 
   if (!actionMask) return slots;
@@ -485,12 +540,7 @@ export function findValidGardenOrLeaderAbilityAction(
       legalPrimary[i] === ACTION_ACTIVATE_GARDEN_OR_LEADER_ABILITY &&
       legalSub1[i] === slotIndex
     ) {
-      return [
-        ACTION_ACTIVATE_GARDEN_OR_LEADER_ABILITY,
-        legalSub1[i],
-        legalSub2[i],
-        legalSub3[i],
-      ];
+      return [ACTION_ACTIVATE_GARDEN_OR_LEADER_ABILITY, legalSub1[i], legalSub2[i], legalSub3[i]];
     }
   }
 
@@ -510,16 +560,8 @@ export function findValidAlleyAbilityAction(
   const { legalPrimary, legalSub1, legalSub2, legalSub3 } = actionMask;
 
   for (let i = 0; i < legalPrimary.length; i++) {
-    if (
-      legalPrimary[i] === ACTION_ACTIVATE_ALLEY_ABILITY &&
-      legalSub2[i] === alleyIndex
-    ) {
-      return [
-        ACTION_ACTIVATE_ALLEY_ABILITY,
-        legalSub1[i],
-        legalSub2[i],
-        legalSub3[i],
-      ];
+    if (legalPrimary[i] === ACTION_ACTIVATE_ALLEY_ABILITY && legalSub2[i] === alleyIndex) {
+      return [ACTION_ACTIVATE_ALLEY_ABILITY, legalSub1[i], legalSub2[i], legalSub3[i]];
     }
   }
 
@@ -529,9 +571,7 @@ export function findValidAlleyAbilityAction(
 /**
  * Check if the CONFIRM_ABILITY action is available in the action mask.
  */
-export function hasConfirmAbilityAction(
-  actionMask: SnapshotActionMask | null
-): boolean {
+export function hasConfirmAbilityAction(actionMask: SnapshotActionMask | null): boolean {
   if (!actionMask) return false;
   return actionMask.legalPrimary.some((action) => action === ACTION_CONFIRM_ABILITY);
 }
@@ -548,9 +588,7 @@ export function hasNoopAction(actionMask: SnapshotActionMask | null): boolean {
  * Get valid cost target indices from the action mask.
  * Returns an array of hand indices that can be selected as cost targets.
  */
-export function getValidCostTargets(
-  actionMask: SnapshotActionMask | null
-): number[] {
+export function getValidCostTargets(actionMask: SnapshotActionMask | null): number[] {
   if (!actionMask) return [];
 
   const targets: number[] = [];
@@ -566,9 +604,7 @@ export function getValidCostTargets(
  * Get valid effect target indices from the action mask.
  * Returns an array of target indices (0-4 = my garden, 5-9 = opponent garden, etc.).
  */
-export function getValidEffectTargets(
-  actionMask: SnapshotActionMask | null
-): number[] {
+export function getValidEffectTargets(actionMask: SnapshotActionMask | null): number[] {
   if (!actionMask) return [];
 
   const targets: number[] = [];
@@ -584,9 +620,7 @@ export function getValidEffectTargets(
  * Get valid selection indices from the action mask for SELECTION_PICK phase.
  * Returns an array of selection zone indices that can be picked.
  */
-export function getValidSelectionTargets(
-  actionMask: SnapshotActionMask | null
-): number[] {
+export function getValidSelectionTargets(actionMask: SnapshotActionMask | null): number[] {
   if (!actionMask) return [];
 
   const targets: number[] = [];
@@ -721,9 +755,7 @@ export function isValidEquipAction(
 /**
  * Get valid bottom deck card indices from the action mask.
  */
-export function getValidBottomDeckTargets(
-  actionMask: SnapshotActionMask | null
-): number[] {
+export function getValidBottomDeckTargets(actionMask: SnapshotActionMask | null): number[] {
   if (!actionMask) return [];
 
   const targets: number[] = [];
@@ -738,9 +770,7 @@ export function getValidBottomDeckTargets(
 /**
  * Get valid top deck card indices from the action mask.
  */
-export function getValidTopDeckTargets(
-  actionMask: SnapshotActionMask | null
-): number[] {
+export function getValidTopDeckTargets(actionMask: SnapshotActionMask | null): number[] {
   if (!actionMask) return [];
 
   const targets: number[] = [];
@@ -755,9 +785,7 @@ export function getValidTopDeckTargets(
 /**
  * Check if "bottom deck all" action is available.
  */
-export function hasBottomDeckAllAction(
-  actionMask: SnapshotActionMask | null
-): boolean {
+export function hasBottomDeckAllAction(actionMask: SnapshotActionMask | null): boolean {
   if (!actionMask) return false;
   return actionMask.legalPrimary.some((action) => action === ACTION_BOTTOM_DECK_ALL);
 }
@@ -783,27 +811,21 @@ export function buildNoopAction(): [number, number, number, number] {
 /**
  * Build a SELECT_COST_TARGET action tuple.
  */
-export function buildCostTargetAction(
-  handIndex: number
-): [number, number, number, number] {
+export function buildCostTargetAction(handIndex: number): [number, number, number, number] {
   return [ACTION_SELECT_COST_TARGET, handIndex, 0, 0];
 }
 
 /**
  * Build a SELECT_EFFECT_TARGET action tuple.
  */
-export function buildEffectTargetAction(
-  targetIndex: number
-): [number, number, number, number] {
+export function buildEffectTargetAction(targetIndex: number): [number, number, number, number] {
   return [ACTION_SELECT_EFFECT_TARGET, targetIndex, 0, 0];
 }
 
 /**
  * Build a SELECT_FROM_SELECTION action tuple.
  */
-export function buildSelectionPickAction(
-  selectionIndex: number
-): [number, number, number, number] {
+export function buildSelectionPickAction(selectionIndex: number): [number, number, number, number] {
   return [ACTION_SELECT_FROM_SELECTION, selectionIndex, 0, 0];
 }
 
@@ -855,9 +877,7 @@ export function buildBottomDeckCardAction(
 /**
  * Build a TOP_DECK_CARD action tuple.
  */
-export function buildTopDeckCardAction(
-  selectionIndex: number
-): [number, number, number, number] {
+export function buildTopDeckCardAction(selectionIndex: number): [number, number, number, number] {
   return [ACTION_TOP_DECK_CARD, selectionIndex, 0, 0];
 }
 
@@ -875,22 +895,16 @@ export function buildBottomDeckAllAction(): [number, number, number, number] {
 /**
  * Check if any gate portal actions are available in the action mask.
  */
-export function hasGatePortalActions(
-  actionMask: SnapshotActionMask | null
-): boolean {
+export function hasGatePortalActions(actionMask: SnapshotActionMask | null): boolean {
   if (!actionMask) return false;
-  return actionMask.legalPrimary.some(
-    (action) => action === ACTION_GATE_PORTAL
-  );
+  return actionMask.legalPrimary.some((action) => action === ACTION_GATE_PORTAL);
 }
 
 /**
  * Get valid alley indices that can be gated (source cards that can move to garden).
  * Returns a Set of alley slot indices.
  */
-export function getValidGateSourceAlleySlots(
-  actionMask: SnapshotActionMask | null
-): Set<number> {
+export function getValidGateSourceAlleySlots(actionMask: SnapshotActionMask | null): Set<number> {
   const alleySlots = new Set<number>();
 
   if (!actionMask) return alleySlots;
@@ -922,10 +936,7 @@ export function getValidGateTargetGardenSlots(
   const { legalPrimary, legalSub1, legalSub2 } = actionMask;
 
   for (let i = 0; i < legalPrimary.length; i++) {
-    if (
-      legalPrimary[i] === ACTION_GATE_PORTAL &&
-      legalSub1[i] === alleyIndex
-    ) {
+    if (legalPrimary[i] === ACTION_GATE_PORTAL && legalSub1[i] === alleyIndex) {
       // legalSub2 is the garden index (target)
       gardenSlots.add(legalSub2[i]);
     }

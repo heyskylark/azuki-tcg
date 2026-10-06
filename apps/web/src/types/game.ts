@@ -212,10 +212,10 @@ export interface AssetLoadingState {
 export const STATIC_CDN_BASE = "https://azuki-tcg.s3.us-east-1.amazonaws.com";
 
 /**
- * Build full image URL from imageKey.
+ * Resolve bundled image paths or keys in the shared card image CDN.
  */
 export function buildImageUrl(imageKey: string): string {
-  return `${STATIC_CDN_BASE}/${imageKey}`;
+  return imageKey.startsWith("/") ? imageKey : `${STATIC_CDN_BASE}/${imageKey}`;
 }
 
 /**

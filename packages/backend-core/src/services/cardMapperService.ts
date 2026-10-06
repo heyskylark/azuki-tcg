@@ -203,6 +203,7 @@ export enum CardDefId {
   STT04_015 = 190,
   STT04_016 = 191,
   STT04_017 = 192,
+  STT03_017 = 193,
 }
 
 /**
@@ -386,6 +387,7 @@ const CARD_CODE_TO_DEF_ID: Record<string, CardDefId> = {
   "STT03-014": CardDefId.STT03_014,
   "STT03-015": CardDefId.STT03_015,
   "STT03-016": CardDefId.STT03_016,
+  "STT03-017": CardDefId.STT03_017,
   "STT04-001": CardDefId.STT04_001,
   "STT04-002": CardDefId.STT04_002,
   "STT04-003": CardDefId.STT04_003,

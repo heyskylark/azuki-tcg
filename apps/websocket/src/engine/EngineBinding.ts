@@ -28,7 +28,8 @@ interface NativeBinding {
   createWorldWithDecks(
     seed: number,
     player0Deck: DeckCardEntry[],
-    player1Deck: DeckCardEntry[]
+    player1Deck: DeckCardEntry[],
+    startingPlayer?: 0 | 1
   ): CreateWorldResult;
   destroyWorld(worldId: string): void;
   submitAction(worldId: string, playerIndex: number, action: ActionTuple): ActionResult;

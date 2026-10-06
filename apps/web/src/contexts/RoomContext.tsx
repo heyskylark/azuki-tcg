@@ -11,6 +11,7 @@ import {
 } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { authenticatedFetch } from "@/lib/api/authenticatedFetch";
+import { z } from "zod";
 import type {
   RoomStateMessage,
   ConnectionAckMessage,
@@ -64,16 +65,20 @@ interface JoinResponse {
   isNewJoin: boolean;
 }
 
-interface ActiveRoomData {
-  id: string;
-  status: string;
-  player0Id: string | null;
-  player1Id: string | null;
-}
-
-interface ActiveRoomResponse {
-  room: ActiveRoomData | null;
-}
+/**
+ * The active-room response is parsed, not trusted: unknown keys are stripped, so a
+ * room API that ever carries opponent identity again cannot leak it into the client.
+ * The caller's seat comes from the server as `playerSlot`; ids are never compared here.
+ */
+const activeRoomResponseSchema = z.object({
+  room: z
+    .object({
+      id: z.string(),
+      status: z.string(),
+      playerSlot: z.literal([0, 1]).nullable(),
+    })
+    .nullable(),
+});
 
 const INACTIVE_ROOM_STATUSES = ["COMPLETED", "CLOSED", "ABORTED"];
 
@@ -105,12 +110,13 @@ export function RoomProvider({ children }: RoomProviderProps) {
       try {
         const response = await authenticatedFetch("/api/users/rooms/active");
         if (response.ok) {
-          const data: ActiveRoomResponse = await response.json();
-          const room = data.room;
-          if (room && !INACTIVE_ROOM_STATUSES.includes(room.status)) {
-            // User has an active room, determine their slot and auto-reconnect
-            const playerSlot = room.player0Id === user.id ? 0 : 1;
-            await joinInternal(room.id, playerSlot);
+          const payload: unknown = await response.json();
+          const parsed = activeRoomResponseSchema.safeParse(payload);
+          const room = parsed.success ? parsed.data.room : null;
+
+          if (room && room.playerSlot !== null && !INACTIVE_ROOM_STATUSES.includes(room.status)) {
+            // The server tells us which seat is ours; auto-reconnect to it.
+            await joinInternal(room.id, room.playerSlot);
           }
         }
       } catch {
@@ -188,7 +194,7 @@ export function RoomProvider({ children }: RoomProviderProps) {
     switch (message.type) {
       case "CONNECTION_ACK": {
         const ack = message as unknown as ConnectionAckMessage;
-        setActiveRoom((prev) => prev ? { ...prev, playerSlot: ack.playerSlot } : null);
+        setActiveRoom((prev) => (prev ? { ...prev, playerSlot: ack.playerSlot } : null));
         break;
       }
 
@@ -242,40 +248,46 @@ export function RoomProvider({ children }: RoomProviderProps) {
     };
   }, []);
 
-  const joinInternal = useCallback(async (roomId: string, expectedSlot?: 0 | 1, password?: string): Promise<boolean> => {
-    setError(null);
-    setGameOver(null);
+  const joinInternal = useCallback(
+    async (roomId: string, expectedSlot?: 0 | 1, password?: string): Promise<boolean> => {
+      setError(null);
+      setGameOver(null);
 
-    try {
-      const body: { password?: string } = {};
-      if (password) {
-        body.password = password;
-      }
+      try {
+        const body: { password?: string } = {};
+        if (password) {
+          body.password = password;
+        }
 
-      const response = await authenticatedFetch(`/api/rooms/${roomId}/join`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
+        const response = await authenticatedFetch(`/api/rooms/${roomId}/join`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
 
-      if (!response.ok) {
-        const data = await response.json();
-        setError(data.message || "Failed to join room");
+        if (!response.ok) {
+          const data = await response.json();
+          setError(data.message || "Failed to join room");
+          return false;
+        }
+
+        const data: JoinResponse = await response.json();
+        connectWebSocket(data.joinToken, roomId, expectedSlot ?? data.playerSlot);
+        return true;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to join room");
         return false;
       }
+    },
+    [connectWebSocket]
+  );
 
-      const data: JoinResponse = await response.json();
-      connectWebSocket(data.joinToken, roomId, expectedSlot ?? data.playerSlot);
-      return true;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to join room");
-      return false;
-    }
-  }, [connectWebSocket]);
-
-  const join = useCallback(async (roomId: string, password?: string): Promise<boolean> => {
-    return joinInternal(roomId, undefined, password);
-  }, [joinInternal]);
+  const join = useCallback(
+    async (roomId: string, password?: string): Promise<boolean> => {
+      return joinInternal(roomId, undefined, password);
+    },
+    [joinInternal]
+  );
 
   const disconnect = useCallback(() => {
     if (socketRef.current) {
@@ -285,22 +297,25 @@ export function RoomProvider({ children }: RoomProviderProps) {
     setConnectionStatus("disconnected");
   }, []);
 
-  const send = useCallback((message: WebSocketMessage) => {
-    if (!socketRef.current) {
-      console.error("[RoomContext] Cannot send message: WebSocket not initialized", {
-        messageType: message.type,
-      });
-      return;
-    }
-    if (connectionStatus !== "connected") {
-      console.error("[RoomContext] Cannot send message: not connected", {
-        messageType: message.type,
-        connectionStatus,
-      });
-      return;
-    }
-    socketRef.current.send(JSON.stringify(message));
-  }, [connectionStatus]);
+  const send = useCallback(
+    (message: WebSocketMessage) => {
+      if (!socketRef.current) {
+        console.error("[RoomContext] Cannot send message: WebSocket not initialized", {
+          messageType: message.type,
+        });
+        return;
+      }
+      if (connectionStatus !== "connected") {
+        console.error("[RoomContext] Cannot send message: not connected", {
+          messageType: message.type,
+          connectionStatus,
+        });
+        return;
+      }
+      socketRef.current.send(JSON.stringify(message));
+    },
+    [connectionStatus]
+  );
 
   const leave = useCallback(() => {
     send({ type: "LEAVE_ROOM" });

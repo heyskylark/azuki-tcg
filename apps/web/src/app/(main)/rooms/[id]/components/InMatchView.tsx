@@ -13,9 +13,27 @@ import { useRoom } from "@/contexts/RoomContext";
 import { authenticatedFetch } from "@/lib/api/authenticatedFetch";
 import type { DeckCard, DeckWithCards } from "@/types/game";
 import { buildCardDefIdMapFromDeckCards } from "@/types/game";
+import type { RoomEvaluationMetadata } from "@tcg/backend-core/types/ws";
 
 interface DeckApiResponse {
   deck: DeckWithCards;
+}
+
+interface InMatchViewProps {
+  evaluation: RoomEvaluationMetadata | null;
+  evaluationCardCatalog: DeckCard[] | null;
+}
+
+async function fetchDeckCards(deckId: string): Promise<DeckCard[]> {
+  const response = await authenticatedFetch(`/api/decks/${deckId}`);
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch deck data");
+  }
+
+  const payload: DeckApiResponse = await response.json();
+
+  return payload.deck.cards;
 }
 
 function formatPhaseLabel(phase: string | undefined): string {
@@ -31,7 +49,7 @@ function formatPhaseLabel(phase: string | undefined): string {
     .join(" ");
 }
 
-export function InMatchView() {
+export function InMatchView({ evaluation, evaluationCardCatalog }: InMatchViewProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { loadingState, preloadDeckCards } = useAssets();
@@ -46,14 +64,25 @@ export function InMatchView() {
   const player0DeckId = roomState?.players[0]?.deckId ?? null;
   const player1DeckId = roomState?.players[1]?.deckId ?? null;
 
-  // Fetch both decks and preload assets when entering match
+  // In an evaluation room the opponent's deck id is redacted, so the only deck the
+  // client may fetch is the reviewer's own — the one non-null deck id.
+  const isEvaluationRoom = evaluation !== null;
+  const evaluationHumanDeckId = player0DeckId ?? player1DeckId;
+
+  // Fetch deck data and preload assets when entering match
   useEffect(() => {
     if (!isInMatch) {
       return;
     }
 
-    if (!player0DeckId || !player1DeckId) {
-      console.error("Missing deck IDs in IN_MATCH state");
+    const isEvaluationMatch = isEvaluationRoom;
+
+    const hasRequiredDecks = isEvaluationMatch
+      ? evaluationHumanDeckId !== null && evaluationCardCatalog !== null
+      : player0DeckId !== null && player1DeckId !== null;
+
+    if (!hasRequiredDecks) {
+      console.error("Missing deck data in IN_MATCH state");
       setDeckLoadError("Missing deck information");
       setIsDeckLoading(false);
       return;
@@ -66,24 +95,29 @@ export function InMatchView() {
         setDeckLoadError(null);
         setIsDeckLoading(true);
 
-        // Fetch both decks in parallel
-        const [deck0Res, deck1Res] = await Promise.all([
-          authenticatedFetch(`/api/decks/${player0DeckId}`),
-          authenticatedFetch(`/api/decks/${player1DeckId}`),
-        ]);
+        // Evaluation matches never fetch the generated opponent deck. The reviewer's
+        // own deck is loaded normally and the full playable catalog covers every card
+        // the opponent can reveal later in the match, without leaking its contents.
+        let allCards: DeckCard[];
 
-        if (!deck0Res.ok || !deck1Res.ok) {
-          throw new Error("Failed to fetch deck data");
+        if (isEvaluationMatch) {
+          if (evaluationHumanDeckId === null || evaluationCardCatalog === null) {
+            throw new Error("Missing deck information");
+          }
+
+          allCards = [...(await fetchDeckCards(evaluationHumanDeckId)), ...evaluationCardCatalog];
+        } else {
+          if (player0DeckId === null || player1DeckId === null) {
+            throw new Error("Missing deck information");
+          }
+
+          const [player0Cards, player1Cards] = await Promise.all([
+            fetchDeckCards(player0DeckId),
+            fetchDeckCards(player1DeckId),
+          ]);
+
+          allCards = [...player0Cards, ...player1Cards];
         }
-
-        const deck0Data: DeckApiResponse = await deck0Res.json();
-        const deck1Data: DeckApiResponse = await deck1Res.json();
-
-        // Combine all cards from both decks
-        const allCards: DeckCard[] = [
-          ...deck0Data.deck.cards,
-          ...deck1Data.deck.cards,
-        ];
 
         // Preload card textures (shows loading progress)
         const mappings = await preloadDeckCards(allCards);
@@ -114,6 +148,9 @@ export function InMatchView() {
     };
   }, [
     isInMatch,
+    isEvaluationRoom,
+    evaluationCardCatalog,
+    evaluationHumanDeckId,
     player0DeckId,
     player1DeckId,
     preloadDeckCards,
@@ -131,9 +168,11 @@ export function InMatchView() {
         : `Player ${gameState.activePlayer} (Opponent)`;
   const mainPhaseLabel = formatPhaseLabel(gameState?.phase);
   const subPhaseLabel = formatPhaseLabel(gameState?.abilitySubphase);
-  const canForfeit =
-    connectionStatus === "connected" &&
-    roomState?.status === "IN_MATCH";
+  const canForfeit = connectionStatus === "connected" && roomState?.status === "IN_MATCH";
+
+  // Neutral label supplied by the room (e.g. "Opponent 3"): never a model name.
+  const opponentSlot = activeRoom?.playerSlot === 0 ? 1 : 0;
+  const opponentLabel = roomState?.players[opponentSlot]?.username ?? "Opponent";
 
   const handleForfeit = useCallback(() => {
     if (!canForfeit) {
@@ -147,8 +186,8 @@ export function InMatchView() {
   }, [canForfeit, send]);
 
   const handleReturnToDashboard = useCallback(() => {
-    router.push("/dashboard");
-  }, [router]);
+    router.push(evaluation === null ? "/dashboard" : `/evaluations/${evaluation.sessionId}`);
+  }, [evaluation, router]);
 
   return (
     <div className="fixed inset-0 z-50 bg-black">
@@ -162,7 +201,13 @@ export function InMatchView() {
       ) : isBusy ? (
         <LoadingScreen
           progress={loadingState.progress}
-          message={isDeckLoading ? "Loading deck data..." : "Loading game assets..."}
+          message={
+            isDeckLoading
+              ? evaluation === null
+                ? "Loading deck data..."
+                : "Loading your deck and the card catalog..."
+              : "Loading game assets..."
+          }
         />
       ) : (
         <>
@@ -170,19 +215,21 @@ export function InMatchView() {
           <GameScene />
           <div className="absolute top-4 right-4 z-50 pointer-events-auto flex items-center gap-2">
             <Button variant="outline" size="sm" onClick={handleReturnToDashboard}>
-              Dashboard
+              {evaluation === null ? "Dashboard" : "Session"}
             </Button>
             {canForfeit && (
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={handleForfeit}
-              >
+              <Button variant="destructive" size="sm" onClick={handleForfeit}>
                 Forfeit
               </Button>
             )}
           </div>
           <div className="absolute top-4 left-4 z-40 pointer-events-none rounded-md border border-gray-700 bg-black/70 px-3 py-2 text-xs text-white shadow-lg">
+            {evaluation === null ? null : (
+              <p className="mb-1 border-b border-gray-700 pb-1 font-medium">
+                Blind evaluation · match {evaluation.ordinal}/{evaluation.totalMatches} ·{" "}
+                {opponentLabel}
+              </p>
+            )}
             <p>
               <span className="text-gray-300">Turn:</span> {turnPlayerLabel}
             </p>

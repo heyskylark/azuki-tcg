@@ -3,6 +3,7 @@
 # Distributed example: torchrun --standalone --nnodes=1 --nproc-per-node=6 -m pufferlib.pufferl train puffer_nmmo3
 
 import contextlib
+import copy
 import warnings
 warnings.filterwarnings('error', category=RuntimeWarning)
 
@@ -57,7 +58,7 @@ def terminal_win_labels_from_rewards(
         label_mask: np.ndarray,
         terminal_rewards: np.ndarray,
         agents_per_env: int) -> dict[int, dict[int, float]]:
-    """Build per-seat binary win labels from true terminal rows."""
+    """Build per-seat outcome targets (win=1, loss=0, draw=0.5)."""
     env_ids = np.asarray(env_id, dtype=np.int64).reshape(-1)
     labels = np.asarray(label_mask, dtype=np.bool_).reshape(-1)
     rewards = np.asarray(terminal_rewards, dtype=np.float32).reshape(-1)
@@ -68,46 +69,15 @@ def terminal_win_labels_from_rewards(
 
     out: dict[int, dict[int, float]] = {}
     for agent_id, is_terminal, reward in zip(env_ids, labels, rewards):
-        if not bool(is_terminal) or float(reward) == 0.0:
+        if not bool(is_terminal):
             continue
         env_index = int(agent_id // agents_per_env)
         seat = int(agent_id % agents_per_env)
-        out.setdefault(env_index, {})[seat] = 1.0 if float(reward) > 0.0 else 0.0
+        value = float(reward)
+        out.setdefault(env_index, {})[seat] = 1.0 if value > 0.0 else 0.0 if value < 0.0 else 0.5
     return out
 
 
-def trainer_shaped_reward_multiplier(
-        update: int,
-        *,
-        enabled: bool,
-        start_epoch: int,
-        end_epoch: int) -> float:
-    """Return the absolute-update multiplier for trainer-side shaped reward."""
-    if not enabled:
-        return 1.0
-    if start_epoch < 0 or end_epoch <= start_epoch:
-        raise ValueError('trainer shaped-reward anneal requires 0 <= start_epoch < end_epoch')
-    absolute_update = int(update)
-    if absolute_update <= start_epoch:
-        return 1.0
-    if absolute_update >= end_epoch:
-        return 0.0
-    return float(end_epoch - absolute_update) / float(end_epoch - start_epoch)
-
-
-def recombine_reward_components(
-        raw_total: torch.Tensor,
-        terminal: torch.Tensor,
-        shaped: torch.Tensor,
-        multiplier: float) -> tuple[torch.Tensor, torch.Tensor]:
-    """Scale only shaped reward while preserving exact pre-anneal totals."""
-    scale = float(multiplier)
-    if not 0.0 <= scale <= 1.0:
-        raise ValueError('shaped reward multiplier must be in [0, 1]')
-    if scale == 1.0:
-        return raw_total, shaped
-    scaled_shaped = shaped * scale
-    return torch.clamp(terminal + scaled_shaped, -1, 1), scaled_shaped
 
 
 class PuffeRL:
@@ -165,6 +135,9 @@ class PuffeRL:
         self.terminals = torch.zeros(segments, horizon, device=device)
         self.truncations = torch.zeros(segments, horizon, device=device)
         self.ratio = torch.ones(segments, horizon, device=device)
+        self.actor_loss_mask = torch.ones(
+            segments, horizon, device=device, dtype=torch.bool
+        )
         self.importance = torch.ones(segments, horizon, device=device)
         self.ep_lengths = torch.zeros(total_agents, device=device, dtype=torch.int32)
         self.ep_indices = torch.arange(total_agents, device=device, dtype=torch.int32)
@@ -188,24 +161,11 @@ class PuffeRL:
         self._win_prob_zero_label_epochs = 0
 
         anneal_flag = os.environ.get('AZK_TRAINER_SHAPED_REWARD_ANNEAL', '')
-        self._trainer_shaped_reward_anneal_enabled = (
-            anneal_flag.strip().lower() not in {'', '0', 'false', 'no', 'off'}
-        )
-        self._trainer_shaped_reward_start_epoch = int(
-            os.environ.get('AZK_TRAINER_SHAPED_REWARD_ANNEAL_START_EPOCH', '0') or 0
-        )
-        self._trainer_shaped_reward_end_epoch = int(
-            os.environ.get('AZK_TRAINER_SHAPED_REWARD_ANNEAL_END_EPOCH', '1') or 1
-        )
-        if self._trainer_shaped_reward_anneal_enabled:
-            trainer_shaped_reward_multiplier(
-                0,
-                enabled=True,
-                start_epoch=self._trainer_shaped_reward_start_epoch,
-                end_epoch=self._trainer_shaped_reward_end_epoch,
+        if anneal_flag.strip().lower() not in {'', '0', 'false', 'no', 'off'}:
+            raise ValueError(
+                'AZK_TRAINER_SHAPED_REWARD_ANNEAL is incompatible with PBRS; '
+                'configure the native potential schedule instead'
             )
-        self._trainer_shaped_reward_multiplier = 1.0
-        self._trainer_shaped_reward_update = 0
 
         # LSTM
         if config['use_rnn']:
@@ -213,6 +173,15 @@ class PuffeRL:
             h = policy.hidden_size
             self.lstm_h = {i*n: torch.zeros(n, h, device=device) for i in range(total_agents//n)}
             self.lstm_c = {i*n: torch.zeros(n, h, device=device) for i in range(total_agents//n)}
+            self.rollout_lstm_h = torch.zeros(segments, h, device=device)
+            self.rollout_lstm_c = torch.zeros(segments, h, device=device)
+            self.rollout_lstm_resets = torch.zeros(
+                segments, horizon, device=device, dtype=torch.bool
+            )
+        else:
+            self.rollout_lstm_h = None
+            self.rollout_lstm_c = None
+            self.rollout_lstm_resets = None
 
         # A-DRAFTAUX: draft->battle boundary auxiliary pick credit (design in
         # train-ablation-1781126582/draft-aux-design.md). Off unless env knobs set.
@@ -246,6 +215,15 @@ class PuffeRL:
 
         self.accumulate_minibatches = max(1, minibatch_size // max_minibatch_size)
         self.total_minibatches = int(config['update_epochs'] * batch_size / self.minibatch_size)
+        self.recompute_old_logprobs = bool(
+            config.get('recompute_old_logprobs', config.get('use_rnn', False))
+        )
+        self.old_policy = (
+            copy.deepcopy(policy) if self.recompute_old_logprobs else None
+        )
+        if self.old_policy is not None:
+            for parameter in self.old_policy.parameters():
+                parameter.requires_grad_(False)
         self.minibatch_segments = self.minibatch_size // horizon 
         if self.minibatch_segments * horizon != self.minibatch_size:
             raise pufferlib.APIUsageError(
@@ -263,6 +241,18 @@ class PuffeRL:
                 # load-bearing: the _PackedField.extract frames specialize per
                 # field spec and must cap to eager quickly, while the hot
                 # encoder/decoder graphs compile once per shape family. Raising
+                if self.old_policy is not None:
+                    old_base = getattr(self.old_policy, 'policy', None)
+                    old_base._eager_encode_observations = old_base.encode_observations
+                    old_base._eager_decode_actions = old_base.decode_actions
+                    old_base.encode_observations = torch.compile(
+                        old_base.encode_observations,
+                        mode=config['compile_mode'],
+                    )
+                    old_base.decode_actions = torch.compile(
+                        old_base.decode_actions,
+                        mode=config['compile_mode'],
+                    )
                 # the limit (or dynamo-disabling the canonicalizer) was measured
                 # 10-70% slower end to end.
                 # Keep the eager originals reachable: CUDA-graph capture must
@@ -348,13 +338,11 @@ class PuffeRL:
         self.stats = defaultdict(list)
         self.last_stats = defaultdict(list)
         self.losses = {}
+        base_policy = getattr(self.uncompiled_policy, 'policy', self.uncompiled_policy)
+        self.scalar_normalizer = getattr(base_policy, 'scalar_normalizer', None)
+        if self.scalar_normalizer is not None:
+            self.scalar_normalizer.eval()
 
-        if self._trainer_shaped_reward_anneal_enabled:
-            print(
-                '[trainer-shaped-reward] enabled: '
-                f'start_epoch={self._trainer_shaped_reward_start_epoch}, '
-                f'end_epoch={self._trainer_shaped_reward_end_epoch}'
-            )
 
         # Dashboard
         self.model_size = sum(p.numel() for p in policy.parameters() if p.requires_grad)
@@ -370,6 +358,51 @@ class PuffeRL:
             return 0
 
         return (self.global_step - self.last_log_step) / (time.time() - self.last_log_time)
+
+    def _freeze_running_normalization(self):
+        if self.scalar_normalizer is not None:
+            self.scalar_normalizer.eval()
+
+    def _advance_running_normalization(self):
+        if self.scalar_normalizer is None:
+            return
+        base_policy = getattr(self.uncompiled_policy, 'policy', self.uncompiled_policy)
+        observations = self.observations.reshape(
+            -1, *self.vecenv.single_observation_space.shape
+        )
+        chunk_size = max(1, int(self.minibatch_size))
+        base_was_training = base_policy.training
+        self.scalar_normalizer.train()
+        base_policy.train()
+        try:
+            with torch.no_grad(), self.amp_context:
+                for start in range(0, observations.shape[0], chunk_size):
+                    chunk = observations[start:start + chunk_size]
+                    chunk = chunk.to(self.config['device'], non_blocking=True)
+                    base_policy.encode_observations(chunk, state={})
+        finally:
+            base_policy.train(base_was_training)
+            self.scalar_normalizer.eval()
+        self.stats['normalization/update_rows'].append(float(observations.shape[0]))
+
+    def _sync_old_policy(self):
+        if self.old_policy is None:
+            return
+        current_base = getattr(
+            self.uncompiled_policy, 'policy', self.uncompiled_policy
+        )
+        old_base = getattr(self.old_policy, 'policy', self.old_policy)
+        current_normalizer = getattr(current_base, 'scalar_normalizer', None)
+        old_normalizer = getattr(old_base, 'scalar_normalizer', None)
+        if current_normalizer is not None and old_normalizer is not None:
+            old_buffers = dict(old_normalizer.named_buffers(recurse=False))
+            for name, buffer in current_normalizer.named_buffers(recurse=False):
+                if name not in old_buffers:
+                    old_normalizer.register_buffer(name, torch.empty_like(buffer))
+        self.old_policy.load_state_dict(self.uncompiled_policy.state_dict())
+        self.old_policy.train(self.policy.training)
+        if old_normalizer is not None:
+            old_normalizer.eval()
 
     def _base_policy_module(self):
         return getattr(self.uncompiled_policy, 'policy', self.uncompiled_policy)
@@ -402,39 +435,15 @@ class PuffeRL:
         self.terminal_reward_components.zero_()
         self.shaped_reward_components.zero_()
 
-    def _prepare_trainer_shaped_reward_anneal(self) -> float:
-        absolute_update = int(self.epoch) + 1
-        multiplier = trainer_shaped_reward_multiplier(
-            absolute_update,
-            enabled=self._trainer_shaped_reward_anneal_enabled,
-            start_epoch=self._trainer_shaped_reward_start_epoch,
-            end_epoch=self._trainer_shaped_reward_end_epoch,
-        )
-        self._trainer_shaped_reward_update = absolute_update
-        self._trainer_shaped_reward_multiplier = multiplier
-        self.stats['trainer_shaped_reward_multiplier'].append(multiplier)
-        self.stats['trainer_shaped_reward_update'].append(float(absolute_update))
-        return multiplier
 
     def _record_effective_reward_shaping_scale(self):
         native_scales = self.stats.get('reward_shaping_scale')
         if not native_scales:
             return
         numeric = [float(value) for value in native_scales if np.isfinite(float(value))]
-        if not numeric:
-            return
-        self.stats['effective_reward_shaping_scale'].append(
-            float(np.mean(numeric)) * self._trainer_shaped_reward_multiplier
-        )
+        if numeric:
+            self.stats['effective_reward_shaping_scale'].append(float(np.mean(numeric)))
 
-    def trainer_shaped_reward_schedule_state(self) -> dict[str, object]:
-        return {
-            'enabled': bool(self._trainer_shaped_reward_anneal_enabled),
-            'start_epoch': int(self._trainer_shaped_reward_start_epoch),
-            'end_epoch': int(self._trainer_shaped_reward_end_epoch),
-            'absolute_update': int(self._trainer_shaped_reward_update),
-            'multiplier': float(self._trainer_shaped_reward_multiplier),
-        }
 
     def _build_info_by_env(self, info, env_indices: np.ndarray) -> dict[int, object]:
         ordered_envs = np.unique(env_indices)
@@ -464,33 +473,47 @@ class PuffeRL:
         info,
         env_id: np.ndarray,
         total_rewards: np.ndarray,
+        terminal_mask: np.ndarray,
     ) -> tuple[np.ndarray, np.ndarray]:
         if env_id.size == 0:
-            return (
-                np.zeros((0,), dtype=np.float32),
-                np.zeros((0,), dtype=np.float32),
-            )
+            empty = np.zeros((0,), dtype=np.float32)
+            return empty, empty
+
+        native_terminal = getattr(self.vecenv, 'terminal_rewards', None)
+        native_shaped = getattr(self.vecenv, 'shaped_rewards', None)
+        if (native_terminal is None) != (native_shaped is None):
+            raise RuntimeError('vector environment exposed only one native reward component')
+        if native_terminal is not None:
+            terminal_all = np.asarray(native_terminal, dtype=np.float32).reshape(-1)
+            shaped_all = np.asarray(native_shaped, dtype=np.float32).reshape(-1)
+            if int(env_id.max()) >= terminal_all.size or terminal_all.shape != shaped_all.shape:
+                raise RuntimeError('native reward component arrays do not cover received env_id rows')
+            return terminal_all[env_id], shaped_all[env_id]
+
+        totals = np.asarray(total_rewards, dtype=np.float32).reshape(-1)
+        terminals = np.asarray(terminal_mask, dtype=np.bool_).reshape(-1)
+        if totals.shape != env_id.shape or terminals.shape != env_id.shape:
+            raise ValueError('reward rows, terminal mask, and env_id must align')
+        terminal = np.where(terminals, totals, 0.0).astype(np.float32, copy=False)
+        shaped = totals - terminal
 
         env_indices = (env_id // self._agents_per_env).astype(np.int32)
         info_by_env = self._build_info_by_env(info, env_indices)
-        terminal = np.zeros(env_id.shape[0], dtype=np.float32)
-        shaped = np.asarray(total_rewards, dtype=np.float32).copy()
-
         for row_index, agent_id in enumerate(env_id):
-            env_idx = int(env_indices[row_index])
-            seat = int(agent_id % self._agents_per_env)
-            seat_info = self._extract_agent_info(info_by_env.get(env_idx), seat)
+            seat_info = self._extract_agent_info(
+                info_by_env.get(int(env_indices[row_index])),
+                int(agent_id % self._agents_per_env),
+            )
             if seat_info is None:
                 continue
-
-            terminal_value = seat_info.get('azk_step_terminal_reward', 0.0)
+            terminal_value = seat_info.get('azk_step_terminal_reward')
             shaped_value = seat_info.get('azk_step_shaped_reward')
-            terminal[row_index] = float(np.clip(float(terminal_value), -1.0, 1.0))
+            if terminal_value is not None:
+                terminal[row_index] = float(terminal_value)
             if shaped_value is not None:
-                shaped[row_index] = float(np.clip(float(shaped_value), -1.0, 1.0))
-            else:
-                shaped[row_index] = float(total_rewards[row_index]) - terminal[row_index]
-
+                shaped[row_index] = float(shaped_value)
+            elif terminal_value is not None:
+                shaped[row_index] = totals[row_index] - terminal[row_index]
         return terminal, shaped
 
     def _component_values_from_state(self, state: dict, shape: torch.Size | tuple[int, ...]):
@@ -500,11 +523,16 @@ class PuffeRL:
             raise RuntimeError('split_value_heads_enabled is true but component value tensors were not published by the policy')
         return terminal_value.view(shape), shaped_value.view(shape)
 
-    def _clipped_value_loss(self, new_value, old_value, returns, vf_clip: float):
+    def _clipped_value_loss(
+            self, new_value, old_value, returns, vf_clip: float, mask=None):
         v_clipped = old_value + torch.clamp(new_value - old_value, -vf_clip, vf_clip)
         v_loss_unclipped = (new_value - returns) ** 2
         v_loss_clipped = (v_clipped - returns) ** 2
-        return 0.5 * torch.max(v_loss_unclipped, v_loss_clipped).mean()
+        loss = 0.5 * torch.max(v_loss_unclipped, v_loss_clipped)
+        if mask is None:
+            return loss.mean()
+        weights = mask.to(device=loss.device, dtype=loss.dtype)
+        return (loss * weights).sum() / weights.sum().clamp_min(1.0)
 
     def _episode_envs_from_done_mask(self, env_id: np.ndarray, done_mask: np.ndarray) -> np.ndarray:
         if env_id.size == 0:
@@ -598,7 +626,8 @@ class PuffeRL:
 
         return finished_envs
 
-    def _compute_win_prob_aux(self, state: dict, idx: torch.Tensor):
+    def _compute_win_prob_aux(
+            self, state: dict, idx: torch.Tensor, row_mask=None):
         """Masked win-prob BCE with metrics kept as device tensors (no syncs)."""
         device = self.config['device']
         zero = torch.zeros((), device=device)
@@ -622,6 +651,11 @@ class PuffeRL:
 
         targets = self.win_prob_targets[idx].to(device=win_prob_logits.device, dtype=win_prob_logits.dtype)
         labeled = self.win_prob_target_mask[idx].to(device=win_prob_logits.device, dtype=win_prob_logits.dtype)
+        if row_mask is not None:
+            labeled = labeled * row_mask.to(
+                device=win_prob_logits.device,
+                dtype=win_prob_logits.dtype,
+            )
         if win_prob_logits.shape != targets.shape:
             win_prob_logits = win_prob_logits.view_as(targets)
 
@@ -645,14 +679,14 @@ class PuffeRL:
         return weighted_loss, metrics
 
     def _draftaux_aux_scale(self):
-        """Scale draft auxiliary credit with both active shaping schedules."""
+        """Scale draft auxiliary credit with the native shaping schedule."""
         native_scale = 1.0
         if self._draftaux_anneal:
             vals = self.stats.get('reward_shaping_scale')
             if vals:
                 self._draftaux_last_scale = float(vals[-1])
             native_scale = self._draftaux_last_scale
-        return native_scale * self._trainer_shaped_reward_multiplier
+        return native_scale
 
     def _draftaux_init_layout(self, obs_row_bytes, device):
         """Byte offsets into the packed deckbuild obs + sibling-gate lookup.
@@ -771,12 +805,13 @@ class PuffeRL:
 
         config = self.config
         device = config['device']
-        reward_multiplier = self._prepare_trainer_shaped_reward_anneal()
+        self._freeze_running_normalization()
 
         if config['use_rnn']:
             for k in self.lstm_h:
                 self.lstm_h[k].zero_()
                 self.lstm_c[k].zero_()
+            self.rollout_lstm_resets.zero_()
 
         if self._draftaux_enabled:
             # Prev-step buffer coords from the last epoch are recycled slots;
@@ -798,6 +833,7 @@ class PuffeRL:
         self._ep_row_py = {}
         self._reset_win_prob_rollout_buffers()
         self._reset_split_value_rollout_buffers()
+        self.actor_loss_mask.fill_(True)
         win_prob_enabled = self._win_prob_aux_enabled()
         if win_prob_enabled:
             # Per-agent episode bookkeeping, all device-resident and rebased
@@ -820,6 +856,8 @@ class PuffeRL:
             env_id_np = np.asarray(env_id, dtype=np.int64)
             env_id = slice(int(env_id_np[0]), int(env_id_np[-1]) + 1)
             self.global_step += int(mask.sum())
+            r_np = np.asarray(r, dtype=np.float32)
+            d_np = np.asarray(d, dtype=np.bool_)
 
             profile('eval_copy', epoch)
             o = torch.as_tensor(o)
@@ -827,6 +865,18 @@ class PuffeRL:
             r = torch.as_tensor(r).to(device, non_blocking=True)
             d = torch.as_tensor(d).to(device, non_blocking=True)
             t_dev = torch.as_tensor(t).to(device, non_blocking=True)
+            terminal_np, shaped_np = self._extract_step_reward_components(
+                info,
+                env_id_np,
+                r_np,
+                d_np,
+            )
+            reward_components_terminal = torch.as_tensor(
+                terminal_np, device=device, dtype=r.dtype
+            )
+            reward_components_shaped = torch.as_tensor(
+                shaped_np, device=device, dtype=r.dtype
+            )
 
             profile('eval_forward', epoch)
             with torch.no_grad(), self.amp_context:
@@ -837,11 +887,15 @@ class PuffeRL:
                     mask=mask,
                 )
 
+                rollout_initial_h = None
+                rollout_initial_c = None
                 if config['use_rnn']:
-                    state['lstm_h'] = self.lstm_h[env_id.start]
-                    state['lstm_c'] = self.lstm_c[env_id.start]
-                draftaux_h_prev = self.lstm_h[env_id.start] if self._draftaux_enabled else None
-                draftaux_c_prev = self.lstm_c[env_id.start] if self._draftaux_enabled else None
+                    rollout_initial_h = self.lstm_h[env_id.start]
+                    rollout_initial_c = self.lstm_c[env_id.start]
+                    state['lstm_h'] = rollout_initial_h
+                    state['lstm_c'] = rollout_initial_c
+                draftaux_h_prev = rollout_initial_h if self._draftaux_enabled else None
+                draftaux_c_prev = rollout_initial_c if self._draftaux_enabled else None
 
                 logits, value = self.policy.forward_eval(o_device, state)
                 action, logprob, _ = pufferlib.pytorch.sample_logits(logits)
@@ -852,20 +906,16 @@ class PuffeRL:
                     self.lstm_h[env_id.start] = state['lstm_h']
                     self.lstm_c[env_id.start] = state['lstm_c']
 
-                # Reward components derive from (reward, done): the env
-                # guarantees rewards carry only the terminal component on
-                # episode-end steps and only the shaped component otherwise.
                 done_dev = d | t_dev
-                r_clipped = torch.clamp(r, -1, 1)
-                zeros = torch.zeros((), device=device, dtype=r_clipped.dtype)
-                reward_components_terminal = torch.where(done_dev, r_clipped, zeros)
-                reward_components_shaped = torch.where(done_dev, zeros, r_clipped)
 
                 # Fast path for fully vectorized envs
                 group = env_id.start
                 l = self._ep_len_py.get(group, 0)
                 row_start = self._ep_row_py.get(group, group)
                 batch_rows = slice(row_start, row_start + (env_id.stop - env_id.start))
+                if config['use_rnn'] and l == 0:
+                    self.rollout_lstm_h[batch_rows] = rollout_initial_h.detach()
+                    self.rollout_lstm_c[batch_rows] = rollout_initial_c.detach()
 
                 if config['cpu_offload']:
                     self.observations[batch_rows, l] = o
@@ -874,16 +924,14 @@ class PuffeRL:
 
                 self.actions[batch_rows, l] = action
                 self.logprobs[batch_rows, l] = logprob
-                scaled_total, scaled_shaped = recombine_reward_components(
-                    r_clipped,
-                    reward_components_terminal,
-                    reward_components_shaped,
-                    reward_multiplier,
-                )
-                self.rewards[batch_rows, l] = scaled_total
+                self.rewards[batch_rows, l] = reward_components_terminal + reward_components_shaped
                 self.terminal_reward_components[batch_rows, l] = reward_components_terminal
-                self.shaped_reward_components[batch_rows, l] = scaled_shaped
+                self.shaped_reward_components[batch_rows, l] = reward_components_shaped
                 self.terminals[batch_rows, l] = d.float()
+                self.truncations[batch_rows, l] = t_dev.float()
+                self.actor_loss_mask[batch_rows, l] = ~done_dev
+                if config['use_rnn']:
+                    self.rollout_lstm_resets[batch_rows, l] = done_dev
                 self.values[batch_rows, l] = value.flatten()
                 if self._draftaux_enabled:
                     self._draftaux_step(
@@ -899,16 +947,25 @@ class PuffeRL:
                     self.shaped_values[batch_rows, l] = shaped_value.detach().float()
 
                 if win_prob_enabled:
-                    # Stamp episode ids for these rows and record win labels on
-                    # episode end (win := terminal end with positive terminal
-                    # reward; truncations label 0 — matching the env's
-                    # winner-based per-episode stats).
                     ids = self.agent_episode_ids[env_id]
                     self.win_prob_episode_ids[batch_rows, l] = ids
-                    win_now = (d & (r > 0)).float()
+                    win_now = torch.where(
+                        reward_components_terminal > 0,
+                        torch.ones_like(reward_components_terminal),
+                        torch.where(
+                            reward_components_terminal < 0,
+                            torch.zeros_like(reward_components_terminal),
+                            torch.full_like(reward_components_terminal, 0.5),
+                        ),
+                    )
                     prev = self.episode_win_table[ids]
-                    self.episode_win_table[ids] = torch.where(done_dev, win_now, prev)
+                    self.episode_win_table[ids] = torch.where(d, win_now, prev)
                     self.agent_episode_ids[env_id] = ids + done_dev.long() * self.total_agents
+
+                if config['use_rnn'] and bool(done_dev.any()):
+                    keep = (~done_dev).to(dtype=state['lstm_h'].dtype).unsqueeze(-1)
+                    self.lstm_h[env_id.start] *= keep
+                    self.lstm_c[env_id.start] *= keep
 
                 # Note: We are not yet handling masks in this version
                 self.ep_lengths[env_id] += 1
@@ -961,9 +1018,11 @@ class PuffeRL:
         epoch = self.epoch
         profile('train', epoch)
         profile('train_misc', epoch, nest=True)
+        self._sync_old_policy()
         losses = defaultdict(float)
         config = self.config
         device = config['device']
+        self._freeze_running_normalization()
         win_prob_enabled = self._win_prob_aux_enabled()
         split_value_enabled = self._split_value_heads_enabled()
         win_prob_correct_sum = 0.0
@@ -984,9 +1043,12 @@ class PuffeRL:
 
             shape = self.values.shape
             advantages = torch.zeros(shape, device=device)
-            advantages = compute_puff_advantage(self.values, self.rewards,
-                self.terminals, self.ratio, advantages, config['gamma'],
-                config['gae_lambda'], config['vtrace_rho_clip'], config['vtrace_c_clip'])
+            advantages = compute_puff_advantage(
+                self.values, self.rewards, self.terminals, self.ratio,
+                advantages, config['gamma'], config['gae_lambda'],
+                config['vtrace_rho_clip'], config['vtrace_c_clip'],
+                truncations=self.truncations,
+            )
             terminal_advantages = None
             shaped_advantages = None
             if split_value_enabled:
@@ -1001,6 +1063,7 @@ class PuffeRL:
                     config['gae_lambda'],
                     config['vtrace_rho_clip'],
                     config['vtrace_c_clip'],
+                    truncations=self.truncations,
                 )
                 shaped_advantages = torch.zeros(shape, device=device)
                 shaped_advantages = compute_puff_advantage(
@@ -1013,10 +1076,14 @@ class PuffeRL:
                     config['gae_lambda'],
                     config['vtrace_rho_clip'],
                     config['vtrace_c_clip'],
+                    truncations=self.truncations,
                 )
 
-            # Prioritize experience by advantage magnitude
-            adv = advantages.abs().sum(axis=1)
+            # Prioritize only rows with a real action transition.
+            adv = (
+                advantages.abs()
+                * self.actor_loss_mask.to(dtype=advantages.dtype)
+            ).sum(axis=1)
             prio_weights = torch.nan_to_num(adv**a, 0, 0, 0)
             prio_probs = (prio_weights + 1e-6)/(prio_weights.sum() + 1e-6)
             idx = torch.multinomial(prio_probs, self.minibatch_segments)
@@ -1033,6 +1100,7 @@ class PuffeRL:
             mb_values = self.values[idx]
             mb_returns = advantages[idx] + mb_values
             mb_advantages = advantages[idx]
+            actor_mask = self.actor_loss_mask[idx].to(dtype=mb_advantages.dtype)
             if split_value_enabled:
                 mb_terminal_values = self.terminal_values[idx]
                 mb_shaped_values = self.shaped_values[idx]
@@ -1043,10 +1111,51 @@ class PuffeRL:
             if not config['use_rnn']:
                 mb_obs = mb_obs.reshape(-1, *self.vecenv.single_observation_space.shape)
 
+            ppo_old_logprobs = mb_logprobs
+            if self.old_policy is not None:
+                old_state = dict(
+                    action=mb_actions,
+                    lstm_h=(
+                        self.rollout_lstm_h[idx].unsqueeze(0)
+                        if config['use_rnn']
+                        else None
+                    ),
+                    lstm_c=(
+                        self.rollout_lstm_c[idx].unsqueeze(0)
+                        if config['use_rnn']
+                        else None
+                    ),
+                    lstm_reset=(
+                        self.rollout_lstm_resets[idx]
+                        if config['use_rnn']
+                        else None
+                    ),
+                )
+                with torch.no_grad(), self.amp_context:
+                    old_logits, _ = self.old_policy(mb_obs, old_state)
+                    _, ppo_old_logprobs, _ = pufferlib.pytorch.sample_logits(
+                        old_logits,
+                        action=mb_actions,
+                    )
+                ppo_old_logprobs = ppo_old_logprobs.reshape_as(mb_logprobs)
+
             state = dict(
                 action=mb_actions,
-                lstm_h=None,
-                lstm_c=None,
+                lstm_h=(
+                    self.rollout_lstm_h[idx].unsqueeze(0)
+                    if config['use_rnn']
+                    else None
+                ),
+                lstm_c=(
+                    self.rollout_lstm_c[idx].unsqueeze(0)
+                    if config['use_rnn']
+                    else None
+                ),
+                lstm_reset=(
+                    self.rollout_lstm_resets[idx]
+                    if config['use_rnn']
+                    else None
+                ),
             )
 
             with self.amp_context:
@@ -1055,14 +1164,18 @@ class PuffeRL:
 
             profile('train_misc', epoch)
             newlogprob = newlogprob.reshape(mb_logprobs.shape)
-            logratio = newlogprob - mb_logprobs
+            logratio = newlogprob - ppo_old_logprobs
             ratio = logratio.exp()
             self.ratio[idx] = ratio.detach()
 
+            actor_count = actor_mask.sum().clamp_min(1.0)
             with torch.no_grad():
-                old_approx_kl = (-logratio).mean()
-                approx_kl = ((ratio - 1) - logratio).mean()
-                clipfrac = ((ratio - 1.0).abs() > config['clip_coef']).float().mean()
+                old_approx_kl = ((-logratio) * actor_mask).sum() / actor_count
+                approx_kl = (((ratio - 1) - logratio) * actor_mask).sum() / actor_count
+                clipfrac = (
+                    ((ratio - 1.0).abs() > config['clip_coef']).float()
+                    * actor_mask
+                ).sum() / actor_count
 
             # NOTE: Commenting this out since adv is replaced below
             # adv = advantages[idx]
@@ -1070,17 +1183,24 @@ class PuffeRL:
             #     ratio, adv, config['gamma'], config['gae_lambda'],
             #     config['vtrace_rho_clip'], config['vtrace_c_clip'])
 
-            # Weight advantages by priority and normalize
-            adv = mb_advantages
-            adv = mb_prio * (adv - adv.mean()) / (adv.std() + 1e-8)
+            advantage_mean = (mb_advantages * actor_mask).sum() / actor_count
+            advantage_var = (
+                (mb_advantages - advantage_mean).square() * actor_mask
+            ).sum() / actor_count
+            adv = (
+                mb_prio
+                * (mb_advantages - advantage_mean)
+                / (advantage_var.sqrt() + 1e-8)
+            )
 
-            # Losses
             pg_loss1 = -adv * ratio
             pg_loss2 = -adv * torch.clamp(ratio, 1 - clip_coef, 1 + clip_coef)
-            pg_loss = torch.max(pg_loss1, pg_loss2).mean()
+            pg_loss = (torch.max(pg_loss1, pg_loss2) * actor_mask).sum() / actor_count
 
             newvalue = newvalue.view(mb_returns.shape)
-            total_v_loss = self._clipped_value_loss(newvalue, mb_values, mb_returns, vf_clip)
+            total_v_loss = self._clipped_value_loss(
+                newvalue, mb_values, mb_returns, vf_clip, mask=actor_mask
+            )
             component_v_loss = torch.zeros((), device=device)
             terminal_v_loss = torch.zeros((), device=device)
             shaped_v_loss = torch.zeros((), device=device)
@@ -1094,16 +1214,18 @@ class PuffeRL:
                     mb_terminal_values,
                     mb_terminal_returns,
                     vf_clip,
+                    mask=actor_mask,
                 )
                 shaped_v_loss = self._clipped_value_loss(
                     new_shaped_value,
                     mb_shaped_values,
                     mb_shaped_returns,
                     vf_clip,
+                    mask=actor_mask,
                 )
                 component_v_loss = 0.5 * (terminal_v_loss + shaped_v_loss)
 
-            entropy_loss = entropy.mean()
+            entropy_loss = (entropy.reshape_as(actor_mask) * actor_mask).sum() / actor_count
             win_prob_aux_loss, win_prob_aux_metrics = self._compute_win_prob_aux(state, idx)
 
             value_loss_for_optim = total_v_loss + self._split_value_component_coef() * component_v_loss
@@ -1151,6 +1273,7 @@ class PuffeRL:
         profile('train_misc', epoch)
         if config['anneal_lr']:
             self.scheduler.step()
+        self._advance_running_normalization()
 
         y_pred = self.values.flatten()
         y_true = advantages.flatten() + self.values.flatten()
@@ -1397,11 +1520,47 @@ except Exception:
     upstream_compute_puff_advantage = None
 
 
-def compute_puff_advantage(values, rewards, terminals,
-        ratio, advantages, gamma, gae_lambda, vtrace_rho_clip, vtrace_c_clip):
-    '''Use the upstream 4.0 kernel when available and fall back to a Python implementation.'''
+def _compute_puff_advantage_fallback(
+        values, rewards, terminals, ratio, advantages, gamma, gae_lambda,
+        vtrace_rho_clip, vtrace_c_clip, truncations=None):
+    """PufferLib 4.0 incoming-reward GAE, extended for truncation bootstrap."""
+    if values.shape != rewards.shape or values.shape != terminals.shape:
+        raise ValueError('values, rewards, and terminals must have matching shapes')
+    if truncations is not None and truncations.shape != values.shape:
+        raise ValueError('truncations must match values')
 
-    if upstream_compute_puff_advantage is not None:
+    advantages.zero_()
+    next_advantage = torch.zeros(
+        values.shape[0], device=values.device, dtype=values.dtype
+    )
+    clipped_rho = torch.clamp(ratio, max=vtrace_rho_clip)
+    clipped_c = torch.clamp(ratio, max=vtrace_c_clip)
+    for step in range(values.shape[1] - 2, -1, -1):
+        next_step = step + 1
+        bootstrap = 1.0 - terminals[:, next_step]
+        trace = bootstrap
+        if truncations is not None:
+            trace = trace * (1.0 - truncations[:, next_step])
+        delta = (
+            clipped_rho[:, step] * rewards[:, next_step]
+            + gamma * bootstrap * values[:, next_step]
+            - values[:, step]
+        )
+        next_advantage = (
+            delta
+            + gamma * gae_lambda * clipped_c[:, step] * trace * next_advantage
+        )
+        advantages[:, step] = next_advantage
+    return advantages
+
+
+def compute_puff_advantage(values, rewards, terminals,
+        ratio, advantages, gamma, gae_lambda, vtrace_rho_clip, vtrace_c_clip,
+        truncations=None):
+    """Compute GAE for rewards/dones aligned with the current observation."""
+    has_truncations = truncations is not None and bool(torch.any(truncations))
+    if not has_truncations and upstream_compute_puff_advantage is not None:
+        advantages.zero_()
         return upstream_compute_puff_advantage(
             values,
             rewards,
@@ -1413,22 +1572,18 @@ def compute_puff_advantage(values, rewards, terminals,
             vtrace_rho_clip,
             vtrace_c_clip,
         )
-
-    next_advantage = torch.zeros(values.shape[0], device=values.device, dtype=values.dtype)
-    next_value = torch.zeros(values.shape[0], device=values.device, dtype=values.dtype)
-    clipped_rho = torch.clamp(ratio, max=vtrace_rho_clip)
-    clipped_c = torch.clamp(ratio, max=vtrace_c_clip)
-
-    for step in range(values.shape[1] - 1, -1, -1):
-        nonterminal = 1.0 - terminals[:, step]
-        delta = clipped_rho[:, step] * (
-            rewards[:, step] + gamma * nonterminal * next_value - values[:, step]
-        )
-        next_advantage = delta + gamma * gae_lambda * nonterminal * clipped_c[:, step] * next_advantage
-        advantages[:, step] = next_advantage
-        next_value = values[:, step]
-
-    return advantages
+    return _compute_puff_advantage_fallback(
+        values,
+        rewards,
+        terminals,
+        ratio,
+        advantages,
+        gamma,
+        gae_lambda,
+        vtrace_rho_clip,
+        vtrace_c_clip,
+        truncations,
+    )
 
 
 def abbreviate(num, b2, c2):

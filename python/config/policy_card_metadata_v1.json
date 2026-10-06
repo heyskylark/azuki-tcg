@@ -32,7 +32,7 @@
   },
   "embedding_dim": 1536,
   "embedding_model": "text-embedding-3-small",
-  "generated_at_utc": "2026-04-15T07:49:01.495542+00:00",
+  "generated_at_utc": "2026-09-23T01:59:01.484753+00:00",
   "keyword_vocab": [
     "can_target_leader_only",
     "can_target_tapped_and_untapped_alley",
@@ -43,7 +43,7 @@
     "godmode",
     "is_ikz_card"
   ],
-  "real_card_count": 193,
+  "real_card_count": 194,
   "real_card_index_offset": 1,
   "records": [
     {
@@ -3316,7 +3316,7 @@
       "card_def_id": 157,
       "card_type": "SPELL",
       "effect_text": "[Response] Deal 1 damage to an entity in your opponent's Garden.",
-      "element": "LIGHTNING",
+      "element": "NORMAL",
       "gate_points": 0,
       "has_ability": false,
       "health": 0,
@@ -4062,6 +4062,26 @@
         "Blazerker"
       ],
       "table_index": 193
+    },
+    {
+      "ability_is_optional": false,
+      "ability_timing_id": 6,
+      "attack": 0,
+      "card_code": "STT03-017",
+      "card_def_id": 193,
+      "card_type": "SPELL",
+      "effect_text": "[Main] Choose 1 - add 1 IKZ from your IKZ pile to your IKZ area; the IKZ enters the field tapped. Then, heal up to 1 to your leader. - Draw 1.",
+      "element": "EARTH",
+      "gate_points": 0,
+      "has_ability": true,
+      "health": 0,
+      "ikz_cost": 3,
+      "keywords": [],
+      "name": "Sprout of Fortune",
+      "subtypes": [
+        "Verdant"
+      ],
+      "table_index": 194
     }
   ],
   "subtype_vocab": [
@@ -4148,5 +4168,5 @@
     "Wildfire",
     "Wolf"
   ],
-  "table_len": 194
+  "table_len": 195
 }

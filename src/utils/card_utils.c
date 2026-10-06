@@ -154,6 +154,40 @@ int8_t azk_get_effective_card_play_cost(ecs_world_t *world, ecs_entity_t player,
   return (int8_t)effective_cost;
 }
 
+void azk_consume_next_card_play_cost_reduction(ecs_world_t *world,
+                                               ecs_entity_t player,
+                                               ecs_entity_t card) {
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  if (gs == NULL || player == 0) {
+    return;
+  }
+
+  const uint8_t player_num = get_player_number(world, player);
+  const int8_t reduction = gs->next_card_play_cost_reduction[player_num];
+  if (reduction <= 0) {
+    return;
+  }
+
+  int16_t cost_before_benzai = 0;
+  const IKZCost *cost = ecs_get(world, card, IKZCost);
+  if (cost != NULL) {
+    cost_before_benzai = cost->ikz_cost;
+  }
+  const CardId *card_id = ecs_get(world, card, CardId);
+  if (card_id != NULL && card_id->id == CARD_DEF_AZK01_106) {
+    cost_before_benzai -= count_defender_entities_in_garden(world, player);
+  }
+  if (cost_before_benzai < 0) {
+    cost_before_benzai = 0;
+  }
+
+  gs->next_card_play_cost_reduction[player_num] = 0;
+  if (cost_before_benzai > 0) {
+    gs->leader_ability_outcomes[player_num]++;
+  }
+  ecs_singleton_modified(world, GameState);
+}
+
 typedef enum {
   AZK_DISCARD_REASON_DESTROY = 0,
   AZK_DISCARD_REASON_SACRIFICE = 1,
@@ -184,17 +218,17 @@ static void maybe_queue_self_leave_play_trigger(ecs_world_t *world,
   }
 }
 
-static void heal_leader_in_zone(ecs_world_t *world, ecs_entity_t leader_zone,
+static bool heal_leader_in_zone(ecs_world_t *world, ecs_entity_t leader_zone,
                                 int8_t max_heal) {
   ecs_entity_t leader = find_leader_card_in_zone(world, leader_zone);
   if (leader == 0) {
-    return;
+    return false;
   }
 
   const BaseStats *base = ecs_get(world, leader, BaseStats);
   CurStats *cur = ecs_get_mut(world, leader, CurStats);
   if (base == NULL || cur == NULL) {
-    return;
+    return false;
   }
 
   const int16_t missing_hp = (int16_t)base->health - (int16_t)cur->cur_hp;
@@ -203,13 +237,14 @@ static void heal_leader_in_zone(ecs_world_t *world, ecs_entity_t leader_zone,
                    ? 0
                    : (missing_hp < max_heal ? missing_hp : max_heal));
   if (heal_amount <= 0) {
-    return;
+    return false;
   }
 
   cur->cur_hp += heal_amount;
   ecs_modified(world, leader, CurStats);
   azk_log_card_stat_change(world, leader, 0, heal_amount, cur->cur_atk,
                            cur->cur_hp);
+  return true;
 }
 
 static void maybe_trigger_bobu_state(ecs_world_t *world, const GameState *gs,
@@ -246,7 +281,9 @@ static void maybe_trigger_bobu_state(ecs_world_t *world, const GameState *gs,
 
   state->expires_turn = 0;
   ecs_modified(world, leader, STT03BobuState);
-  heal_leader_in_zone(world, gs->zones[owner_num].leader, 1);
+  if (heal_leader_in_zone(world, gs->zones[owner_num].leader, 1)) {
+    azk_record_leader_ability_outcome(world, owner);
+  }
 }
 
 static uint8_t current_turn_owner_index(const GameState *gs) {

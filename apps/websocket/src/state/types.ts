@@ -1,6 +1,7 @@
 import type { WebSocket } from "uWebSockets.js";
 import type { RoomStatus } from "@tcg/backend-core/types";
 import type { UserData } from "@/constants";
+import type { RoomEvaluationMetadata } from "@tcg/backend-core/types/ws";
 
 export interface PlayerConnection {
   ws: WebSocket<UserData> | null;
@@ -23,6 +24,7 @@ export interface RoomChannelState {
   player1Ready: boolean;
   deckSelectionDeadline: Date | null;
   readyCountdownStartedAt: Date | null;
+  evaluation: RoomEvaluationMetadata | null;
 }
 
 export interface ConnectionInfo {

@@ -1,0 +1,24 @@
+{
+  "models": [
+    {
+      "displayName": "p100",
+      "modelKey": "experiments/azuki_local_corrected_production_1b_lr1500_fresh_resume_p3300_178745542246/model_azuki_local_006500.pt",
+      "checkpointSha256": "f56278ccbf8da7889e764cbe01e25fbf04795825bcc30a6ae227b6f233cc42b0"
+    },
+    {
+      "displayName": "p200",
+      "modelKey": "experiments/azuki_local_corrected_production_1b_lr1500_fresh_resume_p6500_178747720966/model_azuki_local_013000.pt",
+      "checkpointSha256": "d8cdb50abdb41089c124c9a54061d698f40ec2814d49e91a68e2e29bbe8800a0"
+    },
+    {
+      "displayName": "p300 selected p18000",
+      "modelKey": "experiments/azuki_local_corrected_production_1b_lr1500_fresh_resume_p13000_178752366293/model_azuki_local_018000.pt",
+      "checkpointSha256": "c56c1f96e41268fae543c030aa2686145ea22dd8700c9b06041fb3d83f5e4775"
+    },
+    {
+      "displayName": "p19500 regression diagnostic",
+      "modelKey": "experiments/azuki_local_corrected_production_1b_lr1500_fresh_resume_p13000_178752366293/model_azuki_local_019500.pt",
+      "checkpointSha256": "e0e2b56c026bbb66d0e6aedbcb2a844743f7023f1ed25043480d0f905a7fa955"
+    }
+  ]
+}

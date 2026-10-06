@@ -30,6 +30,10 @@
       "types": "./dist/types/ws.d.ts",
       "import": "./dist/types/ws.js"
     },
+    "./types/humanEvaluations": {
+      "types": "./dist/types/humanEvaluations.d.ts",
+      "import": "./dist/types/humanEvaluations.js"
+    },
     "./constants": {
       "types": "./dist/constants/index.d.ts",
       "import": "./dist/constants/index.js"
@@ -53,6 +57,10 @@
     "./services/roomService": {
       "types": "./dist/services/roomService.d.ts",
       "import": "./dist/services/roomService.js"
+    },
+    "./services/humanEvaluationService": {
+      "types": "./dist/services/humanEvaluationService.d.ts",
+      "import": "./dist/services/humanEvaluationService.js"
     },
     "./services/aiModelService": {
       "types": "./dist/services/aiModelService.d.ts",
@@ -81,7 +89,8 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "bun src/database/migrate.ts",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "human-eval:models": "bun src/database/configureHumanEvaluationModels.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

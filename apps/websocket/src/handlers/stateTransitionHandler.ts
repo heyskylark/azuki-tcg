@@ -9,6 +9,12 @@ import {
   deckAsDefIdsToDeckEntries,
 } from "@tcg/backend-core/services/cardMapperService";
 import { findUserById } from "@tcg/backend-core/services/userService";
+import {
+  abortHumanEvaluationRoom,
+  getHumanEvaluationMatchByRoomId,
+  materializeHumanEvaluationDeck,
+} from "@tcg/backend-core/services/humanEvaluationService";
+import type { HumanEvaluationRuntimeMatch } from "@tcg/backend-core/types/humanEvaluations";
 import { getRoomChannel, updateRoomChannelStatus, removeRoomChannel } from "@/state/RoomRegistry";
 import {
   startDeckSelectionTimeout,
@@ -19,21 +25,45 @@ import {
 } from "@/state/TimerManager";
 import { broadcastRoomState, broadcastToRoom, sendToPlayer } from "@/utils/broadcast";
 import { DECK_SELECTION_TIMEOUT_MS } from "@/constants";
-import {
-  createGameWorld,
-  destroyGameWorld,
-  getWorldByRoomId,
-} from "@/engine/WorldManager";
+import { createGameWorld, destroyGameWorld, getWorldByRoomId } from "@/engine/WorldManager";
 import {
   clearAiOpponentForRoom,
   maybeRunAiTurns,
   registerAiOpponent,
 } from "@/engine/aiOpponentService";
 import { generateSnapshot } from "@/engine/snapshotGenerator";
+import { endInferenceSession, generateDeck, hasInferenceSession } from "@/services/inferenceClient";
 import logger from "@/logger";
+import type { RoomChannelState } from "@/state/types";
 
 function getErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+function battleInitializationAbortReason(
+  channel: RoomChannelState,
+  ordinaryReason: string
+): string {
+  return channel.evaluation ? "Evaluation battle could not be initialized" : ordinaryReason;
+}
+
+async function prepareEvaluationDeck(
+  evaluationMatch: HumanEvaluationRuntimeMatch,
+  channel: RoomChannelState
+): Promise<void> {
+  const artifact = await generateDeck({
+    modelKey: evaluationMatch.modelKey,
+    sessionKey: evaluationMatch.sessionKey,
+    draftSeed: evaluationMatch.draftSeed,
+    aiSlot: evaluationMatch.aiSlot,
+    gateCardCode: evaluationMatch.gateCardCode,
+    leaderCardCode: evaluationMatch.leaderCardCode,
+  });
+  const materialized = await materializeHumanEvaluationDeck(evaluationMatch.matchId, artifact);
+  if (evaluationMatch.aiSlot === 0) {
+    channel.player0DeckId = materialized.deckId;
+  } else {
+    channel.player1DeckId = materialized.deckId;
+  }
 }
 
 export async function transitionToDeckSelection(roomId: string): Promise<void> {
@@ -51,6 +81,21 @@ export async function transitionToDeckSelection(roomId: string): Promise<void> {
 
   let player0Ready = channel.player0Ready;
   let player1Ready = channel.player1Ready;
+  const evaluationMatch = await getHumanEvaluationMatchByRoomId(roomId);
+  if (channel.evaluation && !evaluationMatch) {
+    await transitionToAborted(roomId, "Evaluation assignment not found");
+    return;
+  }
+  if (evaluationMatch) {
+    try {
+      await prepareEvaluationDeck(evaluationMatch, channel);
+    } catch (error) {
+      logger.error("Failed to prepare evaluation opponent deck", { roomId, error });
+      await endInferenceSession(evaluationMatch.sessionKey);
+      await transitionToAborted(roomId, "Evaluation opponent could not be prepared");
+      return;
+    }
+  }
 
   for (const slot of [0, 1] as const) {
     const player = channel.players[slot];
@@ -65,7 +110,12 @@ export async function transitionToDeckSelection(roomId: string): Promise<void> {
         playerSlot: slot,
         userId: player.userId,
       });
-      await transitionToAborted(roomId, `AI player ${slot} is missing a deck`);
+      await transitionToAborted(
+        roomId,
+        channel.evaluation
+          ? "Evaluation opponent could not be prepared"
+          : `AI player ${slot} is missing a deck`
+      );
       return;
     }
 
@@ -89,6 +139,9 @@ export async function transitionToDeckSelection(roomId: string): Promise<void> {
   });
 
   broadcastRoomState(channel);
+  if (evaluationMatch && player0Ready && player1Ready) {
+    await transitionToReadyCheck(roomId);
+  }
 
   logger.info("Room transitioned to DECK_SELECTION", { roomId, deadline });
 }
@@ -125,7 +178,25 @@ export async function transitionToStarting(roomId: string): Promise<void> {
 
   cancelDeckSelectionTimeout(roomId);
 
-  const rngSeed = Math.floor(Math.random() * 2147483647);
+  const evaluationMatch = channel.evaluation ? await getHumanEvaluationMatchByRoomId(roomId) : null;
+  if (channel.evaluation && !evaluationMatch) {
+    await transitionToAborted(roomId, "Evaluation assignment not found");
+    return;
+  }
+  if (evaluationMatch) {
+    try {
+      const sessionActive = await hasInferenceSession(evaluationMatch.sessionKey);
+      if (!sessionActive) {
+        await prepareEvaluationDeck(evaluationMatch, channel);
+      }
+    } catch (error) {
+      logger.error("Failed to restore evaluation inference session", { roomId, error });
+      await endInferenceSession(evaluationMatch.sessionKey);
+      await transitionToAborted(roomId, "Evaluation opponent could not be prepared");
+      return;
+    }
+  }
+  const rngSeed = evaluationMatch?.battleSeed ?? Math.floor(Math.random() * 2147483647);
 
   await updateRoomStatus(roomId, RoomStatus.STARTING, {
     rngSeed,
@@ -155,23 +226,33 @@ export async function transitionToInMatch(roomId: string, rngSeed: number): Prom
   const room = await findRoomById(roomId);
   if (!room) {
     logger.error("Cannot transition to IN_MATCH: room not found", { roomId });
-    await transitionToAborted(roomId, "Room data not found");
+    await transitionToAborted(
+      roomId,
+      battleInitializationAbortReason(channel, "Room data not found")
+    );
     return;
   }
 
   if (!room.player0Id || !room.player1Id) {
     logger.error("Cannot transition to IN_MATCH: missing players", { roomId });
-    await transitionToAborted(roomId, "Missing players");
+    await transitionToAborted(roomId, battleInitializationAbortReason(channel, "Missing players"));
     return;
   }
 
   if (!room.player0DeckId || !room.player1DeckId) {
     logger.error("Cannot transition to IN_MATCH: missing decks", { roomId });
-    await transitionToAborted(roomId, "Missing decks");
+    await transitionToAborted(roomId, battleInitializationAbortReason(channel, "Missing decks"));
     return;
   }
 
   try {
+    const evaluationMatch = channel.evaluation
+      ? await getHumanEvaluationMatchByRoomId(roomId)
+      : null;
+    if (channel.evaluation && !evaluationMatch) {
+      throw new Error("Evaluation assignment not found");
+    }
+
     const player0User = await findUserById(room.player0Id);
     const player1User = await findUserById(room.player1Id);
     if (!player0User || !player1User) {
@@ -180,7 +261,10 @@ export async function transitionToInMatch(roomId: string, rngSeed: number): Prom
         player0Found: !!player0User,
         player1Found: !!player1User,
       });
-      await transitionToAborted(roomId, "Missing user records");
+      await transitionToAborted(
+        roomId,
+        battleInitializationAbortReason(channel, "Missing user records")
+      );
       return;
     }
 
@@ -200,22 +284,37 @@ export async function transitionToInMatch(roomId: string, rngSeed: number): Prom
       logger.error("Cannot transition to IN_MATCH: multiple AI players are not supported", {
         roomId,
       });
-      await transitionToAborted(roomId, "Only one AI player is supported per match");
+      await transitionToAborted(
+        roomId,
+        battleInitializationAbortReason(channel, "Only one AI player is supported per match")
+      );
       return;
     }
 
-    const aiPlayer = aiPlayers[0] ?? null;
+    const detectedAiPlayer = aiPlayers[0] ?? null;
+    const aiPlayer = evaluationMatch
+      ? {
+          slot: evaluationMatch.aiSlot,
+          userId: evaluationMatch.aiSlot === 0 ? room.player0Id : room.player1Id,
+          modelKey: evaluationMatch.modelKey,
+        }
+      : detectedAiPlayer;
     if (aiPlayer && !aiPlayer.modelKey) {
       logger.error("Cannot transition to IN_MATCH: AI player missing model key", {
         roomId,
         aiSlot: aiPlayer.slot,
         aiUserId: aiPlayer.userId,
       });
-      await transitionToAborted(roomId, "AI player is missing a model key");
+      await transitionToAborted(
+        roomId,
+        battleInitializationAbortReason(channel, "AI player is missing a model key")
+      );
       return;
     }
 
-    await clearAiOpponentForRoom(roomId);
+    if (!evaluationMatch) {
+      await clearAiOpponentForRoom(roomId);
+    }
 
     // Load decks as CardDefIds for the engine
     const player0Deck = await loadDeckAsDefIds(room.player0DeckId);
@@ -234,7 +333,8 @@ export async function transitionToInMatch(roomId: string, rngSeed: number): Prom
       room.player0Id,
       player0DeckEntries,
       room.player1Id,
-      player1DeckEntries
+      player1DeckEntries,
+      evaluationMatch?.startingPlayer
     );
 
     logger.info("Created game world", { roomId, worldId: world.worldId });
@@ -254,12 +354,24 @@ export async function transitionToInMatch(roomId: string, rngSeed: number): Prom
     });
 
     if (aiPlayer && aiPlayer.modelKey) {
-      registerAiOpponent({
-        roomId,
-        playerSlot: aiPlayer.slot,
-        userId: aiPlayer.userId,
-        modelKey: aiPlayer.modelKey,
-      });
+      if (evaluationMatch) {
+        registerAiOpponent({
+          roomId,
+          playerSlot: aiPlayer.slot,
+          userId: aiPlayer.userId,
+          modelKey: aiPlayer.modelKey,
+          sessionKey: evaluationMatch.sessionKey,
+          resetSession: false,
+          requireSession: true,
+        });
+      } else {
+        registerAiOpponent({
+          roomId,
+          playerSlot: aiPlayer.slot,
+          userId: aiPlayer.userId,
+          modelKey: aiPlayer.modelKey,
+        });
+      }
     }
 
     // Send initial snapshots to each player
@@ -282,13 +394,23 @@ export async function transitionToInMatch(roomId: string, rngSeed: number): Prom
           roomId,
           error: errorMsg,
         });
-        await transitionToAborted(roomId, `AI inference failed: ${errorMsg}`);
+        await transitionToAborted(
+          roomId,
+          channel.evaluation
+            ? "Evaluation opponent failed during battle"
+            : `AI inference failed: ${errorMsg}`
+        );
       }
     }
   } catch (error) {
     const errorMsg = getErrorMessage(error);
     logger.error("Failed to create game world", { roomId, error: errorMsg });
-    await transitionToAborted(roomId, `Failed to initialize game: ${errorMsg}`);
+    await transitionToAborted(
+      roomId,
+      channel.evaluation
+        ? "Evaluation battle could not be initialized"
+        : `Failed to initialize game: ${errorMsg}`
+    );
   }
 }
 
@@ -335,6 +457,9 @@ export async function transitionToAborted(roomId: string, reason: string): Promi
   if (!channel) {
     logger.warn("Cannot transition to ABORTED: channel not found", { roomId });
     return;
+  }
+  if (channel.evaluation) {
+    await abortHumanEvaluationRoom(roomId);
   }
 
   await updateRoomStatus(roomId, RoomStatus.ABORTED);

@@ -58,7 +58,14 @@ void stt04_002_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
 
   const int8_t gate_power = current_gate_power(ctx, world);
   if (gate_power > 0) {
-    apply_attack_modifier(world, ctx->effect.entities[0], ctx->runtime.source_card,
-                          gate_power, true);
+    const ecs_entity_t target = ctx->effect.entities[0];
+    const CurStats *before = ecs_get(world, target, CurStats);
+    const int8_t attack_before = before != NULL ? before->cur_atk : 0;
+    apply_attack_modifier(world, target, ctx->runtime.source_card, gate_power,
+                          true);
+    const CurStats *after = ecs_get(world, target, CurStats);
+    if (after != NULL && after->cur_atk > attack_before) {
+      azk_record_gate_ability_outcome(world, ctx->runtime.owner);
+    }
   }
 }

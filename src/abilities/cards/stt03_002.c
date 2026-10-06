@@ -59,6 +59,12 @@ void stt03_002_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
     return;
   }
 
-  apply_timed_tag_grant(world, ctx->effect.entities[0], ecs_id(Defender),
-                        TAG_GRANT_TICK_START_OF_TURN, 2);
+  const ecs_entity_t target = ctx->effect.entities[0];
+  const bool had_defender = ecs_has(world, target, Defender);
+  const bool applied =
+      apply_timed_tag_grant(world, target, ecs_id(Defender),
+                            TAG_GRANT_TICK_START_OF_TURN, 2);
+  if (applied && !had_defender && ecs_has(world, target, Defender)) {
+    azk_record_gate_ability_outcome(world, ctx->runtime.owner);
+  }
 }

@@ -2152,7 +2152,7 @@ static const CardDef kGeneratedCardDefs[CARD_DEF_COUNT] = {
         .card_id = "AZK01-127",
         .name = "Sundering Strike",
         .rarity = CARD_RARITY_UC,
-        .element = CARD_ELEMENT_LIGHTNING,
+        .element = CARD_ELEMENT_NORMAL,
         .type = CARD_TYPE_SPELL,
         .has_base_stats = false,
         .base_stats = { .attack = 0, .health = 0 },
@@ -2616,6 +2616,19 @@ static const CardDef kGeneratedCardDefs[CARD_DEF_COUNT] = {
         .has_ikz_cost = true,
         .ikz_cost = { .ikz_cost = 3 },
     },
+    {
+        .card_id = "STT03-017",
+        .name = "Sprout of Fortune",
+        .rarity = CARD_RARITY_C,
+        .element = CARD_ELEMENT_EARTH,
+        .type = CARD_TYPE_SPELL,
+        .has_base_stats = false,
+        .base_stats = { .attack = 0, .health = 0 },
+        .has_gate_points = false,
+        .gate_points = { .gate_points = 0 },
+        .has_ikz_cost = true,
+        .ikz_cost = { .ikz_cost = 3 },
+    },
 };
 
 static ecs_entity_t kGeneratedPrefabs[CARD_DEF_COUNT];
@@ -2825,6 +2838,7 @@ static const CardDefLookupEntry kGeneratedCardLookup[CARD_DEF_COUNT] = {
     { .card_id = "STT04-015", .def = &kGeneratedCardDefs[CARD_DEF_STT04_015] },
     { .card_id = "STT04-016", .def = &kGeneratedCardDefs[CARD_DEF_STT04_016] },
     { .card_id = "STT04-017", .def = &kGeneratedCardDefs[CARD_DEF_STT04_017] },
+    { .card_id = "STT03-017", .def = &kGeneratedCardDefs[CARD_DEF_STT03_017] },
 };
 
 const CardDefLookupEntry *azk_card_def_lookup_table(size_t *out_count) {
@@ -5896,7 +5910,7 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         kGeneratedPrefabs[CARD_DEF_AZK01_127] = prefab;
         ecs_set(world, prefab, CardId, { .id = CARD_DEF_AZK01_127, .code = "AZK01-127" });
         ecs_set(world, prefab, Name, { .value = "Sundering Strike" });
-        ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_LIGHTNING });
+        ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_NORMAL });
         ecs_set(world, prefab, Type, { .value = CARD_TYPE_SPELL });
         ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 1 });
@@ -6561,6 +6575,22 @@ void azk_register_card_def_resources(ecs_world_t *world) {
         ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
         ecs_set(world, prefab, IKZCost, { .ikz_cost = 3 });
         ecs_add(world, prefab, TSubtype_Blazerker);
+    }
+    {
+        ecs_entity_desc_t desc = {
+            .name = "CardPrefab::STT03-017",
+            .add = (ecs_id_t[]){ EcsPrefab, TSpell, 0 }
+        };
+        ecs_entity_t prefab = ecs_entity_init(world, &desc);
+        ecs_assert(prefab != 0, ECS_INVALID_PARAMETER, "failed to create prefab for card STT03-017");
+        kGeneratedPrefabs[CARD_DEF_STT03_017] = prefab;
+        ecs_set(world, prefab, CardId, { .id = CARD_DEF_STT03_017, .code = "STT03-017" });
+        ecs_set(world, prefab, Name, { .value = "Sprout of Fortune" });
+        ecs_set(world, prefab, Element, { .element = CARD_ELEMENT_EARTH });
+        ecs_set(world, prefab, Type, { .value = CARD_TYPE_SPELL });
+        ecs_set(world, prefab, TapState, { .tapped = 0, .cooldown = 0 });
+        ecs_set(world, prefab, IKZCost, { .ikz_cost = 3 });
+        ecs_add(world, prefab, TSubtype_Verdant);
     }
 }
 

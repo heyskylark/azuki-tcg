@@ -136,6 +136,7 @@ def main() -> None:
     parser.add_argument("--opponent-deck-arms", type=Path)
     parser.add_argument("--opponent-arm", default="native_p2930")
     parser.add_argument("--device", default="cpu")
+    parser.add_argument("--action-mode", choices=("sample", "argmax"), default="argmax")
     parser.add_argument("--shards", type=int, default=1)
     parser.add_argument("--shard-index", type=int, default=0)
     parser.add_argument("--step-cap", type=int, default=1_200)
@@ -178,7 +179,10 @@ def main() -> None:
         raise ValueError(f"Reference index exceeds pool size {len(pool)}")
 
     runner = EpisodeRunner(args.config, args.checkpoint, args.device)
-    logger = GameLogger(runner, log_legal_actions=True, action_mode="argmax")
+    from policy.v2 import tcg_sampler
+
+    tcg_sampler.set_sampling_params(subaction_temperature=1.0, smoothing_eps=0.0)
+    logger = GameLogger(runner, log_legal_actions=True, action_mode=args.action_mode)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     started = time.time()
     completed = 0
@@ -236,19 +240,30 @@ def main() -> None:
                 if _main_counter(game["decks"][1 - candidate_seat]) != expected_reference:
                     raise RuntimeError(f"Reference deck mismatch in game {global_index}")
 
+                complete = (
+                    game["outcome"]["terminated"] and not game["outcome"]["truncated"]
+                )
                 winner = int(game["outcome"]["winner"])
-                candidate_score = 0.5 if winner < 0 else float(winner == candidate_seat)
+                candidate_score = (
+                    None if not complete else 0.5 if winner < 0 else float(winner == candidate_seat)
+                )
                 game["counterfactual"] = {
                     **task,
                     "global_task_index": global_index,
                     "reference_label": reference_label,
                     "reference_gate": reference_gate,
                     "candidate_score": candidate_score,
-                    "action_mode": "legal_argmax_stable_first",
+                    "action_mode": (
+                        "legal_argmax_stable_first"
+                        if args.action_mode == "argmax"
+                        else "sample_temperature_1_no_smoothing"
+                    ),
                     "recurrent_start": "zero_for_both_fixed_seats",
                 }
                 handle.write(json.dumps(game, separators=(",", ":")) + "\n")
                 handle.flush()
+                if not complete:
+                    raise RuntimeError(f"Retained incomplete game {global_index}; no score assigned")
                 completed += 1
                 candidate_wins += int(candidate_score == 1.0)
                 draws += int(candidate_score == 0.5)

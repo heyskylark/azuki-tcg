@@ -27,9 +27,14 @@ export async function resolveAcceptedActionResult(
 
   const batchNumber = incrementBatchNumber(roomId);
 
-  storeGameLogs(roomId, batchNumber, result.logs).catch((error) => {
+  try {
+    await storeGameLogs(roomId, batchNumber, result.logs);
+  } catch (error) {
+    if (channel.evaluation) {
+      throw error;
+    }
     logger.error("Failed to store game logs", { roomId, batchNumber, error });
-  });
+  }
 
   for (const slot of [0, 1] as const) {
     const playerConnection = channel.players[slot];
@@ -38,12 +43,7 @@ export async function resolveAcceptedActionResult(
     }
 
     try {
-      const logBatch = processLogsForPlayer(
-        result.logs,
-        slot,
-        result.stateContext,
-        batchNumber
-      );
+      const logBatch = processLogsForPlayer(result.logs, slot, result.stateContext, batchNumber);
 
       if (!result.gameOver && result.stateContext.activePlayer === slot) {
         const observation = getPlayerObservationBySlot(roomId, slot);
@@ -52,26 +52,26 @@ export async function resolveAcceptedActionResult(
         }
 
         const abilityPhase = result.stateContext.abilityPhase;
-        if (
-          observation &&
-          (abilityPhase === "SELECTION_PICK" || abilityPhase === "BOTTOM_DECK")
-        ) {
-          logBatch.stateContext.selectionCards =
-            observation.myObservationData.selection.flatMap((card) => {
+        if (observation && (abilityPhase === "SELECTION_PICK" || abilityPhase === "BOTTOM_DECK")) {
+          logBatch.stateContext.selectionCards = observation.myObservationData.selection.flatMap(
+            (card) => {
               if (!card) {
                 return [];
               }
 
-              return [{
-                cardId: card.cardCode,
-                cardDefId: card.cardDefId,
-                zoneIndex: card.zoneIndex,
-                type: card.type,
-                ikzCost: card.ikzCost,
-                curAtk: card.curAtk,
-                curHp: card.curHp,
-              }];
-            });
+              return [
+                {
+                  cardId: card.cardCode,
+                  cardDefId: card.cardDefId,
+                  zoneIndex: card.zoneIndex,
+                  type: card.type,
+                  ikzCost: card.ikzCost,
+                  curAtk: card.curAtk,
+                  curHp: card.curHp,
+                },
+              ];
+            }
+          );
         }
       }
 

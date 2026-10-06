@@ -48,6 +48,7 @@ interface DeckBaseRecord {
   id: string;
   name: string;
   isSystemDeck: boolean;
+  isEvaluationGenerated: boolean;
   status: DeckStatus;
 }
 
@@ -134,6 +135,7 @@ async function getDeckBase(
       id: Decks.id,
       name: Decks.name,
       isSystemDeck: Decks.isSystemDeck,
+      isEvaluationGenerated: Decks.isEvaluationGenerated,
       status: Decks.status,
     })
     .from(Decks)
@@ -348,7 +350,7 @@ async function requireOwnedDeck(
 ): Promise<DeckBaseRecord> {
   const deck = await getDeckBase(deckId, database, userId);
 
-  if (deck == null) {
+  if (deck == null || deck.isEvaluationGenerated) {
     throw new DeckNotFoundError();
   }
 
@@ -435,7 +437,13 @@ export async function getUserDecks(
     })
     .from(Decks)
     .leftJoin(DeckCardJunctions, eq(Decks.id, DeckCardJunctions.deckId))
-    .where(and(eq(Decks.userId, userId), ne(Decks.status, DeckStatus.DELETED)))
+    .where(
+      and(
+        eq(Decks.userId, userId),
+        ne(Decks.status, DeckStatus.DELETED),
+        eq(Decks.isEvaluationGenerated, false)
+      )
+    )
     .groupBy(Decks.id, Decks.name, Decks.isSystemDeck)
     .orderBy(Decks.createdAt);
 
@@ -510,7 +518,7 @@ export async function getEditableDeckForUser(
 ): Promise<EditableDeck | null> {
   const deck = await getDeckBase(deckId, database, userId);
 
-  if (deck == null) {
+  if (deck == null || deck.isEvaluationGenerated) {
     return null;
   }
 

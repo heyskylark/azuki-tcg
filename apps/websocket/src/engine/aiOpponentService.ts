@@ -11,6 +11,10 @@ import {
 import { resolveAcceptedActionResult } from "@/engine/actionResolutionService";
 import { endInferenceSession, inferAction } from "@/services/inferenceClient";
 import logger from "@/logger";
+import {
+  captureEvaluationDecisionContext,
+  persistEvaluationDecision,
+} from "@/engine/evaluationTelemetryService";
 
 interface AiOpponentConfig {
   roomId: string;
@@ -20,6 +24,7 @@ interface AiOpponentConfig {
   sessionKey: string;
   running: boolean;
   resetSession: boolean;
+  requireSession: boolean;
 }
 
 interface RegisterAiOpponentParams {
@@ -27,6 +32,9 @@ interface RegisterAiOpponentParams {
   playerSlot: 0 | 1;
   userId: string;
   modelKey: string;
+  sessionKey?: string;
+  resetSession?: boolean;
+  requireSession?: boolean;
 }
 
 const aiOpponents = new Map<string, AiOpponentConfig>();
@@ -44,7 +52,8 @@ function createSessionKey(roomId: string, playerSlot: 0 | 1): string {
 
 export function registerAiOpponent(params: RegisterAiOpponentParams): void {
   const existing = aiOpponents.get(params.roomId);
-  if (existing && existing.sessionKey !== createSessionKey(params.roomId, params.playerSlot)) {
+  const sessionKey = params.sessionKey ?? createSessionKey(params.roomId, params.playerSlot);
+  if (existing && existing.sessionKey !== sessionKey) {
     void endInferenceSession(existing.sessionKey);
   }
 
@@ -53,9 +62,10 @@ export function registerAiOpponent(params: RegisterAiOpponentParams): void {
     playerSlot: params.playerSlot,
     userId: params.userId,
     modelKey: params.modelKey,
-    sessionKey: createSessionKey(params.roomId, params.playerSlot),
+    sessionKey,
     running: false,
-    resetSession: true,
+    resetSession: params.resetSession ?? true,
+    requireSession: params.requireSession ?? false,
   });
 }
 
@@ -102,9 +112,7 @@ async function runAiTurns(config: AiOpponentConfig): Promise<void> {
     }
 
     if (actionCount >= MAX_AI_ACTIONS_PER_RUN) {
-      throw new Error(
-        `AI action loop exceeded ${MAX_AI_ACTIONS_PER_RUN} actions in a single run`
-      );
+      throw new Error(`AI action loop exceeded ${MAX_AI_ACTIONS_PER_RUN} actions in a single run`);
     }
 
     const packedObservation = getPlayerTrainingObservationPackedBySlot(
@@ -115,11 +123,18 @@ async function runAiTurns(config: AiOpponentConfig): Promise<void> {
       throw new Error("Failed to build packed training observation for AI turn");
     }
 
+    const receivedAt = new Date();
+    const decisionContext = captureEvaluationDecisionContext(
+      config.roomId,
+      config.playerSlot,
+      receivedAt
+    );
     const action = await inferAction({
       modelKey: config.modelKey,
       sessionKey: config.sessionKey,
       observationPacked: packedObservation,
       resetSession: config.resetSession,
+      requireSession: config.requireSession,
     });
     config.resetSession = false;
 
@@ -128,14 +143,31 @@ async function runAiTurns(config: AiOpponentConfig): Promise<void> {
       playerSlot: config.playerSlot,
       action,
     });
-
     const submitResult = submitPlayerAction(config.roomId, config.userId, action);
     if (!isAcceptedActionResult(submitResult)) {
-      throw new Error(
-        `AI action rejected (${submitResult.code}): ${submitResult.error}`
-      );
+      await persistEvaluationDecision({
+        roomId: config.roomId,
+        actorSlot: config.playerSlot,
+        actorSource: "AI",
+        action,
+        accepted: false,
+        error: submitResult.error,
+        context: decisionContext,
+        resolvedAt: new Date(),
+      });
+      throw new Error(`AI action rejected (${submitResult.code}): ${submitResult.error}`);
     }
 
+    await persistEvaluationDecision({
+      roomId: config.roomId,
+      actorSlot: config.playerSlot,
+      actorSource: "AI",
+      action,
+      accepted: true,
+      error: null,
+      context: decisionContext,
+      resolvedAt: new Date(),
+    });
     await resolveAcceptedActionResult(config.roomId, submitResult);
     actionCount += 1;
 

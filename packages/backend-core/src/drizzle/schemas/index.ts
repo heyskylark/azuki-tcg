@@ -7,4 +7,5 @@ export * from "./rooms";
 export * from "./match_results";
 export * from "./game_logs";
 export * from "./jwt_tokens";
+export * from "./human_evaluations";
 export * from "./_relations";

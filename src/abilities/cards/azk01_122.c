@@ -80,6 +80,7 @@ void azk01_122_on_selection_complete(ecs_world_t *world, AbilityContext *ctx) {
             {.tapped = azk_card_enters_garden_tapped(world, played) ||
                        (tap != NULL && tap->tapped),
              .cooldown = false});
+    azk_record_gate_ability_outcome(world, ctx->runtime.owner);
   }
 
   azk_return_remaining_selection_cards_to_hand(world, ctx);

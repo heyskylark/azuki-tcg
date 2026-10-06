@@ -74,6 +74,73 @@ def test_native_prob_zero_keeps_cross_element_matchups():
   # P(all 32 same-element) ~ 0.25^32 under the population sampler.
   assert cross > 0
 
+def test_cross_gate_replay_exports_original_and_battle_gate_per_seat():
+  pool = load_training_deck_pool()
+  catalog = build_deck_build_catalog(pool)
+  gate = catalog.records_by_code["STT01-002"].card_def_id
+  leaders = catalog.leader_def_ids_by_element[catalog.records_by_def_id[gate].element]
+  env = AzukiNativeEnv(
+    num_envs=1,
+    deck_pool=pool,
+    seed=31,
+    deck_building=True,
+    draft_uniform_assignment=True,
+    draft_cross_gate_replay_prob=1.0,
+    evaluation_mode=True,
+  )
+  try:
+    env.reset_evaluation_games(
+      [
+        {
+          "env_index": 0,
+          "seed": 3101,
+          "gate0": gate,
+          "gate1": gate,
+          "leader0": leaders[0],
+          "leader1": leaders[1],
+        }
+      ]
+    )
+    view = env.observations.view(NATIVE_DECKBUILD_OBS_DTYPE).reshape(env.num_agents)
+    for _ in range(180):
+      if all(
+        int(view[row]["deck_context"]["mode"]) == 0
+        for row in range(env.num_agents)
+      ):
+        break
+      player = int(env.active_players()[0])
+      mask = view[player]["action_mask"]
+      env.actions.fill(0)
+      env.actions[player] = np.asarray(
+        [
+          mask["legal_primary"][0],
+          mask["legal_sub1"][0],
+          mask["legal_sub2"][0],
+          mask["legal_sub3"][0],
+        ],
+        dtype=np.int32,
+      )
+      env.step()
+    else:
+      raise AssertionError("draft did not finish")
+    env.force_evaluation_truncations([0])
+    records = env.drain_evaluation_records()
+    assert len(records) == 1
+    players = records[0]["players"]
+    assert sum(bool(player["gate_swapped"]) for player in players) == 1
+    for player in players:
+      assert player["gate"] == player["battle_gate"]
+      if player["gate_swapped"]:
+        assert player["original_gate"] != player["battle_gate"]
+        assert (
+          catalog.records_by_def_id[player["original_gate"]].element
+          == catalog.records_by_def_id[player["battle_gate"]].element
+        )
+      else:
+        assert player["original_gate"] == player["battle_gate"]
+  finally:
+    env.close()
+
 
 def test_legacy_prob_one_forces_sibling_matchups():
   pool = load_training_deck_pool()

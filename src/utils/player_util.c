@@ -13,6 +13,35 @@ uint8_t get_player_number(ecs_world_t *world, ecs_entity_t player) {
   return player_number->player_number;
 }
 
+static void record_ability_outcome(ecs_world_t *world, ecs_entity_t owner,
+                                   bool gate) {
+  if (owner == 0) {
+    return;
+  }
+
+  GameState *gs = ecs_singleton_get_mut(world, GameState);
+  if (gs == NULL) {
+    return;
+  }
+
+  const uint8_t owner_num = get_player_number(world, owner);
+  if (gate) {
+    gs->gate_ability_outcomes[owner_num]++;
+  } else {
+    gs->leader_ability_outcomes[owner_num]++;
+  }
+  ecs_singleton_modified(world, GameState);
+}
+
+void azk_record_gate_ability_outcome(ecs_world_t *world, ecs_entity_t owner) {
+  record_ability_outcome(world, owner, true);
+}
+
+void azk_record_leader_ability_outcome(ecs_world_t *world,
+                                       ecs_entity_t owner) {
+  record_ability_outcome(world, owner, false);
+}
+
 bool defender_can_respond(ecs_world_t *world, const GameState *gs,
                           uint8_t defender_index) {
   ecs_entity_t defender = gs->players[defender_index];

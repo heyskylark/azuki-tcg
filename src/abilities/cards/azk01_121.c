@@ -32,5 +32,6 @@ void azk01_121_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
   if (attack_buff > 0) {
     apply_attack_modifier(world, ctx->runtime.source_card,
                           ctx->runtime.source_card, attack_buff, true);
+    azk_record_leader_ability_outcome(world, ctx->runtime.owner);
   }
 }

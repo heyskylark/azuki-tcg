@@ -82,6 +82,11 @@ void stt01_001_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
     return;
   }
 
-  apply_charge_grant(world, target, TAG_GRANT_TICK_END_OF_TURN, 1);
+  const bool had_charge = ecs_has(world, target, Charge);
+  const bool granted =
+      apply_charge_grant(world, target, TAG_GRANT_TICK_END_OF_TURN, 1);
+  if (!had_charge && granted) {
+    azk_record_leader_ability_outcome(world, ctx->runtime.owner);
+  }
   cli_render_logf("[STT01-001] Granted end-of-turn Charge to target entity");
 }

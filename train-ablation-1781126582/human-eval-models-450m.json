@@ -1,0 +1,19 @@
+{
+  "models": [
+    {
+      "displayName": "300M selected p18000 historical anchor",
+      "modelKey": "experiments/azuki_local_corrected_production_1b_lr1500_fresh_resume_p13000_178752366293/model_azuki_local_018000.pt",
+      "checkpointSha256": "c56c1f96e41268fae543c030aa2686145ea22dd8700c9b06041fb3d83f5e4775"
+    },
+    {
+      "displayName": "450M upper envelope p21000",
+      "modelKey": "experiments/azuki_local_corrected_production_1b_lr1500_fresh_resume_p19500_178757505266/model_azuki_local_021000.pt",
+      "checkpointSha256": "c04062e8b2f529c518422e8595b22184baf62be11f78ad69b21b525744336e1b"
+    },
+    {
+      "displayName": "450M latest regression diagnostic p29300",
+      "modelKey": "experiments/azuki_local_corrected_production_1b_lr1500_fresh_resume_p19500_178757505266/model_azuki_local_029300.pt",
+      "checkpointSha256": "e16acde734167ea188d837cad645dffdb72e870d6e4d11d01521c6a6e8389b1c"
+    }
+  ]
+}

@@ -71,8 +71,12 @@ void stt02_001_apply_effects(ecs_world_t *world, const AbilityContext *ctx) {
     return;
   }
 
-  // Apply -1 attack modifier that expires at end of turn
-  // Source is the card applying the debuff (Shao)
+  const CurStats *before = ecs_get(world, target, CurStats);
+  const int8_t attack_before = before != NULL ? before->cur_atk : 0;
   apply_attack_modifier(world, target, ctx->runtime.source_card, -1, true);
+  const CurStats *after = ecs_get(world, target, CurStats);
+  if (after != NULL && after->cur_atk < attack_before) {
+    azk_record_leader_ability_outcome(world, ctx->runtime.owner);
+  }
   cli_render_logf("[STT02-001] Reduced target's attack by 1 until end of turn");
 }
