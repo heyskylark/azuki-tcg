@@ -61,6 +61,35 @@ static const char *debug_card_type_name(CardType type) {
   }
 }
 
+typedef struct {
+  ecs_world_t *world;
+  int target_index;
+  int choice_index;
+} AbilityTargetDebugVisitorContext;
+
+static void debug_dump_ability_target_choice(int action_index,
+                                             ecs_entity_t entity,
+                                             void *user_data) {
+  AbilityTargetDebugVisitorContext *visitor_ctx = user_data;
+  const CardId *choice_card_id = ecs_get(visitor_ctx->world, entity, CardId);
+  const Type *choice_type = ecs_get(visitor_ctx->world, entity, Type);
+  const ZoneIndex *choice_zone_index =
+      ecs_get(visitor_ctx->world, entity, ZoneIndex);
+  const EcsIdentifier *choice_name =
+      ecs_get(visitor_ctx->world, entity, EcsIdentifier);
+  fprintf(stderr,
+          "  choice[%d]: action_index=%d entity=%llu code=%s name=%s "
+          "zone_index=%d type=%s valid=1%s\n",
+          visitor_ctx->choice_index++, action_index,
+          (unsigned long long)entity,
+          choice_card_id != NULL ? choice_card_id->code : "<missing>",
+          choice_name != NULL ? choice_name->value : "<unnamed>",
+          choice_zone_index != NULL ? (int)choice_zone_index->index : -1,
+          choice_type != NULL ? debug_card_type_name(choice_type->value)
+                              : "<missing>",
+          action_index == visitor_ctx->target_index ? " <requested>" : "");
+}
+
 static void debug_dump_stt04_017_cost_failure(ecs_world_t *world,
                                               const AbilityContext *ctx,
                                               const AbilityDef *def,
@@ -118,34 +147,19 @@ static void debug_dump_stt04_017_cost_failure(ecs_world_t *world,
                                   : "<missing>");
   }
 
-  AbilityTargetChoice choices[AZK_MAX_ABILITY_TARGET_CHOICES];
-  const int choice_count = azk_collect_ability_target_choices(
+  const int choice_count = azk_visit_ability_target_choices(
       world, def, ABILITY_TARGET_SCOPE_COST, ctx->runtime.source_card,
-      ctx->runtime.owner, choices, AZK_MAX_ABILITY_TARGET_CHOICES);
+      ctx->runtime.owner, NULL, NULL);
   fprintf(stderr, "  enumerated_choices=%d resolved_valid=%d\n", choice_count,
           resolved_valid ? 1 : 0);
-  for (int i = 0; i < choice_count; ++i) {
-    const ecs_entity_t entity = choices[i].entity;
-    const CardId *choice_card_id = ecs_get(world, entity, CardId);
-    const Type *choice_type = ecs_get(world, entity, Type);
-    const ZoneIndex *choice_zone_index = ecs_get(world, entity, ZoneIndex);
-    const EcsIdentifier *choice_name = ecs_get(world, entity, EcsIdentifier);
-    const bool choice_valid =
-        !def->validate_cost_target ||
-        def->validate_cost_target(world, ctx->runtime.source_card,
-                                  ctx->runtime.owner, entity);
-    fprintf(stderr,
-            "  choice[%d]: action_index=%d entity=%llu code=%s name=%s "
-            "zone_index=%d type=%s valid=%d%s\n",
-            i, choices[i].action_index, (unsigned long long)entity,
-            choice_card_id != NULL ? choice_card_id->code : "<missing>",
-            choice_name != NULL ? choice_name->value : "<unnamed>",
-            choice_zone_index != NULL ? (int)choice_zone_index->index : -1,
-            choice_type != NULL ? debug_card_type_name(choice_type->value)
-                                : "<missing>",
-            choice_valid ? 1 : 0,
-            choices[i].action_index == target_index ? " <requested>" : "");
-  }
+  AbilityTargetDebugVisitorContext visitor_ctx = {
+      .world = world,
+      .target_index = target_index,
+      .choice_index = 0,
+  };
+  azk_visit_ability_target_choices(
+      world, def, ABILITY_TARGET_SCOPE_COST, ctx->runtime.source_card,
+      ctx->runtime.owner, debug_dump_ability_target_choice, &visitor_ctx);
 
   ecs_entities_t garden_cards = ecs_get_ordered_children(world, garden_zone);
   fprintf(stderr, "  garden_cards=%d zone=%llu\n", (int)garden_cards.count,

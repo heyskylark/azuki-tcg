@@ -32,13 +32,10 @@ static AbilityTargetValidatorFn get_target_validator(const AbilityDef *def,
                                             : def->validate_effect_target;
 }
 
-static int append_choice(AbilityTargetChoice *out, int out_cap, int count,
-                         int action_index, ecs_entity_t entity) {
-  if (out && count < out_cap) {
-    out[count] = (AbilityTargetChoice){
-        .action_index = action_index,
-        .entity = entity,
-    };
+static int visit_choice(AbilityTargetVisitorFn visitor, void *user_data,
+                        int count, int action_index, ecs_entity_t entity) {
+  if (visitor) {
+    visitor(action_index, entity, user_data);
   }
   return count + 1;
 }
@@ -76,28 +73,29 @@ static ecs_entity_t find_leader_card_if_present(ecs_world_t *world,
   return leader_card;
 }
 
-static int collect_hand_targets(ecs_world_t *world, ecs_entity_t zone,
-                                ecs_entity_t source_card, ecs_entity_t owner,
-                                AbilityTargetValidatorFn validator,
-                                AbilityTargetChoice *out, int out_cap,
-                                int count) {
+static int visit_hand_targets(ecs_world_t *world, ecs_entity_t zone,
+                              ecs_entity_t source_card, ecs_entity_t owner,
+                              AbilityTargetValidatorFn validator,
+                              AbilityTargetVisitorFn visitor, void *user_data,
+                              int count) {
   ecs_entities_t cards = ecs_get_ordered_children(world, zone);
   for (int32_t i = 0; i < cards.count; i++) {
     ecs_entity_t target = cards.ids[i];
     if (!is_target_valid(world, source_card, owner, target, validator)) {
       continue;
     }
-    count = append_choice(out, out_cap, count, i, target);
+    count = visit_choice(visitor, user_data, count, i, target);
   }
   return count;
 }
 
-static int collect_zone_index_targets(ecs_world_t *world, ecs_entity_t zone,
-                                      ecs_entity_t source_card,
-                                      ecs_entity_t owner,
-                                      AbilityTargetValidatorFn validator,
-                                      AbilityTargetChoice *out, int out_cap,
-                                      int count, int index_offset) {
+static int visit_zone_index_targets(ecs_world_t *world, ecs_entity_t zone,
+                                    ecs_entity_t source_card,
+                                    ecs_entity_t owner,
+                                    AbilityTargetValidatorFn validator,
+                                    AbilityTargetVisitorFn visitor,
+                                    void *user_data, int count,
+                                    int index_offset) {
   ecs_entities_t cards = ecs_get_ordered_children(world, zone);
   for (int32_t i = 0; i < cards.count; i++) {
     ecs_entity_t target = cards.ids[i];
@@ -108,17 +106,17 @@ static int collect_zone_index_targets(ecs_world_t *world, ecs_entity_t zone,
     if (!is_target_valid(world, source_card, owner, target, validator)) {
       continue;
     }
-    count = append_choice(out, out_cap, count, zone_index->index + index_offset,
-                          target);
+    count = visit_choice(visitor, user_data, count,
+                         zone_index->index + index_offset, target);
   }
   return count;
 }
 
-static int collect_pending_gate_portal_target(
+static int visit_pending_gate_portal_target(
     ecs_world_t *world, const GameState *gs, uint8_t player_num,
     ecs_entity_t source_card, ecs_entity_t owner,
-    AbilityTargetValidatorFn validator, AbilityTargetChoice *out, int out_cap,
-    int count) {
+    AbilityTargetValidatorFn validator, AbilityTargetVisitorFn visitor,
+    void *user_data, int count) {
   const AbilityContext *ctx = ecs_singleton_get(world, AbilityContext);
   if (ctx == NULL || ctx->scratch.kind != ABILITY_SCRATCH_GATE_PORTAL) {
     return count;
@@ -138,39 +136,37 @@ static int collect_pending_gate_portal_target(
     return count;
   }
 
-  return append_choice(out, out_cap, count,
-                       ctx->scratch.data.gate_portal.garden_index,
-                       portaled_card);
+  return visit_choice(visitor, user_data, count,
+                      ctx->scratch.data.gate_portal.garden_index,
+                      portaled_card);
 }
 
-static int collect_enemy_leader_or_garden_targets(
+static int visit_enemy_leader_or_garden_targets(
     ecs_world_t *world, const GameState *gs, uint8_t player_num,
     ecs_entity_t source_card, ecs_entity_t owner,
-    AbilityTargetValidatorFn validator, AbilityTargetChoice *out, int out_cap,
-    int count) {
+    AbilityTargetValidatorFn validator, AbilityTargetVisitorFn visitor,
+    void *user_data, int count) {
   const uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
-  count = collect_zone_index_targets(world, gs->zones[enemy_num].garden,
-                                     source_card, owner, validator, out,
-                                     out_cap, count, 0);
+  count = visit_zone_index_targets(
+      world, gs->zones[enemy_num].garden, source_card, owner, validator, visitor,
+      user_data, count, 0);
 
   ecs_entity_t leader =
       find_leader_card_if_present(world, gs->zones[enemy_num].leader);
   if (is_target_valid(world, source_card, owner, leader, validator)) {
-    count = append_choice(
-        out, out_cap, count,
+    count = visit_choice(
+        visitor, user_data, count,
         azk_encode_enemy_leader_or_garden_target_index(true, -1), leader);
   }
 
   return count;
 }
 
-static int collect_any_garden_targets(ecs_world_t *world, const GameState *gs,
-                                      uint8_t player_num,
-                                      ecs_entity_t source_card,
-                                      ecs_entity_t owner,
-                                      AbilityTargetValidatorFn validator,
-                                      AbilityTargetChoice *out, int out_cap,
-                                      int count) {
+static int visit_any_garden_targets(
+    ecs_world_t *world, const GameState *gs, uint8_t player_num,
+    ecs_entity_t source_card, ecs_entity_t owner,
+    AbilityTargetValidatorFn validator, AbilityTargetVisitorFn visitor,
+    void *user_data, int count) {
   const uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
   ecs_entities_t self_cards =
       ecs_get_ordered_children(world, gs->zones[player_num].garden);
@@ -183,8 +179,8 @@ static int collect_any_garden_targets(ecs_world_t *world, const GameState *gs,
     if (!is_target_valid(world, source_card, owner, target, validator)) {
       continue;
     }
-    count = append_choice(
-        out, out_cap, count,
+    count = visit_choice(
+        visitor, user_data, count,
         azk_encode_any_garden_target_index(false, zone_index->index), target);
   }
 
@@ -199,19 +195,19 @@ static int collect_any_garden_targets(ecs_world_t *world, const GameState *gs,
     if (!is_target_valid(world, source_card, owner, target, validator)) {
       continue;
     }
-    count = append_choice(
-        out, out_cap, count,
+    count = visit_choice(
+        visitor, user_data, count,
         azk_encode_any_garden_target_index(true, zone_index->index), target);
   }
 
   return count;
 }
 
-static int collect_friendly_garden_or_alley_targets(
+static int visit_friendly_garden_or_alley_targets(
     ecs_world_t *world, const GameState *gs, uint8_t player_num,
     ecs_entity_t source_card, ecs_entity_t owner,
-    AbilityTargetValidatorFn validator, AbilityTargetChoice *out, int out_cap,
-    int count) {
+    AbilityTargetValidatorFn validator, AbilityTargetVisitorFn visitor,
+    void *user_data, int count) {
   ecs_entities_t garden_cards =
       ecs_get_ordered_children(world, gs->zones[player_num].garden);
   for (int32_t i = 0; i < garden_cards.count; i++) {
@@ -223,8 +219,8 @@ static int collect_friendly_garden_or_alley_targets(
     if (!is_target_valid(world, source_card, owner, target, validator)) {
       continue;
     }
-    count = append_choice(
-        out, out_cap, count,
+    count = visit_choice(
+        visitor, user_data, count,
         azk_encode_friendly_garden_or_alley_target_index(false,
                                                          zone_index->index),
         target);
@@ -241,8 +237,8 @@ static int collect_friendly_garden_or_alley_targets(
     if (!is_target_valid(world, source_card, owner, target, validator)) {
       continue;
     }
-    count = append_choice(
-        out, out_cap, count,
+    count = visit_choice(
+        visitor, user_data, count,
         azk_encode_friendly_garden_or_alley_target_index(true,
                                                          zone_index->index),
         target);
@@ -251,46 +247,43 @@ static int collect_friendly_garden_or_alley_targets(
   return count;
 }
 
-static int collect_any_leader_targets(ecs_world_t *world, const GameState *gs,
-                                      uint8_t player_num,
-                                      ecs_entity_t source_card,
-                                      ecs_entity_t owner,
-                                      AbilityTargetValidatorFn validator,
-                                      AbilityTargetChoice *out, int out_cap,
-                                      int count) {
+static int visit_any_leader_targets(
+    ecs_world_t *world, const GameState *gs, uint8_t player_num,
+    ecs_entity_t source_card, ecs_entity_t owner,
+    AbilityTargetValidatorFn validator, AbilityTargetVisitorFn visitor,
+    void *user_data, int count) {
   ecs_entity_t friendly_leader =
       find_leader_card_if_present(world, gs->zones[player_num].leader);
   if (is_target_valid(world, source_card, owner, friendly_leader, validator)) {
-    count = append_choice(out, out_cap, count,
-                          azk_encode_any_leader_target_index(false),
-                          friendly_leader);
+    count = visit_choice(visitor, user_data, count,
+                         azk_encode_any_leader_target_index(false),
+                         friendly_leader);
   }
 
   const uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
   ecs_entity_t enemy_leader =
       find_leader_card_if_present(world, gs->zones[enemy_num].leader);
   if (is_target_valid(world, source_card, owner, enemy_leader, validator)) {
-    count = append_choice(out, out_cap, count,
-                          azk_encode_any_leader_target_index(true),
-                          enemy_leader);
+    count = visit_choice(visitor, user_data, count,
+                         azk_encode_any_leader_target_index(true), enemy_leader);
   }
 
   return count;
 }
 
-static int collect_any_leader_or_garden_targets(
+static int visit_any_leader_or_garden_targets(
     ecs_world_t *world, const GameState *gs, uint8_t player_num,
     ecs_entity_t source_card, ecs_entity_t owner,
-    AbilityTargetValidatorFn validator, AbilityTargetChoice *out, int out_cap,
-    int count) {
-  count = collect_any_garden_targets(world, gs, player_num, source_card, owner,
-                                     validator, out, out_cap, count);
+    AbilityTargetValidatorFn validator, AbilityTargetVisitorFn visitor,
+    void *user_data, int count) {
+  count = visit_any_garden_targets(world, gs, player_num, source_card, owner,
+                                   validator, visitor, user_data, count);
 
   ecs_entity_t friendly_leader =
       find_leader_card_if_present(world, gs->zones[player_num].leader);
   if (is_target_valid(world, source_card, owner, friendly_leader, validator)) {
-    count = append_choice(
-        out, out_cap, count,
+    count = visit_choice(
+        visitor, user_data, count,
         azk_encode_any_leader_or_garden_target_index(true, false, -1),
         friendly_leader);
   }
@@ -299,8 +292,8 @@ static int collect_any_leader_or_garden_targets(
   ecs_entity_t enemy_leader =
       find_leader_card_if_present(world, gs->zones[enemy_num].leader);
   if (is_target_valid(world, source_card, owner, enemy_leader, validator)) {
-    count = append_choice(
-        out, out_cap, count,
+    count = visit_choice(
+        visitor, user_data, count,
         azk_encode_any_leader_or_garden_target_index(true, true, -1),
         enemy_leader);
   }
@@ -308,10 +301,11 @@ static int collect_any_leader_or_garden_targets(
   return count;
 }
 
-static int collect_target_choices_internal(
+static int visit_target_choices_internal(
     ecs_world_t *world, const AbilityDef *def, AbilityTargetScope scope,
     ecs_entity_t source_card, ecs_entity_t owner,
-    AbilityTargetValidatorFn validator, AbilityTargetChoice *out, int out_cap) {
+    AbilityTargetValidatorFn validator, AbilityTargetVisitorFn visitor,
+    void *user_data) {
   const GameState *gs = ecs_singleton_get(world, GameState);
   if (!world || !def || !gs || owner == 0) {
     return 0;
@@ -326,57 +320,57 @@ static int collect_target_choices_internal(
     return 0;
   case ABILITY_TARGET_FRIENDLY_HAND:
   case ABILITY_TARGET_FRIENDLY_HAND_WEAPON:
-    return collect_hand_targets(world, gs->zones[player_num].hand, source_card,
-                                owner, validator, out, out_cap, count);
+    return visit_hand_targets(world, gs->zones[player_num].hand, source_card,
+                              owner, validator, visitor, user_data, count);
   case ABILITY_TARGET_FRIENDLY_GARDEN_ENTITY:
-    count = collect_zone_index_targets(world, gs->zones[player_num].garden,
-                                       source_card, owner, validator, out,
-                                       out_cap, count, 0);
-    return collect_pending_gate_portal_target(world, gs, player_num,
-                                              source_card, owner, validator,
-                                              out, out_cap, count);
+    count = visit_zone_index_targets(
+        world, gs->zones[player_num].garden, source_card, owner, validator,
+        visitor, user_data, count, 0);
+    return visit_pending_gate_portal_target(
+        world, gs, player_num, source_card, owner, validator, visitor, user_data,
+        count);
   case ABILITY_TARGET_FRIENDLY_ALLEY_ENTITY:
-    return collect_zone_index_targets(world, gs->zones[player_num].alley,
-                                      source_card, owner, validator, out,
-                                      out_cap, count, 0);
+    return visit_zone_index_targets(
+        world, gs->zones[player_num].alley, source_card, owner, validator,
+        visitor, user_data, count, 0);
   case ABILITY_TARGET_ENEMY_GARDEN_ENTITY: {
     const uint8_t enemy_num = (player_num + 1) % MAX_PLAYERS_PER_MATCH;
-    return collect_zone_index_targets(world, gs->zones[enemy_num].garden,
-                                      source_card, owner, validator, out,
-                                      out_cap, count, 0);
+    return visit_zone_index_targets(
+        world, gs->zones[enemy_num].garden, source_card, owner, validator,
+        visitor, user_data, count, 0);
   }
   case ABILITY_TARGET_ENEMY_LEADER_OR_GARDEN_ENTITY:
-    return collect_enemy_leader_or_garden_targets(
-        world, gs, player_num, source_card, owner, validator, out, out_cap,
+    return visit_enemy_leader_or_garden_targets(
+        world, gs, player_num, source_card, owner, validator, visitor, user_data,
         count);
   case ABILITY_TARGET_FRIENDLY_GARDEN_OR_ALLEY_ENTITY:
-    return collect_friendly_garden_or_alley_targets(
-        world, gs, player_num, source_card, owner, validator, out, out_cap,
+    return visit_friendly_garden_or_alley_targets(
+        world, gs, player_num, source_card, owner, validator, visitor, user_data,
         count);
   case ABILITY_TARGET_ANY_GARDEN_ENTITY:
-    return collect_any_garden_targets(world, gs, player_num, source_card,
-                                      owner, validator, out, out_cap, count);
+    return visit_any_garden_targets(world, gs, player_num, source_card, owner,
+                                    validator, visitor, user_data, count);
   case ABILITY_TARGET_ANY_LEADER_OR_GARDEN_ENTITY:
-    return collect_any_leader_or_garden_targets(
-        world, gs, player_num, source_card, owner, validator, out, out_cap,
+    return visit_any_leader_or_garden_targets(
+        world, gs, player_num, source_card, owner, validator, visitor, user_data,
         count);
   case ABILITY_TARGET_ANY_LEADER:
-    return collect_any_leader_targets(world, gs, player_num, source_card,
-                                      owner, validator, out, out_cap, count);
+    return visit_any_leader_targets(world, gs, player_num, source_card, owner,
+                                    validator, visitor, user_data, count);
   default:
     return 0;
   }
 }
 
-int azk_collect_ability_target_choices(ecs_world_t *world,
-                                       const AbilityDef *def,
-                                       AbilityTargetScope scope,
-                                       ecs_entity_t source_card,
-                                       ecs_entity_t owner,
-                                       AbilityTargetChoice *out, int out_cap) {
-  return collect_target_choices_internal(world, def, scope, source_card, owner,
-                                         get_target_validator(def, scope), out,
-                                         out_cap);
+int azk_visit_ability_target_choices(ecs_world_t *world, const AbilityDef *def,
+                                     AbilityTargetScope scope,
+                                     ecs_entity_t source_card,
+                                     ecs_entity_t owner,
+                                     AbilityTargetVisitorFn visitor,
+                                     void *user_data) {
+  return visit_target_choices_internal(
+      world, def, scope, source_card, owner, get_target_validator(def, scope),
+      visitor, user_data);
 }
 
 uint8_t azk_count_ability_target_choices(ecs_world_t *world,
@@ -384,8 +378,8 @@ uint8_t azk_count_ability_target_choices(ecs_world_t *world,
                                          AbilityTargetScope scope,
                                          ecs_entity_t source_card,
                                          ecs_entity_t owner) {
-  const int count = azk_collect_ability_target_choices(
-      world, def, scope, source_card, owner, NULL, 0);
+  const int count = azk_visit_ability_target_choices(
+      world, def, scope, source_card, owner, NULL, NULL);
   return count > UINT8_MAX ? UINT8_MAX : (uint8_t)count;
 }
 

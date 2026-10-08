@@ -5,28 +5,23 @@
 #include <stdint.h>
 
 #include "abilities/ability_registry.h"
-#include "constants/game.h"
-
-#define AZK_MAX_ABILITY_TARGET_CHOICES                                           \
-  ((MAX_HAND_SIZE > (GARDEN_SIZE * 2 + 2)) ? MAX_HAND_SIZE                       \
-                                            : (GARDEN_SIZE * 2 + 2))
 
 typedef enum {
   ABILITY_TARGET_SCOPE_COST = 0,
   ABILITY_TARGET_SCOPE_EFFECT = 1,
 } AbilityTargetScope;
 
-typedef struct {
-  int action_index;
-  ecs_entity_t entity;
-} AbilityTargetChoice;
+// Visits every valid target in deterministic action order and returns the total
+// count. A NULL visitor performs the same traversal without emitting targets.
+typedef void (*AbilityTargetVisitorFn)(int action_index, ecs_entity_t entity,
+                                       void *user_data);
 
-int azk_collect_ability_target_choices(ecs_world_t *world,
-                                       const AbilityDef *def,
-                                       AbilityTargetScope scope,
-                                       ecs_entity_t source_card,
-                                       ecs_entity_t owner,
-                                       AbilityTargetChoice *out, int out_cap);
+int azk_visit_ability_target_choices(ecs_world_t *world, const AbilityDef *def,
+                                     AbilityTargetScope scope,
+                                     ecs_entity_t source_card,
+                                     ecs_entity_t owner,
+                                     AbilityTargetVisitorFn visitor,
+                                     void *user_data);
 
 uint8_t azk_count_ability_target_choices(ecs_world_t *world,
                                          const AbilityDef *def,

@@ -218,6 +218,19 @@ static void add_valid_action(AzkActionMaskSet *out_mask,
   out_mask->head0_mask[action->type] = 1;
 }
 
+typedef struct {
+  AzkActionMaskSet *out_mask;
+  UserAction *action;
+} AbilityTargetActionVisitorContext;
+
+static void add_ability_target_action(int action_index, ecs_entity_t entity,
+                                      void *user_data) {
+  (void)entity;
+  AbilityTargetActionVisitorContext *visitor_ctx = user_data;
+  visitor_ctx->action->subaction_1 = action_index;
+  add_valid_action(visitor_ctx->out_mask, visitor_ctx->action);
+}
+
 // Enumerate ability actions based on current ability phase
 static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
                                       ecs_entity_t player,
@@ -261,14 +274,13 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
 
     action.type = ACT_SELECT_COST_TARGET;
 
-    AbilityTargetChoice choices[AZK_MAX_ABILITY_TARGET_CHOICES];
-    int choice_count = azk_collect_ability_target_choices(
+    AbilityTargetActionVisitorContext visitor_ctx = {
+        .out_mask = out_mask,
+        .action = &action,
+    };
+    azk_visit_ability_target_choices(
         world, def, ABILITY_TARGET_SCOPE_COST, ctx->runtime.source_card,
-        ctx->runtime.owner, choices, AZK_MAX_ABILITY_TARGET_CHOICES);
-    for (int i = 0; i < choice_count; i++) {
-      action.subaction_1 = choices[i].action_index;
-      add_valid_action(out_mask, &action);
-    }
+        ctx->runtime.owner, add_ability_target_action, &visitor_ctx);
     break;
   }
 
@@ -290,18 +302,17 @@ static void enumerate_ability_actions(ecs_world_t *world, const GameState *gs,
 
     action.type = ACT_SELECT_EFFECT_TARGET;
 
-    AbilityTargetChoice choices[AZK_MAX_ABILITY_TARGET_CHOICES];
-    int choice_count = azk_collect_ability_target_choices(
+    AbilityTargetActionVisitorContext visitor_ctx = {
+        .out_mask = out_mask,
+        .action = &action,
+    };
+    const int choice_count = azk_visit_ability_target_choices(
         world, def, ABILITY_TARGET_SCOPE_EFFECT, ctx->runtime.source_card,
-        ctx->runtime.owner, choices, AZK_MAX_ABILITY_TARGET_CHOICES);
+        ctx->runtime.owner, add_ability_target_action, &visitor_ctx);
     if (choice_count == 0) {
       action.type = ACT_NOOP;
       add_valid_action(out_mask, &action);
       break;
-    }
-    for (int i = 0; i < choice_count; i++) {
-      action.subaction_1 = choices[i].action_index;
-      add_valid_action(out_mask, &action);
     }
     break;
   }

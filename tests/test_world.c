@@ -3016,6 +3016,163 @@ static void test_stt02_014_action_mask_uses_zone_index(void) {
   ecs_fini(world);
 }
 
+static void assert_dense_target_selection_mask(const AzkActionMaskSet *mask,
+                                               ActionType action_type,
+                                               int target_count) {
+  AZK_TEST_ASSERT(mask->legal_action_count == (uint16_t)target_count);
+  for (int i = 0; i < target_count; ++i) {
+    const UserAction *action = &mask->legal_actions[i];
+    AZK_TEST_ASSERT(action->type == action_type);
+    AZK_TEST_ASSERT(action->subaction_1 == i);
+    AZK_TEST_ASSERT(action->subaction_2 == 0);
+    AZK_TEST_ASSERT(action->subaction_3 == 0);
+  }
+}
+
+static void test_aquatic_veil_enumerates_large_hand_cost_targets(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  ecs_entity_t player = 0;
+  PlayerZones zones = {0};
+  setup_single_player_play_fixture(world, &player, &zones);
+
+  ecs_entity_t hand_cards[34] = {0};
+  for (int i = 0; i < 34; ++i) {
+    char name[64];
+    snprintf(name, sizeof(name), "AquaticVeilCostTarget_%d", i);
+    hand_cards[i] = create_basic_entity_card(
+        world, player, zones.hand, CARD_DEF_STT03_003, CARD_ELEMENT_EARTH,
+        name, 0);
+  }
+
+  ecs_entity_t aquatic_veil = ecs_new(world);
+  ecs_set_name(world, aquatic_veil, "AZK01-029_overflow_regression");
+  ecs_set(world, aquatic_veil, CardId,
+          {.id = CARD_DEF_AZK01_029, .code = "AZK01-029"});
+  ecs_set(world, aquatic_veil, Type, {.value = CARD_TYPE_SPELL});
+  ecs_set(world, aquatic_veil, Element, {.element = CARD_ELEMENT_WATER});
+  ecs_add_pair(world, aquatic_veil, Rel_OwnedBy, player);
+  initialize_test_card_runtime_components(world, aquatic_veil);
+  attach_ability_components(world, aquatic_veil);
+
+  bool triggered = azk_trigger_spell_ability(world, aquatic_veil, player, 0);
+  AZK_TEST_ASSERT(triggered);
+  AZK_TEST_ASSERT(azk_get_ability_phase(world) ==
+                  ABILITY_PHASE_COST_SELECTION);
+
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  AZK_TEST_ASSERT(gs != NULL);
+
+  AzkActionMaskSet first_mask = {0};
+  bool first_built =
+      azk_build_action_mask_for_player(world, gs, 0, &first_mask);
+  AZK_TEST_ASSERT(first_built);
+  assert_dense_target_selection_mask(&first_mask, ACT_SELECT_COST_TARGET, 34);
+
+  AzkActionMaskSet repeated_mask = {0};
+  bool repeated_built =
+      azk_build_action_mask_for_player(world, gs, 0, &repeated_mask);
+  AZK_TEST_ASSERT(repeated_built);
+  assert_dense_target_selection_mask(&repeated_mask, ACT_SELECT_COST_TARGET,
+                                     34);
+  for (uint16_t i = 0; i < first_mask.legal_action_count; ++i) {
+    AZK_TEST_ASSERT(repeated_mask.legal_actions[i].player ==
+                    first_mask.legal_actions[i].player);
+    AZK_TEST_ASSERT(repeated_mask.legal_actions[i].type ==
+                    first_mask.legal_actions[i].type);
+    AZK_TEST_ASSERT(repeated_mask.legal_actions[i].subaction_1 ==
+                    first_mask.legal_actions[i].subaction_1);
+    AZK_TEST_ASSERT(repeated_mask.legal_actions[i].subaction_2 ==
+                    first_mask.legal_actions[i].subaction_2);
+    AZK_TEST_ASSERT(repeated_mask.legal_actions[i].subaction_3 ==
+                    first_mask.legal_actions[i].subaction_3);
+  }
+
+  bool selected_tail = azk_process_cost_selection(world, 33);
+  AZK_TEST_ASSERT(selected_tail);
+  const AbilityContext *ctx = ecs_singleton_get(world, AbilityContext);
+  AZK_TEST_ASSERT(ctx != NULL);
+  AZK_TEST_ASSERT(ctx->cost.selected_count == 1);
+  AZK_TEST_ASSERT(ctx->cost.entities[0] == hand_cards[33]);
+
+  AzkActionMaskSet after_selection = {0};
+  bool after_selection_built =
+      azk_build_action_mask_for_player(world, gs, 0, &after_selection);
+  AZK_TEST_ASSERT(after_selection_built);
+  assert_dense_target_selection_mask(&after_selection, ACT_SELECT_COST_TARGET,
+                                     33);
+
+  ecs_fini(world);
+}
+
+static void test_sleight_of_hand_enumerates_large_hand_effect_targets(void) {
+  ecs_world_t *world = ecs_init();
+  azk_register_components(world);
+
+  ecs_entity_t player = 0;
+  PlayerZones zones = {0};
+  setup_single_player_play_fixture(world, &player, &zones);
+
+  for (int i = 0; i < 32; ++i) {
+    char name[64];
+    snprintf(name, sizeof(name), "SleightOfHandInitialTarget_%d", i);
+    create_basic_entity_card(world, player, zones.hand, CARD_DEF_STT03_003,
+                             CARD_ELEMENT_EARTH, name, 0);
+  }
+  for (int i = 0; i < 3; ++i) {
+    char name[64];
+    snprintf(name, sizeof(name), "SleightOfHandDrawTarget_%d", i);
+    create_basic_entity_card(world, player, zones.deck, CARD_DEF_STT03_003,
+                             CARD_ELEMENT_EARTH, name, 0);
+  }
+
+  ecs_entity_t sleight_of_hand = create_basic_entity_card(
+      world, player, zones.alley, CARD_DEF_AZK01_016, CARD_ELEMENT_NORMAL,
+      "AZK01-016_overflow_regression", 0);
+
+  bool triggered =
+      azk_trigger_main_ability(world, sleight_of_hand, player, 0);
+  AZK_TEST_ASSERT(triggered);
+  AZK_TEST_ASSERT(azk_get_ability_phase(world) ==
+                  ABILITY_PHASE_EFFECT_SELECTION);
+
+  const GameState *gs = ecs_singleton_get(world, GameState);
+  AZK_TEST_ASSERT(gs != NULL);
+  ecs_entities_t hand = ecs_get_ordered_children(world, zones.hand);
+  AZK_TEST_ASSERT(hand.count == 34);
+  ecs_entity_t tail_target = hand.ids[33];
+
+  AzkActionMaskSet first_mask = {0};
+  bool first_built =
+      azk_build_action_mask_for_player(world, gs, 0, &first_mask);
+  AZK_TEST_ASSERT(first_built);
+  assert_dense_target_selection_mask(&first_mask, ACT_SELECT_EFFECT_TARGET, 34);
+
+  AzkActionMaskSet repeated_mask = {0};
+  bool repeated_built =
+      azk_build_action_mask_for_player(world, gs, 0, &repeated_mask);
+  AZK_TEST_ASSERT(repeated_built);
+  assert_dense_target_selection_mask(&repeated_mask, ACT_SELECT_EFFECT_TARGET,
+                                     34);
+
+  bool selected_tail = azk_process_effect_selection(world, 33);
+  AZK_TEST_ASSERT(selected_tail);
+  const AbilityContext *ctx = ecs_singleton_get(world, AbilityContext);
+  AZK_TEST_ASSERT(ctx != NULL);
+  AZK_TEST_ASSERT(ctx->effect.selected_count == 1);
+  AZK_TEST_ASSERT(ctx->effect.entities[0] == tail_target);
+
+  AzkActionMaskSet after_selection = {0};
+  bool after_selection_built =
+      azk_build_action_mask_for_player(world, gs, 0, &after_selection);
+  AZK_TEST_ASSERT(after_selection_built);
+  assert_dense_target_selection_mask(&after_selection,
+                                     ACT_SELECT_EFFECT_TARGET, 33);
+
+  ecs_fini(world);
+}
+
 static void test_azk01_002_validate_rejects_dead_leader(void) {
   ecs_world_t *world = ecs_init();
   azk_register_components(world);
@@ -3119,6 +3276,19 @@ static void test_azk01_002_spell_heals_owner_leader(void) {
   ecs_fini(world);
 }
 
+typedef struct {
+  ecs_entity_t target;
+  int action_index;
+} TargetActionIndexLookup;
+
+static void find_target_action_index(int action_index, ecs_entity_t entity,
+                                     void *user_data) {
+  TargetActionIndexLookup *lookup = user_data;
+  if (lookup->action_index < 0 && entity == lookup->target) {
+    lookup->action_index = action_index;
+  }
+}
+
 static void test_azk01_065_spell_damages_owner_leader_and_selected_target(void) {
   ecs_world_t *world = ecs_init();
   azk_register_components(world);
@@ -3163,19 +3333,15 @@ static void test_azk01_065_spell_damages_owner_leader_and_selected_target(void) 
   const AbilityDef *def = azk_get_ability_def(CARD_DEF_AZK01_065);
   assert(def != NULL);
 
-  AbilityTargetChoice choices[AZK_MAX_ABILITY_TARGET_CHOICES] = {0};
-  int choice_count = azk_collect_ability_target_choices(
-      world, def, ABILITY_TARGET_SCOPE_EFFECT, spell_card, player, choices,
-      AZK_MAX_ABILITY_TARGET_CHOICES);
+  TargetActionIndexLookup target_lookup = {
+      .target = target,
+      .action_index = -1,
+  };
+  int choice_count = azk_visit_ability_target_choices(
+      world, def, ABILITY_TARGET_SCOPE_EFFECT, spell_card, player,
+      find_target_action_index, &target_lookup);
   assert(choice_count > 0);
-
-  int target_action_index = -1;
-  for (int i = 0; i < choice_count; ++i) {
-    if (choices[i].entity == target) {
-      target_action_index = choices[i].action_index;
-      break;
-    }
-  }
+  int target_action_index = target_lookup.action_index;
   assert(target_action_index >= 0);
 
   bool selected = azk_process_effect_selection(world, target_action_index);
@@ -6743,19 +6909,15 @@ static void test_stt04_017_cost_selection_allows_fifth_garden_sacrifice(void) {
   AZK_TEST_ASSERT(ecs_get_ordered_children(world, zones.discard).count ==
                   GARDEN_SIZE);
 
-  AbilityTargetChoice choices[AZK_MAX_ABILITY_TARGET_CHOICES] = {0};
-  int choice_count = azk_collect_ability_target_choices(
-      world, def, ABILITY_TARGET_SCOPE_EFFECT, spell, player, choices,
-      AZK_MAX_ABILITY_TARGET_CHOICES);
+  TargetActionIndexLookup target_lookup = {
+      .target = enemy_target,
+      .action_index = -1,
+  };
+  int choice_count = azk_visit_ability_target_choices(
+      world, def, ABILITY_TARGET_SCOPE_EFFECT, spell, player,
+      find_target_action_index, &target_lookup);
   AZK_TEST_ASSERT(choice_count > 0);
-
-  int enemy_target_action_index = -1;
-  for (int i = 0; i < choice_count; ++i) {
-    if (choices[i].entity == enemy_target) {
-      enemy_target_action_index = choices[i].action_index;
-      break;
-    }
-  }
+  int enemy_target_action_index = target_lookup.action_index;
   AZK_TEST_ASSERT(enemy_target_action_index >= 0);
 
   AzkActionMaskSet effect_mask = {0};
@@ -8565,6 +8727,12 @@ static void test_deck_to_selection_to_hand_finalizes_each_committed_step(void) {
 
 int main(int argc, char **argv) {
   if (argc > 1 &&
+      strcmp(argv[1], "--run-ability-target-overflow-regression") == 0) {
+    test_aquatic_veil_enumerates_large_hand_cost_targets();
+    test_sleight_of_hand_enumerates_large_hand_effect_targets();
+    return 0;
+  }
+  if (argc > 1 &&
       strcmp(argv[1], "--run-stt04-017-regression") == 0) {
     test_stt04_017_cost_selection_allows_fifth_garden_sacrifice();
     return 0;
@@ -8605,6 +8773,8 @@ int main(int argc, char **argv) {
   test_draw_cards_with_deckout_check_success();
   test_stt02_014_effect_target_uses_zone_index();
   test_stt02_014_action_mask_uses_zone_index();
+  test_aquatic_veil_enumerates_large_hand_cost_targets();
+  test_sleight_of_hand_enumerates_large_hand_effect_targets();
   test_azk01_002_validate_rejects_dead_leader();
   test_azk01_002_spell_heals_owner_leader();
   test_azk01_065_spell_damages_owner_leader_and_selected_target();
